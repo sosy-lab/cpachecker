@@ -354,9 +354,62 @@ class KInductionProver implements AutoCloseable {
         predecessorCandidate.orElseThrow().getAssertion(predecessorStates, fmgr, pfmgr);
     FluentIterable<AbstractState> loopHeadStates =
         AbstractStates.filterLocations(reached, relevantLoopHeads);
+
+    // Existential closure check: does there exist a path from a C-predecessor to a C-state
+    // at the loop head one iteration later? If so, the loop can always take one more step
+    // while preserving C, which (combined with base-case reachability) proves non-termination.
+    // This is strictly weaker than the universal closure below and handles nondeterministic
+    // programs where only some branches keep the loop going.
+    ImmutableSet<AbstractState> loopHeadSuccessors =
+        ImmutableSet.copyOf(
+            filterIteration(
+                AbstractStates.filterLocations(reached, relevantLoopHeads),
+                pK + 1,
+                relevantLoopHeads));
+
+    stats.inductionPreparation.stop();
+
+    if (!loopHeadSuccessors.isEmpty()) {
+      BooleanFormula successorSatisfaction =
+          pCandidateInvariant.getAssertion(loopHeadSuccessors, fmgr, pfmgr);
+      logger.log(Level.INFO, "Starting existential non-termination closure check...");
+      stats.inductionCheck.start();
+      int ePushes = 0;
+      try {
+        prover.push(predecessorAssertion);
+        ePushes++;
+        if (requireSatisfiablePredecessor && prover.isUnsat()) {
+          logger.log(
+              Level.FINER,
+              "Existential closure: predecessor is unsatisfiable; skipping existential check.");
+        } else {
+          prover.push(successorSatisfaction);
+          ePushes++;
+          if (prover.isSat()) {
+            logger.log(
+                Level.INFO,
+                "Existential non-termination closure confirmed: loop-body execution"
+                    + " preserves candidate at loop head.");
+            return true;
+          }
+        }
+      } finally {
+        while (ePushes > 0) {
+          prover.pop();
+          ePushes--;
+        }
+        stats.inductionCheck.stop();
+      }
+    } else {
+      logger.log(
+          Level.FINER,
+          "Existential closure: no loop-head states at iteration k+1 found; skipping.");
+    }
+
+    // Universal closure check: no path from a C-predecessor reaches a ¬C successor.
+    // This is stronger than the existential check and handles deterministic programs.
     BooleanFormula loopHeadInv =
         inductiveLoopHeadInvariantAssertion(loopHeadStates, relevantLoopHeads);
-
     Iterable<AbstractState> endStates = FluentIterable.from(reached).filter(BMCHelper::isEndState);
     BooleanFormula successorExistsAssertion =
         createFormulaFor(endStates, bfmgr, Optional.of(shutdownNotifier));
@@ -366,15 +419,12 @@ class KInductionProver implements AutoCloseable {
       logger.log(
           Level.FINER,
           "The non-termination closure check has no successor assertions; refusing vacuous proof.");
-      stats.inductionPreparation.stop();
       return false;
     }
     BooleanFormula successorViolation =
         BMCHelper.disjoinStateViolationAssertions(bfmgr, successorViolationAssertions);
 
-    stats.inductionPreparation.stop();
-
-    logger.log(Level.INFO, "Starting non-termination closure check...");
+    logger.log(Level.INFO, "Starting universal non-termination closure check...");
 
     stats.inductionCheck.start();
     int pushes = 0;
