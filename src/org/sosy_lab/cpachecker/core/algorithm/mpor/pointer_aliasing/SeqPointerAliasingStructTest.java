@@ -519,7 +519,7 @@ public class SeqPointerAliasingStructTest {
             parameterAssignment1.orElseThrow().leftHandSideMemoryLocation(), allPointerAssignments);
     ImmutableSet<SeqMemoryLocation> memoryLocationsP2 =
         SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            parameterAssignment2.get().leftHandSideMemoryLocation(), allPointerAssignments);
+            parameterAssignment2.orElseThrow().leftHandSideMemoryLocation(), allPointerAssignments);
 
     // check that param_ptr_P1 is associated with local_l1 and param_ptr_P2 with global_G1
     assertThat(memoryLocationsP1).hasSize(1);
