@@ -23,7 +23,9 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCExpressionTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCLeftHandSideTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallPredicate;
@@ -586,6 +588,10 @@ public class AcslParserLogicalDefinitionsTest {
      *   : start != 0 && start->next != start && start->next != 0
      *     && pred_sll(start->next, end, size - 1)
      *
+     * Needs to be called in our example above like this:
+     * pred_sll(now, sll, ?)
+     * // TODO: size?
+     *
      * TODO: add start != 0 in size == 1 case
      *
      * TODO: can't we replace the size (that is only used implicitly here) with:
@@ -675,15 +681,24 @@ public class AcslParserLogicalDefinitionsTest {
             BinaryOperator.NOT_EQUALS);
 
     AcslCType sllPointerAcslType = new AcslCType(sllCPointerType);
-    AcslParameterDeclaration start =
-        new AcslParameterDeclaration(FileLocation.DUMMY, sllPointerAcslType, "start");
-    AcslParameterDeclaration end =
-        new AcslParameterDeclaration(FileLocation.DUMMY, sllPointerAcslType, "end");
+
+    // TODO: we need the actual CVariableDeclarations here instead of null, as there is info that we
+    // can not recover otherwise!
+    AcslCParameterDeclaration startAcslCParamDecl =
+        new AcslCParameterDeclaration(
+            FileLocation.DUMMY, sllPointerAcslType, startCIdExpr.getName(), null);
+    AcslCParameterDeclaration endAcslCParamDecl =
+        new AcslCParameterDeclaration(
+            FileLocation.DUMMY, sllPointerAcslType, endCIdExpr.getName(), null);
+    AcslCIdExpression endAcslCIdExpr =
+        new AcslCIdExpression(FileLocation.DUMMY, sllPointerAcslType, endCIdExpr);
+
     AcslParameterDeclaration size =
         new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "size");
 
     AcslCLeftHandSideTerm startCNextFieldDerefTerm =
-        new AcslCLeftHandSideTerm(FileLocation.DUMMY, start.getType(), startCNextFieldDeref);
+        new AcslCLeftHandSideTerm(
+            FileLocation.DUMMY, startAcslCParamDecl.getType(), startCNextFieldDeref);
     AcslCExpressionTerm sllNextEqualsZeroTerm =
         new AcslCExpressionTerm(
             FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, sllNextEqualsZero);
@@ -717,15 +732,16 @@ public class AcslParserLogicalDefinitionsTest {
             FileLocation.DUMMY,
             // Function type:
             new AcslPredicateType(
-                ImmutableList.of(start.getType(), end.getType(), size.getType()), false),
+                ImmutableList.of(
+                    startAcslCParamDecl.getType(), endAcslCParamDecl.getType(), size.getType()),
+                false),
             "pred_sll",
             "pred_sll",
             // We don't want polymorphic types for MemSafety
             ImmutableList.of(),
             // Parameters:
-            ImmutableList.of(start, end, size));
+            ImmutableList.of(startAcslCParamDecl, endAcslCParamDecl, size));
 
-    // TODO: how to connect 2 boolean terms with logical operators, e.g. AND?
     AcslAstNode expectedOutput =
         new AcslLogicPredicateDefinition(
             FileLocation.DUMMY,
@@ -764,7 +780,7 @@ public class AcslParserLogicalDefinitionsTest {
                                 new AcslIdTerm(FileLocation.DUMMY, sllPredicateDeclaration),
                                 ImmutableList.of(
                                     /*start->next*/ startCNextFieldDerefTerm,
-                                    new AcslIdTerm(FileLocation.DUMMY, end),
+                                    /* end */ endAcslCIdExpr,
                                     sizeMinusOne),
                                 sllPredicateDeclaration),
                             AcslBinaryPredicateOperator.AND),
