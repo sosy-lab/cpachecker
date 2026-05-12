@@ -13,10 +13,10 @@ import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distr
 import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.SerializePredicateStateOperator.SSA_KEY;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssSerializeObjectUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
@@ -77,7 +77,7 @@ public class SerializeValueAnalysisStateOperator implements SerializeOperator {
     return ContentBuilder.builder()
         .pushLevel(ValueAnalysisState.class.getName())
         .put(STATE_KEY, serializedState)
-        .put(READABLE_KEY, state.getFormulaApproximation(formulaManager).toString())
+        .put(READABLE_KEY, state.getConstants().toString())
         .put(SSA_KEY, ssa)
         .put(PTS_KEY, pts)
         .put(FORMULA_KEY, formula)
@@ -94,7 +94,7 @@ public class SerializeValueAnalysisStateOperator implements SerializeOperator {
                     SymbolicValues.getContainedSymbolicIdentifiers(
                         (SymbolicValue) value.getValue().getValue()))
             .flatMap(Collection::stream)
-            .collect(Collectors.toSet());
+            .collect(ImmutableSet.toImmutableSet());
 
     SerializeConstraintsStateOperator.assignedIDs.put(blocknode.getId(), IDs);
   }

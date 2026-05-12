@@ -18,7 +18,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssSerializeObjectUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -62,7 +61,7 @@ public class SerializeConstraintsStateOperator implements SerializeOperator {
     Map<Constraint, Set<SymbolicIdentifier>> constraintIDs =
         pConstraintsState.stream()
             .collect(
-                Collectors.toMap(
+                ImmutableMap.toImmutableMap(
                     constraint -> constraint,
                     constraint ->
                         new HashSet<>(SymbolicValues.getContainedSymbolicIdentifiers(constraint))));
