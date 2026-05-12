@@ -35,4 +35,6 @@ public interface AcslAstNodeVisitor<R, X extends Exception>
   R visit(AcslBuiltinLabel pAcslBuiltinLabel) throws X;
 
   R visit(AcslProgramLabel pAcslProgramLabel) throws X;
+
+  R visit(AcslCParameterDeclaration pAcslCParameterDeclaration);
 }
