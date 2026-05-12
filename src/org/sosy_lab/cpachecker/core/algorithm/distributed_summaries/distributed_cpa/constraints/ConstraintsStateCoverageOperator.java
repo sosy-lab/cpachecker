@@ -74,8 +74,6 @@ public class ConstraintsStateCoverageOperator implements CoverageOperator {
                 ValueAnalysisState.compareInConstraint(v1, v2Renamed), functionName));
 
     try {
-      if (constraintsSolver.getSolver().isUnsat(bfm.and(stateAsFormula1, compareValues)))
-        return false;
       return constraintsSolver
           .getSolver()
           .implies(bfm.and(stateAsFormula1, compareValues), stateAsFormula2);
