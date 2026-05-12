@@ -503,115 +503,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return true;
   }
 
-  private boolean isDirectlyNonTerminatingStutteringLoop(Loop pLoop) {
-    if (!hasOnlyLoopHeadAssumeExits(pLoop) || !hasNoAbruptTerminationInMainFunctionLoop(pLoop)) {
-      return false;
-    }
-
-    Set<String> guardVariables = new HashSet<>();
-    boolean hasContinuationGuard = false;
-    for (CFANode loopHead : pLoop.getLoopHeads()) {
-      for (CFAEdge leavingEdge : loopHead.getLeavingEdges()) {
-        if (leavingEdge instanceof AssumeEdge assumeEdge
-            && pLoop.getLoopNodes().contains(assumeEdge.getSuccessor())) {
-          hasContinuationGuard = true;
-          if (!(assumeEdge.getExpression() instanceof CExpression expression)
-              || !collectVariables(expression, guardVariables)) {
-            return false;
-          }
-        }
-      }
-    }
-    return hasContinuationGuard
-        && !guardVariables.isEmpty()
-        && loopOnlyNoOpModifiesVariables(pLoop, guardVariables);
-  }
-
-  private boolean hasOnlyLoopHeadAssumeExits(Loop pLoop) {
-    for (CFAEdge outgoingEdge : pLoop.getOutgoingEdges()) {
-      if (!(outgoingEdge instanceof AssumeEdge)
-          || !pLoop.getLoopHeads().contains(outgoingEdge.getPredecessor())) {
-        return false;
-      }
-    }
-    return !pLoop.getOutgoingEdges().isEmpty();
-  }
-
-  private boolean hasNoAbruptTerminationInMainFunctionLoop(Loop pLoop) {
-    String mainFunctionName = cfa.getMainFunction().getFunctionName();
-    for (CFANode loopNode : pLoop.getLoopNodes()) {
-      if (!mainFunctionName.equals(loopNode.getFunctionName())) {
-        return false;
-      }
-      for (CFAEdge leavingEdge : loopNode.getLeavingEdges()) {
-        if (mayTerminateWithoutLoopExit(leavingEdge)) {
-          return false;
-        }
-      }
-    }
-    return true;
-  }
-
-  private boolean collectVariables(CExpression pExpression, Set<String> pVariables) {
-    if (pExpression instanceof CIdExpression idExpression) {
-      pVariables.add(idExpression.getName());
-      if (idExpression.getDeclaration() != null) {
-        pVariables.add(idExpression.getDeclaration().getQualifiedName());
-      }
-      return true;
-    }
-    if (pExpression instanceof CBinaryExpression binaryExpression) {
-      return collectVariables(binaryExpression.getOperand1(), pVariables)
-          && collectVariables(binaryExpression.getOperand2(), pVariables);
-    }
-    return pExpression instanceof CIntegerLiteralExpression
-        || pExpression instanceof CCharLiteralExpression;
-  }
-
-  private boolean loopOnlyNoOpModifiesVariables(Loop pLoop, Set<String> pVariables) {
-    for (CFANode loopNode : pLoop.getLoopNodes()) {
-      for (CFAEdge leavingEdge : loopNode.getLeavingEdges()) {
-        if (leavingEdge instanceof CStatementEdge statementEdge) {
-          if (statementEdge.getStatement() instanceof CAssignment assignment) {
-            if (assignment.getLeftHandSide() instanceof CIdExpression idExpression
-                && !matchesAnyVariable(idExpression, pVariables)) {
-              continue;
-            }
-            if (!assignmentKeepsAnyVariable(assignment, pVariables)) {
-              return false;
-            }
-            continue;
-          }
-          return false;
-        }
-        if (leavingEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge
-            || leavingEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-          return false;
-        }
-      }
-    }
-    return true;
-  }
-
-  private boolean matchesAnyVariable(CIdExpression pIdExpression, Set<String> pVariables) {
-    return pVariables.contains(pIdExpression.getName())
-        || (pIdExpression.getDeclaration() != null
-            && pVariables.contains(pIdExpression.getDeclaration().getQualifiedName()));
-  }
-
-  private boolean assignmentKeepsAnyVariable(CAssignment pAssignment, Set<String> pVariables) {
-    if (!(pAssignment.getLeftHandSide() instanceof CIdExpression idExpression)) {
-      return false;
-    }
-    if (pVariables.contains(idExpression.getName())
-        && isNoOpAssignment(pAssignment, idExpression.getName())) {
-      return true;
-    }
-    return idExpression.getDeclaration() != null
-        && pVariables.contains(idExpression.getDeclaration().getQualifiedName())
-        && isNoOpAssignment(pAssignment, idExpression.getDeclaration().getQualifiedName());
-  }
-
   private boolean isPureMainFunctionNoExitLoop(Loop pLoop) {
     String mainFunctionName = cfa.getMainFunction().getFunctionName();
     for (CFANode loopHead : pLoop.getLoopHeads()) {
@@ -1132,8 +1023,10 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private BooleanFormula createNonTerminationBaseCaseFormula(
       Iterable<AbstractState> pReachedSet, CandidateInvariant pCandidateInvariant)
       throws CPATransferException, InterruptedException {
+    // initially set to false, so that loops without applicable states yield a trivially unsat formula
     BooleanFormulaManagerView bfmgr = getBooleanFormulaManager();
     BooleanFormula result = bfmgr.makeFalse();
+    // get current k to only consider states from the first k iterations
     int currentK =
         CPAs.retrieveCPA(analysisCpa, LoopIterationBounding.class).getMaxLoopIterations();
     Optional<NonTerminationLoopScope> loopScope = getNonTerminationLoopScope(pCandidateInvariant);
