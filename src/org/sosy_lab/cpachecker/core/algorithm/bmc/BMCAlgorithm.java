@@ -1023,7 +1023,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private BooleanFormula createNonTerminationBaseCaseFormula(
       Iterable<AbstractState> pReachedSet, CandidateInvariant pCandidateInvariant)
       throws CPATransferException, InterruptedException {
-    // initially set to false, so that loops without applicable states yield a trivially unsat formula
+    // initially set to false, so that loops without applicable states yield a trivially unsat
+    // formula
     BooleanFormulaManagerView bfmgr = getBooleanFormulaManager();
     BooleanFormula result = bfmgr.makeFalse();
     // get current k to only consider states from the first k iterations
