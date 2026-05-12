@@ -7147,6 +7147,14 @@ public class SMGState
     return memoryModel.isPointer(value);
   }
 
+  public SMGState withInvalidCorrectnessWitness(String errorMSG) {
+    SMGErrorInfo newErrorInfo =
+        SMGErrorInfo.ofRejectedCorrectnessWitness().withErrorMessage(errorMSG);
+    // Log the error in the logger
+    logMemoryError(errorMSG, false);
+    return copyWithNewErrorInfo(newErrorInfo);
+  }
+
   // TODO: To be replaced with a better structure, i.e. union-find
   // This is mutable on purpose!
   public static class EqualityCache<V> {

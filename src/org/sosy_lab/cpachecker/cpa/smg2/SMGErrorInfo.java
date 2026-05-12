@@ -26,6 +26,7 @@ public class SMGErrorInfo {
     INVALID_WRITE,
     INVALID_FREE,
     INVALID_HEAP,
+    CORRECTNESS_WITNESS_REJECTED,
     UNDEFINED_BEHAVIOR
   }
 
@@ -33,6 +34,7 @@ public class SMGErrorInfo {
   private final boolean invalidRead;
   private final boolean invalidFree;
   private final boolean hasMemoryLeak;
+  private final boolean rejectedCorrectnessWitness;
   private final String errorDescription;
   private final PersistentList<Object> invalidChain;
   private final PersistentList<Object> currentChain;
@@ -42,6 +44,7 @@ public class SMGErrorInfo {
       boolean pInvalidRead,
       boolean pInvalidFree,
       boolean pHasMemoryLeak,
+      boolean pRejectedCorrectnessWitness,
       String pErrorDescription,
       PersistentList<Object> pInvalidChain,
       PersistentList<Object> pCurrentChain) {
@@ -52,11 +55,19 @@ public class SMGErrorInfo {
     errorDescription = pErrorDescription;
     invalidChain = pInvalidChain;
     currentChain = pCurrentChain;
+    rejectedCorrectnessWitness = pRejectedCorrectnessWitness;
   }
 
   static SMGErrorInfo of() {
     return new SMGErrorInfo(
-        false, false, false, false, "", PersistentLinkedList.of(), PersistentLinkedList.of());
+        false,
+        false,
+        false,
+        false,
+        false,
+        "",
+        PersistentLinkedList.of(),
+        PersistentLinkedList.of());
   }
 
   SMGErrorInfo withErrorMessage(String pErrorDescription) {
@@ -65,9 +76,15 @@ public class SMGErrorInfo {
         invalidRead,
         invalidFree,
         hasMemoryLeak,
+        rejectedCorrectnessWitness,
         pErrorDescription,
         invalidChain,
         currentChain);
+  }
+
+  static SMGErrorInfo ofRejectedCorrectnessWitness() {
+    return new SMGErrorInfo(
+        false, false, false, false, true, "", PersistentLinkedList.of(), PersistentLinkedList.of());
   }
 
   SMGErrorInfo withProperty(Property pProperty) {
@@ -81,7 +98,7 @@ public class SMGErrorInfo {
       case INVALID_READ -> pInvalidRead = true;
       case INVALID_FREE -> pInvalidFree = true;
       case INVALID_HEAP -> pHasLeaks = true;
-      default -> throw new AssertionError();
+      default -> throw new AssertionError("Unknown property " + pProperty);
     }
 
     return new SMGErrorInfo(
@@ -89,13 +106,18 @@ public class SMGErrorInfo {
         pInvalidRead,
         pInvalidFree,
         pHasLeaks,
+        false,
         errorDescription,
         invalidChain,
         currentChain);
   }
 
   boolean hasMemoryErrors() {
-    return invalidWrite || invalidRead || invalidFree || hasMemoryLeak;
+    return invalidWrite
+        || invalidRead
+        || invalidFree
+        || hasMemoryLeak
+        || rejectedCorrectnessWitness;
   }
 
   public SMGErrorInfo withInvalidObjects(Collection<?> pObjects) {
@@ -104,6 +126,7 @@ public class SMGErrorInfo {
         invalidRead,
         invalidFree,
         hasMemoryLeak,
+        rejectedCorrectnessWitness,
         errorDescription,
         invalidChain.withAll(new ArrayList<>(pObjects)),
         currentChain);
@@ -112,7 +135,13 @@ public class SMGErrorInfo {
   @Override
   public int hashCode() {
     return Objects.hash(
-        invalidWrite, invalidRead, invalidFree, hasMemoryLeak, invalidChain, currentChain);
+        invalidWrite,
+        invalidRead,
+        invalidFree,
+        hasMemoryLeak,
+        rejectedCorrectnessWitness,
+        invalidChain,
+        currentChain);
   }
 
   @Override
@@ -122,6 +151,7 @@ public class SMGErrorInfo {
         && invalidRead == o.invalidRead
         && invalidFree == o.invalidFree
         && hasMemoryLeak == o.hasMemoryLeak
+        && rejectedCorrectnessWitness == o.rejectedCorrectnessWitness
         && invalidChain.equals(o.invalidChain)
         && currentChain.equals(o.currentChain);
   }
@@ -141,6 +171,9 @@ public class SMGErrorInfo {
     }
     if (hasMemoryLeak()) {
       str.append("has memory leak").append(", ");
+    }
+    if (rejectedCorrectnessWitness) {
+      str.append("correctness witness rejected").append(", ");
     }
     return str.append("}").toString();
   }
@@ -165,6 +198,10 @@ public class SMGErrorInfo {
     return hasMemoryLeak;
   }
 
+  boolean isRejectedCorrectnessWitness() {
+    return rejectedCorrectnessWitness;
+  }
+
   public Property getPropertyViolated() {
     if (invalidFree) {
       return Property.INVALID_FREE;
@@ -174,6 +211,8 @@ public class SMGErrorInfo {
       return Property.INVALID_READ;
     } else if (hasMemoryLeak) {
       return Property.INVALID_HEAP;
+    } else if (rejectedCorrectnessWitness) {
+      return Property.CORRECTNESS_WITNESS_REJECTED;
     }
     // Will not happen
     throw new RuntimeException("Undefined memory error");
