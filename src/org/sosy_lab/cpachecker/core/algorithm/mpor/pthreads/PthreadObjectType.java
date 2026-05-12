@@ -22,42 +22,60 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 
 public enum PthreadObjectType {
-  PTHREAD_BARRIER_T("pthread_barrier_t", ImmutableSet.of()),
-  PTHREAD_COND_INITIALIZER("PTHREAD_COND_INITIALIZER", ImmutableSet.of()),
+  PTHREAD_BARRIER_T("pthread_barrier_t", false, ImmutableSet.of()),
+  PTHREAD_COND_INITIALIZER("PTHREAD_COND_INITIALIZER", false, ImmutableSet.of()),
   PTHREAD_COND_T(
       "pthread_cond_t",
+      true,
       ImmutableSet.of(
           PthreadObjectSubstitutions.COND_COMPOSITE_TYPE,
           PthreadObjectSubstitutions.COND_ELABORATED_TYPE,
           PthreadObjectSubstitutions.COND_TYPEDEF_TYPE)),
-  PTHREAD_KEY_T("pthread_key_t", ImmutableSet.of()),
-  PTHREAD_MUTEX_INITIALIZER("PTHREAD_MUTEX_INITIALIZER", ImmutableSet.of()),
+  PTHREAD_KEY_T("pthread_key_t", false, ImmutableSet.of()),
+  PTHREAD_MUTEX_INITIALIZER("PTHREAD_MUTEX_INITIALIZER", false, ImmutableSet.of()),
   PTHREAD_MUTEX_T(
       "pthread_mutex_t",
+      true,
       ImmutableSet.of(
           PthreadObjectSubstitutions.MUTEX_COMPOSITE_TYPE,
           PthreadObjectSubstitutions.MUTEX_ELABORATED_TYPE,
           PthreadObjectSubstitutions.MUTEX_TYPEDEF_TYPE)),
-  PTHREAD_ONCE_T("pthread_once_t", ImmutableSet.of()),
+  PTHREAD_ONCE_T("pthread_once_t", false, ImmutableSet.of()),
   PTHREAD_RWLOCK_T(
       "pthread_rwlock_t",
+      true,
       ImmutableSet.of(
           PthreadObjectSubstitutions.RWLOCK_COMPOSITE_TYPE,
           PthreadObjectSubstitutions.RWLOCK_ELABORATED_TYPE,
           PthreadObjectSubstitutions.RWLOCK_TYPEDEF_TYPE)),
-  PTHREAD_T("pthread_t", ImmutableSet.of()),
-  RETURN_VALUE("", ImmutableSet.of()),
-  START_ROUTINE("", ImmutableSet.of()),
-  START_ROUTINE_ARGUMENT("", ImmutableSet.of());
+  PTHREAD_T("pthread_t", false, ImmutableSet.of()),
+  RETURN_VALUE("", true, ImmutableSet.of()),
+  START_ROUTINE("", true, ImmutableSet.of()),
+  START_ROUTINE_ARGUMENT("", true, ImmutableSet.of());
 
-  public final String name;
+  private final String name;
+
+  private final boolean isArraySupported;
 
   @SuppressWarnings("Immutable")
-  public final ImmutableSet<CType> substituteTypes;
+  private final ImmutableSet<CType> substituteTypes;
 
-  PthreadObjectType(String pName, ImmutableSet<CType> pSubstituteTypes) {
+  PthreadObjectType(String pName, boolean pIsArraySupported, ImmutableSet<CType> pSubstituteTypes) {
     name = pName;
+    isArraySupported = pIsArraySupported;
     substituteTypes = pSubstituteTypes;
+  }
+
+  public String getName() {
+    return name;
+  }
+
+  public boolean isArraySupported() {
+    return isArraySupported;
+  }
+
+  public ImmutableSet<CType> getSubstituteTypes() {
+    return substituteTypes;
   }
 
   public boolean equalsType(CType pType) {

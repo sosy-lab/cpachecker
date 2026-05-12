@@ -65,10 +65,6 @@ public class InputRejection {
         "MPOR does not support multiple declarations in the owner expression of field references in"
             + " line ",
         true),
-    NO_PTHREAD_OBJECT_ARRAYS(
-        "MPOR does not support arrays of pthread objects or arrays of structs with inner pthread"
-            + " objects in line ",
-        true),
     POINTER_WRITE_BINARY_EXPRESSION(
         "MPOR does not support binary expressions as assignments to pointers in line ", true),
     POINTER_WRITE(
@@ -76,8 +72,12 @@ public class InputRejection {
         true),
     PTHREAD_CREATE_LOOP(
         "MPOR does not support pthread_create calls in loops (or recursive functions)", false),
-    PTHREAD_RETURN_VALUE(
+    PTHREAD_FUNCTION_RETURN_VALUE(
         "MPOR does not support pthread method return value assignments in line ", true),
+    PTHREAD_OBJECT_ARRAY(
+        "MPOR does not support the following array of pthread objects or array of structs with"
+            + " inner pthread objects in line ",
+        true),
     RECURSIVE_FUNCTION("MPOR does not support the (in)direct recursive function in line ", true),
     UNSUPPORTED_FUNCTION("MPOR does not support the function in line ", true);
 
@@ -166,23 +166,6 @@ public class InputRejection {
     }
   }
 
-  private static void checkPthreadObjectArrays(CFA pInputCfa) throws UnsupportedCodeException {
-    ImmutableSet<String> stopNames = PthreadObjectType.getAllPthreadObjectTypeNames();
-    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
-      if (cfaEdge instanceof CDeclarationEdge declarationEdge) {
-        if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
-          if (variableDeclaration.getType() instanceof CArrayType arrayType) {
-            ImmutableSet<CType> nestedTypes =
-                SeqPointerAliasingUtil.getAllTypesInType(arrayType, stopNames);
-            if (nestedTypes.stream().anyMatch(t -> PthreadUtil.isAnyPthreadObjectType(t))) {
-              rejectCfaEdge(cfaEdge, InputRejectionMessage.NO_PTHREAD_OBJECT_ARRAYS);
-            }
-          }
-        }
-      }
-    }
-  }
-
   private static void checkUnsupportedFunctions(CFA pInputCfa) throws UnsupportedCodeException {
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
       for (PthreadFunctionType functionType : PthreadFunctionType.values()) {
@@ -262,17 +245,17 @@ public class InputRejection {
     }
   }
 
-  private static void checkPthreadFunctionReturnValues(CFA pInputCfa)
-      throws UnsupportedCodeException {
-
-    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
-      Optional<CFunctionCall> functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(cfaEdge);
-      if (functionCall.isPresent()) {
-        if (PthreadUtil.isCallToAnyPthreadFunction(functionCall.orElseThrow())) {
-          if (cfaEdge.getRawAST().orElseThrow() instanceof CFunctionCallAssignmentStatement) {
-            rejectCfaEdge(cfaEdge, InputRejectionMessage.PTHREAD_RETURN_VALUE);
-          }
-        }
+  private static void checkRecursiveFunctions(CFA pInputCfa) throws UnsupportedCodeException {
+    for (FunctionEntryNode entry : pInputCfa.entryNodes()) {
+      Optional<FunctionExitNode> exit = entry.getExitNode();
+      // "upcasting" exit from FunctionExitNode to CFANode is necessary here...
+      if (MPORUtil.isSelfReachable(entry, exit.map(node -> node), new ArrayList<>(), entry)) {
+        throw new UnsupportedCodeException(
+            String.format(
+                InputRejectionMessage.RECURSIVE_FUNCTION.formatMessage(),
+                entry.getFunction().getFileLocation().getStartingLineInOrigin(),
+                entry.getFunctionName()),
+            null);
       }
     }
   }
@@ -295,17 +278,39 @@ public class InputRejection {
     }
   }
 
-  private static void checkRecursiveFunctions(CFA pInputCfa) throws UnsupportedCodeException {
-    for (FunctionEntryNode entry : pInputCfa.entryNodes()) {
-      Optional<FunctionExitNode> exit = entry.getExitNode();
-      // "upcasting" exit from FunctionExitNode to CFANode is necessary here...
-      if (MPORUtil.isSelfReachable(entry, exit.map(node -> node), new ArrayList<>(), entry)) {
-        throw new UnsupportedCodeException(
-            String.format(
-                InputRejectionMessage.RECURSIVE_FUNCTION.formatMessage(),
-                entry.getFunction().getFileLocation().getStartingLineInOrigin(),
-                entry.getFunctionName()),
-            null);
+  private static void checkPthreadFunctionReturnValues(CFA pInputCfa)
+      throws UnsupportedCodeException {
+
+    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
+      Optional<CFunctionCall> functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(cfaEdge);
+      if (functionCall.isPresent()) {
+        if (PthreadUtil.isCallToAnyPthreadFunction(functionCall.orElseThrow())) {
+          if (cfaEdge.getRawAST().orElseThrow() instanceof CFunctionCallAssignmentStatement) {
+            rejectCfaEdge(cfaEdge, InputRejectionMessage.PTHREAD_FUNCTION_RETURN_VALUE);
+          }
+        }
+      }
+    }
+  }
+
+  private static void checkPthreadObjectArrays(CFA pInputCfa) throws UnsupportedCodeException {
+    ImmutableSet<String> stopNames = PthreadObjectType.getAllPthreadObjectTypeNames();
+    for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
+      if (cfaEdge instanceof CDeclarationEdge declarationEdge) {
+        if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
+          if (variableDeclaration.getType() instanceof CArrayType arrayType) {
+            for (CType nestedType :
+                SeqPointerAliasingUtil.getAllTypesInType(arrayType, stopNames)) {
+              for (PthreadObjectType pthreadObjectType : PthreadObjectType.values()) {
+                if (!pthreadObjectType.isArraySupported()) {
+                  if (nestedType.toString().strip().equals(pthreadObjectType.getName())) {
+                    rejectCfaEdge(cfaEdge, InputRejectionMessage.PTHREAD_OBJECT_ARRAY);
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     }
   }

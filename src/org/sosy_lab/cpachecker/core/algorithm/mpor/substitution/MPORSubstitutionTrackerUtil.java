@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -31,6 +30,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejectio
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil.CLeftHandSideSimpleDeclarationVisitor;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAssignment;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAssignmentType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
@@ -44,8 +45,8 @@ public class MPORSubstitutionTrackerUtil {
       pTo.addAccessedMainFunctionArg(mainFunctionArg);
     }
     // pointer assignments
-    for (var entry : pFrom.getPointerAssignments().entrySet()) {
-      pTo.addPointerAssignment(entry.getKey(), entry.getValue());
+    for (SeqPointerAssignment pointerAssignment : pFrom.getPointerAssignments()) {
+      pTo.addPointerAssignment(pointerAssignment);
     }
     // pointer dereferences
     for (SeqMemoryLocation accessedPointerDereference : pFrom.getAccessedPointerDereferences()) {
@@ -162,15 +163,20 @@ public class MPORSubstitutionTrackerUtil {
       MPORSubstitutionTracker pTracker)
       throws UnsupportedCodeException {
 
-    Optional<Map.Entry<SeqMemoryLocation, SeqMemoryLocation>> pointerAssignment =
-        SeqPointerAliasingUtil.tryMapPointerAssignment(
+    Optional<SeqPointerAssignment> pointerAssignment =
+        SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            pLeftHandSide,
+            pRightHandSide,
             // since all raw assignments from the input program are not across a function (e.g.
             // parameter or return value assignments), the same call context is used for the
             // left-hand and right-hand sides
-            pLeftHandSide, pRightHandSide, pCallContext, pCallContext, pInputCfa);
+            pCallContext,
+            pCallContext,
+            pInputCfa.getAllFunctions(),
+            // pointer assignments from CFAEdges of the input program are always explicit
+            SeqPointerAssignmentType.EXPLICIT);
     if (pointerAssignment.isPresent()) {
-      pTracker.addPointerAssignment(
-          pointerAssignment.orElseThrow().getKey(), pointerAssignment.orElseThrow().getValue());
+      pTracker.addPointerAssignment(pointerAssignment.orElseThrow());
     }
   }
 

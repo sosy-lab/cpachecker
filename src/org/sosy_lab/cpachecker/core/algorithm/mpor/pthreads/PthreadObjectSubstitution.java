@@ -73,13 +73,13 @@ public class PthreadObjectSubstitution {
     // replace all pthread object types, which is necessary for structs that contain multiple
     // pthread object types
     for (PthreadObjectType pObjectType : PthreadObjectType.values()) {
-      for (CType substituteType : pObjectType.substituteTypes) {
+      for (CType substituteType : pObjectType.getSubstituteTypes()) {
         if (pClasses.isEmpty() || pClasses.stream().anyMatch(c -> c.isInstance(substituteType))) {
           CTypeSubstitutionVisitor substitutionVisitor =
               new CTypeSubstitutionVisitor(
                   ImmutableSet.of(
-                      pObjectType.name,
-                      SequentializationParseTest.ANON_TYPE_KEYWORD + pObjectType.name),
+                      pObjectType.getName(),
+                      SequentializationParseTest.ANON_TYPE_KEYWORD + pObjectType.getName()),
                   substituteType);
           substituted = substitutionVisitor.visitDefault(substituted);
         }

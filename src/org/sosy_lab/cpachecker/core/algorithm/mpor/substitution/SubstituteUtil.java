@@ -8,11 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
-import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.ArrayList;
-import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -58,23 +54,6 @@ public class SubstituteUtil {
   }
 
   // Memory Locations ==============================================================================
-
-  /**
-   * The initial memory locations do not factor in memory locations that are only used in pointer
-   * parameter assignments.
-   */
-  public static ImmutableList<SeqMemoryLocation> getInitialMemoryLocations(
-      ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
-
-    List<SeqMemoryLocation> rMemoryLocations = new ArrayList<>();
-    for (SubstituteEdge substituteEdge : pSubstituteEdges) {
-      rMemoryLocations.addAll(substituteEdge.accessedMemoryLocations);
-      rMemoryLocations.addAll(substituteEdge.pointerAssignments.values());
-      rMemoryLocations.addAll(substituteEdge.accessedPointerDereferences);
-    }
-    // remove duplicates
-    return rMemoryLocations.stream().distinct().collect(ImmutableList.toImmutableList());
-  }
 
   static ImmutableSet<SeqMemoryLocation> getPointerDereferencesByAccessType(
       MPORSubstitutionTracker pTracker, SeqMemoryAccessType pAccessType) {

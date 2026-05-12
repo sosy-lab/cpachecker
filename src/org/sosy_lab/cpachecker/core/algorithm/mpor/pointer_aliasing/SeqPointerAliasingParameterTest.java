@@ -10,36 +10,26 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ImmutableSortedMap;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class SeqPointerAliasingParameterTest {
 
@@ -60,82 +50,6 @@ public class SeqPointerAliasingParameterTest {
 
   private final CInitializer INT_0_INITIALIZER =
       new CInitializerExpression(FileLocation.DUMMY, INT_0);
-
-  // CFunctionType
-
-  private static final CFunctionType DUMMY_FUNCTION_TYPE =
-      new CFunctionType(INT_TYPE, ImmutableList.of(), false);
-
-  // CFunctionDeclarations
-
-  private static final CFunctionDeclaration DUMMY_FUNCTION_DECLARATION =
-      new CFunctionDeclaration(
-          FileLocation.DUMMY,
-          DUMMY_FUNCTION_TYPE,
-          "dummy_function",
-          ImmutableList.of(),
-          ImmutableSet.of());
-
-  private static final CIdExpression DUMMY_ID_EXPRESSION =
-      new CIdExpression(FileLocation.DUMMY, DUMMY_FUNCTION_DECLARATION);
-
-  // CFunctionCallExpression
-
-  private static final CFunctionCallExpression DUMMY_FUNCTION_CALL_EXPRESSION =
-      new CFunctionCallExpression(
-          FileLocation.DUMMY,
-          DUMMY_FUNCTION_TYPE,
-          DUMMY_ID_EXPRESSION,
-          ImmutableList.of(),
-          DUMMY_FUNCTION_DECLARATION);
-
-  // CFunctionCallStatement
-
-  private static final CFunctionCallStatement DUMMY_FUNCTION_CALL_STATEMENT =
-      new CFunctionCallStatement(FileLocation.DUMMY, DUMMY_FUNCTION_CALL_EXPRESSION);
-
-  // CFA Nodes
-
-  private static final CFANode DUMMY_PREDECESSOR = CFANode.newDummyCFANode();
-
-  private static final CFANode DUMMY_SUCCESSOR = CFANode.newDummyCFANode();
-
-  private static final FunctionExitNode DUMMY_FUNCTION_EXIT_NODE =
-      new FunctionExitNode(DUMMY_FUNCTION_DECLARATION);
-
-  private static final CFunctionEntryNode DUMMY_FUNCTION_ENTRY_NODE =
-      new CFunctionEntryNode(
-          FileLocation.DUMMY,
-          DUMMY_FUNCTION_DECLARATION,
-          DUMMY_FUNCTION_EXIT_NODE,
-          Optional.empty());
-
-  // CFA Edges
-
-  private static final CFunctionSummaryEdge DUMMY_FUNCTION_SUMMARY_EDGE =
-      new CFunctionSummaryEdge(
-          "",
-          FileLocation.DUMMY,
-          DUMMY_PREDECESSOR,
-          DUMMY_SUCCESSOR,
-          DUMMY_FUNCTION_CALL_STATEMENT,
-          DUMMY_FUNCTION_ENTRY_NODE);
-
-  private static final CFunctionCallEdge DUMMY_FUNCTION_CALL_EDGE =
-      new CFunctionCallEdge(
-          "",
-          FileLocation.DUMMY,
-          DUMMY_PREDECESSOR,
-          DUMMY_FUNCTION_ENTRY_NODE,
-          DUMMY_FUNCTION_CALL_STATEMENT,
-          DUMMY_FUNCTION_SUMMARY_EDGE);
-
-  // CFAEdgeForThread
-
-  /** A dummy call context that can be used by all test classes in this dir. */
-  @VisibleForTesting
-  static final CFAEdgeForThread DUMMY_CALL_CONTEXT =
-      new CFAEdgeForThread(0, DUMMY_FUNCTION_CALL_EDGE, Optional.empty());
 
   // CDeclaration
 
@@ -203,165 +117,213 @@ public class SeqPointerAliasingParameterTest {
 
   private final CParameterDeclarations PARAMETER_DECLARATIONS = new CParameterDeclarations();
 
-  // Memory Locations (primitives)
+  // CIdExpression
 
-  private final SeqMemoryLocation GLOBAL_POINTER_A_MEMORY_LOCATION =
-      SeqMemoryLocation.of(Optional.empty(), GLOBAL_POINTER_A_DECLARATION);
+  private final CIdExpression GLOBAL_POINTER_A_ID_EXPRESSION =
+      new CIdExpression(FileLocation.DUMMY, GLOBAL_POINTER_A_DECLARATION);
 
-  private final SeqMemoryLocation GLOBAL_X_MEMORY_LOCATION =
-      SeqMemoryLocation.of(Optional.empty(), GLOBAL_X_DECLARATION);
+  private final CIdExpression GLOBAL_X_ID_EXPRESSION =
+      new CIdExpression(FileLocation.DUMMY, GLOBAL_X_DECLARATION);
 
-  private final SeqMemoryLocation LOCAL_POINTER_C_MEMORY_LOCATION =
-      SeqMemoryLocation.of(Optional.empty(), LOCAL_POINTER_C_DECLARATION);
+  private final CIdExpression LOCAL_POINTER_C_ID_EXPRESSION =
+      new CIdExpression(FileLocation.DUMMY, LOCAL_POINTER_C_DECLARATION);
 
-  private final SeqMemoryLocation LOCAL_Z_MEMORY_LOCATION =
-      SeqMemoryLocation.of(Optional.empty(), LOCAL_Z_DECLARATION);
+  private final CIdExpression LOCAL_Z_ID_EXPRESSION =
+      new CIdExpression(FileLocation.DUMMY, LOCAL_Z_DECLARATION);
 
-  private final SeqMemoryLocation PARAMETER_POINTER_P_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          Optional.of(DUMMY_CALL_CONTEXT),
-          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_P.asVariableDeclaration());
-
-  private final SeqMemoryLocation PARAMETER_Q_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          Optional.of(DUMMY_CALL_CONTEXT),
+  private final CIdExpression PARAMETER_Q_ID_EXPRESSION =
+      new CIdExpression(
+          FileLocation.DUMMY,
           PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_Q.asVariableDeclaration());
 
-  private final SeqMemoryLocation PARAMETER_POINTER_R_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          Optional.of(DUMMY_CALL_CONTEXT),
+  private final CIdExpression PARAMETER_POINTER_P_ID_EXPRESSION =
+      new CIdExpression(
+          FileLocation.DUMMY,
+          PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_P.asVariableDeclaration());
+
+  private final CIdExpression PARAMETER_POINTER_R_ID_EXPRESSION =
+      new CIdExpression(
+          FileLocation.DUMMY,
           PARAMETER_DECLARATIONS.PARAMETER_DECLARATION_POINTER_R.asVariableDeclaration());
 
+  // CUnaryExpression
+
+  private final CUnaryExpression GLOBAL_X_UNARY_EXPRESSION =
+      new CUnaryExpression(
+          FileLocation.DUMMY,
+          new CPointerType(CTypeQualifiers.NONE, GLOBAL_X_ID_EXPRESSION.getExpressionType()),
+          GLOBAL_X_ID_EXPRESSION,
+          UnaryOperator.AMPER);
+
+  private final CUnaryExpression LOCAL_Z_UNARY_EXPRESSION =
+      new CUnaryExpression(
+          FileLocation.DUMMY,
+          new CPointerType(CTypeQualifiers.NONE, LOCAL_Z_ID_EXPRESSION.getExpressionType()),
+          LOCAL_Z_ID_EXPRESSION,
+          UnaryOperator.AMPER);
+
+  private final CUnaryExpression PARAMETER_Q_UNARY_EXPRESSION =
+      new CUnaryExpression(
+          FileLocation.DUMMY,
+          new CPointerType(CTypeQualifiers.NONE, PARAMETER_Q_ID_EXPRESSION.getExpressionType()),
+          PARAMETER_Q_ID_EXPRESSION,
+          UnaryOperator.AMPER);
+
   @Test
-  public void test_pointer_parameter_dereference() {
+  public void test_pointer_parameter_dereference() throws UnsupportedCodeException {
     // param_ptr_P = &global_X; i.e. pointer parameter assignment
-    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> parameterAssignments =
-        ImmutableMap.<SeqMemoryLocation, SeqMemoryLocation>builder()
-            .put(PARAMETER_POINTER_P_MEMORY_LOCATION, GLOBAL_X_MEMORY_LOCATION)
-            .buildOrThrow();
-    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        SeqPointerAliasingMapBuilder.extractPointerAssignments(parameterAssignments);
-    ImmutableSet<SeqPointerAssignment> pointerAssignments =
-        SeqPointerAliasingMapBuilder.getAllPointerAssignments(
-            ImmutableSetMultimap.of(),
-            pointerParameterAssignments,
-            ImmutableMap.of(),
-            ImmutableMap.of(),
-            ImmutableMap.of());
+    Optional<SeqPointerAssignment> parameterAssignment =
+        SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            PARAMETER_POINTER_P_ID_EXPRESSION,
+            GLOBAL_X_UNARY_EXPRESSION,
+            Optional.empty(),
+            Optional.empty(),
+            ImmutableSortedMap.of(),
+            SeqPointerAssignmentType.PARAMETER);
+
+    assertThat(parameterAssignment).isPresent();
+
+    SeqMemoryLocation pMemoryLocation =
+        parameterAssignment.orElseThrow().leftHandSideMemoryLocation();
+    SeqMemoryLocation xMemoryLocation =
+        parameterAssignment.orElseThrow().rightHandSideMemoryLocation();
 
     // find the mem locations associated with deref of 'param_ptr_P' in the given call context
     ImmutableSet<SeqMemoryLocation> memoryLocations =
         SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            PARAMETER_POINTER_P_MEMORY_LOCATION, pointerAssignments);
+            pMemoryLocation, ImmutableSet.of(parameterAssignment.orElseThrow()));
 
     // memory location of 'global_X' should be associated with dereference of 'param_ptr_P'
     assertThat(memoryLocations).hasSize(1);
-    assertThat(memoryLocations).contains(GLOBAL_X_MEMORY_LOCATION);
+    assertThat(memoryLocations).contains(xMemoryLocation);
   }
 
   @Test
-  public void test_transitive_pointer_parameter_dereference() {
+  public void test_transitive_pointer_parameter_dereference() throws UnsupportedCodeException {
     // param_ptr_P = local_ptr_C; i.e. transitive pointer parameter assignment
-    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> parameterAssignments =
-        ImmutableMap.<SeqMemoryLocation, SeqMemoryLocation>builder()
-            .put(PARAMETER_POINTER_P_MEMORY_LOCATION, LOCAL_POINTER_C_MEMORY_LOCATION)
-            .buildOrThrow();
-    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        SeqPointerAliasingMapBuilder.extractPointerAssignments(parameterAssignments);
+    Optional<SeqPointerAssignment> parameterAssignment =
+        SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            PARAMETER_POINTER_P_ID_EXPRESSION,
+            LOCAL_POINTER_C_ID_EXPRESSION,
+            Optional.empty(),
+            Optional.empty(),
+            ImmutableSortedMap.of(),
+            SeqPointerAssignmentType.PARAMETER);
 
     // local_ptr_C = &global_X; i.e. pointer assignment
-    ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pointerAssignments =
-        ImmutableSetMultimap.<SeqMemoryLocation, SeqMemoryLocation>builder()
-            .put(LOCAL_POINTER_C_MEMORY_LOCATION, GLOBAL_X_MEMORY_LOCATION)
-            .build();
+    Optional<SeqPointerAssignment> pointerAssignment =
+        SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            LOCAL_POINTER_C_ID_EXPRESSION,
+            GLOBAL_X_UNARY_EXPRESSION,
+            Optional.empty(),
+            Optional.empty(),
+            ImmutableSortedMap.of(),
+            SeqPointerAssignmentType.EXPLICIT);
 
-    ImmutableSet<SeqPointerAssignment> allPointerAssignments =
-        SeqPointerAliasingMapBuilder.getAllPointerAssignments(
-            pointerAssignments,
-            pointerParameterAssignments,
-            ImmutableMap.of(),
-            ImmutableMap.of(),
-            ImmutableMap.of());
+    assertThat(parameterAssignment).isPresent();
+    assertThat(pointerAssignment).isPresent();
+
+    SeqMemoryLocation pMemoryLocation =
+        parameterAssignment.orElseThrow().leftHandSideMemoryLocation();
+    SeqMemoryLocation xMemoryLocation =
+        pointerAssignment.orElseThrow().rightHandSideMemoryLocation();
 
     // find the mem locations associated with deref of 'param_ptr_P' in the given call context
     ImmutableSet<SeqMemoryLocation> memoryLocations =
         SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            PARAMETER_POINTER_P_MEMORY_LOCATION, allPointerAssignments);
+            pMemoryLocation,
+            ImmutableSet.of(parameterAssignment.orElseThrow(), pointerAssignment.orElseThrow()));
 
     // memory location of 'global_X' should be associated with dereference of 'param_ptr_P'
     assertThat(memoryLocations).hasSize(1);
-    assertThat(memoryLocations).contains(GLOBAL_X_MEMORY_LOCATION);
+    assertThat(memoryLocations).contains(xMemoryLocation);
   }
 
   @Test
-  public void test_parameter_implicit_global() {
+  public void test_non_pointer_parameter() throws UnsupportedCodeException {
     // param_Q = local_Z; i.e. non-pointer parameter assignment with local variable
-    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> parameterAssignments =
-        ImmutableMap.<SeqMemoryLocation, SeqMemoryLocation>builder()
-            .put(PARAMETER_Q_MEMORY_LOCATION, LOCAL_Z_MEMORY_LOCATION)
-            .buildOrThrow();
-    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        SeqPointerAliasingMapBuilder.extractPointerAssignments(parameterAssignments);
+    Optional<SeqPointerAssignment> parameterAssignment =
+        SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            PARAMETER_Q_ID_EXPRESSION,
+            LOCAL_Z_ID_EXPRESSION,
+            Optional.empty(),
+            Optional.empty(),
+            ImmutableSortedMap.of(),
+            SeqPointerAssignmentType.PARAMETER);
 
+    assertThat(parameterAssignment).isEmpty();
+  }
+
+  @Test
+  public void test_parameter_implicit_global() throws UnsupportedCodeException {
     // global_ptr_A = &param_Q; i.e. pointer assignment
-    ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pointerAssignments =
-        ImmutableSetMultimap.<SeqMemoryLocation, SeqMemoryLocation>builder()
-            .put(GLOBAL_POINTER_A_MEMORY_LOCATION, PARAMETER_Q_MEMORY_LOCATION)
-            .build();
+    Optional<SeqPointerAssignment> pointerAssignment =
+        SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            GLOBAL_POINTER_A_ID_EXPRESSION,
+            PARAMETER_Q_UNARY_EXPRESSION,
+            Optional.empty(),
+            Optional.empty(),
+            ImmutableSortedMap.of(),
+            SeqPointerAssignmentType.EXPLICIT);
+
+    assertThat(pointerAssignment).isPresent();
 
     ImmutableSet<SeqPointerAssignment> allPointerAssignments =
-        SeqPointerAliasingMapBuilder.getAllPointerAssignments(
-            pointerAssignments,
-            pointerParameterAssignments,
-            ImmutableMap.of(),
-            ImmutableMap.of(),
-            ImmutableMap.of());
+        ImmutableSet.of(pointerAssignment.orElseThrow());
 
-    // check that param_Q is now an implicit global memory location, but local_Z is not
-    assertThat(PARAMETER_Q_MEMORY_LOCATION.isGlobal()).isFalse();
-    assertThat(LOCAL_Z_MEMORY_LOCATION.isGlobal()).isFalse();
-    assertThat(GLOBAL_POINTER_A_MEMORY_LOCATION.isGlobal()).isTrue();
+    SeqMemoryLocation aMemoryLocation =
+        pointerAssignment.orElseThrow().leftHandSideMemoryLocation();
+    SeqMemoryLocation qMemoryLocation =
+        pointerAssignment.orElseThrow().rightHandSideMemoryLocation();
+
+    // check that param_Q is now an implicit global memory location
+    assertThat(qMemoryLocation.isGlobal()).isFalse();
+    assertThat(aMemoryLocation.isGlobal()).isTrue();
     assertThat(
             SeqPointerAliasingMapBuilder.isImplicitGlobal(
-                LOCAL_Z_MEMORY_LOCATION, allPointerAssignments, ImmutableSet.of()))
-        .isFalse();
-    assertThat(
-            SeqPointerAliasingMapBuilder.isImplicitGlobal(
-                PARAMETER_Q_MEMORY_LOCATION, allPointerAssignments, ImmutableSet.of()))
+                qMemoryLocation, allPointerAssignments, ImmutableSet.of()))
         .isTrue();
   }
 
   @Test
-  public void test_transitive_pointer_parameter_assignments() {
+  public void test_transitive_pointer_parameter_assignments() throws UnsupportedCodeException {
     // param_ptr_R = &local_Z; and param_ptr_P = param_ptr_R;
     // i.e. transitive pointer parameter assignments
-    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> parameterAssignments =
-        ImmutableMap.<SeqMemoryLocation, SeqMemoryLocation>builder()
-            .put(PARAMETER_POINTER_R_MEMORY_LOCATION, LOCAL_Z_MEMORY_LOCATION)
-            .put(PARAMETER_POINTER_P_MEMORY_LOCATION, PARAMETER_POINTER_R_MEMORY_LOCATION)
-            .buildOrThrow();
-    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        SeqPointerAliasingMapBuilder.extractPointerAssignments(parameterAssignments);
+    Optional<SeqPointerAssignment> pointerAssignment1 =
+        SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            PARAMETER_POINTER_R_ID_EXPRESSION,
+            LOCAL_Z_UNARY_EXPRESSION,
+            Optional.empty(),
+            Optional.empty(),
+            ImmutableSortedMap.of(),
+            SeqPointerAssignmentType.PARAMETER);
+    Optional<SeqPointerAssignment> pointerAssignment2 =
+        SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            PARAMETER_POINTER_P_ID_EXPRESSION,
+            PARAMETER_POINTER_R_ID_EXPRESSION,
+            Optional.empty(),
+            Optional.empty(),
+            ImmutableSortedMap.of(),
+            SeqPointerAssignmentType.PARAMETER);
 
-    ImmutableSet<SeqPointerAssignment> allPointerAssignments =
-        SeqPointerAliasingMapBuilder.getAllPointerAssignments(
-            ImmutableSetMultimap.of(),
-            pointerParameterAssignments,
-            ImmutableMap.of(),
-            ImmutableMap.of(),
-            ImmutableMap.of());
+    SeqMemoryLocation rMemoryLocation =
+        pointerAssignment1.orElseThrow().leftHandSideMemoryLocation();
+    SeqMemoryLocation zMemoryLocation =
+        pointerAssignment1.orElseThrow().rightHandSideMemoryLocation();
+    SeqMemoryLocation pMemoryLocation =
+        pointerAssignment2.orElseThrow().leftHandSideMemoryLocation();
 
     // all are not explicit global memory locations
-    assertThat(PARAMETER_POINTER_R_MEMORY_LOCATION.isGlobal()).isFalse();
-    assertThat(PARAMETER_POINTER_R_MEMORY_LOCATION.isGlobal()).isFalse();
-    assertThat(LOCAL_Z_MEMORY_LOCATION.isGlobal()).isFalse();
+    assertThat(rMemoryLocation.isGlobal()).isFalse();
+    assertThat(zMemoryLocation.isGlobal()).isFalse();
 
     // find the mem locations associated with deref of 'param_ptr_P' in the given call context
     ImmutableSet<SeqMemoryLocation> memoryLocations =
         SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
-            PARAMETER_POINTER_P_MEMORY_LOCATION, allPointerAssignments);
+            pMemoryLocation,
+            ImmutableSet.of(pointerAssignment1.orElseThrow(), pointerAssignment2.orElseThrow()));
 
     assertThat(memoryLocations).hasSize(1);
-    assertThat(memoryLocations).contains(LOCAL_Z_MEMORY_LOCATION);
+    assertThat(memoryLocations).contains(zMemoryLocation);
   }
 }

@@ -118,14 +118,14 @@ public class InputRejectionTest {
   @Test
   public void testRejectPthreadArrayIdentifiers() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/pthread_t-array.c");
-    testExpectedRejection(inputFilePath, InputRejectionMessage.NO_PTHREAD_OBJECT_ARRAYS);
+    testExpectedRejection(inputFilePath, InputRejectionMessage.PTHREAD_OBJECT_ARRAY);
   }
 
   @Test
   public void testRejectPthreadReturnValue() throws Exception {
     Path inputFilePath =
         Path.of("./test/programs/mpor/input_rejections/pthread-function-return-value.c");
-    testExpectedRejection(inputFilePath, InputRejectionMessage.PTHREAD_RETURN_VALUE);
+    testExpectedRejection(inputFilePath, InputRejectionMessage.PTHREAD_FUNCTION_RETURN_VALUE);
   }
 
   @Test

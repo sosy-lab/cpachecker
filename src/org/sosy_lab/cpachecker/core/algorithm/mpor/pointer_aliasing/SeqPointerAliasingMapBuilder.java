@@ -8,16 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing;
 
-import com.google.common.annotations.VisibleForTesting;
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
 import java.util.HashSet;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -25,7 +21,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements.SeqFunctionStatements;
@@ -35,7 +30,6 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public record SeqPointerAliasingMapBuilder(
     MPOROptions options,
-    ImmutableList<SeqMemoryLocation> initialMemoryLocations,
     ImmutableCollection<SubstituteEdge> substituteEdges,
     ImmutableCollection<SeqFunctionStatements> functionStatements,
     CFA inputCfa,
@@ -44,49 +38,49 @@ public record SeqPointerAliasingMapBuilder(
   private static final int INITIAL_MEMORY_LOCATION_ID = 0;
 
   public SeqPointerAliasingMap buildPointerAliasingMap() throws UnsupportedCodeException {
-    ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pointerAssignments =
+    ImmutableSet<SeqPointerAssignment> pointerAssignments =
         substituteEdges.stream()
-            .flatMap(edge -> edge.pointerAssignments.asMultimap().entries().stream())
-            .collect(ImmutableSetMultimap.toImmutableSetMultimap(Entry::getKey, Entry::getValue));
+            .flatMap(edge -> edge.getPointerAssignments().stream())
+            .collect(ImmutableSet.toImmutableSet());
 
-    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> parameterAssignments =
+    ImmutableSet<SeqPointerAssignment> pointerParameterAssignments =
         mapAssignmentsFromFunctionStatements(
             functionStatements.stream()
                 .flatMap(s -> s.parameterAssignments().values().stream())
                 .collect(ImmutableSet.toImmutableSet()),
-            inputCfa);
-    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        extractPointerAssignments(parameterAssignments);
-
-    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> returnValueAssignments =
+            inputCfa,
+            SeqPointerAssignmentType.PARAMETER);
+    ImmutableSet<SeqPointerAssignment> pointerReturnValueAssignments =
         mapAssignmentsFromFunctionStatements(
             functionStatements.stream()
                 .flatMap(s -> s.returnValueAssignments().values().stream())
                 .collect(ImmutableSet.toImmutableSet()),
-            inputCfa);
-    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerReturnValueAssignments =
-        extractPointerAssignments(returnValueAssignments);
+            inputCfa,
+            SeqPointerAssignmentType.RETURN_VALUE);
 
-    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> startRoutineArgAssignments =
+    ImmutableSet<SeqPointerAssignment> startRoutineArgAssignments =
         mapAssignmentsFromFunctionStatements(
             functionStatements.stream()
                 .flatMap(s -> s.startRoutineArgAssignments().values().stream())
                 .collect(ImmutableSet.toImmutableSet()),
-            inputCfa);
-    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> startRoutineExitAssignments =
+            inputCfa,
+            SeqPointerAssignmentType.START_ROUTINE_ARG);
+    ImmutableSet<SeqPointerAssignment> startRoutineExitAssignments =
         mapAssignmentsFromFunctionStatements(
             functionStatements.stream()
                 .flatMap(s -> s.startRoutineExitAssignments().values().stream())
                 .collect(ImmutableSet.toImmutableSet()),
-            inputCfa);
+            inputCfa,
+            SeqPointerAssignmentType.START_ROUTINE_EXIT);
 
     ImmutableSet<SeqPointerAssignment> allPointerAssignments =
-        getAllPointerAssignments(
-            pointerAssignments,
-            pointerParameterAssignments,
-            pointerReturnValueAssignments,
-            startRoutineArgAssignments,
-            startRoutineExitAssignments);
+        ImmutableSet.<SeqPointerAssignment>builder()
+            .addAll(pointerAssignments)
+            .addAll(pointerParameterAssignments)
+            .addAll(pointerReturnValueAssignments)
+            .addAll(startRoutineArgAssignments)
+            .addAll(startRoutineExitAssignments)
+            .build();
 
     ImmutableSet<SeqMemoryLocation> pointerDereferences =
         substituteEdges.stream()
@@ -111,15 +105,44 @@ public record SeqPointerAliasingMapBuilder(
 
     ImmutableSet<SeqMemoryLocation> allMemoryLocations =
         ImmutableSet.<SeqMemoryLocation>builder()
-            .addAll(initialMemoryLocations)
-            .addAll(parameterAssignments.values())
-            .addAll(returnValueAssignments.keySet())
-            .addAll(returnValueAssignments.values())
-            .addAll(startRoutineArgAssignments.values())
-            .addAll(startRoutineExitAssignments.keySet())
-            .addAll(startRoutineExitAssignments.values())
+            // add memory locations that are accessed directly in the edges
+            .addAll(
+                substituteEdges.stream()
+                    .flatMap(
+                        substituteEdge ->
+                            substituteEdge
+                                .getMemoryLocationsByAccessType(SeqMemoryAccessType.ACCESS)
+                                .stream())
+                    .collect(ImmutableSet.toImmutableSet()))
+            .addAll(
+                pointerAssignments.stream()
+                    .flatMap(a -> a.getAllMemoryLocations().stream())
+                    .collect(ImmutableSet.toImmutableSet()))
+            // for pointer parameter assignments we only need the right-hand side since that is
+            // an actual memory location. the left-hand side is not allocated
+            .addAll(
+                pointerParameterAssignments.stream()
+                    .map(SeqPointerAssignment::rightHandSideMemoryLocation)
+                    .collect(ImmutableSet.toImmutableSet()))
+            .addAll(
+                pointerReturnValueAssignments.stream()
+                    .flatMap(a -> a.getAllMemoryLocations().stream())
+                    .collect(ImmutableSet.toImmutableSet()))
+            // for start_routine arg assignments we only need the right-hand side since that is
+            // an actual memory location. the left-hand side is not allocated
+            .addAll(
+                startRoutineArgAssignments.stream()
+                    .map(SeqPointerAssignment::rightHandSideMemoryLocation)
+                    .collect(ImmutableSet.toImmutableSet()))
+            .addAll(
+                startRoutineExitAssignments.stream()
+                    .flatMap(a -> a.getAllMemoryLocations().stream())
+                    .collect(ImmutableSet.toImmutableSet()))
+            // add memory locations from pointer dereferences
+            .addAll(pointerDereferences)
             .addAll(pointerDereferenceMemoryLocations)
             .build();
+
     ImmutableMap<SeqMemoryLocation, Integer> relevantMemoryLocationIds =
         getRelevantMemoryLocationsIds(
             allMemoryLocations, allPointerAssignments, pointerDereferences);
@@ -294,84 +317,56 @@ public record SeqPointerAliasingMapBuilder(
 
   // Function Statement Assignments
 
-  private ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> mapAssignmentsFromFunctionStatements(
-      ImmutableCollection<SeqFunctionStatement> pFunctionStatements, CFA pInputCfa)
+  /**
+   * Maps the all assignments from the given {@link SeqFunctionStatement}s, including pointer and
+   * non-pointer assignments.
+   *
+   * <p>Note that it is possible that the given {@code pFunctionStatements} can contain the same
+   * left-hand side {@link SeqMemoryLocation} in multiple assignments, but only for {@link
+   * SeqPointerAssignmentType#RETURN_VALUE}:
+   *
+   * <pre>{@code
+   * int squared(int x) {
+   *    return x * x;
+   * }
+   * int main() {
+   *    int result;
+   *    result = squared(1);
+   *    result = squared(2);
+   * }
+   * }</pre>
+   */
+  private ImmutableSet<SeqPointerAssignment> mapAssignmentsFromFunctionStatements(
+      ImmutableCollection<SeqFunctionStatement> pFunctionStatements,
+      CFA pInputCfa,
+      SeqPointerAssignmentType pType)
       throws UnsupportedCodeException {
 
-    ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rAssignments =
-        ImmutableMap.builder();
+    checkArgument(
+        !pType.equals(SeqPointerAssignmentType.EXPLICIT),
+        "pType cannot be EXPLICIT because pointer assignments from function statements are never"
+            + " explicit.");
+
+    ImmutableSet.Builder<SeqPointerAssignment> rAssignments = ImmutableSet.builder();
 
     for (SeqFunctionStatement functionStatement : pFunctionStatements) {
       CLeftHandSide leftHandSide =
           functionStatement.getExpressionAssignmentStatement().getLeftHandSide();
       CExpression rightHandSide =
           functionStatement.getExpressionAssignmentStatement().getRightHandSide();
-      Optional<Map.Entry<SeqMemoryLocation, SeqMemoryLocation>> pointerAssignment =
-          SeqPointerAliasingUtil.tryMapPointerAssignment(
+      Optional<SeqPointerAssignment> pointerAssignment =
+          SeqPointerAliasingUtil.tryBuildPointerAssignment(
               leftHandSide,
               rightHandSide,
               functionStatement.getLeftHandSideCallContext(),
               functionStatement.getRightHandSideCallContext(),
-              pInputCfa);
+              pInputCfa.getAllFunctions(),
+              pType);
       if (pointerAssignment.isPresent()) {
-        rAssignments.put(
-            pointerAssignment.orElseThrow().getKey(), pointerAssignment.orElseThrow().getValue());
+        rAssignments.add(pointerAssignment.orElseThrow());
       }
     }
 
-    return rAssignments.buildOrThrow();
-  }
-
-  // Helper
-
-  @VisibleForTesting
-  static ImmutableSet<SeqPointerAssignment> getAllPointerAssignments(
-      ImmutableSetMultimap<SeqMemoryLocation, SeqMemoryLocation> pPointerAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pParameterAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pReturnValueAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineArgAssignments,
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pStartRoutineExitAssignments) {
-
-    ImmutableSet.Builder<SeqPointerAssignment> pointerAssignments = ImmutableSet.builder();
-
-    pPointerAssignments
-        .entries()
-        .forEach(
-            a ->
-                pointerAssignments.add(
-                    new SeqPointerAssignment(
-                        SeqPointerAssignmentType.EXPLICIT, a.getKey(), a.getValue())));
-    pParameterAssignments.forEach(
-        (key, value) ->
-            pointerAssignments.add(
-                new SeqPointerAssignment(SeqPointerAssignmentType.PARAMETER, key, value)));
-    pReturnValueAssignments.forEach(
-        (key, value) ->
-            pointerAssignments.add(
-                new SeqPointerAssignment(SeqPointerAssignmentType.RETURN_VALUE, key, value)));
-    pStartRoutineArgAssignments.forEach(
-        (key, value) ->
-            pointerAssignments.add(
-                new SeqPointerAssignment(SeqPointerAssignmentType.START_ROUTINE_ARG, key, value)));
-    pStartRoutineExitAssignments.forEach(
-        (key, value) ->
-            pointerAssignments.add(
-                new SeqPointerAssignment(SeqPointerAssignmentType.START_ROUTINE_EXIT, key, value)));
-
-    return pointerAssignments.build();
-  }
-
-  @VisibleForTesting
-  static ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> extractPointerAssignments(
-      ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pAssignments) {
-
-    ImmutableMap.Builder<SeqMemoryLocation, SeqMemoryLocation> rPointerAssignments =
-        ImmutableMap.builder();
-    for (var entry : pAssignments.entrySet()) {
-      if (Objects.requireNonNull(entry.getKey().declaration()).getType() instanceof CPointerType) {
-        rPointerAssignments.put(entry);
-      }
-    }
-    return rPointerAssignments.buildOrThrow();
+    return rAssignments.build();
   }
 }

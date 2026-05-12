@@ -10,17 +10,19 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ImmutableSortedMap;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -28,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class SeqPointerAliasingStartRoutineArgTest {
 
@@ -76,48 +79,59 @@ public class SeqPointerAliasingStartRoutineArgTest {
 
   private final CParameterDeclarations PARAMETER_DECLARATIONS = new CParameterDeclarations();
 
-  // Memory Locations (primitives)
+  // CIdExpression
 
-  private final SeqMemoryLocation LOCAL_L1_MEMORY_LOCATION =
-      SeqMemoryLocation.of(Optional.empty(), LOCAL_L1_DECLARATION);
-
-  private final SeqMemoryLocation START_ROUTINE_ARG_MEMORY_LOCATION =
-      SeqMemoryLocation.of(
-          Optional.of(SeqPointerAliasingParameterTest.DUMMY_CALL_CONTEXT),
+  private final CIdExpression START_ROUTINE_ARG_ID_EXPRESSION =
+      new CIdExpression(
+          FileLocation.DUMMY,
           PARAMETER_DECLARATIONS.START_ROUTINE_ARG_DECLARATION.asVariableDeclaration());
 
+  private final CIdExpression LOCAL_L1_ID_EXPRESSION =
+      new CIdExpression(FileLocation.DUMMY, LOCAL_L1_DECLARATION);
+
+  // CUnaryExpression
+
+  private final CUnaryExpression LOCAL_L1_UNARY_EXPRESSION =
+      new CUnaryExpression(
+          FileLocation.DUMMY,
+          new CPointerType(CTypeQualifiers.NONE, LOCAL_L1_ID_EXPRESSION.getExpressionType()),
+          LOCAL_L1_ID_EXPRESSION,
+          UnaryOperator.AMPER);
+
   @Test
-  public void test_local_start_routine_arg_implicit_global() {
-    // param_ptr_P = &global_X; i.e. pointer parameter assignment
-    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> startRoutineArgAssignments =
-        ImmutableMap.<SeqMemoryLocation, SeqMemoryLocation>builder()
-            .put(START_ROUTINE_ARG_MEMORY_LOCATION, LOCAL_L1_MEMORY_LOCATION)
-            .buildOrThrow();
-    ImmutableMap<SeqMemoryLocation, SeqMemoryLocation> pointerParameterAssignments =
-        SeqPointerAliasingMapBuilder.extractPointerAssignments(startRoutineArgAssignments);
+  public void test_local_start_routine_arg_implicit_global() throws UnsupportedCodeException {
+    // arg = &local_l1; i.e. start_routine arg assignment
+    Optional<SeqPointerAssignment> parameterAssignment =
+        SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            START_ROUTINE_ARG_ID_EXPRESSION,
+            LOCAL_L1_UNARY_EXPRESSION,
+            Optional.empty(),
+            Optional.empty(),
+            ImmutableSortedMap.of(),
+            SeqPointerAssignmentType.START_ROUTINE_ARG);
 
-    ImmutableSet<SeqPointerAssignment> allPointerAssignments =
-        SeqPointerAliasingMapBuilder.getAllPointerAssignments(
-            ImmutableSetMultimap.of(),
-            pointerParameterAssignments,
-            ImmutableMap.of(),
-            startRoutineArgAssignments,
-            ImmutableMap.of());
+    assertThat(parameterAssignment).isPresent();
 
-    // check that start_routine_arg assignment is recognized as pointer parameter (void *)
-    assertThat(pointerParameterAssignments).hasSize(1);
+    SeqMemoryLocation argMemoryLocation =
+        parameterAssignment.orElseThrow().leftHandSideMemoryLocation();
+    SeqMemoryLocation l1MemoryLocation =
+        parameterAssignment.orElseThrow().rightHandSideMemoryLocation();
 
     // local_L1 is now an implicit global memory location, due to start_routine_arg assignment
-    assertThat(LOCAL_L1_MEMORY_LOCATION.isGlobal()).isFalse();
+    assertThat(l1MemoryLocation.isGlobal()).isFalse();
     assertThat(
             SeqPointerAliasingMapBuilder.isImplicitGlobal(
-                LOCAL_L1_MEMORY_LOCATION, allPointerAssignments, ImmutableSet.of()))
+                l1MemoryLocation,
+                ImmutableSet.of(parameterAssignment.orElseThrow()),
+                ImmutableSet.of()))
         .isTrue();
     // start_routine_arg is not explicit or implicit global
-    assertThat(START_ROUTINE_ARG_MEMORY_LOCATION.isGlobal()).isFalse();
+    assertThat(argMemoryLocation.isGlobal()).isFalse();
     assertThat(
             SeqPointerAliasingMapBuilder.isImplicitGlobal(
-                START_ROUTINE_ARG_MEMORY_LOCATION, allPointerAssignments, ImmutableSet.of()))
+                argMemoryLocation,
+                ImmutableSet.of(parameterAssignment.orElseThrow()),
+                ImmutableSet.of()))
         .isFalse();
   }
 }
