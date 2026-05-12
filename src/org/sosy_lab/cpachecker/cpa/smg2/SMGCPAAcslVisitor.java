@@ -8,19 +8,20 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation.simplifyAssumption;
 import static org.sosy_lab.cpachecker.cpa.smg2.SMGTransferRelation.representsBoolean;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.UnmodifiableIterator;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
@@ -53,8 +54,10 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTe
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLabel;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCExpressionTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCLeftHandSideTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
@@ -65,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicFunctionDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicPredicateDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetEmpty;
@@ -73,6 +77,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslProgramLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
@@ -89,16 +94,21 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
@@ -134,7 +144,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibSymbolApplicationRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -211,26 +221,69 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
   // Are we in a negated case or not
   private final boolean truthAssumption;
 
-  // Saves the last acsl function call to ensure we traverse a single function recursively
-  private final Optional<AcslFunctionDeclaration> currentFunction = Optional.empty();
-
   private final SMGState initialState;
 
+  // E.g. definitions of functions called
+  private final ImmutableSet<AcslLogicDefinition> logicDefinitions;
+
+  private final SMGTransferRelation callingTransfer;
   private final SMGCPAExpressionEvaluator evaluator;
   private final LogManagerWithoutDuplicates logger;
   private final SMGOptions options;
 
-  SMGCPAAcslVisitor(
+  private final CFAEdge cfaEdge;
+
+  private SMGCPAAcslVisitor(
+      ImmutableSet<AcslLogicDefinition> pDefinitions,
       SMGState pInitialState,
       boolean pTruthAssumption,
       SMGOptions pOptions,
       LogManagerWithoutDuplicates pLogger,
-      SMGCPAExpressionEvaluator pEvaluator) {
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGTransferRelation pCallingTransfer,
+      CFAEdge pCfaEdge) {
+    logicDefinitions = checkNotNull(pDefinitions);
     initialState = checkNotNull(pInitialState);
     logger = checkNotNull(pLogger);
     options = checkNotNull(pOptions);
     truthAssumption = pTruthAssumption;
     evaluator = pEvaluator;
+    callingTransfer = pCallingTransfer;
+    cfaEdge = pCfaEdge;
+  }
+
+  /**
+   * Constructor for a new {@link SMGCPAAcslVisitor}. Only to be used for initial visitation. If you
+   * need to modify the visitor, use e.g. {@link #copyWithNewState(SMGState)}.
+   */
+  SMGCPAAcslVisitor(
+      ImmutableSet<AcslLogicDefinition> pDefinitions,
+      SMGState pInitialState,
+      SMGOptions pOptions,
+      LogManagerWithoutDuplicates pLogger,
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGTransferRelation pCallingTransfer,
+      CFAEdge pCfaEdge) {
+    logicDefinitions = checkNotNull(pDefinitions);
+    initialState = checkNotNull(pInitialState);
+    logger = checkNotNull(pLogger);
+    options = checkNotNull(pOptions);
+    truthAssumption = true;
+    evaluator = pEvaluator;
+    callingTransfer = pCallingTransfer;
+    cfaEdge = pCfaEdge;
+  }
+
+  private SMGCPAAcslVisitor copyWithNewState(SMGState newInitialState) {
+    return new SMGCPAAcslVisitor(
+        logicDefinitions,
+        newInitialState,
+        truthAssumption,
+        options,
+        logger,
+        evaluator,
+        callingTransfer,
+        cfaEdge);
   }
 
   @Override
@@ -298,10 +351,7 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
     // Check that the assumptions posed are correct (reject non-logical operators)
     if (exp instanceof CBinaryExpression cExpr && cExpr.getOperator().isLogicalOperator()) {
       try {
-        return handleAssumptionWithSimplification(
-            initialState,
-            new DummyCFAEdge(CFANode.newDummyCFANode(), CFANode.newDummyCFANode()),
-            cExpr);
+        return handleAssumptionWithSimplification(initialState, cExpr);
       } catch (InterruptedException pE) {
         throw new RuntimeException(pE);
       }
@@ -503,23 +553,7 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
   @Override
   public Set<SMGState> visit(AcslLogicPredicateDefinition pAcslLogicPredicateDefinition)
       throws CPATransferException {
-    /*
-     * For example with a nested function definition;
-     *  e.g. a recursive function 'pred_sll' used to describe a linked-list in a witness:
-     * pred_sll(sll * start, sll * end, int size):
-     *   size == 1 ? start->next == 0 && start == end
-     *   : start != 0 && start->next != start && start->next != 0
-     *     && pred_sll(start->next, end, size - 1)
-     */
-
-    if (pAcslLogicPredicateDefinition.getDeclaration() != null
-        && !pAcslLogicPredicateDefinition.getDeclaration().getParameters().isEmpty()) {
-      logger.log(
-          Level.WARNING,
-          "ACSL logic predicate function definition argument validation not yet implemented!");
-      // TODO: validate arguments as well if present
-    }
-    return pAcslLogicPredicateDefinition.getBody().accept(this);
+    throw new UnsupportedOperationException("Definitions can not be processed on their own");
   }
 
   @Override
@@ -628,36 +662,178 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
     throw new UnsupportedOperationException("not implemented");
   }
 
+  // AcslFunctionCallPredicates are function-calls for AcslLogicFunctionDefinitions
   @Override
-  public Set<SMGState> visit(AcslFunctionCallPredicate pAcslFunctionCallPredicate) {
-    // Most likely a recursive function call, e.g.: pred_sll(start->next, end, size - 1)
+  public Set<SMGState> visit(AcslFunctionCallPredicate pAcslFunctionCallPredicate)
+      throws CPATransferException {
+    /*
+     * Most likely a (recursive) function call, e.g.: pred_sll(start->next, end, size - 1)
+     * Or the entry point of a predicate defined in a witness,
+     * e.g. function-call pred_sll(sll, now, size) with sll and now being variables in the
+     * actual C program.
+     *
+     * For example for a nested function-definition;
+     *  e.g. a recursive function 'pred_sll' used to describe a linked-list in a witness:
+     *
+     * pred_sll(sll * start, sll * end, int size):
+     *   size == 1 ? start->next == 0 && start == end
+     *   : start != 0 && start->next != start && start->next != 0
+     *     && pred_sll(start->next, end, size - 1)
+     *
+     * We need to update the non ACSL variables used,
+     * i.e. we take the name of the variable at position x and assign the result of
+     * the operation in the function call argument at position x,
+     * e.g. for function-definition: pred_sll(start, end, size), we apply the following two:
+     * start = start->next; end = end; for function-call pred_sll(start->next, end, size - 1)
+     */
 
+    // TODO: we need a AcslPredicateDeclaration here instead. Marian is currently unsure whether
+    // AcslFunctionCallPredicate.getDeclaration() returns the wrong type or whether
+    // AcslFunctionCallPredicate is the wrong function-call type to expect here. Decide after
+    // merging the changes!
     AcslFunctionDeclaration funDecl = pAcslFunctionCallPredicate.getDeclaration();
 
-    AcslTerm funNameExpr = pAcslFunctionCallPredicate.getFunctionNameExpression();
-    if (funNameExpr != null && funNameExpr instanceof AcslIdTerm funNameId) {
-      if (!funNameId.getDeclaration().equals(funDecl)
-          || funDecl.getName() == null
-          || currentFunction.isEmpty()
-          || !funDecl.equals(currentFunction.orElseThrow())) {
-        logger.log(
-            Level.WARNING,
-            "Could not establish recursive ACSL predicate with " + pAcslFunctionCallPredicate);
-        return ImmutableSet.of();
+    // Resolve C arguments (not all ACSL arguments are needed C arguments)
+    ImmutableList.Builder<CExpression> cArgumentsBuilder = ImmutableList.builder();
+    for (AcslTerm param : pAcslFunctionCallPredicate.getParameterExpressions()) {
+      if (param instanceof AcslCExpressionTerm cParam) {
+        cArgumentsBuilder.add(cParam.getCExpression());
       }
-    } else {
-      logger.log(
-          Level.WARNING,
-          "Could not establish recursive ACSL predicate with " + pAcslFunctionCallPredicate);
-      return ImmutableSet.of();
+    }
+    List<CExpression> cArguments = cArgumentsBuilder.build();
+    // It makes little sense to call a function without arguments that we can work with currently
+    verify(!cArguments.isEmpty());
+
+    // Resolve function definition
+    AcslLogicPredicateDefinition acslLogicPredicateDefinition = null;
+    for (AcslLogicDefinition def : logicDefinitions) {
+      if (def.getDeclaration().equals(funDecl)) {
+        verify(def instanceof AcslLogicFunctionDefinition);
+        acslLogicPredicateDefinition = def;
+      }
     }
 
-    ImmutableList<? extends AParameterDeclaration> declParams = funDecl.getParameters();
-    ImmutableList<AcslTerm> params = pAcslFunctionCallPredicate.getParameterExpressions();
-    // Assign params to their declParams (to move the list forward)
-    // TODO:
+    checkNotNull(arguments);
+    AcslPredicateDeclaration newFunCallDeclaration = pAcslLogicPredicateDefinition.getDeclaration();
+    checkNotNull(newFunCallDeclaration);
 
-    throw new UnsupportedOperationException("not implemented");
+    // Add new stack-frame with the variables needed
+    // We need to unpack the ACSLParameterDeclarations into usable C declarations first
+    ImmutableList.Builder<CParameterDeclaration> parameterDeclarationsBuilder =
+        ImmutableList.builder();
+    ImmutableList<? extends AParameterDeclaration> acslParameters =
+        newFunCallDeclaration.getParameters();
+    for (AParameterDeclaration acslParamDecl : checkNotNull(acslParameters)) {
+      if (acslParamDecl instanceof AcslCParameterDeclaration acslCParamDecl) {
+        CParameterDeclaration cParamDecl = acslCParamDecl.getDeclaration();
+        parameterDeclarationsBuilder.add(checkNotNull(cParamDecl));
+      }
+      // We simply ignore pure ACSL parameter declarations
+    }
+    List<CParameterDeclaration> parameterDeclarations = parameterDeclarationsBuilder.build();
+    if (parameterDeclarations.isEmpty()) {
+      throw new UnsupportedOperationException(
+          "Pure ACSL expressions (without C expression arguments) are currently not supported");
+    }
+    // TODO: extract ACSL args from arguments if this fails due to them being in there ;D
+    checkArgument(parameterDeclarations.size() == arguments.size());
+
+    // TODO: We need to reconstruct a CFunctionCallEdge from our ACSL function-call
+    // or extend the stack frame to support any
+    CFunctionDeclaration constructedCFunDecl = new CFunctionDeclaration();
+    // TODO: constructing the c fun decl is a problem, as it would not be available to check in the
+    // method calling this method
+    CFunctionCallEdge constructedCCallEdge = new CFunctionDeclaration();
+
+    SMGState stateWithNewStackFrameAndVars =
+        callingTransfer.handleFunctionCall(
+            initialState, constructedCCallEdge, arguments, parameterDeclarations);
+
+    Set<SMGState> processedStates =
+        acslLogicPredicateDefinition
+            .getBody()
+            .accept(copyWithNewState(stateWithNewStackFrameAndVars));
+
+    ImmutableSet.Builder<SMGState> finalStates = ImmutableSet.builder();
+    for (SMGState processedState : processedStates) {
+      verify(processedState.hasStackFrameForFunctionDef(funDecl));
+      finalStates.add(processedState.dropStackFrame());
+    }
+    return finalStates.build();
+
+    // TODO: we most likely don't need the code below, but lets keep it for now until i know more
+
+    // The decl is really of type AcslPredicateDeclaration! This is fine for now
+    if (funDeclsToBodies.containsKey(funDecl)) {
+      AcslTerm body = funDeclsToBodies.get(funDecl);
+      ImmutableList<? extends AParameterDeclaration> declParams = funDecl.getParameters();
+      ImmutableList<AcslTerm> arguments = pAcslFunctionCallPredicate.getParameterExpressions();
+      // Assign arguments to their declParams (to move the list forward; e.g. start = start->next)
+      SMGState currentState = initialState;
+      UnmodifiableIterator<? extends AParameterDeclaration> declParamsIter = declParams.iterator();
+      UnmodifiableIterator<AcslTerm> argumentsIter = arguments.iterator();
+      while (declParamsIter.hasNext()) {
+        verify(argumentsIter.hasNext());
+
+        AParameterDeclaration declaration = declParamsIter.next();
+        AcslTerm argument = argumentsIter.next();
+
+        // TODO: Wasn't there a builder for CExpressions?
+        CAssignment assignment;
+
+        if (argument instanceof AcslCLeftHandSideTerm lhsArg) {
+          // e.g. start->next in funCall(start->next, ...)
+
+          // This LHS is actually the right-hand-side of our new assignment!
+          CLeftHandSide rhsCExpr = lhsArg.getCLeftHandSideExpression();
+          assignment =
+              new CExpressionAssignmentStatement(rhsCExpr.getFileLocation(), assignTo, rhsCExpr);
+
+        } else if (argument instanceof AcslIdTerm idArg) {
+          // e.g. variable in funCall(..., variable, ...)
+          if (!idArg.getDeclaration().equals(oldDecl)) {
+            assignment =
+                new CExpressionAssignmentStatement(idArg.getFileLocation(), assignTo, idArg);
+
+          } else {
+            // We assume that assignments only happen in function calls and not in the function
+            // body, hence if the assignments are equal (variable = variable;),
+            // we don't have to do anything
+            continue;
+          }
+
+        } else if (argument instanceof AcslTerm acslTermArg
+            && acslTermArg.getExpressionType() instanceof AcslBuiltinLogicType) {
+          // e.g. size - 1 in funCall(..., size - 1),
+          // but size is a ACSL expression, not a C expression -> ignore (we don't track ACSL)
+          continue;
+
+        } else {
+          throw new UnsupportedOperationException(
+              "Expression "
+                  + argument
+                  + " of type "
+                  + argument.getClass()
+                  + " currently not supported");
+        }
+
+        // Assigning the new values might trigger a list materialization:
+        // - No list materialization: 1 state is returned, just keep on processing.
+        // - list materialization: 2 states returned; the first is the "not extended list", while
+        // the second is the extended (with possibly unlimited extensions following) list.
+        currentState = callingTransfer.handleStatement(cfaEdge, assignment);
+      }
+
+      // TODO: we get the ACSL function body from the CFAMetadata based on the definition
+      // Execute recursive function call with
+      return body.accept(copyWithNewState(currentState));
+
+    } else {
+      // TODO: Reduce log level once this works
+      logger.log(
+          Level.WARNING, "Could not find ACSL function call body  " + pAcslFunctionCallPredicate);
+      return ImmutableSet.of();
+    }
   }
 
   @Override
@@ -1060,8 +1236,7 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
    * Evaluates C assumptions in the SMGCPA and returns no elements of not fulfilled, else the
    * fulfilling states. This might materialize list elements (e.g. more than one returned element).
    */
-  private Set<SMGState> handleAssumptionWithSimplification(
-      SMGState state, CFAEdge cfaEdge, CExpression pExpression)
+  private Set<SMGState> handleAssumptionWithSimplification(SMGState state, CExpression pExpression)
       throws CPATransferException, InterruptedException {
 
     Pair<AExpression, Boolean> simplifiedExpression =
