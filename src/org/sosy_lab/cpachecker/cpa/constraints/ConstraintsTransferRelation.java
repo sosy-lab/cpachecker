@@ -523,7 +523,9 @@ public class ConstraintsTransferRelation
 
       for (AbstractState currStrengtheningState : newViolation.getWrappedStates()) {
         ConstraintsState currStateToStrengthen = new ConstraintsState(newStates.getFirst());
-        if (!(currStrengtheningState instanceof ConstraintsState constraintsState)) continue;
+        if (!(currStrengtheningState instanceof ConstraintsState constraintsState)) {
+          continue;
+        }
 
         if (valueState != null) {
           List<Constraint> valueComparison =

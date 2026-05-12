@@ -88,7 +88,9 @@ public class ValueStateCoverageOperator implements CoverageOperator {
     ValueAnalysisState valState1 = (ValueAnalysisState) state1;
     ValueAnalysisState valState2 = (ValueAnalysisState) state2;
 
-    if (valState1.isLessOrEqual(valState2)) return true;
+    if (valState1.isLessOrEqual(valState2)) {
+      return true;
+    }
 
     Set<SymbolicIdentifier> identifiersState1 = new HashSet<>();
     Set<SymbolicIdentifier> identifiersState2 = new HashSet<>();
@@ -156,8 +158,8 @@ public class ValueStateCoverageOperator implements CoverageOperator {
 
     try {
       return !constraintsSolver.getSolver().isUnsat(quantifiedForall);
-    } catch (SolverException pE) {
-      throw new RuntimeException(pE);
+    } catch (SolverException e) {
+      throw new RuntimeException(e);
     }
   }
 
