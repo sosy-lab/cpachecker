@@ -14,11 +14,13 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
@@ -27,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -75,6 +78,8 @@ class AutomatonTransition {
    */
   private final ImmutableList<AExpression> assumptions;
 
+  private final ImmutableSet<AcslLogicDefinition> logicDefinitions;
+
   private final ExpressionTree<AExpression> candidateInvariants;
 
   private final ExpressionTree<AExpression> candidateTransitionInvariants;
@@ -99,6 +104,7 @@ class AutomatonTransition {
     private AutomatonBoolExpr trigger;
     private List<AutomatonBoolExpr> assertions;
     private List<AExpression> assumptions;
+    private Set<AcslLogicDefinition> logicDefinitions;
     private List<AutomatonAction> actions;
     private String followStateName;
     private @Nullable AutomatonInternalState followState;
@@ -111,6 +117,7 @@ class AutomatonTransition {
       trigger = pTrigger;
       assertions = ImmutableList.of();
       assumptions = ImmutableList.of();
+      logicDefinitions = ImmutableSet.of();
       actions = ImmutableList.of();
       followStateName = pFollowStateName;
       candidateInvariants = ExpressionTrees.getTrue();
@@ -138,6 +145,13 @@ class AutomatonTransition {
     @CanIgnoreReturnValue
     Builder withAssumptions(List<AExpression> pAssumptions) {
       assumptions = pAssumptions;
+      return this;
+    }
+
+    // TODO: use/add to parser
+    @CanIgnoreReturnValue
+    Builder withLogicDefinitions(Set<AcslLogicDefinition> pLogicDefinitions) {
+      logicDefinitions = pLogicDefinitions;
       return this;
     }
 
@@ -177,6 +191,7 @@ class AutomatonTransition {
           trigger,
           assertions,
           assumptions,
+          logicDefinitions,
           candidateInvariants,
           candidateTransitionInvariants,
           areDefaultCandidateInvariants,
@@ -192,6 +207,7 @@ class AutomatonTransition {
         b.trigger,
         b.assertions,
         b.assumptions,
+        b.logicDefinitions,
         b.candidateInvariants,
         b.candidateTransitionInvariants,
         b.areDefaultCandidateInvariants,
@@ -205,6 +221,7 @@ class AutomatonTransition {
       AutomatonBoolExpr pTrigger,
       List<AutomatonBoolExpr> pAssertions,
       List<AExpression> pAssumptions,
+      Set<AcslLogicDefinition> pLogicDefinitions,
       ExpressionTree<AExpression> pCandidateInvariants,
       ExpressionTree<AExpression> pCandidateTransitionInvariants,
       boolean pAreDefaultCandidateInvariants,
@@ -219,6 +236,12 @@ class AutomatonTransition {
       assumptions = ImmutableList.of();
     } else {
       assumptions = ImmutableList.copyOf(pAssumptions);
+    }
+
+    if (pLogicDefinitions == null) {
+      logicDefinitions = ImmutableSet.of();
+    } else {
+      logicDefinitions = ImmutableSet.copyOf(pLogicDefinitions);
     }
 
     candidateInvariants = checkNotNull(pCandidateInvariants);
@@ -250,7 +273,13 @@ class AutomatonTransition {
   @Override
   public int hashCode() {
     return Objects.hash(
-        actions, assertion, assumptions, followStateName, trigger, targetInformation);
+        actions,
+        assertion,
+        assumptions,
+        logicDefinitions,
+        followStateName,
+        trigger,
+        targetInformation);
   }
 
   @Override
@@ -262,6 +291,7 @@ class AutomatonTransition {
         && Objects.equals(actions, other.actions)
         && Objects.equals(assertion, other.assertion)
         && Objects.equals(assumptions, other.assumptions)
+        && Objects.equals(logicDefinitions, other.logicDefinitions)
         && Objects.equals(followStateName, other.followStateName)
         && Objects.equals(trigger, other.trigger)
         && Objects.equals(targetInformation, other.targetInformation);
@@ -374,6 +404,13 @@ class AutomatonTransition {
           Joiner.on("; ").join(Collections2.transform(assumptions, AExpression::toASTString)));
       sb.append("} ");
     }
+    if (!logicDefinitions.isEmpty()) {
+      sb.append("DEFINE {");
+      sb.append(
+          Joiner.on("; ")
+              .join(Collections2.transform(logicDefinitions, AcslLogicDefinition::toASTString)));
+      sb.append("} ");
+    }
     if (!actions.isEmpty()) {
       Joiner.on(" ").appendTo(sb, actions);
       sb.append(" ");
@@ -409,6 +446,10 @@ class AutomatonTransition {
       }
     }
     return builder.build();
+  }
+
+  public ImmutableSet<AcslLogicDefinition> getLogicDefinitions() {
+    return checkNotNull(logicDefinitions);
   }
 
   private Optional<AExpression> tryResolve(

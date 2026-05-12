@@ -26,8 +26,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDefinition;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithDefinitions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
@@ -45,6 +47,7 @@ public class AutomatonState
         Targetable,
         Serializable,
         AbstractStateWithAssumptions,
+        AbstractStateWithDefinitions,
         Graphable {
 
   @Serial private static final long serialVersionUID = -4665039439114057346L;
@@ -61,6 +64,7 @@ public class AutomatonState
           new AutomatonInternalState("_predefinedState_TOP", ImmutableList.of()),
           pAutomaton,
           ImmutableList.of(),
+          ImmutableSet.of(),
           ExpressionTrees.getTrue(),
           true,
           0,
@@ -89,6 +93,7 @@ public class AutomatonState
           AutomatonInternalState.BOTTOM,
           pAutomaton,
           ImmutableList.of(),
+          ImmutableSet.of(),
           ExpressionTrees.getTrue(),
           true,
           0,
@@ -112,6 +117,7 @@ public class AutomatonState
   private final Map<String, AutomatonVariable> vars;
   private transient AutomatonInternalState internalState;
   private final ImmutableList<AExpression> assumptions;
+  private final ImmutableSet<AcslLogicDefinition> logicDefinitions;
   private final transient ExpressionTree<AExpression> candidateInvariants;
   private final boolean areDefaultCandidateInvariants;
   private int matches = 0;
@@ -124,6 +130,7 @@ public class AutomatonState
       AutomatonInternalState pInternalState,
       Automaton pAutomaton,
       ImmutableList<AExpression> pAssumptions,
+      ImmutableSet<AcslLogicDefinition> pLogicDefinitions,
       ExpressionTree<AExpression> pCandidateInvariants,
       boolean pAreDefaultCandiateInvariants,
       int successfulMatches,
@@ -139,6 +146,7 @@ public class AutomatonState
           pInternalState,
           pAutomaton,
           pAssumptions,
+          pLogicDefinitions,
           pCandidateInvariants,
           pAreDefaultCandiateInvariants,
           successfulMatches,
@@ -161,6 +169,7 @@ public class AutomatonState
         pInternalState,
         pAutomaton,
         ImmutableList.of(),
+        ImmutableSet.of(),
         ExpressionTrees.getTrue(),
         true,
         successfulMatches,
@@ -174,6 +183,7 @@ public class AutomatonState
       AutomatonInternalState pInternalState,
       Automaton pAutomaton,
       ImmutableList<AExpression> pAssumptions,
+      ImmutableSet<AcslLogicDefinition> pLogicDefinitions,
       ExpressionTree<AExpression> pCandidateInvariants,
       boolean pAreDefaultCandiateInvariants,
       int successfulMatches,
@@ -187,6 +197,7 @@ public class AutomatonState
     matches = successfulMatches;
     this.failedMatches = failedMatches;
     assumptions = pAssumptions;
+    logicDefinitions = checkNotNull(pLogicDefinitions);
     candidateInvariants = pCandidateInvariants;
     areDefaultCandidateInvariants = pAreDefaultCandiateInvariants;
     treatErrorAsTarget = pTreatErrorAsTarget;
@@ -231,6 +242,7 @@ public class AutomatonState
 
     AutomatonState otherState = (AutomatonState) pObj;
     return Objects.equals(assumptions, otherState.assumptions)
+        && Objects.equals(logicDefinitions, otherState.logicDefinitions)
         && Objects.equals(vars, otherState.vars)
         && Objects.equals(internalState, otherState.internalState);
   }
@@ -239,12 +251,17 @@ public class AutomatonState
   public int hashCode() {
     // Important: we cannot use vars.hashCode(), because the hash code of a map
     // depends on the hash code of its values, and those may change.
-    return Objects.hash(assumptions, internalState);
+    return Objects.hash(assumptions, logicDefinitions, internalState);
   }
 
   @Override
   public ImmutableList<AExpression> getAssumptions() {
     return assumptions;
+  }
+
+  @Override
+  public ImmutableSet<AcslLogicDefinition> getLogicDefinitions() {
+    return logicDefinitions;
   }
 
   /**
@@ -280,6 +297,13 @@ public class AutomatonState
                     .map(AExpression::toASTString)
                     .collect(Collectors.joining("; "));
       }
+      if (!logicDefinitions.isEmpty()) {
+        prettyPrintAsmpts =
+            "\nLogic Definitions: "
+                + logicDefinitions.stream()
+                    .map(AcslLogicDefinition::toASTString)
+                    .collect(Collectors.joining("; "));
+      }
       if (!vars.isEmpty()) {
         prettyPrintAsmpts += "\n" + Joiner.on(' ').withKeyValueSeparator("=").join(vars);
       }
@@ -312,6 +336,7 @@ public class AutomatonState
           pPreviousState.getInternalState(),
           pPreviousState.automaton,
           ImmutableList.of(),
+          ImmutableSet.of(),
           ExpressionTrees.getTrue(),
           true,
           -1,

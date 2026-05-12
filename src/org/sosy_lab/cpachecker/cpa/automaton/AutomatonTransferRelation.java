@@ -284,6 +284,7 @@ public class AutomatonTransferRelation implements TransferRelation {
                 t.getFollowState(),
                 state.getOwningAutomaton(),
                 instantiatedAssumes,
+                t.getLogicDefinitions(),
                 t.getCandidateInvariants(),
                 t.hasDefaultCandidateInvariants(),
                 state.getMatches() + 1,
