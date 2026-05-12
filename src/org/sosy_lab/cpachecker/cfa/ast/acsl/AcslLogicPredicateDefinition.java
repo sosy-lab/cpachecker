@@ -13,6 +13,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
+/**
+ * Predicates may define any logical construct that returns type boolean. You can think of it as a
+ * function definitions in some cases, but it is technically not a function.
+ */
 public final class AcslLogicPredicateDefinition extends AcslLogicDefinition {
 
   @Serial private static final long serialVersionUID = 145671239875456789L;
