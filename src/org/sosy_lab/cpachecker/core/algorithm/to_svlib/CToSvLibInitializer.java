@@ -206,7 +206,7 @@ class CToSvLibInitializer {
 
     if (!pointerTargetSetForEdge.equals(PointerTargetSet.emptyPointerTargetSet())) {
       PersistentSortedMap<PointerBase, CType> bases = pointerTargetSetForEdge.getBases();
-      for (Entry<PointerBase, CType> baseEntry : bases.entrySet().descendingSet()) {
+      for (Entry<PointerBase, CType> baseEntry : bases.entrySet().reversed()) {
         // create array for heap model if no array for the CType of the PointerBase has been created
         createArrayForHeap(baseEntry.getValue(), pCommandsCollector, pCreatedHeapModels);
         createAddressOfVariables(
@@ -264,8 +264,7 @@ class CToSvLibInitializer {
     SvLibParsingVariableDeclaration addressVariable =
         new SvLibParsingVariableDeclaration(
             FileLocation.DUMMY, true, false, addressType, addressName, addressName, null);
-    if (!pCreatedAddressVariables.contains(addressVariable)) {
-      pCreatedAddressVariables.add(addressVariable);
+    if (pCreatedAddressVariables.add(addressVariable)) {
       scope.addVariable(addressVariable);
       pCommandsCollector.add(
           new SvLibVariableDeclarationCommand(addressVariable, FileLocation.DUMMY));

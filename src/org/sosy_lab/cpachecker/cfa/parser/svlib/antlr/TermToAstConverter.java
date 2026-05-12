@@ -215,7 +215,7 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
     // Match all the bitvector stuff
     if (FluentIterable.from(pLogics).anyMatch(SmtLibLogic::containsBitvectorOperations)) {
       List<SvLibType> argumentTypes =
-          FluentIterable.from(pArguments).transform(SvLibTerm::getExpressionType).toList();
+          transformedImmutableListCopy(pArguments, SvLibTerm::getExpressionType);
       switch (pSymbol) {
         case "bvnot" -> {
           Verify.verify(pArguments.size() == 1);
