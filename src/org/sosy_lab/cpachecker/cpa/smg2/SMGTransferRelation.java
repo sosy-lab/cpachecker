@@ -8,12 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_EQUAL;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN;
 import static org.sosy_lab.cpachecker.util.StandardFunctions.isMemoryAllocatingFunction;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -35,6 +35,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -102,6 +103,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
@@ -322,9 +324,8 @@ public class SMGTransferRelation
             successorsBuilder.add(currentState);
           }
 
-          Preconditions.checkArgument(targetPointer instanceof SymbolicIdentifier);
-          Preconditions.checkArgument(
-              ((SymbolicIdentifier) targetPointer).getRepresentedLocation().isPresent());
+          checkArgument(targetPointer instanceof SymbolicIdentifier);
+          checkArgument(((SymbolicIdentifier) targetPointer).getRepresentedLocation().isPresent());
           MemoryLocation locationInPrevStackFrame =
               ((SymbolicIdentifier) targetPointer).getRepresentedLocation().orElseThrow();
           Optional<SMGObject> maybeKnownMemory =
@@ -395,7 +396,7 @@ public class SMGTransferRelation
     CFunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
     CFunctionCall summaryExpr = functionReturnEdge.getFunctionCall();
 
-    Preconditions.checkArgument(
+    checkArgument(
         state.getMemoryModel().getStackFrames().peek().getFunctionDefinition()
             == functionReturnEdge.getFunctionEntry().getFunctionDefinition());
 
@@ -410,7 +411,7 @@ public class SMGTransferRelation
           state.getMemoryModel().getReturnObjectForCurrentStackFrame();
       // There should always be a return memory object in the case of a
       // CFunctionCallAssignmentStatement!
-      Preconditions.checkArgument(returnObject.isPresent());
+      checkArgument(returnObject.isPresent());
       // Read the return object with its type
       ImmutableList.Builder<SMGState> stateBuilder = ImmutableList.builder();
       if (SMGCPAExpressionEvaluator.isStructOrUnionType(leftValueType)
@@ -420,7 +421,7 @@ public class SMGTransferRelation
 
         for (SMGState stateWithNewVar :
             createVariableOnTheSpotForPreviousStackframe(leftValue, currentState)) {
-          Preconditions.checkArgument(leftValue instanceof CIdExpression);
+          checkArgument(leftValue instanceof CIdExpression);
           String leftHandSideVarName =
               ((CIdExpression) leftValue).getDeclaration().getQualifiedName();
           // We are still on the stackframe of the function call!
@@ -428,7 +429,7 @@ public class SMGTransferRelation
               stateWithNewVar
                   .getMemoryModel()
                   .getObjectForVisibleVariableFromPreviousStackframe(leftHandSideVarName);
-          Preconditions.checkArgument(maybeTargetVariableMemory.isPresent());
+          checkArgument(maybeTargetVariableMemory.isPresent());
 
           stateBuilder.add(
               stateWithNewVar
@@ -570,7 +571,7 @@ public class SMGTransferRelation
    *     new local variables.
    * @throws CPATransferException in case of a critical error.
    */
-  private SMGState handleFunctionCall(
+  protected SMGState handleFunctionCall(
       SMGState initialState,
       CFunctionCallEdge callEdge,
       List<CExpression> arguments,
@@ -615,7 +616,7 @@ public class SMGTransferRelation
                     parameterType,
                     callEdge.getFileLocation(),
                     stringExpr);
-            Preconditions.checkArgument(statesWithString.size() == 1);
+            checkArgument(statesWithString.size() == 1);
             currentState = statesWithString.getFirst();
           }
         }
@@ -623,7 +624,7 @@ public class SMGTransferRelation
         List<ValueAndSMGState> addressesAndStates =
             evaluator.createAddress(cParamExp, currentState, callEdge);
 
-        Preconditions.checkArgument(addressesAndStates.size() == 1);
+        checkArgument(addressesAndStates.size() == 1);
         valueAndState = addressesAndStates.getFirst();
       } else {
         // Evaluate the CExpr into a Value
@@ -634,7 +635,7 @@ public class SMGTransferRelation
 
         // If this ever fails; we need to take all states/values into account, meaning we would need
         // to proceed from this point onwards with all of them with all following operations
-        Preconditions.checkArgument(valuesAndStates.size() == 1);
+        checkArgument(valuesAndStates.size() == 1);
         valueAndState = valuesAndStates.getFirst();
       }
       readValuesInOrderBuilder.add(valueAndState.getValue());
@@ -706,7 +707,7 @@ public class SMGTransferRelation
       // area with the variable name
       List<SMGStateAndOptionalSMGObjectAndOffset> knownMemoriesAndStates =
           currentState.dereferencePointer(paramValue);
-      Preconditions.checkArgument(knownMemoriesAndStates.size() == 1);
+      checkArgument(knownMemoriesAndStates.size() == 1);
       SMGStateAndOptionalSMGObjectAndOffset knownMemoryAndState = knownMemoriesAndStates.getFirst();
       currentState = knownMemoryAndState.getSMGState();
       if (!knownMemoryAndState.hasSMGObjectAndOffset()) {
@@ -743,7 +744,7 @@ public class SMGTransferRelation
             currentState.dereferencePointer(addrParamValue.getMemoryAddress());
 
         // Nothing can materialize here
-        Preconditions.checkArgument(derefedPointerOffsetAndState.size() == 1);
+        checkArgument(derefedPointerOffsetAndState.size() == 1);
         currentState = derefedPointerOffsetAndState.getFirst().getSMGState();
 
         if (!derefedPointerOffsetAndState.getFirst().hasSMGObjectAndOffset()) {
@@ -763,7 +764,7 @@ public class SMGTransferRelation
 
       } else if (paramValue instanceof SymbolicIdentifier symbParamValue) {
         // Local struct to local struct copy
-        Preconditions.checkArgument(symbParamValue.getRepresentedLocation().isPresent());
+        checkArgument(symbParamValue.getRepresentedLocation().isPresent());
 
         MemoryLocation locationInPrevStackFrame =
             symbParamValue.getRepresentedLocation().orElseThrow();
@@ -913,7 +914,7 @@ public class SMGTransferRelation
           if (e.isSolverException()) {
             throw e.getSolverException();
           } else {
-            Preconditions.checkArgument(e.isInterruptedException());
+            checkArgument(e.isInterruptedException());
             throw e.getInterruptedException();
           }
         }
@@ -964,6 +965,11 @@ public class SMGTransferRelation
   @Override
   protected Collection<SMGState> handleStatementEdge(CStatementEdge pCfaEdge, CStatement cStmt)
       throws CPATransferException {
+    return handleStatement(pCfaEdge, cStmt);
+  }
+
+  Collection<SMGState> handleStatement(CFAEdge pCfaEdge, CStatement cStmt)
+      throws CPATransferException {
     // Either assignments a = b; or function calls foo(..);
     if (cStmt instanceof CAssignment cAssignment) {
       // Assignments, evaluate the right hand side value using the value visitor and write it into
@@ -1008,7 +1014,7 @@ public class SMGTransferRelation
    */
   private List<ValueAndSMGState> postprocessBuiltinCFunctionWithoutReturn(
       List<ValueAndSMGState> statesWithHandledFunctions,
-      CStatementEdge pCfaEdge,
+      CFAEdge pCfaEdge,
       String calledFunctionName)
       throws CPATransferException {
 
@@ -1112,12 +1118,13 @@ public class SMGTransferRelation
       CFAEdge cfaEdge,
       Precision pPrecision)
       throws CPATransferException, InterruptedException {
-    Preconditions.checkArgument(element instanceof SMGState);
+    checkArgument(element instanceof SMGState initialSMGStateToStrengthen);
+    SMGState initialSMGStateToStrengthen = (SMGState) element;
 
     List<SMGState> toStrengthen = new ArrayList<>();
     List<SMGState> result = new ArrayList<>();
-    toStrengthen.add((SMGState) element);
-    result.add((SMGState) element);
+    toStrengthen.add(initialSMGStateToStrengthen);
+    result.add(initialSMGStateToStrengthen);
 
     for (AbstractState ae : elements) {
       if (ae instanceof AutomatonState automatonState) {
@@ -1129,11 +1136,13 @@ public class SMGTransferRelation
         result.clear();
 
         ExpressionTree<AExpression> invariants = automatonState.getCandidateInvariants();
+        ImmutableSet<AcslLogicDefinition> definitions = automatonState.getLogicDefinitions();
         // We expect only 1 item in the ExpressionTree due to ACSL
         Optional<AExpression> invariant = Optional.empty();
         if (invariants instanceof LeafExpression<AExpression> leaf) {
           invariant = Optional.of(leaf.getExpression());
         }
+        checkArgument(invariants.equals(ExpressionTrees.getTrue()) || invariant.isPresent());
 
         List<AExpression> assumptions = automatonState.getAssumptions();
 
@@ -1145,19 +1154,27 @@ public class SMGTransferRelation
                 strengthenStateWithAssumptions(assumptions, stateToStrengthen, cfaEdge);
 
             if (invariant.isPresent()) {
-              // TODO: include CFAEdge in visitor? We use dummys inside currently.
               for (SMGState strengthenedState : strengthenedStates) {
                 SMGCPAAcslVisitor acslVisitor =
-                    new SMGCPAAcslVisitor(strengthenedState, true, options, logger, evaluator);
+                    new SMGCPAAcslVisitor(
+                        definitions, strengthenedState, options, logger, evaluator, this, cfaEdge);
 
                 result.addAll(invariant.orElseThrow().accept_(acslVisitor));
               }
             }
 
           } catch (SolverException e) {
-            throw new CPATransferException("Solver error while strengthening. " + e);
+            throw new CPATransferException(
+                "Solver error while strengthening for memory-safety witnesses v2 " + e);
           }
         }
+
+        if (result.isEmpty() && invariant.isPresent()) {
+          // Rejected correctness witnesses get a pseudo target state
+          String errorMsg = "Invariant " + invariant.orElseThrow() + " rejected";
+          result.add(initialSMGStateToStrengthen.withInvalidCorrectnessWitness(errorMsg));
+        }
+
         toStrengthen.clear();
         toStrengthen.addAll(result);
 
@@ -1194,8 +1211,8 @@ public class SMGTransferRelation
     final Collection<AbstractState> postProcessedResult = new ArrayList<>(result.size());
     for (SMGState rawResult : result) {
       // The original state has already been post-processed
-      if (rawResult == element) {
-        postProcessedResult.add(element);
+      if (rawResult == initialSMGStateToStrengthen) {
+        postProcessedResult.add(initialSMGStateToStrengthen);
       } else {
         postProcessedResult.addAll(postProcessing(ImmutableList.of(rawResult), cfaEdge));
       }
@@ -1354,7 +1371,7 @@ public class SMGTransferRelation
 
     if (valueToWrite instanceof SymbolicIdentifier
         && ((SymbolicIdentifier) valueToWrite).getRepresentedLocation().isPresent()) {
-      Preconditions.checkArgument(SMGCPAExpressionEvaluator.isStructOrUnionType(rightHandSideType));
+      checkArgument(SMGCPAExpressionEvaluator.isStructOrUnionType(rightHandSideType));
       // A SymbolicIdentifier with location is used to copy entire variable structures (i.e.
       // arrays/structs etc.)
       return ImmutableList.of(
@@ -1367,7 +1384,7 @@ public class SMGTransferRelation
 
     } else if (valueToWrite instanceof AddressExpression addressInValue) {
       if (SMGCPAExpressionEvaluator.isStructOrUnionType(rightHandSideType)) {
-        Preconditions.checkArgument(
+        checkArgument(
             rightHandSideType.equals(leftHandSideType)
                 || rightHandSideType.canBeAssignedFrom(leftHandSideType));
         // This is a copy based on a pointer
@@ -1397,7 +1414,7 @@ public class SMGTransferRelation
                   addressInValue.getMemoryAddress(), addressInValue.getOffset(), currentState);
 
           // Very unlikely that a 0+ list abstraction gets materialized here
-          Preconditions.checkArgument(newAddressesAndStates.size() == 1);
+          checkArgument(newAddressesAndStates.size() == 1);
           ValueAndSMGState newAddressAndState = newAddressesAndStates.getFirst();
           currentState = newAddressAndState.getState();
           properPointer = newAddressAndState.getValue();
@@ -1436,7 +1453,7 @@ public class SMGTransferRelation
                   addressInValue.getMemoryAddress(), addressInValue.getOffset(), currentState);
 
           // Very unlikely that a 0+ list abstraction gets materialized here
-          Preconditions.checkArgument(newAddressesAndStates.size() == 1);
+          checkArgument(newAddressesAndStates.size() == 1);
           ValueAndSMGState newAddressAndState = newAddressesAndStates.getFirst();
           currentState = newAddressAndState.getState();
           valueToWrite = newAddressAndState.getValue();
@@ -1444,7 +1461,7 @@ public class SMGTransferRelation
           // Offset unknown/symbolic. This is not usable!
           valueToWrite = UnknownValue.getInstance();
         }
-        Preconditions.checkArgument(
+        checkArgument(
             sizeInBits.isNumericValue()
                 && sizeInBits
                         .asNumericValue()
