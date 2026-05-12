@@ -42,4 +42,6 @@ public interface AcslTermVisitor<R, X extends Exception> {
   R visit(AcslCLeftHandSideTerm pAcslCLeftHandSideTerm);
 
   R visit(AcslCExpressionTerm pAcslCExpressionTerm) throws CPATransferException;
+
+  R visit(AcslCIdExpression pAcslCIdExpression);
 }

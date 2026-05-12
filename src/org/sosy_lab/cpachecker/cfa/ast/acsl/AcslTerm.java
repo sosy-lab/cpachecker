@@ -18,6 +18,7 @@ public sealed interface AcslTerm extends AcslAstNode, AExpression
         AcslAtTerm,
         AcslBinaryTerm,
         AcslCExpressionTerm,
+        AcslCIdExpression,
         AcslCLeftHandSideTerm,
         AcslFunctionCallTerm,
         AcslIdTerm,
