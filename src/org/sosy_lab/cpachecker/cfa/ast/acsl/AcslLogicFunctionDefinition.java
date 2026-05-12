@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
+/** Defines functions with arbitrary return type. */
 public final class AcslLogicFunctionDefinition extends AcslLogicDefinition {
 
   @Serial private static final long serialVersionUID = 145671239875456789L;
