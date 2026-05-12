@@ -16,6 +16,7 @@ import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 // Formally a predicate is not a function, but it can be expressed as a function which returns
@@ -32,7 +33,7 @@ public final class AcslPredicateDeclaration extends AFunctionDeclaration
       String pName,
       String pOrigName,
       List<AcslTypeVariableDeclaration> pPolymorphicTypes,
-      List<AcslParameterDeclaration> pParameters) {
+      List<? extends AParameterDeclaration> pParameters) {
     super(pFileLocation, pType, pName, pOrigName, pParameters);
     polymorphicTypes = pPolymorphicTypes;
     checkNotNull(pFileLocation);
