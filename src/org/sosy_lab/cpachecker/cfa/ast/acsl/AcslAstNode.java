@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNodeVisitor;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public sealed interface AcslAstNode extends AAstNode
     permits AcslBinaryPredicateOperator,
@@ -32,7 +33,7 @@ public sealed interface AcslAstNode extends AAstNode
         AcslUnaryExpressionOperator,
         AcslUnaryTermOperator {
 
-  <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X;
+  <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X, CPATransferException;
 
   @Deprecated // Call accept() directly
   @SuppressWarnings("unchecked") // should not be necessary, but javac complains otherwise
