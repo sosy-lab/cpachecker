@@ -8,13 +8,21 @@
 
 package org.sosy_lab.cpachecker.cfa.transformation;
 
+import com.google.common.io.MoreFiles;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.TreeMap;
+import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.Assert;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -23,50 +31,31 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
+@SuppressWarnings("unused")
 public class TailRecursionEliminationTest {
 
   private ImmutableCFA tailRecursiveCFA;
   private ImmutableCFA nonTailRecursiveCFA;
-  //private FunctionEntryNode N1;
-  private String mainProgram;
-  private String tailRecursiveAdd;
-  private String nonTailRecursiveAdd;
 
   @Before
-  public void init(){
-    mainProgram = """
-    int main(int argc, char** argv){
-      return add(2,3);
-    }
-    """;
-    tailRecursiveAdd = """
-    unsigned int add(unsigned int a, unsigned int b){
-      if(b == 0){
-        return a;
-      } else {
-        return add(a+1, b-1);
-      }
-    }
-    """;
-    nonTailRecursiveAdd = """
-    unsigned int add(unsigned int a, unsigned int b){
-      unsigned int c;
-      c = a + b;
-      return c;
-    }
-    """;
-    try{
-      tailRecursiveCFA = TestDataTools.makeCFA(tailRecursiveAdd, mainProgram);
-    } catch (InterruptedException | ParserException pE) {
-      throw new RuntimeException(pE);
-    }
-    try{
-      nonTailRecursiveCFA = TestDataTools.makeCFA(nonTailRecursiveAdd, mainProgram);
-    } catch (InterruptedException | ParserException pE) {
-      throw new RuntimeException(pE);
-    }
-
-
+  public void init() throws IOException, ParserException, InterruptedException,
+                            InvalidConfigurationException {
+    ConfigurationBuilder testConfig = TestDataTools.configurationForTest();
+    testConfig.setOption("cfa.useProgramTransformations", "true");
+    testConfig.setOption("analysis.interprocedural", "false");
+    Configuration tstConfig = testConfig.build();
+    Path program_path = Path.of("test/programs/program_transformation/tail_recursion_add.c");
+    tailRecursiveCFA =
+        TestDataTools.makeCFA(
+            testConfig.build(),
+            IOUtils.toString(
+                MoreFiles.asByteSource(program_path).openStream(), StandardCharsets.UTF_8));
+    program_path = Path.of("test/programs/program_transformation/non_tail_recursion_add.c");
+    nonTailRecursiveCFA =
+        TestDataTools.makeCFA(
+            testConfig.build(),
+            IOUtils.toString(
+                MoreFiles.asByteSource(program_path).openStream(), StandardCharsets.UTF_8));
   }
 
   @Test
