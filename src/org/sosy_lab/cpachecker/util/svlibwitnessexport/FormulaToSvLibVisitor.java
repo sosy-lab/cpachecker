@@ -241,6 +241,13 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
   public SvLibTerm visitFreeVariable(Formula pFormula, String pS) {
     String nameWithoutSSA = pS.replaceAll("@" + "[0-9]+", "");
 
+    if (pS.startsWith("__ADDRESS_OF_")) {
+      nameWithoutSSA = nameWithoutSSA.replace("::", "_");
+      if (nameWithoutSSA.endsWith("@")) {
+        nameWithoutSSA = nameWithoutSSA.replace("@", "");
+      }
+    }
+
     SvLibSimpleDeclaration variableDeclaration =
         scope.getVariableForQualifiedName(nameWithoutSSA).toSimpleDeclaration();
     return new SvLibIdTerm(variableDeclaration, FileLocation.DUMMY);

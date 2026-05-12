@@ -258,7 +258,7 @@ class CToSvLibInitializer {
       ImmutableList.Builder<SvLibCommand> pCommandsCollector,
       Set<SvLibParsingVariableDeclaration> pCreatedAddressVariables) {
     // Replace :: in addresses of local variables, since : causes an issue with the SV-LIB parser
-    String addressName = pPointerBase.formulaEncoding().replace("::", "_") + "@";
+    String addressName = pPointerBase.formulaEncoding().replace("::", "_");
     SvLibSmtLibType addressType = convertToSvLibSmtLibType(pBaseType);
 
     SvLibParsingVariableDeclaration addressVariable =
