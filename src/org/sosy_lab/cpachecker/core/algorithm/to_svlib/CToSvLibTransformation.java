@@ -567,7 +567,7 @@ class CToSvLibTransformation {
     for (SvLibSymbolApplicationTerm symbolApplicationTerm : assignmentTerms) {
       if (symbolApplicationTerm.getTerms().getFirst() instanceof SvLibIdTerm idTerm
           && (idTerm.getDeclaration() instanceof SvLibVariableDeclaration
-          || idTerm.getDeclaration() instanceof SvLibParameterDeclaration)) {
+              || idTerm.getDeclaration() instanceof SvLibParameterDeclaration)) {
         statementsCollector.add(
             transformTermToAssignmentStatement(
                 idTerm, symbolApplicationTerm.getTerms().get(1), pFunctionName));
