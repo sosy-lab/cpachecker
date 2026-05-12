@@ -12,6 +12,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibExpressionVisitor;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public sealed interface AcslPredicate extends AExpression, AcslAstNode
     permits AcslBinaryPredicate,
@@ -26,7 +27,7 @@ public sealed interface AcslPredicate extends AExpression, AcslAstNode
         AcslPredicateTerm,
         AcslQuantifiedPredicate {
 
-  <R, X extends Exception> R accept(AcslPredicateVisitor<R, X> v) throws X;
+  <R, X extends Exception> R accept(AcslPredicateVisitor<R, X> v) throws X, CPATransferException;
 
   @Deprecated // Call accept() directly
   @SuppressWarnings("unchecked") // should not be necessary, but javac complains otherwise
