@@ -14,13 +14,21 @@ import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distr
 
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssSerializeObjectUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.constraints.SerializeConstraintsStateOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
@@ -30,12 +38,15 @@ public class SerializeValueAnalysisStateOperator implements SerializeOperator {
   private final FormulaManagerView formulaManager;
   private final ValueAnalysisCPA valueCpa;
   private final CFA cfa;
+  private final BlockNode blocknode;
 
-  public SerializeValueAnalysisStateOperator(ValueAnalysisCPA pValueAnalysisCPA, CFA pCFA) {
+  public SerializeValueAnalysisStateOperator(
+      ValueAnalysisCPA pValueAnalysisCPA, CFA pCFA, BlockNode pBlockNode) {
     valueCpa = pValueAnalysisCPA;
     cfa = pCFA;
     formulaManager =
         pValueAnalysisCPA.getBlockStrengtheningOperator().getSolver().getFormulaManager();
+    blocknode = pBlockNode;
   }
 
   @Override
@@ -45,6 +56,8 @@ public class SerializeValueAnalysisStateOperator implements SerializeOperator {
     String ssa = "";
     String pts = "";
     String formula = "";
+
+    storeIdentifiersForConstraints(state);
     SerializationInfoStorage.storeSerializationInformation(valueCpa, cfa);
     try {
       serializedState = DssSerializeObjectUtil.serialize(state);
@@ -70,5 +83,19 @@ public class SerializeValueAnalysisStateOperator implements SerializeOperator {
         .put(FORMULA_KEY, formula)
         .popLevel()
         .build();
+  }
+
+  private void storeIdentifiersForConstraints(ValueAnalysisState pValueState) {
+    Set<SymbolicIdentifier> IDs =
+        pValueState.getConstants().stream()
+            .filter(value -> value.getValue().getValue() instanceof SymbolicValue)
+            .map(
+                value ->
+                    SymbolicValues.getContainedSymbolicIdentifiers(
+                        (SymbolicValue) value.getValue().getValue()))
+            .flatMap(Collection::stream)
+            .collect(Collectors.toSet());
+
+    SerializeConstraintsStateOperator.assignedIDs.put(blocknode.getId(), IDs);
   }
 }

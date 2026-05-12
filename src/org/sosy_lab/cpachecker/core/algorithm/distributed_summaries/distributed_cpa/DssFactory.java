@@ -249,8 +249,7 @@ public class DssFactory {
 
   private static DistributedConfigurableProgramAnalysis distribute(
       ConstraintsCPA pConstraintsCPA, BlockNode pBlockNode) {
-    return new DistributedConstraintsCPA(
-        pConstraintsCPA, pBlockNode.getInitialLocation().getFunctionName());
+    return new DistributedConstraintsCPA(pConstraintsCPA, pBlockNode);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
