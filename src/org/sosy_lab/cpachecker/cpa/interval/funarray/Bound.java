@@ -12,6 +12,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCo
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
@@ -37,34 +38,38 @@ public record Bound(Set<NormalFormExpression> expressions) {
 
   public Bound adaptForChangedVariableValues(
       CIdExpression changedVariableId, Set<NormalFormExpression> newValues) {
-    var modifiedExpressions =
-        expressions.stream()
-            .flatMap(
-                expression ->
-                    newValues.stream()
-                        .flatMap(
-                            newValue -> {
-                              if (expression.containsVariable(newValue.getVariable())) {
-                                if (expression.containsVariable(changedVariableId)) {
-                                  return Stream.of(expression.increase(-newValue.getConstant()));
-                                } else {
-                                  return Stream.of(
-                                      expression,
-                                      new NormalFormExpression(
-                                          changedVariableId,
-                                          expression.getConstant() - newValue.getConstant()));
-                                }
-                              } else {
-                                if (expression.containsVariable(changedVariableId)) {
-                                  return Stream.of();
-                                } else {
-                                  return Stream.of(expression);
-                                }
-                              }
-                            }))
-            .collect(ImmutableSet.toImmutableSet());
+
+    Set<NormalFormExpression> modifiedExpressions = new HashSet<>();
+
+    for (NormalFormExpression expression: expressions()) {
+      for (NormalFormExpression newValue: newValues) {
+        modifiedExpressions.addAll(
+            adaptSingleExpression(expression, changedVariableId, newValue)
+        );
+      }
+    }
 
     return new Bound(modifiedExpressions);
+  }
+
+  private static ImmutableSet<NormalFormExpression> adaptSingleExpression(NormalFormExpression expression, CIdExpression changedVariableId, NormalFormExpression newValue) {
+    if (expression.containsVariable(newValue.getVariable())) {
+      if (expression.containsVariable(changedVariableId)) {
+        return ImmutableSet.of(expression.increase(-newValue.getConstant()));
+      } else {
+        return ImmutableSet.of(
+            expression,
+            new NormalFormExpression(
+                changedVariableId,
+                expression.getConstant() - newValue.getConstant()));
+      }
+    } else {
+      if (expression.containsVariable(changedVariableId)) {
+        return ImmutableSet.of();
+      } else {
+        return ImmutableSet.of(expression);
+      }
+    }
   }
 
   public Bound removeVariableOccurrences(CIdExpression removeVariable) {
