@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAtTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
@@ -35,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.exceptions.NoException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -48,13 +50,28 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
-  private SSAMapBuilder ssa; // ToDo where do we get this from??
+  private final SSAMapBuilder currentSsa; // ToDo where do we get this from??
+  private final @Nullable SSAMap
+      functionEntrySsa; // Optional SSA map for function-entry state (\old)
   private CtoFormulaConverter ctoFormulaConverter; // ToDo where do we get this from??
 
-  public AcslTermToFormulaVisitor(FormulaManagerView pFmgr) {
+  public AcslTermToFormulaVisitor(FormulaManagerView pFmgr, SSAMapBuilder pCurrentSsa) {
     checkNotNull(pFmgr);
+    checkNotNull(pCurrentSsa);
     this.fmgr = pFmgr;
     this.bfmgr = fmgr.getBooleanFormulaManager();
+    this.currentSsa = pCurrentSsa;
+    this.functionEntrySsa = null;
+  }
+
+  public AcslTermToFormulaVisitor(
+      FormulaManagerView pFmgr, SSAMapBuilder pCurrentSsa, SSAMap pFunctionEntrySsa) {
+    checkNotNull(pFmgr);
+    checkNotNull(pCurrentSsa);
+    this.fmgr = pFmgr;
+    this.bfmgr = fmgr.getBooleanFormulaManager();
+    this.currentSsa = pCurrentSsa;
+    this.functionEntrySsa = pFunctionEntrySsa;
   }
 
   @Override
@@ -77,7 +94,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
   @Override
   public Formula visit(AcslCharLiteralTerm pAcslCharLiteralTerm) throws NoException {
-    return null;
+    throw new UnsupportedOperationException("Not yet implemented");
   }
 
   @Override
@@ -106,6 +123,13 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
   @Override
   public Formula visit(AcslOldTerm pAcslOldTerm) throws NoException {
+    if (functionEntrySsa == null) {
+      throw new UnsupportedOperationException(
+          "\\old is not available without a SSA map at function entry");
+    }
+
+    // TODO: implementation
+
     return null;
   }
 
@@ -121,7 +145,8 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
   @Override
   public Formula visit(AcslTernaryTerm pAcslTernaryTerm) throws NoException {
-    AcslPredicateToFormulaVisitor predicateVisitor = new AcslPredicateToFormulaVisitor(fmgr, this);
+    AcslPredicateToFormulaVisitor predicateVisitor =
+        new AcslPredicateToFormulaVisitor(fmgr, this, currentSsa, functionEntrySsa);
     BooleanFormula conditionFormula = pAcslTernaryTerm.getCondition().accept(predicateVisitor);
     Formula ifTrueFormula = pAcslTernaryTerm.getResultIfTrue().accept(this);
     Formula ifFalseFormula = pAcslTernaryTerm.getResultIfFalse().accept(this);
@@ -153,16 +178,21 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
    * @return the index of the variable
    */
   private int getIndex(String name, AcslType type) {
-    Type existingType = ssa.getType(name);
+    Type existingType = currentSsa.getType(name);
     if (existingType != null && !type.equals(existingType)) {
       throw new IllegalArgumentException(
-          "Variable " + name + " has conflicting types: " + ssa.getType(name) + " and " + type);
+          "Variable "
+              + name
+              + " has conflicting types: "
+              + currentSsa.getType(name)
+              + " and "
+              + type);
     }
 
-    int idx = ssa.getIndex(name);
+    int idx = currentSsa.getIndex(name);
     if (idx <= 0) {
       idx = 1; // uninitialized variable
-      ssa.setIndex(name, type, idx);
+      currentSsa.setIndex(name, type, idx);
     }
     return idx;
   }

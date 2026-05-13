@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
@@ -24,6 +25,8 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
 import org.sosy_lab.cpachecker.exceptions.NoException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -36,13 +39,43 @@ public class AcslPredicateToFormulaVisitor
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final AcslTermToFormulaVisitor termVisitor;
+  private final SSAMapBuilder currentSsa; // ToDo where do we get this from??
+  private final @Nullable SSAMap
+      functionEntrySsa; // Optional SSA map for function-entry state (\old)
+
+  public AcslPredicateToFormulaVisitor(FormulaManagerView pFmgr, SSAMapBuilder pCurrentSsa) {
+    checkNotNull(pFmgr);
+    checkNotNull(pCurrentSsa);
+    this.fmgr = pFmgr;
+    this.bfmgr = fmgr.getBooleanFormulaManager();
+    this.termVisitor = new AcslTermToFormulaVisitor(pFmgr, pCurrentSsa);
+    this.currentSsa = pCurrentSsa;
+    this.functionEntrySsa = null;
+  }
 
   public AcslPredicateToFormulaVisitor(
-      FormulaManagerView pFmgr, AcslTermToFormulaVisitor pTermVisitor) {
+      FormulaManagerView pFmgr, SSAMapBuilder pCurrentSsa, SSAMap pFunctionEntrySsa) {
     checkNotNull(pFmgr);
+    checkNotNull(pCurrentSsa);
+    this.fmgr = pFmgr;
+    this.bfmgr = fmgr.getBooleanFormulaManager();
+    this.termVisitor = new AcslTermToFormulaVisitor(pFmgr, pCurrentSsa, pFunctionEntrySsa);
+    this.currentSsa = pCurrentSsa;
+    this.functionEntrySsa = pFunctionEntrySsa;
+  }
+
+  protected AcslPredicateToFormulaVisitor(
+      FormulaManagerView pFmgr,
+      AcslTermToFormulaVisitor pTermVisitor,
+      SSAMapBuilder pCurrentSsa,
+      SSAMap pFunctionEntrySsa) {
+    checkNotNull(pFmgr);
+    checkNotNull(pTermVisitor);
     this.fmgr = pFmgr;
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.termVisitor = pTermVisitor;
+    this.currentSsa = pCurrentSsa;
+    this.functionEntrySsa = pFunctionEntrySsa;
   }
 
   @Override
@@ -92,7 +125,12 @@ public class AcslPredicateToFormulaVisitor
 
   @Override
   public BooleanFormula visit(AcslOldPredicate pAcslOldPredicate) throws NoException {
-    // TODO this will need access to initial SSA Map at function entry, right?
+    if (functionEntrySsa == null) {
+      throw new UnsupportedOperationException(
+          "\\old is not available without a SSA map at function entry");
+    }
+
+    // TODO: implementation
     return null;
   }
 
@@ -123,7 +161,7 @@ public class AcslPredicateToFormulaVisitor
 
   @Override
   public BooleanFormula visit(AcslValidPredicate pAcslValidPredicate) throws NoException {
-    return null;
+    throw new UnsupportedOperationException("Not yet implemented");
   }
 
   @Override
