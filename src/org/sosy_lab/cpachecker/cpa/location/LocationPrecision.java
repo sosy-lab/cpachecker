@@ -74,11 +74,15 @@ public class LocationPrecision implements AdjustablePrecision {
   @Override
   public AdjustablePrecision add(AdjustablePrecision otherPrecision) {
     if(otherPrecision instanceof LocationPrecision locPrec){
-      ArrayList<SubCFA> intersection = new ArrayList<>(allowedProgramTransformations);
-      intersection.retainAll(locPrec.getAllowedProgramTransformations());
-      return new LocationPrecision(ImmutableSet.copyOf(intersection));
+      ArrayList<SubCFA> complement = new ArrayList<>();
+      for (SubCFA subCFA : allowedProgramTransformations) {
+        if(!locPrec.allowedProgramTransformations.contains(subCFA)){
+          complement.add(subCFA);
+        }
+      }
+      return new LocationPrecision(ImmutableSet.copyOf(complement));
     }
-    return null;
+    return this;
   }
 
   @Override
