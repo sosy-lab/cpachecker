@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
@@ -211,7 +210,7 @@ public class PthreadUtil {
 
     // if the type yields a trailing white space (from declaration edge), we strip it
     String typeName = pVariableDeclaration.getType().toASTString("").strip();
-    if (typeName.equals(PthreadObjectType.PTHREAD_MUTEX_T.name)) {
+    if (typeName.equals(PthreadObjectType.PTHREAD_MUTEX_T.getName())) {
       // preprocessing yields initializer lists for PTHREAD_MUTEX_INITIALIZER
       // see e.g. goblint-regression/13-privatized_34-traces-minepp-L-needs-to-be-um_true
       return pVariableDeclaration.getInitializer() instanceof CInitializerList;
@@ -220,20 +219,6 @@ public class PthreadUtil {
   }
 
   // boolean helpers ===============================================================================
-
-  /**
-   * Returns {@code true} if {@code pType} matches any {@link PthreadObjectType} by name and {@code
-   * false} otherwise.
-   */
-  public static boolean isAnyPthreadObjectType(CType pType) {
-    String typeName = pType.toString().strip();
-    for (PthreadObjectType pthreadObjectType : PthreadObjectType.values()) {
-      if (typeName.equals(pthreadObjectType.name)) {
-        return true;
-      }
-    }
-    return false;
-  }
 
   /**
    * Returns {@code true} if {@code pFunctionCall} is a call to {@code pFunctionType} and {@code

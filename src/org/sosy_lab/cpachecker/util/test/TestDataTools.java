@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.test;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import java.io.File;
@@ -72,21 +71,21 @@ public class TestDataTools {
     return new CIdExpression(loc, decl);
   }
 
-  public static ImmutableCFA makeCFA(String... lines) throws ParserException, InterruptedException {
+  public static ImmutableCFA makeCFA(String program) throws ParserException, InterruptedException {
     try {
-      return makeCFA(configurationForTest().build(), lines);
+      return makeCFA(configurationForTest().build(), program);
     } catch (InvalidConfigurationException e) {
       throw new AssertionError("Default configuration is invalid?");
     }
   }
 
-  public static ImmutableCFA makeCFA(Configuration config, String... lines)
+  public static ImmutableCFA makeCFA(Configuration config, String program)
       throws InvalidConfigurationException, ParserException, InterruptedException {
 
     CFACreator creator =
         new CFACreator(config, LogManager.createTestLogManager(), ShutdownNotifier.createDummy());
 
-    return creator.parseSourceAndCreateCFA(Joiner.on('\n').join(lines));
+    return creator.parseSourceAndCreateCFA(program);
   }
 
   /**
@@ -145,18 +144,18 @@ public class TestDataTools {
   }
 
   /** Convert a given string to a {@link CFA}, assuming it is a body of a single function. */
-  public static ImmutableCFA toSingleFunctionCFA(CFACreator creator, String... parts)
+  public static ImmutableCFA toSingleFunctionCFA(CFACreator creator, String functionBody)
       throws InvalidConfigurationException, ParserException, InterruptedException {
-    return creator.parseSourceAndCreateCFA(getProgram(parts));
+    return creator.parseSourceAndCreateCFA(getProgram(functionBody));
   }
 
-  public static ImmutableCFA toMultiFunctionCFA(CFACreator creator, String... parts)
+  public static ImmutableCFA toMultiFunctionCFA(CFACreator creator, String program)
       throws InvalidConfigurationException, ParserException, InterruptedException {
-    return creator.parseSourceAndCreateCFA(Joiner.on('\n').join(parts));
+    return creator.parseSourceAndCreateCFA(program);
   }
 
-  private static String getProgram(String... parts) {
-    return "int main() {" + Joiner.on('\n').join(parts) + "}";
+  private static String getProgram(String functionBody) {
+    return "int main() {\n" + functionBody + "\n}";
   }
 
   /**
@@ -175,7 +174,7 @@ public class TestDataTools {
     switch (pLanguage) {
       case C -> {
         tempFile = getTempFile(pTempFolder, "program.i");
-        fileContent = getProgram();
+        fileContent = getProgram("");
         program = tempFile.toString();
       }
       case JAVA -> {

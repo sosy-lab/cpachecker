@@ -34,7 +34,7 @@ public class CFANodeForThread {
   public final int threadId;
 
   /** The corresponding CFANode of the input CFA. */
-  public final CFANode cfaNode;
+  private final CFANode cfaNode;
 
   /** The corresponding program counter of the CFANode. */
   public final int pc;
@@ -71,6 +71,10 @@ public class CFANodeForThread {
 
   public ImmutableList<CFAEdgeForThread> leavingEdges() {
     return ImmutableList.copyOf(leavingEdges);
+  }
+
+  public CFANode getCfaNode() {
+    return cfaNode;
   }
 
   void pruneLeavingEdge(CFAEdgeForThread pThreadEdge) {

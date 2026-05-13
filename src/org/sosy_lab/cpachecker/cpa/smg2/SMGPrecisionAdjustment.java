@@ -8,6 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.SMGAbstractionOptions.AbstractionErrorHandling.IGNORE;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.SMGAbstractionOptions.AbstractionErrorHandling.STOP_CPACHECKER;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.SMGAbstractionOptions.AbstractionErrorHandling.STOP_CURRENT;
+
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -139,7 +144,8 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       final SMGState pState,
       VariableTrackingPrecision pPrecision,
       LocationState location,
-      UniqueAssignmentsInPathConditionState assignments) {
+      UniqueAssignmentsInPathConditionState assignments)
+      throws SMGException {
     SMGState resultState = pState;
 
     if ((abstractionOptions.doLivenessAbstraction()
@@ -182,8 +188,15 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
                     stats)
                 .findAndAbstractLists();
       } catch (SMGException e) {
-        // Do nothing. This should never happen anyway
-        throw new RuntimeException(e);
+        if (abstractionOptions.errorHandling() == STOP_CURRENT) {
+          throw e;
+        } else if (abstractionOptions.errorHandling() == STOP_CPACHECKER) {
+          throw new RuntimeException(e);
+        } else {
+          checkState(abstractionOptions.errorHandling() == IGNORE);
+          // Fallthrough for current state
+          stats.incrementExceptionsIgnoredDuringListAbstractions();
+        }
       }
     }
 

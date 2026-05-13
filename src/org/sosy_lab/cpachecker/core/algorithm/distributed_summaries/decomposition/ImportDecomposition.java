@@ -8,13 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -30,11 +26,8 @@ public class ImportDecomposition implements DssBlockDecomposition {
 
   private final Map<String, ImportedBlock> blocks;
 
-  public ImportDecomposition(Path pImportFile) throws IOException {
-    ObjectMapper objectMapper = new ObjectMapper();
-    blocks =
-        objectMapper.readValue(
-            pImportFile.toFile(), new TypeReference<Map<String, ImportedBlock>>() {});
+  public ImportDecomposition(Map<String, ImportedBlock> pImportData) {
+    blocks = pImportData;
     for (ImportedBlock value : blocks.values()) {
       if (value.edges().stream().anyMatch(e -> e.size() != 2)) {
         throw new IllegalArgumentException(

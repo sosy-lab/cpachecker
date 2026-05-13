@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <pthread.h>
 
+extern int __VERIFIER_nondet_int(void);
 // empty struct (no members)
 typedef struct {} Empty;
 // inner struct with member
@@ -27,7 +28,7 @@ void field_member_parameter_test(int param) {
   param++;
 }
 void field_member_parameter_test_ptr(int * param) {
-  *param++;
+  *param = 7;
 }
 void field_owner_parameter_test_ptr(Inner * param_inner) {
   param_inner->inner_member = 42;
@@ -35,8 +36,8 @@ void field_owner_parameter_test_ptr(Inner * param_inner) {
 void * start_routine(void *arg)
 {
   int *ultimate_question = malloc(sizeof(int));
-   *ultimate_question = 42;
-   pthread_exit((void*)ultimate_question);
+  *ultimate_question = 42;
+  pthread_exit((void*)ultimate_question);
 }
 int main(void) {
   outer_A.inner.inner_member = 42;
@@ -67,8 +68,8 @@ int main(void) {
   field_owner_parameter_test_ptr(&outer_A.inner);
 
   pthread_t id1;
-  pthread_create(&id, NULL, start_routine, NULL);
+  pthread_create(&id1, NULL, start_routine, NULL);
   void *retval;
-  pthread_join(id, &retval);
+  pthread_join(id1, &retval);
 }
 

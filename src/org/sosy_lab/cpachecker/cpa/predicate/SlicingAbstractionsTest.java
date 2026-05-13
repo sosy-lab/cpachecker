@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -75,11 +77,13 @@ public class SlicingAbstractionsTest {
             .<Object>transform(File::getName)
             .filter(x -> ((String) x).contains("unreach"))
             .toList();
+    assertThat(files).hasSize(2);
     List<Object> overflowFiles =
         FluentIterable.from(taskfolder.listFiles())
             .<Object>transform(File::getName)
             .filter(x -> ((String) x).contains("overflow"))
             .toList();
+    assertThat(overflowFiles).hasSize(4);
 
     File configfolder = new File(CONFIG_DIR_PATH);
     List<Object> configs =
@@ -203,16 +207,20 @@ public class SlicingAbstractionsTest {
 
     TestResults results = CPATestRunner.run(config, fullPath);
     if (!configname.contains("overflow")) {
-      if (pFilename.contains("_true_assert") || pFilename.contains("_true-unreach")) {
+      if (pFilename.contains("_true-assert") || pFilename.contains("_true-unreach")) {
         results.assertIsSafe();
-      } else if (pFilename.contains("_false_assert") || pFilename.contains("_false-unreach")) {
+      } else if (pFilename.contains("_false-assert") || pFilename.contains("_false-unreach")) {
         results.assertIsUnsafe();
+      } else {
+        throw new AssertionError("verdict missing");
       }
     } else {
-      if (pFilename.contains("_true_no_overflow")) {
+      if (pFilename.contains("_true-no-overflow")) {
         results.assertIsSafe();
-      } else if (pFilename.contains("_false_no_overflow")) {
+      } else if (pFilename.contains("_false-no-overflow")) {
         results.assertIsUnsafe();
+      } else {
+        throw new AssertionError("verdict missing");
       }
     }
   }

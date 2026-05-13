@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -22,31 +21,29 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocationFinder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryReachType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.DenseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.LastDenseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.LastSparseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.SparseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocationFinder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.PrevDenseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.PrevSparseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.SeqDenseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.SeqSparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public record SeqBitVectorDeclarationBuilder(
-    SeqBitVectorEncoding bitVectorEncoding,
-    boolean reduceIgnoreSleep,
-    ReductionMode reductionMode,
+    MPOROptions options,
     SeqBitVectorVariables bitVectorVariables,
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses,
     MachineModel machineModel,
-    MemoryModel memoryModel) {
+    SeqPointerAliasingMap pointerAliasingMap) {
 
   /**
    * Returns, if enabled, the list of bit vector declarations based on {@code pOptions}. Note that
@@ -56,10 +53,10 @@ public record SeqBitVectorDeclarationBuilder(
   public ImmutableList<CVariableDeclaration> buildBitVectorDeclarationsByEncoding()
       throws UnsupportedCodeException {
 
-    return switch (bitVectorEncoding) {
+    return switch (options.bitVectorEncoding()) {
       case NONE ->
           throw new IllegalArgumentException(
-              "cannot build bit vector declarations for encoding " + bitVectorEncoding);
+              "cannot build bit vector declarations for encoding " + options.bitVectorEncoding());
       case BINARY, OCTAL, DECIMAL, HEXADECIMAL -> buildDenseBitVectorDeclarationsByReductionMode();
       case SPARSE -> buildSparseBitVectorDeclarationsByReductionMode();
     };
@@ -70,38 +67,39 @@ public record SeqBitVectorDeclarationBuilder(
   private ImmutableList<CVariableDeclaration> buildDenseBitVectorDeclarationsByReductionMode()
       throws UnsupportedCodeException {
 
-    return switch (reductionMode) {
+    return switch (options.partialOrderReductionMode()) {
       case NONE ->
           throw new IllegalArgumentException(
-              "cannot build bit vector declarations for reductionMode " + reductionMode);
-      case ACCESS_ONLY -> buildDenseBitVectorDeclarationsByAccessType(MemoryAccessType.ACCESS);
+              "cannot build bit vector declarations for partialOrderReductionMode "
+                  + options.partialOrderReductionMode());
+      case ACCESS_ONLY -> buildDenseBitVectorDeclarationsByAccessType(SeqMemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
           ImmutableList.<CVariableDeclaration>builder()
-              .addAll(buildDenseBitVectorDeclarationsByAccessType(MemoryAccessType.ACCESS))
-              .addAll(buildDenseBitVectorDeclarationsByAccessType(MemoryAccessType.READ))
-              .addAll(buildDenseBitVectorDeclarationsByAccessType(MemoryAccessType.WRITE))
+              .addAll(buildDenseBitVectorDeclarationsByAccessType(SeqMemoryAccessType.ACCESS))
+              .addAll(buildDenseBitVectorDeclarationsByAccessType(SeqMemoryAccessType.READ))
+              .addAll(buildDenseBitVectorDeclarationsByAccessType(SeqMemoryAccessType.WRITE))
               .build();
     };
   }
 
   private ImmutableList<CVariableDeclaration> buildDenseBitVectorDeclarationsByAccessType(
-      MemoryAccessType pAccessType) throws UnsupportedCodeException {
+      SeqMemoryAccessType pAccessType) throws UnsupportedCodeException {
 
-    CSimpleType type = SeqBitVectorUtil.getBitVectorTypeByMemoryModel(machineModel, memoryModel);
+    CSimpleType type = SeqBitVectorUtil.getBitVectorType(machineModel, pointerAliasingMap);
     ImmutableList.Builder<CVariableDeclaration> rDeclarations = ImmutableList.builder();
     rDeclarations.addAll(buildCurrentDenseBitVectorDeclarations(type, pAccessType));
-    tryBuildLastDenseBitVectorDeclaration(type, pAccessType).ifPresent(rDeclarations::add);
+    tryBuildPrevDenseBitVectorDeclaration(type, pAccessType).ifPresent(rDeclarations::add);
     return rDeclarations.build();
   }
 
   private ImmutableList<CVariableDeclaration> buildCurrentDenseBitVectorDeclarations(
-      CSimpleType pType, MemoryAccessType pAccessType) throws UnsupportedCodeException {
+      CSimpleType pType, SeqMemoryAccessType pAccessType) throws UnsupportedCodeException {
 
     ImmutableList.Builder<CVariableDeclaration> rDeclarations = ImmutableList.builder();
 
-    ImmutableSet<DenseBitVector> denseBitVectors =
+    ImmutableSet<SeqDenseBitVector> denseBitVectors =
         bitVectorVariables.getDenseBitVectorsByAccessType(pAccessType);
-    for (DenseBitVector denseBitVector : denseBitVectors) {
+    for (SeqDenseBitVector denseBitVector : denseBitVectors) {
       MPORThread thread = denseBitVector.thread();
 
       ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
@@ -110,15 +108,19 @@ public record SeqBitVectorDeclarationBuilder(
           SeqThreadStatementClauseUtil.mapLabelNumberToBlock(clauses.get(thread));
       SeqThreadStatementBlock firstBlock = clauses.get(thread).getFirst().getFirstBlock();
 
-      for (ReachType reachType : ReachType.values()) {
-        if (SeqBitVectorUtil.isAccessReachPairNeeded(
-            reduceIgnoreSleep, reductionMode, pAccessType, reachType)) {
+      for (SeqMemoryReachType reachType : SeqMemoryReachType.values()) {
+        if (SeqBitVectorUtil.isAccessReachPairNeeded(options, pAccessType, reachType)) {
           ImmutableSet<SeqMemoryLocation> memoryLocations =
               SeqMemoryLocationFinder.findMemoryLocationsByReachType(
-                  labelClauseMap, labelBlockMap, firstBlock, memoryModel, pAccessType, reachType);
+                  labelClauseMap,
+                  labelBlockMap,
+                  firstBlock,
+                  pointerAliasingMap,
+                  pAccessType,
+                  reachType);
           CIntegerLiteralExpression initializer =
               SeqBitVectorUtil.buildBitVectorExpression(
-                  bitVectorEncoding, machineModel, memoryModel, memoryLocations);
+                  options.bitVectorEncoding(), machineModel, pointerAliasingMap, memoryLocations);
           rDeclarations.add(
               SeqDeclarationBuilder.buildVariableDeclaration(
                   true,
@@ -131,22 +133,22 @@ public record SeqBitVectorDeclarationBuilder(
     return rDeclarations.build();
   }
 
-  private Optional<CVariableDeclaration> tryBuildLastDenseBitVectorDeclaration(
-      CSimpleType pType, MemoryAccessType pAccessType) throws UnsupportedCodeException {
+  private Optional<CVariableDeclaration> tryBuildPrevDenseBitVectorDeclaration(
+      CSimpleType pType, SeqMemoryAccessType pAccessType) throws UnsupportedCodeException {
 
-    if (bitVectorVariables.isLastDenseBitVectorPresentByAccessType(pAccessType)) {
-      LastDenseBitVector lastDenseBitVector =
-          bitVectorVariables.getLastDenseBitVectorByAccessType(pAccessType);
-      // the last bv is initialized to 0, and assigned to something else in the last update later
+    if (bitVectorVariables.isPrevDenseBitVectorPresentByAccessType(pAccessType)) {
+      PrevDenseBitVector prevDenseBitVector =
+          bitVectorVariables.getPrevDenseBitVectorByAccessType(pAccessType);
+      // the prev bv is initialized to 0, and assigned to something else in the prev update later
       CIntegerLiteralExpression initializer =
           SeqBitVectorUtil.buildBitVectorExpression(
-              bitVectorEncoding, machineModel, memoryModel, ImmutableSet.of());
-      // reachable last bit vector
+              options.bitVectorEncoding(), machineModel, pointerAliasingMap, ImmutableSet.of());
+      // reachable prev bit vector
       return Optional.of(
           SeqDeclarationBuilder.buildVariableDeclaration(
               true,
               pType,
-              lastDenseBitVector.reachableVariable().getName(),
+              prevDenseBitVector.directVariable().getName(),
               new CInitializerExpression(FileLocation.DUMMY, initializer)));
     }
     return Optional.empty();
@@ -155,22 +157,23 @@ public record SeqBitVectorDeclarationBuilder(
   // SPARSE ========================================================================================
 
   private ImmutableList<CVariableDeclaration> buildSparseBitVectorDeclarationsByReductionMode() {
-    return switch (reductionMode) {
+    return switch (options.partialOrderReductionMode()) {
       case NONE ->
           throw new IllegalArgumentException(
-              "cannot build bit vector declarations for reductionMode " + reductionMode);
-      case ACCESS_ONLY -> buildSparseBitVectorDeclarations(MemoryAccessType.ACCESS);
+              "cannot build bit vector declarations for partialOrderReductionMode "
+                  + options.partialOrderReductionMode());
+      case ACCESS_ONLY -> buildSparseBitVectorDeclarations(SeqMemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
           ImmutableList.<CVariableDeclaration>builder()
-              .addAll(buildSparseBitVectorDeclarations(MemoryAccessType.ACCESS))
-              .addAll(buildSparseBitVectorDeclarations(MemoryAccessType.READ))
-              .addAll(buildSparseBitVectorDeclarations(MemoryAccessType.WRITE))
+              .addAll(buildSparseBitVectorDeclarations(SeqMemoryAccessType.ACCESS))
+              .addAll(buildSparseBitVectorDeclarations(SeqMemoryAccessType.READ))
+              .addAll(buildSparseBitVectorDeclarations(SeqMemoryAccessType.WRITE))
               .build();
     };
   }
 
   private ImmutableList<CVariableDeclaration> buildSparseBitVectorDeclarations(
-      MemoryAccessType pAccessType) {
+      SeqMemoryAccessType pAccessType) {
 
     ImmutableList.Builder<CVariableDeclaration> rDeclarations = ImmutableList.builder();
     // first add declarations for the current bitvectors
@@ -182,15 +185,15 @@ public record SeqBitVectorDeclarationBuilder(
               clauses.get(thread),
               pAccessType));
     }
-    rDeclarations.addAll(buildLastSparseBitVectorDeclaration(pAccessType));
+    rDeclarations.addAll(buildPrevSparseBitVectorDeclaration(pAccessType));
     return rDeclarations.build();
   }
 
   private ImmutableList<CVariableDeclaration> buildCurrentSparseBitVectorDeclarations(
       MPORThread pThread,
-      ImmutableMap<SeqMemoryLocation, SparseBitVector> pSparseBitVectors,
+      ImmutableMap<SeqMemoryLocation, SeqSparseBitVector> pSparseBitVectors,
       ImmutableList<SeqThreadStatementClause> pClauses,
-      MemoryAccessType pAccessType) {
+      SeqMemoryAccessType pAccessType) {
 
     ImmutableList.Builder<CVariableDeclaration> rDeclarations = ImmutableList.builder();
 
@@ -200,41 +203,43 @@ public record SeqBitVectorDeclarationBuilder(
         SeqThreadStatementClauseUtil.mapLabelNumberToBlock(pClauses);
     SeqThreadStatementBlock firstBlock = pClauses.getFirst().getFirstBlock();
 
-    for (ReachType reachType : ReachType.values()) {
+    for (SeqMemoryReachType reachType : SeqMemoryReachType.getPossibleReachTypes(options)) {
       ImmutableSet<SeqMemoryLocation> memoryLocations =
           SeqMemoryLocationFinder.findMemoryLocationsByReachType(
-              labelClauseMap, labelBlockMap, firstBlock, memoryModel, pAccessType, reachType);
+              labelClauseMap,
+              labelBlockMap,
+              firstBlock,
+              pointerAliasingMap,
+              pAccessType,
+              reachType);
       for (var entry : pSparseBitVectors.entrySet()) {
-        SeqMemoryLocation memoryLocation = entry.getKey();
-        SparseBitVector sparseBitVector = entry.getValue();
-        if (sparseBitVector.getVariablesByReachType(reachType).containsKey(pThread)) {
-          CIdExpression idExpression =
-              Objects.requireNonNull(
-                  sparseBitVector.getVariablesByReachType(reachType).get(pThread));
+        Optional<CIdExpression> idExpression =
+            entry.getValue().tryGetVariableByReachTypeAndThread(reachType, pThread);
+        if (idExpression.isPresent()) {
           rDeclarations.add(
               buildSparseBitVectorDeclaration(
-                  idExpression, memoryLocations.contains(memoryLocation)));
+                  idExpression.orElseThrow(), memoryLocations.contains(entry.getKey())));
         }
       }
     }
     return rDeclarations.build();
   }
 
-  private ImmutableList<CVariableDeclaration> buildLastSparseBitVectorDeclaration(
-      MemoryAccessType pAccessType) {
+  private ImmutableList<CVariableDeclaration> buildPrevSparseBitVectorDeclaration(
+      SeqMemoryAccessType pAccessType) {
 
     ImmutableList.Builder<CVariableDeclaration> rDeclarations = ImmutableList.builder();
-    // then handle the declarations for the last bit vectors, if present
-    Optional<ImmutableMap<SeqMemoryLocation, LastSparseBitVector>> lastSparseBitVectors =
-        bitVectorVariables.tryGetLastSparseBitVectorByAccessType(pAccessType);
-    if (lastSparseBitVectors.isPresent()) {
-      for (LastSparseBitVector sparseBitVector : lastSparseBitVectors.orElseThrow().values()) {
-        // last is initialized to 0, and assigned to something else in the last update later
+    // then handle the declarations for the prev bit vectors, if present
+    Optional<ImmutableMap<SeqMemoryLocation, PrevSparseBitVector>> prevSparseBitVectors =
+        bitVectorVariables.tryGetPrevSparseBitVectorByAccessType(pAccessType);
+    if (prevSparseBitVectors.isPresent()) {
+      for (PrevSparseBitVector sparseBitVector : prevSparseBitVectors.orElseThrow().values()) {
+        // prev is initialized to 0, and assigned to something else in the prev update later
         rDeclarations.add(
             SeqDeclarationBuilder.buildVariableDeclaration(
                 true,
                 CNumericTypes.UNSIGNED_CHAR,
-                sparseBitVector.reachableVariable().getName(),
+                sparseBitVector.directVariable().getName(),
                 new CInitializerExpression(FileLocation.DUMMY, CIntegerLiteralExpression.ZERO)));
       }
     }

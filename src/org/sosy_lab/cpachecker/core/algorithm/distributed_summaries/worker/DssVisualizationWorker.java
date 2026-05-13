@@ -46,7 +46,7 @@ public class DssVisualizationWorker extends DssWorker {
     reportFiles = pOptions.getReportFiles();
     try {
       if (pOptions.getBlockCFAFile() != null) {
-        pNode.export(pOptions.getBlockCFAFile(), cfa);
+        JSON.writeJSONString(pNode.getExportData(cfa), pOptions.getBlockCFAFile());
       }
     } catch (IOException e) {
       pLogger.logException(
