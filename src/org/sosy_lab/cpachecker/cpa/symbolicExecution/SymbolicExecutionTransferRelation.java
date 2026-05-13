@@ -9,8 +9,10 @@
 package org.sosy_lab.cpachecker.cpa.symbolicExecution;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.List;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -52,5 +54,38 @@ public class SymbolicExecutionTransferRelation extends SingleEdgeTransferRelatio
       }
     }
     return symbolicStates.build();
+  }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState state,
+      Iterable<AbstractState> otherStates,
+      @Nullable CFAEdge cfaEdge,
+      Precision precision)
+      throws CPATransferException, InterruptedException {
+    SymbolicExecutionState symbolicExecutionState = (SymbolicExecutionState) state;
+    Collection<? extends AbstractState> valueStates =
+        valueAnalysisTransferRelation.strengthen(
+            symbolicExecutionState.valueAnalysisState(),
+            Iterables.concat(
+                otherStates, ImmutableList.of(symbolicExecutionState.constraintsState())),
+            cfaEdge,
+            precision);
+    Collection<? extends AbstractState> constraintStates =
+        constraintsTransferRelation.strengthen(
+            symbolicExecutionState.valueAnalysisState(),
+            Iterables.concat(
+                otherStates, ImmutableList.of(symbolicExecutionState.valueAnalysisState())),
+            cfaEdge,
+            precision);
+    ImmutableList.Builder<SymbolicExecutionState> strengthenedStates = ImmutableList.builder();
+    for (AbstractState valueState : valueStates) {
+      for (AbstractState constraintState : constraintStates) {
+        strengthenedStates.add(
+            new SymbolicExecutionState(
+                (ValueAnalysisState) valueState, (ConstraintsState) constraintState));
+      }
+    }
+    return strengthenedStates.build();
   }
 }
