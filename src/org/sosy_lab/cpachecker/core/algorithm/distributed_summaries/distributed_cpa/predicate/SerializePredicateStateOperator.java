@@ -54,9 +54,6 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     PredicateAbstractState state = (PredicateAbstractState) pState;
     FormulaManagerView formulaManagerView = predicateCPA.getSolver().getFormulaManager();
     BooleanFormula booleanFormula;
-
-
-
     SSAMap ssaMap;
     if (state.isAbstractionState()) {
       booleanFormula = state.getAbstractionFormula().asFormula();

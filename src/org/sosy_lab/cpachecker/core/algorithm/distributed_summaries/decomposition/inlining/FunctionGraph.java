@@ -76,10 +76,9 @@ public class FunctionGraph {
 
   /**
    * Partitions the blocks into the functions they belong to. Assumes that all {@link
-   * FunctionEntryNode} and {@link FunctionExitNode} are abstraction points and therefore only ever
-   * are entry and exit nodes of a block
-   *
-   * <p>TODO: enforce this assumption?
+   * FunctionEntryNode} and {@link FunctionExitNode} are abstraction points and therefore not inside
+   * a block. For the LinearBlockDecomposition, functions that are only called at one place will be
+   * missed, but in that case, we do not need to do something to inline them anyway
    *
    * @return the found functions as well as the edges of this graph
    */
