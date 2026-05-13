@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula;
 
+import java.math.BigInteger;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -15,8 +16,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
@@ -37,10 +40,13 @@ public class AcslTermToFormulaTest {
   public void testAcslXYZTerm() throws InvalidConfigurationException {
     Solver smtSolver = createSolver();
     FormulaManagerView fmgr = smtSolver.getFormulaManager();
-    AcslTermToFormulaVisitor visitorT = new AcslTermToFormulaVisitor(fmgr);
-    AcslPredicateToFormulaVisitor visitorP = new AcslPredicateToFormulaVisitor(fmgr, visitorT);
+    SSAMapBuilder ssaMapBuilder = SSAMap.emptySSAMap().builder();
+    AcslTermToFormulaVisitor visitorT = new AcslTermToFormulaVisitor(fmgr, ssaMapBuilder);
+    AcslPredicateToFormulaVisitor visitorP = new AcslPredicateToFormulaVisitor(fmgr, ssaMapBuilder);
 
-    AcslTerm term = new AcslCharLiteralTerm(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, 'a');
+    AcslTerm term =
+        new AcslIntegerLiteralTerm(
+            FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN);
     Formula f = term.accept(visitorT);
 
     // Formula f = AcslTermToFormulaConverter.convertAcslTerm(term, fmgr);
