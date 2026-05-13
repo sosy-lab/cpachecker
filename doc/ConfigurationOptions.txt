@@ -263,6 +263,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -5654,6 +5655,9 @@ stop = "SEP"
 # When checking SV-LIB programs use this configuration file instead of the
 # current one.
 svlib.config = no default value
+
+# Where to find the symbolic execution config without cegar.
+symbolicExecution.symbolicExecutionProperties = "config/symbolicExecution-NoCegar.properties"
 
 # compress the produced violation-witness automata using GZIP compression.
 termination.compressWitness = true
