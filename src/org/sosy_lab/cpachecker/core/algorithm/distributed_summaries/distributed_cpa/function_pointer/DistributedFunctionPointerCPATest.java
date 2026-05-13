@@ -12,6 +12,7 @@ import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysisTestBase;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -27,16 +28,17 @@ public class DistributedFunctionPointerCPATest {
 
     Configuration config =
         TestDataTools.configurationForTest().loadFromFile(TestUtil.DSS_CONFIGURATION_FILE).build();
+    CFA cfa = TestUtil.buildTestCFA("test/programs/dss/simple-function-pointer.c");
     ConfigurableProgramAnalysis cpa =
         FunctionPointerCPA.factory()
             .setConfiguration(config)
+            .set(cfa, CFA.class)
             .setLogger(LogManager.createTestLogManager())
             .setShutdownNotifier(ShutdownNotifier.createDummy())
             .createInstance();
 
     Precision prec = SingletonPrecision.getInstance(); // No relevant precision
     // TODO will this never contain anything other than named targets?
-    DistributedConfigurableProgramAnalysisTestBase.testSerialization(
-        "test/programs/dss/simple-function-pointer.c", cpa, prec);
+    DistributedConfigurableProgramAnalysisTestBase.testSerialization(cfa, cpa, prec);
   }
 }
