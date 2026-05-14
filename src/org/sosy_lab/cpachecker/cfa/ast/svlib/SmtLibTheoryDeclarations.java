@@ -257,6 +257,20 @@ public class SmtLibTheoryDeclarations {
         ImmutableList.of());
   }
 
+  public static SvLibFunctionDeclaration arrayEquality(
+      SvLibSmtLibType indexType, SvLibSmtLibType elementType) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(
+                new SvLibSmtLibArrayType(indexType, elementType),
+                new SvLibSmtLibArrayType(indexType, elementType)),
+            SvLibSmtLibPredefinedType.BOOL),
+        "=",
+        "=",
+        ImmutableList.of());
+  }
+
   /** Bit Vector stuff */
   public static SvLibFunctionDeclaration bitVectorBitwiseNegation(int pSize) {
     return new SvLibFunctionDeclaration(

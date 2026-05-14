@@ -155,7 +155,7 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
         && pArgTypes.getFirst() instanceof SvLibSmtLibArrayType pArrayType
         && pArrayType.getKeysType().equals(pArgTypes.get(1))
         && pArrayType.getValuesType().equals(pReturnType)
-        && actualName.equals("read")) {
+        && (actualName.equals("read") || actualName.equals("select"))) {
       return new SvLibIdTerm(
           SmtLibTheoryDeclarations.arraySelect(
               pArrayType.getKeysType(), pArrayType.getValuesType()),
@@ -165,9 +165,18 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
         && pArrayType.getKeysType().equals(pArgTypes.get(1))
         && pArrayType.getValuesType().equals(pArgTypes.get(2))
         && pReturnType.equals(pArrayType)
-        && actualName.equals("write")) {
+        && (actualName.equals("write") || actualName.equals("store"))) {
       return new SvLibIdTerm(
           SmtLibTheoryDeclarations.arrayStore(pArrayType.getKeysType(), pArrayType.getValuesType()),
+          FileLocation.DUMMY);
+    } else if (actualName.equals("=")
+        && pArgTypes.size() == 2
+        && pReturnType.equals(SvLibSmtLibPredefinedType.BOOL)
+        && pArgTypes.getFirst().equals(pArgTypes.get(1))
+        && pArgTypes.getFirst() instanceof SvLibSmtLibArrayType pArrayType) {
+      return new SvLibIdTerm(
+          SmtLibTheoryDeclarations.arrayEquality(
+              pArrayType.getKeysType(), pArrayType.getValuesType()),
           FileLocation.DUMMY);
     } else if (pReturnType == SvLibSmtLibPredefinedType.BOOL
         && pArgTypes.size() == 2
