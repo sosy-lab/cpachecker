@@ -8,12 +8,15 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import java.io.Serial;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
@@ -31,6 +34,11 @@ public final class SvLibAssignmentStatement extends SvLibStatement {
       List<SvLibTagProperty> pTagAttributes,
       List<SvLibTagReference> pTagReferences) {
     super(pFileLocation, pTagAttributes, pTagReferences);
+    for (Entry<SvLibSimpleParsingDeclaration, SvLibTerm> assignment : pAssignments.entrySet()) {
+      checkArgument(
+          assignment.getKey().getType().equals(assignment.getValue().getExpressionType()),
+          "Incompatible types in assigment statement");
+    }
     assignments = ImmutableMap.copyOf(pAssignments);
   }
 

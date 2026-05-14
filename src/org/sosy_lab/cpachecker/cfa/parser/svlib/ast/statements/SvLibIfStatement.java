@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 
 public final class SvLibIfStatement extends SvLibControlFlowStatement {
 
@@ -31,6 +32,10 @@ public final class SvLibIfStatement extends SvLibControlFlowStatement {
       SvLibTerm pCondition,
       SvLibStatement pThenBranch) {
     super(pFileLocation, pTagAttributes, pTagReferences);
+    if (!pCondition.getExpressionType().equals(SvLibSmtLibPredefinedType.BOOL)) {
+      throw new IllegalArgumentException(
+          "The type of the condition of the if statement is not boolean");
+    }
     condition = pCondition;
     thenBranch = pThenBranch;
     elseBranch = Optional.empty();
