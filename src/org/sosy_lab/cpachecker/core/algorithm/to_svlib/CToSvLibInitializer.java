@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -28,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibCurrentScope;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingParameterDeclaration;
@@ -118,9 +120,9 @@ class CToSvLibInitializer {
           ImmutableList.builder();
       Set<SvLibParsingVariableDeclaration> createdHeapModels = new HashSet<>();
       Set<String> namesOfCreatedAddressVariables = new HashSet<>();
+      Set<SvLibType> typesOfCreatedDummyReturnVariables = new HashSet<>();
       for (CFAEdge edge : getAllRelevantEdges(entryNode)) {
         if (edge instanceof CDeclarationEdge declarationEdge) {
-
           CDeclaration declaration = declarationEdge.getDeclaration();
 
           if (declaration instanceof CVariableDeclaration variableDeclaration) {
@@ -166,6 +168,30 @@ class CToSvLibInitializer {
             && cFunctionCallAssignmentStatement.getRightHandSide().getDeclaration() == null) {
           undeclaredFunctionsCollector.add(
               cFunctionCallAssignmentStatement.getFunctionCallExpression());
+
+        } else if (edge instanceof CFunctionSummaryEdge pCFunctionSummaryEdge
+            && pCFunctionSummaryEdge.getExpression() instanceof CFunctionCallStatement functionCall
+            && !(functionCall.getFunctionCallExpression().getExpressionType()
+                instanceof CVoidType)) {
+          // create dummy return parameters for procedure calls for function calls without
+          // assignment and non-void return type
+          SvLibParsingParameterDeclaration dummyReturnParameter =
+              createDummyReturnParameter(functionCall, procedureName);
+
+          if (typesOfCreatedDummyReturnVariables.add(dummyReturnParameter.getType())) {
+            localParametersCollector.add(dummyReturnParameter);
+          }
+
+        } else if (edge instanceof CStatementEdge cStatementEdge
+            && cStatementEdge.getStatement() instanceof CFunctionCallStatement functionCall
+            && !(functionCall.getFunctionCallExpression().getExpressionType()
+                instanceof CVoidType)) {
+          SvLibParsingParameterDeclaration dummyReturnParameter =
+              createDummyReturnParameter(functionCall, procedureName);
+
+          if (typesOfCreatedDummyReturnVariables.add(dummyReturnParameter.getType())) {
+            localParametersCollector.add(dummyReturnParameter);
+          }
         }
       }
 
@@ -301,6 +327,14 @@ class CToSvLibInitializer {
       }
     }
     return addressCreated;
+  }
+
+  private SvLibParsingParameterDeclaration createDummyReturnParameter(
+      CFunctionCallStatement pFunctionCall, String pProcedureName) {
+    CType functionReturnType = pFunctionCall.getFunctionCallExpression().getExpressionType();
+    SvLibSmtLibType returnType = convertToSvLibSmtLibType(functionReturnType);
+    return new SvLibParsingParameterDeclaration(
+        FileLocation.DUMMY, returnType, "transformationDummyReturn_" + returnType, pProcedureName);
   }
 
   private SvLibSmtLibType convertToSvLibSmtLibType(CType pCType) {
