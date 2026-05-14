@@ -492,7 +492,8 @@ class CToSvLibInitializer {
         throw new UnsupportedOperationException(
             "Transformation of programs that include extern function __VERIFIER_nondet_memory() is"
                 + " not supported.");
-      } else if (procedureName.startsWith("__VERIFIER_nondet")) {
+      } else if (procedureName.startsWith("__VERIFIER_nondet_")
+          || procedureName.startsWith("nondet_")) {
         if (!pProcedureDeclaration.getReturnValues().isEmpty()) {
           // TODO assume statement to conform to C type
           return new SvLibHavocStatement(
