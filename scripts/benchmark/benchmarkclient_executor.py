@@ -381,6 +381,10 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
                     desc.text = line + "\n" + desc.text
                 else:
                     desc.text = line
+        else:
+            logging.error(
+                "Could not retrieve vcloud-runCollectionId from VerifierCloud result files."
+            )
 
         output_handler.output_after_run_set(runSet, end_time=end_time)
 
