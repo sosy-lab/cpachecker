@@ -49,6 +49,10 @@ public final class SvLibIfStatement extends SvLibControlFlowStatement {
       SvLibStatement pThenBranch,
       SvLibStatement pElseBranch) {
     super(pFileLocation, pTagAttributes, pTagReferences);
+    if (!pCondition.getExpressionType().equals(SvLibSmtLibPredefinedType.BOOL)) {
+      throw new IllegalArgumentException(
+          "The type of the condition of the if statement is not boolean");
+    }
     condition = pCondition;
     thenBranch = pThenBranch;
     elseBranch = Optional.of(pElseBranch);
