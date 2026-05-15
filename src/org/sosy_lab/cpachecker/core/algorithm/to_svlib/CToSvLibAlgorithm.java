@@ -9,14 +9,18 @@
 package org.sosy_lab.cpachecker.core.algorithm.to_svlib;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Serial;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -64,6 +68,15 @@ import org.sosy_lab.cpachecker.util.svlibwitnessexport.FormulaToSvLibVisitor;
 
 @Options(prefix = "analysis.algorithm.toSvLib")
 public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoCloseable {
+
+  @Option(
+      secure = true,
+      description =
+          "Path to configuration file to be used for analysis of the transformed script. If no"
+              + " path has been specified, the configuration for predicate analysis for SV-LIB"
+              + " will be used as default.")
+  @FileOption(Type.OPTIONAL_INPUT_FILE)
+  private @Nullable Path svLibAnalysisConfiguration = null;
 
   @Option(
       secure = true,
@@ -240,28 +253,28 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     final ConfigurableProgramAnalysis cpa;
     Algorithm innerAlgorithm;
     try {
-      // update config, set transformToSvLib to false and language to svlib
-      Configuration newConfig =
+      Configuration innerConfig =
           Configuration.builder()
-              .copyFrom(config)
-              .setOptions(
-                  ImmutableMap.of(
-                      "analysis.algorithm.transformToSvLib", "false", "language", "svlib"))
+              .loadFromFile(
+                  Objects.requireNonNullElseGet(
+                      svLibAnalysisConfiguration,
+                      () ->
+                          Path.of("config", "predicateAnalysis-svlib.properties").toAbsolutePath()))
               .build();
 
-      CFACreator cfaCreator = new CFACreator(newConfig, logger, shutdownNotifier);
+      CFACreator cfaCreator = new CFACreator(innerConfig, logger, shutdownNotifier);
       newSvLibCfa = cfaCreator.parseSourceAndCreateCFA(transformationResultScript.toASTString());
 
       coreComponents =
           new CoreComponentsFactory(
-              newConfig, logger, shutdownNotifier, AggregatedReachedSets.empty(), newSvLibCfa);
+              innerConfig, logger, shutdownNotifier, AggregatedReachedSets.empty(), newSvLibCfa);
 
       Specification svLibSpecification =
           Specification.fromFiles(
               ImmutableList.of(
                   Path.of("config", "specification", "correct-tags.spc").toAbsolutePath()),
               newSvLibCfa,
-              newConfig,
+              innerConfig,
               logger,
               shutdownNotifier);
 
@@ -280,6 +293,9 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     } catch (ParserException e) {
       throw new UnsupportedOperationException(
           "Failed to create a CFA for the transformed SV-LIB script.", e);
+    } catch (IOException pE) {
+      throw new UnsupportedOperationException(
+          "Failed to load configuration for analysis of transformed SV-LIB script.");
     }
 
     // Prepare new reached set
