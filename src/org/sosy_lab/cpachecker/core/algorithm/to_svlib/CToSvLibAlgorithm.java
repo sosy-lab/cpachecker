@@ -103,7 +103,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
 
   private final TransformationStatistics transformationStatistics;
 
-  private final String INPUT_DUMMY_VAR_PREFIX = "__originalInput_@";
+  private final String INPUT_DUMMY_VAR_PREFIX = "__originalInput_";
 
   /**
    * Transforms the CFA of a C program to a SvLibScript. At the moment in development and works
