@@ -44,7 +44,10 @@ public class AcslPredicateToFormulaVisitor
   private final @Nullable SSAMap
       functionEntrySsa; // Optional SSA map for function-entry state (\old)
 
-  public AcslPredicateToFormulaVisitor(FormulaManagerView pFmgr, SSAMapBuilder pCurrentSsa, CtoFormulaConverter pCtoFormulaConverter) {
+  public AcslPredicateToFormulaVisitor(
+      FormulaManagerView pFmgr,
+      SSAMapBuilder pCurrentSsa,
+      CtoFormulaConverter pCtoFormulaConverter) {
     checkNotNull(pFmgr);
     checkNotNull(pCurrentSsa);
     this.fmgr = pFmgr;
@@ -55,12 +58,16 @@ public class AcslPredicateToFormulaVisitor
   }
 
   public AcslPredicateToFormulaVisitor(
-      FormulaManagerView pFmgr, SSAMapBuilder pCurrentSsa, SSAMap pFunctionEntrySsa, CtoFormulaConverter pCtoFormulaConverter) {
+      FormulaManagerView pFmgr,
+      SSAMapBuilder pCurrentSsa,
+      SSAMap pFunctionEntrySsa,
+      CtoFormulaConverter pCtoFormulaConverter) {
     checkNotNull(pFmgr);
     checkNotNull(pCurrentSsa);
     this.fmgr = pFmgr;
     this.bfmgr = fmgr.getBooleanFormulaManager();
-    this.termVisitor = new AcslTermToFormulaVisitor(pFmgr, pCurrentSsa, pFunctionEntrySsa, pCtoFormulaConverter);
+    this.termVisitor =
+        new AcslTermToFormulaVisitor(pFmgr, pCurrentSsa, pFunctionEntrySsa, pCtoFormulaConverter);
     this.currentSsa = pCurrentSsa;
     this.functionEntrySsa = pFunctionEntrySsa;
   }
