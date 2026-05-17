@@ -1,0 +1,241 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula;
+
+import static com.google.common.truth.Truth.assertThat;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import java.math.BigInteger;
+import java.util.Objects;
+import java.util.Optional;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate.AcslBinaryPredicateOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CFormulaEncodingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.SolverException;
+
+@SuppressWarnings("unused")
+public class AcslToFomulaVisitorsTest {
+
+  final LogManager logger = LogManager.createTestLogManager();
+  private Solver smtSolver;
+  private FormulaManagerView fmgr;
+
+  @Before
+  public void setUp() throws InvalidConfigurationException {
+    Configuration config = TestDataTools.configurationForTest().build();
+    smtSolver = Solver.create(config, logger, ShutdownNotifier.createDummy());
+    fmgr = smtSolver.getFormulaManager();
+  }
+
+  private BooleanFormula translate(AcslPredicate predicate) throws InvalidConfigurationException {
+    SSAMapBuilder ssaMapBuilder = SSAMap.emptySSAMap().builder();
+
+    Configuration config = TestDataTools.configurationForTest().build();
+    CFormulaEncodingOptions options = new CFormulaEncodingOptions(config);
+    CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(logger, MachineModel.LINUX64);
+
+    CtoFormulaConverter converter =
+        new CtoFormulaConverter(
+            options,
+            fmgr,
+            MachineModel.LINUX64,
+            Optional.empty(),
+            logger,
+            ShutdownNotifier.createDummy(),
+            typeHandler,
+            AnalysisDirection.FORWARD);
+
+    AcslPredicateToFormulaVisitor visitorP =
+        new AcslPredicateToFormulaVisitor(fmgr, ssaMapBuilder, converter);
+
+    return predicate.accept(visitorP);
+  }
+
+  private CSimpleType basicInt() {
+    return new CSimpleType(
+        CTypeQualifiers.NONE, CBasicType.INT, false, false, true, false, false, false, false);
+  }
+
+  private CProgramScope getCProgramScope() {
+    String currentFunctionName = "f";
+
+    CProgramScope scope =
+        CProgramScope.mutableCoy(CProgramScope.empty().withFunctionScope(currentFunctionName));
+    for (String var : ImmutableList.of("x", "y", "z")) {
+      scope.registerDeclaration(
+          new CVariableDeclaration(
+              FileLocation.DUMMY,
+              true,
+              CStorageClass.AUTO,
+              basicInt(),
+              var,
+              var,
+              var,
+              null /* No initializer, we only want it for testing */));
+    }
+    scope.registerDeclaration(
+        new CFunctionDeclaration(
+            FileLocation.DUMMY,
+            new CFunctionType(basicInt(), ImmutableList.of(), false),
+            currentFunctionName,
+            ImmutableList.of(),
+            ImmutableSet.of()));
+
+    return scope;
+  }
+
+  @Ignore("Not implemented yet: Visitor for AcslBinaryTermPredicate")
+  @Test
+  public void testPlusAndMinus()
+      throws InvalidConfigurationException, SolverException, InterruptedException {
+    // x + y - x != y should be unsatisfiable
+    CProgramScope cProgramScope = getCProgramScope();
+    AcslTerm x =
+        new AcslIdTerm(
+            FileLocation.DUMMY,
+            new AcslCVariableDeclaration(
+                (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable("x"))));
+
+    AcslTerm y =
+        new AcslIdTerm(
+            FileLocation.DUMMY,
+            new AcslCVariableDeclaration(
+                (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable("y"))));
+
+    AcslPredicate pred =
+        new AcslBinaryTermPredicate(
+            FileLocation.DUMMY,
+            new AcslBinaryTerm(
+                FileLocation.DUMMY,
+                AcslBuiltinLogicType.INTEGER,
+                new AcslBinaryTerm(
+                    FileLocation.DUMMY,
+                    AcslBuiltinLogicType.INTEGER,
+                    x,
+                    y,
+                    AcslBinaryTermOperator.PLUS),
+                x,
+                AcslBinaryTermOperator.MINUS),
+            y,
+            AcslBinaryTermExpressionOperator.NOT_EQUALS);
+
+    BooleanFormula f = translate(pred);
+    assertThat(smtSolver.isUnsat(f)).isTrue();
+  }
+
+  @Ignore("Not implemented yet: Visitor for AcslBinaryTermPredicate")
+  @Test
+  public void testNeutralElementOfMultiplication()
+      throws InvalidConfigurationException, SolverException, InterruptedException {
+    // x * 1 != x should be unsatisfiable for all x
+    CProgramScope cProgramScope = getCProgramScope();
+    AcslTerm x =
+        new AcslIdTerm(
+            FileLocation.DUMMY,
+            new AcslCVariableDeclaration(
+                (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable("x"))));
+
+    AcslPredicate pred =
+        new AcslBinaryTermPredicate(
+            FileLocation.DUMMY,
+            new AcslBinaryTerm(
+                FileLocation.DUMMY,
+                AcslBuiltinLogicType.INTEGER,
+                x,
+                new AcslIntegerLiteralTerm(
+                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE),
+                AcslBinaryTermOperator.MULTIPLY),
+            x,
+            AcslBinaryTermExpressionOperator.NOT_EQUALS);
+
+    BooleanFormula f = translate(pred);
+    assertThat(smtSolver.isUnsat(f)).isTrue();
+  }
+
+  @Test
+  public void testLessEqualAntisymmetry()
+      throws SolverException, InterruptedException, InvalidConfigurationException {
+    // NOT(x <= y AND y <= x -> x == y) should be unsatisfiable
+
+    CProgramScope cProgramScope = getCProgramScope();
+    AcslTerm x =
+        new AcslIdTerm(
+            FileLocation.DUMMY,
+            new AcslCVariableDeclaration(
+                (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable("x"))));
+
+    AcslTerm y =
+        new AcslIdTerm(
+            FileLocation.DUMMY,
+            new AcslCVariableDeclaration(
+                (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable("y"))));
+
+    AcslPredicate firstP =
+        new AcslBinaryTermPredicate(
+            FileLocation.DUMMY, x, y, AcslBinaryTermExpressionOperator.LESS_EQUAL);
+
+    AcslPredicate secondP =
+        new AcslBinaryTermPredicate(
+            FileLocation.DUMMY, y, x, AcslBinaryTermExpressionOperator.LESS_EQUAL);
+
+    AcslPredicate pred =
+        new AcslBinaryPredicate(
+            FileLocation.DUMMY,
+            new AcslBinaryPredicate(
+                FileLocation.DUMMY, firstP, secondP, AcslBinaryPredicateOperator.AND),
+            new AcslBinaryTermPredicate(
+                FileLocation.DUMMY, x, y, AcslBinaryTermExpressionOperator.EQUALS),
+            AcslBinaryPredicateOperator.IMPLICATION);
+
+    AcslPredicate unsatPred =
+        new AcslUnaryPredicate(FileLocation.DUMMY, pred, AcslUnaryExpressionOperator.NEGATION);
+
+    BooleanFormula f = translate(unsatPred);
+    assertThat(smtSolver.isUnsat(f)).isTrue();
+  }
+}
