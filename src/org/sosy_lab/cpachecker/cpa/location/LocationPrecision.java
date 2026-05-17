@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.location;
 
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableMultimap.Builder;
@@ -74,13 +75,13 @@ public class LocationPrecision implements AdjustablePrecision {
   @Override
   public AdjustablePrecision add(AdjustablePrecision otherPrecision) {
     if(otherPrecision instanceof LocationPrecision locPrec){
-      ArrayList<SubCFA> complement = new ArrayList<>();
+      ImmutableSet.Builder<SubCFA> complement = new ImmutableSet.Builder<>();
       for (SubCFA subCFA : allowedProgramTransformations) {
         if(!locPrec.allowedProgramTransformations.contains(subCFA)){
           complement.add(subCFA);
         }
       }
-      return new LocationPrecision(ImmutableSet.copyOf(complement));
+      return new LocationPrecision(complement.build());
     }
     return this;
   }
