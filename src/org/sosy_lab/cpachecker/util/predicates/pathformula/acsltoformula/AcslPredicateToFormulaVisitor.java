@@ -14,6 +14,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
@@ -22,14 +23,19 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
@@ -40,7 +46,10 @@ public class AcslPredicateToFormulaVisitor
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final AcslTermToFormulaVisitor termVisitor;
-  private final SSAMapBuilder currentSsa; // ToDo where do we get this from??
+  private final SSAMapBuilder currentSsa;
+  private final MachineModel machineModel =
+      null; // ToDO is there a way around this or do I need to pass this into the
+  // constructor, too?
   private final @Nullable SSAMap
       functionEntrySsa; // Optional SSA map for function-entry state (\old)
 
@@ -119,15 +128,21 @@ public class AcslPredicateToFormulaVisitor
     Formula operand1Formula = pAcslBinaryTermPredicate.getOperand1().accept(termVisitor);
     Formula operand2Formula = pAcslBinaryTermPredicate.getOperand2().accept(termVisitor);
 
-    // TODO revisit if signed=true is safe or if we could have a case where we get something
-    // unsigned in the bitvector case
+    boolean signed = true;
+
+    // Bitvector case: signed is important
+    if (operand1Formula instanceof BitvectorFormula
+        && operand2Formula instanceof BitvectorFormula) {
+      signed = isSigned(pAcslBinaryTermPredicate.getOperand1().getExpressionType());
+    }
+
     return switch (pAcslBinaryTermPredicate.getOperator()) {
       case EQUALS -> fmgr.makeEqual(operand1Formula, operand2Formula);
       case NOT_EQUALS -> bfmgr.not(fmgr.makeEqual(operand1Formula, operand2Formula));
-      case LESS_EQUAL -> fmgr.makeLessOrEqual(operand1Formula, operand2Formula, true);
-      case GREATER_EQUAL -> fmgr.makeGreaterOrEqual(operand1Formula, operand2Formula, true);
-      case LESS_THAN -> fmgr.makeLessThan(operand1Formula, operand2Formula, true);
-      case GREATER_THAN -> fmgr.makeGreaterThan(operand1Formula, operand2Formula, true);
+      case LESS_EQUAL -> fmgr.makeLessOrEqual(operand1Formula, operand2Formula, signed);
+      case GREATER_EQUAL -> fmgr.makeGreaterOrEqual(operand1Formula, operand2Formula, signed);
+      case LESS_THAN -> fmgr.makeLessThan(operand1Formula, operand2Formula, signed);
+      case GREATER_THAN -> fmgr.makeGreaterThan(operand1Formula, operand2Formula, signed);
     };
   }
 
@@ -186,5 +201,19 @@ public class AcslPredicateToFormulaVisitor
   public BooleanFormula visit(AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate)
       throws NoException {
     return null;
+  }
+
+  private boolean isSigned(AcslType type) {
+
+    if (!(type instanceof AcslCType cType)) {
+      return true;
+    }
+    CType underlyingCType = cType.getType().getCanonicalType();
+
+    if (underlyingCType instanceof CSimpleType simpleType) {
+      return machineModel.isSigned(simpleType);
+    }
+
+    return true;
   }
 }
