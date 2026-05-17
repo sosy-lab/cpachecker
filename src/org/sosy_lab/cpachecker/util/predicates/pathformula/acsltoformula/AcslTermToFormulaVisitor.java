@@ -50,7 +50,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
-  private final SSAMapBuilder currentSsa; // ToDo where do we get this from??
+  private final SSAMapBuilder currentSsa;
   private final @Nullable SSAMap
       functionEntrySsa; // Optional SSA map for function-entry state (\old)
   private CtoFormulaConverter ctoFormulaConverter;
