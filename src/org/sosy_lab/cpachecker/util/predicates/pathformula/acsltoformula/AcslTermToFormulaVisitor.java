@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.units.qual.C;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAtTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
@@ -56,7 +55,10 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
       functionEntrySsa; // Optional SSA map for function-entry state (\old)
   private CtoFormulaConverter ctoFormulaConverter;
 
-  public AcslTermToFormulaVisitor(FormulaManagerView pFmgr, SSAMapBuilder pCurrentSsa, CtoFormulaConverter pCtoFormulaConverter) {
+  public AcslTermToFormulaVisitor(
+      FormulaManagerView pFmgr,
+      SSAMapBuilder pCurrentSsa,
+      CtoFormulaConverter pCtoFormulaConverter) {
     checkNotNull(pFmgr);
     checkNotNull(pCurrentSsa);
     this.fmgr = pFmgr;
@@ -67,7 +69,10 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
   }
 
   public AcslTermToFormulaVisitor(
-      FormulaManagerView pFmgr, SSAMapBuilder pCurrentSsa, SSAMap pFunctionEntrySsa, CtoFormulaConverter pCtoFormulaConverter) {
+      FormulaManagerView pFmgr,
+      SSAMapBuilder pCurrentSsa,
+      SSAMap pFunctionEntrySsa,
+      CtoFormulaConverter pCtoFormulaConverter) {
     checkNotNull(pFmgr);
     checkNotNull(pCurrentSsa);
     this.fmgr = pFmgr;
