@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -43,23 +44,23 @@ public class AcslPredicateToFormulaVisitor
   private final @Nullable SSAMap
       functionEntrySsa; // Optional SSA map for function-entry state (\old)
 
-  public AcslPredicateToFormulaVisitor(FormulaManagerView pFmgr, SSAMapBuilder pCurrentSsa) {
+  public AcslPredicateToFormulaVisitor(FormulaManagerView pFmgr, SSAMapBuilder pCurrentSsa, CtoFormulaConverter pCtoFormulaConverter) {
     checkNotNull(pFmgr);
     checkNotNull(pCurrentSsa);
     this.fmgr = pFmgr;
     this.bfmgr = fmgr.getBooleanFormulaManager();
-    this.termVisitor = new AcslTermToFormulaVisitor(pFmgr, pCurrentSsa);
+    this.termVisitor = new AcslTermToFormulaVisitor(pFmgr, pCurrentSsa, pCtoFormulaConverter);
     this.currentSsa = pCurrentSsa;
     this.functionEntrySsa = null;
   }
 
   public AcslPredicateToFormulaVisitor(
-      FormulaManagerView pFmgr, SSAMapBuilder pCurrentSsa, SSAMap pFunctionEntrySsa) {
+      FormulaManagerView pFmgr, SSAMapBuilder pCurrentSsa, SSAMap pFunctionEntrySsa, CtoFormulaConverter pCtoFormulaConverter) {
     checkNotNull(pFmgr);
     checkNotNull(pCurrentSsa);
     this.fmgr = pFmgr;
     this.bfmgr = fmgr.getBooleanFormulaManager();
-    this.termVisitor = new AcslTermToFormulaVisitor(pFmgr, pCurrentSsa, pFunctionEntrySsa);
+    this.termVisitor = new AcslTermToFormulaVisitor(pFmgr, pCurrentSsa, pFunctionEntrySsa, pCtoFormulaConverter);
     this.currentSsa = pCurrentSsa;
     this.functionEntrySsa = pFunctionEntrySsa;
   }
