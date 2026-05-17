@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.to_svlib;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -82,6 +83,7 @@ class CToSvLibInitializer {
   private final CtoFormulaConverter converter;
 
   private final String INPUT_DUMMY_VAR_PREFIX;
+  private final ImmutableSet<String> NAMES_OF_ASSERT_FUNCTIONS;
 
   CToSvLibInitializer(
       CFA pCFA,
@@ -89,13 +91,15 @@ class CToSvLibInitializer {
       FormulaManagerView pFormulaManager,
       PathFormulaManager pPathFormulaManager,
       CtoFormulaConverter pConverter,
-      String pINPUT_DUMMY_VAR_PREFIX) {
+      String pINPUT_DUMMY_VAR_PREFIX,
+      ImmutableSet<String> pNAMES_OF_ASSERT_FUNCTIONS) {
     cfa = pCFA;
     scope = pCurrentScope;
     formulaManager = pFormulaManager;
     pathFormulaManager = pPathFormulaManager;
     converter = pConverter;
     INPUT_DUMMY_VAR_PREFIX = pINPUT_DUMMY_VAR_PREFIX;
+    NAMES_OF_ASSERT_FUNCTIONS = pNAMES_OF_ASSERT_FUNCTIONS;
   }
 
   void initialize(ImmutableList.Builder<SvLibCommand> pCommandsCollector)
@@ -436,11 +440,42 @@ class CToSvLibInitializer {
 
   private SvLibProcedureDefinitionCommand createExternProcedureDefinition(
       CFunctionDeclaration pFunctionDeclaration) {
-    SvLibProcedureDeclaration externProcedureDeclaration =
-        createProcedureDeclarationForExternFunction(pFunctionDeclaration);
-    SvLibStatement externProcedureBody = createBodyForExternProcedure(externProcedureDeclaration);
+    if (NAMES_OF_ASSERT_FUNCTIONS.contains(pFunctionDeclaration.getName())) {
+      // Special handling of a set of external __assert functions that have char* input parameters
+      // in the C program, since Transformation via the FormulaToSvlibVisitor cannot yet handle
+      // pathFormulas with strings.
+      // Therefore, dummy procedures with no parameters and (assert fail) as body are created for
+      // these functions.
+      return escapeExternalAssertWithString(pFunctionDeclaration);
+    } else {
+      SvLibProcedureDeclaration externProcedureDeclaration =
+          createProcedureDeclarationForExternFunction(pFunctionDeclaration);
+      SvLibStatement externProcedureBody = createBodyForExternProcedure(externProcedureDeclaration);
+      return new SvLibProcedureDefinitionCommand(
+          FileLocation.DUMMY, externProcedureDeclaration, externProcedureBody);
+    }
+  }
+
+  private SvLibProcedureDefinitionCommand escapeExternalAssertWithString(
+      CFunctionDeclaration pFunctionDeclaration) {
+    SvLibProcedureDeclaration procedureDeclaration =
+        new SvLibProcedureDeclaration(
+            FileLocation.DUMMY,
+            pFunctionDeclaration.getName(),
+            ImmutableList.of(),
+            ImmutableList.of(),
+            ImmutableList.of());
+
+    SvLibStatement procedureBody =
+        new SvLibAssumeStatement(
+            FileLocation.DUMMY,
+            new SvLibBooleanConstantTerm(false, FileLocation.DUMMY),
+            ImmutableList.of(),
+            ImmutableList.of(
+                new SvLibTagReference(pFunctionDeclaration.getName(), FileLocation.DUMMY)));
+
     return new SvLibProcedureDefinitionCommand(
-        FileLocation.DUMMY, externProcedureDeclaration, externProcedureBody);
+        FileLocation.DUMMY, procedureDeclaration, procedureBody);
   }
 
   private SvLibProcedureDefinitionCommand createProcedureDefinitionForUndeclaredFunction(

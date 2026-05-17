@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.to_svlib;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Serial;
@@ -104,6 +105,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
   private final TransformationStatistics transformationStatistics;
 
   private final String INPUT_DUMMY_VAR_PREFIX = "__originalInput_";
+  private final ImmutableSet<String> NAMES_OF_ASSERT_FUNCTIONS =
+      ImmutableSet.of("__assert_fail", "__assert_perror_fail", "__assert");
 
   /**
    * Transforms the CFA of a C program to a SvLibScript. At the moment in development and works
@@ -173,7 +176,13 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     try {
       CToSvLibInitializer initializer =
           new CToSvLibInitializer(
-              cfa, scope, formulaManager, pathFormulaManager, converter, INPUT_DUMMY_VAR_PREFIX);
+              cfa,
+              scope,
+              formulaManager,
+              pathFormulaManager,
+              converter,
+              INPUT_DUMMY_VAR_PREFIX,
+              NAMES_OF_ASSERT_FUNCTIONS);
       initializer.initialize(commandsCollector);
     } finally {
       transformationStatistics.initializationTime.stop();
@@ -191,7 +200,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
             pathFormulaManager,
             formulaToSvLibVisitor,
             scope,
-            INPUT_DUMMY_VAR_PREFIX);
+            INPUT_DUMMY_VAR_PREFIX,
+            NAMES_OF_ASSERT_FUNCTIONS);
 
     try {
       for (FunctionEntryNode functionEntryNode : cfa.entryNodes()) {

@@ -12,6 +12,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.math.BigInteger;
 import java.util.HashSet;
@@ -77,20 +78,24 @@ class CToSvLibTransformation {
   private final FormulaToSvLibVisitor formulaToSvLibVisitor;
 
   private final SvLibCurrentScope scope;
+
   private final String INPUT_DUMMY_VAR_PREFIX;
+  private final ImmutableSet<String> NAMES_OF_ASSERT_FUNCTIONS;
 
   CToSvLibTransformation(
       FormulaManagerView pFormulaManager,
       PathFormulaManager pPathFormulaManager,
       FormulaToSvLibVisitor pFormulaToSvLibVisitor,
       SvLibCurrentScope pCurrentScope,
-      String pINPUT_DUMMY_VAR_PREFIX) {
+      String pINPUT_DUMMY_VAR_PREFIX,
+      ImmutableSet<String> pNAMES_OF_ASSERT_FUNCTIONS) {
     // cfa = pCFA;
     formulaManager = pFormulaManager;
     pathFormulaManager = pPathFormulaManager;
     formulaToSvLibVisitor = pFormulaToSvLibVisitor;
     scope = pCurrentScope;
     INPUT_DUMMY_VAR_PREFIX = pINPUT_DUMMY_VAR_PREFIX;
+    NAMES_OF_ASSERT_FUNCTIONS = pNAMES_OF_ASSERT_FUNCTIONS;
   }
 
   SvLibStatement transformFunction(CFunctionEntryNode pEntryNode)
@@ -383,6 +388,25 @@ class CToSvLibTransformation {
     } else if (pStatementEdge.getStatement()
         instanceof CFunctionCallStatement functionCallStatement) {
       storePtsForFunctionCall(pStatementEdge, pEdgeToPointerTargetSet);
+
+      SvLibProcedureDeclaration calledProcedure =
+          scope.getProcedureDeclaration(
+              functionCallStatement
+                  .getFunctionCallExpression()
+                  .getFunctionNameExpression()
+                  .toASTString());
+
+      // Handle calls to a set of external __assert functions that have a char* input parameter
+      if (NAMES_OF_ASSERT_FUNCTIONS.contains(calledProcedure.getName())) {
+        return new SvLibProcedureCallStatement(
+            FileLocation.DUMMY,
+            ImmutableList.of(),
+            ImmutableList.of(),
+            calledProcedure,
+            ImmutableList.of(),
+            ImmutableList.of());
+      }
+
       return new SvLibProcedureCallStatement(
           FileLocation.DUMMY,
           ImmutableList.of(),
