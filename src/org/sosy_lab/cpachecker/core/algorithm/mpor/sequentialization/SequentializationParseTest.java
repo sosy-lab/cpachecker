@@ -12,6 +12,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 import static org.junit.Assert.assertThrows;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,7 +25,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -395,17 +395,20 @@ public class SequentializationParseTest {
     testParse(programA, logger, shutdownNotifier);
   }
 
-  private static final String ANON_TYPE_KEYWORD = "__anon_type_";
+  public static final String ANON_TYPE_KEYWORD = "__anon_type_";
 
   private static final int FIRST_LINE = 1;
+
+  /** Matches both Windows (\r\n) and Unix-like (\n) newline conventions. */
+  private static final Splitter newlineSplitter = Splitter.onPattern("\\r?\\n");
 
   /**
    * Checks whether two sequentializations with the exact same input result in the exact same
    * output, i.e. the same {@link String} output and the same {@link SequentializationFields}
    */
   private void testEqualOutput(String pStringA, String pStringB) {
-    ImmutableList<String> linesA = SeqStringUtil.splitOnNewline(pStringA);
-    ImmutableList<String> linesB = SeqStringUtil.splitOnNewline(pStringB);
+    ImmutableList<String> linesA = ImmutableList.copyOf(newlineSplitter.split(pStringA));
+    ImmutableList<String> linesB = ImmutableList.copyOf(newlineSplitter.split(pStringB));
     assertThat(linesA).hasSize(linesB.size());
     for (int i = 0; i < linesA.size(); i++) {
       String lineA = linesA.get(i);

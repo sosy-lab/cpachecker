@@ -32,6 +32,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
@@ -142,7 +143,7 @@ public class ValueAnalysisCPA extends AbstractCPA
   private final StateToFormulaWriter writer;
 
   private final Configuration config;
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
 
@@ -160,14 +161,14 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   private ValueAnalysisCPA(
       Configuration config,
-      LogManager logger,
+      LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       CFA cfa,
       Specification pSpecification)
       throws InvalidConfigurationException, InterruptedException {
     super(DelegateAbstractDomain.<ValueAnalysisState>getInstance(), null);
     this.config = config;
-    this.logger = logger;
+    logger = new LogManagerWithoutDuplicates(pLogger);
     shutdownNotifier = pShutdownNotifier;
     this.cfa = cfa;
 
@@ -451,7 +452,7 @@ public class ValueAnalysisCPA extends AbstractCPA
     return config;
   }
 
-  public LogManager getLogger() {
+  public LogManagerWithoutDuplicates getLogger() {
     return logger;
   }
 

@@ -23,6 +23,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.TempFile;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
@@ -35,63 +36,71 @@ import org.sosy_lab.cpachecker.util.test.ToCTranslationTest;
  * static class for each setting that contains tests for that setting.
  */
 @RunWith(Enclosed.class)
-public final class ARGToCTranslatorTest {
+public abstract sealed class ARGToCTranslatorTest extends ToCTranslationTest {
 
-  private ARGToCTranslatorTest() {}
+  private final Path program;
+  private final boolean hasGotoDecProblem;
+  private final String generationPropfile;
+
+  private ARGToCTranslatorTest(
+      @SuppressWarnings("unused") String pTestLabel,
+      String pProgram,
+      boolean pVerdict,
+      boolean pHasGotoDecProblem,
+      String pGenerationPropfile)
+      throws InvalidConfigurationException, IOException {
+    super(
+        /* pTargetProgram= */ TempFile.builder()
+            .prefix("residual")
+            .suffix(".c")
+            .create()
+            .toAbsolutePath(),
+        /* pVerdict= */ pVerdict,
+        /* pCheckerConfig= */ TestDataTools.configurationForTest()
+            .loadFromResource(ARGToCTranslatorTest.class, "predicateAnalysis.properties")
+            .build());
+
+    program = Path.of(TEST_DIR_PATH, pProgram);
+    hasGotoDecProblem = pHasGotoDecProblem;
+    generationPropfile = pGenerationPropfile;
+  }
+
+  protected ConfigurationBuilder getGenerationConfig() throws InvalidConfigurationException {
+    return TestDataTools.configurationForTest()
+        .loadFromResource(ARGToCTranslatorTest.class, generationPropfile)
+        .setOption("cpa.arg.export.code.handleTargetStates", "VERIFIERERROR")
+        .setOption("cpa.arg.export.code.header", "false");
+  }
+
+  protected final ARGToCTranslator getTranslator() throws InvalidConfigurationException {
+    final Configuration generationConfig = getGenerationConfig().build();
+    return new ARGToCTranslator(
+        LogManager.createTestLogManager(), generationConfig, MachineModel.LINUX32);
+  }
+
+  @Override
+  protected final void createProgram(final Path pTargetPath) throws Exception {
+    ARGToCTranslator translator = getTranslator();
+    Configuration config = getGenerationConfig().build();
+
+    // generate ARG for C program
+    ARGState root = run(config, program);
+
+    // translate write ARG to new C program
+    String res = translator.translateARG(root, hasGotoDecProblem);
+    Files.write(pTargetPath, res.getBytes(UTF_8));
+  }
 
   @RunWith(Parameterized.class)
-  public static class TranslationTest extends ToCTranslationTest {
-    private final Path program;
-    private final boolean hasGotoDecProblem;
-    protected String generationPropfile;
+  public static final class BasicTest extends ARGToCTranslatorTest {
 
-    public TranslationTest(
+    public BasicTest(
         @SuppressWarnings("unused") String pTestLabel,
         String pProgram,
         boolean pVerdict,
         boolean pHasGotoDecProblem)
         throws InvalidConfigurationException, IOException {
-      super(
-          /* pTargetProgram= */ TempFile.builder()
-              .prefix("residual")
-              .suffix(".c")
-              .create()
-              .toAbsolutePath(),
-          /* pVerdict= */ pVerdict,
-          /* pCheckerConfig= */ TestDataTools.configurationForTest()
-              .loadFromResource(ARGToCTranslatorTest.class, "predicateAnalysis.properties")
-              .build());
-
-      filePrefix = "residual";
-      program = Path.of(TEST_DIR_PATH, pProgram);
-      hasGotoDecProblem = pHasGotoDecProblem;
-      generationPropfile = "inline-errorlabel.properties";
-    }
-
-    protected ConfigurationBuilder getGenerationConfig(String propfile)
-        throws InvalidConfigurationException {
-      return TestDataTools.configurationForTest()
-          .loadFromResource(ARGToCTranslatorTest.class, propfile)
-          .setOption("cpa.arg.export.code.handleTargetStates", "VERIFIERERROR")
-          .setOption("cpa.arg.export.code.header", "false");
-    }
-
-    protected ARGToCTranslator getTranslator() throws InvalidConfigurationException {
-      final Configuration generationConfig = getGenerationConfig(generationPropfile).build();
-      return new ARGToCTranslator(logger, generationConfig, MachineModel.LINUX32);
-    }
-
-    @Override
-    protected void createProgram(final Path pTargetPath) throws Exception {
-      ARGToCTranslator translator = getTranslator();
-      Configuration config = getGenerationConfig(generationPropfile).build();
-
-      // generate ARG for C program
-      ARGState root = run(config, program);
-
-      // translate write ARG to new C program
-      String res = translator.translateARG(root, hasGotoDecProblem);
-      Files.write(pTargetPath, res.getBytes(UTF_8));
+      super(pTestLabel, pProgram, pVerdict, pHasGotoDecProblem, "inline-errorlabel.properties");
     }
 
     @Parameters(name = "{0}")
@@ -125,7 +134,7 @@ public final class ARGToCTranslatorTest {
   }
 
   @RunWith(Parameterized.class)
-  public static class SpecificationCombinationTest extends TranslationTest {
+  public static final class SpecificationCombinationTest extends ARGToCTranslatorTest {
     private final String spec;
 
     public SpecificationCombinationTest(
@@ -136,17 +145,19 @@ public final class ARGToCTranslatorTest {
         String pSpec,
         boolean useOverflows)
         throws InvalidConfigurationException, IOException {
-      super(pTestLabel, pProgram, pVerdict, pHasGotoDecProblem);
+      super(
+          pTestLabel,
+          pProgram,
+          pVerdict,
+          pHasGotoDecProblem,
+          useOverflows ? "inline-overflow.properties" : "inline-errorlabel.properties");
 
       spec = pSpec;
-      generationPropfile =
-          useOverflows ? "inline-overflow.properties" : "inline-errorlabel.properties";
     }
 
     @Override
-    protected ConfigurationBuilder getGenerationConfig(String propfile)
-        throws InvalidConfigurationException {
-      ConfigurationBuilder config = super.getGenerationConfig(propfile);
+    protected ConfigurationBuilder getGenerationConfig() throws InvalidConfigurationException {
+      ConfigurationBuilder config = super.getGenerationConfig();
       if (spec != null) {
         String specPath = Path.of(TEST_DIR_PATH, spec).toString();
         config.setOption("specification", specPath);
@@ -186,29 +197,22 @@ public final class ARGToCTranslatorTest {
   }
 
   @RunWith(Parameterized.class)
-  public static class AssumptionAutomataCombinationTest extends TranslationTest {
-
-    private static final String CONFIG_FILE = "assumption-guiding.properties";
+  public static final class AssumptionAutomataCombinationTest extends ARGToCTranslatorTest {
 
     private final Path conditionAutomaton;
 
     public AssumptionAutomataCombinationTest(
         String pTestLabel, String pProgram, boolean pVerdict, String pConditionAutomaton)
         throws InvalidConfigurationException, IOException {
-      super(pTestLabel, pProgram, pVerdict, false);
+      super(pTestLabel, pProgram, pVerdict, false, "assumption-guiding.properties");
 
       conditionAutomaton = Path.of(TEST_DIR_PATH, pConditionAutomaton);
-      generationPropfile = CONFIG_FILE;
     }
 
     @Override
-    protected ConfigurationBuilder getGenerationConfig(String propfile)
-        throws InvalidConfigurationException {
-      ConfigurationBuilder config = super.getGenerationConfig(propfile);
-      config.setOption(
-          "AssumptionAutomaton.cpa.automaton.inputFile", conditionAutomaton.toString());
-
-      return config;
+    protected ConfigurationBuilder getGenerationConfig() throws InvalidConfigurationException {
+      return super.getGenerationConfig()
+          .setOption("AssumptionAutomaton.cpa.automaton.inputFile", conditionAutomaton.toString());
     }
 
     @Parameters(name = "{0}")

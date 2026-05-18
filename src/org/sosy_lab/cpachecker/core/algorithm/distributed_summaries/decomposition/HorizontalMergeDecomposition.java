@@ -22,19 +22,24 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 
 public class HorizontalMergeDecomposition implements DssBlockDecomposition {
 
+  public static final int NO_MERGE_LIMIT = -1;
+
   private final DssBlockDecomposition decomposer;
   private final long targetNumber;
   private final Comparator<BlockNodeWithoutGraphInformation> sort;
   private int id;
+  private int mergeLimit;
 
   private record BlockScope(CFANode start, CFANode last) {}
 
   public HorizontalMergeDecomposition(
       DssBlockDecomposition pDecomposition,
       long pTargetNumber,
+      int pMergeLimit,
       Comparator<BlockNodeWithoutGraphInformation> pSort) {
     decomposer = pDecomposition;
     targetNumber = pTargetNumber;
+    mergeLimit = pMergeLimit;
     sort = pSort;
   }
 
@@ -69,6 +74,15 @@ public class HorizontalMergeDecomposition implements DssBlockDecomposition {
       if (blockScopes.get(blockScope).size() <= 1) {
         continue;
       }
+      long largeBlocks =
+          blockScopes.get(blockScope).stream()
+              .mapToInt(n -> n.getNodes().size())
+              .filter(x -> x > mergeLimit)
+              .count();
+      if (mergeLimit >= 0 && largeBlocks > 1) {
+        continue;
+      }
+
       BlockNodeWithoutGraphInformation result =
           mergeBlocksHorizontally(blockScopes.removeAll(blockScope), blockScope);
       blockScopes.put(blockScope, result);

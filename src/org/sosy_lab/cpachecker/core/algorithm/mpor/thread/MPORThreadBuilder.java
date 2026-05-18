@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
@@ -59,10 +59,10 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
   }
 
   /** Track the currentPc, static so that it is consistent across recursive function calls. */
-  private static int currentPc = ProgramCounterVariables.INIT_PC;
+  private static int currentPc = SeqProgramCounterVariables.INIT_PC;
 
   public static void resetPc() {
-    currentPc = ProgramCounterVariables.INIT_PC;
+    currentPc = SeqProgramCounterVariables.INIT_PC;
   }
 
   /**
@@ -213,7 +213,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
               // thread exits are never in atomic blocks
               pThreadId,
               pCurrentNode,
-              ProgramCounterVariables.EXIT_PC,
+              SeqProgramCounterVariables.EXIT_PC,
               callContext,
               edgeList,
               false));

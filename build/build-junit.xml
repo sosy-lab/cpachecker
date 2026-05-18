@@ -29,7 +29,7 @@ SPDX-License-Identifier: Apache-2.0
          test values. It will also test additional floating point formats that are otherwise
          skipped.
          Running these tests will take several minutes. -->
-    <property name="junit.enableExpensiveTests" value="false"/>
+    <property name="enableExpensiveTests" value="false"/>
 
     <!-- Define property that contains the Ant version for getting the matching ant-junit version. -->
     <antversion property="ant.version.exact"/>
@@ -63,7 +63,7 @@ SPDX-License-Identifier: Apache-2.0
             <formatter type="xml"/>
             <classpath refid="classpath.junit"/>
             <sysproperty key="java.awt.headless" value="true" />
-            <sysproperty key="enableExpensiveTests" value="${junit.enableExpensiveTests}"/>
+            <sysproperty key="enableExpensiveTests" value="${enableExpensiveTests}"/>
             <batchtest fork="true" todir="${junit.dir}">
                 <fileset dir="${class.dir}">
                     <include name="**/*Test.*"/>

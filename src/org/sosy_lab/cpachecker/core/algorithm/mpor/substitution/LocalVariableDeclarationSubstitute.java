@@ -12,7 +12,7 @@ import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
-public record LocalVariableDeclarationSubstitute(
+record LocalVariableDeclarationSubstitute(
     CIdExpression expression, Optional<MPORSubstitutionTracker> tracker) {
 
   @Override
