@@ -625,7 +625,6 @@ class CToSvLibTransformation {
   }
 
   private SvLibAssumeStatement encodeTerminationNode(CFATerminationNode pTerminationNode) {
-    // TODO ask if this transformation is sufficient or if adding a return statement makes sense?
     return new SvLibAssumeStatement(
         FileLocation.DUMMY,
         new SvLibBooleanConstantTerm(false, FileLocation.DUMMY),
