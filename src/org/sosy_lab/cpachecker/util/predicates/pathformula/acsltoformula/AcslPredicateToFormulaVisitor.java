@@ -39,63 +39,73 @@ import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
-@SuppressWarnings("unused")
 public class AcslPredicateToFormulaVisitor
     implements AcslPredicateVisitor<BooleanFormula, NoException> {
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final AcslTermToFormulaVisitor termVisitor;
+
+  @SuppressWarnings("unused") // I suspect currentSsa will be needed at some point
   private final SSAMapBuilder currentSsa;
 
-  // ToDO This is a dummy, is there a way around this or do I need to pass the machine model into
-  // the
-  // constructor, too?
-  private final MachineModel machineModel = MachineModel.LINUX64;
+  private final MachineModel machineModel;
   private final Optional<SSAMap>
       functionEntrySsa; // Optional SSA map for function-entry state (\old)
 
   public AcslPredicateToFormulaVisitor(
       FormulaManagerView pFmgr,
       SSAMapBuilder pCurrentSsa,
-      CtoFormulaConverter pCtoFormulaConverter) {
+      CtoFormulaConverter pCtoFormulaConverter,
+      MachineModel pMachineModel) {
     checkNotNull(pFmgr);
     checkNotNull(pCurrentSsa);
+    checkNotNull(pMachineModel);
     this.fmgr = pFmgr;
     this.bfmgr = fmgr.getBooleanFormulaManager();
-    this.termVisitor = new AcslTermToFormulaVisitor(pFmgr, pCurrentSsa, pCtoFormulaConverter);
+    this.termVisitor =
+        new AcslTermToFormulaVisitor(pFmgr, pCurrentSsa, pCtoFormulaConverter, pMachineModel);
     this.currentSsa = pCurrentSsa;
     this.functionEntrySsa = Optional.empty();
+    this.machineModel = pMachineModel;
   }
 
   public AcslPredicateToFormulaVisitor(
       FormulaManagerView pFmgr,
       SSAMapBuilder pCurrentSsa,
       SSAMap pFunctionEntrySsa,
-      CtoFormulaConverter pCtoFormulaConverter) {
+      CtoFormulaConverter pCtoFormulaConverter,
+      MachineModel pMachineModel) {
     checkNotNull(pFmgr);
     checkNotNull(pCurrentSsa);
+    checkNotNull(pMachineModel);
     this.fmgr = pFmgr;
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.termVisitor =
-        new AcslTermToFormulaVisitor(pFmgr, pCurrentSsa, pFunctionEntrySsa, pCtoFormulaConverter);
+        new AcslTermToFormulaVisitor(
+            pFmgr, pCurrentSsa, pFunctionEntrySsa, pCtoFormulaConverter, pMachineModel);
     this.currentSsa = pCurrentSsa;
     this.functionEntrySsa = Optional.ofNullable(pFunctionEntrySsa);
+    this.machineModel = pMachineModel;
   }
 
   // Constructor that should only be called by AcslTermToFormulaVisitor
+  // this is required to create the condition in a ternary term, e.g., x > 0 ? 1 : 2
   protected AcslPredicateToFormulaVisitor(
       FormulaManagerView pFmgr,
       AcslTermToFormulaVisitor pTermVisitor,
       SSAMapBuilder pCurrentSsa,
-      Optional<SSAMap> oFunctionEntrySsa) {
+      Optional<SSAMap> oFunctionEntrySsa,
+      MachineModel pMachineModel) {
     checkNotNull(pFmgr);
     checkNotNull(pTermVisitor);
+    checkNotNull(pMachineModel);
     this.fmgr = pFmgr;
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.termVisitor = pTermVisitor;
     this.currentSsa = pCurrentSsa;
     this.functionEntrySsa = oFunctionEntrySsa;
+    this.machineModel = pMachineModel;
   }
 
   @Override
@@ -157,7 +167,7 @@ public class AcslPredicateToFormulaVisitor
     }
 
     // TODO: implementation
-    return null;
+    throw new UnsupportedOperationException("Not yet implemented");
   }
 
   @Override
@@ -192,18 +202,21 @@ public class AcslPredicateToFormulaVisitor
 
   @Override
   public BooleanFormula visit(AcslForallPredicate pForallPredicate) throws NoException {
-    return null;
+    // TODO implementation definitely needed
+    throw new UnsupportedOperationException("Not yet implemented");
   }
 
   @Override
   public BooleanFormula visit(AcslExistsPredicate pAcslExistsPredicate) throws NoException {
-    return null;
+    // TODO implementation definitely needed
+    throw new UnsupportedOperationException("Not yet implemented");
   }
 
   @Override
   public BooleanFormula visit(AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate)
       throws NoException {
-    return null;
+    // TODO implementation definitely needed
+    throw new UnsupportedOperationException("Not yet implemented");
   }
 
   private boolean isSigned(AcslType type) {

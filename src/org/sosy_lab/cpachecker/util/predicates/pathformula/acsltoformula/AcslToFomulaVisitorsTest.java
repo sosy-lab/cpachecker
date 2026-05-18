@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
-@SuppressWarnings("unused")
 public class AcslToFomulaVisitorsTest {
 
   final LogManager logger = LogManager.createTestLogManager();
@@ -74,16 +73,17 @@ public class AcslToFomulaVisitorsTest {
 
   private BooleanFormula translate(AcslPredicate predicate) throws InvalidConfigurationException {
     SSAMapBuilder ssaMapBuilder = SSAMap.emptySSAMap().builder();
+    MachineModel machineModel = MachineModel.LINUX64;
 
     Configuration config = TestDataTools.configurationForTest().build();
     CFormulaEncodingOptions options = new CFormulaEncodingOptions(config);
-    CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(logger, MachineModel.LINUX64);
+    CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(logger, machineModel);
 
     CtoFormulaConverter converter =
         new CtoFormulaConverter(
             options,
             fmgr,
-            MachineModel.LINUX64,
+            machineModel,
             Optional.empty(),
             logger,
             ShutdownNotifier.createDummy(),
@@ -91,7 +91,7 @@ public class AcslToFomulaVisitorsTest {
             AnalysisDirection.FORWARD);
 
     AcslPredicateToFormulaVisitor visitorP =
-        new AcslPredicateToFormulaVisitor(fmgr, ssaMapBuilder, converter);
+        new AcslPredicateToFormulaVisitor(fmgr, ssaMapBuilder, converter, machineModel);
 
     return predicate.accept(visitorP);
   }
