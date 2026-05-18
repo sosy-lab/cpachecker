@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
@@ -46,11 +48,10 @@ public final class SvLibProcedureCallStatement extends SvLibStatement {
 
   private void checkArguments(
       List<SvLibTerm> pArguments, SvLibProcedureDeclaration pProcedureDeclaration) {
-    if (pArguments.size() != pProcedureDeclaration.getParameters().size()) {
-      throw new IllegalArgumentException(
-          "Number of arguments provided does not match the number of input parameters in the"
-              + " procedure declaration");
-    }
+    checkArgument(
+        pArguments.size() == pProcedureDeclaration.getParameters().size(),
+        "Number of arguments provided does not match the number of input parameters in the"
+            + " procedure declaration");
     for (int i = 0; i < pArguments.size(); i++) {
       SvLibTerm argument = pArguments.get(i);
       SvLibType argumentType = argument.getExpressionType();
@@ -76,12 +77,11 @@ public final class SvLibProcedureCallStatement extends SvLibStatement {
   private void checkReturnValues(
       List<SvLibSimpleParsingDeclaration> pReturnVariables,
       SvLibProcedureDeclaration pProcedureDeclaration) {
-    if (pReturnVariables.size() != pProcedureDeclaration.getReturnValues().size()) {
-      throw new IllegalArgumentException(
-          "Number of return parameters of procedure call to procedure "
-              + pProcedureDeclaration.getProcedureName()
-              + " does not match number of return parameters of the procedure declaration!");
-    }
+    checkArgument(
+        pReturnVariables.size() == pProcedureDeclaration.getReturnValues().size(),
+        "Number of return parameters of procedure call to procedure "
+            + pProcedureDeclaration.getProcedureName()
+            + " does not match number of return parameters of the procedure declaration!");
     for (int i = 0; i < pReturnVariables.size(); i++) {
       SvLibSimpleParsingDeclaration returnVariableDeclaration = pReturnVariables.get(i);
       SvLibParsingParameterDeclaration returnParameterDeclaration =

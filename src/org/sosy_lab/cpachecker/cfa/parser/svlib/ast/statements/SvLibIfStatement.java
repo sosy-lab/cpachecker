@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.Serial;
 import java.util.List;
 import java.util.Optional;
@@ -32,10 +34,9 @@ public final class SvLibIfStatement extends SvLibControlFlowStatement {
       SvLibTerm pCondition,
       SvLibStatement pThenBranch) {
     super(pFileLocation, pTagAttributes, pTagReferences);
-    if (!pCondition.getExpressionType().equals(SvLibSmtLibPredefinedType.BOOL)) {
-      throw new IllegalArgumentException(
-          "The type of the condition of the if statement is not boolean");
-    }
+    checkArgument(
+        pCondition.getExpressionType().equals(SvLibSmtLibPredefinedType.BOOL),
+        "The type of the condition of the SvLibIfStatement is not boolean");
     condition = pCondition;
     thenBranch = pThenBranch;
     elseBranch = Optional.empty();
@@ -49,10 +50,9 @@ public final class SvLibIfStatement extends SvLibControlFlowStatement {
       SvLibStatement pThenBranch,
       SvLibStatement pElseBranch) {
     super(pFileLocation, pTagAttributes, pTagReferences);
-    if (!pCondition.getExpressionType().equals(SvLibSmtLibPredefinedType.BOOL)) {
-      throw new IllegalArgumentException(
-          "The type of the condition of the if statement is not boolean");
-    }
+    checkArgument(
+        pCondition.getExpressionType().equals(SvLibSmtLibPredefinedType.BOOL),
+        "The type of the condition of the SvLibIfStatement is not boolean");
     condition = pCondition;
     thenBranch = pThenBranch;
     elseBranch = Optional.of(pElseBranch);

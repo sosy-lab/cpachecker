@@ -303,9 +303,9 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     } catch (ParserException e) {
       throw new UnsupportedOperationException(
           "Failed to create a CFA for the transformed SV-LIB script.", e);
-    } catch (IOException pE) {
+    } catch (IOException e) {
       throw new UnsupportedOperationException(
-          "Failed to load configuration for analysis of transformed SV-LIB script.");
+          "Failed to load configuration for analysis of transformed SV-LIB script.", e);
     }
 
     // Prepare new reached set
