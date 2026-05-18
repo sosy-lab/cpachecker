@@ -112,6 +112,11 @@ public class SvLibTermToFormulaConverter {
     if (pSvLibGeneralSymbolApplicationTerm instanceof SvLibSymbolApplicationTerm pTerm
         && isArrayAccess(pTerm)) {
       return convertArrayAccess(pTerm, ssa, fmgr, pConverter);
+    } else if (pSvLibGeneralSymbolApplicationTerm instanceof SvLibSymbolApplicationTerm pTerm
+        && pTerm.getTerms().size() == 3
+        // canBeCastTo instead of equals?
+        && pTerm.getTerms().getFirst().getExpressionType().equals(SvLibSmtLibPredefinedType.BOOL)) {
+      return convertIteApplication(pSvLibGeneralSymbolApplicationTerm, ssa, fmgr, pConverter);
     } else if (FluentIterable.from(pSvLibGeneralSymbolApplicationTerm.getTerms())
         .transform(SvLibRelationalTerm::getExpressionType)
         .allMatch(type -> SvLibType.canBeCastTo(type, SvLibSmtLibPredefinedType.INT))) {
@@ -125,6 +130,24 @@ public class SvLibTermToFormulaConverter {
     throw new UnsupportedOperationException(
         "Conversion of application term not supported: "
             + pSvLibGeneralSymbolApplicationTerm.toASTString());
+  }
+
+  private static @NonNull Formula convertIteApplication(
+      SvLibGeneralSymbolApplicationTerm pSvLibGeneralSymbolApplicationTerm,
+      SSAMapBuilder ssa,
+      FormulaManagerView fmgr,
+      SvLibToFormulaConverter pConverter) {
+    BooleanFormula conditionFormula =
+        (BooleanFormula)
+            convertTerm(
+                pSvLibGeneralSymbolApplicationTerm.getTerms().getFirst(), ssa, fmgr, pConverter);
+    Formula thenFormula =
+        convertTerm(pSvLibGeneralSymbolApplicationTerm.getTerms().get(1), ssa, fmgr, pConverter);
+    Formula elseFormula =
+        convertTerm(pSvLibGeneralSymbolApplicationTerm.getTerms().get(2), ssa, fmgr, pConverter);
+
+    BooleanFormulaManagerView bmgr = fmgr.getBooleanFormulaManager();
+    return bmgr.ifThenElse(conditionFormula, thenFormula, elseFormula);
   }
 
   private static @NonNull Formula convertIntegerApplication(
