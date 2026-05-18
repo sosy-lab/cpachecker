@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
@@ -49,6 +50,7 @@ public class DssObserverWorker extends DssWorker implements Statistics {
   private final DssConnection connection;
   private final StatusObserver statusObserver;
   private boolean shutdown;
+  private long receivedResult;
   private Optional<Result> result;
   private Optional<String> errorMessage;
 
@@ -79,6 +81,7 @@ public class DssObserverWorker extends DssWorker implements Statistics {
       case RESULT -> {
         result = Optional.of(pMessage.getResult());
         statusObserver.updateStatus(pMessage);
+        receivedResult = System.currentTimeMillis();
       }
       case VIOLATION_CONDITION, POST_CONDITION -> statusObserver.updateStatus(pMessage);
       case EXCEPTION -> {
@@ -86,11 +89,31 @@ public class DssObserverWorker extends DssWorker implements Statistics {
         shutdown = true;
       }
       case STATISTIC -> {
-        stats.put(pMessage.getSenderId(), pMessage.getStats());
-        shutdown = stats.size() == numberOfBlocks;
+        if (pMessage.getSenderId().equals(getId())) {
+          shutdown = true;
+        } else {
+          stats.put(pMessage.getSenderId(), pMessage.getStats());
+          shutdown = stats.size() == numberOfBlocks;
+        }
       }
     }
     return ImmutableList.of();
+  }
+
+  @Override
+  public DssMessage nextMessage() throws InterruptedException {
+    if (receivedResult > 0) {
+      while (true) {
+        if (System.currentTimeMillis() - receivedResult >= 5000) {
+          return getMessageFactory().createDssStatisticsMessage(getId(), ImmutableMap.of());
+        }
+        if (getConnection().hasPendingMessages()) {
+          return getConnection().read();
+        }
+        Thread.sleep(100);
+      }
+    }
+    return super.nextMessage();
   }
 
   public StatusAndResult observe() throws CPAException {

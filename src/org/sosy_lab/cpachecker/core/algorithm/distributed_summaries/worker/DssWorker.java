@@ -85,6 +85,10 @@ public abstract class DssWorker implements DssActor {
     }
   }
 
+  protected DssMessageFactory getMessageFactory() {
+    return messageFactory;
+  }
+
   @Override
   public final String getId() {
     return id;
