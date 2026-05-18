@@ -122,7 +122,7 @@ class CToSvLibInitializer {
 
       ImmutableList.Builder<CFunctionCallExpression> undeclaredFunctionsCollector =
           ImmutableList.builder();
-      Set<SvLibParsingVariableDeclaration> createdHeapModels = new HashSet<>();
+      Set<SvLibParsingVariableDeclaration> createdHeapArrays = new HashSet<>();
       Set<String> namesOfCreatedAddressVariables = new HashSet<>();
       Set<SvLibType> typesOfCreatedDummyReturnVariables = new HashSet<>();
       for (CFAEdge edge : getAllRelevantEdges(entryNode)) {
@@ -136,7 +136,7 @@ class CToSvLibInitializer {
                     procedureName,
                     pCommandsCollector,
                     localParametersCollector,
-                    createdHeapModels,
+                    createdHeapArrays,
                     namesOfCreatedAddressVariables);
 
             SvLibType type = convertToSvLibSmtLibType(variableDeclaration.getType());
@@ -199,22 +199,10 @@ class CToSvLibInitializer {
         }
       }
 
-      Set<SvLibProcedureDeclaration> proceduresCreatedForUndeclaredFunctions = new HashSet<>();
-      for (CFunctionCallExpression functionCallExpression : undeclaredFunctionsCollector.build()) {
-        String functionName = functionCallExpression.getFunctionNameExpression().toASTString();
-        CType expressionType = functionCallExpression.getExpressionType();
-
-        SvLibProcedureDefinitionCommand procedureDefinitionCommand =
-            createProcedureDefinitionForUndeclaredFunction(functionName, expressionType);
-
-        // check to avoid duplicate procedures if undeclared function is called multiple times
-        if (!proceduresCreatedForUndeclaredFunctions.contains(
-            procedureDefinitionCommand.getProcedureDeclaration())) {
-          scope.addProcedureDeclaration(procedureDefinitionCommand.getProcedureDeclaration());
-          pCommandsCollector.add(procedureDefinitionCommand);
-          proceduresCreatedForUndeclaredFunctions.add(
-              procedureDefinitionCommand.getProcedureDeclaration());
-        }
+      ImmutableList<CFunctionCallExpression> undeclaredFunctions =
+          undeclaredFunctionsCollector.build();
+      if (!undeclaredFunctions.isEmpty()) {
+        initializeUndeclaredFunctions(undeclaredFunctions, pCommandsCollector);
       }
 
       SvLibProcedureDeclaration procedureDeclaration =
@@ -476,6 +464,28 @@ class CToSvLibInitializer {
 
     return new SvLibProcedureDefinitionCommand(
         FileLocation.DUMMY, procedureDeclaration, procedureBody);
+  }
+
+  private void initializeUndeclaredFunctions(
+      ImmutableList<CFunctionCallExpression> pUndeclaredFunctions,
+      ImmutableList.Builder<SvLibCommand> pCommandsCollector) {
+    Set<SvLibProcedureDeclaration> proceduresCreatedForUndeclaredFunctions = new HashSet<>();
+    for (CFunctionCallExpression functionCallExpression : pUndeclaredFunctions) {
+      String functionName = functionCallExpression.getFunctionNameExpression().toASTString();
+      CType expressionType = functionCallExpression.getExpressionType();
+
+      SvLibProcedureDefinitionCommand procedureDefinitionCommand =
+          createProcedureDefinitionForUndeclaredFunction(functionName, expressionType);
+
+      // check to avoid duplicate procedures if undeclared function is called multiple times
+      if (!proceduresCreatedForUndeclaredFunctions.contains(
+          procedureDefinitionCommand.getProcedureDeclaration())) {
+        scope.addProcedureDeclaration(procedureDefinitionCommand.getProcedureDeclaration());
+        pCommandsCollector.add(procedureDefinitionCommand);
+        proceduresCreatedForUndeclaredFunctions.add(
+            procedureDefinitionCommand.getProcedureDeclaration());
+      }
+    }
   }
 
   private SvLibProcedureDefinitionCommand createProcedureDefinitionForUndeclaredFunction(
