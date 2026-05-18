@@ -1,0 +1,16 @@
+(set-logic ALL)
+(set-info :format-version 1.0)
+(declare-var global Int)
+(define-procs-rec
+ (main() ((__retval__ Int)) ((x Int)))
+ ((! (sequence
+   (assign (__retval__ 0))
+   (! (label N1):tag N1) (goto N4)
+   (! (label N4):tag N4) (assign (global 5)) (goto N5)
+   (! (label N5):tag N5) (goto N6)
+   (! (label N6):tag N6) (goto N2)
+   (! (label N2):tag N2) (assign (x global)) (goto N3)
+   (! (label N3):tag N3) (goto N0)
+   (! (label N0):tag N0) (return)
+   ):tag main)))
+(verify-call main ())

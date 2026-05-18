@@ -1,0 +1,44 @@
+; This file is part of the SV-Benchmarks collection of verification tasks:
+; https://github.com/sosy-lab/sv-benchmarks
+;
+; SPDX-FileCopyrightText: 2025 The SV-Benchmarks Community
+;
+; SPDX-License-Identifier: Apache-2.0
+
+(set-logic QF_NIA)
+
+(set-option :produce-witnesses true)
+
+(set-info :format-version "1.0")
+
+(declare-var SIZE Int)
+
+(define-proc
+  main
+  ()
+  ((result Int))
+  ((n Int) (i Int) (j Int) (nondet_int$1 Int))
+  (!
+    (sequence
+      (assign (SIZE 50000001))
+      (havoc n)
+      (if (not (<= n SIZE)) (sequence (assign (result 0)) (return)))
+      (assign (i 0))
+      (assign (j 0))
+      (!
+        (while
+          (< i n)
+          (if (not (= nondet_int$1 0)) (assign (i (+ i 6))) (assign (i (+ i 3)))))
+        :tag
+        main-while-1)
+      (! (sequence) :tag main-check-1)
+      (assign (result 0))
+      (return))
+    :tag
+    main))
+
+(annotate-tag main-check-1 :check-true (= (mod i 3) 0))
+
+(verify-call main ())
+
+(get-witness)
