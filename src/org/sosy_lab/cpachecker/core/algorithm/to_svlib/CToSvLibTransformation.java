@@ -28,6 +28,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibTheoryDeclarations;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
@@ -60,6 +62,8 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibProcedureCal
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibReturnStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibSequenceStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
@@ -361,18 +365,22 @@ class CToSvLibTransformation {
       storePtsForFunctionCall(pStatementEdge, pEdgeToPointerTargetSet);
       CIdExpression leftHandSide =
           (CIdExpression) functionCallAssignmentStatement.getLeftHandSide();
-      return new SvLibProcedureCallStatement(
-          FileLocation.DUMMY,
-          ImmutableList.of(),
-          ImmutableList.of(),
+      SvLibProcedureDeclaration calledProcedure =
           scope.getProcedureDeclaration(
               functionCallAssignmentStatement
                   .getRightHandSide()
                   .getFunctionNameExpression()
-                  .toASTString()),
+                  .toASTString());
+
+      return new SvLibProcedureCallStatement(
+          FileLocation.DUMMY,
+          ImmutableList.of(),
+          ImmutableList.of(),
+          calledProcedure,
           transformInputParameters(
               functionCallAssignmentStatement.getRightHandSide().getParameterExpressions(),
               pStatementEdge,
+              calledProcedure,
               pEdgeToPointerTargetSet),
           ImmutableList.of(
               scope.getVariableForQualifiedName(leftHandSide.getDeclaration().getQualifiedName())));
@@ -416,6 +424,7 @@ class CToSvLibTransformation {
           transformInputParameters(
               functionCallStatement.getFunctionCallExpression().getParameterExpressions(),
               pStatementEdge,
+              calledProcedure,
               pEdgeToPointerTargetSet),
           returnVariableDummies.build());
     }
@@ -432,15 +441,19 @@ class CToSvLibTransformation {
     if (functionCall instanceof CFunctionCallAssignmentStatement assignment) {
       storePtsForFunctionCall(pCallEdge, pEdgeToPointerTargetSet);
       CIdExpression lhs = (CIdExpression) assignment.getLeftHandSide();
+      SvLibProcedureDeclaration calledProcedure =
+          scope.getProcedureDeclaration(
+              assignment.getRightHandSide().getFunctionNameExpression().toASTString());
+
       return new SvLibProcedureCallStatement(
           FileLocation.DUMMY,
           ImmutableList.of(),
           ImmutableList.of(),
-          scope.getProcedureDeclaration(
-              assignment.getRightHandSide().getFunctionNameExpression().toASTString()),
+          calledProcedure,
           transformInputParameters(
               assignment.getRightHandSide().getParameterExpressions(),
               pCallEdge,
+              calledProcedure,
               pEdgeToPointerTargetSet),
           ImmutableList.of(
               scope.getVariableForQualifiedName(lhs.getDeclaration().getQualifiedName())));
@@ -469,6 +482,7 @@ class CToSvLibTransformation {
           transformInputParameters(
               callStatement.getFunctionCallExpression().getParameterExpressions(),
               pCallEdge,
+              calledProcedure,
               pEdgeToPointerTargetSet),
           returnVariableDummies.build());
 
@@ -483,10 +497,12 @@ class CToSvLibTransformation {
   private ImmutableList<SvLibTerm> transformInputParameters(
       ImmutableList<CExpression> pCParameters,
       CFAEdge pCallEdge,
+      SvLibProcedureDeclaration pProcedureDeclaration,
       ImmutableMap.Builder<CFAEdge, PointerTargetSet> pEdgeToPointerTargetSet)
       throws CPATransferException, InterruptedException {
     ImmutableList.Builder<SvLibTerm> callInputParameterCollector = ImmutableList.builder();
-    for (CExpression inputParameter : pCParameters) {
+    for (int i = 0; i < pCParameters.size(); i++) {
+      CExpression inputParameter = pCParameters.get(i);
       CAssumeEdge ghostEdge =
           new CAssumeEdge(
               inputParameter.toASTString(),
@@ -494,14 +510,82 @@ class CToSvLibTransformation {
               pCallEdge.getPredecessor(),
               pCallEdge.getSuccessor(),
               inputParameter,
-              false);
-      SvLibTerm transformedDummy = transformToSvLibTerm(ghostEdge, pEdgeToPointerTargetSet, true);
-      SvLibSymbolApplicationTerm outerTerm = (SvLibSymbolApplicationTerm) transformedDummy;
-      SvLibTerm innerTerm = outerTerm.getTerms().getFirst();
+              true);
+      SvLibTerm term = transformToSvLibTerm(ghostEdge, pEdgeToPointerTargetSet, true);
 
-      callInputParameterCollector.add(innerTerm);
+      if (inputParameter instanceof CIdExpression
+          && term instanceof SvLibSymbolApplicationTerm symbolApplicationTerm
+          && symbolApplicationTerm.getSymbol().getName().equals("not")
+          && symbolApplicationTerm.getTerms().size() == 1
+          && symbolApplicationTerm.getTerms().getFirst()
+              instanceof SvLibSymbolApplicationTerm innerTerm
+          && innerTerm.getSymbol().getName().equals("=")) {
+
+        term = innerTerm.getTerms().getFirst();
+      } else if (inputParameter instanceof CLiteralExpression
+          && term instanceof SvLibSymbolApplicationTerm symbolApplicationTerm
+          && symbolApplicationTerm.getSymbol().getName().equals("not")
+          && symbolApplicationTerm.getTerms().size() == 1
+          && symbolApplicationTerm.getTerms().getFirst()
+              instanceof SvLibSymbolApplicationTerm innerTerm
+          && innerTerm.getSymbol().getName().equals("=")) {
+
+        term = innerTerm.getTerms().getFirst();
+      } else {
+        SvLibType argumentType = term.getExpressionType();
+        SvLibType parameterType = pProcedureDeclaration.getParameters().get(i).getType();
+        if (!argumentType.equals(parameterType)) {
+          if (argumentType.equals(SvLibSmtLibPredefinedType.BOOL)
+              && parameterType.equals(SvLibSmtLibPredefinedType.INT)) {
+
+            SvLibSymbolApplicationTerm ghostTerm =
+                createIntegerTermsViaGhostEdge(
+                    pCallEdge, inputParameter.getExpressionType(), pEdgeToPointerTargetSet);
+            SvLibTerm oneTerm = ghostTerm.getTerms().getFirst();
+            SvLibTerm zeroTerm = ghostTerm.getTerms().get(1);
+
+            term =
+                new SvLibSymbolApplicationTerm(
+                    new SvLibIdTerm(
+                        SmtLibTheoryDeclarations.ite(parameterType), FileLocation.DUMMY),
+                    ImmutableList.of(term, oneTerm, zeroTerm),
+                    FileLocation.DUMMY);
+          } else {
+            throw new IllegalArgumentException(
+                "Cannot convert mismatched types! Type of argument "
+                    + argumentType
+                    + " does not match type "
+                    + parameterType
+                    + " expected by the declaration of the procedure "
+                    + pProcedureDeclaration.getProcedureName());
+          }
+        }
+      }
+      callInputParameterCollector.add(term);
     }
     return callInputParameterCollector.build();
+  }
+
+  private SvLibSymbolApplicationTerm createIntegerTermsViaGhostEdge(
+      CFAEdge pEdge,
+      CType pCType,
+      ImmutableMap.Builder<CFAEdge, PointerTargetSet> pEdgeToPointerTargetSet)
+      throws CPATransferException, InterruptedException {
+    CAssumeEdge ghostEdge =
+        new CAssumeEdge(
+            "1",
+            FileLocation.DUMMY,
+            pEdge.getPredecessor(),
+            pEdge.getSuccessor(),
+            new CIntegerLiteralExpression(FileLocation.DUMMY, pCType, BigInteger.ONE),
+            false);
+    SvLibTerm ghostTerm = transformToSvLibTerm(ghostEdge, pEdgeToPointerTargetSet, true);
+    if (ghostTerm instanceof SvLibSymbolApplicationTerm symbolApplicationTerm
+        && symbolApplicationTerm.getTerms().size() == 2) {
+      return symbolApplicationTerm;
+    }
+    throw new UnsupportedOperationException(
+        "Failed to generate integer constant terms via ghost edge.");
   }
 
   private Optional<SvLibStatement> handleAssignment(CFAEdge pEdge, SvLibTerm pTransformedTerm) {
