@@ -447,16 +447,30 @@ class CToSvLibTransformation {
 
     } else if (functionCall instanceof CFunctionCallStatement callStatement) {
       storePtsForFunctionCall(pCallEdge, pEdgeToPointerTargetSet);
+
+      SvLibProcedureDeclaration calledProcedure =
+          scope.getProcedureDeclaration(pCallEdge.getFunctionEntry().getFunctionName());
+
+      ImmutableList.Builder<SvLibSimpleParsingDeclaration> returnVariableDummies =
+          ImmutableList.builder();
+      for (SvLibParsingParameterDeclaration parsingParameterDeclaration :
+          calledProcedure.getReturnValues()) {
+        SvLibType returnType = parsingParameterDeclaration.getType();
+        SvLibSimpleParsingDeclaration returnDummyVariable =
+            scope.getVariable("transformationDummyReturn_" + returnType);
+        returnVariableDummies.add(returnDummyVariable);
+      }
+
       return new SvLibProcedureCallStatement(
           FileLocation.DUMMY,
           ImmutableList.of(),
           ImmutableList.of(),
-          scope.getProcedureDeclaration(pCallEdge.getFunctionEntry().getFunctionName()),
+          calledProcedure,
           transformInputParameters(
               callStatement.getFunctionCallExpression().getParameterExpressions(),
               pCallEdge,
               pEdgeToPointerTargetSet),
-          ImmutableList.of());
+          returnVariableDummies.build());
 
     } else {
       throw new UnsupportedOperationException(
