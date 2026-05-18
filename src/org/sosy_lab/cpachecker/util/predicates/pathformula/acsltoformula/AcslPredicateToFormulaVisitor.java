@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
@@ -47,10 +47,12 @@ public class AcslPredicateToFormulaVisitor
   private final BooleanFormulaManagerView bfmgr;
   private final AcslTermToFormulaVisitor termVisitor;
   private final SSAMapBuilder currentSsa;
-  private final MachineModel machineModel =
-      null; // ToDO is there a way around this or do I need to pass this into the
+
+  // ToDO This is a dummy, is there a way around this or do I need to pass the machine model into
+  // the
   // constructor, too?
-  private final @Nullable SSAMap
+  private final MachineModel machineModel = MachineModel.LINUX64;
+  private final Optional<SSAMap>
       functionEntrySsa; // Optional SSA map for function-entry state (\old)
 
   public AcslPredicateToFormulaVisitor(
@@ -63,7 +65,7 @@ public class AcslPredicateToFormulaVisitor
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.termVisitor = new AcslTermToFormulaVisitor(pFmgr, pCurrentSsa, pCtoFormulaConverter);
     this.currentSsa = pCurrentSsa;
-    this.functionEntrySsa = null;
+    this.functionEntrySsa = Optional.empty();
   }
 
   public AcslPredicateToFormulaVisitor(
@@ -78,21 +80,22 @@ public class AcslPredicateToFormulaVisitor
     this.termVisitor =
         new AcslTermToFormulaVisitor(pFmgr, pCurrentSsa, pFunctionEntrySsa, pCtoFormulaConverter);
     this.currentSsa = pCurrentSsa;
-    this.functionEntrySsa = pFunctionEntrySsa;
+    this.functionEntrySsa = Optional.ofNullable(pFunctionEntrySsa);
   }
 
+  // Constructor that should only be called by AcslTermToFormulaVisitor
   protected AcslPredicateToFormulaVisitor(
       FormulaManagerView pFmgr,
       AcslTermToFormulaVisitor pTermVisitor,
       SSAMapBuilder pCurrentSsa,
-      SSAMap pFunctionEntrySsa) {
+      Optional<SSAMap> oFunctionEntrySsa) {
     checkNotNull(pFmgr);
     checkNotNull(pTermVisitor);
     this.fmgr = pFmgr;
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.termVisitor = pTermVisitor;
     this.currentSsa = pCurrentSsa;
-    this.functionEntrySsa = pFunctionEntrySsa;
+    this.functionEntrySsa = oFunctionEntrySsa;
   }
 
   @Override
@@ -148,7 +151,7 @@ public class AcslPredicateToFormulaVisitor
 
   @Override
   public BooleanFormula visit(AcslOldPredicate pAcslOldPredicate) throws NoException {
-    if (functionEntrySsa == null) {
+    if (functionEntrySsa.isEmpty()) {
       throw new UnsupportedOperationException(
           "\\old is not available without a SSA map at function entry");
     }
