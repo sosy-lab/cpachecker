@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibProcedureCal
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibReturnStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibSequenceStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
@@ -291,14 +292,6 @@ class CToSvLibTransformation {
     }
   }
 
-  private @NonNull SvLibTerm transformToSvLibTerm(CFAEdge pEdge)
-      throws CPATransferException, InterruptedException {
-    PathFormula edgeFormula = pathFormulaManager.makeEmptyPathFormula();
-    edgeFormula = pathFormulaManager.makeAnd(edgeFormula, pEdge);
-
-    return formulaManager.visit(edgeFormula.getFormula(), formulaToSvLibVisitor);
-  }
-
   private @NonNull SvLibTerm transformToSvLibTerm(
       CFAEdge pEdge, ImmutableMap.Builder<CFAEdge, PointerTargetSet> pEdgeToPointerTargetSet)
       throws CPATransferException, InterruptedException {
@@ -363,8 +356,6 @@ class CToSvLibTransformation {
       CStatementEdge pStatementEdge,
       ImmutableMap.Builder<CFAEdge, PointerTargetSet> pEdgeToPointerTargetSet)
       throws CPATransferException, InterruptedException {
-    // handle calls to other extern functions,
-    //  i.e. every function call which does not have corresponding a functionEntryNode
     if (pStatementEdge.getStatement()
         instanceof CFunctionCallAssignmentStatement functionCallAssignmentStatement) {
       storePtsForFunctionCall(pStatementEdge, pEdgeToPointerTargetSet);
@@ -407,20 +398,26 @@ class CToSvLibTransformation {
             ImmutableList.of());
       }
 
+      ImmutableList.Builder<SvLibSimpleParsingDeclaration> returnVariableDummies =
+          ImmutableList.builder();
+      for (SvLibParsingParameterDeclaration parsingParameterDeclaration :
+          calledProcedure.getReturnValues()) {
+        SvLibType returnType = parsingParameterDeclaration.getType();
+        SvLibSimpleParsingDeclaration returnDummyVariable =
+            scope.getVariable("transformationDummyReturn_" + returnType);
+        returnVariableDummies.add(returnDummyVariable);
+      }
+
       return new SvLibProcedureCallStatement(
           FileLocation.DUMMY,
           ImmutableList.of(),
           ImmutableList.of(),
-          scope.getProcedureDeclaration(
-              functionCallStatement
-                  .getFunctionCallExpression()
-                  .getFunctionNameExpression()
-                  .toASTString()),
+          calledProcedure,
           transformInputParameters(
               functionCallStatement.getFunctionCallExpression().getParameterExpressions(),
               pStatementEdge,
               pEdgeToPointerTargetSet),
-          ImmutableList.of());
+          returnVariableDummies.build());
     }
     throw new UnsupportedOperationException(
         "Failed to transform call to extern C function to SvLib based on Edge " + pStatementEdge);
@@ -513,7 +510,7 @@ class CToSvLibTransformation {
               || idTerm.getDeclaration() instanceof SvLibParameterDeclaration)) {
 
         SvLibAssignmentStatement assignmentStatement =
-            transformTermToAssignmentStatement(
+            createAssignmentStatement(
                 idTerm, termToAssign, pEdge.getPredecessor().getFunctionName());
 
         return Optional.of(assignmentStatement);
@@ -534,7 +531,7 @@ class CToSvLibTransformation {
               || idTerm.getDeclaration() instanceof SvLibParameterDeclaration)) {
 
         SvLibAssignmentStatement assignmentStatement =
-            transformTermToAssignmentStatement(
+            createAssignmentStatement(
                 idTerm, assignedTerm, pEdge.getPredecessor().getFunctionName());
         SvLibAssumeStatement assumeStatement =
             new SvLibAssumeStatement(
@@ -593,7 +590,7 @@ class CToSvLibTransformation {
           && (idTerm.getDeclaration() instanceof SvLibVariableDeclaration
               || idTerm.getDeclaration() instanceof SvLibParameterDeclaration)) {
         statementsCollector.add(
-            transformTermToAssignmentStatement(
+            createAssignmentStatement(
                 idTerm, symbolApplicationTerm.getTerms().get(1), pFunctionName));
       }
     }
@@ -608,7 +605,7 @@ class CToSvLibTransformation {
     return statementsCollector.build();
   }
 
-  private SvLibAssignmentStatement transformTermToAssignmentStatement(
+  private SvLibAssignmentStatement createAssignmentStatement(
       SvLibIdTerm pIdTerm, SvLibTerm pAssignedTerm, String pFunctionName) {
     SvLibSimpleParsingDeclaration assignedToAsDeclaration =
         new SvLibParsingParameterDeclaration(
