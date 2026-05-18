@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTermVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -45,7 +46,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
-@SuppressWarnings("unused")
 public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoException> {
 
   private final FormulaManagerView fmgr;
@@ -54,37 +54,45 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
   private final Optional<SSAMap>
       functionEntrySsa; // Optional SSA map for function-entry state (\old)
   private CtoFormulaConverter ctoFormulaConverter;
+  private MachineModel machineModel;
 
   public AcslTermToFormulaVisitor(
       FormulaManagerView pFmgr,
       SSAMapBuilder pCurrentSsa,
-      CtoFormulaConverter pCtoFormulaConverter) {
+      CtoFormulaConverter pCtoFormulaConverter,
+      MachineModel pMachineModel) {
     checkNotNull(pFmgr);
     checkNotNull(pCurrentSsa);
+    checkNotNull(pMachineModel);
     this.fmgr = pFmgr;
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.currentSsa = pCurrentSsa;
     this.functionEntrySsa = Optional.empty();
     this.ctoFormulaConverter = pCtoFormulaConverter;
+    this.machineModel = pMachineModel;
   }
 
   public AcslTermToFormulaVisitor(
       FormulaManagerView pFmgr,
       SSAMapBuilder pCurrentSsa,
       SSAMap pFunctionEntrySsa,
-      CtoFormulaConverter pCtoFormulaConverter) {
+      CtoFormulaConverter pCtoFormulaConverter,
+      MachineModel pMachineModel) {
     checkNotNull(pFmgr);
     checkNotNull(pCurrentSsa);
+    checkNotNull(pMachineModel);
     this.fmgr = pFmgr;
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.currentSsa = pCurrentSsa;
     this.functionEntrySsa = Optional.ofNullable(pFunctionEntrySsa);
     this.ctoFormulaConverter = pCtoFormulaConverter;
+    this.machineModel = pMachineModel;
   }
 
   @Override
   public Formula visit(AcslUnaryTerm pAcslUnaryTerm) throws NoException {
-    return null;
+    // TODO implementation definitely needed
+    throw new UnsupportedOperationException("Not yet implemented");
   }
 
   @Override
@@ -92,7 +100,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     // return ctoFormulaConverter.makeAnd(PathFormula.createManually(bfmgr.makeTrue(),
     // SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet(), 0), TODO create edge here,
     // ErrorConditions.dummyInstance(fmgr.getBooleanFormulaManager()));
-    return null;
+    throw new UnsupportedOperationException("Not yet implemented");
   }
 
   @Override
@@ -117,7 +125,8 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
   @Override
   public Formula visit(AcslBinaryTerm pAcslBinaryTerm) throws NoException {
-    return null;
+    // TODO implementation definitely needed
+    throw new UnsupportedOperationException("Not yet implemented");
   }
 
   @Override
@@ -138,23 +147,23 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
     // TODO: implementation
 
-    return null;
+    throw new UnsupportedOperationException("Not yet implemented");
   }
 
   @Override
   public Formula visit(AcslResultTerm pAcslResultTerm) throws NoException {
-    return null;
+    throw new UnsupportedOperationException("Not yet implemented");
   }
 
   @Override
   public Formula visit(AcslAtTerm pAcslAtTerm) throws NoException {
-    return null;
+    throw new UnsupportedOperationException("Not yet implemented");
   }
 
   @Override
   public Formula visit(AcslTernaryTerm pAcslTernaryTerm) throws NoException {
     AcslPredicateToFormulaVisitor predicateVisitor =
-        new AcslPredicateToFormulaVisitor(fmgr, this, currentSsa, functionEntrySsa);
+        new AcslPredicateToFormulaVisitor(fmgr, this, currentSsa, functionEntrySsa, machineModel);
     BooleanFormula conditionFormula = pAcslTernaryTerm.getCondition().accept(predicateVisitor);
     Formula ifTrueFormula = pAcslTernaryTerm.getResultIfTrue().accept(this);
     Formula ifFalseFormula = pAcslTernaryTerm.getResultIfFalse().accept(this);
@@ -171,12 +180,12 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
   @Override
   public Formula visit(AcslFunctionCallTerm pAcslFunctionCallTerm) throws NoException {
-    return null;
+    throw new UnsupportedOperationException("Not yet implemented");
   }
 
   @Override
   public Formula visit(AcslArraySubscriptTerm pAcslArraySubscriptTerm) throws NoException {
-    return null;
+    throw new UnsupportedOperationException("Not yet implemented");
   }
 
   /**
@@ -206,7 +215,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
   }
 
   private FormulaType<?> getFormulaType(AcslType acslType) {
-    // TODO implement mapping
+    // TODO implement  more of the mapping
     return switch (acslType) {
       case AcslCType cType -> ctoFormulaConverter.getFormulaTypeFromType(cType.getType());
       case AcslFunctionType funcType ->
