@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAtTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
@@ -51,7 +51,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final SSAMapBuilder currentSsa;
-  private final @Nullable SSAMap
+  private final Optional<SSAMap>
       functionEntrySsa; // Optional SSA map for function-entry state (\old)
   private CtoFormulaConverter ctoFormulaConverter;
 
@@ -64,7 +64,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     this.fmgr = pFmgr;
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.currentSsa = pCurrentSsa;
-    this.functionEntrySsa = null;
+    this.functionEntrySsa = Optional.empty();
     this.ctoFormulaConverter = pCtoFormulaConverter;
   }
 
@@ -78,7 +78,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     this.fmgr = pFmgr;
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.currentSsa = pCurrentSsa;
-    this.functionEntrySsa = pFunctionEntrySsa;
+    this.functionEntrySsa = Optional.ofNullable(pFunctionEntrySsa);
     this.ctoFormulaConverter = pCtoFormulaConverter;
   }
 
@@ -131,7 +131,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
   @Override
   public Formula visit(AcslOldTerm pAcslOldTerm) throws NoException {
-    if (functionEntrySsa == null) {
+    if (functionEntrySsa.isEmpty()) {
       throw new UnsupportedOperationException(
           "\\old is not available without a SSA map at function entry");
     }
