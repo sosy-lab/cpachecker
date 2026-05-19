@@ -70,7 +70,7 @@ public class SvLibCfaCreatorTest {
   @Test
   public void testSimpleGlobalVar() throws Exception {
     Path inputFilePath = Path.of(examplesPathCfaToSvLibLocal(), "simple-global-var.svlib");
-    testFileInput(inputFilePath);
+    testStringInput(inputFilePath);
   }
 
   @Test

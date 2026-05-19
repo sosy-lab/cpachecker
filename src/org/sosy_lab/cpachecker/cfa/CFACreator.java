@@ -523,7 +523,15 @@ public class CFACreator {
     stats.totalTime.start();
     try {
       ParseResult parseResult = parseToCFAs(program);
-      FunctionEntryNode mainFunction = parseResult.functions().get(mainFunctionName);
+
+      // TODO: Generalize this such that it matches the way the `parseFileAndCreateCFA`
+      //    finds out the main function, which is a lot more involved than this here.
+      FunctionEntryNode mainFunction =
+          switch (language) {
+            case JAVA, C -> parseResult.functions().get(mainFunctionName);
+            case SVLIB -> getSvLibMainFunction(parseResult.functions());
+            default -> throw new AssertionError();
+          };
       assert mainFunction != null : "program lacks main function.";
 
       return createCFA(parseResult, mainFunction);
