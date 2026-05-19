@@ -666,6 +666,18 @@ abstract class AbstractBMCAlgorithm
           reportConfirmedNonTermination(reachedSet, candidate);
           return false;
         }
+        Optional<CandidateInvariant> refinement =
+            kInductionProver.getLastNonTerminationRefinement();
+        if (refinement.isPresent()) {
+          candidateGenerator.confirmCandidates(Collections.singleton(candidate));
+          if (candidateGenerator.suggestCandidates(
+              Collections.singleton(refinement.orElseThrow()))) {
+            logger.log(
+                Level.INFO,
+                "Non-termination mode: step case found counterexample,"
+                    + " refining candidate for next iteration.");
+          }
+        }
         sound = false;
         continue;
       }

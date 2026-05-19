@@ -143,6 +143,8 @@ class KInductionProver implements AutoCloseable {
 
   private final boolean requireSatisfiablePredecessor;
 
+  private Optional<CandidateInvariant> lastNonTerminationRefinement = Optional.empty();
+
   /** Creates an instance of the KInductionProver. */
   public KInductionProver(
       CFA pCFA,
@@ -316,6 +318,7 @@ class KInductionProver implements AutoCloseable {
       Optional<NonTerminationLoopScope> pLoopScope)
       throws CPAException, InterruptedException, SolverException {
 
+    lastNonTerminationRefinement = Optional.empty();
     stats.inductionPreparation.start();
 
     logger.log(Level.INFO, "Running algorithm to create non-termination closure check");
@@ -395,7 +398,13 @@ class KInductionProver implements AutoCloseable {
       pushes++;
       prover.push(loopHeadInv);
       pushes++;
-      return prover.isUnsat();
+      if (prover.isUnsat()) {
+        return true;
+      }
+      List<ValueAssignment> model = prover.getModelAssignments();
+      lastNonTerminationRefinement =
+          buildNonTerminationRefinement(pCandidateInvariant, model, inductionHypothesis);
+      return false;
     } finally {
       while (pushes > 0) {
         prover.pop();
@@ -403,6 +412,64 @@ class KInductionProver implements AutoCloseable {
       }
       stats.inductionCheck.stop();
     }
+  }
+
+  public Optional<CandidateInvariant> getLastNonTerminationRefinement() {
+    return lastNonTerminationRefinement;
+  }
+
+  private Optional<CandidateInvariant> buildNonTerminationRefinement(
+      CandidateInvariant pOriginal,
+      List<ValueAssignment> pModel,
+      Set<AbstractState> pInductionHypothesis) {
+    Map<CFANode, List<BooleanFormula>> bestEqualitiesByLoopHead = new LinkedHashMap<>();
+    for (AbstractState state : pInductionHypothesis) {
+      CFANode loc = AbstractStates.extractLocation(state);
+      if (loc == null) {
+        continue;
+      }
+      PredicateAbstractState pas =
+          AbstractStates.extractStateByType(state, PredicateAbstractState.class);
+      if (pas == null) {
+        continue;
+      }
+      SSAMap ssaMap = pas.getPathFormula().getSsa();
+      List<BooleanFormula> equalities = new ArrayList<>();
+      for (ValueAssignment va : pModel) {
+        if (va.isFunction()) {
+          continue;
+        }
+        Pair<String, OptionalInt> parsed = FormulaManagerView.parseName(va.getName());
+        String varName = parsed.getFirst();
+        OptionalInt idx = parsed.getSecond();
+        if (idx.isPresent()
+            && ssaMap.containsVariable(varName)
+            && ssaMap.getIndex(varName) == idx.orElseThrow()
+            && va.getValue() instanceof Number) {
+          equalities.add(va.getAssignmentAsFormula());
+        }
+      }
+      if (!equalities.isEmpty()) {
+        List<BooleanFormula> existing = bestEqualitiesByLoopHead.get(loc);
+        if (existing == null || equalities.size() > existing.size()) {
+          bestEqualitiesByLoopHead.put(loc, equalities);
+        }
+      }
+    }
+    if (bestEqualitiesByLoopHead.isEmpty()) {
+      return Optional.empty();
+    }
+    List<CandidateInvariant> blockingComponents = new ArrayList<>();
+    for (Map.Entry<CFANode, List<BooleanFormula>> entry : bestEqualitiesByLoopHead.entrySet()) {
+      CFANode loopHead = entry.getKey();
+      BooleanFormula blockingClause = bfmgr.not(fmgr.uninstantiate(bfmgr.and(entry.getValue())));
+      blockingComponents.add(
+          SingleLocationFormulaInvariant.makeLocationInvariant(loopHead, blockingClause, fmgr));
+    }
+    List<CandidateInvariant> allParts = new ArrayList<>();
+    Iterables.addAll(allParts, CandidateInvariantCombination.getConjunctiveParts(pOriginal));
+    allParts.addAll(blockingComponents);
+    return Optional.of(CandidateInvariantCombination.conjunction(allParts));
   }
 
   /**
