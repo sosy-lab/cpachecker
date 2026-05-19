@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer.DistributedFunctionPointerCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.location.DistributedLocationCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DistributedPredicateCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.symbolic_execution.DistributedSymbolicExecutionCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value.DistributedValueAnalysisCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -47,6 +48,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.symbolicExecution.SymbolicExecutionCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
@@ -208,6 +210,8 @@ public class DssFactory {
           distribute(
               valueAnalysisCPA, pCFA, pConfiguration, pLogManager, pShutdownNotifier, pBlockNode);
       case ControlAutomatonCPA ignored -> null;
+      case SymbolicExecutionCPA symbolicExecutionCPA ->
+          distribute(symbolicExecutionCPA, pCFA, pBlockNode);
       default ->
           throw new IllegalArgumentException(
               "Unsupported CPA type for distribution: " + pCPA.getClass().getCanonicalName());
@@ -262,6 +266,11 @@ public class DssFactory {
       throws InvalidConfigurationException {
     return new DistributedValueAnalysisCPA(
         pValueCPA, pCFA, pConfiguration, pLogManager, pShutdownNotifier, pBlockNode);
+  }
+
+  private static DistributedConfigurableProgramAnalysis distribute(
+      SymbolicExecutionCPA pSymbolicCPA, CFA pCFA, BlockNode pBlockNode) {
+    return new DistributedSymbolicExecutionCPA(pSymbolicCPA, pCFA, pBlockNode);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
