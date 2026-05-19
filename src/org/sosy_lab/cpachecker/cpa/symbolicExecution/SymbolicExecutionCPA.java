@@ -47,6 +47,10 @@ public class SymbolicExecutionCPA implements ConfigurableProgramAnalysis {
   private final ValueAnalysisCPA valueAnalysisCPA;
   private final ConstraintsCPA constraintsCPA;
 
+  public ConstraintsCPA getConstraintsCPA() {
+    return constraintsCPA;
+  }
+
   @FileOption(Type.REQUIRED_INPUT_FILE)
   @Option(description = "Where to find the symbolic execution config without cegar.")
   private Path symbolicExecutionProperties = Path.of("config/symbolicExecution-NoCegar.properties");
