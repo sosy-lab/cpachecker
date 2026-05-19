@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.value.type;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
@@ -20,10 +21,25 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 
-/** Stores a numeric value that can be tracked by the ValueAnalysisCPA. */
+/** Stores a numeric value that can be tracked by the ValueAnalysisCPA, SMG CPA etc. */
 public record NumericValue(Number number) implements Value {
 
   @Serial private static final long serialVersionUID = -3829943575180448170L;
+
+  /**
+   * @param number any integer {@link Number} type, or one of the following floating-point types:
+   *     {@link Rational}, {@link FloatValue}, {@link Double}, {@link Float}.
+   */
+  public NumericValue {
+    checkArgument(
+        number instanceof FloatValue
+            || number instanceof Float
+            || number instanceof Double
+            || number instanceof Rational
+            || hasIntegerType(),
+        "Number types need to be either (any) integer type (e.g. Integer, Long, BigInteger etc.),"
+            + " or one of the following types: FloatValue, Float, Double, Rational");
+  }
 
   /** Returns the number stored in the container. */
   public Number getNumber() {
