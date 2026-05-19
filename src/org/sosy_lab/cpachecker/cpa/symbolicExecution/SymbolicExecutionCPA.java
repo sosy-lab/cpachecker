@@ -62,7 +62,10 @@ public class SymbolicExecutionCPA implements ConfigurableProgramAnalysis {
     try {
       ConfigurableProgramAnalysis cpa =
           new CoreComponentsFactory(
-                  Configuration.builder().loadFromFile(symbolicExecutionProperties).build(),
+                  Configuration.builder()
+                      .loadFromFile(symbolicExecutionProperties)
+                      .copyFrom(pConfiguration)
+                      .build(),
                   pLogManager,
                   pShutdownNotifier,
                   AggregatedReachedSets.empty(),
