@@ -140,7 +140,7 @@ class CToSvLibPropertyEncoder {
       if (command instanceof SvLibProcedureDefinitionCommand procedureDefinitionCommand) {
         SvLibProcedureDeclaration procedureDeclaration =
             procedureDefinitionCommand.getProcedureDeclaration();
-        if (procedureDeclaration.getProcedureName().startsWith(pProcedureName)) {
+        if (procedureDeclaration.getProcedureName().equals(pProcedureName)) {
           SvLibAnnotateTagCommand annotateTagCommandProcedureCall =
               createFalseAnnotateTagCommand(
                   procedureDefinitionCommand.getBody().getTagReferences().getFirst());
@@ -161,7 +161,7 @@ class CToSvLibPropertyEncoder {
           SvLibProcedureDeclaration procedureDeclaration = procedureDefinition.procedureDeclaration;
           SvLibStatement procedureBody = procedureDefinition.body;
 
-          if (procedureDeclaration.getProcedureName().startsWith(pProcedureName)) {
+          if (procedureDeclaration.getProcedureName().equals(pProcedureName)) {
             SvLibAnnotateTagCommand annotateTagCommandProcedureCall =
                 createFalseAnnotateTagCommand(procedureBody.getTagReferences().getFirst());
             pCommandsCollector.add(annotateTagCommandProcedureCall);
