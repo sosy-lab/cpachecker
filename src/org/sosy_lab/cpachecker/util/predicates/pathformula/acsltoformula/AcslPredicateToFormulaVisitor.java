@@ -45,6 +45,7 @@ public class AcslPredicateToFormulaVisitor
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final AcslTermToFormulaVisitor termVisitor;
+  private final CtoFormulaConverter ctoFormulaConverter;
 
   @SuppressWarnings("unused") // I suspect currentSsa will be needed at some point
   private final SSAMapBuilder currentSsa;
@@ -66,6 +67,7 @@ public class AcslPredicateToFormulaVisitor
     this.termVisitor =
         new AcslTermToFormulaVisitor(pFmgr, pCurrentSsa, pCtoFormulaConverter, pMachineModel);
     this.currentSsa = pCurrentSsa;
+    this.ctoFormulaConverter = pCtoFormulaConverter;
     this.functionEntrySsa = Optional.empty();
     this.machineModel = pMachineModel;
   }
@@ -85,6 +87,7 @@ public class AcslPredicateToFormulaVisitor
         new AcslTermToFormulaVisitor(
             pFmgr, pCurrentSsa, pFunctionEntrySsa, pCtoFormulaConverter, pMachineModel);
     this.currentSsa = pCurrentSsa;
+    this.ctoFormulaConverter = pCtoFormulaConverter;
     this.functionEntrySsa = Optional.ofNullable(pFunctionEntrySsa);
     this.machineModel = pMachineModel;
   }
@@ -96,6 +99,7 @@ public class AcslPredicateToFormulaVisitor
       AcslTermToFormulaVisitor pTermVisitor,
       SSAMapBuilder pCurrentSsa,
       Optional<SSAMap> oFunctionEntrySsa,
+      CtoFormulaConverter pCtoFormulaConverter,
       MachineModel pMachineModel) {
     checkNotNull(pFmgr);
     checkNotNull(pTermVisitor);
@@ -104,6 +108,7 @@ public class AcslPredicateToFormulaVisitor
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.termVisitor = pTermVisitor;
     this.currentSsa = pCurrentSsa;
+    this.ctoFormulaConverter = pCtoFormulaConverter;
     this.functionEntrySsa = oFunctionEntrySsa;
     this.machineModel = pMachineModel;
   }
@@ -166,8 +171,15 @@ public class AcslPredicateToFormulaVisitor
           "\\old is not available without a SSA map at function entry");
     }
 
-    // TODO: implementation
-    throw new UnsupportedOperationException("Not yet implemented");
+    AcslPredicateToFormulaVisitor oldVisitor =
+        new AcslPredicateToFormulaVisitor(
+            fmgr,
+            functionEntrySsa.get().builder(),
+            functionEntrySsa.get(),
+            ctoFormulaConverter,
+            machineModel);
+
+    return pAcslOldPredicate.getExpression().accept(oldVisitor);
   }
 
   @Override
