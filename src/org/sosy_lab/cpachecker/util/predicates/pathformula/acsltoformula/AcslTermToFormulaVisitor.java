@@ -145,9 +145,15 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
           "\\old is not available without a SSA map at function entry");
     }
 
-    // TODO: implementation
+    AcslTermToFormulaVisitor oldVisitor =
+        new AcslTermToFormulaVisitor(
+            fmgr,
+            functionEntrySsa.get().builder(),
+            functionEntrySsa.get(),
+            ctoFormulaConverter,
+            machineModel);
 
-    throw new UnsupportedOperationException("Not yet implemented");
+    return pAcslOldTerm.getTerm().accept(oldVisitor);
   }
 
   @Override
@@ -163,7 +169,8 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
   @Override
   public Formula visit(AcslTernaryTerm pAcslTernaryTerm) throws NoException {
     AcslPredicateToFormulaVisitor predicateVisitor =
-        new AcslPredicateToFormulaVisitor(fmgr, this, currentSsa, functionEntrySsa, machineModel);
+        new AcslPredicateToFormulaVisitor(
+            fmgr, this, currentSsa, functionEntrySsa, ctoFormulaConverter, machineModel);
     BooleanFormula conditionFormula = pAcslTernaryTerm.getCondition().accept(predicateVisitor);
     Formula ifTrueFormula = pAcslTernaryTerm.getResultIfTrue().accept(this);
     Formula ifFalseFormula = pAcslTernaryTerm.getResultIfFalse().accept(this);
