@@ -79,9 +79,9 @@ public final class SvLibProcedureCallStatement extends SvLibStatement {
       SvLibProcedureDeclaration pProcedureDeclaration) {
     checkArgument(
         pReturnVariables.size() == pProcedureDeclaration.getReturnValues().size(),
-        "Number of return parameters of procedure call to procedure "
-            + pProcedureDeclaration.getProcedureName()
-            + " does not match number of return parameters of the procedure declaration!");
+        "Number of return parameters of procedure call to procedure %s does not"
+            + " match number of return parameters of the procedure declaration!",
+        pProcedureDeclaration.getProcedureName());
     for (int i = 0; i < pReturnVariables.size(); i++) {
       SvLibSimpleParsingDeclaration returnVariableDeclaration = pReturnVariables.get(i);
       SvLibParsingParameterDeclaration returnParameterDeclaration =
