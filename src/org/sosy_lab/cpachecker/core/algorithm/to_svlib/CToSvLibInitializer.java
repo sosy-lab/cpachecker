@@ -557,7 +557,7 @@ class CToSvLibInitializer {
       SvLibProcedureDeclaration pProcedureDeclaration) {
     String procedureName = pProcedureDeclaration.getProcedureName();
 
-    if (procedureName.startsWith("abort") || procedureName.startsWith("exit")) {
+    if (procedureName.equals("abort") || procedureName.equals("exit")) {
       return new SvLibAssumeStatement(
           FileLocation.DUMMY,
           new SvLibBooleanConstantTerm(false, FileLocation.DUMMY),
