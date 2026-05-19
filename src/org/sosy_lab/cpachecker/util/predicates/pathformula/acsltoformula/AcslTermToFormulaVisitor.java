@@ -168,13 +168,6 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     Formula ifTrueFormula = pAcslTernaryTerm.getResultIfTrue().accept(this);
     Formula ifFalseFormula = pAcslTernaryTerm.getResultIfFalse().accept(this);
 
-    if (bfmgr.isTrue(conditionFormula)) {
-      return ifTrueFormula;
-    }
-    if (bfmgr.isFalse(conditionFormula)) {
-      return ifFalseFormula;
-    }
-
     return bfmgr.ifThenElse(conditionFormula, ifTrueFormula, ifFalseFormula);
   }
 
