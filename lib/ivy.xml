@@ -181,12 +181,19 @@ SPDX-License-Identifier: Apache-2.0
           <!-- OptiMathSAT causes segfaults: https://github.com/sosy-lab/java-smt/issues/132 -->
           <exclude org="org.sosy_lab" module="javasmt-solver-optimathsat"/>
           <exclude org="org.sosy_lab" module="javasmt-solver-mathsat"/>
+          <exclude org="org.sosy_lab" module="javasmt-solver-z3"/>
         </dependency>
         <!-- MathSAT5 beyond 5.6.11 requires system dependencies equivalent of Ubuntu 24.04/Debian 13 or greater.
              We use version 5.6.11 as an intermediate step to give users and our systems some time to upgrade
              before switching to newer MathSAT5 versions.
         -->
         <dependency org="org.sosy_lab" name="javasmt-solver-mathsat" rev="5.6.11" conf="runtime->solver-mathsat" />
+
+        <!-- Z3 beyond 4.15.8 requires system dependencies equivalent of Ubuntu 24.04/Debian 13 or greater.
+             We use version 4.15.8 as an intermediate step to give users and our systems some time to upgrade
+             before switching to newer Z3 versions.
+        -->
+        <dependency org="org.sosy_lab" name="javasmt-solver-z3" rev="4.15.8" conf="runtime->solver-z3" />
 
 
         <!-- YAML parser -->
