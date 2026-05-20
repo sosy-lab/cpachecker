@@ -571,21 +571,15 @@ class CToSvLibInitializer {
         throw new UnsupportedOperationException(
             "Transformation of programs that include extern function __VERIFIER_nondet_memory() is"
                 + " not supported.");
-      } else if (procedureName.startsWith("__VERIFIER_nondet_")
-          || procedureName.startsWith("nondet_")) {
-        if (!pProcedureDeclaration.getReturnValues().isEmpty()) {
-          // TODO assume statement to conform to C type
-          return new SvLibHavocStatement(
-              FileLocation.DUMMY,
-              ImmutableList.of(),
-              ImmutableList.of(new SvLibTagReference(procedureName, FileLocation.DUMMY)),
-              castListToSimpleParsingDeclaration(pProcedureDeclaration.getReturnValues()));
-        } /*else {
-            throw new UnsupportedOperationException(
-                "Failed to create procedure for "
-                    + procedureName
-                    + " because the return parameter is empty.");
-          }*/
+      } else if ((procedureName.startsWith("__VERIFIER_nondet_")
+              || procedureName.startsWith("nondet_"))
+          && !pProcedureDeclaration.getReturnValues().isEmpty()) {
+        // TODO assume statement to conform to C type
+        return new SvLibHavocStatement(
+            FileLocation.DUMMY,
+            ImmutableList.of(),
+            ImmutableList.of(new SvLibTagReference(procedureName, FileLocation.DUMMY)),
+            castListToSimpleParsingDeclaration(pProcedureDeclaration.getReturnValues()));
       }
     }
 
