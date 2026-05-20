@@ -257,27 +257,21 @@ class CToSvLibTransformation {
           pCreatedStatements.put(pEdge.getPredecessor(), externCallStatement);
         } else {
           SvLibTerm transformedTerm = transformToSvLibTerm(pEdge, pEdgeToPointerTargetSet);
-          Optional<SvLibStatement> assignmentStatement = handleAssignment(pEdge, transformedTerm);
-          if (assignmentStatement.isPresent()) {
-            pCreatedStatements.put(pEdge.getPredecessor(), assignmentStatement.orElseThrow());
-          }
+          SvLibStatement assignmentStatement = handleAssignment(pEdge, transformedTerm);
+          pCreatedStatements.put(pEdge.getPredecessor(), assignmentStatement);
         }
         pCreatedStatements.put(pEdge.getPredecessor(), createGotoStatement(pEdge.getSuccessor()));
       }
       case DeclarationEdge -> {
         SvLibTerm transformedTerm = transformToSvLibTerm(pEdge, pEdgeToPointerTargetSet);
-        Optional<SvLibStatement> assignmentStatement = handleAssignment(pEdge, transformedTerm);
-        if (assignmentStatement.isPresent()) {
-          pCreatedStatements.put(pEdge.getPredecessor(), assignmentStatement.orElseThrow());
-        }
+        SvLibStatement assignmentStatement = handleAssignment(pEdge, transformedTerm);
+        pCreatedStatements.put(pEdge.getPredecessor(), assignmentStatement);
         pCreatedStatements.put(pEdge.getPredecessor(), createGotoStatement(pEdge.getSuccessor()));
       }
       case ReturnStatementEdge -> {
         SvLibTerm transformedTerm = transformToSvLibTerm(pEdge, pEdgeToPointerTargetSet);
-        Optional<SvLibStatement> assignmentStatement = handleAssignment(pEdge, transformedTerm);
-        if (assignmentStatement.isPresent()) {
-          pCreatedStatements.put(pEdge.getPredecessor(), assignmentStatement.orElseThrow());
-        }
+        SvLibStatement assignmentStatement = handleAssignment(pEdge, transformedTerm);
+        pCreatedStatements.put(pEdge.getPredecessor(), assignmentStatement);
         SvLibReturnStatement returnStatement =
             new SvLibReturnStatement(FileLocation.DUMMY, ImmutableList.of(), ImmutableList.of());
         pCreatedStatements.put(pEdge.getPredecessor(), returnStatement);
@@ -588,13 +582,15 @@ class CToSvLibTransformation {
         "Failed to generate integer constant terms via ghost edge.");
   }
 
-  private Optional<SvLibStatement> handleAssignment(CFAEdge pEdge, SvLibTerm pTransformedTerm) {
+  private SvLibStatement handleAssignment(CFAEdge pEdge, SvLibTerm pTransformedTerm) {
     // For some edges without assignment, such as a declarationEdge for int x;, the
     // pTransformedTerm is a SvLibBooleanConstantTerm with the value true, and no
     // SvLibAssignmentStatement should be returned.
     if (pTransformedTerm instanceof SvLibBooleanConstantTerm booleanConstant
         && booleanConstant.getValue()) {
-      return Optional.empty();
+      return new SvLibSequenceStatement(
+          ImmutableList.of(), FileLocation.DUMMY, ImmutableList.of(), ImmutableList.of());
+
     } else if (pTransformedTerm instanceof SvLibSymbolApplicationTerm symbolApplicationTerm
         && symbolApplicationTerm.getSymbol().getName().equals("=")
         && symbolApplicationTerm.getTerms().size() == 2) {
@@ -606,12 +602,8 @@ class CToSvLibTransformation {
       if (assignedTo instanceof SvLibIdTerm idTerm
           && (idTerm.getDeclaration() instanceof SvLibVariableDeclaration
               || idTerm.getDeclaration() instanceof SvLibParameterDeclaration)) {
-
-        SvLibAssignmentStatement assignmentStatement =
-            createAssignmentStatement(
-                idTerm, termToAssign, pEdge.getPredecessor().getFunctionName());
-
-        return Optional.of(assignmentStatement);
+        return createAssignmentStatement(
+            idTerm, termToAssign, pEdge.getPredecessor().getFunctionName());
       }
     } else if (pTransformedTerm instanceof SvLibSymbolApplicationTerm outerTerm
         && outerTerm.getSymbol().getName().equals("and")
@@ -635,12 +627,11 @@ class CToSvLibTransformation {
             new SvLibAssumeStatement(
                 FileLocation.DUMMY, assumeTerm, ImmutableList.of(), ImmutableList.of());
 
-        return Optional.of(
-            new SvLibSequenceStatement(
-                ImmutableList.of(assignmentStatement, assumeStatement),
-                FileLocation.DUMMY,
-                ImmutableList.of(),
-                ImmutableList.of()));
+        return new SvLibSequenceStatement(
+            ImmutableList.of(assignmentStatement, assumeStatement),
+            FileLocation.DUMMY,
+            ImmutableList.of(),
+            ImmutableList.of());
       }
     } else if (pTransformedTerm instanceof SvLibSymbolApplicationTerm outerTerm
         && outerTerm.getSymbol().getName().equals("and")
@@ -652,17 +643,14 @@ class CToSvLibTransformation {
       ImmutableList<SvLibStatement> statements =
           handleAssignmentForNestedTerm(
               outerTerm, innerTerm, pEdge.getPredecessor().getFunctionName());
-      return Optional.of(
-          new SvLibSequenceStatement(
-              statements, FileLocation.DUMMY, ImmutableList.of(), ImmutableList.of()));
+      return new SvLibSequenceStatement(
+          statements, FileLocation.DUMMY, ImmutableList.of(), ImmutableList.of());
 
     } else if (pTransformedTerm instanceof SvLibSymbolApplicationTerm term
         && term.getSymbol().getName().equals("and")
         && term.getTerms().size() == 3) {
-
-      return Optional.of(
-          new SvLibAssumeStatement(
-              FileLocation.DUMMY, term, ImmutableList.of(), ImmutableList.of()));
+      return new SvLibAssumeStatement(
+          FileLocation.DUMMY, term, ImmutableList.of(), ImmutableList.of());
     }
     throw new UnsupportedOperationException(
         "Failed to handle assignment for edge "
