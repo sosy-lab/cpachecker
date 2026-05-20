@@ -133,6 +133,8 @@ import org.sosy_lab.java_smt.api.SolverException;
 abstract class AbstractBMCAlgorithm
     implements StatisticsProvider, ConditionAdjustmentEventSubscriber {
 
+  private static final int MAX_NON_TERMINATION_REFINEMENTS_PER_ROOT = 1;
+
   protected static boolean isStopState(AbstractState state) {
     AssumptionStorageState assumptionState =
         AbstractStates.extractStateByType(state, AssumptionStorageState.class);
@@ -256,6 +258,8 @@ abstract class AbstractBMCAlgorithm
 
   private final Map<CandidateInvariant, CandidateInvariant> nonTerminationRefinementRoots =
       new HashMap<>();
+
+  private final Map<CandidateInvariant, Integer> nonTerminationRefinementCounts = new HashMap<>();
 
   private final Set<CandidateInvariant> suggestedNonTerminationRefinements = new HashSet<>();
 
@@ -437,6 +441,7 @@ abstract class AbstractBMCAlgorithm
       nonTerminationConfirmed = false;
       nonTerminationRefinementK.clear();
       nonTerminationRefinementRoots.clear();
+      nonTerminationRefinementCounts.clear();
       suggestedNonTerminationRefinements.clear();
       CFANode initialLocation = extractLocation(reachedSet.getFirstState());
       invariantGenerator.start(initialLocation);
@@ -785,7 +790,12 @@ abstract class AbstractBMCAlgorithm
     if (nonTerminationRefinementK.getOrDefault(rootCandidate, Integer.MIN_VALUE) == pK) {
       return false;
     }
+    int refinementCount = nonTerminationRefinementCounts.getOrDefault(rootCandidate, 0);
+    if (refinementCount >= MAX_NON_TERMINATION_REFINEMENTS_PER_ROOT) {
+      return false;
+    }
     nonTerminationRefinementK.put(rootCandidate, pK);
+    nonTerminationRefinementCounts.put(rootCandidate, refinementCount + 1);
     nonTerminationRefinementRoots.put(pRefinement, rootCandidate);
     return suggestedNonTerminationRefinements.add(pRefinement);
   }

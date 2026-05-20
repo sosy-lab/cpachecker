@@ -404,11 +404,8 @@ class KInductionProver implements AutoCloseable {
         return true;
       }
       List<ValueAssignment> model = prover.getModelAssignments();
-      prover.pop();
-      pushes--;
       lastNonTerminationRefinement =
-          buildNonTerminationRefinement(
-              pCandidateInvariant, model, inductionHypothesis, successorViolation);
+          buildNonTerminationRefinement(pCandidateInvariant, model, inductionHypothesis);
       return false;
     } finally {
       while (pushes > 0) {
@@ -426,9 +423,8 @@ class KInductionProver implements AutoCloseable {
   private Optional<CandidateInvariant> buildNonTerminationRefinement(
       CandidateInvariant pOriginal,
       List<ValueAssignment> pModel,
-      Set<AbstractState> pInductionHypothesis,
-      BooleanFormula pSuccessorViolation)
-      throws CPATransferException, InterruptedException, SolverException {
+      Set<AbstractState> pInductionHypothesis)
+      throws CPATransferException, InterruptedException {
     Map<CFANode, List<BooleanFormula>> bestEqualitiesByLoopHead = new LinkedHashMap<>();
     for (AbstractState state : pInductionHypothesis) {
       CFANode loc = AbstractStates.extractLocation(state);
@@ -467,7 +463,6 @@ class KInductionProver implements AutoCloseable {
         }
       }
       if (!equalities.isEmpty()) {
-        equalities = minimizeNonTerminationRefinementCube(equalities, pSuccessorViolation);
         List<BooleanFormula> existing = bestEqualitiesByLoopHead.get(loc);
         if (existing == null || equalities.size() < existing.size()) {
           bestEqualitiesByLoopHead.put(loc, equalities);
@@ -511,40 +506,6 @@ class KInductionProver implements AutoCloseable {
       }
     }
     return relevantVariables;
-  }
-
-  private List<BooleanFormula> minimizeNonTerminationRefinementCube(
-      List<BooleanFormula> pEqualities, BooleanFormula pSuccessorViolation)
-      throws SolverException, InterruptedException {
-    List<BooleanFormula> minimized = new ArrayList<>(pEqualities);
-    int index = 0;
-    while (index < minimized.size()) {
-      if (minimized.size() <= 1) {
-        break;
-      }
-      List<BooleanFormula> trial = new ArrayList<>(minimized);
-      trial.remove(index);
-      boolean stillForcesViolation;
-      int pushes = 0;
-      try {
-        prover.push(bfmgr.and(trial));
-        pushes++;
-        prover.push(bfmgr.not(pSuccessorViolation));
-        pushes++;
-        stillForcesViolation = prover.isUnsat();
-      } finally {
-        while (pushes > 0) {
-          prover.pop();
-          pushes--;
-        }
-      }
-      if (stillForcesViolation) {
-        minimized = trial;
-      } else {
-        index++;
-      }
-    }
-    return minimized;
   }
 
   /**
