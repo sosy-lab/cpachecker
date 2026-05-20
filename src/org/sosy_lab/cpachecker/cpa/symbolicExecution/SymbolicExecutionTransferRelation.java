@@ -162,19 +162,22 @@ public class SymbolicExecutionTransferRelation extends SingleEdgeTransferRelatio
     if (newCS.isEmpty()) return null;
     Preconditions.checkArgument(newCS.size() == 1);
 
+    ValueAnalysisState newVS =
+        new ValueAnalysisState(pStateToStrengthen.valueAnalysisState().getMachineModel());
+    for (Entry<MemoryLocation, ValueAndType> entry :
+        pStateToStrengthen.valueAnalysisState().getConstants()) {
+      newVS.assignConstant(entry.getKey(), entry.getValue().getValue(), entry.getValue().getType());
+    }
+
     for (Entry<MemoryLocation, ValueAndType> entry :
         newViolation.valueAnalysisState().getConstants()) {
       if (!pStateToStrengthen.valueAnalysisState().contains(entry.getKey())) {
-        pStateToStrengthen
-            .valueAnalysisState()
-            .assignConstant(
-                entry.getKey(), entry.getValue().getValue(), entry.getValue().getType());
+        newVS.assignConstant(
+            entry.getKey(), entry.getValue().getValue(), entry.getValue().getType());
       }
     }
 
     // return new SE
-    return new SymbolicExecutionState(
-        pStateToStrengthen.valueAnalysisState(),
-        (ConstraintsState) Iterables.getOnlyElement(newCS));
+    return new SymbolicExecutionState(newVS, (ConstraintsState) Iterables.getOnlyElement(newCS));
   }
 }
