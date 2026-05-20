@@ -252,6 +252,13 @@ abstract class AbstractBMCAlgorithm
 
   private boolean nonTerminationConfirmed = false;
 
+  private final Map<CandidateInvariant, Integer> nonTerminationRefinementK = new HashMap<>();
+
+  private final Map<CandidateInvariant, CandidateInvariant> nonTerminationRefinementRoots =
+      new HashMap<>();
+
+  private final Set<CandidateInvariant> suggestedNonTerminationRefinements = new HashSet<>();
+
   private final List<ConditionAdjustmentEventSubscriber> conditionAdjustmentEventSubscribers =
       new CopyOnWriteArrayList<>();
 
@@ -428,6 +435,9 @@ abstract class AbstractBMCAlgorithm
     stats.bmcPreparation.start();
     try {
       nonTerminationConfirmed = false;
+      nonTerminationRefinementK.clear();
+      nonTerminationRefinementRoots.clear();
+      suggestedNonTerminationRefinements.clear();
       CFANode initialLocation = extractLocation(reachedSet.getFirstState());
       invariantGenerator.start(initialLocation);
 
@@ -669,9 +679,10 @@ abstract class AbstractBMCAlgorithm
         Optional<CandidateInvariant> refinement =
             kInductionProver.getLastNonTerminationRefinement();
         if (refinement.isPresent()) {
-          candidateGenerator.confirmCandidates(Collections.singleton(candidate));
-          if (candidateGenerator.suggestCandidates(
-              Collections.singleton(refinement.orElseThrow()))) {
+          CandidateInvariant refinedCandidate = refinement.orElseThrow();
+          if (shouldSuggestNonTerminationRefinement(candidate, refinedCandidate, k)
+              && candidateGenerator.suggestCandidates(Collections.singleton(refinedCandidate))) {
+            registerNonTerminationRefinement(candidate, refinedCandidate);
             logger.log(
                 Level.INFO,
                 "Non-termination mode: step case found counterexample,"
@@ -764,6 +775,21 @@ abstract class AbstractBMCAlgorithm
     return sound;
   }
 
+  private boolean shouldSuggestNonTerminationRefinement(
+      CandidateInvariant pBaseCandidate, CandidateInvariant pRefinement, int pK) {
+    if (pBaseCandidate.equals(pRefinement)) {
+      return false;
+    }
+    CandidateInvariant rootCandidate =
+        nonTerminationRefinementRoots.getOrDefault(pBaseCandidate, pBaseCandidate);
+    if (nonTerminationRefinementK.getOrDefault(rootCandidate, Integer.MIN_VALUE) == pK) {
+      return false;
+    }
+    nonTerminationRefinementK.put(rootCandidate, pK);
+    nonTerminationRefinementRoots.put(pRefinement, rootCandidate);
+    return suggestedNonTerminationRefinements.add(pRefinement);
+  }
+
   /**
    * Gets all keys of loop-iteration reporting states that were reached by unrolling.
    *
@@ -820,6 +846,12 @@ abstract class AbstractBMCAlgorithm
       CandidateInvariant pCandidateInvariant) {
     checkNotNull(pCandidateInvariant);
     return Optional.empty();
+  }
+
+  protected void registerNonTerminationRefinement(
+      CandidateInvariant pBaseCandidate, CandidateInvariant pRefinement) {
+    checkNotNull(pBaseCandidate);
+    checkNotNull(pRefinement);
   }
 
   protected Iterable<CandidateInvariant> getAdditionalCandidatesAfterSuccessfulBaseCase(

@@ -614,6 +614,15 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return Optional.ofNullable(nonTerminationLoopScopes.get(pCandidateInvariant));
   }
 
+  @Override
+  protected void registerNonTerminationRefinement(
+      CandidateInvariant pBaseCandidate, CandidateInvariant pRefinement) {
+    NonTerminationLoopScope loopScope = nonTerminationLoopScopes.get(pBaseCandidate);
+    if (loopScope != null) {
+      nonTerminationLoopScopes.put(pRefinement, loopScope);
+    }
+  }
+
   private ImmutableSet<CandidateInvariant> createModelEqualityStrengthenings(
       ReachedSet pReachedSet,
       CandidateInvariant pCandidateInvariant,

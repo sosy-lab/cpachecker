@@ -102,6 +102,8 @@ import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
  */
 class KInductionProver implements AutoCloseable {
 
+  private static final int MAX_NON_TERMINATION_REFINEMENT_LITERALS = 8;
+
   private final CFA cfa;
 
   private final LogManager logger;
@@ -394,16 +396,19 @@ class KInductionProver implements AutoCloseable {
             "The non-termination closure predecessor is unsatisfiable; refusing vacuous proof.");
         return false;
       }
-      prover.push(successorViolation);
-      pushes++;
       prover.push(loopHeadInv);
+      pushes++;
+      prover.push(successorViolation);
       pushes++;
       if (prover.isUnsat()) {
         return true;
       }
       List<ValueAssignment> model = prover.getModelAssignments();
+      prover.pop();
+      pushes--;
       lastNonTerminationRefinement =
-          buildNonTerminationRefinement(pCandidateInvariant, model, inductionHypothesis);
+          buildNonTerminationRefinement(
+              pCandidateInvariant, model, inductionHypothesis, successorViolation);
       return false;
     } finally {
       while (pushes > 0) {
@@ -421,7 +426,9 @@ class KInductionProver implements AutoCloseable {
   private Optional<CandidateInvariant> buildNonTerminationRefinement(
       CandidateInvariant pOriginal,
       List<ValueAssignment> pModel,
-      Set<AbstractState> pInductionHypothesis) {
+      Set<AbstractState> pInductionHypothesis,
+      BooleanFormula pSuccessorViolation)
+      throws CPATransferException, InterruptedException, SolverException {
     Map<CFANode, List<BooleanFormula>> bestEqualitiesByLoopHead = new LinkedHashMap<>();
     for (AbstractState state : pInductionHypothesis) {
       CFANode loc = AbstractStates.extractLocation(state);
@@ -433,8 +440,15 @@ class KInductionProver implements AutoCloseable {
       if (pas == null) {
         continue;
       }
-      SSAMap ssaMap = pas.getPathFormula().getSsa();
+      PathFormula pathFormula = pas.getPathFormula();
+      Set<String> relevantVariables =
+          getRelevantNonTerminationRefinementVariables(pOriginal, state);
+      if (relevantVariables.isEmpty()) {
+        continue;
+      }
+      SSAMap ssaMap = pathFormula.getSsa().withDefault(1);
       List<BooleanFormula> equalities = new ArrayList<>();
+      Set<String> seenVariables = new HashSet<>();
       for (ValueAssignment va : pModel) {
         if (va.isFunction()) {
           continue;
@@ -443,15 +457,19 @@ class KInductionProver implements AutoCloseable {
         String varName = parsed.getFirst();
         OptionalInt idx = parsed.getSecond();
         if (idx.isPresent()
-            && ssaMap.containsVariable(varName)
+            && relevantVariables.contains(varName)
             && ssaMap.getIndex(varName) == idx.orElseThrow()
-            && va.getValue() instanceof Number) {
+            && seenVariables.add(varName)) {
           equalities.add(va.getAssignmentAsFormula());
+          if (equalities.size() >= MAX_NON_TERMINATION_REFINEMENT_LITERALS) {
+            break;
+          }
         }
       }
       if (!equalities.isEmpty()) {
+        equalities = minimizeNonTerminationRefinementCube(equalities, pSuccessorViolation);
         List<BooleanFormula> existing = bestEqualitiesByLoopHead.get(loc);
-        if (existing == null || equalities.size() > existing.size()) {
+        if (existing == null || equalities.size() < existing.size()) {
           bestEqualitiesByLoopHead.put(loc, equalities);
         }
       }
@@ -470,6 +488,63 @@ class KInductionProver implements AutoCloseable {
     Iterables.addAll(allParts, CandidateInvariantCombination.getConjunctiveParts(pOriginal));
     allParts.addAll(blockingComponents);
     return Optional.of(CandidateInvariantCombination.conjunction(allParts));
+  }
+
+  private Set<String> getRelevantNonTerminationRefinementVariables(
+      CandidateInvariant pCandidateInvariant, AbstractState pState)
+      throws CPATransferException, InterruptedException {
+    Set<AbstractState> stateAsSet = Collections.singleton(pState);
+    PredicateAbstractState pas =
+        AbstractStates.extractStateByType(pState, PredicateAbstractState.class);
+    if (pas == null) {
+      return ImmutableSet.of();
+    }
+    Set<String> relevantVariables = new HashSet<>();
+    for (CandidateInvariant component :
+        CandidateInvariantCombination.getConjunctiveParts(pCandidateInvariant)) {
+      if (Iterables.isEmpty(component.filterApplicable(stateAsSet))) {
+        continue;
+      }
+      BooleanFormula componentFormula = component.getFormula(fmgr, pfmgr, pas.getPathFormula());
+      for (String variableName : fmgr.extractVariableNames(componentFormula)) {
+        relevantVariables.add(FormulaManagerView.parseName(variableName).getFirst());
+      }
+    }
+    return relevantVariables;
+  }
+
+  private List<BooleanFormula> minimizeNonTerminationRefinementCube(
+      List<BooleanFormula> pEqualities, BooleanFormula pSuccessorViolation)
+      throws SolverException, InterruptedException {
+    List<BooleanFormula> minimized = new ArrayList<>(pEqualities);
+    int index = 0;
+    while (index < minimized.size()) {
+      if (minimized.size() <= 1) {
+        break;
+      }
+      List<BooleanFormula> trial = new ArrayList<>(minimized);
+      trial.remove(index);
+      boolean stillForcesViolation;
+      int pushes = 0;
+      try {
+        prover.push(bfmgr.and(trial));
+        pushes++;
+        prover.push(bfmgr.not(pSuccessorViolation));
+        pushes++;
+        stillForcesViolation = prover.isUnsat();
+      } finally {
+        while (pushes > 0) {
+          prover.pop();
+          pushes--;
+        }
+      }
+      if (stillForcesViolation) {
+        minimized = trial;
+      } else {
+        index++;
+      }
+    }
+    return minimized;
   }
 
   /**
