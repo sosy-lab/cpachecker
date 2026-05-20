@@ -405,7 +405,8 @@ class KInductionProver implements AutoCloseable {
       }
       List<ValueAssignment> model = prover.getModelAssignments();
       lastNonTerminationRefinement =
-          buildNonTerminationRefinement(pCandidateInvariant, model, inductionHypothesis);
+          buildValidatedNonTerminationRefinement(
+              pCandidateInvariant, model, inductionHypothesis, successorViolation);
       return false;
     } finally {
       while (pushes > 0) {
@@ -420,7 +421,109 @@ class KInductionProver implements AutoCloseable {
     return lastNonTerminationRefinement;
   }
 
-  private Optional<CandidateInvariant> buildNonTerminationRefinement(
+  /**
+   * Build a non-termination refinement from the step-case counterexample, applying two
+   * soundness/utility checks before accepting it:
+   *
+   * <ul>
+   *   <li><b>Fix 3 (cex classification):</b> Pin the predecessor to the cex values and ask whether
+   *       any path from there has all successors satisfying the original candidate. If unsat, the
+   *       cex represents real termination (every continuation violates C), so we must not refine.
+   *   <li><b>Fix 1 (post-refinement non-vacuity):</b> Build the refined candidate's violation
+   *       formula and check it is still satisfiable under the existing path/predecessor context. If
+   *       unsat, the refinement only collapses the violation to false without removing any real
+   *       successor, so its closure would be vacuous.
+   * </ul>
+   *
+   * Prover stack on entry: {successorExists, predecessor, loopHeadInv, successorViolation}. This
+   * method temporarily pops and re-pushes successorViolation so the caller's stack accounting
+   * remains correct.
+   */
+  private Optional<CandidateInvariant> buildValidatedNonTerminationRefinement(
+      CandidateInvariant pOriginal,
+      List<ValueAssignment> pModel,
+      Set<AbstractState> pInductionHypothesis,
+      BooleanFormula pSuccessorViolation)
+      throws CPATransferException, InterruptedException, SolverException {
+    Map<CFANode, List<BooleanFormula>> equalitiesByLoopHead =
+        extractBestRefinementEqualitiesByLoopHead(pOriginal, pModel, pInductionHypothesis);
+    if (equalitiesByLoopHead.isEmpty()) {
+      return Optional.empty();
+    }
+
+    // Free the stack slot held by the original successorViolation so we can run our SAT
+    // checks against a clean violation/continuation formula.
+    prover.pop();
+    try {
+      // Fix 3: classify the cex. If pinning predecessor to the model values still admits some
+      // path where no successor violates C, the cex picks one of several branches and refining
+      // is meaningful. Otherwise every continuation leaves C (real termination signal).
+      List<BooleanFormula> cexEqualities = new ArrayList<>();
+      for (List<BooleanFormula> eqs : equalitiesByLoopHead.values()) {
+        cexEqualities.addAll(eqs);
+      }
+      if (!cexEqualities.isEmpty()) {
+        BooleanFormula cexPredAssertion = bfmgr.and(cexEqualities);
+        prover.push(cexPredAssertion);
+        try {
+          prover.push(bfmgr.not(pSuccessorViolation));
+          try {
+            if (prover.isUnsat()) {
+              logger.log(
+                  Level.FINER,
+                  "Non-termination cex has no continuation in C; refusing termination-masking"
+                      + " refinement.");
+              return Optional.empty();
+            }
+          } finally {
+            prover.pop();
+          }
+        } finally {
+          prover.pop();
+        }
+      }
+
+      // Build the tentative refined candidate.
+      Optional<CandidateInvariant> tentative =
+          buildRefinementFromEqualities(pOriginal, equalitiesByLoopHead);
+      if (tentative.isEmpty()) {
+        return Optional.empty();
+      }
+
+      // Fix 1: ensure the refined candidate's violation formula is not vacuously false.
+      CandidateInvariant refined = tentative.orElseThrow();
+      Multimap<BooleanFormula, BooleanFormula> refinedViolationAssertions =
+          getNonTerminationClosureViolationAssertions(refined, pInductionHypothesis);
+      if (refinedViolationAssertions.isEmpty()) {
+        logger.log(
+            Level.FINER,
+            "Refined non-termination candidate has no violation assertions; refusing vacuous"
+                + " refinement.");
+        return Optional.empty();
+      }
+      BooleanFormula refinedViolation =
+          BMCHelper.disjoinStateViolationAssertions(bfmgr, refinedViolationAssertions);
+      prover.push(refinedViolation);
+      try {
+        if (prover.isUnsat()) {
+          logger.log(
+              Level.FINER,
+              "Refined non-termination candidate's violation is unsatisfiable under the reached"
+                  + " set; refusing vacuous refinement.");
+          return Optional.empty();
+        }
+      } finally {
+        prover.pop();
+      }
+
+      return tentative;
+    } finally {
+      // Restore the original successorViolation so the caller's stack accounting matches.
+      prover.push(pSuccessorViolation);
+    }
+  }
+
+  private Map<CFANode, List<BooleanFormula>> extractBestRefinementEqualitiesByLoopHead(
       CandidateInvariant pOriginal,
       List<ValueAssignment> pModel,
       Set<AbstractState> pInductionHypothesis)
@@ -469,11 +572,16 @@ class KInductionProver implements AutoCloseable {
         }
       }
     }
-    if (bestEqualitiesByLoopHead.isEmpty()) {
+    return bestEqualitiesByLoopHead;
+  }
+
+  private Optional<CandidateInvariant> buildRefinementFromEqualities(
+      CandidateInvariant pOriginal, Map<CFANode, List<BooleanFormula>> pBestEqualitiesByLoopHead) {
+    if (pBestEqualitiesByLoopHead.isEmpty()) {
       return Optional.empty();
     }
     List<CandidateInvariant> blockingComponents = new ArrayList<>();
-    for (Map.Entry<CFANode, List<BooleanFormula>> entry : bestEqualitiesByLoopHead.entrySet()) {
+    for (Map.Entry<CFANode, List<BooleanFormula>> entry : pBestEqualitiesByLoopHead.entrySet()) {
       CFANode loopHead = entry.getKey();
       BooleanFormula blockingClause = bfmgr.not(fmgr.uninstantiate(bfmgr.and(entry.getValue())));
       blockingComponents.add(
