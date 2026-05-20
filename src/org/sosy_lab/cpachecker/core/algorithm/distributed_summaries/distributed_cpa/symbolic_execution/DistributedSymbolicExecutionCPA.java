@@ -43,6 +43,8 @@ import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.symbolicExecution.SymbolicExecutionCPA;
 import org.sosy_lab.cpachecker.cpa.symbolicExecution.SymbolicExecutionState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 
 public class DistributedSymbolicExecutionCPA implements DistributedConfigurableProgramAnalysis {
   SymbolicExecutionStateCoverageOperator coverageOperator;
@@ -147,7 +149,13 @@ public class DistributedSymbolicExecutionCPA implements DistributedConfigurableP
 
   @Override
   public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) {
-    return false;
+    SymbolicExecutionState state = (SymbolicExecutionState) pAbstractState;
+    if (!state.constraintsState().isEmpty()) return false;
+    return state.valueAnalysisState().getConstants().stream()
+        .allMatch(
+            constant ->
+                constant.getValue().getValue() instanceof ConstantSymbolicExpression symExp
+                    && symExp.getValue() instanceof SymbolicIdentifier);
   }
 
   @Override
