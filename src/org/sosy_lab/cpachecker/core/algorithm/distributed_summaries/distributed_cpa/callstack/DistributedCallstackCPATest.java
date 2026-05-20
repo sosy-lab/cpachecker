@@ -14,9 +14,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysisTestBase;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -33,9 +31,8 @@ public class DistributedCallstackCPATest {
             .setShutdownNotifier(ShutdownNotifier.createDummy())
             .createInstance();
 
-    Precision prec = SingletonPrecision.getInstance(); // No relevant precision
     // TODO find program which tests something interesting!!
     DistributedConfigurableProgramAnalysisTestBase.testSerialization(
-        "test/programs/cfa-ast-relation/full-expression.c", cpa, prec);
+        "test/programs/cfa-ast-relation/full-expression.c", cpa);
   }
 }

@@ -16,21 +16,17 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysisTestBase;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
-import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 public class DistributedCompositeCPATest {
 
   @Test
-  public void test() throws Exception {
+  public void testProgramFullExpression() throws Exception {
 
-    // TODO find program which tests something interesting!!
     CFA cfa = TestUtil.buildTestCFA("test/programs/cfa-ast-relation/full-expression.c");
 
     Configuration config =
@@ -59,9 +55,6 @@ public class DistributedCompositeCPATest {
             .setChildren(ImmutableList.of(cpa1, cpa2))
             .createInstance();
 
-    Precision prec =
-        new CompositePrecision(
-            ImmutableList.of(SingletonPrecision.getInstance(), SingletonPrecision.getInstance()));
-    DistributedConfigurableProgramAnalysisTestBase.testSerialization(cfa, cpa, prec);
+    DistributedConfigurableProgramAnalysisTestBase.testSerialization(cfa, cpa);
   }
 }

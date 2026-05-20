@@ -15,9 +15,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysisTestBase;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -39,7 +37,6 @@ public class DistributedLocationCPATest {
             .set(cfa, CFA.class)
             .createInstance();
 
-    Precision prec = SingletonPrecision.getInstance(); // No relevant precision
-    DistributedConfigurableProgramAnalysisTestBase.testSerialization(cfa, cpa, prec);
+    DistributedConfigurableProgramAnalysisTestBase.testSerialization(cfa, cpa);
   }
 }

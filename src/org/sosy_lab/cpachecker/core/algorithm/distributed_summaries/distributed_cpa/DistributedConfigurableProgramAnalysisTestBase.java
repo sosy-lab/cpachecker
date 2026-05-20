@@ -44,14 +44,13 @@ public class DistributedConfigurableProgramAnalysisTestBase {
   /** Maximum number of edges that the test follows */
   private static final int MAX_DEPTH = 40;
 
-  public static void testSerialization(
-      String programPath, ConfigurableProgramAnalysis cpa, Precision prec) throws Exception {
+  public static void testSerialization(String programPath, ConfigurableProgramAnalysis cpa)
+      throws Exception {
     CFA cfa = TestUtil.buildTestCFA(programPath);
-    testSerialization(cfa, cpa, prec);
+    testSerialization(cfa, cpa);
   }
 
-  public static void testSerialization(CFA cfa, ConfigurableProgramAnalysis cpa, Precision prec)
-      throws Exception {
+  public static void testSerialization(CFA cfa, ConfigurableProgramAnalysis cpa) throws Exception {
 
     Configuration config =
         TestDataTools.configurationForTest()
@@ -77,6 +76,9 @@ public class DistributedConfigurableProgramAnalysisTestBase {
     AbstractState initialState =
         dcpa.getInitialState(initialNode, StateSpacePartition.getDefaultPartition());
 
+    Precision prec =
+        dcpa.getInitialPrecision(initialNode, StateSpacePartition.getDefaultPartition());
+
     TransferRelation tr = dcpa.getTransferRelation();
     SerializeOperator serial = dcpa.getSerializeOperator();
     DeserializeOperator deserial = dcpa.getDeserializeOperator();
@@ -92,11 +94,11 @@ public class DistributedConfigurableProgramAnalysisTestBase {
 
       List<State> newStates = new ArrayList<>();
 
-      for (State curr_state : states) {
+      for (State currState : states) {
 
-        for (CFAEdge edge : curr_state.node.getAllLeavingEdges()) {
+        for (CFAEdge edge : currState.node.getAllLeavingEdges()) {
           for (AbstractState new_state :
-              tr.getAbstractSuccessorsForEdge(curr_state.absState, prec, edge)) {
+              tr.getAbstractSuccessorsForEdge(currState.absState, prec, edge)) {
 
             DssMessage message = stateToDssMessage(new_state, serial, messageFactory);
             AbstractState afterSerialization = deserial.deserialize(message);
