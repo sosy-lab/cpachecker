@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAtTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
@@ -24,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPointerType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPolymorphicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslResultTerm;
@@ -219,8 +221,20 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     return switch (acslType) {
       case AcslCType cType -> ctoFormulaConverter.getFormulaTypeFromType(cType.getType());
       case AcslFunctionType funcType ->
-          throw new UnsupportedOperationException("Not yet implemented");
-      case AcslLogicType logType -> throw new UnsupportedOperationException("Not yet implemented");
+          throw new IllegalArgumentException(
+              "This should not happen, AcslFunctionCallTerm should handle this");
+      case AcslLogicType logType ->
+          switch (logType) {
+            case AcslBuiltinLogicType builtinType ->
+                switch (builtinType) {
+                  case BOOLEAN -> FormulaType.BooleanType;
+                  case INTEGER -> FormulaType.IntegerType;
+                  case REAL -> FormulaType.RationalType;
+                  case ANY -> throw new UnsupportedOperationException("Not yet implemented");
+                };
+            case AcslPolymorphicType polyType ->
+                throw new UnsupportedOperationException("Not yet implemented");
+          };
       case AcslPointerType poinType ->
           throw new UnsupportedOperationException("Not yet implemented");
       case AcslPredicateType predType -> FormulaType.BooleanType;
