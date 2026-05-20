@@ -110,7 +110,7 @@ public class SymbolicExecutionStateCoverageOperator implements CoverageOperator 
     }
 
     try {
-      return constraintsSolver.getSolver().isUnsat(quantifiedForall);
+      return !constraintsSolver.getSolver().isUnsat(quantifiedForall);
     } catch (SolverException e) {
       throw new RuntimeException(e);
     }
