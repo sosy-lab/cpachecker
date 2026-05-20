@@ -174,8 +174,8 @@ public class AcslPredicateToFormulaVisitor
     AcslPredicateToFormulaVisitor oldVisitor =
         new AcslPredicateToFormulaVisitor(
             fmgr,
-            functionEntrySsa.get().builder(),
-            functionEntrySsa.get(),
+            functionEntrySsa.orElseThrow().builder(),
+            functionEntrySsa.orElseThrow(),
             ctoFormulaConverter,
             machineModel);
 

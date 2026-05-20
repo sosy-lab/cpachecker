@@ -148,8 +148,8 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     AcslTermToFormulaVisitor oldVisitor =
         new AcslTermToFormulaVisitor(
             fmgr,
-            functionEntrySsa.get().builder(),
-            functionEntrySsa.get(),
+            functionEntrySsa.orElseThrow().builder(),
+            functionEntrySsa.orElseThrow(),
             ctoFormulaConverter,
             machineModel);
 
