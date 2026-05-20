@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.value.type;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
@@ -27,18 +26,19 @@ public record NumericValue(Number number) implements Value {
   @Serial private static final long serialVersionUID = -3829943575180448170L;
 
   /**
-   * @param number any integer {@link Number} type, or one of the following floating-point types:
-   *     {@link Rational}, {@link FloatValue}, {@link Double}, {@link Float}.
+   * @param number a {@link Number} that needs to be either of the type {@link Rational}, one of the
+   *     following integer types: {@link BigInteger}, {@link Byte}, {@link Short}, {@link Long},
+   *     {@link Integer}, or one of the following floating-point types: {@link FloatValue}, {@link
+   *     Double}, {@link Float}.
    */
   public NumericValue {
-    checkArgument(
-        number instanceof FloatValue
-            || number instanceof Float
-            || number instanceof Double
-            || number instanceof Rational
-            || hasIntegerType(),
-        "Number types need to be either (any) integer type (e.g. Integer, Long, BigInteger etc.),"
-            + " or one of the following types: FloatValue, Float, Double, Rational");
+    if (!(hasIntegerType() || hasFloatType() || number instanceof Rational)) {
+      throw new IllegalArgumentException(
+          "NumericValue can not be created from value '%s' with unexpected type '%s'."
+                  .formatted(number.getClass(), number)
+              + "Allowed types are: Rational, Byte,"
+              + " Short, Integer, Long, BigInteger, FloatValue, Float, Double");
+    }
   }
 
   /** Returns the number stored in the container. */
