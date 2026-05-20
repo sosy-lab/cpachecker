@@ -35,6 +35,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -133,7 +134,16 @@ import org.sosy_lab.java_smt.api.SolverException;
 abstract class AbstractBMCAlgorithm
     implements StatisticsProvider, ConditionAdjustmentEventSubscriber {
 
-  private static final int MAX_NON_TERMINATION_REFINEMENTS_PER_ROOT = 1;
+  private static final int MAX_NON_TERMINATION_REFINEMENTS_PER_ROOT = 10;
+
+  @Option(
+      secure = true,
+      name = "kinduction.nonTerminationStepCaseRefinement",
+      description =
+          "Use counterexamples from failed non-termination step-case checks to suggest"
+              + " strengthened loop-continuation candidates. Refined candidates are checked after"
+              + " regular candidates and are not refined again.")
+  private boolean useNonTerminationStepCaseRefinement = true;
 
   protected static boolean isStopState(AbstractState state) {
     AssumptionStorageState assumptionState =
@@ -509,8 +519,8 @@ abstract class AbstractBMCAlgorithm
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
 
-        Set<CandidateInvariant> candidatesWithSuccessfulBaseCase = new HashSet<>();
-        Set<CandidateInvariant> candidatesSuggestedAfterBaseCase = new HashSet<>();
+        Set<CandidateInvariant> candidatesWithSuccessfulBaseCase = new LinkedHashSet<>();
+        Set<CandidateInvariant> candidatesSuggestedAfterBaseCase = new LinkedHashSet<>();
 
         // Perform a bounded model check on each candidate invariant
         Iterator<CandidateInvariant> candidateInvariantIterator = candidateGenerator.iterator();
@@ -657,8 +667,9 @@ abstract class AbstractBMCAlgorithm
     Predicate<CandidateInvariant> isApplicable =
         getCandidateApplicabilityPredicate(reachedSet, checkedKeys);
 
-    Set<CandidateInvariant> candidates =
-        FluentIterable.concat(pCtiBlockingClauses, pCandidatesToCheck).filter(isApplicable).toSet();
+    Iterable<CandidateInvariant> candidates =
+        orderStepCaseCandidates(
+            FluentIterable.concat(pCtiBlockingClauses, pCandidatesToCheck).filter(isApplicable));
     Set<SymbolicCandiateInvariant> checked = new HashSet<>();
 
     shutdownNotifier.shutdownIfNecessary();
@@ -675,23 +686,32 @@ abstract class AbstractBMCAlgorithm
       }
 
       if (isNonTerminationMode()) {
+        boolean buildRefinement =
+            useNonTerminationStepCaseRefinement
+                && canUseNonTerminationStepCaseRefinement(candidate);
         if (kInductionProver.checkNonTerminationClosure(
-            candidate, k, checkedKeys, getNonTerminationLoopScope(candidate))) {
+            candidate,
+            k,
+            checkedKeys,
+            getNonTerminationLoopScope(candidate),
+            buildRefinement)) {
           nonTerminationConfirmed = true;
           reportConfirmedNonTermination(reachedSet, candidate);
           return false;
         }
-        Optional<CandidateInvariant> refinement =
-            kInductionProver.getLastNonTerminationRefinement();
-        if (refinement.isPresent()) {
-          CandidateInvariant refinedCandidate = refinement.orElseThrow();
-          if (shouldSuggestNonTerminationRefinement(candidate, refinedCandidate, k)
-              && candidateGenerator.suggestCandidates(Collections.singleton(refinedCandidate))) {
-            registerNonTerminationRefinement(candidate, refinedCandidate);
-            logger.log(
-                Level.INFO,
-                "Non-termination mode: step case found counterexample,"
-                    + " refining candidate for next iteration.");
+        if (buildRefinement) {
+          Optional<CandidateInvariant> refinement =
+              kInductionProver.getLastNonTerminationRefinement();
+          if (refinement.isPresent()) {
+            CandidateInvariant refinedCandidate = refinement.orElseThrow();
+            if (shouldSuggestNonTerminationRefinement(candidate, refinedCandidate, k)
+                && candidateGenerator.suggestCandidates(Collections.singleton(refinedCandidate))) {
+              registerNonTerminationRefinement(candidate, refinedCandidate);
+              logger.log(
+                  Level.INFO,
+                  "Non-termination mode: step case found counterexample,"
+                      + " refining candidate for next iteration.");
+            }
           }
         }
         sound = false;
@@ -780,6 +800,29 @@ abstract class AbstractBMCAlgorithm
     return sound;
   }
 
+  private Iterable<CandidateInvariant> orderStepCaseCandidates(
+      Iterable<CandidateInvariant> pCandidates) {
+    if (!isNonTerminationMode()) {
+      return ImmutableSet.copyOf(pCandidates);
+    }
+    Set<CandidateInvariant> regularCandidates = new LinkedHashSet<>();
+    Set<CandidateInvariant> refinedCandidates = new LinkedHashSet<>();
+    for (CandidateInvariant candidate : pCandidates) {
+      if (isNonTerminationStepCaseRefinement(candidate)) {
+        refinedCandidates.add(candidate);
+      } else {
+        regularCandidates.add(candidate);
+      }
+    }
+    regularCandidates.addAll(refinedCandidates);
+    return regularCandidates;
+  }
+
+  private boolean isNonTerminationStepCaseRefinement(CandidateInvariant pCandidateInvariant) {
+    return suggestedNonTerminationRefinements.contains(pCandidateInvariant)
+        || nonTerminationRefinementRoots.containsKey(pCandidateInvariant);
+  }
+
   private boolean shouldSuggestNonTerminationRefinement(
       CandidateInvariant pBaseCandidate, CandidateInvariant pRefinement, int pK) {
     if (pBaseCandidate.equals(pRefinement)) {
@@ -856,6 +899,12 @@ abstract class AbstractBMCAlgorithm
       CandidateInvariant pCandidateInvariant) {
     checkNotNull(pCandidateInvariant);
     return Optional.empty();
+  }
+
+  protected boolean canUseNonTerminationStepCaseRefinement(
+      CandidateInvariant pCandidateInvariant) {
+    checkNotNull(pCandidateInvariant);
+    return true;
   }
 
   protected void registerNonTerminationRefinement(

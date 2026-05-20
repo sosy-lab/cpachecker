@@ -317,7 +317,8 @@ class KInductionProver implements AutoCloseable {
       CandidateInvariant pCandidateInvariant,
       int pK,
       Set<Object> pCheckedKeys,
-      Optional<NonTerminationLoopScope> pLoopScope)
+      Optional<NonTerminationLoopScope> pLoopScope,
+      boolean pBuildRefinement)
       throws CPAException, InterruptedException, SolverException {
 
     lastNonTerminationRefinement = Optional.empty();
@@ -403,10 +404,12 @@ class KInductionProver implements AutoCloseable {
       if (prover.isUnsat()) {
         return true;
       }
-      List<ValueAssignment> model = prover.getModelAssignments();
-      lastNonTerminationRefinement =
-          buildValidatedNonTerminationRefinement(
-              pCandidateInvariant, model, inductionHypothesis, successorViolation);
+      if (pBuildRefinement) {
+        List<ValueAssignment> model = prover.getModelAssignments();
+        lastNonTerminationRefinement =
+            buildValidatedNonTerminationRefinement(
+                pCandidateInvariant, model, inductionHypothesis, successorViolation);
+      }
       return false;
     } finally {
       while (pushes > 0) {
