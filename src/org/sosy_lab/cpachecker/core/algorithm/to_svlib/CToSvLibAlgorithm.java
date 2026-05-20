@@ -121,10 +121,11 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
       ShutdownNotifier pShutdownNotifier,
       CFA pCfa)
       throws InvalidConfigurationException {
+    pConfiguration.inject(this);
+
     logger = pLogManager;
     shutdownNotifier = pShutdownNotifier;
     config = pConfiguration;
-    config.inject(this);
     specification = pSpecification;
 
     cfa = pCfa;
