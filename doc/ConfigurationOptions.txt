@@ -114,12 +114,25 @@ solver.floatingPointRoundingMode = NEAREST_TIES_TO_EVEN
 solver.logAllQueries = false
 solver.logfile = no default value
 
+# If used together with solver.mathsat5.useExtendedSMTLIB2Output, SMTLIB2
+# output will contain let-bindings instead of define-fun based bindings.
+solver.mathsat5.dumpSMTLIB2LetExpressions = false
+
 # Further options that will be passed to Mathsat in addition to the default
 # options. Format is 'key1=value1,key2=value2'
 solver.mathsat5.furtherOptions = ""
 
 # Load less stable optimizing version of mathsat5 solver.
 solver.mathsat5.loadOptimathsat5 = false
+
+# If enabled, SMTLIB2 output of MathSAT5 will be generated using the extended
+# dumping function msat_to_smtlib2_ext(), instead of the regular dumping
+# function msat_to_smtlib2(). This extended dump might allow the exporting of
+# features to SMTLIB2 that can't be solved using MathSAT5, e.g. quantified
+# formulas. The output will contain define-fun based bindings instead of
+# let-expressions per default. If you want to use let bindings, enable option
+# solver.mathsat5.dumpSMTLIB2LetExpressions as well.
+solver.mathsat5.useExtendedSMTLIB2Output = false
 
 # Use non-linear arithmetic of the solver if supported and throw exception
 # otherwise, approximate non-linear arithmetic with UFs if unsupported, or
@@ -128,26 +141,42 @@ solver.mathsat5.loadOptimathsat5 = false
 solver.nonLinearArithmetic = USE
   enum:     [USE, APPROXIMATE_FALLBACK, APPROXIMATE_ALWAYS]
 
-# Algorithm for boolean interpolation
+# deprecated name for solver.opensmt.interpolation.algorithm.booleanTheory
 solver.opensmt.algBool = MCMILLAN
   enum:     [MCMILLAN, PUDLAK, MCMILLAN_PRIME, PROOF_SENSITIVE, PROOF_SENSITIVE_WEAK,
              PROOF_SENSITIVE_STRONG]
 
-# Algorithm for LRA interpolation
+# deprecated name for solver.opensmt.interpolation.algorithm.lraTheory
 solver.opensmt.algLra = STRONG
   enum:     [STRONG, WEAK, FACTOR, DECOMPOSING_STRONG, DECOMPOSING_WEAK]
 
-# Algorithm for UF interpolation
+# deprecated name for solver.opensmt.interpolation.algorithm.ufTheory
 solver.opensmt.algUf = STRONG
   enum:     [STRONG, WEAK, RANDOM]
+
+# Interpolation algorithm for boolean theory
+solver.opensmt.interpolation.algorithm.booleanTheory = MCMILLAN
+  enum:     [MCMILLAN, PUDLAK, MCMILLAN_PRIME, PROOF_SENSITIVE, PROOF_SENSITIVE_WEAK,
+             PROOF_SENSITIVE_STRONG]
+
+# Interpolation algorithm for LRA theory
+solver.opensmt.interpolation.algorithm.lraTheory = STRONG
+  enum:     [STRONG, WEAK, FACTOR, DECOMPOSING_STRONG, DECOMPOSING_WEAK]
+
+# Interpolation algorithm for UF theory
+solver.opensmt.interpolation.algorithm.ufTheory = STRONG
+  enum:     [STRONG, WEAK, RANDOM]
+
+# Level of simplification for interpolants,ranging from 0 (no simplification)
+# to 4 (maximum simplification).
+solver.opensmt.interpolation.simplificationLevel = 0
 
 # SMT-LIB2 name of the logic to be used by the solver.
 solver.opensmt.logic = QF_AUFLIRA
   enum:     [CORE, QF_AX, QF_UF, QF_IDL, QF_RDL, QF_LIA, QF_LRA, QF_ALIA, QF_ALRA,
              QF_UFLIA, QF_UFLRA, QF_AUFLIA, QF_AUFLRA, QF_AUFLIRA]
 
-# Level of simplification for interpolants,ranging from 0 (no simplification)
-# to 4 (maximum simplification).
+# deprecated name for solver.opensmt.interpolation.simplificationLevel
 solver.opensmt.simplifyInterpolants = 0
 
 # Enable additional assertion checks within Princess. The main usage is
@@ -180,8 +209,8 @@ solver.smtinterpol.furtherOptions = []
 
 # Which SMT solver to use.
 solver.solver = SMTINTERPOL
-  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5,
-             YICES2, BITWUZLA]
+  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, Z3_WITH_INTERPOLATION, PRINCESS,
+             BOOLECTOR, CVC4, CVC5, YICES2, BITWUZLA]
 
 # Sequentialize all solver actions to allow concurrent access!
 solver.synchronize = false
@@ -195,6 +224,14 @@ solver.useDebugMode = false
 
 # Log solver actions, this may be slow!
 solver.useLogger = false
+
+# Activate replayable logging in Z3. The log can be given as an input to the
+# solver and replayed.
+solver.z3.legacy.log = no default value
+
+# Require proofs from SMT solver
+solver.z3.legacy.requireProofs = true
+  allowed values: [true, false]
 
 # Activate replayable logging in Z3. The log can be given as an input to the
 # solver and replayed.
@@ -266,14 +303,27 @@ analysis.algorithm.IMC = false
 analysis.algorithm.MPI = false
 
 # Abort context switches between the previous and current thread if they
-# commute, i.e., they are not in conflict.
+# commute, i.e., they are not in conflict. Enabling this option together with
+# executeCommutingThreadsFirst is unsound, because the next thread is chosen
+# deterministically for execution only to then abort, which can result in an
+# underapproximation of the state space.
 analysis.algorithm.MPOR.abortCommutingContextSwitches = false
+
+# Abort if the thread that previously executed a statement is re-entered
+# without another thread executing a statement in between. This option
+# prevents redundant state space explorations because the previous thread
+# continued the execution anyway due to nondeterministic context switches.
+# Can only be enabled if nondeterminismSource contains NUM_STATEMENTS.
+analysis.algorithm.MPOR.abortPreviousThreadReentry = false
 
 # Allow input programs that write pointer variables?
 analysis.algorithm.MPOR.allowPointerWrites = true
 
 # The encoding of bit vectors that are used to instrument the output program
-# with partial order reduction.
+# with partial order reduction. The SPARSE encoding creates separate
+# variables for each index in the bit vector and supports any amount of
+# memory locations. All other encodings are dense and use a single variable
+# to represent the bit vector, supporting up to 64 memory locations.
 analysis.algorithm.MPOR.bitVectorEncoding = NONE
   enum:     [NONE, BINARY, OCTAL, DECIMAL, HEXADECIMAL, SPARSE]
 
@@ -292,7 +342,10 @@ analysis.algorithm.MPOR.comments = false
 analysis.algorithm.MPOR.consecutiveLabels = true
 
 # Prefer the execution of threads that commute, i.e., they are not in
-# conflict with any other thread.
+# conflict with any other thread. Enabling this option together with
+# abortCommutingContextSwitches is unsound, because the next thread is chosen
+# deterministically for execution only to then abort, which can result in an
+# underapproximation of the state space.
 analysis.algorithm.MPOR.executeCommutingThreadsFirst = false
 
 # Continue execution in the current thread if it is the only active thread.
@@ -3187,13 +3240,13 @@ cpa.predicate.solver.enableLoggingInSolver = false
 
 # deprecated name for solver.interpolationSolver
 cpa.predicate.solver.interpolationSolver = no default value
-  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5,
-             YICES2, BITWUZLA]
+  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, Z3_WITH_INTERPOLATION, PRINCESS,
+             BOOLECTOR, CVC4, CVC5, YICES2, BITWUZLA]
 
 # deprecated name for solver.solver
 cpa.predicate.solver.solver = MATHSAT5
-  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5,
-             YICES2, BITWUZLA]
+  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, Z3_WITH_INTERPOLATION, PRINCESS,
+             BOOLECTOR, CVC4, CVC5, YICES2, BITWUZLA]
 
 # C99 only defines the overflow of unsigned integer type.
 cpa.predicate.solver.ufCheckingProver.isSignedOverflowSafe = true
@@ -3582,6 +3635,14 @@ cpa.smg2.abstraction.doEnforcePointerSensitiveLiveness = true
 # memory structures like arrays.
 cpa.smg2.abstraction.doLivenessAbstraction = true
 
+# Sets behavior of the analysis when errors/exceptions are encountered when
+# abstracting. STOP_CPACHECKER: stops CPAchecker with a RuntimeException.
+# STOP_CURRENT: throws a exception that stops only the CPA it is thrown in.
+# IGNORE: does not throw anything and continues the analysis without
+# abstracting the state causing the error.
+cpa.smg2.abstraction.errorHandling = IGNORE
+  enum:     [STOP_CPACHECKER, STOP_CURRENT, IGNORE]
+
 # skip abstraction computations until the given number of iterations are
 # reached, after that decision is based on then current level of determinism,
 # setting the option to -1 always performs abstraction computations
@@ -3593,7 +3654,7 @@ cpa.smg2.abstraction.iterationThreshold = -1
 # are abstracted in any case. If you want to prevent dynamic increase of list
 # abstraction min threshold set this to the same value as
 # listAbstractionMinimumLengthThreshold.
-cpa.smg2.abstraction.listAbstractionMaximumIncreaseLengthThreshold = 6
+cpa.smg2.abstraction.listAbstractionMaximumIncreaseLengthThreshold = 25
 
 # The minimum list segments directly following each other with the same value
 # needed to abstract them.Minimum is 2.
@@ -3618,6 +3679,15 @@ cpa.smg2.allowNondetFunctionsWithArbitraryTypes = true
 
 # If this Option is enabled, variable array length may be symbolic.
 cpa.smg2.allowSymbolicVariableArrayLength = false
+
+# Specifies the handling for all concrete arithmetic and bitwise operations
+# resulting in undefined behavior. Examples: divisions by zero as a result of
+# division or remainder operations, or bitwise shift operations with a
+# negative second argument, or bitwise shift operations with a second
+# argument exceeding the width of the first arguments type.
+cpa.smg2.arithmeticUndefinedBehaviorHandling = WARN_AND_RETURN_ZERO
+  enum:     [WARN_AND_RETURN_UNKNOWN, WARN_AND_RETURN_ZERO, WARN_AND_RETURN_ONE,
+             STOP_ANALYSIS]
 
 # Array allocation functions
 cpa.smg2.arrayAllocationFunctions = {"calloc"}
@@ -3755,6 +3825,12 @@ cpa.smg2.initialPrecisionFile = no default value
 # get an initial precision from a predicate precision file
 cpa.smg2.initialPredicatePrecisionFile = no default value
 
+# Log level of unknown value usage in this CPA. E.g. due to
+# overapproximations, unhandled cases etc. Can be used to warn of a possible
+# inaccurate analysis (many unknown values do not lead to an inaccurate
+# analysis!), help with debugging etc.
+cpa.smg2.logLevelOfUnknownValueAssumptions = Level.FINE
+
 # If this option is enabled, a call to malloc with value zero results in a
 # return value that is equal to zero. If this option is disabled, a non-zero
 # memory section that may not be accessed but freed is returned.
@@ -3811,6 +3887,20 @@ cpa.smg2.minimalSatCheck = true
 # Assume that variables used only in a boolean context are either zero or
 # one.
 cpa.smg2.optimizeBooleanVariables = true
+
+# Overapproximates all logical C pointer comparisons that require (unknown)
+# address relations that are currently not handled. E.g. casting two distinct
+# pointers that are not equal to integer and then comparing both against a
+# constant integer literal that may be equal to both (the relation between
+# the pointers says that they can't be both equal to the same constant
+# integer literal).
+cpa.smg2.overapproximateMemoryAddressRelations = true
+
+# Overapproximates all C pointers that point out of bounds to their
+# originating memory to also point towards all other pointers when comparing
+# pointers using (in)equality operators (== and !=). No effect on other
+# relational operators (i.e. <,>,<=,>=) or pointer arithmetics.
+cpa.smg2.overapproximatePointerArithmeticsOutOfBoundsEquality = true
 
 # If this Option is enabled, all values of a memory region that is written or
 # read with a symbolic offset are overapproximated. I.e. when writing to a
@@ -4564,14 +4654,18 @@ distributedSummaries.decomposition.blockCFAFile = "block_analysis/blocks.json"
 # The final number of blocks should converge to the number of functions in
 # the program. NO_DECOMPOSITION creates one block around the CFA.
 distributedSummaries.decomposition.decompositionType = MERGE_DECOMPOSITION
-  enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, BRIDGE_DECOMPOSITION,
-             NO_DECOMPOSITION]
+  enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, NO_DECOMPOSITION]
 
 # Whether to stop after exporting the blockgraph
 distributedSummaries.decomposition.generateBlockGraphOnly = false
 
 # Import an existing decomposition from a file
 distributedSummaries.decomposition.importDecomposition = no default value
+
+# Limits the horizontal merge so that blocks with more Nodes than this are
+# not merged,allowing for more parallelism in the analysis. Negative value
+# allows all merges
+distributedSummaries.decomposition.largestHorizontalMerge = HorizontalMergeDecomposition.NO_MERGE_LIMIT
 
 # Decomposition type to use for the block analysis.
 distributedSummaries.executorType = DSS
@@ -5498,13 +5592,13 @@ solver.enableLoggingInSolver = false
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
 solver.interpolationSolver = no default value
-  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5,
-             YICES2, BITWUZLA]
+  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, Z3_WITH_INTERPOLATION, PRINCESS,
+             BOOLECTOR, CVC4, CVC5, YICES2, BITWUZLA]
 
 # Which SMT solver to use.
 solver.solver = MATHSAT5
-  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5,
-             YICES2, BITWUZLA]
+  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, Z3_WITH_INTERPOLATION, PRINCESS,
+             BOOLECTOR, CVC4, CVC5, YICES2, BITWUZLA]
 
 # Comma-separated list of files with specifications that should be checked
 # (cf. config/specification/ for examples). Property files as used in SV-COMP

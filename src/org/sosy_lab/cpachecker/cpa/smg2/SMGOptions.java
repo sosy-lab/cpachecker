@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
+import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -31,6 +32,37 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 
 @Options(prefix = "cpa.smg2")
 public class SMGOptions {
+
+  @Option(
+      secure = true,
+      description =
+          "Log level of unknown value usage in this CPA. E.g. due to overapproximations, unhandled"
+              + " cases etc. Can be used to warn of a possible inaccurate analysis (many unknown"
+              + " values do not lead to an inaccurate analysis!), help with debugging etc.")
+  private Level logLevelOfUnknownValueAssumptions = Level.FINE;
+
+  public Level getLogLevelOfUnknownValueAssumptions() {
+    return logLevelOfUnknownValueAssumptions;
+  }
+
+  @Option(
+      secure = true,
+      description =
+          "Overapproximates all C pointers that point out of bounds to their originating memory to"
+              + " also point towards all other pointers when comparing pointers using (in)equality"
+              + " operators (== and !=). No effect on other relational operators (i.e. <,>,<=,>=)"
+              + " or pointer arithmetics.")
+  private boolean overapproximatePointerArithmeticsOutOfBoundsEquality = true;
+
+  @Option(
+      secure = true,
+      description =
+          "Overapproximates all logical C pointer comparisons that require (unknown) address"
+              + " relations that are currently not handled. E.g. casting two distinct pointers that"
+              + " are not equal to integer and then comparing both against a constant integer"
+              + " literal that may be equal to both (the relation between the pointers says that"
+              + " they can't be both equal to the same constant integer literal).")
+  private boolean overapproximateMemoryAddressRelations = true;
 
   enum DIRECTION {
     FORWARD,
@@ -489,14 +521,6 @@ public class SMGOptions {
               + " any __VERIFIER_nondet_X() function is simply accepted without any checks.")
   private boolean allowNondetFunctionsWithArbitraryTypes = true;
 
-  @Option(
-      secure = true,
-      description =
-          "If this option is enabled, a memory allocation (e.g. malloc or array declaration) for "
-              + "unknown memory sizes does not abort, but also does not create any memory.")
-  private UnknownMemoryAllocationHandling handleUnknownMemoryAllocation =
-      UnknownMemoryAllocationHandling.STOP_ANALYSIS;
-
   /*
    * Ignore: ignore allocation call and overapproximate.
    * Memory_error: same as ignore but with an added memory error. (Needed in CEGAR, as else we
@@ -508,6 +532,32 @@ public class SMGOptions {
     MEMORY_ERROR,
     STOP_ANALYSIS
   }
+
+  @Option(
+      secure = true,
+      description =
+          "If this option is enabled, a memory allocation (e.g. malloc or array declaration) for "
+              + "unknown memory sizes does not abort, but also does not create any memory.")
+  private UnknownMemoryAllocationHandling handleUnknownMemoryAllocation =
+      UnknownMemoryAllocationHandling.STOP_ANALYSIS;
+
+  public enum ArithmeticUndefinedBehaviorHandling {
+    WARN_AND_RETURN_UNKNOWN,
+    WARN_AND_RETURN_ZERO,
+    WARN_AND_RETURN_ONE,
+    STOP_ANALYSIS
+  }
+
+  @Option(
+      secure = true,
+      description =
+          "Specifies the handling for all concrete arithmetic and bitwise operations resulting in"
+              + " undefined behavior. Examples: divisions by zero as a result of division or"
+              + " remainder operations, or bitwise shift operations with a negative second"
+              + " argument, or bitwise shift operations with a second argument exceeding the width"
+              + " of the first arguments type.")
+  protected ArithmeticUndefinedBehaviorHandling arithmeticUndefinedBehaviorHandling =
+      ArithmeticUndefinedBehaviorHandling.WARN_AND_RETURN_ZERO;
 
   @Option(
       secure = true,
@@ -555,6 +605,14 @@ public class SMGOptions {
 
   private UnknownMemoryAllocationHandling getIgnoreUnknownMemoryAllocationSetting() {
     return handleUnknownMemoryAllocation;
+  }
+
+  public boolean overapproximateMemoryAddressRelations() {
+    return overapproximateMemoryAddressRelations;
+  }
+
+  ArithmeticUndefinedBehaviorHandling getArithmeticUndefinedBehaviorHandling() {
+    return arithmeticUndefinedBehaviorHandling;
   }
 
   public boolean isIgnoreUnknownMemoryAllocation() {
@@ -755,6 +813,10 @@ public class SMGOptions {
     return resolveDefinites;
   }
 
+  public boolean isOverapproximatePointerArithmeticsOutOfBoundsEquality() {
+    return overapproximatePointerArithmeticsOutOfBoundsEquality;
+  }
+
   @Options(prefix = "cpa.smg2.merge")
   public static class SMGMergeOptions {
 
@@ -914,7 +976,7 @@ public class SMGOptions {
                 + " abstracted in any case. If you want to prevent dynamic increase of list"
                 + " abstraction min threshold set this to the same value as"
                 + " listAbstractionMinimumLengthThreshold.")
-    private int listAbstractionMaximumIncreaseLengthThreshold = 6;
+    private int listAbstractionMaximumIncreaseLengthThreshold = 25;
 
     @Option(
         secure = true,
@@ -951,6 +1013,22 @@ public class SMGOptions {
                 + " null value, reducing impacting null dereference or free soundness. Currently"
                 + " only supported for given value 0.")
     private int abstractConcreteValuesAboveThreshold = -1;
+
+    @Option(
+        secure = true,
+        description =
+            "Sets behavior of the analysis when errors/exceptions are encountered when abstracting."
+                + " STOP_CPACHECKER: stops CPAchecker with a RuntimeException. STOP_CURRENT: throws"
+                + " a exception that stops only the CPA it is thrown in. IGNORE: does not throw"
+                + " anything and continues the analysis without abstracting the state causing the"
+                + " error.")
+    private AbstractionErrorHandling errorHandling = AbstractionErrorHandling.IGNORE;
+
+    public enum AbstractionErrorHandling {
+      STOP_CPACHECKER,
+      STOP_CURRENT,
+      IGNORE
+    }
 
     private final @Nullable ImmutableSet<CFANode> loopHeads;
 
@@ -1048,6 +1126,10 @@ public class SMGOptions {
     boolean abstractAtLoop(LocationState location) {
       checkState(!alwaysAtLoop || loopHeads != null);
       return alwaysAtLoop && loopHeads.contains(location.getLocationNode());
+    }
+
+    public AbstractionErrorHandling errorHandling() {
+      return errorHandling;
     }
   }
 }

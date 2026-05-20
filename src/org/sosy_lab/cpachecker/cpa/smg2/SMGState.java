@@ -404,11 +404,11 @@ public class SMGState
   }
 
   public void logUnknownValue(String msg) {
-    logger.log(Level.FINE, msg);
+    logger.log(options.getLogLevelOfUnknownValueAssumptions(), msg);
   }
 
   public void logUnknownValue(String msg, CFAEdge edge) {
-    logUnknownValue(msg + edge);
+    logUnknownValue(msg + (edge == null ? "" : edge));
   }
 
   public void logUnknownValue(CFAEdge edge) {
@@ -903,6 +903,8 @@ public class SMGState
     // Null for new interpolants, return unknown
     @Nullable BigInteger sizeOfReadInBits = valueAndSize.getSizeInBits();
     if (sizeOfReadInBits == null) {
+      logUnknownValue(
+          "Assumed unknown equality of values due to unknown size of values to compare");
       return UnknownValue.getInstance();
     }
 
@@ -1620,6 +1622,7 @@ public class SMGState
     }
 
     // We may not forget any errors already found
+    // TODO: simplify/reduce complexity for cases in which we know that the result is equal to input
     if (!copyAndPruneUnreachable()
         .checkErrorEqualityForTwoStates(pOther.copyAndPruneUnreachable())) {
       return false;
@@ -1686,6 +1689,9 @@ public class SMGState
    */
   private boolean treatSymbolicsAsEqualWEqualConstrains(
       SMGState pOther, @Nullable MemoryLocation possibleMemLoc) {
+    // TODO: getAllValidAbstractedObjects() is costly for cases in which there are none. Add some
+    // simplification, e.g. track whether we abstracted at least once and return a empty set of we
+    // never abstracted
     Set<SMGSinglyLinkedListSegment> allAbstr =
         getMemoryModel().getSmg().getAllValidAbstractedObjects();
     if (allAbstr.isEmpty()) {
@@ -1742,6 +1748,10 @@ public class SMGState
    * constraints).
    */
   SMGState removeOldConstraints() {
+    if (constraintsState.isEmpty()) {
+      return this;
+    }
+
     ConstantSymbolicExpressionLocator symIdentVisitor =
         ConstantSymbolicExpressionLocator.getInstance();
     // There are 3 sources of constraints, values in objects (HVEs), offsets and sizes.
@@ -2864,7 +2874,7 @@ public class SMGState
   public boolean proveInequality(SMGValue pValue1, SMGValue pValue2) throws SMGSolverException {
     // Can this be solved without creating a new SMGProveNequality every time?
     // TODO: Since we need to rework the values anyway, make a new class for this.
-    SMGProveNequality nequality = new SMGProveNequality(this);
+    SMGProveNequality nequality = new SMGProveNequality(this, options);
     return nequality.proveInequality(pValue1, pValue2);
   }
 
@@ -2898,23 +2908,32 @@ public class SMGState
   }
 
   /**
-   * Returns the offset of a pointer in relation to the beginning of a memory region. Or UNKNOWN if
-   * some error happens.
+   * Returns the offset of a pointer in relation to the beginning of a memory region. Or UNKNOWN for
+   * non-pointers or if some error happens.
    *
-   * @param pValue some {@link Value} that may be a pointer.
+   * @param pValue some {@link Value} that may be a pointer. Do not enter {@link AddressExpression}s
+   *     or wrapped pointers of any kind!
    * @return UNKNOWN or a {@link NumericValue} that is the offset.
    */
   public Value getPointerOffset(Value pValue) {
+    // Those 2 are disallowed from being entered!
+    checkState(
+        !(pValue instanceof ConstantSymbolicExpression constExpr
+            && isPointer(constExpr.getValue())));
+    checkState(!(pValue instanceof AddressExpression));
+
     if (!memoryModel.isPointer(pValue)) {
+      logUnknownValue("Assumed unknown pointer offset due to value not being known as pointer");
       return UnknownValue.getInstance();
     }
 
-    Optional<SMGValue> maybeSmgValue1 = memoryModel.getSMGValueFromValue(pValue);
-    if (maybeSmgValue1.isEmpty()) {
+    Optional<SMGValue> maybeSmgValue = memoryModel.getSMGValueFromValue(pValue);
+    if (maybeSmgValue.isEmpty()) {
+      logUnknownValue("Assumed unknown pointer offset due to value not being known as pointer");
       return UnknownValue.getInstance();
     }
 
-    SMGValue smgValue = maybeSmgValue1.orElseThrow();
+    SMGValue smgValue = maybeSmgValue.orElseThrow();
     SMGPointsToEdge targetEdge = memoryModel.getSmg().getPTEdge(smgValue).orElseThrow();
     return targetEdge.getOffset();
   }
@@ -3931,7 +3950,9 @@ public class SMGState
     checkArgument(!(pObject instanceof SMGSinglyLinkedListSegment));
     if (!memoryModel.isObjectValid(pObject) && !memoryModel.isObjectExternallyAllocated(pObject)) {
       return ImmutableList.of(
-          ValueAndSMGState.of(UnknownValue.getInstance(), withInvalidRead(pObject)));
+          ValueAndSMGState.ofUnknownValue(
+              withInvalidRead(pObject),
+              "Unknown value returned in read operation due to read of invalidated memory"));
     }
     SMGHasValueEdgesAndSPC valueAndNewSPC =
         memoryModel.readValue(pObject, pFieldOffset, pSizeofInBits, preciseRead);
@@ -4052,7 +4073,9 @@ public class SMGState
       @Nullable CType readType)
       throws SMGException {
     if (!memoryModel.isObjectValid(pObject) && !memoryModel.isObjectExternallyAllocated(pObject)) {
-      return ValueAndSMGState.of(UnknownValue.getInstance(), withInvalidRead(pObject));
+      return ValueAndSMGState.ofUnknownValue(
+          withInvalidRead(pObject),
+          "Read operation returned unknown value due to read of invalidated memory");
     }
     // TODO: it is an assumption that we don't need precise reads here, as the top value needs to be
     // the same?
@@ -4106,6 +4129,9 @@ public class SMGState
       shiftRight = readOffset.intValueExact() - readSMGHVValue.getOffset().intValueExact();
       if (shiftRight < 0) {
         // Read larger edge on smaller, not supported
+        logUnknownValue(
+            "Assumed unknown value due to read operation on multiple value-edges not fully"
+                + " supported for little endian");
         return UnknownValue.getInstance();
       }
       assert shiftRight >= 0;
@@ -4164,23 +4190,24 @@ public class SMGState
     }
 
     // Fallthrough. Unknown value -> unknown value
+    logUnknownValue(
+        "Returned unknown value for read operation spanning multiple value-edges due to unhandled"
+            + " case");
     return UnknownValue.getInstance();
   }
 
   private static long getMask(BigInteger readSizeInBits) throws SMGException {
     int readSize = readSizeInBits.intValueExact();
-    long mask;
-    switch (readSize) {
-      case 1 -> mask = 1;
-      case 2 -> mask = 3;
-      case 4 -> mask = 0x0000000F;
-      case 8 -> mask = 0x000000FF;
-      case 16 -> mask = 0x0000FFFF;
-      case 32 -> mask = 0xFFFFFFFF;
-      case 64 -> mask = -1;
+    return switch (readSize) {
+      case 1 -> 1;
+      case 2 -> 3;
+      case 4 -> 0x0000000F;
+      case 8 -> 0x000000FF;
+      case 16 -> 0x0000FFFF;
+      case 32 -> 0xFFFFFFFF;
+      case 64 -> -1;
       default -> throw new SMGException("Unhandled bit size in partial memory read.");
-    }
-    return mask;
+    };
   }
 
   /*
@@ -4246,6 +4273,7 @@ public class SMGState
         == SMGTargetSpecifier.IS_FIRST_POINTER;
   }
 
+  // TODO: use FloatValue here
   /**
    * The only important thing is that the expectedType is NOT the left hand side type or any cast
    * type, but the type of the read before any casts etc.! *
@@ -4263,9 +4291,11 @@ public class SMGState
       }
     }
 
+    logUnknownValue("Returned unknown value for union float conversion");
     return UnknownValue.getInstance();
   }
 
+  // TODO: use FloatValue here
   private Value extractFloatingPointValueAsIntegralValue(NumericValue readValue) {
     Number numberValue = readValue.getNumber();
 
@@ -4298,6 +4328,7 @@ public class SMGState
             readValue));
   }
 
+  // TODO: use FloatValue here!
   private Value extractIntegralValueAsFloatingPointValue(
       CType pReadType, NumericValue numericValue) {
     if (pReadType instanceof CSimpleType) {
@@ -4315,6 +4346,9 @@ public class SMGState
         return new NumericValue(doubleValue);
       }
     }
+
+    logUnknownValue(
+        "Returned unknown value for unhandled case in integer to floating-point conversion");
     return UnknownValue.getInstance();
   }
 
@@ -7530,7 +7564,8 @@ public class SMGState
    * @return a new {@link SMGState} with the sub-SMG updated according to the description above.
    */
   private SMGState incrementNestingLevelAndSetSpecifierOfSubSMG(
-      SMGSinglyLinkedListSegment newLinkedList, Set<SMGNode> alreadyIncremented) {
+      SMGSinglyLinkedListSegment newLinkedList, Set<SMGNode> alreadyIncremented)
+      throws SMGException {
     // TODO: check if we can replace alreadyIncremented with a simple nesting level check (see value
     // incrementation as example)
     SMGState currentState = this;
@@ -7591,11 +7626,13 @@ public class SMGState
 
         } else {
           // Non-nested region, i.e. when materializing all list elements point to the same obj.
-          checkState(
-              currentState
-                  .getMemoryModel()
-                  .getTargetSpecifier(value)
-                  .equals(SMGTargetSpecifier.IS_REGION));
+          if (!currentState
+              .getMemoryModel()
+              .getTargetSpecifier(value)
+              .equals(SMGTargetSpecifier.IS_REGION)) {
+            throw new SMGException(
+                "Error when incrementing nesting level, inconsistent target specifier");
+          }
         }
       } else if (eqCache.knownKey(value)
           && !value.isNumericValue()
@@ -7909,7 +7946,8 @@ public class SMGState
    * execution. Expects the pointer parameter to be a valid pointer!
    *
    * @param pointer target pointer.
-   * @return {@link SMGStateAndOptionalSMGObjectAndOffset} with the target if it exists.
+   * @return {@link SMGStateAndOptionalSMGObjectAndOffset} with the target if it exists and always
+   *     the same initial state used to call this (without change).
    */
   public Optional<SMGStateAndOptionalSMGObjectAndOffset> dereferencePointerWithoutMaterilization(
       Value pointer) {

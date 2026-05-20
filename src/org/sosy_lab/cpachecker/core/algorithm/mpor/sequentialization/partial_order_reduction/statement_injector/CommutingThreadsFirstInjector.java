@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
@@ -36,10 +35,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqMainFunctionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.SeqGhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -57,7 +56,7 @@ public record CommutingThreadsFirstInjector(
     MPORThread activeThread,
     ImmutableSet<MPORThread> otherThreads,
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap,
-    GhostElements ghostElements,
+    SeqGhostElements ghostElements,
     SequentializationUtils utils) {
 
   public CommutingThreadsFirstInjector {
@@ -91,9 +90,7 @@ public record CommutingThreadsFirstInjector(
         utils
             .binaryExpressionBuilder()
             .buildBinaryExpression(
-                SeqIdExpressions.ROUND_MAX,
-                SeqIntegerLiteralExpressions.INT_0,
-                BinaryOperator.EQUALS);
+                SeqIdExpressions.ROUND_MAX, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
     CExpression syncEqualsZero = buildSyncEqualsZeroExpression();
     CLogicalAndExpression logicalAnd = CLogicalAndExpression.of(roundMaxEqualsZero, syncEqualsZero);
 
@@ -170,7 +167,7 @@ public record CommutingThreadsFirstInjector(
       throws UnrecognizedCodeException {
 
     CExpression threadActiveExpression =
-        ghostElements.getPcVariables().getThreadActiveExpression(activeThread.id());
+        ghostElements.programCounterVariables().getThreadActiveExpression(activeThread.id());
     CExpression syncEqualsZero = buildSyncEqualsZeroExpression();
     CExportExpression bitVectorExpression = buildBitVectorEvaluationExpression();
     return CLogicalAndExpression.of(
@@ -184,7 +181,7 @@ public record CommutingThreadsFirstInjector(
         .binaryExpressionBuilder()
         .buildBinaryExpression(
             ghostElements.threadSyncFlags().getSyncFlag(activeThread),
-            SeqIntegerLiteralExpressions.INT_0,
+            CIntegerLiteralExpression.ZERO,
             BinaryOperator.EQUALS);
   }
 
@@ -202,7 +199,7 @@ public record CommutingThreadsFirstInjector(
     if (pStatement.targetPc().isPresent()) {
       // int target is present -> retrieve label by pc from map
       int targetPc = pStatement.targetPc().orElseThrow();
-      if (targetPc != ProgramCounterVariables.EXIT_PC) {
+      if (targetPc != SeqProgramCounterVariables.EXIT_PC) {
         SeqThreadStatementClause targetClause =
             Objects.requireNonNull(labelClauseMap.get(targetPc));
         return injectSyncUpdateIntoStatement(pStatement, Optional.of(targetClause));
@@ -222,7 +219,7 @@ public record CommutingThreadsFirstInjector(
             && SeqThreadStatementUtil.anySynchronizesThreads(
                 pTargetClause.orElseThrow().getAllStatements());
     CIntegerLiteralExpression value =
-        isSync ? SeqIntegerLiteralExpressions.INT_1 : SeqIntegerLiteralExpressions.INT_0;
+        isSync ? CIntegerLiteralExpression.ONE : CIntegerLiteralExpression.ZERO;
     CIdExpression syncFlag = ghostElements.threadSyncFlags().getSyncFlag(activeThread);
     SeqInstrumentation syncUpdate =
         SeqInstrumentationBuilder.buildThreadSyncUpdateStatement(syncFlag, value);

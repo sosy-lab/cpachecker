@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.cwriter.export;
 
+import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -20,6 +21,12 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public sealed interface CCompoundStatementElement
     permits CExportStatement, CVariableDeclarationWrapper {
+
+  /**
+   * Returns all nested statements inside this {@link CCompoundStatementElement}, such as statements
+   * from nested {@code if} branches.
+   */
+  ImmutableList<CCompoundStatementElement> getAllNestedStatements();
 
   default String toASTString() throws UnrecognizedCodeException {
     return toASTString(AAstNodeRepresentation.DEFAULT);

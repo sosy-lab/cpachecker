@@ -375,9 +375,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   Formula makeFormulaForTarget(final PointerTarget target) {
     return fmgr.makePlus(
-        fmgr.makeVariableWithoutSSAIndex(
-            voidPointerFormulaType, target.getBase().formulaEncoding()),
-        fmgr.makeNumber(voidPointerFormulaType, target.getOffset()));
+        fmgr.makeVariableWithoutSSAIndex(voidPointerFormulaType, target.base().formulaEncoding()),
+        fmgr.makeNumber(voidPointerFormulaType, target.offset()));
   }
 
   BooleanFormula makeRetentionConstraint(

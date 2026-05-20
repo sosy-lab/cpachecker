@@ -8,15 +8,16 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 public enum SeqThreadStatementType {
-  ASSUME(true, false),
+  ASSUME(true, false, false),
   // ATOMIC_BEGIN does not synchronize threads because executing it is not conditional
-  ATOMIC_BEGIN(true, false),
-  ATOMIC_END(true, false),
-  COND_SIGNAL(true, false),
-  COND_WAIT(true, true),
+  ATOMIC_BEGIN(true, false, false),
+  ATOMIC_END(true, false, false),
+  COND_SIGNAL(true, false, false),
+  COND_WAIT(true, true, false),
   /**
    * Represents a special CPAchecker case where a {@code const CPAchecker_TMP} variable is declared
    * and assigned inside a case clause.
@@ -33,35 +34,35 @@ public enum SeqThreadStatementType {
    * sequentialization, a const declaration will be assigned an undeclared value e.g. {@code
    * q->head}.
    */
-  CONST_CPACHECKER_TMP(true, false),
-  CPACHECKER_TMP_WITHOUT_INITIALIZER(true, false),
+  CONST_CPACHECKER_TMP(true, false, true),
+  CPACHECKER_TMP_WITHOUT_INITIALIZER(true, false, false),
   /** A default statement requires no specific handling of the underlying {@link CFAEdge}. */
-  DEFAULT(true, false),
+  DEFAULT(true, false, false),
   /** A statement that contains only ghost code without any statement from the input program. */
-  GHOST_ONLY(true, false),
+  GHOST_ONLY(true, false, false),
   /**
    * A local variable that is declared inside a function ({@code int l = 9;}) is declared as a
    * global variable outside the {@code main()} function in the sequentialization ({@code int l;}).
    * The thread simulation inside the respective function then only initializes the local variable
    * ({@code l = 9;}).
    */
-  LOCAL_VARIABLE_INITIALIZATION(true, false),
-  MUTEX_LOCK(true, true),
-  MUTEX_UNLOCK(true, false),
-  PARAMETER_ASSIGNMENT(true, false),
-  RETURN_VALUE_ASSIGNMENT(true, false),
-  RW_LOCK_RD_LOCK(true, true),
-  RW_LOCK_UNLOCK(true, false),
-  RW_LOCK_WR_LOCK(true, true),
-  THREAD_CREATION(true, false),
-  THREAD_EXIT(false, false),
-  THREAD_JOIN(true, true),
+  LOCAL_VARIABLE_INITIALIZATION(true, false, false),
+  MUTEX_LOCK(true, true, false),
+  MUTEX_UNLOCK(true, false, false),
+  PARAMETER_ASSIGNMENT(true, false, false),
+  RETURN_VALUE_ASSIGNMENT(true, false, false),
+  RW_LOCK_RD_LOCK(true, true, true),
+  RW_LOCK_UNLOCK(true, false, true),
+  RW_LOCK_WR_LOCK(true, true, false),
+  THREAD_CREATION(true, false, false),
+  THREAD_EXIT(false, false, false),
+  THREAD_JOIN(true, true, false),
   /**
    * A {@code while (1)} loop head is transformed into {@code CFANode -> BlankEdge -> CFANode'}
    * which would be pruned from the output program. This statement type preserves the {@code
    * BlankEdge} so that the information on the loop head is not pruned.
    */
-  WHILE_TRUE_LOOP_HEAD(true, false);
+  WHILE_TRUE_LOOP_HEAD(true, false, false);
 
   /**
    * Whether this statement type can be linked to its target statement. This is false e.g. for
@@ -76,9 +77,19 @@ public enum SeqThreadStatementType {
    */
   public final boolean synchronizesThreads;
 
-  SeqThreadStatementType(boolean pIsLinkable, boolean pSynchronizesThreads) {
+  /**
+   * Whether this statement type contains {@link CVariableDeclaration}. The declarations are
+   * generally put outside the {@code main()} function, but in some cases intermediate variables are
+   * declared, e.g. for increments or decrements.
+   */
+  public final boolean containsVariableDeclarations;
+
+  SeqThreadStatementType(
+      boolean pIsLinkable, boolean pSynchronizesThreads, boolean pContainsVariableDeclarations) {
+
     isLinkable = pIsLinkable;
     synchronizesThreads = pSynchronizesThreads;
+    containsVariableDeclarations = pContainsVariableDeclarations;
   }
 
   public boolean in(SeqThreadStatementType... pSeqThreadStatementTypes) {
