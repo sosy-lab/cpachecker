@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -127,8 +128,38 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
   @Override
   public Formula visit(AcslBinaryTerm pAcslBinaryTerm) throws NoException {
-    // TODO implementation definitely needed
-    throw new UnsupportedOperationException("Not yet implemented");
+    Formula operand1Formula = pAcslBinaryTerm.getOperand1().accept(this);
+    Formula operand2Formula = pAcslBinaryTerm.getOperand2().accept(this);
+
+    boolean signed = true;
+
+    // Bitvector case: signed is important with some of the operators
+    if (operand1Formula instanceof BitvectorFormula
+        && operand2Formula instanceof BitvectorFormula) {
+      // TODO whatever is correct in AclsPredicateToFormulaVisitor for BinaryTermPredicate is needed
+      // here, too. Make sure this logic ends up somewhere usable for both
+      signed = false;
+    }
+
+    // TODO some typing stuff might not be taken care of by fmgr...
+
+    return switch (pAcslBinaryTerm.getOperator()) {
+      // TODO make sure that fmgr really does bitwise and, or etc. here as I suspect
+      case BINARY_AND -> fmgr.makeAnd(operand1Formula, operand2Formula);
+      case BINARY_OR -> fmgr.makeOr(operand1Formula, operand2Formula);
+      // bitwise a -> b is the same as bitwise not a or b
+      case BINARY_IMPLICATION -> fmgr.makeOr(fmgr.makeNot(operand1Formula), operand2Formula);
+      // bitwise a <-> b is the same as bitwise not (a xor b)
+      case BINARY_EQUIVALENT -> fmgr.makeNot(fmgr.makeXor(operand1Formula, operand2Formula));
+      case BINARY_XOR -> fmgr.makeXor(operand1Formula, operand2Formula);
+      case PLUS -> fmgr.makePlus(operand1Formula, operand2Formula);
+      case MINUS -> fmgr.makeMinus(operand1Formula, operand2Formula);
+      case MULTIPLY -> fmgr.makeMultiply(operand1Formula, operand2Formula);
+      case DIVIDE -> fmgr.makeDivide(operand1Formula, operand2Formula, signed);
+      case MODULO -> fmgr.makeRemainder(operand1Formula, operand2Formula, signed);
+      case SHIFT_LEFT -> fmgr.makeShiftLeft(operand1Formula, operand2Formula);
+      case SHIFT_RIGHT -> fmgr.makeShiftRight(operand1Formula, operand2Formula, signed);
+    };
   }
 
   @Override
