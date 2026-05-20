@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.symbolicExecution.SymbolicExecutionState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier.Converter;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
@@ -76,7 +77,8 @@ public class SymbolicExecutionStateCoverageOperator implements CoverageOperator 
 
     for (Entry<MemoryLocation, ValueAndType> entry : pState2.getConstants()) {
       if (!pState1.contains(entry.getKey())
-          && !(entry.getValue().getValue() instanceof SymbolicIdentifier)) {
+          && !(entry.getValue().getValue() instanceof ConstantSymbolicExpression constEx
+              && constEx.getValue() instanceof SymbolicIdentifier)) {
         return false;
       }
     }
