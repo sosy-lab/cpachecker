@@ -122,9 +122,10 @@ class CToSvLibInitializer {
 
       ImmutableList.Builder<CFunctionCallExpression> undeclaredFunctionsCollector =
           ImmutableList.builder();
-      Set<SvLibParsingVariableDeclaration> createdHeapArrays = new HashSet<>();
-      Set<String> namesOfCreatedAddressVariables = new HashSet<>();
-      Set<SvLibType> typesOfCreatedDummyReturnVariables = new HashSet<>();
+      ImmutableSet.Builder<SvLibParsingVariableDeclaration> createdHeapArrays =
+          ImmutableSet.builder();
+      ImmutableSet.Builder<String> namesOfCreatedAddressVariables = ImmutableSet.builder();
+      ImmutableSet.Builder<SvLibType> typesOfCreatedDummyReturnVariables = ImmutableSet.builder();
       for (CFAEdge edge : getAllRelevantEdges(entryNode)) {
         if (edge instanceof CDeclarationEdge declarationEdge) {
           CDeclaration declaration = declarationEdge.getDeclaration();
@@ -182,7 +183,9 @@ class CToSvLibInitializer {
           SvLibParsingParameterDeclaration dummyReturnParameter =
               createDummyReturnParameter(functionCall, procedureName);
 
-          if (typesOfCreatedDummyReturnVariables.add(dummyReturnParameter.getType())) {
+          if (!typesOfCreatedDummyReturnVariables
+              .build()
+              .contains(dummyReturnParameter.getType())) {
             localParametersCollector.add(dummyReturnParameter);
           }
 
@@ -193,7 +196,9 @@ class CToSvLibInitializer {
           SvLibParsingParameterDeclaration dummyReturnParameter =
               createDummyReturnParameter(functionCall, procedureName);
 
-          if (typesOfCreatedDummyReturnVariables.add(dummyReturnParameter.getType())) {
+          if (!typesOfCreatedDummyReturnVariables
+              .build()
+              .contains(dummyReturnParameter.getType())) {
             localParametersCollector.add(dummyReturnParameter);
           }
         }
@@ -221,8 +226,8 @@ class CToSvLibInitializer {
       String pProcedureName,
       ImmutableList.Builder<SvLibCommand> pCommandsCollector,
       ImmutableList.Builder<SvLibParsingParameterDeclaration> pLocalParametersCollector,
-      Set<SvLibParsingVariableDeclaration> pCreatedHeapModels,
-      Set<String> pNamesOfCreatedAddressVariables)
+      ImmutableSet.Builder<SvLibParsingVariableDeclaration> pCreatedHeapModels,
+      ImmutableSet.Builder<String> pNamesOfCreatedAddressVariables)
       throws CPATransferException, InterruptedException {
     boolean addressCreated = false;
 
@@ -252,17 +257,20 @@ class CToSvLibInitializer {
   private void createArrayForHeap(
       CType pBaseType,
       ImmutableList.Builder<SvLibCommand> pCommandsCollector,
-      Set<SvLibParsingVariableDeclaration> pCreatedHeapModels) {
+      ImmutableSet.Builder<SvLibParsingVariableDeclaration> pCreatedHeapArrays) {
     // create array for heap model if no such array has been created before
+
+    ImmutableSet<SvLibParsingVariableDeclaration> createdHeapArraysBuilt =
+        pCreatedHeapArrays.build();
     SvLibParsingVariableDeclaration heapArrayParsingVariableDeclaration =
         createHeapArrayDeclaration(pBaseType);
-    if (!pCreatedHeapModels.contains(heapArrayParsingVariableDeclaration)) {
+    if (!createdHeapArraysBuilt.contains(heapArrayParsingVariableDeclaration)) {
       SvLibVariableDeclarationCommand heapArrayVariableDeclarationCommand =
           new SvLibVariableDeclarationCommand(
               heapArrayParsingVariableDeclaration, FileLocation.DUMMY);
       pCommandsCollector.add(heapArrayVariableDeclarationCommand);
       scope.addVariable(heapArrayParsingVariableDeclaration);
-      pCreatedHeapModels.add(heapArrayParsingVariableDeclaration);
+      pCreatedHeapArrays.add(heapArrayParsingVariableDeclaration);
     }
   }
 
@@ -292,29 +300,33 @@ class CToSvLibInitializer {
       String pProcedureName,
       ImmutableList.Builder<SvLibCommand> pCommandsCollector,
       ImmutableList.Builder<SvLibParsingParameterDeclaration> pLocalParametersCollector,
-      Set<String> pNamesOfCreatedAddressVariables) {
+      ImmutableSet.Builder<String> pNamesOfCreatedAddressVariables) {
     boolean addressCreated = false;
+    ImmutableSet<String> namesOfCreatedAddressVariablesBuilt =
+        pNamesOfCreatedAddressVariables.build();
     // Replace :: in addresses of local variables, since : causes an issue with the SV-LIB parser
     String addressName = pPointerBase.formulaEncoding().replace("::", "_");
     SvLibSmtLibType addressType = convertToSvLibSmtLibType(pBaseType);
 
     boolean hasProcedureNamePrefix = pPointerBase.name().startsWith(pProcedureName + "::");
     if (!hasProcedureNamePrefix /* -> is global variable*/) {
-      if (pNamesOfCreatedAddressVariables.add(addressName)) {
+      if (!namesOfCreatedAddressVariablesBuilt.contains(addressName)) {
         SvLibParsingVariableDeclaration addressVariable =
             new SvLibParsingVariableDeclaration(
                 FileLocation.DUMMY, true, false, addressType, addressName, addressName, null);
         scope.addVariable(addressVariable);
         pCommandsCollector.add(
             new SvLibVariableDeclarationCommand(addressVariable, FileLocation.DUMMY));
+        pNamesOfCreatedAddressVariables.add(addressName);
         addressCreated = true;
       }
     } else {
-      if (pNamesOfCreatedAddressVariables.add(addressName)) {
+      if (!namesOfCreatedAddressVariablesBuilt.contains(addressName)) {
         SvLibParsingParameterDeclaration localAddressVariable =
             new SvLibParsingParameterDeclaration(
                 FileLocation.DUMMY, addressType, addressName, pProcedureName);
         pLocalParametersCollector.add(localAddressVariable);
+        pNamesOfCreatedAddressVariables.add(addressName);
         addressCreated = true;
       }
     }
