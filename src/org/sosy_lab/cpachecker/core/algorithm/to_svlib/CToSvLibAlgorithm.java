@@ -15,7 +15,6 @@ import java.io.PrintStream;
 import java.io.Serial;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.Objects;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -123,16 +122,21 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
 
-    logger = pLogManager;
-    shutdownNotifier = pShutdownNotifier;
-    config = pConfiguration;
-    specification = pSpecification;
-
-    cfa = pCfa;
-    if (cfa.getLanguage() != Language.C) {
+    if (pCfa.getLanguage() != Language.C) {
       throw new InvalidConfigurationException(
           "Currently only C programs can be transformed to SV-LIB");
     }
+    if (runAnalysis && svLibAnalysisConfiguration == null) {
+      throw new InvalidConfigurationException(
+          "If runAnalysis is enabled, then a configuration for the analysis of the transformed"
+              + " script has to be provided.");
+    }
+
+    config = pConfiguration;
+    specification = pSpecification;
+    logger = pLogManager;
+    shutdownNotifier = pShutdownNotifier;
+    cfa = pCfa;
 
     solver = Solver.create(config, logger, shutdownNotifier);
     formulaManager = solver.getFormulaManager();
@@ -264,14 +268,10 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     final ConfigurableProgramAnalysis cpa;
     Algorithm innerAlgorithm;
     try {
+      // svLibAnalysisConfiguration != null is already check in the constructor
+      assert svLibAnalysisConfiguration != null;
       Configuration innerConfig =
-          Configuration.builder()
-              .loadFromFile(
-                  Objects.requireNonNullElseGet(
-                      svLibAnalysisConfiguration,
-                      () ->
-                          Path.of("config", "predicateAnalysis-svlib.properties").toAbsolutePath()))
-              .build();
+          Configuration.builder().loadFromFile(svLibAnalysisConfiguration).build();
 
       CFACreator cfaCreator = new CFACreator(innerConfig, logger, shutdownNotifier);
       newSvLibCfa = cfaCreator.parseSourceAndCreateCFA(transformationResultScript.toASTString());
