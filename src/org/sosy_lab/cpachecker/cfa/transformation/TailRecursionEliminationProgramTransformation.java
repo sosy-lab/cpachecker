@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -362,5 +361,5 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
       CFAEdge tmpVarAssignmentEdge,
       CFAEdge tmpVarReturnEdge,
       CFANode nodeBeforeExitCondition
-  ){};
+  ){}
 }

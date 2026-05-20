@@ -22,7 +22,7 @@ public class CFAProgramTransformer {
 
   public static MutableCFA applyTransformations(MutableCFA pCFA) {
     //boolean finished = false;
-    ArrayList<ProgramTransformationEnum> selectedProgramTransformations = new ArrayList<ProgramTransformationEnum>();
+    ArrayList<ProgramTransformationEnum> selectedProgramTransformations = new ArrayList<>();
     selectedProgramTransformations.add(ProgramTransformationEnum.JUMP_THREADING);
     selectedProgramTransformations.add(ProgramTransformationEnum.TAIL_RECURSION_ELIMINATION);
 
