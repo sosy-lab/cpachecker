@@ -17,7 +17,6 @@ import com.google.common.collect.Iterables;
 import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
