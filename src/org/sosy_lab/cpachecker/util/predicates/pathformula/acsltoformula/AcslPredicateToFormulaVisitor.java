@@ -194,13 +194,6 @@ public class AcslPredicateToFormulaVisitor
     BooleanFormula ifTrueFormula = pAcslTernaryPredicate.getResultIfTrue().accept(this);
     BooleanFormula ifFalseFormula = pAcslTernaryPredicate.getResultIfFalse().accept(this);
 
-    if (bfmgr.isTrue(conditionFormula)) {
-      return ifTrueFormula;
-    }
-    if (bfmgr.isFalse(conditionFormula)) {
-      return ifFalseFormula;
-    }
-
     // (condition AND trueFormula) OR ((NOT condition) AND falseFormula)
     return bfmgr.or(
         bfmgr.and(conditionFormula, ifTrueFormula),
@@ -243,5 +236,9 @@ public class AcslPredicateToFormulaVisitor
     }
 
     return true;
+    // add pointer type as unsigned => false
+    // function, predicate, polymorphic types and set should cause exceptions
+    // acsl builtin logic types are all signed => true
+    // get this out of this class so the other visitor can use it too
   }
 }
