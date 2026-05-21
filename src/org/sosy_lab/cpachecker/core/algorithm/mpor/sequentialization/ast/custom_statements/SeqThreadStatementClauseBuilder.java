@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.FluentIterable;
@@ -29,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -217,18 +215,21 @@ public record SeqThreadStatementClauseBuilder(
     }
 
     Optional<CLabelStatement> nextThreadLabel = ghostElements.tryGetNextThreadLabel(pThread);
-    CFAEdgeForThread firstThreadEdge = pThreadNode.firstLeavingEdge();
     int labelPc = pThreadNode.pc;
 
     // pthread_cond_wait is special because it requires multiple clauses build from a single edge
-    if (PthreadUtil.isCallToPthreadFunction(
-        firstThreadEdge.cfaEdge, PthreadFunctionType.PTHREAD_COND_WAIT)) {
-      SubstituteEdge substituteEdge = Objects.requireNonNull(substituteEdges.get(firstThreadEdge));
-      int targetPc = firstThreadEdge.getSuccessor().pc;
-      ImmutableList<SeqThreadStatementClause> condWaitClauses =
-          buildCondWaitClauses(
-              pThread, nextThreadLabel, substituteEdge, labelPc, targetPc, pStatementBuilder);
-      return appendResetAssignmentsForOutOfScopePointers(pThread, pThreadNode, condWaitClauses);
+    if (!pThreadNode.leavingEdges().isEmpty()) {
+      CFAEdgeForThread firstThreadEdge = pThreadNode.firstLeavingEdge();
+      if (PthreadUtil.isCallToPthreadFunction(
+          firstThreadEdge.cfaEdge, PthreadFunctionType.PTHREAD_COND_WAIT)) {
+        SubstituteEdge substituteEdge =
+            Objects.requireNonNull(substituteEdges.get(firstThreadEdge));
+        int targetPc = firstThreadEdge.getSuccessor().pc;
+        ImmutableList<SeqThreadStatementClause> condWaitClauses =
+            buildCondWaitClauses(
+                pThread, nextThreadLabel, substituteEdge, labelPc, targetPc, pStatementBuilder);
+        return appendResetAssignmentsForOutOfScopePointers(pThread, pThreadNode, condWaitClauses);
+      }
     }
 
     ImmutableList<SeqThreadStatement> statements =
@@ -259,8 +260,6 @@ public record SeqThreadStatementClauseBuilder(
       CFANodeForThread pThreadNode,
       ImmutableList<SeqThreadStatementClause> pClauses) {
 
-    checkArgument(!pClauses.isEmpty(), "pClauses is empty.");
-
     ImmutableList<CCompoundStatementElement> pointerResetAssignments =
         getResetAssignmentsForOutOfScopePointers(pThread, pThreadNode);
     if (pointerResetAssignments.isEmpty()) {
@@ -275,12 +274,14 @@ public record SeqThreadStatementClauseBuilder(
         statement
             .data()
             .getType()
-            .in(SeqThreadStatementType.GHOST_ONLY, SeqThreadStatementType.FUNCTION_EXIT));
+            .in(
+                SeqThreadStatementType.GHOST_ONLY,
+                SeqThreadStatementType.FUNCTION_EXIT,
+                SeqThreadStatementType.THREAD_EXIT));
 
     // it is important that the pointer reset is added after the existing statements. the existing
     // statements may contain an assignment from a function return which could be overwritten:
-    // ptr = return_ptr;      <- must be first
-    // return_ptr = (void*)0;
+    // ptr = return_ptr; return_ptr = (void*)0;
     ImmutableList<CCompoundStatementElement> newExportStatements =
         ImmutableList.<CCompoundStatementElement>builder()
             .addAll(statement.exportStatements())
@@ -311,10 +312,10 @@ public record SeqThreadStatementClauseBuilder(
 
     CFANode cfaNode = pThreadNode.getCfaNode();
     if (cfaNode.getLeavingEdges().stream()
-        .anyMatch(e -> e.getSuccessor() instanceof FunctionExitNode)) {
+        .anyMatch(e -> SeqThreadStatementUtil.isFunctionExitOrTerminationNode(e.getSuccessor()))) {
+
       ImmutableSet<AVariableDeclaration> localVariablesInScope =
           astCfaRelation.getAstLocalVariablesInScopeByCfaNode(cfaNode);
-
       MPORSubstitution substitution = substitutions.get(pThreadNode.threadId);
       checkState(substitution.getThread().equals(pThread));
 
@@ -339,7 +340,6 @@ public record SeqThreadStatementClauseBuilder(
         }
       }
     }
-
     return rAssignments.build();
   }
 
