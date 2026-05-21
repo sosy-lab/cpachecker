@@ -1,0 +1,106 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2026 CPAchecker contributors
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Focused set of 88 programs: 54 currently proved + 7 previously proved but
+# lost in the 2026-05-20 run + 27 incorrect-false cases from the 2026-05-21
+# termination run. Used to quickly validate non-termination proving without
+# running all 966 SV-COMP programs.
+
+# --- 54 currently proved (2026-05-20 results) ---
+../../sv-benchmarks/c/bitvector/jain_1-1.yml
+../../sv-benchmarks/c/bitvector/jain_2-1.yml
+../../sv-benchmarks/c/bitvector/jain_4-2.yml
+../../sv-benchmarks/c/bitvector/jain_6-1.yml
+../../sv-benchmarks/c/bitvector/jain_7-2.yml
+../../sv-benchmarks/c/loop-invgen/string_concat-noarr.yml
+../../sv-benchmarks/c/loops/for_infinite_loop_1.yml
+../../sv-benchmarks/c/loops/for_infinite_loop_2.yml
+../../sv-benchmarks/c/loops/nec11.yml
+../../sv-benchmarks/c/loops/while_infinite_loop_1.yml
+../../sv-benchmarks/c/loops/while_infinite_loop_2.yml
+../../sv-benchmarks/c/termination-bwb/and-03-false.yml
+../../sv-benchmarks/c/termination-bwb/and-05-false.yml
+../../sv-benchmarks/c/termination-bwb/not-02-false.yml
+../../sv-benchmarks/c/termination-bwb/not-02.yml
+../../sv-benchmarks/c/termination-bwb/not-03-false.yml
+../../sv-benchmarks/c/termination-bwb/or-05-false.yml
+../../sv-benchmarks/c/termination-bwb/or-05.yml
+../../sv-benchmarks/c/termination-crafted-lit/Urban-WST2013-Fig1.yml
+../../sv-benchmarks/c/termination-crafted-lit/Velroyen.yml
+../../sv-benchmarks/c/termination-crafted/Division-2.yml
+../../sv-benchmarks/c/termination-crafted/Madrid.yml
+../../sv-benchmarks/c/termination-crafted/Rotation180-1.yml
+../../sv-benchmarks/c/termination-crafted/WhileTrue.yml
+../../sv-benchmarks/c/termination-memory-alloca/Urban-2013WST-Fig1-alloca.yml
+../../sv-benchmarks/c/termination-memory-alloca/Velroyen-alloca.yml
+../../sv-benchmarks/c/termination-nla/dijkstra1-both-nt-2.yml
+../../sv-benchmarks/c/termination-nla/dijkstra2-both-nt.yml
+../../sv-benchmarks/c/termination-restricted-15/ComplInterv2.yml
+../../sv-benchmarks/c/termination-restricted-15/ConvLower.yml
+../../sv-benchmarks/c/termination-restricted-15/Ex02.yml
+../../sv-benchmarks/c/termination-restricted-15/Ex03.yml
+../../sv-benchmarks/c/termination-restricted-15/Ex05.yml
+../../sv-benchmarks/c/termination-restricted-15/Ex06.yml
+../../sv-benchmarks/c/termination-restricted-15/Ex07.yml
+../../sv-benchmarks/c/termination-restricted-15/Flip.yml
+../../sv-benchmarks/c/termination-restricted-15/Flip2.yml
+../../sv-benchmarks/c/termination-restricted-15/Loop-2.yml
+../../sv-benchmarks/c/termination-restricted-15/MirrorIntervSim.yml
+../../sv-benchmarks/c/termination-restricted-15/NO_00.yml
+../../sv-benchmarks/c/termination-restricted-15/NO_01.yml
+../../sv-benchmarks/c/termination-restricted-15/NO_21.yml
+../../sv-benchmarks/c/termination-restricted-15/NO_22.yml
+../../sv-benchmarks/c/termination-restricted-15/NO_23.yml
+../../sv-benchmarks/c/termination-restricted-15/NO_24.yml
+../../sv-benchmarks/c/termination-restricted-15/NarrowKonv.yml
+../../sv-benchmarks/c/termination-restricted-15/Narrowing.yml
+../../sv-benchmarks/c/termination-restricted-15/Sunset.yml
+../../sv-benchmarks/c/termination-restricted-15/Swingers.yml
+../../sv-benchmarks/c/termination-restricted-15/TwoFloatInterv.yml
+../../sv-benchmarks/c/termination-restricted-15/UpAndDown.yml
+../../sv-benchmarks/c/termination-restricted-15/UpAndDownIneq.yml
+../../sv-benchmarks/c/termination-restricted-15/WhilePart.yml
+../../sv-benchmarks/c/termination-restricted-15/WhileSingle.yml
+
+# --- 7 lost since 2026-05-09 baseline (need internal branch guard candidates) ---
+../../sv-benchmarks/c/termination-bwb/and-04-false.yml
+../../sv-benchmarks/c/termination-bwb/not-05-false.yml
+../../sv-benchmarks/c/termination-crafted-lit/BradleyMannaSipma-CAV2005-Fig1-modified.yml
+../../sv-benchmarks/c/termination-crafted/Bangalore_v2.yml
+../../sv-benchmarks/c/termination-crafted/NonTerminationSimple7.yml
+../../sv-benchmarks/c/termination-restricted-15/GCD-1.yml
+../../sv-benchmarks/c/termination-restricted-15/GCD2.yml
+
+# --- 27 incorrect false in the 2026-05-21 14:41:55 termination run ---
+../../sv-benchmarks/c/termination-bwb/counting-bits-set.yml
+../../sv-benchmarks/c/termination-crafted/4BitCounterPointer.yml
+../../sv-benchmarks/c/termination-crafted/Bangalore-2.yml
+../../sv-benchmarks/c/termination-crafted/Bangalore_v4.yml
+../../sv-benchmarks/c/termination-crafted/MenloPark.yml
+../../sv-benchmarks/c/termination-crafted/Stockholm-1.yml
+../../sv-benchmarks/c/termination-crafted/Toulouse-BranchesToLoop-2.yml
+../../sv-benchmarks/c/termination-crafted/Toulouse-MultiBranchesToLoop-2.yml
+../../sv-benchmarks/c/termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-loops.yml
+../../sv-benchmarks/c/termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-speedpldi4.yml
+../../sv-benchmarks/c/termination-crafted-lit/AliasDarteFeautrierGonnord-SAS2010-wcet2.yml
+../../sv-benchmarks/c/termination-crafted-lit/BradleyMannaSipma-CAV2005-Fig1.yml
+../../sv-benchmarks/c/termination-crafted-lit/CookSeeZuleger-TACAS2013-Fig8b.yml
+../../sv-benchmarks/c/termination-numeric/twisted.yml
+../../sv-benchmarks/c/termination-restricted-15/DivMinus2.yml
+../../sv-benchmarks/c/termination-restricted-15/MinusBuiltIn.yml
+../../sv-benchmarks/c/termination-restricted-15/java_Sequence.yml
+../../sv-benchmarks/c/termination-dietlibc/strdup.yml
+../../sv-benchmarks/c/termination-memory-alloca/KroeningSharyginaTsitovichWintersteiger-2010CAV-Fig1-alloca.yml
+../../sv-benchmarks/c/termination-memory-alloca/b.09_assume-alloca.yml
+../../sv-benchmarks/c/termination-memory-alloca/twisted-alloca.yml
+../../sv-benchmarks/c/array-industry-pattern/array_ptr_single_elem_init-2.yml
+../../sv-benchmarks/c/loops/sum03-1.yml
+../../sv-benchmarks/c/loops/terminator_03-2.yml
+../../sv-benchmarks/c/loops/trex01-1.yml
+../../sv-benchmarks/c/loop-invgen/large_const.yml
+../../sv-benchmarks/c/loop-lit/mine2017-ex4.10.yml
