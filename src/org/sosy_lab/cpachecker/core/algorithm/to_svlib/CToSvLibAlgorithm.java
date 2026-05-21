@@ -329,7 +329,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
       try {
         try (Writer writer = IO.openOutputFile(scriptPath, Charset.defaultCharset())) {
           writer.write(pOutputScript);
-          logger.log(Level.INFO, "Transformed script exported to: " + scriptPath.toString());
+          logger.log(Level.INFO, "Transformed script exported to: " + scriptPath);
         }
       } catch (IOException e) {
         logger.logUserException(
