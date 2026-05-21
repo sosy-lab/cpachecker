@@ -698,13 +698,6 @@ public class CoreComponentsFactory {
                 .newInstance();
       }
 
-      if (useProgramTransformationCEGAR) {
-        algorithm =
-            new ProgramTransformationCEGARAlgorithmFactory(
-                    algorithm, cpa, logger, config, shutdownNotifier, cfa)
-                .newInstance();
-      }
-
       if (usePDR) {
         algorithm =
             new PdrAlgorithm(
@@ -800,6 +793,13 @@ public class CoreComponentsFactory {
               new CounterexampleCheckAlgorithm(
                   algorithm, cpa, config, specification, logger, shutdownNotifier, cfa);
         }
+      }
+
+      if (useProgramTransformationCEGAR) {
+        algorithm =
+            new ProgramTransformationCEGARAlgorithmFactory(
+                algorithm, cpa, logger, config, shutdownNotifier, cfa)
+                .newInstance();
       }
 
       algorithm =
