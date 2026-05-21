@@ -440,4 +440,12 @@ public final class AstCfaRelation {
     }
     return Optional.of(globalVariables);
   }
+
+  public ImmutableSet<AVariableDeclaration> getAstLocalVariablesInScopeByCfaNode(CFANode pCfaNode) {
+    if (!cfaNodeToAstLocalVariablesInScope.containsKey(pCfaNode)) {
+      return ImmutableSet.of();
+    }
+    return ImmutableSet.copyOf(
+        Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(pCfaNode)));
+  }
 }

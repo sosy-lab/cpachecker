@@ -429,7 +429,7 @@ public class MPORSubstitution {
                       localVariableSubstitutes.get(pCallContext, variableDeclaration));
               MPORSubstitutionTrackerUtil.trackContentFromLocalVariableDeclaration(
                   pIsDeclaration, localSubstitute, pTracker);
-              yield localSubstitute.expression();
+              yield localSubstitute.idExpression();
             } else {
               // for substitution, it is fine to use the first entry that matches the declaration
               for (Entry<CVariableDeclaration, CIdExpression> entry : globalVariableSubstitutes) {
@@ -530,7 +530,8 @@ public class MPORSubstitution {
   public ImmutableList<CVariableDeclaration> getLocalVariableDeclarationSubstitutes() {
     ImmutableList.Builder<CVariableDeclaration> rLocalDeclarations = ImmutableList.builder();
     for (LocalVariableDeclarationSubstitute localSubstitute : localVariableSubstitutes.values()) {
-      rLocalDeclarations.add((CVariableDeclaration) localSubstitute.expression().getDeclaration());
+      rLocalDeclarations.add(
+          (CVariableDeclaration) localSubstitute.idExpression().getDeclaration());
     }
     return rLocalDeclarations.build();
   }
@@ -556,6 +557,12 @@ public class MPORSubstitution {
       rStartRoutineArgDeclarations.add((CVariableDeclaration) cell.getValue().getDeclaration());
     }
     return rStartRoutineArgDeclarations.build();
+  }
+
+  public ImmutableTable<
+          Optional<CFAEdgeForThread>, CVariableDeclaration, LocalVariableDeclarationSubstitute>
+      getLocalVariableSubstituteTable() {
+    return localVariableSubstitutes;
   }
 
   public MPORThread getThread() {

@@ -120,6 +120,17 @@ public record SeqThreadStatementBuilder(
       CFANodeForThread pThreadNode, Set<CFANodeForThread> pCoveredNodes)
       throws UnrecognizedCodeException {
 
+    if (pThreadNode.getCfaNode() instanceof FunctionExitNode) {
+      ImmutableSet<SubstituteEdge> edges =
+          pThreadNode.leavingEdges().stream()
+              .map(substituteEdges::get)
+              .filter(Objects::nonNull)
+              .collect(ImmutableSet.toImmutableSet());
+      return ImmutableList.of(
+          SeqThreadStatementBuilder.buildGhostOnlyStatement(
+              thread, edges, pcLeftHandSide, pThreadNode.firstLeavingEdge().getSuccessor().pc));
+    }
+
     ImmutableList.Builder<SeqThreadStatement> rStatements = ImmutableList.builder();
     for (CFAEdgeForThread threadEdge : pThreadNode.leavingEdges()) {
       // handle const CPAchecker_TMP first because it requires successor nodes and edges

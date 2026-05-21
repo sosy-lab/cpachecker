@@ -406,7 +406,7 @@ public record MPORSubstitutionBuilder(
                     tracker));
         CVariableDeclaration newDeclarationSubstitute =
             substituteVariableDeclaration(
-                (CVariableDeclaration) substituteDeclaration.expression().getDeclaration(),
+                (CVariableDeclaration) substituteDeclaration.idExpression().getDeclaration(),
                 initializerSubstitute);
         CIdExpression newIdExpression =
             SeqExpressionBuilder.buildIdExpression(newDeclarationSubstitute);

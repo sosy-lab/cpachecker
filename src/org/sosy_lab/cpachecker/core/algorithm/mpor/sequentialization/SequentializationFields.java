@@ -121,6 +121,7 @@ public class SequentializationFields {
             machineModel,
             pointerAliasingMap,
             ghostElements,
+            pInputCfa.getAstCfaRelation(),
             pUtils);
     clauses = clauseBuilder.buildClauses();
 
