@@ -401,15 +401,21 @@ class KInductionProver implements AutoCloseable {
       BooleanFormula nonVacuousAtIterK =
           buildNonVacuousPredecessorAtIterK(
               predecessorCandidate.orElseThrow(), pK, relevantLoopHeads);
+      logger.logf(
+          Level.INFO,
+          "[NV-DBG] pK=%d, nonVacuousFormula isFalse=%s isTrue=%s",
+          pK,
+          bfmgr.isFalse(nonVacuousAtIterK),
+          bfmgr.isTrue(nonVacuousAtIterK));
       prover.push(nonVacuousAtIterK);
       pushes++;
       if (prover.isUnsat()) {
         logger.log(
-            Level.FINER,
-            "The non-termination closure predecessor is not non-vacuously reachable at"
-                + " iteration k; refusing vacuous proof.");
+            Level.INFO,
+            "[NV-DBG] Refusing vacuous proof: predecessor not non-vacuously reachable at iter k.");
         return false;
       }
+      logger.log(Level.INFO, "[NV-DBG] Non-vacuous check PASSED.");
       prover.push(loopHeadInv);
       pushes++;
       prover.push(successorViolation);
@@ -1215,14 +1221,24 @@ class KInductionProver implements AutoCloseable {
     Iterable<AbstractState> loopHeadStatesAtIterK =
         filterIteration(
             AbstractStates.filterLocations(reached, pRelevantLoopHeads), pK, pRelevantLoopHeads);
+    int stateCount = 0;
+    int contribCount = 0;
     BooleanFormula result = bfmgr.makeFalse();
     for (AbstractState stopState : loopHeadStatesAtIterK) {
+      stateCount++;
       Optional<BooleanFormula> pathContribution =
           buildPathContributionForCandidate(stopState, pPredecessorCandidate);
       if (pathContribution.isPresent()) {
+        contribCount++;
         result = bfmgr.or(result, pathContribution.orElseThrow());
       }
     }
+    logger.logf(
+        Level.INFO,
+        "[NV-DBG] iter k=%d: %d LH states found, %d path contributions",
+        pK,
+        stateCount,
+        contribCount);
     return result;
   }
 
