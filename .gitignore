@@ -27,6 +27,7 @@ a.out
 /CPAchecker-*.zip
 /CPAchecker-*.tar.*
 /error-prone.patch
+/IntegrationTests.html
 /SpotBugs.html
 /SpotBugs.xml
 /SpotBugs.diff.html

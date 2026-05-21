@@ -19,6 +19,7 @@ Test Overview
 | [Unit tests for JavaScript code](JavascriptTesting.md)        | [GitLab CI][] | all pipelines |
 | [Integration tests for JavaScript code](JavascriptTesting.md) | [GitLab CI][] | all pipelines |
 | [Integration tests for Python code](PythonStyleGuide.md)      | [GitLab CI][] | all pipelines |
+| Small-scale integration tests                                 | [GitLab CI][] | all pipelines |
 | Large-scale integration tests for many configs (one with witness validation) | [BuildBot][] | on every push/merge to `main` |
 | Largest-scale integration tests on whole [SV-Benchmarks][] for few configs (with witness validation) | [BuildBot][] | every few days for `main` |
 
@@ -27,8 +28,10 @@ Tests for other languages are described in the respective linked documentation, 
 Integration Tests
 -----------------
 
-Integration tests that are executed automatically by the [BuildBot][]
-for the main branch are defined by the files `../test/test-sets/integration-*.xml`.
+The primary test suite of CPAchecker consists of
+integration tests that are executed automatically by the [BuildBot][]
+for the main branch.
+These are defined by the files `../test/test-sets/integration-*.xml`.
 You can also execute these tests directly with [BenchExec],
 which is bundled with CPAchecker, e.g.,
 `scripts/benchmark.py test/test-sets/integration-simpleTests.xml`.
@@ -40,6 +43,14 @@ please contact the maintainers on the developer mailing list.
 Be aware that the integration tests expect that the directory `c`
 of the [SV-Benchmarks][] repository
 is linked/copied to `../test/programs/benchmarks`.
+
+BenchExec only supports asserting that the verification result is correct.
+If more powerful assertions are desired, write them as JUnit tests
+such that they are executed together with the unit tests.
+In this case the test class should be named `*IntegrationTest`
+and the tests can be executed with `ant integration-tests` (or `ant tests`).
+However, please consider the flakiness risk and time necessary for integration tests
+and consider turning them into proper unit tests instead.
 
 Smoke tests that automatically run each CPAchecker configuration on a trivial program
 are executed with `ant configuration-checks` and in [GitLab CI][].

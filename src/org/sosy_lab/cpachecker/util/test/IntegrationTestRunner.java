@@ -20,7 +20,17 @@ import org.sosy_lab.common.log.StringBuildingLogHandler;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 
-/** Helper class for running CPA tests. */
+/**
+ * Helper class for running integration tests, i.e., full CPAchecker runs.
+ *
+ * <p>The primary recommendation is for integration tests to be added as BuildBot tests, which have
+ * significant performance advantage due BenchCloud usage (cf. doc/Test.md).
+ *
+ * <p>However, for some cases writing a few integration test as JUnit tests may be desired (in
+ * addition to BuildBot tests). These tests can use the utilities in this class. Such test classes
+ * should typically have the name suffix "IntegrationTest" such that they are executed together with
+ * the other integration tests and not the unit tests.
+ */
 public class IntegrationTestRunner {
 
   public enum ExpectedVerdict {
@@ -54,6 +64,12 @@ public class IntegrationTestRunner {
     }
   }
 
+  /**
+   * Execute CPAchecker with the given options on the given program file and collect the result and
+   * log output (with the default log level).
+   *
+   * <p>Classes calling this should typically have the name suffix "IntegrationTest".
+   */
   public static IntegrationTestResult run(
       Map<String, String> pProperties, String pSourceCodeFilePath) throws Exception {
 
@@ -61,11 +77,23 @@ public class IntegrationTestRunner {
     return run(config, pSourceCodeFilePath);
   }
 
+  /**
+   * Execute CPAchecker with the given configuration on the given program file and collect the
+   * result and log output (with the default log level).
+   *
+   * <p>Classes calling this should typically have the name suffix "IntegrationTest".
+   */
   public static IntegrationTestResult run(Configuration config, String pSourceCodeFilePath)
       throws Exception {
     return run(config, pSourceCodeFilePath, Level.INFO);
   }
 
+  /**
+   * Execute CPAchecker with the given configuration on the given program file and collect the
+   * result and log output.
+   *
+   * <p>Classes calling this should typically have the name suffix "IntegrationTest".
+   */
   public static IntegrationTestResult run(
       Configuration config, String pSourceCodeFilePath, Level logLevel) throws Exception {
     StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();

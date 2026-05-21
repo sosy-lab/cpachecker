@@ -28,6 +28,7 @@ SPDX-License-Identifier: Apache-2.0
     <property name="junit.dir" value="output/unit-tests"/>
     <property name="junit.report" value="UnitTests.html"/>
     <property name="configuration-checks.dir" value="output/configuration-checks"/>
+    <property name="integration-tests.dir" value="output/integration-tests"/>
     <property name="class.main" value="org.sosy_lab.cpachecker.cmdline.CPAMain"/>
     <property name="jar.excludes" value=""/>
     <property name="project.url" value="http://cpachecker.sosy-lab.org"/>
@@ -64,6 +65,7 @@ SPDX-License-Identifier: Apache-2.0
     <import file="build/build-checkstyle.xml"/>
     <import file="build/build-spotbugs.xml"/>
     <import file="build/build-configuration-checks.xml"/>
+    <import file="build/build-integration-tests.xml"/>
 
     <property name="version.file" value="${class.dir}/org/sosy_lab/cpachecker/VERSION.txt"/>
     <property name="verifiercloud.version" value="0.+"/> <!-- Version of VerifierCloud to use ("+" is wildcard). -->
@@ -128,8 +130,8 @@ SPDX-License-Identifier: Apache-2.0
         <ivy:retrieve sync="true" pattern="${ivy.lib.dir}-benchmark/[artifact](-[classifier]).[ext]"/>
     </target>
 
-    <target name="tests" depends="unit-tests, configuration-checks"
-            description="Run unit tests (expensive tests only if requested) and configuration checks"/>
+    <target name="tests" depends="unit-tests, integration-tests, configuration-checks"
+            description="Run unit and integration tests (expensive tests only if requested) and configuration checks"/>
 
     <target name="all-checks"
             description="Run standard checks plus compilation with ECJ and expensive tests">
