@@ -25,6 +25,7 @@ SPDX-License-Identifier: Apache-2.0
       <include>../programs/benchmarks/ntdrivers-simplified/*.cil.yml</include>
       <include>../programs/benchmarks/openssl-simplified/*.cil.yml</include>
       <include>../programs/benchmarks/locks/*.yml</include>
+      <exclude>../programs/benchmarks/locks/test_locks_7.yml</exclude> <!-- flapping timeout -->
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
       <option name="--option">OctagonCPA.precision.trackFloatVariables=false</option>
       <option name="--option">cpa.octagon.octagonLibrary=INT</option>

@@ -31,13 +31,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationValidator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 
@@ -64,7 +64,7 @@ public class SeqThreadStatementClauseUtil {
     return switch (pEncoding) {
       case NONE ->
           throw new IllegalArgumentException(
-              "cannot build label expression for control encoding " + pEncoding);
+              "cannot build label expression for MultiSelectionStatementEncoding " + pEncoding);
       case BINARY_SEARCH_TREE, IF_ELSE_CHAIN ->
           pBinaryExpressionBuilder.buildBinaryExpression(
               pExpression,
@@ -74,26 +74,27 @@ public class SeqThreadStatementClauseUtil {
     };
   }
 
-  public static ImmutableListMultimap<CExportExpression, CCompoundStatementElement>
-      mapExpressionToClause(
+  public static ImmutableMap<CExportExpression, CCompoundStatement>
+      mapExpressionsToCompoundStatements(
           MPOROptions pOptions,
           CLeftHandSide pPcLeftHandSide,
           ImmutableList<SeqThreadStatementClause> pClauses,
           CBinaryExpressionBuilder pBinaryExpressionBuilder)
           throws UnrecognizedCodeException {
 
-    ImmutableListMultimap.Builder<CExportExpression, CCompoundStatementElement> rOriginPcs =
-        ImmutableListMultimap.builder();
+    ImmutableMap.Builder<CExportExpression, CCompoundStatement> rOriginPcs = ImmutableMap.builder();
     for (SeqThreadStatementClause clause : pClauses) {
       CExpression labelExpression =
           SeqThreadStatementClauseUtil.getStatementExpressionByEncoding(
-              pOptions.controlEncodingStatement(),
+              pOptions.selectionEncodingForStatements(),
               pPcLeftHandSide,
               clause.labelNumber,
               pBinaryExpressionBuilder);
-      rOriginPcs.putAll(new CExpressionWrapper(labelExpression), clause.toCExportStatements());
+      rOriginPcs.put(
+          new CExpressionWrapper(labelExpression),
+          new CCompoundStatement(clause.toCExportStatements()));
     }
-    return rOriginPcs.build();
+    return rOriginPcs.buildOrThrow();
   }
 
   /**
@@ -170,7 +171,7 @@ public class SeqThreadStatementClauseUtil {
       ImmutableList<SeqThreadStatementClause> pClauses) {
 
     ImmutableMap.Builder<Integer, Integer> rLabelToIndex = ImmutableMap.builder();
-    int index = ProgramCounterVariables.INIT_PC;
+    int index = SeqProgramCounterVariables.INIT_PC;
     for (SeqThreadStatementClause clause : pClauses) {
       for (SeqThreadStatementBlock block : clause.getBlocks()) {
         rLabelToIndex.put(block.getLabelNumber(), index++);
@@ -183,7 +184,7 @@ public class SeqThreadStatementClauseUtil {
       ImmutableList<SeqThreadStatementClause> pClauses) {
 
     ImmutableMap.Builder<Integer, Integer> rLabelToIndex = ImmutableMap.builder();
-    int index = ProgramCounterVariables.INIT_PC;
+    int index = SeqProgramCounterVariables.INIT_PC;
     for (SeqThreadStatementClause clause : pClauses) {
       rLabelToIndex.put(clause.labelNumber, index++);
     }
@@ -264,7 +265,7 @@ public class SeqThreadStatementClauseUtil {
       ImmutableList<SeqThreadStatementBlock> reorderedBlocks =
           reorderBlocks(firstBlocks.getFirst(), labelBlockMap);
       if (pOptions.validateNoBackwardGoto()) {
-        SeqValidator.validateEqualBlocks(thread.id(), allBlocks, reorderedBlocks);
+        SequentializationValidator.validateEqualBlocks(thread.id(), allBlocks, reorderedBlocks);
       }
       rNoBackwardGoto.putAll(
           thread, buildClausesFromReorderedBlocks(pOptions, reorderedBlocks, firstBlocks));
@@ -298,7 +299,7 @@ public class SeqThreadStatementClauseUtil {
 
     for (SeqThreadStatement statement : pCurrentBlock.getStatements()) {
       int targetNumber = statement.getTargetNumber();
-      if (targetNumber != ProgramCounterVariables.EXIT_PC) {
+      if (targetNumber != SeqProgramCounterVariables.EXIT_PC) {
         SeqThreadStatementBlock targetBlock =
             Objects.requireNonNull(pLabelBlockMap.get(targetNumber));
         // ensure that adding (pCurrentBlock, targetBlock) does not yield cycle in pGraph

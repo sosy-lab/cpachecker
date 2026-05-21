@@ -18,7 +18,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CVariableDeclarationWrapper;
@@ -60,16 +60,21 @@ public record SeqThreadStatement(
     checkArgument(
         targetPc.isPresent() ^ targetGoto.isPresent(),
         "Either targetPc or targetGoto must be present (exclusive or).");
-    if (data.getType().equals(SeqThreadStatementType.CONST_CPACHECKER_TMP)) {
+    if (data.getType().containsVariableDeclarations) {
       checkArgument(
-          exportStatements.stream().anyMatch(n -> n instanceof CVariableDeclarationWrapper),
-          "If the statement type is CONST_CPACHECKER_TMP, then exportStatements must contain"
-              + " a CVariableDeclarationWrapper.");
-    } else {
+          exportStatements.stream()
+              .flatMap(export -> export.getAllNestedStatements().stream())
+              .anyMatch(n -> n instanceof CVariableDeclarationWrapper),
+          "If the statement type contains variable declarations, then exportStatements must"
+              + " contain at least one CVariableDeclarationWrapper.");
+    }
+    if (!data.getType().containsVariableDeclarations) {
       checkArgument(
-          exportStatements.stream().noneMatch(n -> n instanceof CVariableDeclarationWrapper),
-          "If the statement type is not CONST_CPACHECKER_TMP, then exportStatements cannot contain"
-              + " a CVariableDeclarationWrapper.");
+          exportStatements.stream()
+              .flatMap(export -> export.getAllNestedStatements().stream())
+              .noneMatch(n -> n instanceof CVariableDeclarationWrapper),
+          "If the statement type is does not contain variable declarations, then exportStatements"
+              + " cannot contain a CVariableDeclarationWrapper.");
     }
   }
 
@@ -85,18 +90,18 @@ public record SeqThreadStatement(
 
   /**
    * Returns true if the target {@code pc} is present and not equal to {@link
-   * ProgramCounterVariables#EXIT_PC}, i.e. if it actually targets another statement.
+   * SeqProgramCounterVariables#EXIT_PC}, i.e. if it actually targets another statement.
    */
   public boolean isTargetPcValid() {
-    return targetPc.filter(pc -> pc != ProgramCounterVariables.EXIT_PC).isPresent();
+    return targetPc.filter(pc -> pc != SeqProgramCounterVariables.EXIT_PC).isPresent();
   }
 
   /**
    * Returns true if the target {@code pc} is present and equal to {@link
-   * ProgramCounterVariables#EXIT_PC}, i.e. if it terminates a thread.
+   * SeqProgramCounterVariables#EXIT_PC}, i.e. if it terminates a thread.
    */
   public boolean isTargetPcExit() {
-    return targetPc.filter(pc -> pc == ProgramCounterVariables.EXIT_PC).isPresent();
+    return targetPc.filter(pc -> pc == SeqProgramCounterVariables.EXIT_PC).isPresent();
   }
 
   /**
@@ -104,8 +109,8 @@ public record SeqThreadStatement(
    * additional {@link SeqInstrumentation}s.
    */
   public boolean isOnlyPcWrite() {
-    // the only case where a statement writes only 'pc' is when it is a blank statement without
-    // any injected statement
+    // the only case where a statement writes only 'pc' is when it is a blank statement without any
+    // instrumentation
     return data.getType().equals(SeqThreadStatementType.GHOST_ONLY) && instrumentation.isEmpty();
   }
 
@@ -124,10 +129,10 @@ public record SeqThreadStatement(
   public SeqThreadStatement withTargetPc(int pTargetPc) {
     if (data.getType().equals(SeqThreadStatementType.THREAD_EXIT)) {
       checkArgument(
-          pTargetPc == ProgramCounterVariables.EXIT_PC,
+          pTargetPc == SeqProgramCounterVariables.EXIT_PC,
           "%s should only be cloned with exit pc %s",
           SeqThreadStatementType.THREAD_EXIT,
-          ProgramCounterVariables.EXIT_PC);
+          SeqProgramCounterVariables.EXIT_PC);
     }
     return new SeqThreadStatement(
         data, Optional.of(pTargetPc), Optional.empty(), instrumentation, exportStatements);
@@ -163,20 +168,20 @@ public record SeqThreadStatement(
         targetPc.isPresent() || targetGoto.isPresent(),
         "Either targetPc or targetGoto must be present.");
 
-    // first build the CExportStatements of the SeqInjectedStatement
+    // first build the exported statements of the instrumentation
     ImmutableList<SeqInstrumentation> preparedInstrumentation =
         targetPc.isPresent()
             ? SeqThreadStatementUtil.prepareInstrumentationByTargetPc(
                 data.getPcLeftHandSide(), targetPc.orElseThrow(), instrumentation)
             : SeqThreadStatementUtil.prepareInstrumentationByTargetGoto(
                 data.getThreadId(), targetGoto.orElseThrow(), instrumentation);
-
-    ImmutableList<CExportStatement> injectedExportStatements =
+    ImmutableList<CExportStatement> instrumentationExportStatements =
         transformedImmutableListCopy(preparedInstrumentation, i -> checkNotNull(i).statement());
 
+    // add the instrumentation after the actual export statements that carry input program semantics
     return ImmutableList.<CCompoundStatementElement>builder()
         .addAll(exportStatements)
-        .addAll(injectedExportStatements)
+        .addAll(instrumentationExportStatements)
         .build();
   }
 }

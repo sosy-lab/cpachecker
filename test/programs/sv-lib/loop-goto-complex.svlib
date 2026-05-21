@@ -1,0 +1,32 @@
+; This file is part of CPAchecker,
+; a tool for configurable software verification:
+; https://cpachecker.sosy-lab.org
+;
+; SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+;
+; SPDX-License-Identifier: Apache-2.0
+
+(set-logic QF_NIA)
+
+(set-info :format-version 1.0)
+
+(define-proc
+ main() ((__retval__ Int)) ((x Int) (y Int) (i Int))
+ (! (sequence
+       (assign (__retval__ 0)) (goto N12)
+       (! (label N12):tag N12) (goto N13)
+       (! (label N13):tag N13) (goto N2)
+       (! (label N2):tag N2) (assign (x 10)) (goto N3)
+       (! (label N3):tag N3) (goto N4)
+       (! (label N4):tag N4) (goto N5)
+       (! (label N5):tag N5) (assign (i 0)) (goto N6)
+       (! (label N6):tag N6)
+         (if (< i x) (goto N8) )
+         (if (not (< i x)) (goto N9) )
+       (! (label N8):tag N8) (assign (y (+ y i))) (goto N10)
+       (! (label N9):tag N9) (assign (__retval__ y)) (return)
+       (! (label N0):tag N0)
+       (! (label N10):tag N10) (goto N7)
+       (! (label N7):tag N7) (assign (i (+ i 1))) (goto N6)):tag main))
+
+(verify-call main ())

@@ -21,7 +21,7 @@ import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
@@ -165,7 +165,7 @@ public final class SeqThreadStatementUtil {
     return ImmutableList.of();
   }
 
-  // Injected Statements ===========================================================================
+  // Instrumentation Statements ====================================================================
 
   static ImmutableList<SeqInstrumentation> prepareInstrumentationByTargetPc(
       CLeftHandSide pPcLeftHandSide,
@@ -179,22 +179,23 @@ public final class SeqThreadStatementUtil {
 
     // create the pc write
     CExpressionAssignmentStatement pcAssignmentStatement =
-        ProgramCounterVariables.buildPcAssignmentStatement(pPcLeftHandSide, pTargetPc);
+        SeqProgramCounterVariables.buildPcAssignmentStatement(pPcLeftHandSide, pTargetPc);
     boolean emptyBitVectorEvaluation =
         SeqThreadStatementUtil.isAnyBitVectorEvaluationExpressionEmpty(pruned);
 
-    // with empty bit vector evaluations, place pc write before injections, otherwise info is lost
+    // with empty bit vector evaluations, place pc write before instrumentation, otherwise info is
+    // lost
     if (emptyBitVectorEvaluation) {
       prepared.add(SeqInstrumentationBuilder.buildProgramCounterUpdate(pcAssignmentStatement));
     }
 
-    // add all injected statements in the correct order
+    // add all instrumentation statements in the correct order
     ImmutableList<SeqInstrumentation> ordered = orderInstrumentation(pruned);
     checkState(
         ordered.size() == pruned.size(), "ordering of statements resulted in lost statements");
     prepared.addAll(ordered);
 
-    // for non-empty bit vector evaluations, place pc write after injections for optimization
+    // for non-empty bit vector evaluations, place pc write after instrumentation for optimization
     if (!emptyBitVectorEvaluation) {
       prepared.add(SeqInstrumentationBuilder.buildProgramCounterUpdate(pcAssignmentStatement));
     }
@@ -212,7 +213,7 @@ public final class SeqThreadStatementUtil {
         prepared.add(instrumentation);
       }
     }
-    // add the goto last, so that the injected statements appear before it
+    // add the goto last, so that the instrumentation appears before it and is reachable
     String labelName = SeqNameUtil.buildThreadStatementBlockLabelName(pThreadId, pTargetGotoNumber);
     SeqInstrumentation gotoBlockLabel =
         SeqInstrumentationBuilder.buildGotoBlockLabelStatement(new CLabelStatement(labelName));
@@ -249,7 +250,9 @@ public final class SeqThreadStatementUtil {
     leftOver.addAll(
         getInstrumentationByType(pInstrumentation, SeqInstrumentationType.BIT_VECTOR_UPDATE));
     leftOver.addAll(
-        getInstrumentationByType(pInstrumentation, SeqInstrumentationType.LAST_BIT_VECTOR_UPDATE));
+        getInstrumentationByType(pInstrumentation, SeqInstrumentationType.PREV_THREAD_UPDATE));
+    leftOver.addAll(
+        getInstrumentationByType(pInstrumentation, SeqInstrumentationType.PREV_BIT_VECTOR_UPDATE));
     rOrdered.addAll(
         pInstrumentation.stream()
             .filter(i -> !leftOver.contains(i))

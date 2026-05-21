@@ -94,4 +94,9 @@ public class CFAEdgeForThread {
         && (predecessor == null || predecessor.id == other.predecessor.id)
         && (successor == null || successor.id == other.successor.id);
   }
+
+  @Override
+  public String toString() {
+    return cfaEdge.toString();
+  }
 }
