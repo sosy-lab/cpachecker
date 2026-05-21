@@ -1743,7 +1743,6 @@ class ASTConverter {
         }
 
         return tmp;
-
       }
       case IASTUnaryExpression.op_not -> {
         try {
