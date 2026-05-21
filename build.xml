@@ -25,7 +25,8 @@ SPDX-License-Identifier: Apache-2.0
     <!-- Customization of build process. -->
     <property name="class.dir" value="classes"/>
     <property name="jar.file" value="cpachecker.jar"/>
-    <property name="junit.dir" value="output/junit"/>
+    <property name="junit.dir" value="output/unit-tests"/>
+    <property name="junit.report" value="UnitTests.html"/>
     <property name="configuration-checks.dir" value="output/configuration-checks"/>
     <property name="class.main" value="org.sosy_lab.cpachecker.cmdline.CPAMain"/>
     <property name="jar.excludes" value=""/>

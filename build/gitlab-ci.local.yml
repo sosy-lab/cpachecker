@@ -325,8 +325,10 @@ deploy-docker:
 unit-tests:jdk-21:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
   artifacts:
+    paths:
+      - "UnitTests.html"
     reports:
-      junit: "output/junit/TESTS-TestSuites.xml"
+      junit: "output/unit-tests/TESTS-TestSuites.xml"
   rules:
     - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
       when: never
@@ -344,8 +346,10 @@ unit-tests-extended:jdk-21:
 unit-tests:jdk-25:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
   artifacts:
+    paths:
+      - "UnitTests.html"
     reports:
-      junit: "output/junit/TESTS-TestSuites.xml"
+      junit: "output/unit-tests/TESTS-TestSuites.xml"
   rules:
     - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
     - if: $[[ inputs.tests_per_java_version ]] == true

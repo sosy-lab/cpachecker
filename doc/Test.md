@@ -48,7 +48,7 @@ Unit Tests
 ----------
 
 Run `ant unit-tests` from the project root directory.
-An HTML report with the results will be generated as `JUnit.html`.
+An HTML report with the results will be generated as `UnitTests.html`.
 Of course the unit tests can also be executed from within your IDE and are executed by [GitLab CI][].
 
 Some particularly expensive tests (which take several minutes)
