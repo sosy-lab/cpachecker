@@ -165,6 +165,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private final Set<CandidateInvariant> directlyConfirmedNonTerminationCandidates = new HashSet<>();
   private final Map<CandidateInvariant, NonTerminationLoopScope> nonTerminationLoopScopes =
       new HashMap<>();
+  private final Set<CandidateInvariant> nonTerminationBaseStrengthenings = new HashSet<>();
   private ImmutableSet<CandidateInvariant> lastModelEqualityStrengthenings = ImmutableSet.of();
   private static final int MAX_INTERNAL_BRANCH_GUARD_CANDIDATES = 8;
   private static final int MAX_MODEL_EQUALITY_STRENGTHENINGS = 8;
@@ -300,6 +301,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     loopsWithoutTerminationCandidates = 0;
     directlyConfirmedNonTerminationCandidates.clear();
     nonTerminationLoopScopes.clear();
+    nonTerminationBaseStrengthenings.clear();
     if (!cfa.getLoopStructure().isPresent()) {
       terminationCandidatesIncomplete = true;
       logger.log(
@@ -736,6 +738,9 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Override
   protected boolean canUseNonTerminationStepCaseRefinement(
       CandidateInvariant pCandidateInvariant) {
+    if (nonTerminationBaseStrengthenings.contains(pCandidateInvariant)) {
+      return false;
+    }
     Optional<NonTerminationLoopScope> loopScope = getNonTerminationLoopScope(pCandidateInvariant);
     return loopScope.isEmpty() || !hasPotentialInternalTerminationEdge(loopScope.orElseThrow());
   }
@@ -1026,6 +1031,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       CandidateInvariant pBaseCandidate,
       CandidateInvariant pStrengthenedCandidate) {
     pStrengthenedCandidates.add(pStrengthenedCandidate);
+    nonTerminationBaseStrengthenings.add(pStrengthenedCandidate);
     NonTerminationLoopScope loopScope = nonTerminationLoopScopes.get(pBaseCandidate);
     if (loopScope != null) {
       nonTerminationLoopScopes.put(pStrengthenedCandidate, loopScope);

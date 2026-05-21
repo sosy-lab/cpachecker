@@ -983,6 +983,11 @@ bmc.invariantGeneratorHeadStartStrategy = NONE
 # Export auxiliary invariants used for induction.
 bmc.invariantsExport = no default value
 
+# Use counterexamples from failed non-termination step-case checks to suggest
+# strengthened loop-continuation candidates. Refined candidates are checked
+# after regular candidates and are not refined again.
+bmc.kinduction.nonTerminationStepCaseRefinement = true
+
 # File with predicate precisions that should be used as candidate invariants
 # in k-induction
 bmc.kinduction.predicatePrecisionFile = no default value
