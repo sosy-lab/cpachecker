@@ -25,12 +25,9 @@ SPDX-License-Identifier: Apache-2.0
     <property name="junit.dir" value="junit"/>
     <property name="junit.report" value="JUnit.html"/>
 
-    <!-- Option to enable running more expensive tests. Turned off by default.
-         When enabled, the test-suite in FloatValueTest will be run on a larger set of generated
-         test values. It will also test additional floating point formats that are otherwise
-         skipped.
+    <!-- Option to enable running more tests. Turned off by default.
          Running these tests will take several minutes. -->
-    <property name="enableExpensiveTests" value="false"/>
+    <property name="enableExtendedTests" value="false"/>
 
     <!-- Define property that contains the Ant version for getting the matching ant-junit version. -->
     <antversion property="ant.version.exact"/>
@@ -63,7 +60,7 @@ SPDX-License-Identifier: Apache-2.0
             <formatter type="xml"/>
             <classpath refid="classpath.junit"/>
             <sysproperty key="java.awt.headless" value="true" />
-            <sysproperty key="enableExpensiveTests" value="${enableExpensiveTests}"/>
+            <sysproperty key="enableExtendedTests" value="${enableExtendedTests}"/>
             <batchtest fork="true" todir="${junit.dir}">
                 <fileset dir="${class.dir}">
                     <include name="**/*Test.*"/>

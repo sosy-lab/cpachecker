@@ -20,8 +20,8 @@ spec:
       rules:
         - if: $[[ inputs.auto_update_dependencies ]] == true
           default:
-    expensive_tests:
-      description: "Run expensive tests as part of unit tests"
+    extended_tests:
+      description: "Run extended set of unit tests"
       type: boolean
       rules:
         - if: $[[ inputs.auto_update_dependencies ]] != true
@@ -37,7 +37,7 @@ spec:
 include:
   - local: build/gitlab-ci.local.yml
     inputs:
-      expensive_tests: $[[ inputs.expensive_tests ]]
+      extended_tests: $[[ inputs.extended_tests ]]
       tests_per_java_version: $[[ inputs.tests_per_java_version ]]
     rules:
       - if: $[[ inputs.auto_update_dependencies ]] != true

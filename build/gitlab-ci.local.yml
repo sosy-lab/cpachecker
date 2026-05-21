@@ -8,8 +8,8 @@
 
 spec:
   inputs:
-    expensive_tests:
-      description: "Run expensive tests as part of unit tests"
+    extended_tests:
+      description: "Run extended set of unit tests"
       type: boolean
       default: false
     tests_per_java_version:
@@ -332,16 +332,16 @@ unit-tests:jdk-21:
   rules:
     - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
       when: never
-    - if: $[[ inputs.expensive_tests ]] == true
+    - if: $[[ inputs.extended_tests ]] == true
       when: never
     - when: on_success
 
 unit-tests-extended:jdk-21:
   extends: unit-tests:jdk-21
-  script: "ant $ANT_PROPS_CHECKS unit-tests -DenableExpensiveTests=true"
+  script: "ant $ANT_PROPS_CHECKS unit-tests -DenableExtendedTests=true"
   rules:
     - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
-    - if: $[[ inputs.expensive_tests ]] == true
+    - if: $[[ inputs.extended_tests ]] == true
 
 unit-tests:jdk-25:
   script: "ant $ANT_PROPS_CHECKS unit-tests"

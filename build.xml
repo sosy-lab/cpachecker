@@ -131,16 +131,16 @@ SPDX-License-Identifier: Apache-2.0
     </target>
 
     <target name="tests" depends="unit-tests, integration-tests, configuration-checks"
-            description="Run unit and integration tests (expensive tests only if requested) and configuration checks"/>
+            description="Run unit and integration tests (extended tests only if requested) and configuration checks"/>
 
     <target name="all-checks"
-            description="Run standard checks plus compilation with ECJ and expensive tests">
+            description="Run standard checks plus compilation with ECJ and extended tests">
         <!-- We have to use antcall here to run clean twice and to overwrite properties. -->
         <antcall target="clean"/>
         <antcall target="build-project-ecj"/>
         <antcall target="clean"/>
         <antcall target="standard-checks">
-            <param name="enableExpensiveTests" value="true"/>
+            <param name="enableExtendedTests" value="true"/>
         </antcall>
     </target>
 

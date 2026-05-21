@@ -85,7 +85,7 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
  *
  * <p>The test class is parametrized and can compare results for various floating point precisions
  * and reference implementations. The behaviour depends on the system property <code>
- * enableExpensiveTests</code>. When it is set an exhaustive set of tests will be run for the
+ * enableExtendedTests</code>. When it is set an exhaustive set of tests will be run for the
  * precisions <code>Float8</code>, <code>Float16</code>, <code>Float32</code>, <code>Float64</code>
  * and <code>FloatExtended</code>. For <code>Float8</code> all possible inputs are tested for each
  * method, and for <code>Float16</code> the tests are exhaustive for unary methods. We use MPFR as a
@@ -93,7 +93,7 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
  * <code>Float32</code>, <code>Float64</code> and <code>FloatExtended</code>, and the Java
  * implementation on <code>Float32</code> and <code>Float64</code>.
  *
- * <p>When the system property <code>enableExpensiveTests</code> is not set to <code>on</code> a
+ * <p>When the system property <code>enableExtendedTests</code> is not set to <code>on</code> a
  * smaller subset of tests is run. In this case we will only consider the precision <code>Float32
  * </code> and test all three implementations with a much smaller number of randomly generated
  * tests.
@@ -153,11 +153,11 @@ public class FloatValueTest {
   /**
    * Enables running more exhaustive tests
    *
-   * <p>Use <code>ant tests -DenableExpensiveTests=true</code> to set this flag. The test suite will
+   * <p>Use <code>ant tests -DenableExtendedTests=true</code> to set this flag. The test suite will
    * then generate a much more exhaustive set of input values for the tested methods.
    */
-  private static final boolean enableExpensiveTests =
-      Boolean.parseBoolean(System.getProperty("enableExpensiveTests"));
+  private static final boolean enableExtendedTests =
+      Boolean.parseBoolean(System.getProperty("enableExtendedTests"));
 
   @Parameters(name = "{0}")
   public static FloatTestOptions[] getFloatTestOptions() {
@@ -169,10 +169,10 @@ public class FloatValueTest {
             || precision.equals(Format.Float32)
             || precision.equals(Format.Float64)
             || (reference.equals(ReferenceImpl.NATIVE) && precision.equals(Format.Float80))) {
-          if (precision.equals(Format.Float32) || enableExpensiveTests) {
+          if (precision.equals(Format.Float32) || enableExtendedTests) {
             builder.add(
                 new FloatTestOptions(
-                    precision, reference, enableExpensiveTests ? entry.getValue() : 100));
+                    precision, reference, enableExtendedTests ? entry.getValue() : 100));
           }
         }
       }
@@ -395,7 +395,7 @@ public class FloatValueTest {
   /** The set of test inputs that should be used for unary operations in the CFloat interface. */
   private Iterable<BigFloat> unaryTestValues() {
     Format format = floatTestOptions.format;
-    if (enableExpensiveTests && (format.equals(Format.Float8) || format.equals(Format.Float16))) {
+    if (enableExtendedTests && (format.equals(Format.Float8) || format.equals(Format.Float16))) {
       return allFloats(format);
     } else {
       BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());
@@ -414,7 +414,7 @@ public class FloatValueTest {
    */
   private Iterable<BigFloat> binaryTestValues() {
     Format format = floatTestOptions.format;
-    if (enableExpensiveTests && format.equals(Format.Float8)) {
+    if (enableExtendedTests && format.equals(Format.Float8)) {
       return allFloats(format);
     } else {
       BinaryMathContext context = new BinaryMathContext(format.sigBits() + 1, format.expBits());

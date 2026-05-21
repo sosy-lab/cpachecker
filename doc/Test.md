@@ -14,7 +14,7 @@ Test Overview
 | What | Where | When |
 | ------ | ------ | ------ |
 | Standard unit tests for Java code                             | [GitLab CI][] | all pipelines |
-| Expensive unit tests for Java code                            | [GitLab CI][] | merge trains + weekly for `main` |
+| Extended unit tests for Java code                             | [GitLab CI][] | merge trains + weekly for `main` |
 | Configuration checks (smoke test for each config file)        | [GitLab CI][] | all pipelines |
 | [Unit tests for JavaScript code](JavascriptTesting.md)        | [GitLab CI][] | all pipelines |
 | [Integration tests for JavaScript code](JavascriptTesting.md) | [GitLab CI][] | all pipelines |
@@ -64,7 +64,7 @@ Of course the unit tests can also be executed from within your IDE and are execu
 
 Some particularly expensive tests (which take several minutes)
 are disabled by default and can be enabled with
-`-DenableExpensiveTests=true` on the command line.
+`-DenableExtendedTests=true` on the command line.
 
 Structure of Tests
 ------------------
