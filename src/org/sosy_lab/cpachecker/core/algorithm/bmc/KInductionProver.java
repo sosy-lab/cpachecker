@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.input.InputState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
@@ -1215,21 +1216,50 @@ class KInductionProver implements AutoCloseable {
         filterIteration(
             AbstractStates.filterLocations(reached, pRelevantLoopHeads), pK, pRelevantLoopHeads);
     BooleanFormula result = bfmgr.makeFalse();
-    for (AbstractState state : pPredecessorCandidate.filterApplicable(loopHeadStatesAtIterK)) {
-      PredicateAbstractState predicateState =
-          AbstractStates.extractStateByType(state, PredicateAbstractState.class);
-      if (predicateState == null) {
+    for (AbstractState stopState : loopHeadStatesAtIterK) {
+      Optional<BooleanFormula> pathContribution =
+          buildPathContributionForCandidate(stopState, pPredecessorCandidate);
+      if (pathContribution.isPresent()) {
+        result = bfmgr.or(result, pathContribution.orElseThrow());
+      }
+    }
+    return result;
+  }
+
+  private Optional<BooleanFormula> buildPathContributionForCandidate(
+      AbstractState pStopState, CandidateInvariant pCandidate)
+      throws CPATransferException, InterruptedException {
+    ARGState argStopState = AbstractStates.extractStateByType(pStopState, ARGState.class);
+    if (argStopState == null) {
+      return Optional.empty();
+    }
+    PredicateAbstractState stopPredicateState =
+        AbstractStates.extractStateByType(pStopState, PredicateAbstractState.class);
+    if (stopPredicateState == null) {
+      return Optional.empty();
+    }
+    BooleanFormula stopStateFormula = stopPredicateState.getPathFormula().getFormula();
+    if (bfmgr.isFalse(stopStateFormula)) {
+      return Optional.empty();
+    }
+    BooleanFormula result = stopStateFormula;
+    boolean foundApplicableState = false;
+    for (ARGState pathState : ARGUtils.getOnePathTo(argStopState).asStatesList()) {
+      if (Iterables.isEmpty(pCandidate.filterApplicable(Collections.singleton(pathState)))) {
         continue;
       }
-      BooleanFormula stateFormula = predicateState.getPathFormula().getFormula();
-      if (bfmgr.isFalse(stateFormula)) {
+      PredicateAbstractState predicateState =
+          AbstractStates.extractStateByType(pathState, PredicateAbstractState.class);
+      if (predicateState == null
+          || bfmgr.isFalse(predicateState.getPathFormula().getFormula())) {
         continue;
       }
       BooleanFormula stateAssertion =
-          pPredecessorCandidate.getAssertion(Collections.singleton(state), fmgr, pfmgr);
-      result = bfmgr.or(result, bfmgr.and(stateFormula, stateAssertion));
+          pCandidate.getAssertion(Collections.singleton(pathState), fmgr, pfmgr);
+      result = bfmgr.and(result, stateAssertion);
+      foundApplicableState = true;
     }
-    return result;
+    return foundApplicableState ? Optional.of(result) : Optional.empty();
   }
 
   private Multimap<BooleanFormula, BooleanFormula> getNonTerminationClosureViolationAssertions(
