@@ -963,6 +963,8 @@ public class AssumptionToEdgeAllocator {
         }
 
         final BigDecimal subscriptValue;
+        // Solvers may assume integer/bv types as rationals etc., thus we need to be able to handle
+        // them here!
         if (subscriptValueNumber instanceof Rational rational) {
           subscriptValue =
               new BigDecimal(rational.getNum()).divide(new BigDecimal(rational.getDen()));
@@ -977,6 +979,7 @@ public class AssumptionToEdgeAllocator {
 
         BigDecimal subscriptOffset = subscriptValue.multiply(typeSize);
 
+        // The address transforms the subscript to BigInteger in all cases
         return address.addOffset(subscriptOffset);
       }
 
@@ -1166,21 +1169,28 @@ public class AssumptionToEdgeAllocator {
             BigDecimal typeSize = new BigDecimal(machineModel.getSizeof(elementType));
             BigDecimal pointerOffsetValue = offsetValue.multiply(typeSize);
 
-            yield switch (binaryOperator) {
-              case PLUS -> new NumericValue(addressValue.add(pointerOffsetValue));
-              case MINUS -> {
-                if (lVarIsAddress) {
-                  yield new NumericValue(addressValue.subtract(pointerOffsetValue));
-                } else {
-                  throw new UnrecognizedCodeException(
-                      "Expected pointer arithmetic "
-                          + " with + or - but found "
-                          + binaryExp.toASTString(),
-                      binaryExp);
-                }
-              }
-              default -> throw new AssertionError();
-            };
+            BigDecimal resultAddress =
+                switch (binaryOperator) {
+                  case PLUS -> addressValue.add(pointerOffsetValue);
+                  case MINUS -> {
+                    if (lVarIsAddress) {
+                      yield addressValue.subtract(pointerOffsetValue);
+                    } else {
+                      throw new UnrecognizedCodeException(
+                          "Expected pointer arithmetic "
+                              + " with + or - but found "
+                              + binaryExp.toASTString(),
+                          binaryExp);
+                    }
+                  }
+                  default -> throw new AssertionError();
+                };
+
+            if (resultAddress.scale() <= 0) {
+              yield new NumericValue(resultAddress.toBigIntegerExact());
+            } else {
+              yield new NumericValue(Rational.ofBigDecimal(resultAddress));
+            }
           }
           default -> Value.UnknownValue.getInstance();
         };
