@@ -34,7 +34,7 @@ public record NumericValue(Number number) implements Value {
   public NumericValue {
     if (!(hasIntegerType() || hasFloatType() || number instanceof Rational)) {
       throw new IllegalArgumentException(
-          "NumericValue can not be created from value '%s' with unexpected type '%s'."
+          "NumericValue can not be created from unexpected type '%s' with value '%s'."
                   .formatted(number.getClass(), number)
               + "Allowed types are: Rational, Byte,"
               + " Short, Integer, Long, BigInteger, FloatValue, Float, Double");
