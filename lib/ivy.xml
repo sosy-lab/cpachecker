@@ -189,11 +189,11 @@ SPDX-License-Identifier: Apache-2.0
         -->
         <dependency org="org.sosy_lab" name="javasmt-solver-mathsat" rev="5.6.11" conf="runtime->solver-mathsat" />
 
-        <!-- Z3 beyond 4.15.8 requires system dependencies equivalent of Ubuntu 24.04/Debian 13 or greater.
-             We use version 4.15.8 as an intermediate step to give users and our systems some time to upgrade
+        <!-- Z3 beyond 4.15.4 requires system dependencies equivalent of Ubuntu 24.04/Debian 13 or greater.
+             We use version 4.15.4 as an intermediate step to give users and our systems some time to upgrade
              before switching to newer Z3 versions.
         -->
-        <dependency org="org.sosy_lab" name="javasmt-solver-z3" rev="4.15.8" conf="runtime->solver-z3" />
+        <dependency org="org.sosy_lab" name="javasmt-solver-z3" rev="4.15.4" conf="runtime->solver-z3" />
 
 
         <!-- YAML parser -->
