@@ -47,6 +47,7 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -373,7 +374,13 @@ class KInductionProver implements AutoCloseable {
     BooleanFormula loopHeadInv =
         inductiveLoopHeadInvariantAssertion(loopHeadStates, relevantLoopHeads);
     Multimap<BooleanFormula, BooleanFormula> successorViolationAssertions =
-        getNonTerminationClosureViolationAssertions(pCandidateInvariant, inductionHypothesis);
+        LinkedHashMultimap.create(
+            getNonTerminationClosureViolationAssertions(pCandidateInvariant, inductionHypothesis));
+    if (pLoopScope.isPresent()) {
+      successorViolationAssertions.putAll(
+          getNonTerminationLoopExitViolationAssertions(
+              pLoopScope.orElseThrow(), inductionHypothesis));
+    }
     if (successorViolationAssertions.isEmpty()) {
       logger.log(
           Level.FINER,
@@ -398,9 +405,11 @@ class KInductionProver implements AutoCloseable {
             "The non-termination closure predecessor is unsatisfiable; refusing vacuous proof.");
         return false;
       }
-      // Existential closure check: from a predecessor satisfying C, there must exist a
-      // successor at LH (one iteration later) still satisfying the FULL candidate. Otherwise the
-      // loop cannot be maintained in C and any "no-violation" verdict is vacuous.
+      // Existential closure check: from a predecessor satisfying C, there must exist a successor
+      // at LH (one iteration later) still satisfying the FULL candidate. This is only a
+      // non-vacuity check. It must not stay on the stack for the universal violation check below:
+      // otherwise a feasible "good" continuation path can hide a different feasible exit path,
+      // because both path formulas would have to hold in the same SSA model.
       BooleanFormula successorInCandidate =
           buildSuccessorInCandidate(pCandidateInvariant, pK + 1, relevantLoopHeads);
       prover.push(successorInCandidate);
@@ -412,6 +421,9 @@ class KInductionProver implements AutoCloseable {
                 + " proof.");
         return false;
       }
+      prover.pop();
+      pushes--;
+
       prover.push(loopHeadInv);
       pushes++;
       prover.push(successorViolation);
@@ -1299,6 +1311,33 @@ class KInductionProver implements AutoCloseable {
     }
 
     return stateViolationAssertionsBuilder.build();
+  }
+
+  private Multimap<BooleanFormula, BooleanFormula> getNonTerminationLoopExitViolationAssertions(
+      NonTerminationLoopScope pLoopScope, Set<AbstractState> pHypothesis)
+      throws CPATransferException, InterruptedException {
+    ImmutableSet.Builder<CFANode> exitSuccessorsBuilder = ImmutableSet.builder();
+    for (CFAEdge outgoingEdge : pLoopScope.loop().getOutgoingEdges()) {
+      exitSuccessorsBuilder.add(outgoingEdge.getSuccessor());
+    }
+    ImmutableSet<CFANode> exitSuccessors = exitSuccessorsBuilder.build();
+    if (exitSuccessors.isEmpty()) {
+      return ImmutableListMultimap.of();
+    }
+
+    ReachedSet reached = reachedSet.getReachedSet();
+    ImmutableListMultimap.Builder<BooleanFormula, BooleanFormula> exitViolationsBuilder =
+        ImmutableListMultimap.builder();
+    for (AbstractState state : AbstractStates.filterLocations(reached, exitSuccessors)) {
+      if (pHypothesis.contains(state)) {
+        continue;
+      }
+      Set<AbstractState> stateAsSet = Collections.singleton(state);
+      BooleanFormula stateFormula =
+          BMCHelper.createFormulaFor(stateAsSet, bfmgr, Optional.of(shutdownNotifier));
+      exitViolationsBuilder.put(stateFormula, bfmgr.makeTrue());
+    }
+    return exitViolationsBuilder.build();
   }
 
   private FluentIterable<AbstractState> filterNonTerminationPredecessorStates(
