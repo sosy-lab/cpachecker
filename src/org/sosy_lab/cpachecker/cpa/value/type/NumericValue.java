@@ -32,7 +32,15 @@ public record NumericValue(Number number) implements Value {
    *     Double}, {@link Float}.
    */
   public NumericValue {
-    if (!(hasIntegerType() || hasFloatType() || number instanceof Rational)) {
+    if (!(number instanceof BigInteger
+        || number instanceof Long
+        || number instanceof Integer
+        || number instanceof Short
+        || number instanceof Byte
+        || number instanceof FloatValue
+        || number instanceof Double
+        || number instanceof Float
+        || number instanceof Rational)) {
       throw new IllegalArgumentException(
           "NumericValue can not be created from unexpected type '%s' with value '%s'."
                   .formatted(number.getClass(), number)
