@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 @RunWith(Parameterized.class)
 public class ACSLParserTest {
 
-  private static final String TEST_DIR = "test/programs/acsl/";
+  private static final String TEST_DIR = "test/programs/acslDeprecated/";
 
   private final String programName;
   private final int expectedAnnotations;

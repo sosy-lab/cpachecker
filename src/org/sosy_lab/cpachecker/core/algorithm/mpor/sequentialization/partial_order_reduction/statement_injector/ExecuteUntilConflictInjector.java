@@ -1,0 +1,98 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import java.util.Objects;
+import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentationBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
+
+record ExecuteUntilConflictInjector(
+    MPOROptions options,
+    ImmutableSet<MPORThread> otherThreads,
+    ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap,
+    ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap,
+    SeqBitVectorVariables bitVectorVariables,
+    MachineModel machineModel,
+    MemoryModel memoryModel,
+    SequentializationUtils utils) {
+
+  SeqThreadStatement injectUntilConflictReductionIntoStatement(SeqThreadStatement pStatement)
+      throws UnrecognizedCodeException {
+
+    // if valid target pc found, inject bit vector write and evaluation statements
+    if (pStatement.targetPc().isPresent()) {
+      ImmutableList.Builder<SeqInstrumentation> newInstrumentation = ImmutableList.builder();
+      int targetPc = pStatement.targetPc().orElseThrow();
+      // exclude exit pc, don't want 'assume(conflict)' there
+      if (targetPc != ProgramCounterVariables.EXIT_PC) {
+        SeqThreadStatementClause newTarget = Objects.requireNonNull(labelClauseMap.get(targetPc));
+        if (isReductionAllowed(newTarget)) {
+          SeqInstrumentation evaluationStatement =
+              buildBitVectorEvaluationStatement(newTarget.getFirstBlock());
+          newInstrumentation.add(evaluationStatement);
+        }
+        return SeqThreadStatementUtil.appendedInstrumentationStatement(
+            pStatement, newInstrumentation.build());
+      }
+    }
+    // no injection possible -> return statement as is
+    return pStatement;
+  }
+
+  // Bit Vector Evaluations =======================================================================
+
+  private SeqInstrumentation buildBitVectorEvaluationStatement(SeqThreadStatementBlock pTargetBlock)
+      throws UnrecognizedCodeException {
+
+    Optional<CExportExpression> evaluationExpression =
+        BitVectorEvaluationBuilder.buildEvaluationByDirectVariableAccesses(
+            options,
+            otherThreads,
+            labelBlockMap,
+            pTargetBlock,
+            bitVectorVariables,
+            machineModel,
+            memoryModel,
+            utils);
+    return SeqInstrumentationBuilder.buildUntilConflictReductionStatement(
+        options.nondeterminismSource(), evaluationExpression, pTargetBlock.buildLabelStatement());
+  }
+
+  // boolean helpers ===============================================================================
+
+  /**
+   * Checks whether bit vector injections are allowed, i.e. if they do not result in interleaving
+   * loss.
+   */
+  private boolean isReductionAllowed(SeqThreadStatementClause pTarget) {
+    // if the target starts with a thread synchronization (i.e. assume), do not inject
+    return !SeqThreadStatementUtil.anySynchronizesThreads(pTarget.getAllStatements())
+        // check based on pOptions if the target is a loop head that must remain separate
+        && !SeqThreadStatementClauseUtil.isSeparateLoopStart(options, pTarget);
+  }
+}

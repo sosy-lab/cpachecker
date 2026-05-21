@@ -53,15 +53,14 @@ public class SequentializationParseTest {
     assertThat(Files.exists(path)).isTrue();
     Configuration config =
         TestDataTools.configurationForTest()
-            .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "DECIMAL")
+            .setOption("analysis.algorithm.MPOR.abortCommutingContextSwitches", "true")
+            .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "OCTAL")
             .setOption("analysis.algorithm.MPOR.comments", "true")
-            .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "IF_ELSE_CHAIN")
+            .setOption("analysis.algorithm.MPOR.executeThreadsUntilConflict", "true")
             .setOption("analysis.algorithm.MPOR.noBackwardLoopGoto", "false")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
-            .setOption("analysis.algorithm.MPOR.reduceLastThreadOrder", "true")
-            .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
-            .setOption("analysis.algorithm.MPOR.reductionMode", "READ_AND_WRITE")
-            .setOption("analysis.algorithm.MPOR.reductionOrder", "LAST_THREAD_THEN_CONFLICT")
+            .setOption("analysis.algorithm.MPOR.partialOrderReductionMode", "READ_AND_WRITE")
+            .setOption("analysis.algorithm.MPOR.selectionEncodingForStatements", "IF_ELSE_CHAIN")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
             .build();
     MPOROptions options = new MPOROptions(config);
@@ -77,13 +76,14 @@ public class SequentializationParseTest {
     assertThat(Files.exists(path)).isTrue();
     Configuration config =
         TestDataTools.configurationForTest()
-            .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "BINARY")
+            .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "HEXADECIMAL")
             .setOption("analysis.algorithm.MPOR.comments", "true")
-            .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "BINARY_SEARCH_TREE")
+            .setOption("analysis.algorithm.MPOR.executeThreadsUntilConflict", "true")
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
-            .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
-            .setOption("analysis.algorithm.MPOR.reductionMode", "READ_AND_WRITE")
-            .setOption("analysis.algorithm.MPOR.scalarPc", "false")
+            .setOption("analysis.algorithm.MPOR.partialOrderReductionMode", "READ_AND_WRITE")
+            .setOption("analysis.algorithm.MPOR.scalarProgramCounters", "false")
+            .setOption(
+                "analysis.algorithm.MPOR.selectionEncodingForStatements", "BINARY_SEARCH_TREE")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
             .build();
     MPOROptions options = new MPOROptions(config);
@@ -97,13 +97,14 @@ public class SequentializationParseTest {
     assertThat(Files.exists(path)).isTrue();
     Configuration config =
         TestDataTools.configurationForTest()
-            .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "IF_ELSE_CHAIN")
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
-            .setOption("analysis.algorithm.MPOR.loopIterations", "42")
+            .setOption("analysis.algorithm.MPOR.threadSimulationIterations", "42")
             .setOption("analysis.algorithm.MPOR.noBackwardGoto", "false")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
             .setOption("analysis.algorithm.MPOR.nondeterminismSource", "NUM_STATEMENTS")
+            .setOption("analysis.algorithm.MPOR.selectionEncodingForStatements", "IF_ELSE_CHAIN")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
+            .setOption("analysis.algorithm.MPOR.threadSimulationIterations", "42")
             .setOption("analysis.algorithm.MPOR.validateNoBackwardGoto", "false")
             .build();
     MPOROptions options = new MPOROptions(config);
@@ -120,17 +121,17 @@ public class SequentializationParseTest {
     Configuration config =
         TestDataTools.configurationForTest()
             .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "BINARY")
-            .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "IF_ELSE_CHAIN")
-            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "SWITCH_CASE")
-            .setOption("analysis.algorithm.MPOR.loopIterations", "1")
+            .setOption("analysis.algorithm.MPOR.executeThreadsUntilConflict", "true")
             .setOption("analysis.algorithm.MPOR.noBackwardLoopGoto", "false")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
             .setOption("analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD")
+            .setOption("analysis.algorithm.MPOR.partialOrderReductionMode", "READ_AND_WRITE")
             .setOption("analysis.algorithm.MPOR.pruneBitVectorEvaluations", "true")
-            .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
-            .setOption("analysis.algorithm.MPOR.reductionMode", "READ_AND_WRITE")
-            .setOption("analysis.algorithm.MPOR.scalarPc", "false")
+            .setOption("analysis.algorithm.MPOR.scalarProgramCounters", "false")
+            .setOption("analysis.algorithm.MPOR.selectionEncodingForStatements", "IF_ELSE_CHAIN")
+            .setOption("analysis.algorithm.MPOR.selectionEncodingForThreads", "SWITCH_CASE")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
+            .setOption("analysis.algorithm.MPOR.threadSimulationIterations", "1")
             .build();
     MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
@@ -144,19 +145,18 @@ public class SequentializationParseTest {
     assertThat(Files.exists(path)).isTrue();
     Configuration config =
         TestDataTools.configurationForTest()
-            .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "DECIMAL")
+            .setOption("analysis.algorithm.MPOR.abortCommutingContextSwitches", "true")
+            .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "OCTAL")
             .setOption("analysis.algorithm.MPOR.comments", "true")
-            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "BINARY_SEARCH_TREE")
+            .setOption("analysis.algorithm.MPOR.executeCommutingThreadsFirst", "true")
+            .setOption("analysis.algorithm.MPOR.executeThreadsUntilConflict", "true")
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
             .setOption("analysis.algorithm.MPOR.noBackwardGoto", "false")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
             .setOption(
                 "analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD_AND_NUM_STATEMENTS")
-            .setOption("analysis.algorithm.MPOR.reduceIgnoreSleep", "true")
-            .setOption("analysis.algorithm.MPOR.reduceLastThreadOrder", "true")
-            .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
-            .setOption("analysis.algorithm.MPOR.reductionMode", "ACCESS_ONLY")
-            .setOption("analysis.algorithm.MPOR.reductionOrder", "CONFLICT_THEN_LAST_THREAD")
+            .setOption("analysis.algorithm.MPOR.partialOrderReductionMode", "ACCESS_ONLY")
+            .setOption("analysis.algorithm.MPOR.selectionEncodingForThreads", "BINARY_SEARCH_TREE")
             .setOption("analysis.algorithm.MPOR.validateNoBackwardGoto", "false")
             .build();
     MPOROptions options = new MPOROptions(config);
@@ -170,14 +170,13 @@ public class SequentializationParseTest {
     Configuration config =
         TestDataTools.configurationForTest()
             .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "DECIMAL")
-            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "SWITCH_CASE")
-            .setOption("analysis.algorithm.MPOR.loopIterations", "7")
-            .setOption("analysis.algorithm.MPOR.loopUnrolling", "true")
+            .setOption("analysis.algorithm.MPOR.executeThreadsUntilConflict", "true")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
             .setOption("analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD")
-            .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
-            .setOption("analysis.algorithm.MPOR.reductionMode", "ACCESS_ONLY")
-            .setOption("analysis.algorithm.MPOR.scalarPc", "false")
+            .setOption("analysis.algorithm.MPOR.partialOrderReductionMode", "ACCESS_ONLY")
+            .setOption("analysis.algorithm.MPOR.scalarProgramCounters", "false")
+            .setOption("analysis.algorithm.MPOR.threadSimulationIterations", "7")
+            .setOption("analysis.algorithm.MPOR.threadSimulationUnrolling", "true")
             .build();
     MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
@@ -191,17 +190,17 @@ public class SequentializationParseTest {
     assertThat(Files.exists(path)).isTrue();
     Configuration config =
         TestDataTools.configurationForTest()
+            .setOption("analysis.algorithm.MPOR.abortCommutingContextSwitches", "true")
             .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "HEXADECIMAL")
-            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "IF_ELSE_CHAIN")
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
             .setOption("analysis.algorithm.MPOR.noBackwardGoto", "false")
             .setOption("analysis.algorithm.MPOR.noBackwardLoopGoto", "false")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
             .setOption("analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD")
+            .setOption("analysis.algorithm.MPOR.partialOrderReductionMode", "READ_AND_WRITE")
             .setOption("analysis.algorithm.MPOR.pruneBitVectorEvaluations", "true")
-            .setOption("analysis.algorithm.MPOR.reduceLastThreadOrder", "true")
-            .setOption("analysis.algorithm.MPOR.reductionMode", "READ_AND_WRITE")
-            .setOption("analysis.algorithm.MPOR.scalarPc", "false")
+            .setOption("analysis.algorithm.MPOR.scalarProgramCounters", "false")
+            .setOption("analysis.algorithm.MPOR.selectionEncodingForThreads", "IF_ELSE_CHAIN")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
             .setOption("analysis.algorithm.MPOR.validateNoBackwardGoto", "false")
             .build();
@@ -216,15 +215,16 @@ public class SequentializationParseTest {
     assertThat(Files.exists(path)).isTrue();
     Configuration config =
         TestDataTools.configurationForTest()
-            .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "BINARY_SEARCH_TREE")
-            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "SWITCH_CASE")
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
-            .setOption("analysis.algorithm.MPOR.linkReduction", "false")
-            .setOption("analysis.algorithm.MPOR.loopIterations", "2000000000")
+            .setOption("analysis.algorithm.MPOR.mergeCommutingStatements", "false")
             .setOption("analysis.algorithm.MPOR.noBackwardLoopGoto", "false")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
             .setOption("analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD")
+            .setOption(
+                "analysis.algorithm.MPOR.selectionEncodingForStatements", "BINARY_SEARCH_TREE")
+            .setOption("analysis.algorithm.MPOR.selectionEncodingForThreads", "SWITCH_CASE")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
+            .setOption("analysis.algorithm.MPOR.threadSimulationIterations", "2000000000")
             .build();
     MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
@@ -237,17 +237,17 @@ public class SequentializationParseTest {
     assertThat(Files.exists(path)).isTrue();
     Configuration config =
         TestDataTools.configurationForTest()
+            .setOption("analysis.algorithm.MPOR.abortCommutingContextSwitches", "true")
             .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "DECIMAL")
             .setOption("analysis.algorithm.MPOR.comments", "true")
-            .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "IF_ELSE_CHAIN")
-            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "SWITCH_CASE")
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
             .setOption(
                 "analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD_AND_NUM_STATEMENTS")
+            .setOption("analysis.algorithm.MPOR.partialOrderReductionMode", "READ_AND_WRITE")
             .setOption("analysis.algorithm.MPOR.pruneBitVectorEvaluations", "true")
-            .setOption("analysis.algorithm.MPOR.reduceLastThreadOrder", "true")
-            .setOption("analysis.algorithm.MPOR.reductionMode", "READ_AND_WRITE")
-            .setOption("analysis.algorithm.MPOR.scalarPc", "false")
+            .setOption("analysis.algorithm.MPOR.scalarProgramCounters", "false")
+            .setOption("analysis.algorithm.MPOR.selectionEncodingForStatements", "IF_ELSE_CHAIN")
+            .setOption("analysis.algorithm.MPOR.selectionEncodingForThreads", "SWITCH_CASE")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
             .build();
     MPOROptions options = new MPOROptions(config);
@@ -263,18 +263,18 @@ public class SequentializationParseTest {
     assertThat(Files.exists(path)).isTrue();
     Configuration config =
         TestDataTools.configurationForTest()
+            .setOption("analysis.algorithm.MPOR.abortCommutingContextSwitches", "true")
             .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "BINARY")
             .setOption("analysis.algorithm.MPOR.comments", "true")
-            .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "BINARY_SEARCH_TREE")
-            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "BINARY_SEARCH_TREE")
+            .setOption("analysis.algorithm.MPOR.executeThreadsUntilConflict", "true")
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
             .setOption("analysis.algorithm.MPOR.noBackwardGoto", "false")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
             .setOption("analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD")
-            .setOption("analysis.algorithm.MPOR.reduceLastThreadOrder", "true")
-            .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
-            .setOption("analysis.algorithm.MPOR.reductionMode", "ACCESS_ONLY")
-            .setOption("analysis.algorithm.MPOR.reductionOrder", "LAST_THREAD_THEN_CONFLICT")
+            .setOption("analysis.algorithm.MPOR.partialOrderReductionMode", "ACCESS_ONLY")
+            .setOption(
+                "analysis.algorithm.MPOR.selectionEncodingForStatements", "BINARY_SEARCH_TREE")
+            .setOption("analysis.algorithm.MPOR.selectionEncodingForThreads", "BINARY_SEARCH_TREE")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
             .setOption("analysis.algorithm.MPOR.validateNoBackwardGoto", "false")
             .build();
@@ -290,18 +290,18 @@ public class SequentializationParseTest {
     Configuration config =
         TestDataTools.configurationForTest()
             .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "SPARSE")
-            .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "IF_ELSE_CHAIN")
-            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "SWITCH_CASE")
-            .setOption("analysis.algorithm.MPOR.loopIterations", "9999")
+            .setOption("analysis.algorithm.MPOR.executeThreadsUntilConflict", "true")
             .setOption(
                 "analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD_AND_NUM_STATEMENTS")
+            .setOption("analysis.algorithm.MPOR.partialOrderReductionMode", "READ_AND_WRITE")
             .setOption("analysis.algorithm.MPOR.pruneBitVectorEvaluations", "true")
             .setOption("analysis.algorithm.MPOR.pruneSparseBitVectors", "true")
             .setOption("analysis.algorithm.MPOR.pruneSparseBitVectorWrites", "true")
-            .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
-            .setOption("analysis.algorithm.MPOR.reductionMode", "READ_AND_WRITE")
-            .setOption("analysis.algorithm.MPOR.scalarPc", "false")
+            .setOption("analysis.algorithm.MPOR.scalarProgramCounters", "false")
+            .setOption("analysis.algorithm.MPOR.selectionEncodingForStatements", "IF_ELSE_CHAIN")
+            .setOption("analysis.algorithm.MPOR.selectionEncodingForThreads", "SWITCH_CASE")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
+            .setOption("analysis.algorithm.MPOR.threadSimulationIterations", "9999")
             .build();
     MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
@@ -316,14 +316,13 @@ public class SequentializationParseTest {
     Configuration config =
         TestDataTools.configurationForTest()
             .setOption("analysis.algorithm.MPOR.comments", "true")
-            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "BINARY_SEARCH_TREE")
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
-            .setOption("analysis.algorithm.MPOR.loopIterations", "16")
-            .setOption("analysis.algorithm.MPOR.loopUnrolling", "true")
             .setOption("analysis.algorithm.MPOR.noBackwardGoto", "false")
             .setOption("analysis.algorithm.MPOR.noBackwardLoopGoto", "false")
             .setOption(
                 "analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD_AND_NUM_STATEMENTS")
+            .setOption("analysis.algorithm.MPOR.threadSimulationIterations", "16")
+            .setOption("analysis.algorithm.MPOR.threadSimulationUnrolling", "true")
             .setOption("analysis.algorithm.MPOR.validateNoBackwardGoto", "false")
             .build();
     MPOROptions options = new MPOROptions(config);
@@ -338,16 +337,17 @@ public class SequentializationParseTest {
         TestDataTools.configurationForTest()
             .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "SPARSE")
             .setOption("analysis.algorithm.MPOR.comments", "true")
-            .setOption("analysis.algorithm.MPOR.controlEncodingStatement", "BINARY_SEARCH_TREE")
-            .setOption("analysis.algorithm.MPOR.controlEncodingThread", "IF_ELSE_CHAIN")
+            .setOption("analysis.algorithm.MPOR.executeThreadsUntilConflict", "true")
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "false")
-            .setOption("analysis.algorithm.MPOR.loopIterations", "32")
             .setOption("analysis.algorithm.MPOR.noBackwardLoopGoto", "false")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
             .setOption("analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD")
-            .setOption("analysis.algorithm.MPOR.reduceUntilConflict", "true")
-            .setOption("analysis.algorithm.MPOR.reductionMode", "ACCESS_ONLY")
-            .setOption("analysis.algorithm.MPOR.scalarPc", "false")
+            .setOption("analysis.algorithm.MPOR.partialOrderReductionMode", "ACCESS_ONLY")
+            .setOption("analysis.algorithm.MPOR.scalarProgramCounters", "false")
+            .setOption(
+                "analysis.algorithm.MPOR.selectionEncodingForStatements", "BINARY_SEARCH_TREE")
+            .setOption("analysis.algorithm.MPOR.selectionEncodingForThreads", "IF_ELSE_CHAIN")
+            .setOption("analysis.algorithm.MPOR.threadSimulationIterations", "32")
             .build();
     MPOROptions options = new MPOROptions(config);
     testProgram(path, options);
@@ -397,6 +397,8 @@ public class SequentializationParseTest {
 
   private static final String ANON_TYPE_KEYWORD = "__anon_type_";
 
+  private static final int FIRST_LINE = 1;
+
   /**
    * Checks whether two sequentializations with the exact same input result in the exact same
    * output, i.e. the same {@link String} output and the same {@link SequentializationFields}
@@ -410,8 +412,7 @@ public class SequentializationParseTest {
       String lineB = linesB.get(i);
       // ignore __anon_type_{count} since the static counter is not reset between CFA creation runs
       if (!lineA.contains(ANON_TYPE_KEYWORD) && !lineB.contains(ANON_TYPE_KEYWORD)) {
-        assertWithMessage(
-                "lineA, lineB with number %s are not equal: ", (i + Sequentialization.FIRST_LINE))
+        assertWithMessage("lineA, lineB with number %s are not equal: ", (i + FIRST_LINE))
             .that(lineA)
             .isEqualTo(lineB);
       }

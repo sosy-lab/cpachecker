@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
@@ -17,6 +15,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
@@ -38,7 +37,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
@@ -74,11 +72,11 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
    * <p>This functions needs to be called after functionCallMap was initialized so that we can track
    * the calling context of each thread.
    */
-  public ImmutableList<MPORThread> createThreads() throws UnsupportedCodeException {
+  public ImmutableList<MPORThread> extractThreadsFromCfa() throws UnsupportedCodeException {
     ImmutableList.Builder<MPORThread> rThreads = ImmutableList.builder();
     // add the main thread
     FunctionEntryNode mainEntryNode = cfa.getMainFunction();
-    MPORThread mainThread = createThread(Optional.empty(), Optional.empty(), mainEntryNode);
+    MPORThread mainThread = extractThreadFromCfa(Optional.empty(), Optional.empty(), mainEntryNode);
     rThreads.add(mainThread);
     // recursively search the thread CFAs for pthread_create calls, and store in rThreads
     List<MPORThread> createdThreads = new ArrayList<>();
@@ -109,7 +107,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
           FunctionEntryNode entryNode =
               getStartRoutineFunctionEntryNode(startRoutineDeclaration, cfaEdge);
           MPORThread newThread =
-              createThread(Optional.of(pthreadT), Optional.of(threadEdge), entryNode);
+              extractThreadFromCfa(Optional.of(pthreadT), Optional.of(threadEdge), entryNode);
           recursivelyFindThreadCreations(newThread, pFoundThreads);
           pFoundThreads.add(newThread);
         }
@@ -120,15 +118,11 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
   /**
    * Initializes a MPORThread object with the corresponding CFANodes and CFAEdges and returns it.
    */
-  private MPORThread createThread(
+  private MPORThread extractThreadFromCfa(
       Optional<CIdExpression> pThreadObject,
       Optional<CFAEdgeForThread> pStartRoutineCall,
       FunctionEntryNode pEntryNode) {
 
-    // ensure so that we can cast to CFunctionType
-    checkArgument(
-        pEntryNode.getFunction().getType() instanceof CFunctionType,
-        "pEntryNode function must be CFunctionType");
     resetPc(); // reset pc for every thread created
     int newThreadId = currentThreadId++;
     CFAForThread threadCfa = buildThreadCfa(newThreadId, pEntryNode, pStartRoutineCall);
@@ -165,10 +159,19 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
         Optional.empty(),
         pStartRoutineCall);
 
+    ImmutableList<CFANodeForThread> finalThreadNodes = threadNodes.build();
+
+    ImmutableSet<CFANode> allLoopHeads = cfa.getLoopStructure().orElseThrow().getAllLoopHeads();
+    ImmutableSet<CFANodeForThread> loopHeads =
+        finalThreadNodes.stream()
+            .filter(n -> allLoopHeads.contains(n.getCfaNode()))
+            .collect(ImmutableSet.toImmutableSet());
+
     return new CFAForThread(
         pThreadId,
         pEntryNode,
-        threadNodes.build(),
+        finalThreadNodes,
+        loopHeads,
         ImmutableList.copyOf(threadEdges.buildOrThrow().keySet()));
   }
 
@@ -271,8 +274,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
       Optional<CFunctionCall> functionCall =
           PthreadUtil.tryGetFunctionCallFromCfaEdge(threadEdge.cfaEdge);
       if (functionCall.isPresent()) {
-        if (PthreadUtil.isCallToPthreadFunction(
-            functionCall.orElseThrow(), PthreadFunctionType.PTHREAD_EXIT)) {
+        if (PthreadUtil.isCallToPthreadExitWithReturnValue(functionCall.orElseThrow())) {
           String name = SeqNameUtil.buildStartRoutineExitVariableName(options, pThreadCFA.threadId);
           CVariableDeclaration declaration =
               SeqDeclarationBuilder.buildVariableDeclaration(

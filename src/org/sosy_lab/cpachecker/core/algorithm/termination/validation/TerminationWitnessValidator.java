@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.termination.validation;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
@@ -207,7 +208,9 @@ public class TerminationWitnessValidator implements Algorithm {
               loopsToTransitionInvariants.get(loop),
               supportingInvariants,
               loopsToSupportingInvariants,
-              mapPrevVarsToCurrVars)) {
+              mapPrevVarsToCurrVars,
+              // k = 1, for R^1 => T check
+              1)) {
         continue;
       }
 
@@ -217,20 +220,38 @@ public class TerminationWitnessValidator implements Algorithm {
       boolean isWellFounded =
           wellFoundednessChecker.isDisjunctivelyWellFounded(
               invariant, supportingInvariants, loop, mapPrevVarsToCurrVars);
-      // Our termination analysis might be unsound with respect to C semantics because it uses an
-      // unsound overapproximation of mathematical integers.
-      if (!isWellFounded && wellFoundednessChecker instanceof ImplicitRankingChecker) {
+      // Our termination analysis might be unsound because of a different possible division to
+      // disjunctions. We divide the candidate transition invariant into a disjunction using
+      // transformation to flat DNF. It might be, there exists another different division
+      // that could be well-founded, and we just did not find it. For example, assume a DNF form
+      // of the formula (x <= x') || (y < y'),
+      // it can also be divided into (x = x') || (x < x') || (y < y'), which we do not check.
+      if (!isWellFounded) {
         return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
       }
-      if (!isWellFounded
-          || !isCandidateInvariantInductiveTransitionInvariant(
-              loop,
-              loopsToTransitionInvariants.get(loop),
-              supportingInvariants,
-              loopsToSupportingInvariants,
-              mapPrevVarsToCurrVars)) {
-        // In this case, we are not sure whether the invariant could be divided otherwise
-        return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
+      // Do k-inductivity checks for k > 1
+      for (int k = 1; true; k++) {
+        // Base case of the induction, i.e. R^k(s,s') => T(s,s')
+        if (!isCandidateInvariantTransitionInvariant(
+            loop,
+            loopsToTransitionInvariants.get(loop),
+            supportingInvariants,
+            loopsToSupportingInvariants,
+            mapPrevVarsToCurrVars,
+            k)) {
+          return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
+        }
+
+        // Step case of the induction, i.e. T(s,s') && R^k(s',s'') => T(s,s'')
+        if (isCandidateInvariantInductiveTransitionInvariant(
+            loop,
+            loopsToTransitionInvariants.get(loop),
+            loopsToSupportingInvariants,
+            supportingInvariants,
+            mapPrevVarsToCurrVars,
+            k)) {
+          break;
+        }
       }
     }
     pReachedSet.clear();
@@ -383,11 +404,12 @@ public class TerminationWitnessValidator implements Algorithm {
 
   /**
    * Checks whether the path formula R given by the loop implies the candidate invariants, i.e.
-   * R=>T. This check is sufficient if we checked before that T is well-founded.
+   * R^k=>T. The check with R^1=>T is sufficient if we checked before that T is well-founded.
    *
    * @param pLoop for which we construct the path formula
    * @param pCandidateInvariant that we need to check
    * @param pSupportingInvariants that help to strengthen the formula
+   * @param k is an index determining how many loop unrollings we need to take into account
    * @return true if the candidate invariant is a transition invariant, false otherwise
    * @throws InterruptedException If an interruption event happens
    * @throws CPATransferException If a satisfiability check fails
@@ -397,11 +419,21 @@ public class TerminationWitnessValidator implements Algorithm {
       BooleanFormula pCandidateInvariant,
       ImmutableList<BooleanFormula> pSupportingInvariants,
       ImmutableListMultimap<Loop, BooleanFormula> pLoopsToSupportingInvariants,
-      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars)
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars,
+      int k)
       throws InterruptedException, CPATransferException {
+
+    // We first construct the loop formula, i.e. R^k, where k is at least 1
+    Preconditions.checkArgument(k >= 1);
     PathFormula loopFormula =
-        constructPathFormulaForLoop(
-            pLoop.getInnerLoopEdges(), pLoop.getLoopHeads(), -1, pLoopsToSupportingInvariants);
+        constructStrengthenedLoopFormulaForK(
+            pLoop,
+            pLoopsToSupportingInvariants,
+            pSupportingInvariants,
+            pCandidateInvariant,
+            pMapPrevToCurrVars,
+            k);
+
     SSAMap fullSSAMap =
         SSAMap.merge(
             loopFormula.getSsa(),
@@ -423,35 +455,20 @@ public class TerminationWitnessValidator implements Algorithm {
             pMapPrevToCurrVars);
 
     pCandidateInvariant = fmgr.instantiate(pCandidateInvariant, fullSSAMap);
-    BooleanFormula booleanLoopFormula = loopFormula.getFormula();
-
-    // Strengthening the loop formula with the supporting invariants
-    BooleanFormula strengtheningFormula = bfmgr.makeTrue();
-    for (BooleanFormula supportingInvariant : pSupportingInvariants) {
-      strengtheningFormula =
-          bfmgr.and(
-              strengtheningFormula,
-              fmgr.instantiate(
-                  supportingInvariant,
-                  TransitionInvariantUtils.setIndicesToDifferentValues(
-                      supportingInvariant,
-                      PrevStateIndices.INDEX_FIRST,
-                      CurrStateIndices.INDEX_MIDDLE,
-                      fmgr,
-                      scope,
-                      pMapPrevToCurrVars)));
-    }
-    booleanLoopFormula = bfmgr.and(booleanLoopFormula, strengtheningFormula);
 
     // Instantiate __PREV variables to match the SSA indices of the variables in the loop.
     // In other words, add equivalences like x@1 = x__PREV@1
-    booleanLoopFormula =
+    BooleanFormula booleanLoopFormula =
         bfmgr.and(
-            booleanLoopFormula,
+            loopFormula.getFormula(),
             fmgr.instantiate(
                 fmgr.uninstantiate(
                     TransitionInvariantUtils.makeStatesEquivalent(
-                        pCandidateInvariant, booleanLoopFormula, bfmgr, fmgr, pMapPrevToCurrVars)),
+                        pCandidateInvariant,
+                        loopFormula.getFormula(),
+                        bfmgr,
+                        fmgr,
+                        pMapPrevToCurrVars)),
                 oneStepSSAMap));
 
     boolean isTransitionInvariant;
@@ -465,9 +482,9 @@ public class TerminationWitnessValidator implements Algorithm {
   }
 
   /**
-   * Checks whether the path formula R given by the loop implies the candidate invariants, i.e.
-   * R=>T. We also need to check that T(s,s') and R(s',s'') => T(s,s''), i.e. T is inductive because
-   * it is not well-founded but disjunctively well-founded.
+   * This function assumes that the loop formula R applied k times implies the candidate transition
+   * invariant T, i.e. R^k => T. We also need to check that T(s,s') and R^k(s',s'') => T(s,s''),
+   * i.e. T is k-inductive because it is not well-founded but disjunctively well-founded.
    *
    * @param pLoop for which we construct the path formula
    * @param pCandidateInvariant that we need to check
@@ -479,22 +496,22 @@ public class TerminationWitnessValidator implements Algorithm {
   private boolean isCandidateInvariantInductiveTransitionInvariant(
       LoopStructure.Loop pLoop,
       BooleanFormula pCandidateInvariant,
-      ImmutableList<BooleanFormula> pSupportingInvariants,
       ImmutableListMultimap<Loop, BooleanFormula> pLoopsToSupportingInvariants,
-      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars)
+      ImmutableList<BooleanFormula> pSupportingInvariants,
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars,
+      int k)
       throws InterruptedException, CPATransferException {
-    if (!isCandidateInvariantTransitionInvariant(
-        pLoop,
-        pCandidateInvariant,
-        pSupportingInvariants,
-        pLoopsToSupportingInvariants,
-        pMapPrevToCurrVars)) {
-      return false;
-    }
+
+    // We first construct the loop formula, i.e. R^k, where k is at least 1
+    Preconditions.checkArgument(k >= 1);
     PathFormula loopFormula =
-        constructPathFormulaForLoop(
-            pLoop.getInnerLoopEdges(), pLoop.getLoopHeads(), 2, pLoopsToSupportingInvariants);
-    BooleanFormula booleanLoopFormula = loopFormula.getFormula();
+        constructStrengthenedLoopFormulaForK(
+            pLoop,
+            pLoopsToSupportingInvariants,
+            pSupportingInvariants,
+            pCandidateInvariant,
+            pMapPrevToCurrVars,
+            k);
 
     BooleanFormula firstStep =
         fmgr.instantiate(
@@ -513,17 +530,17 @@ public class TerminationWitnessValidator implements Algorithm {
             SSAMap.merge(
                 loopFormula.getSsa(),
                 TransitionInvariantUtils.setIndicesToDifferentValues(
-                        pCandidateInvariant,
-                        PrevStateIndices.INDEX_FIRST,
-                        CurrStateIndices.INDEX_LATEST,
-                        fmgr,
-                        scope,
-                        pMapPrevToCurrVars)
-                    .withDefault(2),
+                    pCandidateInvariant,
+                    PrevStateIndices.INDEX_FIRST,
+                    CurrStateIndices.INDEX_LATEST,
+                    fmgr,
+                    scope,
+                    pMapPrevToCurrVars),
                 MapsDifference.collectMapsDifferenceTo(new ArrayList<>())));
     boolean isTransitionInvariant;
     try {
-      isTransitionInvariant = solver.implies(bfmgr.and(firstStep, booleanLoopFormula), secondStep);
+      isTransitionInvariant =
+          solver.implies(bfmgr.and(firstStep, loopFormula.getFormula()), secondStep);
     } catch (SolverException e) {
       logger.log(Level.WARNING, "Transition invariant check failed !");
       return false;
@@ -531,35 +548,89 @@ public class TerminationWitnessValidator implements Algorithm {
     return isTransitionInvariant;
   }
 
+  private PathFormula constructStrengthenedLoopFormulaForK(
+      Loop pLoop,
+      ImmutableListMultimap<Loop, BooleanFormula> pLoopsToSupportingInvariants,
+      ImmutableList<BooleanFormula> pSupportingInvariants,
+      BooleanFormula pCandidateInvariant,
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars,
+      int k)
+      throws CPATransferException, InterruptedException {
+    PathFormula loopFormula =
+        constructPathFormulaForLoop(
+            pLoop.getInnerLoopEdges(),
+            pLoop.getLoopHeads(),
+            SSAMap.emptySSAMap(),
+            PointerTargetSet.emptyPointerTargetSet(),
+            pLoopsToSupportingInvariants);
+
+    // The one that is used with the supporting invariants
+    BooleanFormula strengtheningFormula = bfmgr.makeTrue();
+
+    // Strengthening the loop formula with the supporting invariants
+    for (BooleanFormula supportingInvariant : pSupportingInvariants) {
+      strengtheningFormula =
+          bfmgr.and(
+              strengtheningFormula,
+              fmgr.instantiate(
+                  supportingInvariant,
+                  TransitionInvariantUtils.setIndicesToDifferentValues(
+                      pCandidateInvariant,
+                      PrevStateIndices.INDEX_FIRST,
+                      CurrStateIndices.INDEX_MIDDLE,
+                      fmgr,
+                      scope,
+                      pMapPrevToCurrVars)));
+    }
+    for (int i = 1; i < k; i++) {
+      loopFormula =
+          pfmgr.makeConjunction(
+              ImmutableList.of(
+                  loopFormula,
+                  constructPathFormulaForLoop(
+                      pLoop.getInnerLoopEdges(),
+                      pLoop.getLoopHeads(),
+                      loopFormula.getSsa(),
+                      loopFormula.getPointerTargetSet(),
+                      pLoopsToSupportingInvariants)));
+
+      // Strengthening the loop formula with the supporting invariants
+      for (BooleanFormula supportingInvariant : pSupportingInvariants) {
+        strengtheningFormula =
+            bfmgr.and(
+                strengtheningFormula, fmgr.instantiate(supportingInvariant, loopFormula.getSsa()));
+      }
+      strengtheningFormula = bfmgr.and(strengtheningFormula, strengtheningFormula);
+    }
+    return pfmgr.makeAnd(loopFormula, strengtheningFormula);
+  }
+
   private PathFormula constructPathFormulaForLoop(
       ImmutableSet<CFAEdge> pEdges,
       ImmutableSet<CFANode> pLoopHeads,
-      int pInitialSSAIndex,
+      SSAMap pContextSSAMap,
+      PointerTargetSet pContextPointerSet,
       ImmutableListMultimap<Loop, BooleanFormula> pLoopsToSupportingInvariants)
       throws CPATransferException, InterruptedException {
     List<List<CFAEdge>> listOfAllPaths = collectAllThePaths(pEdges, pLoopHeads);
-    return constructFormulaForPaths(pInitialSSAIndex, pLoopsToSupportingInvariants, listOfAllPaths);
+    return constructFormulaForPaths(
+        pContextSSAMap, pContextPointerSet, pLoopsToSupportingInvariants, listOfAllPaths);
   }
 
   private PathFormula constructFormulaForPaths(
-      int pInitialSSAIndex,
+      SSAMap pContextSSAMap,
+      PointerTargetSet pContextPointerTargetSet,
       ImmutableListMultimap<Loop, BooleanFormula> pLoopsToSupportingInvariants,
       List<List<CFAEdge>> listOfAllPaths)
       throws CPATransferException, InterruptedException {
     PathFormula formulaForLoop = pfmgr.makeEmptyPathFormula();
-    formulaForLoop =
-        formulaForLoop.withContext(
-            formulaForLoop.getSsa().withDefault(pInitialSSAIndex),
-            PointerTargetSet.emptyPointerTargetSet());
+    formulaForLoop = formulaForLoop.withContext(pContextSSAMap, pContextPointerTargetSet);
 
     ImmutableSet<LoopStructure.Loop> AllLoops = pLoopsToSupportingInvariants.keySet();
     boolean initialized = false;
     for (List<CFAEdge> path : listOfAllPaths) {
       PathFormula anotherPath = pfmgr.makeEmptyPathFormula();
-      anotherPath =
-          anotherPath.withContext(
-              anotherPath.getSsa().withDefault(pInitialSSAIndex),
-              PointerTargetSet.emptyPointerTargetSet());
+      anotherPath = anotherPath.withContext(pContextSSAMap, pContextPointerTargetSet);
       boolean followingDifferentLoop = false;
       for (CFAEdge edge : path) {
         ImmutableSet<LoopStructure.Loop> loopsForEdge =
@@ -587,18 +658,9 @@ public class TerminationWitnessValidator implements Algorithm {
         initialized = true;
         formulaForLoop = anotherPath;
       } else {
-        formulaForLoop =
-            pfmgr
-                .makeOr(formulaForLoop, anotherPath)
-                .withContext(
-                    formulaForLoop.getSsa().withDefault(pInitialSSAIndex),
-                    PointerTargetSet.emptyPointerTargetSet());
+        formulaForLoop = pfmgr.makeOr(formulaForLoop, anotherPath);
       }
     }
-    formulaForLoop =
-        formulaForLoop.withContext(
-            formulaForLoop.getSsa().withDefault(pInitialSSAIndex),
-            PointerTargetSet.emptyPointerTargetSet());
     return formulaForLoop;
   }
 

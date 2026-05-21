@@ -23,9 +23,11 @@ public class AntlrTsetToMemorySetConverter
 
   private final AntlrTermToTermConverter antrlToTermConverter;
 
-  protected AntlrTsetToMemorySetConverter(CProgramScope pCProgramScope, AcslScope pAcslScope) {
-    super(pCProgramScope, pAcslScope);
-    antrlToTermConverter = new AntlrTermToTermConverter(pCProgramScope, pAcslScope);
+  protected AntlrTsetToMemorySetConverter(
+      CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pInitialFileLocation) {
+    super(pCProgramScope, pAcslScope, pInitialFileLocation);
+    antrlToTermConverter =
+        new AntlrTermToTermConverter(pCProgramScope, pAcslScope, pInitialFileLocation);
   }
 
   @Override

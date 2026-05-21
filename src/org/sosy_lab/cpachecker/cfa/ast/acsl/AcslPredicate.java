@@ -24,10 +24,11 @@ public sealed interface AcslPredicate extends AExpression, AcslAstNode
         AcslTernaryPredicate,
         AcslUnaryPredicate,
         AcslValidPredicate,
+        AcslPredicateApplicationPredicate,
         AcslPredicateTerm,
         AcslQuantifiedPredicate {
 
-  <R, X extends Exception> R accept(AcslPredicateVisitor<R, X> v) throws X, CPATransferException;
+  <R, X extends Exception> R accept(AcslPredicateVisitor<R, X> v) throws X;
 
   @Deprecated // Call accept() directly
   @SuppressWarnings("unchecked") // should not be necessary, but javac complains otherwise

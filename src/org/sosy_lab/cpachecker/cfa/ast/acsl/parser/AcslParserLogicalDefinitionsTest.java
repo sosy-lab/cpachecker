@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
+import static org.junit.Assert.assertThrows;
+
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import org.junit.Ignore;
@@ -21,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCExpressionTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCIdExpression;
@@ -39,14 +42,18 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicPredicateDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPointerType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPolymorphicType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTypeVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -76,7 +83,7 @@ public class AcslParserLogicalDefinitionsTest {
 
     AcslScope acslScope = getAcslScope();
 
-    AcslAstNode parsed = AcslParser.parseLogicalDefinition(input, acslScope);
+    AcslAstNode parsed = AcslParser.parseLogicalDefinition(input, acslScope, FileLocation.DUMMY);
     assert parsed.equals(output) : "Parsed object does not match expected object";
   }
 
@@ -547,6 +554,112 @@ public class AcslParserLogicalDefinitionsTest {
         "Sorted<T>(T* a, integer i, integer j) = \\forall integer k, l ; i <= k < l <= j ==> a[k] <"
             + " a[l]";
 
+    testLogicalFunctionParsing(input, output);
+  }
+
+  @Test
+  public void parseIsPositiveLogicalPredicateDeclaration() throws AcslParseException {
+    /*
+    This example was taken from ANSI/ISO C Specification Language Version 1.23 §2.61 Example 2.40.
+     */
+    AcslParameterDeclaration i =
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i");
+    AcslPredicateDeclaration declaration =
+        new AcslPredicateDeclaration(
+            FileLocation.DUMMY,
+            new AcslPredicateType(ImmutableList.of(AcslBuiltinLogicType.INTEGER), false),
+            "is_positive",
+            "is_positive",
+            ImmutableList.of(),
+            ImmutableList.of(i));
+    AcslBinaryTermPredicate body =
+        new AcslBinaryTermPredicate(
+            FileLocation.DUMMY,
+            new AcslIdTerm(FileLocation.DUMMY, i),
+            new AcslIntegerLiteralTerm(
+                FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
+            AcslBinaryTermExpressionOperator.GREATER_EQUAL);
+    AcslLogicPredicateDefinition output =
+        new AcslLogicPredicateDefinition(FileLocation.DUMMY, declaration, body);
+    String input = "predicate is_positive(integer i) = i >= 0;";
+    testLogicalFunctionParsing(input, output);
+  }
+
+  @Test
+  public void parseIsFalseLogicPredicate() {
+    // Logic definitions that take boolean parameters are not supported.
+    String definition1 = "predicate is_false(boolean p) = (!p) == \\true;";
+    String definition2 = "predicate is_false(boolean p) = !p;";
+    AcslScope acslScope = getAcslScope();
+    assertThrows(
+        NullPointerException.class,
+        () -> AcslParser.parseLogicalDefinition(definition1, acslScope, FileLocation.DUMMY));
+    assertThrows(
+        NullPointerException.class,
+        () -> AcslParser.parseLogicalDefinition(definition2, acslScope, FileLocation.DUMMY));
+  }
+
+  @Test
+  public void parseIsFalseTermPredicate() throws AcslParseException {
+    String definition = "predicate is_false(boolean p) = !(p == \\true);";
+    AcslParameterDeclaration p =
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, "p");
+    AcslPredicateDeclaration declaration =
+        new AcslPredicateDeclaration(
+            FileLocation.DUMMY,
+            new AcslPredicateType(ImmutableList.of(AcslBuiltinLogicType.BOOLEAN), false),
+            "is_false",
+            "is_false",
+            ImmutableList.of(),
+            ImmutableList.of(p));
+    AcslPredicate body =
+        new AcslUnaryPredicate(
+            FileLocation.DUMMY,
+            new AcslBinaryTermPredicate(
+                FileLocation.DUMMY,
+                new AcslIdTerm(FileLocation.DUMMY, p),
+                new AcslBooleanLiteralTerm(FileLocation.DUMMY, true),
+                AcslBinaryTermExpressionOperator.EQUALS),
+            AcslUnaryExpressionOperator.NEGATION);
+    AcslLogicPredicateDefinition expected =
+        new AcslLogicPredicateDefinition(FileLocation.DUMMY, declaration, body);
+    testLogicalFunctionParsing(definition, expected);
+  }
+
+  @Test
+  public void parseIsPositiveLogicFunction() throws AcslParseException {
+    /*
+    This example was taken from ANSI/ISO C Specification Language Version 1.23 §2.61 Example 2.40.
+     */
+    String input = "logic integer is_positive (integer i) = i >= 0 ? 1 : 0;";
+    AcslParameterDeclaration i =
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i");
+    AcslFunctionDeclaration declaration =
+        new AcslFunctionDeclaration(
+            FileLocation.DUMMY,
+            new AcslFunctionType(
+                AcslBuiltinLogicType.INTEGER,
+                ImmutableList.of(AcslBuiltinLogicType.INTEGER),
+                false),
+            "is_positive",
+            "is_positive",
+            ImmutableList.of(),
+            ImmutableList.of(i));
+    AcslTerm body =
+        new AcslTernaryTerm(
+            FileLocation.DUMMY,
+            new AcslBinaryTermPredicate(
+                FileLocation.DUMMY,
+                new AcslIdTerm(FileLocation.DUMMY, i),
+                new AcslIntegerLiteralTerm(
+                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
+                AcslBinaryTermExpressionOperator.GREATER_EQUAL),
+            new AcslIntegerLiteralTerm(
+                FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE),
+            new AcslIntegerLiteralTerm(
+                FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO));
+    AcslLogicFunctionDefinition output =
+        new AcslLogicFunctionDefinition(FileLocation.DUMMY, declaration, body);
     testLogicalFunctionParsing(input, output);
   }
 

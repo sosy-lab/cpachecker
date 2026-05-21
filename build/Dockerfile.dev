@@ -2,13 +2,14 @@
 # a tool for configurable software verification:
 # https://cpachecker.sosy-lab.org
 #
-# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
 # This is a container image for running the latest development version of CPAchecker.
 # It is built automatically using GitLab CI and pushed to
-# registry.gitlab.com/sosy-lab/software/cpachecker:dev.
+# registry.gitlab.com/sosy-lab/software/cpachecker:dev
+# and docker.io/sosylab/cpachecker:dev.
 #
 # Commands for building the image manually:
 # ant clean dist-unix-tar -Dnamet=cpachecker
@@ -19,29 +20,9 @@
 # podman push registry.gitlab.com/sosy-lab/software/cpachecker:dev
 # podman push sosylab/cpachecker:dev
 
-FROM ubuntu:latest
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-  gcc \
-  libgmp10 \
-  # Font libraries are necessary for SVG export.
-  libfontconfig1 libharfbuzz0b \
-  libgomp1 \
-  locales \
-  openjdk-21-jre-headless \
-  python3 \
-  && rm -rf /var/lib/apt/lists/*
+FROM registry.gitlab.com/sosy-lab/software/cpachecker:dev-base
 
 ADD cpachecker.tar.bz2 /
 # Make cpachecker executable and further scripts available for execution
 ENV PATH "${PATH}:/cpachecker/bin:/cpachecker/scripts"
-
-# Set locale to UTF-8 to have UTF-8 encoding in JVM
-RUN locale-gen en_US.UTF-8
-ENV LANG en_US.UTF-8
-ENV LANGUAGE en_US.UTF-8
-ENV LC_ALL en_US.UTF-8
-
-RUN mkdir /workdir
-WORKDIR /workdir
 ENTRYPOINT ["/cpachecker/bin/cpachecker"]

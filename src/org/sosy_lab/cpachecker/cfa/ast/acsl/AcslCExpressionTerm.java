@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
  * Lifts a {@link CExpression} to ACSL. The expression is to be evaluated in its programming
@@ -43,7 +44,8 @@ public final class AcslCExpressionTerm extends AbstractExpression implements Acs
   }
 
   @Override
-  public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v)
+      throws X {
     return v.visit(this);
   }
 

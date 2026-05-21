@@ -77,7 +77,9 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCExpressionTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCLeftHandSideTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
@@ -95,6 +97,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslProgramLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
@@ -870,6 +873,7 @@ public class CFAUtils {
     }
   }
 
+  /** Returns all */
   private static class ChildPredicateVisitor
       extends AAstNodeVisitor<Iterable<? extends AAstNode>, NoException> {
 
@@ -1352,6 +1356,12 @@ public class CFAUtils {
     }
 
     @Override
+    public Iterable<? extends AAstNode> visit(
+        AcslCParameterDeclaration pAcslCParameterDeclaration) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
     public Iterable<? extends AAstNode> visit(AcslIdPredicate pAcslIdPredicate) {
       return ImmutableList.of();
     }
@@ -1393,12 +1403,17 @@ public class CFAUtils {
 
     @Override
     public Iterable<? extends AAstNode> visit(AcslCLeftHandSideTerm pAcslCLeftHandSideTerm) {
-      return null;
+      throw new UnsupportedOperationException("AcslCLeftHandSideTerm needs to be implemented");
     }
 
     @Override
     public Iterable<? extends AAstNode> visit(AcslCExpressionTerm pAcslCExpressionTerm) {
-      return null;
+      throw new UnsupportedOperationException("AcslCExpressionTerm needs to be implemented");
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(AcslCIdExpression pAcslCIdExpression) {
+      throw new UnsupportedOperationException();
     }
 
     @Override
@@ -1422,6 +1437,12 @@ public class CFAUtils {
     @Override
     public Iterable<? extends AAstNode> visit(AcslExistsPredicate pAcslExistsPredicate)
         throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(
+        AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate) throws NoException {
       return ImmutableList.of();
     }
 

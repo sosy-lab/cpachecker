@@ -102,7 +102,8 @@ public class AcslParserPredicateTest {
     CProgramScope cProgramScope = getCProgramScope();
     AcslScope acslScope = getAcslScope();
 
-    AcslAstNode parsed = AcslParser.parsePredicate(input, cProgramScope, acslScope);
+    AcslAstNode parsed =
+        AcslParser.parsePredicate(input, cProgramScope, acslScope, FileLocation.DUMMY);
     assert parsed.equals(output) : "Parsed object does not match expected object";
   }
 

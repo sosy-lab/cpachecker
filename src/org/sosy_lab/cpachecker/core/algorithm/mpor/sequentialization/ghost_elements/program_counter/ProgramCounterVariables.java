@@ -14,11 +14,14 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 /**
  * Used to store the program counter i.e. {@code pc} and related expressions for each thread. A
@@ -26,7 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
  *
  * @param pcLeftHandSides The list (indexable by thread IDs) of {@link CLeftHandSide}s for each
  *     thread. This is either an integer {@link CIdExpression} or a {@link
- *     CArraySubscriptExpression} depending on {@link MPOROptions#scalarPc()}.
+ *     CArraySubscriptExpression} depending on {@link MPOROptions#scalarProgramCounters()}.
  * @param pcDeclarations The list (indexable by thread IDs) of {@link CVariableDeclaration} for each
  *     thread. For array {@code pc}, this is a single element.
  * @param threadActiveExpressions The list (indexable by thread IDs) of {@link CBinaryExpression}
@@ -61,7 +64,7 @@ public record ProgramCounterVariables(
 
   /**
    * Returns the {@link CExpressionAssignmentStatement} of {@code pc[pThreadId] = pTargetPc;} or
-   * {@code pc{pThreadId} = pTargetPc;} for scalarPc.
+   * {@code pc{pThreadId} = pTargetPc;} for scalarProgramCounters.
    */
   public static CExpressionAssignmentStatement buildPcAssignmentStatement(
       CLeftHandSide pPcLeftHandSide, int pTargetPc) {
@@ -70,5 +73,24 @@ public record ProgramCounterVariables(
         FileLocation.DUMMY,
         pPcLeftHandSide,
         SeqExpressionBuilder.buildIntegerLiteralExpression(pTargetPc));
+  }
+
+  /**
+   * Returns the {@link CFunctionCallStatement} of {@code assume(pc[next_thread] != 0);}, i.e. for
+   * array {@code pc}.
+   */
+  public CFunctionCallStatement buildArrayPcUnequalExitPcAssumption() {
+    return SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
+        nextThreadActiveExpression.orElseThrow());
+  }
+
+  /**
+   * Returns the {@link CFunctionCallStatement} of {@code assume(pc{pThread.id} != 0);} i.e. for
+   * scalar {@code pc}.
+   */
+  public CFunctionCallStatement buildScalarProgramCounterUnequalExitPcAssumption(
+      MPORThread pThread) {
+    CBinaryExpression threadActiveExpression = threadActiveExpressions.get(pThread.id());
+    return SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(threadActiveExpression);
   }
 }

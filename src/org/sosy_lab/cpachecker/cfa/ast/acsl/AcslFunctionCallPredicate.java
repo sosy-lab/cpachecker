@@ -61,13 +61,13 @@ public final class AcslFunctionCallPredicate extends AFunctionCallExpression
 
   @Override
   public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v)
-      throws X, CPATransferException {
+      throws X {
     return v.visit(this);
   }
 
   @Override
   public <R, X extends Exception> R accept(AcslPredicateVisitor<R, X> v)
-      throws X, CPATransferException {
+      throws X {
     return v.visit(this);
   }
 }

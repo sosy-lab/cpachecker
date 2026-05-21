@@ -36,7 +36,7 @@ public final class SvLibBreakStatement extends SvLibControlFlowStatement {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTStringWithoutTags() {
     return "(break)";
   }
 

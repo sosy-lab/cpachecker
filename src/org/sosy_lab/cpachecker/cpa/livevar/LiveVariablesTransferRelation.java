@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
@@ -909,6 +910,12 @@ public class LiveVariablesTransferRelation
     @Override
     public Boolean visit(AcslPredicateTerm pAcslPredicateTerm) {
       throw new UnsupportedOperationException("AcslPredicateTerm needs to be implemented");
+    }
+
+    @Override
+    public Boolean visit(AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate)
+        throws NoException {
+      return false;
     }
   }
 }

@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCExpressionTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCLeftHandSideTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
@@ -77,6 +78,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslProgramLabel;
@@ -662,10 +664,12 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
     throw new UnsupportedOperationException("not implemented");
   }
 
-  // AcslFunctionCallPredicates are function-calls for AcslLogicFunctionDefinitions
+  // AcslPredicateApplicationPredicate are function-calls for AcslLogicFunctionDefinitions which
+  // have a AcslLogicPredicateDefinition
   @Override
-  public Set<SMGState> visit(AcslFunctionCallPredicate pAcslFunctionCallPredicate)
+  public Set<SMGState> visit(AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate)
       throws CPATransferException {
+    // TODO: this is the call for AcslPredicateDeclaration and we need to implement this!
     /*
      * Most likely a (recursive) function call, e.g.: pred_sll(start->next, end, size - 1)
      * Or the entry point of a predicate defined in a witness,
@@ -837,6 +841,12 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
   }
 
   @Override
+  public Set<SMGState> visit(AcslFunctionCallPredicate pAcslFunctionCallPredicate)
+      throws CPATransferException {
+    throw new UnsupportedOperationException("not implemented");
+  }
+
+  @Override
   public Set<SMGState> visit(AcslPredicateTerm pAcslPredicateTerm) throws CPATransferException {
     // Terms wrapped as predicates (i.e. they return only boolean results)
     // For example AcslCExpressionTerm with a C expression like:  start->next != 0
@@ -873,6 +883,16 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
   @Override
   public Set<SMGState> visit(AcslCharLiteralTerm pAcslCharLiteralTerm) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
+  }
+
+  @Override
+  public Set<SMGState> visit(AcslCParameterDeclaration pAcslCParameterDeclaration) {
+    throw new UnsupportedOperationException("Implement me");
+  }
+
+  @Override
+  public Set<SMGState> visit(AcslCIdExpression pAcslCIdExpression) {
+    throw new UnsupportedOperationException("Implement me");
   }
 
   @Override

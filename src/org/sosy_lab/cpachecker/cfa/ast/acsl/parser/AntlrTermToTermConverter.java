@@ -55,11 +55,14 @@ class AntlrTermToTermConverter extends AntlrToInternalAbstractConverter<AcslTerm
   private final AntlrTermPredTernaryConditionToPredicateConverter
       termPredTernaryConditionToExpressionConverter;
 
-  protected AntlrTermToTermConverter(CProgramScope pCProgramScope, AcslScope pAcslScope) {
-    super(pCProgramScope, pAcslScope);
-    labelConverter = new AntlrLabelToLabelConverter(pCProgramScope, pAcslScope);
+  protected AntlrTermToTermConverter(
+      CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pInitialFileLocation) {
+    super(pCProgramScope, pAcslScope, pInitialFileLocation);
+    labelConverter =
+        new AntlrLabelToLabelConverter(pCProgramScope, pAcslScope, pInitialFileLocation);
     termPredTernaryConditionToExpressionConverter =
-        new AntlrTermPredTernaryConditionToPredicateConverter(pCProgramScope, pAcslScope);
+        new AntlrTermPredTernaryConditionToPredicateConverter(
+            pCProgramScope, pAcslScope, pInitialFileLocation);
   }
 
   @Override
@@ -70,7 +73,7 @@ class AntlrTermToTermConverter extends AntlrToInternalAbstractConverter<AcslTerm
     AcslTerm index = visit(ctx.getChild(2));
 
     return new AcslArraySubscriptTerm(
-        FileLocation.DUMMY,
+        fileLocationFromContext(ctx),
         findResultTypeAfterUnaryOperation(
             AcslUnaryTermOperator.POINTER_DEREFERENCE, array.getExpressionType()),
         array,
@@ -92,9 +95,9 @@ class AntlrTermToTermConverter extends AntlrToInternalAbstractConverter<AcslTerm
         Objects.requireNonNull(getAcslScope().lookupFunction(functionName));
 
     return new AcslFunctionCallTerm(
-        FileLocation.DUMMY,
+        fileLocationFromContext(ctx),
         (AcslType) functionDeclaration.getType().getReturnType(),
-        new AcslIdTerm(FileLocation.DUMMY, functionDeclaration),
+        new AcslIdTerm(fileLocationFromContext(ctx), functionDeclaration),
         arguments.build(),
         functionDeclaration);
   }
@@ -103,7 +106,7 @@ class AntlrTermToTermConverter extends AntlrToInternalAbstractConverter<AcslTerm
   public AcslTerm visitVariableTerm(VariableTermContext ctx) {
     String identifierName = ctx.getText();
     AcslSimpleDeclaration variable = getVariableDeclarationForName(identifierName);
-    return new AcslIdTerm(FileLocation.DUMMY, variable);
+    return new AcslIdTerm(fileLocationFromContext(ctx), variable);
   }
 
   @Override
@@ -134,7 +137,7 @@ class AntlrTermToTermConverter extends AntlrToInternalAbstractConverter<AcslTerm
     }
 
     AcslType resultType = findResultTypeAfterUnaryOperation(operator, term.getExpressionType());
-    return new AcslUnaryTerm(FileLocation.DUMMY, resultType, term, operator);
+    return new AcslUnaryTerm(fileLocationFromContext(ctx), resultType, term, operator);
   }
 
   @Override
@@ -143,7 +146,7 @@ class AntlrTermToTermConverter extends AntlrToInternalAbstractConverter<AcslTerm
     // '\old' '(' term ')'
     AcslTerm term = visit(ctx.getChild(2));
 
-    return new AcslOldTerm(FileLocation.DUMMY, term);
+    return new AcslOldTerm(fileLocationFromContext(ctx), term);
   }
 
   @Override
@@ -154,17 +157,17 @@ class AntlrTermToTermConverter extends AntlrToInternalAbstractConverter<AcslTerm
         Objects.requireNonNull(getCProgramScope().lookupFunction(currentFunction))
             .getType()
             .getReturnType();
-    return new AcslResultTerm(FileLocation.DUMMY, new AcslCType(functionResultType));
+    return new AcslResultTerm(fileLocationFromContext(ctx), new AcslCType(functionResultType));
   }
 
   @Override
   public AcslTerm visitTrueConstant(TrueConstantContext ctx) {
-    return new AcslBooleanLiteralTerm(FileLocation.DUMMY, true);
+    return new AcslBooleanLiteralTerm(fileLocationFromContext(ctx), true);
   }
 
   @Override
   public AcslTerm visitFalseConstant(FalseConstantContext ctx) {
-    return new AcslBooleanLiteralTerm(FileLocation.DUMMY, false);
+    return new AcslBooleanLiteralTerm(fileLocationFromContext(ctx), false);
   }
 
   @Override
@@ -176,7 +179,7 @@ class AntlrTermToTermConverter extends AntlrToInternalAbstractConverter<AcslTerm
     AcslTerm ifTrue = visit(ctx.getChild(2));
     AcslTerm ifFalse = visit(ctx.getChild(4));
 
-    return new AcslTernaryTerm(FileLocation.DUMMY, condition, ifTrue, ifFalse);
+    return new AcslTernaryTerm(fileLocationFromContext(ctx), condition, ifTrue, ifFalse);
   }
 
   @Override
@@ -187,7 +190,8 @@ class AntlrTermToTermConverter extends AntlrToInternalAbstractConverter<AcslTerm
 
     AcslType resultType =
         AcslType.mostGeneralType(leftTerm.getExpressionType(), rightTerm.getExpressionType());
-    return new AcslBinaryTerm(FileLocation.DUMMY, resultType, leftTerm, rightTerm, operator);
+    return new AcslBinaryTerm(
+        fileLocationFromContext(ctx), resultType, leftTerm, rightTerm, operator);
   }
 
   @Override
@@ -197,6 +201,6 @@ class AntlrTermToTermConverter extends AntlrToInternalAbstractConverter<AcslTerm
     AcslTerm term = visit(ctx.getChild(2));
     AcslLabel label = labelConverter.visit(ctx.getChild(4));
 
-    return new AcslAtTerm(FileLocation.DUMMY, term, label);
+    return new AcslAtTerm(fileLocationFromContext(ctx), term, label);
   }
 }

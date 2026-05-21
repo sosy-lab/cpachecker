@@ -371,7 +371,9 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
               configFilesIterator,
               LastAnalysisResult.FAILED,
               e.getMessage().contains("recursion"),
-              e.getMessage().contains("pthread_create"));
+              e.getMessage().contains("pthread_create")
+                  || e.getMessage()
+                      .contains("Concurrency analysis not supported in this configuration"));
 
           if (e instanceof CounterexampleAnalysisFailed
               || e instanceof RefinementFailedException

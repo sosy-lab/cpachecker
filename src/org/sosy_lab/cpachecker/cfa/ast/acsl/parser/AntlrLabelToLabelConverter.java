@@ -15,16 +15,17 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslProgramLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.Label_idContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LabelIdContext;
 
 class AntlrLabelToLabelConverter extends AntlrToInternalAbstractConverter<AcslLabel> {
 
-  protected AntlrLabelToLabelConverter(CProgramScope pCProgramScope, AcslScope pAcslScope) {
-    super(pCProgramScope, pAcslScope);
+  protected AntlrLabelToLabelConverter(
+      CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pInitialFileLocation) {
+    super(pCProgramScope, pAcslScope, pInitialFileLocation);
   }
 
   @Override
-  public AcslLabel visitLabel_id(Label_idContext ctx) {
+  public AcslLabel visitLabelId(LabelIdContext ctx) {
     String identifierName = ctx.getText();
     if (FluentIterable.from(AcslBuiltinLabel.values())
         .transform(AcslBuiltinLabel::getLabel)
@@ -32,6 +33,6 @@ class AntlrLabelToLabelConverter extends AntlrToInternalAbstractConverter<AcslLa
       return AcslBuiltinLabel.of(identifierName);
     }
 
-    return new AcslProgramLabel(identifierName, FileLocation.DUMMY);
+    return new AcslProgramLabel(identifierName, fileLocationFromContext(ctx));
   }
 }

@@ -32,7 +32,9 @@ public interface AcslPredicateVisitor<R, X extends Exception> {
 
   R visit(AcslExistsPredicate pAcslExistsPredicate) throws X;
 
-  R visit(AcslFunctionCallPredicate pAcslFunctionCallPredicate) throws CPATransferException;
+  R visit(AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate) throws X;
 
-  R visit(AcslPredicateTerm pAcslPredicateTerm) throws CPATransferException;
+  R visit(AcslFunctionCallPredicate pAcslFunctionCallPredicate) throws X;
+
+  R visit(AcslPredicateTerm pAcslPredicateTerm) throws X;
 }

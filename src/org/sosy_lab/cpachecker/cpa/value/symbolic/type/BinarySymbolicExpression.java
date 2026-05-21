@@ -10,6 +10,9 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import java.io.Serial;
 import java.util.Objects;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -44,7 +47,7 @@ public abstract sealed class BinarySymbolicExpression extends SymbolicExpression
   private final Type calculationType;
 
   /** {@link Type} of the binary expression */
-  private Type expressionType;
+  private final Type expressionType;
 
   BinarySymbolicExpression(
       SymbolicExpression pOperand1,
@@ -83,6 +86,155 @@ public abstract sealed class BinarySymbolicExpression extends SymbolicExpression
     operand2 = pOperand2;
     expressionType = pExpressionType;
     calculationType = pCalculationType;
+  }
+
+  /**
+   * Creates an appropriate {@link BinarySymbolicExpression} for Java, based on the given {@link
+   * org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator}. The operands are not
+   * modified, i.e. they are not transformed into constant expressions. This has to be done before
+   * calling this if needed! All {@link
+   * org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator}s, except for {@link
+   * org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator#STRING_CONCATENATION} are
+   * handled by this method!
+   */
+  public static SymbolicExpression of(
+      SymbolicExpression pOperand1,
+      SymbolicExpression pOperand2,
+      Type pExpressionType,
+      Type pCalculationType,
+      JBinaryExpression.BinaryOperator javaOperator) {
+    return switch (javaOperator) {
+      // +
+      case JBinaryExpression.BinaryOperator.PLUS ->
+          AdditionExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // -
+      case JBinaryExpression.BinaryOperator.MINUS ->
+          SubtractionExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // *
+      case JBinaryExpression.BinaryOperator.MULTIPLY ->
+          MultiplicationExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // /
+      case JBinaryExpression.BinaryOperator.DIVIDE ->
+          DivisionExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // % (actually remainder, not modulo)
+      case JBinaryExpression.BinaryOperator.REMAINDER ->
+          ModuloExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // <<
+      case JBinaryExpression.BinaryOperator.SHIFT_LEFT ->
+          ShiftLeftExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // >> (Signed)
+      case JBinaryExpression.BinaryOperator.SHIFT_RIGHT_SIGNED ->
+          ShiftRightExpression.ofSigned(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // Bitwise &
+      case JBinaryExpression.BinaryOperator.BITWISE_AND ->
+          BinaryAndExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // Bitwise |
+      case JBinaryExpression.BinaryOperator.BITWISE_OR ->
+          BinaryOrExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // ^
+      // TODO: why is the (Java) logical XOR handled like the binary operator?
+      case JBinaryExpression.BinaryOperator.BITWISE_XOR,
+          JBinaryExpression.BinaryOperator.LOGICAL_XOR ->
+          BinaryXorExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // ==
+      case JBinaryExpression.BinaryOperator.EQUALS ->
+          EqualsExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // !=
+      case JBinaryExpression.BinaryOperator.NOT_EQUALS ->
+          NotEqualsExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // <
+      case JBinaryExpression.BinaryOperator.LESS_THAN ->
+          LessThanExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // <=
+      case JBinaryExpression.BinaryOperator.LESS_EQUAL ->
+          LessThanOrEqualExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // >
+      case JBinaryExpression.BinaryOperator.GREATER_THAN ->
+          GreaterThanExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // >=
+      case JBinaryExpression.BinaryOperator.GREATER_EQUAL ->
+          GreaterThanOrEqualsExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // >>>
+      case JBinaryExpression.BinaryOperator.SHIFT_RIGHT_UNSIGNED ->
+          ShiftRightExpression.ofUnsigned(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // Logical &
+      // TODO: why is the (Java) conditional AND (i.e. &&) handled like the logical operator?
+      case JBinaryExpression.BinaryOperator.LOGICAL_AND,
+          JBinaryExpression.BinaryOperator.CONDITIONAL_AND ->
+          LogicalAndExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // Logical |
+      // TODO: why is the (Java) conditional OR (i.e. ||) handled like the logical operator?
+      case JBinaryExpression.BinaryOperator.LOGICAL_OR,
+          JBinaryExpression.BinaryOperator.CONDITIONAL_OR ->
+          LogicalOrExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      case JBinaryExpression.BinaryOperator.STRING_CONCATENATION ->
+          throw new IllegalStateException("Unhandled binary operator: " + javaOperator);
+    };
+  }
+
+  /**
+   * Creates the appropriate {@link BinarySymbolicExpression} for C, based on the given {@link
+   * org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator}. The operands are not
+   * modified, i.e. they are not transformed into constant expressions. This has to be done before
+   * calling this if needed! This method handles all available {@link
+   * org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator}s.
+   */
+  public static SymbolicExpression of(
+      SymbolicExpression pOperand1,
+      SymbolicExpression pOperand2,
+      Type pExpressionType,
+      Type pCalculationType,
+      CBinaryExpression.BinaryOperator cOperator) {
+    return switch (cOperator) {
+      // +
+      case BinaryOperator.PLUS ->
+          AdditionExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // -
+      case BinaryOperator.MINUS ->
+          SubtractionExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // *
+      case BinaryOperator.MULTIPLY ->
+          MultiplicationExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // /
+      case BinaryOperator.DIVIDE ->
+          DivisionExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // % (actually remainder, not modulo)
+      case BinaryOperator.REMAINDER ->
+          ModuloExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // <<
+      case BinaryOperator.SHIFT_LEFT ->
+          ShiftLeftExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // >> (Signed)
+      case BinaryOperator.SHIFT_RIGHT ->
+          ShiftRightExpression.ofSigned(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // Bitwise &
+      case BinaryOperator.BITWISE_AND ->
+          BinaryAndExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // Bitwise |
+      case BinaryOperator.BITWISE_OR ->
+          BinaryOrExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // ^
+      case BinaryOperator.BITWISE_XOR ->
+          BinaryXorExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // ==
+      case BinaryOperator.EQUALS ->
+          EqualsExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // !=
+      case BinaryOperator.NOT_EQUALS ->
+          NotEqualsExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // <
+      case BinaryOperator.LESS_THAN ->
+          LessThanExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // <=
+      case BinaryOperator.LESS_EQUAL ->
+          LessThanOrEqualExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // >
+      case BinaryOperator.GREATER_THAN ->
+          GreaterThanExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+      // >=
+      case BinaryOperator.GREATER_EQUAL ->
+          GreaterThanOrEqualsExpression.of(pOperand1, pOperand2, pExpressionType, pCalculationType);
+    };
   }
 
   @Override

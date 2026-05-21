@@ -23,17 +23,17 @@ public sealed interface AcslAstNode extends AAstNode
     permits AcslBinaryPredicateOperator,
         AcslBinaryTermOperator,
         AcslBinaryTermExpressionOperator,
-        AcslPredicate,
         AcslInitializer,
         AcslLabel,
         AcslLogicDefinition,
         AcslMemoryLocationSet,
+        AcslPredicate,
         AcslSimpleDeclaration,
         AcslTerm,
         AcslUnaryExpressionOperator,
         AcslUnaryTermOperator {
 
-  <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X, CPATransferException;
+  <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X;
 
   @Deprecated // Call accept() directly
   @SuppressWarnings("unchecked") // should not be necessary, but javac complains otherwise

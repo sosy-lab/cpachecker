@@ -36,10 +36,11 @@ public class AntlrTermPredTernaryConditionToPredicateConverter
       antrlTermTernaryConditionToTermConverter;
 
   protected AntlrTermPredTernaryConditionToPredicateConverter(
-      CProgramScope pCProgramScope, AcslScope pAcslScope) {
-    super(pCProgramScope, pAcslScope);
+      CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pInitialFileLocation) {
+    super(pCProgramScope, pAcslScope, pInitialFileLocation);
     antrlTermTernaryConditionToTermConverter =
-        new AntlrTermTernaryConditionBodyToTermConverter(pCProgramScope, pAcslScope);
+        new AntlrTermTernaryConditionBodyToTermConverter(
+            pCProgramScope, pAcslScope, pInitialFileLocation);
   }
 
   @Override
@@ -48,19 +49,19 @@ public class AntlrTermPredTernaryConditionToPredicateConverter
     // '\old' '(' term ')'
     AcslPredicate expression = visit(ctx.getChild(2));
 
-    return new AcslOldPredicate(FileLocation.DUMMY, expression);
+    return new AcslOldPredicate(fileLocationFromContext(ctx), expression);
   }
 
   @Override
   public AcslPredicate visitLogicalTrueTermPredTernaryCondition(
       LogicalTrueTermPredTernaryConditionContext ctx) {
-    return new AcslBooleanLiteralPredicate(FileLocation.DUMMY, true);
+    return new AcslBooleanLiteralPredicate(fileLocationFromContext(ctx), true);
   }
 
   @Override
   public AcslPredicate visitLogicalFalseTermPredTernaryCondition(
       LogicalFalseTermPredTernaryConditionContext ctx) {
-    return new AcslBooleanLiteralPredicate(FileLocation.DUMMY, false);
+    return new AcslBooleanLiteralPredicate(fileLocationFromContext(ctx), false);
   }
 
   @Override
@@ -76,7 +77,7 @@ public class AntlrTermPredTernaryConditionToPredicateConverter
         AcslUnaryExpressionOperator.of(ctx.getChild(0).getText());
     AcslPredicate expression = visit(ctx.getChild(1));
 
-    return new AcslUnaryPredicate(FileLocation.DUMMY, expression, operator);
+    return new AcslUnaryPredicate(fileLocationFromContext(ctx), expression, operator);
   }
 
   @Override
@@ -87,7 +88,8 @@ public class AntlrTermPredTernaryConditionToPredicateConverter
         AcslBinaryPredicateOperator.of(ctx.getChild(1).getText());
     AcslPredicate rightExpression = visit(ctx.getChild(2));
 
-    return new AcslBinaryPredicate(FileLocation.DUMMY, leftExpression, rightExpression, operator);
+    return new AcslBinaryPredicate(
+        fileLocationFromContext(ctx), leftExpression, rightExpression, operator);
   }
 
   @Override
@@ -110,14 +112,14 @@ public class AntlrTermPredTernaryConditionToPredicateConverter
       AcslTerm righTerm = antrlTermTernaryConditionToTermConverter.visit(ctx.getChild(i + 2));
 
       AcslPredicate newComparison =
-          new AcslBinaryTermPredicate(FileLocation.DUMMY, leftTerm, righTerm, operator);
+          new AcslBinaryTermPredicate(fileLocationFromContext(ctx), leftTerm, righTerm, operator);
 
       if (currentExpression == null) {
         currentExpression = newComparison;
       } else {
         currentExpression =
             new AcslBinaryPredicate(
-                FileLocation.DUMMY,
+                fileLocationFromContext(ctx),
                 currentExpression,
                 newComparison,
                 AcslBinaryPredicateOperator.AND);

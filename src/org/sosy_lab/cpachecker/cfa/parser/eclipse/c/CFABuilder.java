@@ -44,6 +44,8 @@ import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser;
 import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
@@ -96,8 +98,7 @@ class CFABuilder extends ASTVisitor {
   // the _Atomic in the AST nodes when converting them.
   private final Set<FileLocation> unhandledAtomicOccurrences = new HashSet<>();
 
-  // Data structures for storing locations of ACSL annotations
-  private final List<FileLocation> acslCommentPositions = new ArrayList<>();
+  private final List<AcslComment> acslComments = new ArrayList<>();
   private final List<SyntacticBlock> blocks = new ArrayList<>();
 
   private final List<Path> parsedFiles = new ArrayList<>();
@@ -186,7 +187,9 @@ class CFABuilder extends ASTVisitor {
       for (IASTComment comment : ast.getComments()) {
         String commentString = String.valueOf(comment.getComment());
         if (commentString.startsWith("/*@") || commentString.startsWith("//@")) {
-          acslCommentPositions.add(astCreator.getLocation(comment));
+          acslComments.add(
+              new AcslComment(
+                  astCreator.getLocation(comment), AcslParser.stripCommentMarker(commentString)));
         }
       }
     }
@@ -408,12 +411,7 @@ class CFABuilder extends ASTVisitor {
 
     ParseResult result;
 
-    if (!acslCommentPositions.isEmpty()) {
-      result =
-          new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles, acslCommentPositions, blocks);
-    } else {
-      result = new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles);
-    }
+    result = new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles);
 
     result =
         result.withInScopeInformation(
@@ -421,6 +419,7 @@ class CFABuilder extends ASTVisitor {
             // key was added more than once, since this would be a bug
             cfaNodeToAstLocalVariablesInScope.buildOrThrow(),
             cfaNodeToAstParametersInScope.buildOrThrow());
+    result = result.withAcslComments(acslComments, blocks);
 
     return result;
   }

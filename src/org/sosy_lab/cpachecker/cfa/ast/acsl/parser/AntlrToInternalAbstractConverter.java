@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 import com.google.common.base.Verify;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import org.antlr.v4.runtime.ParserRuleContext;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -28,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarBaseVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -39,10 +41,13 @@ abstract class AntlrToInternalAbstractConverter<T> extends AcslGrammarBaseVisito
 
   private final CProgramScope cProgramScope;
   private final AcslScope acslScope;
+  private final FileLocation initialFileLocation;
 
-  protected AntlrToInternalAbstractConverter(CProgramScope pCProgramScope, AcslScope pAcslScope) {
+  protected AntlrToInternalAbstractConverter(
+      CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pInitialFileLocation) {
     cProgramScope = pCProgramScope;
     acslScope = pAcslScope;
+    initialFileLocation = pInitialFileLocation;
   }
 
   public AcslScope getAcslScope() {
@@ -53,12 +58,32 @@ abstract class AntlrToInternalAbstractConverter<T> extends AcslGrammarBaseVisito
     return cProgramScope;
   }
 
+  protected FileLocation fileLocationFromContext(ParserRuleContext pContext) {
+    if (initialFileLocation.equals(FileLocation.DUMMY)) {
+      return FileLocation.DUMMY;
+    }
+
+    return new FileLocation(
+        initialFileLocation.getFileName(),
+        initialFileLocation.getNodeOffset() + pContext.getStart().getStartIndex(),
+        pContext.getStop().getStartIndex() - pContext.getStart().getStartIndex(),
+        initialFileLocation.getStartingLineNumber() + pContext.getStart().getLine(),
+        initialFileLocation.getStartingLineNumber() + pContext.getStop().getLine(),
+        initialFileLocation.getStartColumnInLine() + pContext.getStart().getCharPositionInLine(),
+        pContext.getStart().getLine() == pContext.getStop().getLine()
+            ? initialFileLocation.getStartColumnInLine()
+                + pContext.getStop().getCharPositionInLine()
+            : pContext.getStop().getCharPositionInLine());
+  }
+
   AcslSimpleDeclaration getVariableDeclarationForName(String pName) {
     @Nullable CSimpleDeclaration cVariableDeclaration = cProgramScope.lookupVariable(pName);
     @Nullable AcslSimpleDeclaration acslVariableDeclaration = acslScope.lookupVariable(pName);
     if (cVariableDeclaration != null && acslVariableDeclaration == null) {
       if (cVariableDeclaration instanceof CVariableDeclaration var) {
         return new AcslCVariableDeclaration(var);
+      } else if (cVariableDeclaration instanceof CParameterDeclaration var) {
+        return new AcslCVariableDeclaration(var.asVariableDeclaration());
       } else {
         throw new RuntimeException(
             "Expected a C variable declaration, but got: " + cVariableDeclaration);

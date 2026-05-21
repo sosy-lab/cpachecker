@@ -49,9 +49,10 @@ public class AntlrTermTernaryConditionBodyToTermConverter
   private final AntlrLabelToLabelConverter labelConverter;
 
   protected AntlrTermTernaryConditionBodyToTermConverter(
-      CProgramScope pCProgramScope, AcslScope pAcslScope) {
-    super(pCProgramScope, pAcslScope);
-    labelConverter = new AntlrLabelToLabelConverter(pCProgramScope, pAcslScope);
+      CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pInitialFileLocation) {
+    super(pCProgramScope, pAcslScope, pInitialFileLocation);
+    labelConverter =
+        new AntlrLabelToLabelConverter(pCProgramScope, pAcslScope, pInitialFileLocation);
   }
 
   @Override
@@ -63,7 +64,7 @@ public class AntlrTermTernaryConditionBodyToTermConverter
     AcslTerm index = visit(ctx.getChild(2));
 
     return new AcslArraySubscriptTerm(
-        FileLocation.DUMMY,
+        fileLocationFromContext(ctx),
         findResultTypeAfterUnaryOperation(
             AcslUnaryTermOperator.POINTER_DEREFERENCE, array.getExpressionType()),
         array,
@@ -86,9 +87,9 @@ public class AntlrTermTernaryConditionBodyToTermConverter
         Objects.requireNonNull(getAcslScope().lookupFunction(functionName));
 
     return new AcslFunctionCallTerm(
-        FileLocation.DUMMY,
+        fileLocationFromContext(ctx),
         (AcslType) functionDeclaration.getType().getReturnType(),
-        new AcslIdTerm(FileLocation.DUMMY, functionDeclaration),
+        new AcslIdTerm(fileLocationFromContext(ctx), functionDeclaration),
         arguments.build(),
         functionDeclaration);
   }
@@ -98,7 +99,7 @@ public class AntlrTermTernaryConditionBodyToTermConverter
       VariableTermTernaryConditionBodyContext ctx) {
     String identifierName = ctx.getText();
     AcslSimpleDeclaration variable = getVariableDeclarationForName(identifierName);
-    return new AcslIdTerm(FileLocation.DUMMY, variable);
+    return new AcslIdTerm(fileLocationFromContext(ctx), variable);
   }
 
   @Override
@@ -130,7 +131,7 @@ public class AntlrTermTernaryConditionBodyToTermConverter
     }
 
     AcslType resultType = findResultTypeAfterUnaryOperation(operator, term.getExpressionType());
-    return new AcslUnaryTerm(FileLocation.DUMMY, resultType, term, operator);
+    return new AcslUnaryTerm(fileLocationFromContext(ctx), resultType, term, operator);
   }
 
   @Override
@@ -139,7 +140,7 @@ public class AntlrTermTernaryConditionBodyToTermConverter
     // '\old' '(' term ')'
     AcslTerm term = visit(ctx.getChild(2));
 
-    return new AcslOldTerm(FileLocation.DUMMY, term);
+    return new AcslOldTerm(fileLocationFromContext(ctx), term);
   }
 
   @Override
@@ -151,7 +152,8 @@ public class AntlrTermTernaryConditionBodyToTermConverter
 
     AcslType resultType =
         AcslType.mostGeneralType(leftTerm.getExpressionType(), rightTerm.getExpressionType());
-    return new AcslBinaryTerm(FileLocation.DUMMY, resultType, leftTerm, rightTerm, operator);
+    return new AcslBinaryTerm(
+        fileLocationFromContext(ctx), resultType, leftTerm, rightTerm, operator);
   }
 
   @Override
@@ -162,7 +164,7 @@ public class AntlrTermTernaryConditionBodyToTermConverter
         Objects.requireNonNull(getCProgramScope().lookupFunction(currentFunction))
             .getType()
             .getReturnType();
-    return new AcslResultTerm(FileLocation.DUMMY, new AcslCType(functionResultType));
+    return new AcslResultTerm(fileLocationFromContext(ctx), new AcslCType(functionResultType));
   }
 
   @Override
@@ -172,6 +174,6 @@ public class AntlrTermTernaryConditionBodyToTermConverter
     AcslTerm term = visit(ctx.getChild(2));
     AcslLabel label = labelConverter.visit(ctx.getChild(4));
 
-    return new AcslAtTerm(FileLocation.DUMMY, term, label);
+    return new AcslAtTerm(fileLocationFromContext(ctx), term, label);
   }
 }

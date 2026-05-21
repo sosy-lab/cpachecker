@@ -36,6 +36,8 @@ SPDX-License-Identifier: Apache-2.0
 
     <!-- The following error-prone checks are disabled:
          BadImport: we often import FluentIterable.from and we have a Checkstyle check instead
+         NotJavadoc: It doesn't hurt to use JavaDoc syntax for comments that have the same goal as a JavaDoc comment
+             but are in places where JavaDoc is not possible (methods in local classes).
          ReferenceEquality: TODO enable this and fix alarms (but there are many cases where reference equality is desired)
          UnusedMethods: Most CPAs have private constructors that are called only via reflection
          DuplicateBranches: TODO https://github.com/google/error-prone/issues/4734
@@ -43,6 +45,7 @@ SPDX-License-Identifier: Apache-2.0
     <property name="errorprone.options" value="
         -Xep:DuplicateBranches:OFF
         -Xep:BadImport:OFF
+        -Xep:NotJavadoc:OFF
         -Xep:ReferenceEquality:OFF
         -Xep:BanSerializableRead:OFF
         -Xep:UnusedMethod:OFF
