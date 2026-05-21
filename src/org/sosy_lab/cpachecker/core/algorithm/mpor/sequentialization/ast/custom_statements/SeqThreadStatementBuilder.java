@@ -551,7 +551,10 @@ public record SeqThreadStatementBuilder(
           Objects.requireNonNull(functionStatements.returnValueAssignments().get(pThreadEdge));
       SeqThreadStatementData data =
           SeqThreadStatementData.of(
-              SeqThreadStatementType.DEFAULT, pSubstituteEdge, thread.id(), pcLeftHandSide);
+              SeqThreadStatementType.RETURN_VALUE_ASSIGNMENT,
+              pSubstituteEdge,
+              thread.id(),
+              pcLeftHandSide);
       return SeqThreadStatement.of(
           data,
           pTargetPc,
