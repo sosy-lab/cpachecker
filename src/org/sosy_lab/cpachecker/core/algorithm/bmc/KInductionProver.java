@@ -398,24 +398,20 @@ class KInductionProver implements AutoCloseable {
             "The non-termination closure predecessor is unsatisfiable; refusing vacuous proof.");
         return false;
       }
-      BooleanFormula nonVacuousAtIterK =
-          buildNonVacuousPredecessorAtIterK(
-              predecessorCandidate.orElseThrow(), pK, relevantLoopHeads);
-      logger.logf(
-          Level.INFO,
-          "[NV-DBG] pK=%d, nonVacuousFormula isFalse=%s isTrue=%s",
-          pK,
-          bfmgr.isFalse(nonVacuousAtIterK),
-          bfmgr.isTrue(nonVacuousAtIterK));
-      prover.push(nonVacuousAtIterK);
+      // Existential closure check: from a predecessor satisfying C, there must exist a
+      // successor at LH (one iteration later) still satisfying the FULL candidate. Otherwise the
+      // loop cannot be maintained in C and any "no-violation" verdict is vacuous.
+      BooleanFormula successorInCandidate =
+          buildSuccessorInCandidate(pCandidateInvariant, pK + 1, relevantLoopHeads);
+      prover.push(successorInCandidate);
       pushes++;
       if (prover.isUnsat()) {
         logger.log(
-            Level.INFO,
-            "[NV-DBG] Refusing vacuous proof: predecessor not non-vacuously reachable at iter k.");
+            Level.FINER,
+            "No successor at LH (iter k+1) satisfies the full candidate; refusing vacuous closure"
+                + " proof.");
         return false;
       }
-      logger.log(Level.INFO, "[NV-DBG] Non-vacuous check PASSED.");
       prover.push(loopHeadInv);
       pushes++;
       prover.push(successorViolation);
@@ -1214,31 +1210,27 @@ class KInductionProver implements AutoCloseable {
     return stateViolationAssertionsBuilder.build();
   }
 
-  private BooleanFormula buildNonVacuousPredecessorAtIterK(
-      CandidateInvariant pPredecessorCandidate, int pK, Set<CFANode> pRelevantLoopHeads)
+  /**
+   * Build a disjunction of (path-formula AND full-candidate-assertion-on-path) over loop-head
+   * states at iteration {@code pK}. SAT means there exists a real successor at the next loop-head
+   * visit that still satisfies the full candidate, ruling out vacuous closure proofs where the
+   * candidate cannot actually be maintained one more step.
+   */
+  private BooleanFormula buildSuccessorInCandidate(
+      CandidateInvariant pCandidate, int pK, Set<CFANode> pRelevantLoopHeads)
       throws CPATransferException, InterruptedException {
     ReachedSet reached = reachedSet.getReachedSet();
     Iterable<AbstractState> loopHeadStatesAtIterK =
         filterIteration(
             AbstractStates.filterLocations(reached, pRelevantLoopHeads), pK, pRelevantLoopHeads);
-    int stateCount = 0;
-    int contribCount = 0;
     BooleanFormula result = bfmgr.makeFalse();
     for (AbstractState stopState : loopHeadStatesAtIterK) {
-      stateCount++;
       Optional<BooleanFormula> pathContribution =
-          buildPathContributionForCandidate(stopState, pPredecessorCandidate);
+          buildPathContributionForCandidate(stopState, pCandidate);
       if (pathContribution.isPresent()) {
-        contribCount++;
         result = bfmgr.or(result, pathContribution.orElseThrow());
       }
     }
-    logger.logf(
-        Level.INFO,
-        "[NV-DBG] iter k=%d: %d LH states found, %d path contributions",
-        pK,
-        stateCount,
-        contribCount);
     return result;
   }
 
@@ -1247,29 +1239,19 @@ class KInductionProver implements AutoCloseable {
       throws CPATransferException, InterruptedException {
     ARGState argStopState = AbstractStates.extractStateByType(pStopState, ARGState.class);
     if (argStopState == null) {
-      logger.log(Level.INFO, "[NV-DBG]   stop state has no ARGState");
       return Optional.empty();
     }
     PredicateAbstractState stopPredicateState =
         AbstractStates.extractStateByType(pStopState, PredicateAbstractState.class);
     if (stopPredicateState == null) {
-      logger.log(Level.INFO, "[NV-DBG]   stop state has no PredicateAbstractState");
       return Optional.empty();
     }
     BooleanFormula stopStateFormula = stopPredicateState.getPathFormula().getFormula();
     if (bfmgr.isFalse(stopStateFormula)) {
-      logger.log(Level.INFO, "[NV-DBG]   stop state formula is syntactically false");
       return Optional.empty();
     }
-    logger.logf(
-        Level.INFO,
-        "[NV-DBG]   stop state at %s, ssa=%s, stopFormula=%s",
-        AbstractStates.extractLocation(pStopState),
-        stopPredicateState.getPathFormula().getSsa(),
-        stopStateFormula);
     BooleanFormula result = stopStateFormula;
     boolean foundApplicableState = false;
-    int appliedAssertions = 0;
     for (ARGState pathState : ARGUtils.getOnePathTo(argStopState).asStatesList()) {
       if (Iterables.isEmpty(pCandidate.filterApplicable(Collections.singleton(pathState)))) {
         continue;
@@ -1282,17 +1264,9 @@ class KInductionProver implements AutoCloseable {
       }
       BooleanFormula stateAssertion =
           pCandidate.getAssertion(Collections.singleton(pathState), fmgr, pfmgr);
-      logger.logf(
-          Level.INFO,
-          "[NV-DBG]     applicable @%s ssa=%s assertion=%s",
-          AbstractStates.extractLocation(pathState),
-          predicateState.getPathFormula().getSsa(),
-          stateAssertion);
       result = bfmgr.and(result, stateAssertion);
       foundApplicableState = true;
-      appliedAssertions++;
     }
-    logger.logf(Level.INFO, "[NV-DBG]   total assertions applied: %d", appliedAssertions);
     return foundApplicableState ? Optional.of(result) : Optional.empty();
   }
 

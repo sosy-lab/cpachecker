@@ -933,8 +933,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     if (modifiedVariables.isEmpty()) {
       return;
     }
-    Set<String> candidateVariables = getFormulaVariableNames(pCandidateInvariant, pPathFormula);
-    String candidateText = pCandidateInvariant.toString();
 
     int added = 0;
     for (ValueAssignment valueAssignment : pModelAssignments) {
@@ -949,7 +947,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       if (index.isEmpty()
           || !pPathFormula.getSsa().containsVariable(actualName)
           || pPathFormula.getSsa().getIndex(actualName) != index.orElseThrow()
-          || (modifiedInLoop && !isCandidateVariable(candidateVariables, candidateText, actualName))
+          || (modifiedInLoop && !onlyNoOpModifiedInLoop)
           || (needsStableModelValue
               && !hasRepeatedStableModelValue(
                   actualName,
@@ -974,29 +972,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         return;
       }
     }
-  }
-
-  private Set<String> getFormulaVariableNames(
-      CandidateInvariant pCandidateInvariant, PathFormula pPathFormula)
-      throws CPATransferException, InterruptedException {
-    ImmutableSet.Builder<String> variableNames = ImmutableSet.builder();
-    BooleanFormula formula =
-        pCandidateInvariant.getFormula(getFormulaManager(), getPathFormulaManager(), pPathFormula);
-    for (String variableName : getFormulaManager().extractVariableNames(formula)) {
-      String parsedVariableName = FormulaManagerView.parseName(variableName).getFirst();
-      variableNames.add(parsedVariableName);
-      variableNames.add(getUnqualifiedVariableName(parsedVariableName));
-    }
-    return variableNames.build();
-  }
-
-  private boolean isCandidateVariable(
-      Set<String> pCandidateVariables, String pCandidateText, String pVariableName) {
-    String unqualifiedVariableName = getUnqualifiedVariableName(pVariableName);
-    return pCandidateVariables.contains(pVariableName)
-        || pCandidateVariables.contains(unqualifiedVariableName)
-        || containsIdentifier(pCandidateText, pVariableName)
-        || containsIdentifier(pCandidateText, unqualifiedVariableName);
   }
 
   private boolean containsIdentifier(String pText, String pIdentifier) {
