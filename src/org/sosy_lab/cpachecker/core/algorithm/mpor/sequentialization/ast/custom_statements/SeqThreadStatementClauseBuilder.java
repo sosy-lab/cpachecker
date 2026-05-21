@@ -54,7 +54,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
+import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CLabelStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
 
 public record SeqThreadStatementClauseBuilder(
     MPOROptions options,
@@ -259,21 +261,53 @@ public record SeqThreadStatementClauseBuilder(
 
     checkArgument(!pClauses.isEmpty(), "pClauses is empty.");
 
-    ImmutableList<CExpressionAssignmentStatement> pointerResetAssignments =
+    ImmutableList<CCompoundStatementElement> pointerResetAssignments =
         getResetAssignmentsForOutOfScopePointers(pThread, pThreadNode);
-
     if (pointerResetAssignments.isEmpty()) {
       return pClauses;
     }
 
-    // TODO inject the pointer resets into the last clause
-    return pClauses;
+    SeqThreadStatementClause lastClause = pClauses.getLast();
+    SeqThreadStatementBlock block = Iterables.getOnlyElement(lastClause.getBlocks());
+    SeqThreadStatement statement = Iterables.getOnlyElement(block.getStatements());
+
+    checkState(
+        statement
+            .data()
+            .getType()
+            .in(SeqThreadStatementType.GHOST_ONLY, SeqThreadStatementType.FUNCTION_EXIT));
+
+    // it is important that the pointer reset is added after the existing statements. the existing
+    // statements may contain an assignment from a function return which could be overwritten:
+    // ptr = return_ptr;      <- must be first
+    // return_ptr = (void*)0;
+    ImmutableList<CCompoundStatementElement> newExportStatements =
+        ImmutableList.<CCompoundStatementElement>builder()
+            .addAll(statement.exportStatements())
+            .addAll(pointerResetAssignments)
+            .build();
+    SeqThreadStatement newStatement =
+        new SeqThreadStatement(
+            // update the type to ensure that the pointer reset assignments are not pruned
+            statement.data().withType(SeqThreadStatementType.FUNCTION_EXIT),
+            statement.targetPc(),
+            statement.targetGoto(),
+            statement.instrumentation(),
+            newExportStatements);
+    SeqThreadStatementBlock newBlock = block.withStatements(ImmutableList.of(newStatement));
+    SeqThreadStatementClause newLastClause = lastClause.withBlocks(ImmutableList.of(newBlock));
+
+    // replace the last clause with the new clause
+    return ImmutableList.<SeqThreadStatementClause>builder()
+        .addAll(pClauses.subList(0, pClauses.size() - 1))
+        .add(newLastClause)
+        .build();
   }
 
-  private ImmutableList<CExpressionAssignmentStatement> getResetAssignmentsForOutOfScopePointers(
+  private ImmutableList<CCompoundStatementElement> getResetAssignmentsForOutOfScopePointers(
       MPORThread pThread, CFANodeForThread pThreadNode) {
 
-    ImmutableList.Builder<CExpressionAssignmentStatement> rAssignments = ImmutableList.builder();
+    ImmutableList.Builder<CCompoundStatementElement> rAssignments = ImmutableList.builder();
 
     CFANode cfaNode = pThreadNode.getCfaNode();
     if (cfaNode.getLeavingEdges().stream()
@@ -301,7 +335,7 @@ public record SeqThreadStatementClauseBuilder(
                       CPointerType.POINTER_TO_VOID,
                       CIntegerLiteralExpression.ZERO));
 
-          rAssignments.add(assignmentStatement);
+          rAssignments.add(new CStatementWrapper(assignmentStatement));
         }
       }
     }
