@@ -47,7 +47,6 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -374,13 +373,7 @@ class KInductionProver implements AutoCloseable {
     BooleanFormula loopHeadInv =
         inductiveLoopHeadInvariantAssertion(loopHeadStates, relevantLoopHeads);
     Multimap<BooleanFormula, BooleanFormula> successorViolationAssertions =
-        LinkedHashMultimap.create(
-            getNonTerminationClosureViolationAssertions(pCandidateInvariant, inductionHypothesis));
-    if (pLoopScope.isPresent()) {
-      successorViolationAssertions.putAll(
-          getNonTerminationLoopExitViolationAssertions(
-              pLoopScope.orElseThrow(), inductionHypothesis));
-    }
+        getNonTerminationClosureViolationAssertions(pCandidateInvariant, inductionHypothesis);
     if (successorViolationAssertions.isEmpty()) {
       logger.log(
           Level.FINER,
@@ -1311,33 +1304,6 @@ class KInductionProver implements AutoCloseable {
     }
 
     return stateViolationAssertionsBuilder.build();
-  }
-
-  private Multimap<BooleanFormula, BooleanFormula> getNonTerminationLoopExitViolationAssertions(
-      NonTerminationLoopScope pLoopScope, Set<AbstractState> pHypothesis)
-      throws CPATransferException, InterruptedException {
-    ImmutableSet.Builder<CFANode> exitSuccessorsBuilder = ImmutableSet.builder();
-    for (CFAEdge outgoingEdge : pLoopScope.loop().getOutgoingEdges()) {
-      exitSuccessorsBuilder.add(outgoingEdge.getSuccessor());
-    }
-    ImmutableSet<CFANode> exitSuccessors = exitSuccessorsBuilder.build();
-    if (exitSuccessors.isEmpty()) {
-      return ImmutableListMultimap.of();
-    }
-
-    ReachedSet reached = reachedSet.getReachedSet();
-    ImmutableListMultimap.Builder<BooleanFormula, BooleanFormula> exitViolationsBuilder =
-        ImmutableListMultimap.builder();
-    for (AbstractState state : AbstractStates.filterLocations(reached, exitSuccessors)) {
-      if (pHypothesis.contains(state)) {
-        continue;
-      }
-      Set<AbstractState> stateAsSet = Collections.singleton(state);
-      BooleanFormula stateFormula =
-          BMCHelper.createFormulaFor(stateAsSet, bfmgr, Optional.of(shutdownNotifier));
-      exitViolationsBuilder.put(stateFormula, bfmgr.makeTrue());
-    }
-    return exitViolationsBuilder.build();
   }
 
   private FluentIterable<AbstractState> filterNonTerminationPredecessorStates(

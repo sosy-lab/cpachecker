@@ -382,6 +382,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     addInternalExitGuardCandidates(pLoop, candidates, pNegated);
     if (!pNegated) {
       addNoExitLoopHeadCandidates(pLoop, candidates);
+      addLoopExitViolationCandidates(pLoop, candidates);
     }
     ImmutableSet<CandidateInvariant> loopCandidates = candidates.build();
     if (loopCandidates.isEmpty()) {
@@ -523,6 +524,20 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
     for (CFANode loopHead : pLoop.getLoopHeads()) {
       pCandidates.add(SingleLocationFormulaInvariant.makeBooleanInvariant(loopHead, true));
+    }
+  }
+
+  private void addLoopExitViolationCandidates(
+      Loop pLoop, ImmutableSet.Builder<CandidateInvariant> pCandidates) {
+    for (CFAEdge outgoingEdge : pLoop.getOutgoingEdges()) {
+      // Assume-based exits are already covered by loop-head / internal continuation guards.
+      // Only emit a structural "false at successor" candidate for non-assume exits
+      // (e.g. return, abort, function calls leaving the loop).
+      if (outgoingEdge instanceof AssumeEdge) {
+        continue;
+      }
+      pCandidates.add(
+          SingleLocationFormulaInvariant.makeBooleanInvariant(outgoingEdge.getSuccessor(), false));
     }
   }
 
