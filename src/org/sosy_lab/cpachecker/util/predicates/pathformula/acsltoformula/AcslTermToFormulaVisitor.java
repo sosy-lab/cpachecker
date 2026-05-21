@@ -100,9 +100,6 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
   @Override
   public Formula visit(AcslStringLiteralTerm pAcslStringLiteralTerm) throws NoException {
-    // return ctoFormulaConverter.makeAnd(PathFormula.createManually(bfmgr.makeTrue(),
-    // SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet(), 0), TODO create edge here,
-    // ErrorConditions.dummyInstance(fmgr.getBooleanFormulaManager()));
     throw new UnsupportedOperationException("Not yet implemented");
   }
 
@@ -141,7 +138,10 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
       signed = false;
     }
 
-    // TODO some typing stuff might not be taken care of by fmgr...
+    // TODO some typing stuff:
+    // take care of the case where the operands do not have the same type:
+    // upcast e.g. bitvector to int look into formulaManager,
+    // extract this into a function that takes the two formulas and maybe their types...
 
     return switch (pAcslBinaryTerm.getOperator()) {
       // TODO make sure that fmgr really does bitwise and, or etc. here as I suspect
