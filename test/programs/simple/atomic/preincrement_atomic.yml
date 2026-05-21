@@ -4,7 +4,9 @@
 #
 # SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
 #
-# SPDX-License-Identifier: Apache-2.0format_version: '2.0'
+# SPDX-License-Identifier: Apache-2.0
+
+format_version: '2.0'
 
 input_files: 'preincrement_atomic.c'
 
