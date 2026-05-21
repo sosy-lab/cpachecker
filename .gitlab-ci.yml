@@ -21,7 +21,7 @@ spec:
         - if: $[[ inputs.auto_update_dependencies ]] == true
           default:
     extended_tests:
-      description: "Run extended set of unit tests"
+      description: "Run extended set of unit and integration tests"
       type: boolean
       rules:
         - if: $[[ inputs.auto_update_dependencies ]] != true

@@ -19,7 +19,8 @@ Test Overview
 | [Unit tests for JavaScript code](JavascriptTesting.md)        | [GitLab CI][] | all pipelines |
 | [Integration tests for JavaScript code](JavascriptTesting.md) | [GitLab CI][] | all pipelines |
 | [Integration tests for Python code](PythonStyleGuide.md)      | [GitLab CI][] | all pipelines |
-| Small-scale integration tests                                 | [GitLab CI][] | all pipelines |
+| Small-scale integration tests with complex assertions, e.g., for witness export | [GitLab CI][] | all pipelines |
+| Small-scale integration tests with basic result assertions    | [GitLab CI][] | merge trains + weekly for `main` |
 | Large-scale integration tests for many configs (one with witness validation) | [BuildBot][] | on every push/merge to `main` |
 | Largest-scale integration tests on whole [SV-Benchmarks][] for few configs (with witness validation) | [BuildBot][] | every few days for `main` |
 
@@ -51,6 +52,15 @@ In this case the test class should be named `*IntegrationTest`
 and the tests can be executed with `ant integration-tests` (or `ant tests`).
 However, please consider the flakiness risk and time necessary for integration tests
 and consider turning them into proper unit tests instead.
+
+Developers who wish to have a few basic integration tests
+(duplicating BuildBot tests)
+written as JUnit tests for their convenience may also add them.
+However, in order to not let local execution or CI pipelines take too much time,
+such tests must be disabled by default by calling
+`CPATestRunner.skipUnlessExtendedTestsEnabled()` (ideally from a `@BeforeClass` method).
+One can run them by setting the system property `enableExtendedTests`,
+e.g., with `ant tests -DenableExtendedTests=true`.
 
 Smoke tests that automatically run each CPAchecker configuration on a trivial program
 are executed with `ant configuration-checks` and in [GitLab CI][].

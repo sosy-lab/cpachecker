@@ -30,8 +30,40 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
  * addition to BuildBot tests). These tests can use the utilities in this class. Such test classes
  * should typically have the name suffix "IntegrationTest" such that they are executed together with
  * the other integration tests and not the unit tests.
+ *
+ * <p>However, such integration tests as JUnit tests should be disabled by default in order to not
+ * let local test execution and CI pipelines take too much time. Thus all developers adding
+ * integration tests as JUnit tests should guard them with {@link
+ * #skipUnlessExtendedTestsEnabled()}, with the exceptions of:
+ *
+ * <ul>
+ *   <li>{@link org.sosy_lab.cpachecker.core.CPAcheckerIntegrationTest}, a test class with a small
+ *       set of central integration tests
+ *   <li>integration tests that check more than the just the verification result, i.e., witness
+ *       content, etc. (such tests are more valuable and rare than basic integration tests and can
+ *       thus be enabled by default)
+ * </ul>
+ *
+ * <p>Cf. #1609 for a discussion of the background of this.
+ *
+ * <p>Use <code>ant integration-tests -DenableExtendedTests=true</code> to enable all such tests.
  */
 public class IntegrationTestRunner {
+
+  /**
+   * Automatically skips the current tests if only the most important integration tests are desired.
+   * This should be called by developers adding integration tests as JUnit test, cf. the JavaDoc of
+   * this class for more details.
+   *
+   * <p>A good place to call this is in a public static {@link org.junit.BeforeClass} method (after
+   * separating unit tests and integration tests into different classes).
+   *
+   * <p>This method is actually the same as {@link TestUtils#skipUnlessExtendedTestsEnabled()} and
+   * duplicate here just for visibility.
+   */
+  public static void skipUnlessExtendedTestsEnabled() {
+    TestUtils.skipUnlessExtendedTestsEnabled();
+  }
 
   public enum ExpectedVerdict {
     TRUE,
@@ -68,6 +100,9 @@ public class IntegrationTestRunner {
    * Execute CPAchecker with the given options on the given program file and collect the result and
    * log output (with the default log level).
    *
+   * <p>Note that most tests using this should be disabled by default by calling {@link
+   * #skipUnlessExtendedTestsEnabled()} before, cf. the JavaDoc of this class for more details.
+   *
    * <p>Classes calling this should typically have the name suffix "IntegrationTest".
    */
   public static IntegrationTestResult run(
@@ -81,6 +116,9 @@ public class IntegrationTestRunner {
    * Execute CPAchecker with the given configuration on the given program file and collect the
    * result and log output (with the default log level).
    *
+   * <p>Note that most tests using this should be disabled by default by calling {@link
+   * #skipUnlessExtendedTestsEnabled()} before, cf. the JavaDoc of this class for more details.
+   *
    * <p>Classes calling this should typically have the name suffix "IntegrationTest".
    */
   public static IntegrationTestResult run(Configuration config, String pSourceCodeFilePath)
@@ -91,6 +129,9 @@ public class IntegrationTestRunner {
   /**
    * Execute CPAchecker with the given configuration on the given program file and collect the
    * result and log output.
+   *
+   * <p>Note that most tests using this should be disabled by default by calling {@link
+   * #skipUnlessExtendedTestsEnabled()} before, cf. the JavaDoc of this class for more details.
    *
    * <p>Classes calling this should typically have the name suffix "IntegrationTest".
    */
