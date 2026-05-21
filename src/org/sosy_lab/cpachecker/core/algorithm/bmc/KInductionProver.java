@@ -397,6 +397,18 @@ class KInductionProver implements AutoCloseable {
             "The non-termination closure predecessor is unsatisfiable; refusing vacuous proof.");
         return false;
       }
+      BooleanFormula nonVacuousAtIterK =
+          buildNonVacuousPredecessorAtIterK(
+              predecessorCandidate.orElseThrow(), pK, relevantLoopHeads);
+      prover.push(nonVacuousAtIterK);
+      pushes++;
+      if (prover.isUnsat()) {
+        logger.log(
+            Level.FINER,
+            "The non-termination closure predecessor is not non-vacuously reachable at"
+                + " iteration k; refusing vacuous proof.");
+        return false;
+      }
       prover.push(loopHeadInv);
       pushes++;
       prover.push(successorViolation);
@@ -1193,6 +1205,31 @@ class KInductionProver implements AutoCloseable {
     }
 
     return stateViolationAssertionsBuilder.build();
+  }
+
+  private BooleanFormula buildNonVacuousPredecessorAtIterK(
+      CandidateInvariant pPredecessorCandidate, int pK, Set<CFANode> pRelevantLoopHeads)
+      throws CPATransferException, InterruptedException {
+    ReachedSet reached = reachedSet.getReachedSet();
+    Iterable<AbstractState> loopHeadStatesAtIterK =
+        filterIteration(
+            AbstractStates.filterLocations(reached, pRelevantLoopHeads), pK, pRelevantLoopHeads);
+    BooleanFormula result = bfmgr.makeFalse();
+    for (AbstractState state : pPredecessorCandidate.filterApplicable(loopHeadStatesAtIterK)) {
+      PredicateAbstractState predicateState =
+          AbstractStates.extractStateByType(state, PredicateAbstractState.class);
+      if (predicateState == null) {
+        continue;
+      }
+      BooleanFormula stateFormula = predicateState.getPathFormula().getFormula();
+      if (bfmgr.isFalse(stateFormula)) {
+        continue;
+      }
+      BooleanFormula stateAssertion =
+          pPredecessorCandidate.getAssertion(Collections.singleton(state), fmgr, pfmgr);
+      result = bfmgr.or(result, bfmgr.and(stateFormula, stateAssertion));
+    }
+    return result;
   }
 
   private Multimap<BooleanFormula, BooleanFormula> getNonTerminationClosureViolationAssertions(
