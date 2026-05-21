@@ -117,9 +117,6 @@ public class SvLibCurrentScope extends SvLibScope {
       return globalVariablesQualifiedNames.get(pText);
     } else if (procedureDeclarationVariablesQualifiedNames.containsKey(pText)) {
       return procedureDeclarationVariablesQualifiedNames.get(pText);
-    } else if (procedureDeclarationVariables.containsKey(pText)
-        && pText.startsWith("__ADDRESS_OF_")) {
-      return procedureDeclarationVariables.get(pText);
     } else {
       throw new IllegalArgumentException(
           "Variable with name " + pText + " does not exist in the scope.");

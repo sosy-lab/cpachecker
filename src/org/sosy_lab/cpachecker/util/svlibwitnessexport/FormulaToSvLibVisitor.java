@@ -255,6 +255,9 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
       if (nameWithoutSSA.endsWith("@")) {
         nameWithoutSSA = nameWithoutSSA.replace("@", "");
       }
+      SvLibSimpleDeclaration addressVariableDeclaration =
+          scope.getVariable(nameWithoutSSA).toSimpleDeclaration();
+      return new SvLibIdTerm(addressVariableDeclaration, FileLocation.DUMMY);
     }
 
     SvLibSimpleDeclaration variableDeclaration =
