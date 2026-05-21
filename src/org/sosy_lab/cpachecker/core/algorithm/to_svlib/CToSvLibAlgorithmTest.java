@@ -125,12 +125,12 @@ public class CToSvLibAlgorithmTest {
     testTransformationToSvLib(inputFilePath, encodeBitvectorsAsIntegersOption);
   }
 
-  // FIXME casting incompatible types in procedure call with ITE does not yet work for bitvectors
-  /*@Test(timeout = 1800)
+  // FIXME bitvector type in procedure declaratio is too small!
+  @Test(timeout = 1800)
   public void testGotosBitvectorEncoding() throws Exception {
     Path inputFilePath = Path.of(examplesPathProgramTranslation(), "gotos.c");
     testTransformationToSvLib(inputFilePath, encodeBitvectorsAsBitvectorsOption);
-  }*/
+  }
 
   @Test(timeout = 1800)
   public void testFunctionReturn() throws Exception {
