@@ -1247,19 +1247,29 @@ class KInductionProver implements AutoCloseable {
       throws CPATransferException, InterruptedException {
     ARGState argStopState = AbstractStates.extractStateByType(pStopState, ARGState.class);
     if (argStopState == null) {
+      logger.log(Level.INFO, "[NV-DBG]   stop state has no ARGState");
       return Optional.empty();
     }
     PredicateAbstractState stopPredicateState =
         AbstractStates.extractStateByType(pStopState, PredicateAbstractState.class);
     if (stopPredicateState == null) {
+      logger.log(Level.INFO, "[NV-DBG]   stop state has no PredicateAbstractState");
       return Optional.empty();
     }
     BooleanFormula stopStateFormula = stopPredicateState.getPathFormula().getFormula();
     if (bfmgr.isFalse(stopStateFormula)) {
+      logger.log(Level.INFO, "[NV-DBG]   stop state formula is syntactically false");
       return Optional.empty();
     }
+    logger.logf(
+        Level.INFO,
+        "[NV-DBG]   stop state at %s, ssa=%s, stopFormula=%s",
+        AbstractStates.extractLocation(pStopState),
+        stopPredicateState.getPathFormula().getSsa(),
+        stopStateFormula);
     BooleanFormula result = stopStateFormula;
     boolean foundApplicableState = false;
+    int appliedAssertions = 0;
     for (ARGState pathState : ARGUtils.getOnePathTo(argStopState).asStatesList()) {
       if (Iterables.isEmpty(pCandidate.filterApplicable(Collections.singleton(pathState)))) {
         continue;
@@ -1272,9 +1282,17 @@ class KInductionProver implements AutoCloseable {
       }
       BooleanFormula stateAssertion =
           pCandidate.getAssertion(Collections.singleton(pathState), fmgr, pfmgr);
+      logger.logf(
+          Level.INFO,
+          "[NV-DBG]     applicable @%s ssa=%s assertion=%s",
+          AbstractStates.extractLocation(pathState),
+          predicateState.getPathFormula().getSsa(),
+          stateAssertion);
       result = bfmgr.and(result, stateAssertion);
       foundApplicableState = true;
+      appliedAssertions++;
     }
+    logger.logf(Level.INFO, "[NV-DBG]   total assertions applied: %d", appliedAssertions);
     return foundApplicableState ? Optional.of(result) : Optional.empty();
   }
 
