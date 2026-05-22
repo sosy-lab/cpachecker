@@ -20,7 +20,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class AssumptionToEdgeAllocatorTest {
@@ -39,7 +39,7 @@ public class AssumptionToEdgeAllocatorTest {
   @Before
   public void setUp() throws Exception {
     cfa =
-        TestDataTools.makeCFA(
+        TestCfaUtils.makeCFA(
             """
             typedef struct dataNode {
               int h;

@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
@@ -91,7 +91,7 @@ public class LoopTransitionFinderTest {
   @Test
   public void testGetEdgesInLoop() throws Exception {
     CFA cfa =
-        TestDataTools.toSingleFunctionCFA(
+        TestCfaUtils.toSingleFunctionCFA(
             creator,
             """
             int x = 0;
@@ -117,7 +117,7 @@ public class LoopTransitionFinderTest {
   @Test
   public void testWithConditional() throws Exception {
     CFA cfa =
-        TestDataTools.toSingleFunctionCFA(
+        TestCfaUtils.toSingleFunctionCFA(
             creator,
             """
             int x = 0;
@@ -147,7 +147,7 @@ public class LoopTransitionFinderTest {
   @Test
   public void testInterproceduralSummary() throws Exception {
     CFA cfa =
-        TestDataTools.toMultiFunctionCFA(
+        TestCfaUtils.toMultiFunctionCFA(
             creator,
             """
             void log() {}
@@ -185,8 +185,8 @@ public class LoopTransitionFinderTest {
   }
 
   private PathFormula fromLine(String line) throws Exception {
-    return TestDataTools.toPathFormula(
-        TestDataTools.toSingleFunctionCFA(creator, line), SSAMap.emptySSAMap(), pfmgr, true);
+    return TestCfaUtils.toPathFormula(
+        TestCfaUtils.toSingleFunctionCFA(creator, line), SSAMap.emptySSAMap(), pfmgr, true);
   }
 
   private void assertEquivalent(BooleanFormula output, BooleanFormula expected)

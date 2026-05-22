@@ -20,7 +20,8 @@ import org.sosy_lab.common.configuration.converters.FileTypeConverter;
  * <p>For a logger that is spezialized for tests, use {@link
  * org.sosy_lab.common.log.LogManager#createTestLogManager()}. For a {@link
  * org.sosy_lab.common.ShutdownNotifier} use {@link
- * org.sosy_lab.common.ShutdownNotifier#createDummy()}.
+ * org.sosy_lab.common.ShutdownNotifier#createDummy()}. For utilities for creating a CFA or parts of
+ * it for tests, look at {@link TestCfaUtils}.
  */
 public class TestUtils {
 

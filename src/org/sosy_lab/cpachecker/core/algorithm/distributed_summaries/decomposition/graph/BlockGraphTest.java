@@ -18,7 +18,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssDecompositionOptions;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class BlockGraphTest {
@@ -32,8 +32,8 @@ public class BlockGraphTest {
   @Test
   public void testCanExportWithNodeIdThatStartsAtNonZero() throws Exception {
     String programText = Files.readString(Path.of(PROGRAM), StandardCharsets.UTF_8);
-    CFA originalCFA = TestDataTools.makeCFA(programText);
-    CFA shiftedCFA = TestDataTools.makeCFA(programText);
+    CFA originalCFA = TestCfaUtils.makeCFA(programText);
+    CFA shiftedCFA = TestCfaUtils.makeCFA(programText);
 
     // If the CFAs have the same nodes, then they were not shifted and this test is not valid
     assertThat(originalCFA.nodes()).isNotEmpty();
