@@ -672,12 +672,10 @@ class ASTConverter {
     return false;
   }
 
-  /**
-   * Check whether the given expression is a local variable.
-   */
+  /** Check whether the given expression is a local variable. */
   private boolean isLocalVariable(CExpression exp) {
-    if (exp instanceof CIdExpression cIdExpression &&
-        cIdExpression.getDeclaration() instanceof CVariableDeclaration cVariableDeclaration) {
+    if (exp instanceof CIdExpression cIdExpression
+        && cIdExpression.getDeclaration() instanceof CVariableDeclaration cVariableDeclaration) {
       return !cVariableDeclaration.isGlobal();
     }
     return false;
