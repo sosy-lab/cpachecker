@@ -14,7 +14,6 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
@@ -23,12 +22,9 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -46,6 +42,7 @@ public class AcslPredicateToFormulaVisitor
   private final BooleanFormulaManagerView bfmgr;
   private final AcslTermToFormulaVisitor termVisitor;
   private final CtoFormulaConverter ctoFormulaConverter;
+  private final AcslTypeHelper typeHelper;
 
   @SuppressWarnings("unused") // I suspect currentSsa will be needed at some point
   private final SSAMapBuilder currentSsa;
@@ -70,6 +67,7 @@ public class AcslPredicateToFormulaVisitor
     this.ctoFormulaConverter = pCtoFormulaConverter;
     this.functionEntrySsa = Optional.empty();
     this.machineModel = pMachineModel;
+    this.typeHelper = new AcslTypeHelper(pMachineModel);
   }
 
   public AcslPredicateToFormulaVisitor(
@@ -90,6 +88,7 @@ public class AcslPredicateToFormulaVisitor
     this.ctoFormulaConverter = pCtoFormulaConverter;
     this.functionEntrySsa = Optional.ofNullable(pFunctionEntrySsa);
     this.machineModel = pMachineModel;
+    this.typeHelper = new AcslTypeHelper(pMachineModel);
   }
 
   // Constructor that should only be called by AcslTermToFormulaVisitor
@@ -111,6 +110,7 @@ public class AcslPredicateToFormulaVisitor
     this.ctoFormulaConverter = pCtoFormulaConverter;
     this.functionEntrySsa = oFunctionEntrySsa;
     this.machineModel = pMachineModel;
+    this.typeHelper = new AcslTypeHelper(pMachineModel);
   }
 
   @Override
@@ -151,7 +151,7 @@ public class AcslPredicateToFormulaVisitor
     // Bitvector case: signed is important
     if (operand1Formula instanceof BitvectorFormula
         && operand2Formula instanceof BitvectorFormula) {
-      signed = isSigned(pAcslBinaryTermPredicate.getOperand1().getExpressionType());
+      signed = typeHelper.isSigned(pAcslBinaryTermPredicate.getOperand1().getExpressionType());
     }
 
     return switch (pAcslBinaryTermPredicate.getOperator()) {
@@ -222,23 +222,5 @@ public class AcslPredicateToFormulaVisitor
       throws NoException {
     // TODO implementation definitely needed
     throw new UnsupportedOperationException("Not yet implemented");
-  }
-
-  private boolean isSigned(AcslType type) {
-
-    if (!(type instanceof AcslCType cType)) {
-      return true;
-    }
-    CType underlyingCType = cType.getType().getCanonicalType();
-
-    if (underlyingCType instanceof CSimpleType simpleType) {
-      return machineModel.isSigned(simpleType);
-    }
-
-    return true;
-    // add pointer type as unsigned => false
-    // function, predicate, polymorphic types and set should cause exceptions
-    // acsl builtin logic types are all signed => true
-    // get this out of this class so the other visitor can use it too
   }
 }

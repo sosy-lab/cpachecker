@@ -58,6 +58,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
       functionEntrySsa; // Optional SSA map for function-entry state (\old)
   private CtoFormulaConverter ctoFormulaConverter;
   private MachineModel machineModel;
+  private AcslTypeHelper typeHelper;
 
   public AcslTermToFormulaVisitor(
       FormulaManagerView pFmgr,
@@ -73,6 +74,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     this.functionEntrySsa = Optional.empty();
     this.ctoFormulaConverter = pCtoFormulaConverter;
     this.machineModel = pMachineModel;
+    this.typeHelper = new AcslTypeHelper(pMachineModel);
   }
 
   public AcslTermToFormulaVisitor(
@@ -90,6 +92,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     this.functionEntrySsa = Optional.ofNullable(pFunctionEntrySsa);
     this.ctoFormulaConverter = pCtoFormulaConverter;
     this.machineModel = pMachineModel;
+    this.typeHelper = new AcslTypeHelper(pMachineModel);
   }
 
   @Override
@@ -133,9 +136,8 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     // Bitvector case: signed is important with some of the operators
     if (operand1Formula instanceof BitvectorFormula
         && operand2Formula instanceof BitvectorFormula) {
-      // TODO whatever is correct in AclsPredicateToFormulaVisitor for BinaryTermPredicate is needed
-      // here, too. Make sure this logic ends up somewhere usable for both
-      signed = false;
+      // TODO do I use the Expression Type of the operand or of the whole term?
+      signed = typeHelper.isSigned(pAcslBinaryTerm.getOperand1().getExpressionType());
     }
 
     // TODO some typing stuff:
