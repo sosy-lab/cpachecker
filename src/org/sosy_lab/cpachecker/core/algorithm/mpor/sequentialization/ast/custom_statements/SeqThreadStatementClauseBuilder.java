@@ -304,7 +304,12 @@ public record SeqThreadStatementClauseBuilder(
     SeqThreadStatementClause newLastClause = lastClause.withBlocks(ImmutableList.of(newBlock));
 
     // replace the last clause with the new clause
-    return listAndElement(pClauses.subList(0, pClauses.size() - 1), newLastClause);
+    ImmutableList<SeqThreadStatementClause> updatedClauses =
+        listAndElement(pClauses.subList(0, pClauses.size() - 1), newLastClause);
+    checkState(
+        updatedClauses.size() == pClauses.size(),
+        "The previous and updated clauses must have the same size.");
+    return updatedClauses;
   }
 
   private ImmutableList<CCompoundStatementElement> getResetAssignmentsForOutOfScopePointers(
