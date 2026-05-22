@@ -368,11 +368,12 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     ImmutableSet.Builder<CandidateInvariant> candidates = ImmutableSet.builder();
     boolean directlyNonTerminatingNoExitLoop =
         !pNegated && isDirectlyNonTerminatingNoExitLoop(pLoop);
-    addLoopHeadCandidates(pLoop, candidates, pNegated);
-    addInternalExitGuardCandidates(pLoop, candidates, pNegated);
+    Set<CFANode> nodesWithContinuationCandidate = new HashSet<>();
+    addLoopHeadCandidates(pLoop, candidates, pNegated, nodesWithContinuationCandidate);
+    addInternalExitGuardCandidates(pLoop, candidates, pNegated, nodesWithContinuationCandidate);
     if (!pNegated) {
       addNoExitLoopHeadCandidates(pLoop, candidates);
-      addLoopExitViolationCandidates(pLoop, candidates);
+      addLoopExitViolationCandidates(pLoop, candidates, nodesWithContinuationCandidate);
     }
     ImmutableSet<CandidateInvariant> loopCandidates = candidates.build();
     if (loopCandidates.isEmpty()) {
@@ -391,19 +392,27 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private void addLoopHeadCandidates(
-      Loop pLoop, ImmutableSet.Builder<CandidateInvariant> pCandidates, boolean pNegated) {
+      Loop pLoop,
+      ImmutableSet.Builder<CandidateInvariant> pCandidates,
+      boolean pNegated,
+      Set<CFANode> pNodesWithContinuationCandidate) {
     for (CFANode loopHead : pLoop.getLoopHeads()) {
-      addSingleLocationContinuationCandidatesAtNode(pLoop, loopHead, pCandidates, pNegated);
+      addSingleLocationContinuationCandidatesAtNode(
+          pLoop, loopHead, pCandidates, pNegated, pNodesWithContinuationCandidate);
     }
   }
 
   private void addInternalExitGuardCandidates(
-      Loop pLoop, ImmutableSet.Builder<CandidateInvariant> pCandidates, boolean pNegated) {
+      Loop pLoop,
+      ImmutableSet.Builder<CandidateInvariant> pCandidates,
+      boolean pNegated,
+      Set<CFANode> pNodesWithContinuationCandidate) {
     for (CFANode loopNode : pLoop.getLoopNodes()) {
       if (pLoop.getLoopHeads().contains(loopNode)) {
         continue;
       }
-      addLoopScopedContinuationCandidatesAtNode(pLoop, loopNode, pCandidates, pNegated);
+      addLoopScopedContinuationCandidatesAtNode(
+          pLoop, loopNode, pCandidates, pNegated, pNodesWithContinuationCandidate);
     }
   }
 
@@ -411,7 +420,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       Loop pLoop,
       CFANode pNode,
       ImmutableSet.Builder<CandidateInvariant> pCandidates,
-      boolean pNegated) {
+      boolean pNegated,
+      Set<CFANode> pNodesWithContinuationCandidate) {
     for (CFAEdge leavingEdge : pNode.getLeavingEdges()) {
       if (leavingEdge instanceof AssumeEdge assumeEdge
           && pLoop.getLoopNodes().contains(assumeEdge.getSuccessor())) {
@@ -419,6 +429,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             pNegated
                 ? new FrontierEdgeFormulaNegation(pNode, assumeEdge)
                 : new EdgeFormula(pNode, assumeEdge));
+        pNodesWithContinuationCandidate.add(pNode);
       }
     }
   }
@@ -427,7 +438,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       Loop pLoop,
       CFANode pNode,
       ImmutableSet.Builder<CandidateInvariant> pCandidates,
-      boolean pNegated) {
+      boolean pNegated,
+      Set<CFANode> pNodesWithContinuationCandidate) {
     ImmutableSet<CFANode> loopNodes = ImmutableSet.copyOf(pLoop.getLoopNodes());
     boolean hasExitAlternative = false;
     for (CFAEdge leavingEdge : pNode.getLeavingEdges()) {
@@ -447,13 +459,23 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             pNegated
                 ? new LoopScopedFrontierEdgeFormulaNegation(pNode, loopNodes, assumeEdge)
                 : new EdgeFormula(pNode, assumeEdge));
+        pNodesWithContinuationCandidate.add(pNode);
       }
     }
   }
 
   private void addLoopExitViolationCandidates(
-      Loop pLoop, ImmutableSet.Builder<CandidateInvariant> pCandidates) {
+      Loop pLoop,
+      ImmutableSet.Builder<CandidateInvariant> pCandidates,
+      Set<CFANode> pNodesWithContinuationCandidate) {
     for (CFAEdge outgoingEdge : pLoop.getOutgoingEdges()) {
+      // Skip false@exit_succ when the exit is an AssumeEdge and its predecessor already received
+      // a sibling continuation candidate: SSA then makes the exit branch infeasible from any
+      // C-predecessor, so the successor-only false assertion is redundant.
+      if (outgoingEdge instanceof AssumeEdge
+          && pNodesWithContinuationCandidate.contains(outgoingEdge.getPredecessor())) {
+        continue;
+      }
       pCandidates.add(
           SingleLocationFormulaInvariant.makeBooleanInvariant(outgoingEdge.getSuccessor(), false));
     }
