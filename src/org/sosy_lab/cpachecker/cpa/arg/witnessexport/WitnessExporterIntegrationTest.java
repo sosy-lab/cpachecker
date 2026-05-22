@@ -26,7 +26,6 @@ import java.util.Objects;
 import java.util.SequencedMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -103,17 +102,21 @@ public class WitnessExporterIntegrationTest {
         .performTest();
   }
 
-  @Test(timeout = 90000)
-  @Ignore // TODO takes too long and needs replacement, cf. #926
+  @Test(timeout = 100000)
   public void concurrency_false_fib_bench() throws Exception {
+    // TODO takes too long and needs replacement, cf. #926
+    IntegrationTestRunner.skipUnlessExtendedTestsEnabled();
+
     new WitnessTester(
             "fib_bench-2.i", ExpectedVerdict.FALSE, WitnessGenerationConfig.BDD_CONCURRENCY)
         .performTest();
   }
 
-  @Test(timeout = 200000)
-  @Ignore // TODO takes too long and needs replacement, cf. #926
+  @Test(timeout = 300000)
   public void concurrency_false_mix000_power() throws Exception {
+    // TODO takes too long and needs replacement, cf. #926
+    IntegrationTestRunner.skipUnlessExtendedTestsEnabled();
+
     new WitnessTester(
             "mix000_power.oepc.i", ExpectedVerdict.FALSE, WitnessGenerationConfig.BDD_CONCURRENCY)
         .performTest();
