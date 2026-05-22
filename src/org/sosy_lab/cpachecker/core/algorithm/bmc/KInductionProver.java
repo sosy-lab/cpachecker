@@ -371,7 +371,8 @@ class KInductionProver implements AutoCloseable {
     // over-strong invariant can mask a real loop-exit or guard-violation successor and turn a
     // terminating loop into a false non-termination proof.
     Multimap<BooleanFormula, BooleanFormula> successorViolationAssertions =
-        getNonTerminationClosureViolationAssertions(pCandidateInvariant, inductionHypothesis);
+        getNonTerminationClosureViolationAssertions(
+            pCandidateInvariant, pK + 1, relevantLoopHeads);
     if (successorViolationAssertions.isEmpty()) {
       logger.log(
           Level.FINER,
@@ -424,7 +425,12 @@ class KInductionProver implements AutoCloseable {
         List<ValueAssignment> model = prover.getModelAssignments();
         lastNonTerminationRefinement =
             buildValidatedNonTerminationRefinement(
-                pCandidateInvariant, model, inductionHypothesis, successorViolation);
+                pCandidateInvariant,
+                model,
+                inductionHypothesis,
+                successorViolation,
+                pK + 1,
+                relevantLoopHeads);
       }
       return false;
     } finally {
@@ -462,7 +468,9 @@ class KInductionProver implements AutoCloseable {
       CandidateInvariant pOriginal,
       List<ValueAssignment> pModel,
       Set<AbstractState> pInductionHypothesis,
-      BooleanFormula pSuccessorViolation)
+      BooleanFormula pSuccessorViolation,
+      int pSuccessorK,
+      Set<CFANode> pRelevantLoopHeads)
       throws CPATransferException, InterruptedException, SolverException {
     Map<CFANode, List<BooleanFormula>> equalitiesByLoopHead =
         extractBestRefinementEqualitiesByLoopHead(pOriginal, pModel, pInductionHypothesis);
@@ -512,7 +520,7 @@ class KInductionProver implements AutoCloseable {
       // Fix 1: ensure the refined candidate's violation formula is not vacuously false.
       CandidateInvariant refined = tentative.orElseThrow();
       Multimap<BooleanFormula, BooleanFormula> refinedViolationAssertions =
-          getNonTerminationClosureViolationAssertions(refined, pInductionHypothesis);
+          getNonTerminationClosureViolationAssertions(refined, pSuccessorK, pRelevantLoopHeads);
       if (refinedViolationAssertions.isEmpty()) {
         logger.log(
             Level.FINER,
@@ -1272,15 +1280,14 @@ class KInductionProver implements AutoCloseable {
   }
 
   private Multimap<BooleanFormula, BooleanFormula> getNonTerminationClosureViolationAssertions(
-      CandidateInvariant pCandidateInvariant, Set<AbstractState> pHypothesis)
+      CandidateInvariant pCandidateInvariant, int pK, Set<CFANode> pRelevantLoopHeads)
       throws CPATransferException, InterruptedException {
     ReachedSet reached = reachedSet.getReachedSet();
 
     ImmutableListMultimap.Builder<BooleanFormula, BooleanFormula> stateViolationAssertionsBuilder =
         ImmutableListMultimap.builder();
     Iterable<AbstractState> assertionStates =
-        from(pCandidateInvariant.filterApplicable(reached))
-            .filter(state -> !pHypothesis.contains(state));
+        filterIteration(pCandidateInvariant.filterApplicable(reached), pK, pRelevantLoopHeads);
 
     for (AbstractState state : assertionStates) {
       Set<AbstractState> stateAsSet = Collections.singleton(state);
