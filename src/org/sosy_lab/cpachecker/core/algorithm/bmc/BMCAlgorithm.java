@@ -368,12 +368,12 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     ImmutableSet.Builder<CandidateInvariant> candidates = ImmutableSet.builder();
     boolean directlyNonTerminatingNoExitLoop =
         !pNegated && isDirectlyNonTerminatingNoExitLoop(pLoop);
-    Set<CFANode> nodesWithContinuationCandidate = new HashSet<>();
-    addLoopHeadCandidates(pLoop, candidates, pNegated, nodesWithContinuationCandidate);
-    addInternalExitGuardCandidates(pLoop, candidates, pNegated, nodesWithContinuationCandidate);
+    Set<CFANode> loopHeadsWithContinuationCandidate = new HashSet<>();
+    addLoopHeadCandidates(pLoop, candidates, pNegated, loopHeadsWithContinuationCandidate);
+    addInternalExitGuardCandidates(pLoop, candidates, pNegated);
     if (!pNegated) {
       addNoExitLoopHeadCandidates(pLoop, candidates);
-      addLoopExitViolationCandidates(pLoop, candidates, nodesWithContinuationCandidate);
+      addLoopExitViolationCandidates(pLoop, candidates, loopHeadsWithContinuationCandidate);
     }
     ImmutableSet<CandidateInvariant> loopCandidates = candidates.build();
     if (loopCandidates.isEmpty()) {
@@ -403,16 +403,12 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private void addInternalExitGuardCandidates(
-      Loop pLoop,
-      ImmutableSet.Builder<CandidateInvariant> pCandidates,
-      boolean pNegated,
-      Set<CFANode> pNodesWithContinuationCandidate) {
+      Loop pLoop, ImmutableSet.Builder<CandidateInvariant> pCandidates, boolean pNegated) {
     for (CFANode loopNode : pLoop.getLoopNodes()) {
       if (pLoop.getLoopHeads().contains(loopNode)) {
         continue;
       }
-      addLoopScopedContinuationCandidatesAtNode(
-          pLoop, loopNode, pCandidates, pNegated, pNodesWithContinuationCandidate);
+      addLoopScopedContinuationCandidatesAtNode(pLoop, loopNode, pCandidates, pNegated);
     }
   }
 
@@ -438,8 +434,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       Loop pLoop,
       CFANode pNode,
       ImmutableSet.Builder<CandidateInvariant> pCandidates,
-      boolean pNegated,
-      Set<CFANode> pNodesWithContinuationCandidate) {
+      boolean pNegated) {
     ImmutableSet<CFANode> loopNodes = ImmutableSet.copyOf(pLoop.getLoopNodes());
     boolean hasExitAlternative = false;
     for (CFAEdge leavingEdge : pNode.getLeavingEdges()) {
@@ -459,7 +454,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             pNegated
                 ? new LoopScopedFrontierEdgeFormulaNegation(pNode, loopNodes, assumeEdge)
                 : new EdgeFormula(pNode, assumeEdge));
-        pNodesWithContinuationCandidate.add(pNode);
       }
     }
   }
@@ -467,13 +461,16 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private void addLoopExitViolationCandidates(
       Loop pLoop,
       ImmutableSet.Builder<CandidateInvariant> pCandidates,
-      Set<CFANode> pNodesWithContinuationCandidate) {
+      Set<CFANode> pLoopHeadsWithContinuationCandidate) {
     for (CFAEdge outgoingEdge : pLoop.getOutgoingEdges()) {
-      // Skip false@exit_succ when the exit is an AssumeEdge and its predecessor already received
-      // a sibling continuation candidate: SSA then makes the exit branch infeasible from any
-      // C-predecessor, so the successor-only false assertion is redundant.
+      // Skip false@exit_succ only for AssumeEdge exits leaving a loop head whose canonical
+      // continuation guard is already in the candidate: SSA then makes that exit branch
+      // infeasible from any C-predecessor, so the successor-only false assertion is redundant.
+      // We deliberately do not extend this to internal exit guards (if/break/continue/goto), as
+      // multi-loop / goto topologies can make false@exit_succ load-bearing in ways that the
+      // local continuation guard does not cover.
       if (outgoingEdge instanceof AssumeEdge
-          && pNodesWithContinuationCandidate.contains(outgoingEdge.getPredecessor())) {
+          && pLoopHeadsWithContinuationCandidate.contains(outgoingEdge.getPredecessor())) {
         continue;
       }
       pCandidates.add(
