@@ -77,19 +77,17 @@ Structure of Tests
   if they are reusable. Feel free to add utilities there.
 
 
-Hints for Writing Tests
------------------------
+Hints for Writing JUnit Tests
+-----------------------------
 
-- Several classes have helpful instances for tests, for example:
-  - TestLogManager for LogManager (with tests for correct logger usage)
-  - TestDataTools.configurationForTest() for Configuration
-  - FileLocation.DUMMY
-  - CNumericTypes.* for CSimpleType instances
-  - For other types, look in the specific class
-  
-There is no need to mock these types or create your own instances.
-For `ShutdownNotifier`, simply use `ShutdownNotifier.createDummy()`.
-Other utilities may be found in the package `util.test`.
+- Several classes have helpful instances for tests and should not be mocked, for example:
+  - `LogManager.createTestLogManager()` (with tests for correct logger usage)
+  - `TestUtils.configurationForTest()` for `Configuration`
+  - `ShutdownNotifier.createDummy()` for `ShutdownNotifier`
+  - `FileLocation.DUMMY?
+  - `CNumericTypes.*` for `CSimpleType` instances
+  - `TestCfaUtils` has utilities for CFA and AST nodes.
+  - For other types, look in the specific class.
 
 - Inside tests, you can use the library [Truth](https://google.github.io/truth/) for writing assertions.
   Instead of writing `assertEquals(...)`, you can write `assertThat(...).is...`,
