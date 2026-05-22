@@ -113,9 +113,6 @@ public record SeqFunctionStatements(
       implements SeqFunctionStatement {
 
     public SeqFunctionReturnValueAssignment {
-      if (rightHandSideCallContext.cfaEdgeForThread().isEmpty()) {
-        System.out.println("");
-      }
       checkArgument(
           rightHandSideCallContext.cfaEdgeForThread().isPresent(),
           "rightHandSideCallContext must be present.");
