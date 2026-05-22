@@ -124,7 +124,11 @@ public class SubstituteEdge {
 
     ImmutableListMultimap<CParameterDeclaration, CIdExpression> parameterSubstitutes =
         pThreadEdge.callContext.cfaEdgeForThread().isPresent()
-            ? pSubstitution.parameterSubstitutes.row(pThreadEdge.callContext).entrySet().stream()
+            ? pSubstitution
+                .getParameterSubstitutes()
+                .row(pThreadEdge.callContext)
+                .entrySet()
+                .stream()
                 .flatMap(
                     entry -> entry.getValue().stream().map(val -> Map.entry(entry.getKey(), val)))
                 .collect(

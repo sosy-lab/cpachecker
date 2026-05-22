@@ -231,7 +231,7 @@ public class SequentializationBuilder {
     if (pOptions.comments()) {
       rDeclarations.add(SeqComment.MAIN_FUNCTION_ARG_SUBSTITUTES.toASTString());
     }
-    for (CIdExpression mainArg : pMainThreadSubstitution.mainFunctionArgSubstitutes.values()) {
+    for (CIdExpression mainArg : pMainThreadSubstitution.getMainFunctionArgSubstitutes().values()) {
       CVariableDeclaration variableDeclarationSubstitute =
           buildVariableDeclarationWithSubstituteType(
               (CVariableDeclaration) mainArg.getDeclaration());

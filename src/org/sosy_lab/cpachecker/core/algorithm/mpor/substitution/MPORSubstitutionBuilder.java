@@ -68,9 +68,8 @@ public record MPORSubstitutionBuilder(
     ImmutableTable<SeqCallContext, CParameterDeclaration, CIdExpression>
         startRoutineArgSubstitutes = buildStartRoutineArgSubstitutes();
 
-    ImmutableList.Builder<MPORSubstitution> rSubstitutions = ImmutableList.builder();
-
     // step 2: for each thread, create substitution
+    ImmutableList.Builder<MPORSubstitution> rSubstitutions = ImmutableList.builder();
     for (MPORThread thread : threads) {
       ImmutableTable<SeqCallContext, CParameterDeclaration, ImmutableList<CIdExpression>>
           parameterSubstitutes = buildParameterSubstitutes(thread);
@@ -209,19 +208,6 @@ public record MPORSubstitutionBuilder(
       }
     }
 
-    // handle the start routine argument
-    if (!pThread.isMain()) {
-      callCounts.merge(pThread.startRoutine(), 1, Integer::sum);
-      int callNumber = callCounts.get(pThread.startRoutine());
-      rParameterSubstitutes.putAll(
-          buildParameterSubstitutes(
-              pThread,
-              new SeqCallContext(pThread.startRoutineCall()),
-              pThread.startRoutine(),
-              Optional.empty(),
-              callNumber));
-    }
-
     return rParameterSubstitutes.buildOrThrow();
   }
 
@@ -340,24 +326,20 @@ public record MPORSubstitutionBuilder(
     for (MPORThread thread : threads) {
       for (CFAEdgeForThread threadEdge : thread.cfa().threadEdges) {
         CFAEdge cfaEdge = threadEdge.cfaEdge;
-        Optional<CFunctionCall> optionalFunctionCall =
-            PthreadUtil.tryGetFunctionCallFromCfaEdge(cfaEdge);
-        if (optionalFunctionCall.isPresent()) {
-          CFunctionCall functionCall = optionalFunctionCall.orElseThrow();
-          if (PthreadUtil.isCallToPthreadFunction(
-              functionCall, PthreadFunctionType.PTHREAD_CREATE)) {
-            CIdExpression pthreadT =
-                PthreadUtil.extractPthreadObject(functionCall, PthreadObjectType.PTHREAD_T);
-            MPORThread createdThread =
-                MPORThreadUtil.getThreadByObject(threads, Optional.of(pthreadT));
-            tryBuildStartRoutineArgSubstitute(functionCall, pthreadT, createdThread)
-                .ifPresent(
-                    entry ->
-                        rArgSubstitutes.put(
-                            new SeqCallContext(Optional.of(threadEdge)),
-                            entry.getKey(),
-                            entry.getValue()));
-          }
+        if (PthreadUtil.isCallToPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_CREATE)) {
+          CFunctionCall functionCall =
+              PthreadUtil.tryGetFunctionCallFromCfaEdge(cfaEdge).orElseThrow();
+          CIdExpression pthreadT =
+              PthreadUtil.extractPthreadObject(functionCall, PthreadObjectType.PTHREAD_T);
+          MPORThread createdThread =
+              MPORThreadUtil.getThreadByObject(threads, Optional.of(pthreadT));
+          tryBuildStartRoutineArgSubstitute(functionCall, pthreadT, createdThread)
+              .ifPresent(
+                  entry ->
+                      rArgSubstitutes.put(
+                          new SeqCallContext(Optional.of(threadEdge)),
+                          entry.getKey(),
+                          entry.getValue()));
         }
       }
     }

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_s
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -19,6 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
 
 public record SeqFunctionStatements(
     ImmutableListMultimap<CFAEdgeForThread, SeqFunctionParameterAssignment> parameterAssignments,
+    ImmutableList<SeqMainFunctionArgAssignment> mainFunctionArgAssignments,
     ImmutableMap<CFAEdgeForThread, SeqFunctionParameterAssignment> startRoutineArgAssignments,
     ImmutableMap<CFAEdgeForThread, SeqFunctionReturnValueAssignment> returnValueAssignments,
     ImmutableMap<CFAEdgeForThread, SeqFunctionReturnValueAssignment> startRoutineExitAssignments) {
@@ -30,6 +32,24 @@ public record SeqFunctionStatements(
 
     SeqCallContext getRightHandSideCallContext();
   }
+
+  /**
+   * A wrapper class to keep track of {@code main()} function argument assignments. These are
+   * assigned non-deterministic values for the respective type, e.g., {@code argc =
+   * __VERIFIER_nondet_int();} in the following example:
+   *
+   * <pre>{@code
+   * int main(int argc) {
+   *    // ...
+   * }
+   * }</pre>
+   *
+   * @param functionCallAssignmentStatement The assignment statement. This is a {@link
+   *     CFunctionCallAssignmentStatement} because the right-hand side is always a function call,
+   *     such as {@code argc = __VERIFIER_nondet_int();} in the example above.
+   */
+  public record SeqMainFunctionArgAssignment(
+      CFunctionCallAssignmentStatement functionCallAssignmentStatement) {}
 
   /**
    * A wrapper class to keep track of function parameter assignments such as {@code arg = 0;} from

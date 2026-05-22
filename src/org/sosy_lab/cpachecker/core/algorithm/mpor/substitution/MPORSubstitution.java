@@ -78,14 +78,14 @@ public class MPORSubstitution {
    * single {@link CParameterDeclaration} may map to multiple {@link CIdExpression} if the function
    * takes variadic arguments.
    */
-  public final ImmutableTable<SeqCallContext, CParameterDeclaration, ImmutableList<CIdExpression>>
+  private final ImmutableTable<SeqCallContext, CParameterDeclaration, ImmutableList<CIdExpression>>
       parameterSubstitutes;
 
   /** Note that main functions cannot take variadic arguments. */
-  public final ImmutableMap<CParameterDeclaration, CIdExpression> mainFunctionArgSubstitutes;
+  private final ImmutableMap<CParameterDeclaration, CIdExpression> mainFunctionArgSubstitutes;
 
   /** Note that start routines cannot take variadic arguments. */
-  public final ImmutableTable<SeqCallContext, CParameterDeclaration, CIdExpression>
+  private final ImmutableTable<SeqCallContext, CParameterDeclaration, CIdExpression>
       startRoutineArgSubstitutes;
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
@@ -448,8 +448,7 @@ public class MPORSubstitution {
               pTracker.addAccessedMainFunctionArg(parameterDeclaration.asVariableDeclaration());
               yield Objects.requireNonNull(mainFunctionArgSubstitutes.get(parameterDeclaration));
             }
-            // normal functions called within a thread, including start_routines, always have call
-            // context
+            // functions called within a thread, including start routines, always have call context
             if (parameterSubstitutes.containsRow(pCallContext)) {
               ImmutableList<CIdExpression> parameterDeclarationSubstitutes =
                   getParameterDeclarationSubstitute(pCallContext, parameterDeclaration);
@@ -566,9 +565,38 @@ public class MPORSubstitution {
   }
 
   public ImmutableTable<SeqCallContext, CParameterDeclaration, ImmutableList<CIdExpression>>
-      getParameterSubstituteTable() {
+      getParameterSubstitutes() {
 
     return parameterSubstitutes;
+  }
+
+  public ImmutableMap<CParameterDeclaration, CIdExpression> getMainFunctionArgSubstitutes() {
+    return mainFunctionArgSubstitutes;
+  }
+
+  public ImmutableTable<SeqCallContext, CParameterDeclaration, CIdExpression>
+      getStartRoutineArgSubstitutes() {
+    return startRoutineArgSubstitutes;
+  }
+
+  public ImmutableList<CIdExpression> getAllParameterIdExpressions(
+      SeqCallContext pCallContext, CParameterDeclaration pParameterDeclaration) {
+
+    ImmutableList.Builder<CIdExpression> rIdExpressions = ImmutableList.builder();
+    if (parameterSubstitutes.contains(pCallContext, pParameterDeclaration)) {
+      rIdExpressions.addAll(
+          Objects.requireNonNull(parameterSubstitutes.get(pCallContext, pParameterDeclaration)));
+    }
+    if (mainFunctionArgSubstitutes.containsKey(pParameterDeclaration)) {
+      rIdExpressions.add(
+          Objects.requireNonNull(mainFunctionArgSubstitutes.get(pParameterDeclaration)));
+    }
+    if (startRoutineArgSubstitutes.contains(pCallContext, pParameterDeclaration)) {
+      rIdExpressions.add(
+          Objects.requireNonNull(
+              startRoutineArgSubstitutes.get(pCallContext, pParameterDeclaration)));
+    }
+    return rIdExpressions.build();
   }
 
   public MPORThread getThread() {

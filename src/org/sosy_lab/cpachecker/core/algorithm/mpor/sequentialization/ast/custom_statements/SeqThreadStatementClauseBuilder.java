@@ -346,8 +346,6 @@ public record SeqThreadStatementClauseBuilder(
       // void function(int* ptr) {
       //    ptr = malloc(sizeof(int));
       // }
-      ImmutableTable<SeqCallContext, CParameterDeclaration, ImmutableList<CIdExpression>>
-          parameterSubstituteTable = substitution.getParameterSubstituteTable();
       ImmutableSet<AParameterDeclaration> parametersInScope =
           astCfaRelation.getAstParametersInScopeByCfaNode(cfaNode);
       for (AParameterDeclaration parameterInScope : parametersInScope) {
@@ -355,8 +353,8 @@ public record SeqThreadStatementClauseBuilder(
             && pThreadNode.callContext.cfaEdgeForThread().isPresent()) {
 
           ImmutableList<CIdExpression> parameterSubstitutes =
-              Objects.requireNonNull(
-                  parameterSubstituteTable.get(pThreadNode.callContext, parameterInScope));
+              substitution.getAllParameterIdExpressions(
+                  pThreadNode.callContext, (CParameterDeclaration) parameterInScope);
 
           for (CIdExpression parameterIdExpression : parameterSubstitutes) {
             CExpressionAssignmentStatement assignmentStatement =
