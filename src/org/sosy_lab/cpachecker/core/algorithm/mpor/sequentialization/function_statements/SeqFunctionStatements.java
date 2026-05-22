@@ -8,12 +8,14 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
 
 public record SeqFunctionStatements(
     ImmutableListMultimap<CFAEdgeForThread, SeqFunctionParameterAssignment> parameterAssignments,
@@ -24,9 +26,9 @@ public record SeqFunctionStatements(
   public interface SeqFunctionStatement {
     CExpressionAssignmentStatement getExpressionAssignmentStatement();
 
-    Optional<CFAEdgeForThread> getLeftHandSideCallContext();
+    SeqCallContext getLeftHandSideCallContext();
 
-    Optional<CFAEdgeForThread> getRightHandSideCallContext();
+    SeqCallContext getRightHandSideCallContext();
   }
 
   /**
@@ -54,9 +56,15 @@ public record SeqFunctionStatements(
    */
   public record SeqFunctionParameterAssignment(
       CExpressionAssignmentStatement expressionAssignmentStatement,
-      CFAEdgeForThread leftHandSideCallContext,
-      Optional<CFAEdgeForThread> rightHandSideCallContext)
+      SeqCallContext leftHandSideCallContext,
+      SeqCallContext rightHandSideCallContext)
       implements SeqFunctionStatement {
+
+    public SeqFunctionParameterAssignment {
+      checkArgument(
+          leftHandSideCallContext.cfaEdgeForThread().isPresent(),
+          "leftHandSideCallContext must be present.");
+    }
 
     @Override
     public CExpressionAssignmentStatement getExpressionAssignmentStatement() {
@@ -64,12 +72,12 @@ public record SeqFunctionStatements(
     }
 
     @Override
-    public Optional<CFAEdgeForThread> getLeftHandSideCallContext() {
-      return Optional.of(leftHandSideCallContext);
+    public SeqCallContext getLeftHandSideCallContext() {
+      return leftHandSideCallContext;
     }
 
     @Override
-    public Optional<CFAEdgeForThread> getRightHandSideCallContext() {
+    public SeqCallContext getRightHandSideCallContext() {
       return rightHandSideCallContext;
     }
   }
@@ -91,18 +99,27 @@ public record SeqFunctionStatements(
    * @param expressionAssignmentStatement The assignment statement. This is not a {@link
    *     CFunctionCallAssignmentStatement} to exclude return statements that call a function such as
    *     {@code return another_function();}.
-   * @param leftHandSideCallContext The {@link Optional} call context for the left-hand side of the
-   *     return value assignment. This can be empty e.g. for function return value assignments in
-   *     the {@code main()} function as seen in the example above.
+   * @param leftHandSideCallContext The call context for the left-hand side of the return value
+   *     assignment. This can be empty e.g. for function return value assignments in the {@code
+   *     main()} function as seen in the example above.
    * @param rightHandSideCallContext The call context for the right-hand side of the return value
    *     assignment. This is always present because the right-hand side is extracted from the {@code
    *     return} statements inside the function which always has a call context.
    */
   public record SeqFunctionReturnValueAssignment(
       CExpressionAssignmentStatement expressionAssignmentStatement,
-      Optional<CFAEdgeForThread> leftHandSideCallContext,
-      CFAEdgeForThread rightHandSideCallContext)
+      SeqCallContext leftHandSideCallContext,
+      SeqCallContext rightHandSideCallContext)
       implements SeqFunctionStatement {
+
+    public SeqFunctionReturnValueAssignment {
+      if (rightHandSideCallContext.cfaEdgeForThread().isEmpty()) {
+        System.out.println("");
+      }
+      checkArgument(
+          rightHandSideCallContext.cfaEdgeForThread().isPresent(),
+          "rightHandSideCallContext must be present.");
+    }
 
     @Override
     public CExpressionAssignmentStatement getExpressionAssignmentStatement() {
@@ -110,13 +127,13 @@ public record SeqFunctionStatements(
     }
 
     @Override
-    public Optional<CFAEdgeForThread> getLeftHandSideCallContext() {
+    public SeqCallContext getLeftHandSideCallContext() {
       return leftHandSideCallContext;
     }
 
     @Override
-    public Optional<CFAEdgeForThread> getRightHandSideCallContext() {
-      return Optional.of(rightHandSideCallContext);
+    public SeqCallContext getRightHandSideCallContext() {
+      return rightHandSideCallContext;
     }
   }
 }

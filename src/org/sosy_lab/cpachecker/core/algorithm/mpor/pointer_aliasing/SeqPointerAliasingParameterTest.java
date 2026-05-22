@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class SeqPointerAliasingParameterTest {
@@ -176,8 +177,8 @@ public class SeqPointerAliasingParameterTest {
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
             PARAMETER_POINTER_P_ID_EXPRESSION,
             GLOBAL_X_UNARY_EXPRESSION,
-            Optional.empty(),
-            Optional.empty(),
+            new SeqCallContext(Optional.empty()),
+            new SeqCallContext(Optional.empty()),
             ImmutableSortedMap.of(),
             SeqPointerAssignmentType.PARAMETER);
 
@@ -205,8 +206,8 @@ public class SeqPointerAliasingParameterTest {
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
             PARAMETER_POINTER_P_ID_EXPRESSION,
             LOCAL_POINTER_C_ID_EXPRESSION,
-            Optional.empty(),
-            Optional.empty(),
+            new SeqCallContext(Optional.empty()),
+            new SeqCallContext(Optional.empty()),
             ImmutableSortedMap.of(),
             SeqPointerAssignmentType.PARAMETER);
 
@@ -215,8 +216,8 @@ public class SeqPointerAliasingParameterTest {
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
             LOCAL_POINTER_C_ID_EXPRESSION,
             GLOBAL_X_UNARY_EXPRESSION,
-            Optional.empty(),
-            Optional.empty(),
+            new SeqCallContext(Optional.empty()),
+            new SeqCallContext(Optional.empty()),
             ImmutableSortedMap.of(),
             SeqPointerAssignmentType.EXPLICIT);
 
@@ -246,8 +247,8 @@ public class SeqPointerAliasingParameterTest {
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
             PARAMETER_Q_ID_EXPRESSION,
             LOCAL_Z_ID_EXPRESSION,
-            Optional.empty(),
-            Optional.empty(),
+            new SeqCallContext(Optional.empty()),
+            new SeqCallContext(Optional.empty()),
             ImmutableSortedMap.of(),
             SeqPointerAssignmentType.PARAMETER);
 
@@ -261,8 +262,8 @@ public class SeqPointerAliasingParameterTest {
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
             GLOBAL_POINTER_A_ID_EXPRESSION,
             PARAMETER_Q_UNARY_EXPRESSION,
-            Optional.empty(),
-            Optional.empty(),
+            new SeqCallContext(Optional.empty()),
+            new SeqCallContext(Optional.empty()),
             ImmutableSortedMap.of(),
             SeqPointerAssignmentType.EXPLICIT);
 
@@ -293,16 +294,16 @@ public class SeqPointerAliasingParameterTest {
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
             PARAMETER_POINTER_R_ID_EXPRESSION,
             LOCAL_Z_UNARY_EXPRESSION,
-            Optional.empty(),
-            Optional.empty(),
+            new SeqCallContext(Optional.empty()),
+            new SeqCallContext(Optional.empty()),
             ImmutableSortedMap.of(),
             SeqPointerAssignmentType.PARAMETER);
     Optional<SeqPointerAssignment> pointerAssignment2 =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
             PARAMETER_POINTER_P_ID_EXPRESSION,
             PARAMETER_POINTER_R_ID_EXPRESSION,
-            Optional.empty(),
-            Optional.empty(),
+            new SeqCallContext(Optional.empty()),
+            new SeqCallContext(Optional.empty()),
             ImmutableSortedMap.of(),
             SeqPointerAssignmentType.PARAMETER);
 

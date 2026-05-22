@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
@@ -88,18 +89,23 @@ public record SeqFunctionStatementBuilder(
     ImmutableListMultimap.Builder<CFAEdgeForThread, SeqFunctionParameterAssignment> rAssignments =
         ImmutableListMultimap.builder();
     // for each function call edge (= calling context)
-    for (CFAEdgeForThread callContext : pSubstitution.parameterSubstitutes.rowKeySet()) {
-      CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) callContext.cfaEdge;
-      rAssignments.putAll(
-          callContext,
-          buildFunctionParameterAssignments(functionCallEdge, callContext, pSubstitution));
+    for (SeqCallContext callContext : pSubstitution.parameterSubstitutes.rowKeySet()) {
+      if (!callContext.isStartRoutineCallContext()) {
+        CFAEdgeForThread cfaEdgeForThread = callContext.cfaEdgeForThread().orElseThrow();
+        CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) cfaEdgeForThread.cfaEdge;
+        rAssignments.putAll(
+            cfaEdgeForThread,
+            buildFunctionParameterAssignments(
+                functionCallEdge, callContext, cfaEdgeForThread, pSubstitution));
+      }
     }
     return rAssignments.build();
   }
 
   private ImmutableList<SeqFunctionParameterAssignment> buildFunctionParameterAssignments(
       CFunctionCallEdge pFunctionCallEdge,
-      CFAEdgeForThread pCallContext,
+      SeqCallContext pCallContext,
+      CFAEdgeForThread pCfaEdgeForThread,
       MPORSubstitution pSubstitution) {
 
     ImmutableList.Builder<SeqFunctionParameterAssignment> rAssignments = ImmutableList.builder();
@@ -112,7 +118,8 @@ public record SeqFunctionStatementBuilder(
           pSubstitution.getParameterDeclarationSubstitute(pCallContext, parameterDeclaration);
       // for normal function calls the call context is always a CFunctionCallEdge
       CFunctionCallEdge callContextSubstitute =
-          (CFunctionCallEdge) Objects.requireNonNull(substituteEdges.get(pCallContext)).cfaEdge;
+          (CFunctionCallEdge)
+              Objects.requireNonNull(substituteEdges.get(pCfaEdgeForThread)).cfaEdge;
       // go through all parameter substitutes. if there is more than one, the function is variadic
       for (int j = 0; j < parameterSubstitutes.size(); j++) {
         CExpressionAssignmentStatement expressionAssignmentStatement =
@@ -120,7 +127,7 @@ public record SeqFunctionStatementBuilder(
                 parameterSubstitutes.get(j), callContextSubstitute.getArguments().get(i + j));
         rAssignments.add(
             new SeqFunctionParameterAssignment(
-                expressionAssignmentStatement, pCallContext, pCallContext.callContext));
+                expressionAssignmentStatement, pCallContext, pCfaEdgeForThread.callContext));
       }
     }
     return rAssignments.build();
@@ -135,11 +142,13 @@ public record SeqFunctionStatementBuilder(
     Set<CFAEdgeForThread> visited = new HashSet<>();
     for (var cell : pSubstitution.startRoutineArgSubstitutes.cellSet()) {
       // this call context is the call to pthread_create
-      CFAEdgeForThread callContext = cell.getRowKey();
-      if (visited.add(callContext)) {
+      SeqCallContext callContext = cell.getRowKey();
+      CFAEdgeForThread cfaEdgeForThread = callContext.cfaEdgeForThread().orElseThrow();
+      if (visited.add(cfaEdgeForThread)) {
         // only the thread calling pthread_create assigns the start_routine arg
-        if (pSubstitution.getThread().id() == callContext.threadId) {
-          SubstituteEdge substituteEdge = Objects.requireNonNull(substituteEdges.get(callContext));
+        if (pSubstitution.getThread().id() == cfaEdgeForThread.threadId) {
+          SubstituteEdge substituteEdge =
+              Objects.requireNonNull(substituteEdges.get(cfaEdgeForThread));
           Optional<CFunctionCall> functionCallSubstitute =
               PthreadUtil.tryGetFunctionCallFromCfaEdge(substituteEdge.cfaEdge);
           if (functionCallSubstitute.isPresent()) {
@@ -150,8 +159,8 @@ public record SeqFunctionStatementBuilder(
                     cell.getValue(), rightHandSideSubstitute);
             SeqFunctionParameterAssignment startRoutineArgAssignment =
                 new SeqFunctionParameterAssignment(
-                    expressionAssignmentStatement, callContext, callContext.callContext);
-            rAssignments.put(callContext, startRoutineArgAssignment);
+                    expressionAssignmentStatement, callContext, cfaEdgeForThread.callContext);
+            rAssignments.put(cfaEdgeForThread, startRoutineArgAssignment);
           }
         }
       }
@@ -180,13 +189,14 @@ public record SeqFunctionStatementBuilder(
       checkState(
           substituteEdges.containsKey(threadEdge), "substituteEdges must contain all threadEdges");
       // consider only edges with call context, e.g. return 0; in main has no call context
-      if (threadEdge.callContext.isPresent()) {
+      if (threadEdge.callContext.cfaEdgeForThread().isPresent()) {
         SubstituteEdge substituteEdge = Objects.requireNonNull(substituteEdges.get(threadEdge));
         if (substituteEdge.cfaEdge instanceof CReturnStatementEdge returnStatementEdge) {
-          CFAEdgeForThread callContext = threadEdge.callContext.orElseThrow();
+          CFAEdgeForThread cfaEdgeForThread =
+              threadEdge.callContext.cfaEdgeForThread().orElseThrow();
           Optional<SubstituteEdge> functionSummaryEdge =
               tryGetFunctionSummaryEdgeByReturnStatementEdge(
-                  pThread, returnStatementEdge, callContext);
+                  pThread, returnStatementEdge, cfaEdgeForThread);
           if (functionSummaryEdge.isPresent()) {
             Optional<SeqFunctionReturnValueAssignment> assignment =
                 tryBuildReturnValueAssignment(
@@ -217,19 +227,18 @@ public record SeqFunctionStatementBuilder(
                     e.cfaEdge.getCode()));
     for (CFAEdgeForThread threadEdge : pThread.cfa().threadEdges) {
       // consider only threadEdges with callContext, CReturnStatementEdges always have call contexts
-      if (threadEdge.callContext.isPresent()) {
-        CFAEdgeForThread callContext = threadEdge.callContext.orElseThrow();
-        if (callContext.equals(pCallContext)) {
+      if (threadEdge.callContext.cfaEdgeForThread().isPresent()) {
+        CFAEdgeForThread cfaEdgeForThread = threadEdge.callContext.cfaEdgeForThread().orElseThrow();
+        if (cfaEdgeForThread.equals(pCallContext)) {
           FluentIterable<? extends FunctionCallEdge> functionCallEdges =
               pReturnStatementEdge.getSuccessor().getEntryNode().getEnteringCallEdges();
           for (FunctionCallEdge functionCallEdge : functionCallEdges) {
-            if (callContext.cfaEdge.equals(functionCallEdge)) {
-              // use the call contexts predecessor, which is used by the functionSummaryEdge
-              Optional<CFAEdgeForThread> predecessorCallContext =
-                  callContext.getPredecessor().callContext;
+            if (cfaEdgeForThread.cfaEdge.equals(functionCallEdge)) {
               return Optional.of(
                   getSubstituteEdgeByCfaEdgeAndCallContext(
-                      functionCallEdge.getSummaryEdge(), predecessorCallContext));
+                      functionCallEdge.getSummaryEdge(),
+                      // use the call contexts predecessor, which is used by the functionSummaryEdge
+                      cfaEdgeForThread.getPredecessor().callContext));
             }
           }
         }
@@ -259,7 +268,7 @@ public record SeqFunctionStatementBuilder(
             new SeqFunctionReturnValueAssignment(
                 assignmentStatement,
                 pFunctionSummaryEdge.getCallContext(),
-                pFunctionSummaryEdge.getThreadEdge()));
+                new SeqCallContext(Optional.of(pFunctionSummaryEdge.getThreadEdge()))));
       }
     }
     return Optional.empty();
@@ -289,10 +298,13 @@ public record SeqFunctionStatementBuilder(
               SeqStatementBuilder.buildExpressionAssignmentStatement(
                   pThread.startRoutineExitVariable().orElseThrow(),
                   PthreadUtil.extractExitReturnValue(substituteFunctionCall));
-          CFAEdgeForThread callContext = substituteEdge.getCallContext().orElseThrow();
+          CFAEdgeForThread cfaEdgeForThread =
+              substituteEdge.getCallContext().cfaEdgeForThread().orElseThrow();
           SeqFunctionReturnValueAssignment assignment =
               new SeqFunctionReturnValueAssignment(
-                  assignmentStatement, callContext.callContext, callContext);
+                  assignmentStatement,
+                  cfaEdgeForThread.callContext,
+                  substituteEdge.getCallContext());
           rStartRoutineExitAssignments.put(threadEdge, assignment);
         }
       }
@@ -301,7 +313,7 @@ public record SeqFunctionStatementBuilder(
   }
 
   private SubstituteEdge getSubstituteEdgeByCfaEdgeAndCallContext(
-      CFAEdge pCfaEdge, Optional<CFAEdgeForThread> pCallContext) {
+      CFAEdge pCfaEdge, SeqCallContext pCallContext) {
 
     for (CFAEdgeForThread threadEdge : substituteEdges.keySet()) {
       if (threadEdge.cfaEdge.equals(pCfaEdge)) {

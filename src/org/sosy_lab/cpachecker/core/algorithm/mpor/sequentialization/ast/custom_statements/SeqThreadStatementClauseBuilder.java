@@ -15,16 +15,19 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Iterables;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -50,6 +53,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
@@ -314,29 +318,58 @@ public record SeqThreadStatementClauseBuilder(
     if (cfaNode.getLeavingEdges().stream()
         .anyMatch(e -> SeqThreadStatementUtil.isFunctionExitOrTerminationNode(e.getSuccessor()))) {
 
-      ImmutableSet<AVariableDeclaration> localVariablesInScope =
-          astCfaRelation.getAstLocalVariablesInScopeByCfaNode(cfaNode);
       MPORSubstitution substitution = substitutions.get(pThreadNode.threadId);
       checkState(substitution.getThread().equals(pThread));
 
+      // All local pointer variables need to be reset when inlining, for example:
+      // void function() {
+      //    int* ptr = malloc(sizeof(int));
+      // }
+      ImmutableTable<SeqCallContext, CVariableDeclaration, LocalVariableDeclarationSubstitute>
+          localVariableSubstituteTable = substitution.getLocalVariableSubstituteTable();
+      ImmutableSet<AVariableDeclaration> localVariablesInScope =
+          astCfaRelation.getAstLocalVariablesInScopeByCfaNode(cfaNode);
       for (AVariableDeclaration localVariableInScope : localVariablesInScope) {
         if (localVariableInScope.getType() instanceof CPointerType) {
           LocalVariableDeclarationSubstitute localVariableDeclarationSubstitute =
               Objects.requireNonNull(
-                  substitution
-                      .getLocalVariableSubstituteTable()
-                      .get(pThreadNode.callContext, (CVariableDeclaration) localVariableInScope));
+                  localVariableSubstituteTable.get(
+                      pThreadNode.callContext, (CVariableDeclaration) localVariableInScope));
 
           CExpressionAssignmentStatement assignmentStatement =
               new CExpressionAssignmentStatement(
                   FileLocation.DUMMY,
                   localVariableDeclarationSubstitute.idExpression(),
-                  new CCastExpression(
-                      FileLocation.DUMMY,
-                      CPointerType.POINTER_TO_VOID,
-                      CIntegerLiteralExpression.ZERO));
-
+                  CCastExpression.POINTER_TO_VOID_CAST);
           rAssignments.add(new CStatementWrapper(assignmentStatement));
+        }
+      }
+
+      // All pointer parameters need to be reset when inlining, for example:
+      // void function(int* ptr) {
+      //    ptr = malloc(sizeof(int));
+      // }
+      ImmutableTable<SeqCallContext, CParameterDeclaration, ImmutableList<CIdExpression>>
+          parameterSubstituteTable = substitution.getParameterSubstituteTable();
+      ImmutableSet<AParameterDeclaration> parametersInScope =
+          astCfaRelation.getAstParametersInScopeByCfaNode(cfaNode);
+      for (AParameterDeclaration parameterInScope : parametersInScope) {
+        if (parameterInScope.getType() instanceof CPointerType
+            && pThreadNode.callContext.cfaEdgeForThread().isPresent()) {
+
+          ImmutableList<CIdExpression> parameterSubstitutes =
+              Objects.requireNonNull(
+                  parameterSubstituteTable.get(
+                      pThreadNode.callContext, (CParameterDeclaration) parameterInScope));
+
+          for (CIdExpression parameterIdExpression : parameterSubstitutes) {
+            CExpressionAssignmentStatement assignmentStatement =
+                new CExpressionAssignmentStatement(
+                    FileLocation.DUMMY,
+                    parameterIdExpression,
+                    CCastExpression.POINTER_TO_VOID_CAST);
+            rAssignments.add(new CStatementWrapper(assignmentStatement));
+          }
         }
       }
     }

@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class SeqPointerAliasingStartRoutineArgTest {
@@ -105,8 +106,8 @@ public class SeqPointerAliasingStartRoutineArgTest {
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
             START_ROUTINE_ARG_ID_EXPRESSION,
             LOCAL_L1_UNARY_EXPRESSION,
-            Optional.empty(),
-            Optional.empty(),
+            new SeqCallContext(Optional.empty()),
+            new SeqCallContext(Optional.empty()),
             ImmutableSortedMap.of(),
             SeqPointerAssignmentType.START_ROUTINE_ARG);
 

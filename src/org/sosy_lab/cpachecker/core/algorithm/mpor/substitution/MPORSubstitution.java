@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectSubstit
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
@@ -68,7 +69,7 @@ public class MPORSubstitution {
 
   /** The map of call context-sensitive thread local variable declarations to their substitutes. */
   private final ImmutableTable<
-          Optional<CFAEdgeForThread>, CVariableDeclaration, LocalVariableDeclarationSubstitute>
+          SeqCallContext, CVariableDeclaration, LocalVariableDeclarationSubstitute>
       localVariableSubstitutes;
 
   /**
@@ -77,14 +78,14 @@ public class MPORSubstitution {
    * single {@link CParameterDeclaration} may map to multiple {@link CIdExpression} if the function
    * takes variadic arguments.
    */
-  public final ImmutableTable<CFAEdgeForThread, CParameterDeclaration, ImmutableList<CIdExpression>>
+  public final ImmutableTable<SeqCallContext, CParameterDeclaration, ImmutableList<CIdExpression>>
       parameterSubstitutes;
 
   /** Note that main functions cannot take variadic arguments. */
   public final ImmutableMap<CParameterDeclaration, CIdExpression> mainFunctionArgSubstitutes;
 
   /** Note that start routines cannot take variadic arguments. */
-  public final ImmutableTable<CFAEdgeForThread, CParameterDeclaration, CIdExpression>
+  public final ImmutableTable<SeqCallContext, CParameterDeclaration, CIdExpression>
       startRoutineArgSubstitutes;
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
@@ -94,13 +95,12 @@ public class MPORSubstitution {
       MPOROptions pOptions,
       MPORThread pThread,
       ImmutableList<Entry<CVariableDeclaration, CIdExpression>> pGlobalVariableSubstitutes,
-      ImmutableTable<
-              Optional<CFAEdgeForThread>, CVariableDeclaration, LocalVariableDeclarationSubstitute>
+      ImmutableTable<SeqCallContext, CVariableDeclaration, LocalVariableDeclarationSubstitute>
           pLocalVariableDeclarationSubstitutes,
-      ImmutableTable<CFAEdgeForThread, CParameterDeclaration, ImmutableList<CIdExpression>>
+      ImmutableTable<SeqCallContext, CParameterDeclaration, ImmutableList<CIdExpression>>
           pParameterSubstitutes,
       ImmutableMap<CParameterDeclaration, CIdExpression> pMainFunctionArgSubstitutes,
-      ImmutableTable<CFAEdgeForThread, CParameterDeclaration, CIdExpression>
+      ImmutableTable<SeqCallContext, CParameterDeclaration, CIdExpression>
           pStartRoutineArgSubstitutes,
       SequentializationUtils pUtils) {
 
@@ -132,7 +132,7 @@ public class MPORSubstitution {
    */
   CExpression substitute(
       CExpression pExpression,
-      Optional<CFAEdgeForThread> pCallContext,
+      SeqCallContext pCallContext,
       boolean pIsDeclaration,
       boolean pIsWrite,
       boolean pIsPointerDereference,
@@ -298,7 +298,7 @@ public class MPORSubstitution {
 
   CStatement substitute(
       CStatement pStatement,
-      Optional<CFAEdgeForThread> pCallContext,
+      SeqCallContext pCallContext,
       CFA pInputCfa,
       MPORSubstitutionTracker pTracker)
       throws UnrecognizedCodeException {
@@ -361,7 +361,7 @@ public class MPORSubstitution {
 
   private CFunctionCallExpression substitute(
       CFunctionCallExpression pFunctionCallExpression,
-      Optional<CFAEdgeForThread> pCallContext,
+      SeqCallContext pCallContext,
       MPORSubstitutionTracker pTracker)
       throws UnrecognizedCodeException {
 
@@ -392,7 +392,7 @@ public class MPORSubstitution {
 
   CReturnStatement substitute(
       CReturnStatement pReturnStatement,
-      Optional<CFAEdgeForThread> pCallContext,
+      SeqCallContext pCallContext,
       MPORSubstitutionTracker pTracker)
       throws UnrecognizedCodeException {
 
@@ -417,7 +417,7 @@ public class MPORSubstitution {
   private CIdExpression getSimpleDeclarationSubstitute(
       CSimpleDeclaration pSimpleDeclaration,
       boolean pIsDeclaration,
-      Optional<CFAEdgeForThread> pCallContext,
+      SeqCallContext pCallContext,
       MPORSubstitutionTracker pTracker) {
 
     CIdExpression idExpressionSubstitute =
@@ -443,24 +443,23 @@ public class MPORSubstitution {
                     + variableDeclaration.toASTString());
           }
           case CParameterDeclaration parameterDeclaration -> {
-            if (pCallContext.isEmpty()) {
+            if (pCallContext.cfaEdgeForThread().isEmpty()) {
               // no call context -> main function argument
               pTracker.addAccessedMainFunctionArg(parameterDeclaration.asVariableDeclaration());
               yield Objects.requireNonNull(mainFunctionArgSubstitutes.get(parameterDeclaration));
             }
-            // normal function called within thread, including start_routines, always have call
+            // normal functions called within a thread, including start_routines, always have call
             // context
-            CFAEdgeForThread callContext = pCallContext.orElseThrow();
-            if (parameterSubstitutes.containsRow(callContext)) {
+            if (parameterSubstitutes.containsRow(pCallContext)) {
               ImmutableList<CIdExpression> parameterDeclarationSubstitutes =
-                  getParameterDeclarationSubstitute(callContext, parameterDeclaration);
+                  getParameterDeclarationSubstitute(pCallContext, parameterDeclaration);
               // this means we only support substituting parameters that are not variadic.
               // i.e. a variadic function can be called, but its body not handled (at the moment)
               yield Objects.requireNonNull(parameterDeclarationSubstitutes).getFirst();
 
-            } else if (startRoutineArgSubstitutes.containsRow(callContext)) {
+            } else if (startRoutineArgSubstitutes.containsRow(pCallContext)) {
               yield Objects.requireNonNull(
-                  startRoutineArgSubstitutes.get(callContext, parameterDeclaration));
+                  startRoutineArgSubstitutes.get(pCallContext, parameterDeclaration));
             }
             throw new IllegalArgumentException(
                 "CParameterDeclaration could not be substituted: "
@@ -477,7 +476,7 @@ public class MPORSubstitution {
   // CParameterDeclaration substitutes =============================================================
 
   public ImmutableList<CIdExpression> getParameterDeclarationSubstitute(
-      CFAEdgeForThread pCallContext, CParameterDeclaration pParameterDeclaration) {
+      SeqCallContext pCallContext, CParameterDeclaration pParameterDeclaration) {
 
     if (parameterSubstitutes.containsColumn(pParameterDeclaration)) {
       return Objects.requireNonNull(parameterSubstitutes.get(pCallContext, pParameterDeclaration));
@@ -485,7 +484,8 @@ public class MPORSubstitution {
       // no substitute found -> function declaration contains only parameter types, not names
       // e.g. pthread-driver-races/char_pc8736x_gpio_pc8736x_gpio_configure_pc8736x_gpio_get
       // -> void assume_abort_if_not(int);
-      CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) pCallContext.cfaEdge;
+      CFunctionCallEdge functionCallEdge =
+          (CFunctionCallEdge) pCallContext.cfaEdgeForThread().orElseThrow().cfaEdge;
       ImmutableList<CParameterDeclaration> parameterDeclarations =
           functionCallEdge.getFunctionCallExpression().getDeclaration().getParameters();
       // search for the corresponding parameter, throw if not found
@@ -502,7 +502,7 @@ public class MPORSubstitution {
 
   CVariableDeclaration getVariableDeclarationSubstitute(
       CVariableDeclaration pVariableDeclaration,
-      Optional<CFAEdgeForThread> pCallContext,
+      SeqCallContext pCallContext,
       CFA pInputCfa,
       MPORSubstitutionTracker pTracker)
       throws UnsupportedCodeException {
@@ -559,10 +559,16 @@ public class MPORSubstitution {
     return rStartRoutineArgDeclarations.build();
   }
 
-  public ImmutableTable<
-          Optional<CFAEdgeForThread>, CVariableDeclaration, LocalVariableDeclarationSubstitute>
+  public ImmutableTable<SeqCallContext, CVariableDeclaration, LocalVariableDeclarationSubstitute>
       getLocalVariableSubstituteTable() {
+
     return localVariableSubstitutes;
+  }
+
+  public ImmutableTable<SeqCallContext, CParameterDeclaration, ImmutableList<CIdExpression>>
+      getParameterSubstituteTable() {
+
+    return parameterSubstitutes;
   }
 
   public MPORThread getThread() {

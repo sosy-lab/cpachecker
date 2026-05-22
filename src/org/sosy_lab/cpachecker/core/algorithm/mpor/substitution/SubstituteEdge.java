@@ -15,7 +15,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -24,6 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryAcc
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
 
 /** A simple wrapper for substitutes to {@link CFAEdge}s. */
 public class SubstituteEdge {
@@ -123,12 +123,8 @@ public class SubstituteEdge {
       MPORSubstitutionTracker pTracker) {
 
     ImmutableListMultimap<CParameterDeclaration, CIdExpression> parameterSubstitutes =
-        pThreadEdge.callContext.isPresent()
-            ? pSubstitution
-                .parameterSubstitutes
-                .row(pThreadEdge.callContext.orElseThrow())
-                .entrySet()
-                .stream()
+        pThreadEdge.callContext.cfaEdgeForThread().isPresent()
+            ? pSubstitution.parameterSubstitutes.row(pThreadEdge.callContext).entrySet().stream()
                 .flatMap(
                     entry -> entry.getValue().stream().map(val -> Map.entry(entry.getKey(), val)))
                 .collect(
@@ -176,7 +172,7 @@ public class SubstituteEdge {
     return threadEdge;
   }
 
-  public Optional<CFAEdgeForThread> getCallContext() {
+  public SeqCallContext getCallContext() {
     return threadEdge.callContext;
   }
 

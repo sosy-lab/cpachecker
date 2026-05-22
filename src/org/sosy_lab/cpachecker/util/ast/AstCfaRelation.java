@@ -448,4 +448,11 @@ public final class AstCfaRelation {
     return ImmutableSet.copyOf(
         Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(pCfaNode)));
   }
+
+  public ImmutableSet<AParameterDeclaration> getAstParametersInScopeByCfaNode(CFANode pCfaNode) {
+    if (!cfaNodeToAstParametersInScope.containsKey(pCfaNode)) {
+      return ImmutableSet.of();
+    }
+    return ImmutableSet.copyOf(Objects.requireNonNull(cfaNodeToAstParametersInScope.get(pCfaNode)));
+  }
 }

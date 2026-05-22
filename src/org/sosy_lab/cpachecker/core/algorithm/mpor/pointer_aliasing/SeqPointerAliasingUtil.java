@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
@@ -65,8 +65,8 @@ public class SeqPointerAliasingUtil {
   public static Optional<SeqPointerAssignment> tryBuildPointerAssignment(
       CLeftHandSide pLeftHandSide,
       CRightHandSide pRightHandSide,
-      Optional<CFAEdgeForThread> pLeftHandSideCallContext,
-      Optional<CFAEdgeForThread> pRightHandSideCallContext,
+      SeqCallContext pLeftHandSideCallContext,
+      SeqCallContext pRightHandSideCallContext,
       NavigableMap<String, FunctionEntryNode> pAllFunctions,
       SeqPointerAssignmentType pType)
       throws UnsupportedCodeException {
