@@ -359,9 +359,6 @@ class KInductionProver implements AutoCloseable {
 
     BooleanFormula predecessorAssertion =
         predecessorCandidate.orElseThrow().getAssertion(predecessorStates, fmgr, pfmgr);
-    FluentIterable<AbstractState> loopHeadStates =
-        AbstractStates.filterLocations(reached, relevantLoopHeads);
-
     // Path formula (transition relation) for the universal closure check.
     Iterable<AbstractState> endStates = FluentIterable.from(reached).filter(BMCHelper::isEndState);
     BooleanFormula successorExistsAssertion =
@@ -369,9 +366,10 @@ class KInductionProver implements AutoCloseable {
 
     stats.inductionPreparation.stop();
 
-    // Universal closure check: no path from a C-predecessor reaches a ¬C successor.
-    BooleanFormula loopHeadInv =
-        inductiveLoopHeadInvariantAssertion(loopHeadStates, relevantLoopHeads);
+    // Universal closure check: no path from a C-predecessor reaches a ¬C successor. In
+    // non-termination mode we intentionally do not add loop-head invariants here, because an
+    // over-strong invariant can mask a real loop-exit or guard-violation successor and turn a
+    // terminating loop into a false non-termination proof.
     Multimap<BooleanFormula, BooleanFormula> successorViolationAssertions =
         getNonTerminationClosureViolationAssertions(pCandidateInvariant, inductionHypothesis);
     if (successorViolationAssertions.isEmpty()) {
@@ -417,8 +415,6 @@ class KInductionProver implements AutoCloseable {
       prover.pop();
       pushes--;
 
-      prover.push(loopHeadInv);
-      pushes++;
       prover.push(successorViolation);
       pushes++;
       if (prover.isUnsat()) {
@@ -458,9 +454,9 @@ class KInductionProver implements AutoCloseable {
    *       successor, so its closure would be vacuous.
    * </ul>
    *
-   * Prover stack on entry: {successorExists, predecessor, loopHeadInv, successorViolation}. This
-   * method temporarily pops and re-pushes successorViolation so the caller's stack accounting
-   * remains correct.
+   * Prover stack on entry: {successorExists, predecessor, successorViolation}. This method
+   * temporarily pops and re-pushes successorViolation so the caller's stack accounting remains
+   * correct.
    */
   private Optional<CandidateInvariant> buildValidatedNonTerminationRefinement(
       CandidateInvariant pOriginal,
