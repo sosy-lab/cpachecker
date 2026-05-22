@@ -426,18 +426,25 @@ class KInductionProver implements AutoCloseable {
   }
 
   /**
-   * Symbolic step-case check for non-termination closure.
+   * Symbolic k-step-case check for non-termination closure.
    *
    * <p>Builds a fresh pre-state path formula at every candidate source location (using {@link
    * PathFormulaManager#makeEmptyPathFormulaWithContextFrom} to inherit the SSA/PTS context without
-   * the main-init constraints), encodes one body transition by chaining CFA edges with {@code
-   * makeAnd}/{@code makeOr}, and asks the solver whether {@code C(pre) ∧ T(pre,post) ∧ ¬C(post)}
-   * is satisfiable for any source→target pair. UNSAT proves real closure; SAT means the candidate
-   * is not inductive and the algorithm should not declare non-termination.
+   * the main-init constraints), encodes k+1 symbolic loop steps by chaining CFA edges with {@code
+   * makeAnd}/{@code makeOr}, and asks the solver whether
    *
-   * <p>This avoids the BMC-style soundness gap of {@link #checkNonTerminationClosure}, which
-   * pins predecessor SSA to specific BMC-reached values and therefore can be fooled by shallow
-   * unrolling on non-inductive candidates (e.g., 4-bit-counter loops).
+   * <pre>{@code
+   *   T(s0, s1) ∧ ... ∧ T(sk, s{k+1})
+   *   ∧ C(s0) ∧ ... ∧ C(sk)
+   *   ∧ ¬C(s{k+1})
+   * }</pre>
+   *
+   * is satisfiable for any source→target sequence. UNSAT proves k-window closure; SAT means the
+   * candidate is not inductive at the current k and the algorithm must not declare
+   * non-termination.
+   *
+   * <p>The check additionally refuses vacuous proofs if the symbolic k-window is unsatisfiable or
+   * if a syntactically stuck k-window is feasible.
    *
    * <p>Phase 1 limitations: single non-nested loop only; bails out conservatively (returns false)
    * for nested loops, function calls inside the body, or propagation that exceeds an iteration
@@ -445,11 +452,14 @@ class KInductionProver implements AutoCloseable {
    * deliberately NOT asserted here, to keep the check independent of side-channels.
    */
   public final boolean checkSymbolicNonTerminationClosure(
-      CandidateInvariant pCandidateInvariant, Optional<NonTerminationLoopScope> pLoopScope)
+      CandidateInvariant pCandidateInvariant, int pK, Optional<NonTerminationLoopScope> pLoopScope)
       throws CPATransferException, InterruptedException, SolverException {
 
     stats.inductionPreparation.start();
-    BooleanFormula totalBad;
+    BooleanFormula windowWitness;
+    BooleanFormula continuationWitness;
+    BooleanFormula progressBad;
+    BooleanFormula safetyBad;
     try {
       Loop loop = findLoopForSymbolicCheck(pCandidateInvariant, pLoopScope);
       if (loop == null) {
@@ -478,7 +488,6 @@ class KInductionProver implements AutoCloseable {
       ImmutableSet<CFANode> exitSuccessors =
           FluentIterable.from(loop.getOutgoingEdges()).transform(CFAEdge::getSuccessor).toSet();
 
-      // Sources: locations of non-successor-only components (i.e., the predecessor candidate).
       Set<CFANode> sources = new HashSet<>();
       for (Map.Entry<CFANode, List<CandidateInvariant>> entry :
           componentsByLocation.entrySet()) {
@@ -496,11 +505,9 @@ class KInductionProver implements AutoCloseable {
         return false;
       }
 
-      // Targets: every candidate-applicable location (including successor-only false@exit_succ).
       Set<CFANode> targets = new HashSet<>(componentsByLocation.keySet());
-
       ReachedSet reached = reachedSet.getReachedSet();
-      List<BooleanFormula> allBads = new ArrayList<>();
+      List<SymbolicWindowState> frontier = new ArrayList<>();
 
       for (CFANode source : sources) {
         shutdownNotifier.shutdownIfNecessary();
@@ -516,60 +523,169 @@ class KInductionProver implements AutoCloseable {
           continue;
         }
         PathFormula pfPre = pfmgr.makeEmptyPathFormulaWithContextFrom(pas.getPathFormula());
-
-        Map<CFANode, PathFormula> arrivals =
-            propagateOneIterationSymbolically(loop, source, pfPre, targets, exitSuccessors);
-        if (arrivals == null) {
-          logger.log(
-              Level.FINER,
-              "Symbolic non-termination closure: propagation exceeded budget at source "
-                  + source
-                  + "; refusing.");
-          return false;
-        }
-
         BooleanFormula cAtPre =
             instantiateComponentsAt(componentsByLocation.get(source), pfPre);
-
-        for (Map.Entry<CFANode, PathFormula> arrival : arrivals.entrySet()) {
-          CFANode target = arrival.getKey();
-          if (!targets.contains(target)) {
-            continue;
-          }
-          PathFormula pfAtTarget = arrival.getValue();
-          BooleanFormula cAtTarget =
-              instantiateComponentsAt(componentsByLocation.get(target), pfAtTarget);
-          BooleanFormula bad =
-              bfmgr.and(pfAtTarget.getFormula(), cAtPre, bfmgr.not(cAtTarget));
-          allBads.add(bad);
+        if (!bfmgr.isFalse(cAtPre)) {
+          frontier.add(new SymbolicWindowState(source, pfPre, cAtPre));
         }
       }
 
-      if (allBads.isEmpty()) {
+      if (frontier.isEmpty()) {
         logger.log(
             Level.FINER,
-            "Symbolic non-termination closure: no bad transitions to check; refusing vacuous"
-                + " proof.");
+            "Symbolic non-termination closure: no source windows in candidate; refusing.");
         return false;
       }
-      totalBad = bfmgr.or(allBads);
+
+      int effectiveK = Math.max(0, pK);
+      List<BooleanFormula> stuckWindows = new ArrayList<>();
+      List<BooleanFormula> finalWindows = new ArrayList<>();
+      List<BooleanFormula> continuationWitnesses = new ArrayList<>();
+      List<BooleanFormula> safetyViolations = new ArrayList<>();
+
+      for (int depth = 0; depth <= effectiveK; depth++) {
+        shutdownNotifier.shutdownIfNecessary();
+
+        if (depth == effectiveK) {
+          for (SymbolicWindowState state : frontier) {
+            finalWindows.add(bfmgr.and(state.pathFormula().getFormula(), state.assumption()));
+          }
+        }
+
+        List<SymbolicWindowState> nextFrontier = new ArrayList<>();
+        for (SymbolicWindowState state : frontier) {
+          Map<CFANode, PathFormula> arrivals =
+              propagateOneIterationSymbolically(
+                  loop, state.location(), state.pathFormula(), targets, exitSuccessors);
+          if (arrivals == null) {
+            logger.log(
+                Level.FINER,
+                "Symbolic non-termination closure: propagation exceeded budget at source "
+                    + state.location()
+                    + "; refusing.");
+            return false;
+          }
+          if (arrivals.isEmpty()) {
+            stuckWindows.add(bfmgr.and(state.pathFormula().getFormula(), state.assumption()));
+            continue;
+          }
+
+          for (Map.Entry<CFANode, PathFormula> arrival : arrivals.entrySet()) {
+            CFANode target = arrival.getKey();
+            if (!targets.contains(target)) {
+              continue;
+            }
+            PathFormula pfAtTarget = arrival.getValue();
+            BooleanFormula transitionWithWindow =
+                bfmgr.and(pfAtTarget.getFormula(), state.assumption());
+
+            if (depth == effectiveK) {
+              continuationWitnesses.add(transitionWithWindow);
+              BooleanFormula cAtTarget =
+                  instantiateComponentsAt(componentsByLocation.get(target), pfAtTarget);
+              safetyViolations.add(bfmgr.and(transitionWithWindow, bfmgr.not(cAtTarget)));
+              continue;
+            }
+
+            BooleanFormula cAtTarget =
+                instantiateComponentsAt(componentsByLocation.get(target), pfAtTarget);
+            BooleanFormula nextAssumption = bfmgr.and(state.assumption(), cAtTarget);
+            if (!bfmgr.isFalse(nextAssumption)) {
+              nextFrontier.add(new SymbolicWindowState(target, pfAtTarget, nextAssumption));
+              if (nextFrontier.size() > MAX_SYMBOLIC_WINDOW_STATES) {
+                logger.log(
+                    Level.FINER,
+                    "Symbolic non-termination closure: too many symbolic k-window states;"
+                        + " refusing.");
+                return false;
+              }
+            }
+          }
+        }
+
+        if (depth < effectiveK) {
+          if (nextFrontier.isEmpty()) {
+            logger.log(
+                Level.FINER,
+                "Symbolic non-termination closure: no candidate-preserving k-window;"
+                    + " refusing vacuous proof.");
+            return false;
+          }
+          frontier = nextFrontier;
+        }
+      }
+
+      if (finalWindows.isEmpty() || continuationWitnesses.isEmpty() || safetyViolations.isEmpty()) {
+        logger.log(
+            Level.FINER,
+            "Symbolic non-termination closure: empty symbolic k-window or successor set;"
+                + " refusing vacuous proof.");
+        return false;
+      }
+      windowWitness = bfmgr.or(finalWindows);
+      continuationWitness = bfmgr.or(continuationWitnesses);
+      progressBad = stuckWindows.isEmpty() ? bfmgr.makeFalse() : bfmgr.or(stuckWindows);
+      safetyBad = bfmgr.or(safetyViolations);
     } finally {
       stats.inductionPreparation.stop();
     }
 
-    logger.log(Level.INFO, "Starting symbolic non-termination closure check...");
+    logger.log(Level.INFO, "Starting symbolic k-window non-termination closure check...");
     stats.inductionCheck.start();
-    prover.push(totalBad);
+    int pushes = 0;
     try {
+      prover.push(windowWitness);
+      pushes++;
+      if (prover.isUnsat()) {
+        logger.log(
+            Level.FINER,
+            "Symbolic non-termination closure: k-window predecessor is unsatisfiable;"
+                + " refusing vacuous proof.");
+        return false;
+      }
+      prover.pop();
+      pushes--;
+
+      prover.push(continuationWitness);
+      pushes++;
+      if (prover.isUnsat()) {
+        logger.log(
+            Level.FINER,
+            "Symbolic non-termination closure: k-window has no feasible successor;"
+                + " refusing vacuous proof.");
+        return false;
+      }
+      prover.pop();
+      pushes--;
+
+      if (!bfmgr.isFalse(progressBad)) {
+        prover.push(progressBad);
+        pushes++;
+        if (!prover.isUnsat()) {
+          logger.log(
+              Level.INFO,
+              "Symbolic k-window non-termination closure check: SAT stuck k-window"
+                  + " (progress refuted).");
+          return false;
+        }
+        prover.pop();
+        pushes--;
+      }
+
+      prover.push(safetyBad);
+      pushes++;
       boolean unsat = prover.isUnsat();
       logger.log(
           Level.INFO,
           unsat
-              ? "Symbolic non-termination closure check: UNSAT (closure proven)."
-              : "Symbolic non-termination closure check: SAT (closure refuted).");
+              ? "Symbolic k-window non-termination closure check: UNSAT (closure proven)."
+              : "Symbolic k-window non-termination closure check: SAT (closure refuted).");
       return unsat;
     } finally {
-      prover.pop();
+      while (pushes > 0) {
+        prover.pop();
+        pushes--;
+      }
       stats.inductionCheck.stop();
     }
   }
@@ -610,6 +726,13 @@ class KInductionProver implements AutoCloseable {
     return null;
   }
 
+  private static final int MAX_SYMBOLIC_PATHS = 64;
+  private static final int MAX_SYMBOLIC_PATH_LENGTH = 200;
+  private static final int MAX_SYMBOLIC_WINDOW_STATES = 256;
+
+  private record SymbolicWindowState(
+      CFANode location, PathFormula pathFormula, BooleanFormula assumption) {}
+
   private Map<CFANode, PathFormula> propagateOneIterationSymbolically(
       Loop pLoop,
       CFANode pSource,
@@ -620,13 +743,13 @@ class KInductionProver implements AutoCloseable {
 
     // Heuristic bail-outs for Phase 1: refuse on nested loops and function calls in body.
     for (CFANode node : pLoop.getLoopNodes()) {
-      for (CFAEdge edge : leavingEdgesOf(node)) {
-        if (edge.getEdgeType() == org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.FunctionCallEdge) {
+      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+        if (node.getLeavingEdge(i).getEdgeType()
+            == org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.FunctionCallEdge) {
           return null;
         }
       }
     }
-    // Nested loop detection: a loop node is the head of a different inner loop.
     for (Loop other : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
       if (other.equals(pLoop)) {
         continue;
@@ -637,61 +760,96 @@ class KInductionProver implements AutoCloseable {
       }
     }
 
-    Map<CFANode, PathFormula> arrivals = new HashMap<>();
-    Deque<CFANode> worklist = new ArrayDeque<>();
-    Map<CFANode, Integer> visitCount = new HashMap<>();
-    final int maxVisitsPerNode = 16;
-
-    // Seed: process the source's outgoing edges using pPfPre (do NOT register pPfPre into
-    // arrivals[source] — we want arrivals[source] to capture only back-edge arrivals when the
-    // source is also a target).
-    for (CFAEdge edge : leavingEdgesOf(pSource)) {
-      CFANode succ = edge.getSuccessor();
-      if (!pLoop.getLoopNodes().contains(succ) && !pExitSuccessors.contains(succ)) {
-        continue;
-      }
-      PathFormula pfNew = pfmgr.makeAnd(pPfPre, edge);
-      arrivals.put(succ, pfNew);
-      worklist.add(succ);
+    // Enumerate bounded simple paths from source to any target. Each path stops the first time
+    // it hits a target (the target is included as the path's last node, and we do not propagate
+    // past it). Path enumeration is acyclic per path (we never revisit a non-target node within
+    // the same path), so each path's PathFormula is a straight makeAnd chain.
+    List<List<CFAEdge>> paths = new ArrayList<>();
+    Deque<CFANode> visitedInPath = new ArrayDeque<>();
+    visitedInPath.push(pSource);
+    if (!enumerateSymbolicPaths(
+        pSource, new ArrayList<>(), visitedInPath, pTargets, pLoop, pExitSuccessors, paths)) {
+      return null;
+    }
+    if (paths.isEmpty()) {
+      return new HashMap<>();
     }
 
-    while (!worklist.isEmpty()) {
+    // For each path: chain makeAnd from pPfPre. Group by target. Disjoint paths to same target
+    // are merged with one makeOr at the end. This avoids the quadratic / exponential formula
+    // blow-up that a worklist with mid-walk makeOr-and-re-enqueue would cause at join nodes.
+    Map<CFANode, List<PathFormula>> byTarget = new LinkedHashMap<>();
+    for (List<CFAEdge> path : paths) {
       shutdownNotifier.shutdownIfNecessary();
-      CFANode current = worklist.poll();
-      int count = visitCount.merge(current, 1, Integer::sum);
-      if (count > maxVisitsPerNode) {
-        return null;
+      CFANode target = path.get(path.size() - 1).getSuccessor();
+      PathFormula pf = pPfPre;
+      for (CFAEdge edge : path) {
+        pf = pfmgr.makeAnd(pf, edge);
       }
-      if (pTargets.contains(current)) {
-        continue; // boundary: do not propagate past a target
+      byTarget.computeIfAbsent(target, k -> new ArrayList<>()).add(pf);
+    }
+
+    Map<CFANode, PathFormula> arrivals = new HashMap<>();
+    for (Map.Entry<CFANode, List<PathFormula>> entry : byTarget.entrySet()) {
+      List<PathFormula> pfs = entry.getValue();
+      PathFormula merged = pfs.get(0);
+      for (int i = 1; i < pfs.size(); i++) {
+        shutdownNotifier.shutdownIfNecessary();
+        merged = pfmgr.makeOr(merged, pfs.get(i));
       }
-      PathFormula pfCurr = arrivals.get(current);
-      for (CFAEdge edge : leavingEdgesOf(current)) {
-        CFANode succ = edge.getSuccessor();
-        if (!pLoop.getLoopNodes().contains(succ) && !pExitSuccessors.contains(succ)) {
-          continue;
-        }
-        PathFormula pfNew = pfmgr.makeAnd(pfCurr, edge);
-        PathFormula existing = arrivals.get(succ);
-        if (existing == null) {
-          arrivals.put(succ, pfNew);
-          worklist.add(succ);
-        } else {
-          PathFormula merged = pfmgr.makeOr(existing, pfNew);
-          arrivals.put(succ, merged);
-          worklist.add(succ);
-        }
-      }
+      arrivals.put(entry.getKey(), merged);
     }
     return arrivals;
   }
 
-  private static Iterable<CFAEdge> leavingEdgesOf(CFANode pNode) {
-    List<CFAEdge> edges = new ArrayList<>(pNode.getNumLeavingEdges());
-    for (int i = 0; i < pNode.getNumLeavingEdges(); i++) {
-      edges.add(pNode.getLeavingEdge(i));
+  private boolean enumerateSymbolicPaths(
+      CFANode pCurrent,
+      List<CFAEdge> pCurrentPath,
+      Deque<CFANode> pVisitedInPath,
+      Set<CFANode> pTargets,
+      Loop pLoop,
+      Set<CFANode> pExitSuccessors,
+      List<List<CFAEdge>> pResult)
+      throws InterruptedException {
+    if (pResult.size() >= MAX_SYMBOLIC_PATHS) {
+      return false;
     }
-    return edges;
+    if (pCurrentPath.size() >= MAX_SYMBOLIC_PATH_LENGTH) {
+      return false;
+    }
+    shutdownNotifier.shutdownIfNecessary();
+    for (int i = 0; i < pCurrent.getNumLeavingEdges(); i++) {
+      CFAEdge edge = pCurrent.getLeavingEdge(i);
+      CFANode succ = edge.getSuccessor();
+      if (!pLoop.getLoopNodes().contains(succ) && !pExitSuccessors.contains(succ)) {
+        continue;
+      }
+      pCurrentPath.add(edge);
+      if (pTargets.contains(succ)) {
+        // Reached a target — record the complete path and do not propagate further.
+        pResult.add(new ArrayList<>(pCurrentPath));
+        pCurrentPath.remove(pCurrentPath.size() - 1);
+        if (pResult.size() >= MAX_SYMBOLIC_PATHS) {
+          return false;
+        }
+        continue;
+      }
+      if (pVisitedInPath.contains(succ)) {
+        // Cycle through a non-target node — drop this branch.
+        pCurrentPath.remove(pCurrentPath.size() - 1);
+        continue;
+      }
+      pVisitedInPath.push(succ);
+      boolean ok =
+          enumerateSymbolicPaths(
+              succ, pCurrentPath, pVisitedInPath, pTargets, pLoop, pExitSuccessors, pResult);
+      pVisitedInPath.pop();
+      pCurrentPath.remove(pCurrentPath.size() - 1);
+      if (!ok) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private BooleanFormula instantiateComponentsAt(

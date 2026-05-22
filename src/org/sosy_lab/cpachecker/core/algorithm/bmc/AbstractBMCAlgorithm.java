@@ -698,21 +698,46 @@ abstract class AbstractBMCAlgorithm
       }
 
       if (isNonTerminationMode()) {
+        boolean buildRefinement =
+            useNonTerminationStepCaseRefinement
+                && canUseNonTerminationStepCaseRefinement(candidate);
+
         if (useSymbolicNonTerminationStepCase) {
           boolean closureProven =
               kInductionProver.checkSymbolicNonTerminationClosure(
-                  candidate, getNonTerminationLoopScope(candidate));
+                  candidate, k, getNonTerminationLoopScope(candidate));
           if (closureProven) {
             nonTerminationConfirmed = true;
             reportConfirmedNonTermination(reachedSet, candidate);
             return false;
           }
+          // Symbolic step case says no closure (authoritative for soundness). To make progress
+          // we still want a refinement candidate, so we run the BMC-style closure check ONLY
+          // for its refinement side-effect. We deliberately ignore its boolean return value:
+          // the BMC check can return UNSAT spuriously on non-inductive candidates with shallow
+          // unrolling (the very gap the symbolic check exists to close).
+          if (buildRefinement) {
+            kInductionProver.checkNonTerminationClosure(
+                candidate, k, checkedKeys, getNonTerminationLoopScope(candidate), true);
+            Optional<CandidateInvariant> refinement =
+                kInductionProver.getLastNonTerminationRefinement();
+            if (refinement.isPresent()) {
+              CandidateInvariant refinedCandidate = refinement.orElseThrow();
+              if (shouldSuggestNonTerminationRefinement(candidate, refinedCandidate, k)
+                  && candidateGenerator.suggestCandidates(
+                      Collections.singleton(refinedCandidate))) {
+                registerNonTerminationRefinement(candidate, refinedCandidate);
+                logger.log(
+                    Level.INFO,
+                    "Non-termination mode (symbolic): step case refuted closure;"
+                        + " refining candidate for next iteration.");
+              }
+            }
+          }
           sound = false;
           continue;
         }
-        boolean buildRefinement =
-            useNonTerminationStepCaseRefinement
-                && canUseNonTerminationStepCaseRefinement(candidate);
+
         if (kInductionProver.checkNonTerminationClosure(
             candidate,
             k,

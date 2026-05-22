@@ -384,6 +384,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             ? new StatewiseCandidateInvariantDisjunction(loopCandidates)
             : new StatewiseCandidateInvariantConjunction(loopCandidates);
     if (!pNegated) {
+      nonTerminationLoopScopes.put(loopCandidate, NonTerminationLoopScope.of(pLoop));
       if (directlyNonTerminatingNoExitLoop) {
         directlyConfirmedNonTerminationCandidates.add(loopCandidate);
       }
