@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class AssumptionToEdgeAllocatorTest {
 
@@ -222,7 +223,7 @@ public class AssumptionToEdgeAllocatorTest {
 
   private void testWithEdge(CFAEdge pEdge) throws InvalidConfigurationException {
 
-    Configuration testConfig = TestDataTools.configurationForTest().build();
+    Configuration testConfig = TestUtils.configurationForTest().build();
 
     AssumptionToEdgeAllocator allocator =
         AssumptionToEdgeAllocator.create(testConfig, logger, machineModel);

@@ -17,7 +17,7 @@ import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class ModificationsPropTest {
 
@@ -171,7 +171,7 @@ public class ModificationsPropTest {
       final String pConfigFile, final Map<String, String> pOverrideOptions)
       throws InvalidConfigurationException, IOException {
     final ConfigurationBuilder configBuilder =
-        TestDataTools.configurationForTest().loadFromFile(pConfigFile);
+        TestUtils.configurationForTest().loadFromFile(pConfigFile);
     return configBuilder.setOptions(pOverrideOptions).build();
   }
 }

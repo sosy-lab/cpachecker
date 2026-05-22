@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.ImportedBlock;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class ImportDecompositionTest {
 
@@ -35,7 +36,7 @@ public class ImportDecompositionTest {
       throws IOException, InvalidConfigurationException, InterruptedException {
 
     ConfigurationBuilder decompositionOptions =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .setOption(
                 "distributedSummaries.decomposition.decompositionType", "MERGE_DECOMPOSITION");
 

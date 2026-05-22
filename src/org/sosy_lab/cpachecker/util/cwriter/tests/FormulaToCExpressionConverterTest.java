@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.SolverViewBasedTest0;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 import org.sosy_lab.cpachecker.util.test.ToCTranslationTest;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -883,12 +883,12 @@ public class FormulaToCExpressionConverterTest {
       super(
           TempFile.builder().create().toAbsolutePath(),
           pVerdict,
-          TestDataTools.configurationForTest()
+          TestUtils.configurationForTest()
               .loadFromResource(TranslationTest.class, "kInduction-kipdrdfInvariants.properties")
               .build());
       program = pProgram;
       config =
-          TestDataTools.configurationForTest()
+          TestUtils.configurationForTest()
               .loadFromResource(
                   FormulaToCExpressionConverterTest.class,
                   "kInduction-kipdrdfInvariants.properties")

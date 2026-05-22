@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.ARGToAutomatonConverter;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 @RunWith(Parameterized.class)
 public class ARGToAutomatonConverterTest {
@@ -63,7 +63,7 @@ public class ARGToAutomatonConverterTest {
     automatonPath = newTempFile();
     String propfile = forOverflow ? "split--overflow.properties" : "split-callstack.properties";
     config =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .loadFromResource(ARGToAutomatonConverterTest.class, propfile)
             .setOption("cpa.arg.export.code.handleTargetStates", "VERIFIERERROR")
             .setOption("cpa.arg.export.code.header", "false")
@@ -117,7 +117,7 @@ public class ARGToAutomatonConverterTest {
       }
       // test whether C program still gives correct verdict with joint automaton:
       Configuration reConfig =
-          TestDataTools.configurationForTest()
+          TestUtils.configurationForTest()
               .loadFromResource(ARGToAutomatonConverterTest.class, analysis)
               .setOption("specification", automatonPath.toString())
               .build();
@@ -139,7 +139,7 @@ public class ARGToAutomatonConverterTest {
         Path newAutomatonPath = newTempFile();
         Files.write(newAutomatonPath, a.toString().getBytes(UTF_8));
         reConfig =
-            TestDataTools.configurationForTest()
+            TestUtils.configurationForTest()
                 .loadFromResource(ARGToAutomatonConverterTest.class, analysis)
                 .setOption("specification", newAutomatonPath.toString())
                 .build();
@@ -153,7 +153,7 @@ public class ARGToAutomatonConverterTest {
 
     if (forOverflow) {
       Configuration overflowConfig =
-          TestDataTools.configurationForTest()
+          TestUtils.configurationForTest()
               .loadFromResource(ARGToAutomatonConverterTest.class, "split--overflow.properties")
               .build();
       resetCFANodeCounter();

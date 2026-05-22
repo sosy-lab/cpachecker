@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class PredicateCPATest {
 
@@ -46,7 +47,7 @@ public class PredicateCPATest {
   @Test
   public void dontLoadBDDLibraryIfNotNecessary() throws Exception {
     Configuration config =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .setOption("cpa.predicate.blk.alwaysAtFunctions", "false")
             .setOption("cpa.predicate.blk.alwaysAtLoops", "false")
             .build();
@@ -61,7 +62,7 @@ public class PredicateCPATest {
    */
   @Test
   public void loadBDDLibraryIfNecessary() throws Exception {
-    Configuration config = TestDataTools.configurationForTest().build();
+    Configuration config = TestUtils.configurationForTest().build();
 
     FluentIterable<String> loadedClasses = loadPredicateCPA(config);
     assertThat(loadedClasses.filter(Predicates.contains(BDD_CLASS_PATTERN))).isNotEmpty();

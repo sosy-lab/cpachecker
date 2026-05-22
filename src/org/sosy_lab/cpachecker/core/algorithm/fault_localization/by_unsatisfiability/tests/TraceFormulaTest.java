@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class TraceFormulaTest {
 
@@ -65,7 +65,7 @@ public class TraceFormulaTest {
   private IntegrationTestResult runFaultLocalization(
       String name, FLAlgorithm algorithm, Map<String, String> additionalOptions) throws Exception {
     final Configuration config =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .loadFromResource(
                 TraceFormulaTest.class, "predicateAnalysisWithFaultLocalization.properties")
             .setOption("faultLocalization.by_traceformula.type", algorithm.name())

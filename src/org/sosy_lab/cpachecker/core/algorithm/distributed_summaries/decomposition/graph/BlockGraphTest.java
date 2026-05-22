@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssDecompositionOptions;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class BlockGraphTest {
   private static final String CONFIGURATION_FILE_MERGE_DECOMPOSITION = "config/dss.properties";
@@ -49,7 +50,7 @@ public class BlockGraphTest {
 
   private BlockGraph generateBlockGraph(CFA cfa) throws Exception {
     Configuration configForMergeDecomposition =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .loadFromFile(CONFIGURATION_FILE_MERGE_DECOMPOSITION)
             .build();
     DssDecompositionOptions options = new DssDecompositionOptions(configForMergeDecomposition, cfa);

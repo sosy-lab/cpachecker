@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class CallstackTest {
 
@@ -59,7 +59,7 @@ public class CallstackTest {
       Files.writeString(programFile.toPath(), program);
 
       Configuration config =
-          TestDataTools.configurationForTest()
+          TestUtils.configurationForTest()
               //          .setOption("cpa.arg.keepCoveredStatesInReached", "true")
               .setOption("cpa", "cpa.arg.ARGCPA")
               .setOption("ARGCPA.cpa", "cpa.composite.CompositeCPA")

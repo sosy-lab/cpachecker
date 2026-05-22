@@ -57,7 +57,7 @@ public class IntegrationTestRunner {
   public static IntegrationTestResult run(
       Map<String, String> pProperties, String pSourceCodeFilePath) throws Exception {
 
-    Configuration config = TestDataTools.configurationForTest().setOptions(pProperties).build();
+    Configuration config = TestUtils.configurationForTest().setOptions(pProperties).build();
     return run(config, pSourceCodeFilePath);
   }
 

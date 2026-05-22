@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManag
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.ExpectedVerdict;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 @RunWith(Parameterized.class)
 public class FormulaSlicingTest {
@@ -143,7 +143,7 @@ public class FormulaSlicingTest {
 
   private Configuration getProperties(Map<String, String> extra)
       throws InvalidConfigurationException {
-    return TestDataTools.configurationForTest()
+    return TestUtils.configurationForTest()
         .loadFromResource(FormulaSlicingTest.class, "formula-slicing.properties")
         .setOption("cpa.slicing.weakeningStrategy", weakeningStrategy.toString())
         .setOptions(extra)

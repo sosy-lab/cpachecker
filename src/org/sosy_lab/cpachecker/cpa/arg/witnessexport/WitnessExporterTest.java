@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.ExpectedVerdict;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class WitnessExporterTest {
 
@@ -296,8 +296,7 @@ public class WitnessExporterTest {
       String pConfigFile, Map<String, String> pOverrideOptions, String pSpecification)
       throws InvalidConfigurationException {
     ConfigurationBuilder configBuilder =
-        TestDataTools.configurationForTest()
-            .loadFromResource(WitnessExporterTest.class, pConfigFile);
+        TestUtils.configurationForTest().loadFromResource(WitnessExporterTest.class, pConfigFile);
     if (!Strings.isNullOrEmpty(pSpecification)) {
       pOverrideOptions.put(SPECIFICATION_OPTION, pSpecification);
     }

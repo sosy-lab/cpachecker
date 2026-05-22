@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /** Helper class for Distributed Summary Synthesis tests. */
 public class TestUtil {
@@ -47,7 +47,7 @@ public class TestUtil {
   public static CFA buildTestCFA(String path) throws Exception {
 
     Configuration config =
-        TestDataTools.configurationForTest().loadFromFile(CFA_CONFIGURATION_FILE).build();
+        TestUtils.configurationForTest().loadFromFile(CFA_CONFIGURATION_FILE).build();
 
     IntegrationTestResult result = IntegrationTestRunner.run(config, path);
 

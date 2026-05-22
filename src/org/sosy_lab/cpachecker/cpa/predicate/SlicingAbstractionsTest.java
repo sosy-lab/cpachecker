@@ -29,7 +29,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /** Integration testing for Slicing Abstractions. */
 @RunWith(Parameterized.class)
@@ -227,7 +227,7 @@ public class SlicingAbstractionsTest {
 
   private Configuration getProperties(String configFile, Map<String, String> extra)
       throws InvalidConfigurationException, IOException {
-    return TestDataTools.configurationForTest()
+    return TestUtils.configurationForTest()
         .loadFromFile(CONFIG_DIR_PATH + configFile)
         .setOptions(extra)
         .build();

@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -55,9 +56,7 @@ public class LoopTransitionFinderTest {
   @Before
   public void setUp() throws Exception {
     config =
-        TestDataTools.configurationForTest()
-            .setOptions(ImmutableMap.of("solver.solver", "z3"))
-            .build();
+        TestUtils.configurationForTest().setOptions(ImmutableMap.of("solver.solver", "z3")).build();
     notifier = ShutdownNotifier.createDummy();
     logger = LogManager.createTestLogManager();
     try {

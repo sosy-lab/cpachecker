@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class CFACreatorTest {
 
@@ -145,7 +146,7 @@ public class CFACreatorTest {
   public void testParseSourceAndCreateCfaWithNoReturnAbort()
       throws InvalidConfigurationException, ParserException, InterruptedException {
     final Configuration config =
-        TestDataTools.configurationForTest().setOption("language", "C").build();
+        TestUtils.configurationForTest().setOption("language", "C").build();
     final CFACreator creator = createCfaCreatorForTesting(config);
     final String programSource =
         "extern void abort() __attribute__((__noreturn__));int main() { abort(); }";
@@ -168,7 +169,7 @@ public class CFACreatorTest {
   public void testParseSourceAndCreateCfaWithNoReturnFunctionAttribute()
       throws InvalidConfigurationException, ParserException, InterruptedException {
     final Configuration config =
-        TestDataTools.configurationForTest().setOption("language", "C").build();
+        TestUtils.configurationForTest().setOption("language", "C").build();
     final CFACreator creator = createCfaCreatorForTesting(config);
     final String programSource =
         "extern void myfunc() __attribute__((__noreturn__));int main() { myfunc(); }";
@@ -191,7 +192,7 @@ public class CFACreatorTest {
   public void testParseSourceAndCreateCfaWithReturningAbort()
       throws InvalidConfigurationException, ParserException, InterruptedException {
     final Configuration config =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .setOption("language", "C")
             .setOption(
                 "cfa.nonReturningFunctions", "[]") // do not handle 'abort' as aborting function
@@ -217,7 +218,7 @@ public class CFACreatorTest {
   public void testParseSourceAndCreateCfaWithReturningAbortButExplicitTermination()
       throws InvalidConfigurationException, ParserException, InterruptedException {
     final Configuration config =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .setOption("language", "C")
             .setOption("cfa.nonReturningFunctions", "abort") // handle 'abort' as aborting function
             .build();

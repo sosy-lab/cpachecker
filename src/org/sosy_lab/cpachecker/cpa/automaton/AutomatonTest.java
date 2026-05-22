@@ -22,7 +22,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class AutomatonTest {
   private static final String CPAS_UNINITVARS =
@@ -184,7 +184,7 @@ public class AutomatonTest {
             "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.automaton.ObserverAutomatonCPA",
             "cpa.automaton.inputFile", "test/config/automata/simple_setuid.txt",
             "analysis.stopAfterError", "FALSE");
-    Configuration config = TestDataTools.configurationForTest().setOptions(prop).build();
+    Configuration config = TestUtils.configurationForTest().setOptions(prop).build();
     IntegrationTestResult results =
         IntegrationTestRunner.run(config, "test/programs/simple/simple_setuid_test.c", Level.FINER);
     assertThat(results.log()).contains("Systemcall in line 22 with userid 2");
