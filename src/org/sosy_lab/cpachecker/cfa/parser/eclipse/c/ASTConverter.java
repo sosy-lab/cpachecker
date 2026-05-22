@@ -673,6 +673,17 @@ class ASTConverter {
   }
 
   /**
+   * Check whether the given expression is a local variable.
+   */
+  private boolean isLocalVariable(CExpression exp) {
+    if (exp instanceof CIdExpression cIdExpression &&
+        cIdExpression.getDeclaration() instanceof CVariableDeclaration cVariableDeclaration) {
+      return !cVariableDeclaration.isGlobal();
+    }
+    return false;
+  }
+
+  /**
    * Evaluate a constant expression into an integer literal. This method is for cases where the
    * frontend really needs to know the resulting int value, so we simplify the expression and force
    * it to be evaluated even if otherwise we would not. So call this only if necessary.
@@ -916,8 +927,15 @@ class ASTConverter {
         };
 
       } else {
-        // a += b etc.
+        // a += b, a *= b etc.
         CExpression rightHandSide = convertExpressionWithoutSideEffects(e.getOperand2());
+
+        if (isLocalVariable(lhs)) {
+          // If `a` is a local variable, we can directly do a = a + b without worrying about
+          // interleaved accesses from other threads, because local variables are thread-local.
+          CBinaryExpression exp = buildBinaryExpression(leftHandSide, rightHandSide, op);
+          return new CExpressionAssignmentStatement(fileLoc, lhs, exp);
+        }
 
         // C11 _Atomic compound assignments (+=, -=, etc.) must appear inside an atomic
         // section so that concurrent analyses treat the read-modify-write as indivisible.
@@ -1672,7 +1690,7 @@ class ASTConverter {
 
         // C11 _Atomic operations must appear inside an atomic section so that concurrent
         // analyses treat the read-modify-write as a single indivisible step.
-        if (operandType.isAtomic()) {
+        if (operandType.isAtomic() && !isLocalVariable(operand)) {
           // if x is an atomic type, ++x is transformed to
           // atomic_begin(); x = x + 1; tmp = x; atomic_end(); return tmp;
           //
@@ -1728,8 +1746,9 @@ class ASTConverter {
         // so that the value of the expression is correct even for concurrent analyses.
         // Without the temporary variable, another thread modifying x could interleave with the
         // incrementing thread after saving the old value of x, but before the atomic block start.
+        boolean isAtomic = operandType.isAtomic() && !isLocalVariable(operand);
 
-        if (operandType.isAtomic()) {
+        if (isAtomic) {
           sideAssignmentStack.addPreSideAssignment(
               createNoArgsFunctionCall(operand.getFileLocation(), ATOMIC_BEGIN_DECLARATION));
         }
@@ -1737,7 +1756,7 @@ class ASTConverter {
         CExpression tmp = createTemporaryVariableWithInitializer(fileLoc, lhsPost);
         sideAssignmentStack.addPreSideAssignment(result);
 
-        if (operandType.isAtomic()) {
+        if (isAtomic) {
           sideAssignmentStack.addPreSideAssignment(
               createNoArgsFunctionCall(operand.getFileLocation(), ATOMIC_END_DECLARATION));
         }
