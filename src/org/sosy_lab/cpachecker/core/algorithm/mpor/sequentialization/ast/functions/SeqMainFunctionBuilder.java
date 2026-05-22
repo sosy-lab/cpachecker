@@ -161,9 +161,9 @@ public final class SeqMainFunctionBuilder {
       ImmutableMap<MPORThread, SeqFunctionStatements> pFunctionStatements) {
 
     ImmutableList.Builder<CExportStatement> rAssignments = ImmutableList.builder();
-    for (var entry : pFunctionStatements.entrySet()) {
+    for (SeqFunctionStatements functionStatements : pFunctionStatements.values()) {
       for (SeqMainFunctionArgAssignment assignment :
-          entry.getValue().mainFunctionArgAssignments()) {
+          functionStatements.mainFunctionArgAssignments()) {
         rAssignments.add(new CStatementWrapper(assignment.functionCallAssignmentStatement()));
       }
     }
