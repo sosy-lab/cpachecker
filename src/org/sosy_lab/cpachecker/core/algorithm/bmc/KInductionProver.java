@@ -47,6 +47,7 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -422,6 +423,292 @@ class KInductionProver implements AutoCloseable {
 
   public Optional<CandidateInvariant> getLastNonTerminationRefinement() {
     return lastNonTerminationRefinement;
+  }
+
+  /**
+   * Symbolic step-case check for non-termination closure.
+   *
+   * <p>Builds a fresh pre-state path formula at every candidate source location (using {@link
+   * PathFormulaManager#makeEmptyPathFormulaWithContextFrom} to inherit the SSA/PTS context without
+   * the main-init constraints), encodes one body transition by chaining CFA edges with {@code
+   * makeAnd}/{@code makeOr}, and asks the solver whether {@code C(pre) ∧ T(pre,post) ∧ ¬C(post)}
+   * is satisfiable for any source→target pair. UNSAT proves real closure; SAT means the candidate
+   * is not inductive and the algorithm should not declare non-termination.
+   *
+   * <p>This avoids the BMC-style soundness gap of {@link #checkNonTerminationClosure}, which
+   * pins predecessor SSA to specific BMC-reached values and therefore can be fooled by shallow
+   * unrolling on non-inductive candidates (e.g., 4-bit-counter loops).
+   *
+   * <p>Phase 1 limitations: single non-nested loop only; bails out conservatively (returns false)
+   * for nested loops, function calls inside the body, or propagation that exceeds an iteration
+   * budget. The auxiliary loop-head invariant from the parallel invariant generator is
+   * deliberately NOT asserted here, to keep the check independent of side-channels.
+   */
+  public final boolean checkSymbolicNonTerminationClosure(
+      CandidateInvariant pCandidateInvariant, Optional<NonTerminationLoopScope> pLoopScope)
+      throws CPATransferException, InterruptedException, SolverException {
+
+    stats.inductionPreparation.start();
+    BooleanFormula totalBad;
+    try {
+      Loop loop = findLoopForSymbolicCheck(pCandidateInvariant, pLoopScope);
+      if (loop == null) {
+        logger.log(
+            Level.FINER,
+            "Symbolic non-termination closure: could not determine target loop; refusing.");
+        return false;
+      }
+
+      Map<CFANode, List<CandidateInvariant>> componentsByLocation = new LinkedHashMap<>();
+      for (CandidateInvariant component :
+          CandidateInvariantCombination.getConjunctiveParts(pCandidateInvariant)) {
+        if (!(component instanceof SingleLocationFormulaInvariant slfi)) {
+          logger.log(
+              Level.FINER,
+              "Symbolic non-termination closure: unsupported candidate component type "
+                  + component.getClass().getSimpleName()
+                  + "; refusing.");
+          return false;
+        }
+        componentsByLocation
+            .computeIfAbsent(slfi.getLocation(), k -> new ArrayList<>())
+            .add(component);
+      }
+
+      ImmutableSet<CFANode> exitSuccessors =
+          FluentIterable.from(loop.getOutgoingEdges()).transform(CFAEdge::getSuccessor).toSet();
+
+      // Sources: locations of non-successor-only components (i.e., the predecessor candidate).
+      Set<CFANode> sources = new HashSet<>();
+      for (Map.Entry<CFANode, List<CandidateInvariant>> entry :
+          componentsByLocation.entrySet()) {
+        for (CandidateInvariant component : entry.getValue()) {
+          if (!isSuccessorOnlyComponent(component)) {
+            sources.add(entry.getKey());
+            break;
+          }
+        }
+      }
+      if (sources.isEmpty()) {
+        logger.log(
+            Level.FINER,
+            "Symbolic non-termination closure: no source nodes in candidate; refusing.");
+        return false;
+      }
+
+      // Targets: every candidate-applicable location (including successor-only false@exit_succ).
+      Set<CFANode> targets = new HashSet<>(componentsByLocation.keySet());
+
+      ReachedSet reached = reachedSet.getReachedSet();
+      List<BooleanFormula> allBads = new ArrayList<>();
+
+      for (CFANode source : sources) {
+        shutdownNotifier.shutdownIfNecessary();
+        Optional<AbstractState> anySourceState =
+            AbstractStates.filterLocations(reached, ImmutableSet.of(source)).stream().findFirst();
+        if (anySourceState.isEmpty()) {
+          continue;
+        }
+        PredicateAbstractState pas =
+            AbstractStates.extractStateByType(
+                anySourceState.orElseThrow(), PredicateAbstractState.class);
+        if (pas == null) {
+          continue;
+        }
+        PathFormula pfPre = pfmgr.makeEmptyPathFormulaWithContextFrom(pas.getPathFormula());
+
+        Map<CFANode, PathFormula> arrivals =
+            propagateOneIterationSymbolically(loop, source, pfPre, targets, exitSuccessors);
+        if (arrivals == null) {
+          logger.log(
+              Level.FINER,
+              "Symbolic non-termination closure: propagation exceeded budget at source "
+                  + source
+                  + "; refusing.");
+          return false;
+        }
+
+        BooleanFormula cAtPre =
+            instantiateComponentsAt(componentsByLocation.get(source), pfPre);
+
+        for (Map.Entry<CFANode, PathFormula> arrival : arrivals.entrySet()) {
+          CFANode target = arrival.getKey();
+          if (!targets.contains(target)) {
+            continue;
+          }
+          PathFormula pfAtTarget = arrival.getValue();
+          BooleanFormula cAtTarget =
+              instantiateComponentsAt(componentsByLocation.get(target), pfAtTarget);
+          BooleanFormula bad =
+              bfmgr.and(pfAtTarget.getFormula(), cAtPre, bfmgr.not(cAtTarget));
+          allBads.add(bad);
+        }
+      }
+
+      if (allBads.isEmpty()) {
+        logger.log(
+            Level.FINER,
+            "Symbolic non-termination closure: no bad transitions to check; refusing vacuous"
+                + " proof.");
+        return false;
+      }
+      totalBad = bfmgr.or(allBads);
+    } finally {
+      stats.inductionPreparation.stop();
+    }
+
+    logger.log(Level.INFO, "Starting symbolic non-termination closure check...");
+    stats.inductionCheck.start();
+    prover.push(totalBad);
+    try {
+      boolean unsat = prover.isUnsat();
+      logger.log(
+          Level.INFO,
+          unsat
+              ? "Symbolic non-termination closure check: UNSAT (closure proven)."
+              : "Symbolic non-termination closure check: SAT (closure refuted).");
+      return unsat;
+    } finally {
+      prover.pop();
+      stats.inductionCheck.stop();
+    }
+  }
+
+  private Loop findLoopForSymbolicCheck(
+      CandidateInvariant pCandidateInvariant, Optional<NonTerminationLoopScope> pLoopScope) {
+    if (cfa.getLoopStructure().isEmpty()) {
+      return null;
+    }
+    if (pLoopScope.isPresent()) {
+      Set<CFANode> scopeNodes = pLoopScope.orElseThrow().loopNodes();
+      for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
+        if (loop.getLoopNodes().equals(scopeNodes)) {
+          return loop;
+        }
+      }
+      return null;
+    }
+    Set<CFANode> candidateLocations = new HashSet<>();
+    for (CandidateInvariant component :
+        CandidateInvariantCombination.getConjunctiveParts(pCandidateInvariant)) {
+      if (component instanceof SingleLocationFormulaInvariant slfi) {
+        candidateLocations.add(slfi.getLocation());
+      }
+    }
+    if (candidateLocations.isEmpty()) {
+      return null;
+    }
+    for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
+      Set<CFANode> reachable = new HashSet<>(loop.getLoopNodes());
+      for (CFAEdge edge : loop.getOutgoingEdges()) {
+        reachable.add(edge.getSuccessor());
+      }
+      if (reachable.containsAll(candidateLocations)) {
+        return loop;
+      }
+    }
+    return null;
+  }
+
+  private Map<CFANode, PathFormula> propagateOneIterationSymbolically(
+      Loop pLoop,
+      CFANode pSource,
+      PathFormula pPfPre,
+      Set<CFANode> pTargets,
+      Set<CFANode> pExitSuccessors)
+      throws CPATransferException, InterruptedException {
+
+    // Heuristic bail-outs for Phase 1: refuse on nested loops and function calls in body.
+    for (CFANode node : pLoop.getLoopNodes()) {
+      for (CFAEdge edge : leavingEdgesOf(node)) {
+        if (edge.getEdgeType() == org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.FunctionCallEdge) {
+          return null;
+        }
+      }
+    }
+    // Nested loop detection: a loop node is the head of a different inner loop.
+    for (Loop other : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
+      if (other.equals(pLoop)) {
+        continue;
+      }
+      if (pLoop.getLoopNodes().containsAll(other.getLoopNodes())
+          && !other.getLoopNodes().containsAll(pLoop.getLoopNodes())) {
+        return null;
+      }
+    }
+
+    Map<CFANode, PathFormula> arrivals = new HashMap<>();
+    Deque<CFANode> worklist = new ArrayDeque<>();
+    Map<CFANode, Integer> visitCount = new HashMap<>();
+    final int maxVisitsPerNode = 16;
+
+    // Seed: process the source's outgoing edges using pPfPre (do NOT register pPfPre into
+    // arrivals[source] — we want arrivals[source] to capture only back-edge arrivals when the
+    // source is also a target).
+    for (CFAEdge edge : leavingEdgesOf(pSource)) {
+      CFANode succ = edge.getSuccessor();
+      if (!pLoop.getLoopNodes().contains(succ) && !pExitSuccessors.contains(succ)) {
+        continue;
+      }
+      PathFormula pfNew = pfmgr.makeAnd(pPfPre, edge);
+      arrivals.put(succ, pfNew);
+      worklist.add(succ);
+    }
+
+    while (!worklist.isEmpty()) {
+      shutdownNotifier.shutdownIfNecessary();
+      CFANode current = worklist.poll();
+      int count = visitCount.merge(current, 1, Integer::sum);
+      if (count > maxVisitsPerNode) {
+        return null;
+      }
+      if (pTargets.contains(current)) {
+        continue; // boundary: do not propagate past a target
+      }
+      PathFormula pfCurr = arrivals.get(current);
+      for (CFAEdge edge : leavingEdgesOf(current)) {
+        CFANode succ = edge.getSuccessor();
+        if (!pLoop.getLoopNodes().contains(succ) && !pExitSuccessors.contains(succ)) {
+          continue;
+        }
+        PathFormula pfNew = pfmgr.makeAnd(pfCurr, edge);
+        PathFormula existing = arrivals.get(succ);
+        if (existing == null) {
+          arrivals.put(succ, pfNew);
+          worklist.add(succ);
+        } else {
+          PathFormula merged = pfmgr.makeOr(existing, pfNew);
+          arrivals.put(succ, merged);
+          worklist.add(succ);
+        }
+      }
+    }
+    return arrivals;
+  }
+
+  private static Iterable<CFAEdge> leavingEdgesOf(CFANode pNode) {
+    List<CFAEdge> edges = new ArrayList<>(pNode.getNumLeavingEdges());
+    for (int i = 0; i < pNode.getNumLeavingEdges(); i++) {
+      edges.add(pNode.getLeavingEdge(i));
+    }
+    return edges;
+  }
+
+  private BooleanFormula instantiateComponentsAt(
+      List<CandidateInvariant> pComponents, PathFormula pPfAt)
+      throws CPATransferException, InterruptedException {
+    if (pComponents == null || pComponents.isEmpty()) {
+      return bfmgr.makeTrue();
+    }
+    SSAMap ssa = pPfAt.getSsa().withDefault(1);
+    BooleanFormula result = bfmgr.makeTrue();
+    for (CandidateInvariant component : pComponents) {
+      shutdownNotifier.shutdownIfNecessary();
+      BooleanFormula uninstantiated = component.getFormula(fmgr, pfmgr, pPfAt);
+      BooleanFormula instantiated = fmgr.instantiate(uninstantiated, ssa);
+      result = bfmgr.and(result, instantiated);
+    }
+    return result;
   }
 
   /**

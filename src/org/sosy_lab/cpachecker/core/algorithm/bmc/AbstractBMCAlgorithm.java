@@ -145,6 +145,18 @@ abstract class AbstractBMCAlgorithm
               + " regular candidates and are not refined again.")
   private boolean useNonTerminationStepCaseRefinement = true;
 
+  @Option(
+      secure = true,
+      name = "kinduction.useSymbolicNonTerminationStepCase",
+      description =
+          "Use a symbolic step-case check for non-termination closure: build a fresh pre-state"
+              + " path formula at the candidate source, encode one body transition with"
+              + " makeAnd / makeOr, and check C(pre) AND trans AND NOT C(post) for UNSAT. This"
+              + " avoids the BMC-style soundness gap where small unrolling depths can mask the"
+              + " non-inductivity of a candidate (e.g. 4-bit-counter style loops). When this is"
+              + " enabled the BMC-style closure check and its refinement are bypassed.")
+  private boolean useSymbolicNonTerminationStepCase = true;
+
   protected static boolean isStopState(AbstractState state) {
     AssumptionStorageState assumptionState =
         AbstractStates.extractStateByType(state, AssumptionStorageState.class);
@@ -686,6 +698,18 @@ abstract class AbstractBMCAlgorithm
       }
 
       if (isNonTerminationMode()) {
+        if (useSymbolicNonTerminationStepCase) {
+          boolean closureProven =
+              kInductionProver.checkSymbolicNonTerminationClosure(
+                  candidate, getNonTerminationLoopScope(candidate));
+          if (closureProven) {
+            nonTerminationConfirmed = true;
+            reportConfirmedNonTermination(reachedSet, candidate);
+            return false;
+          }
+          sound = false;
+          continue;
+        }
         boolean buildRefinement =
             useNonTerminationStepCaseRefinement
                 && canUseNonTerminationStepCaseRefinement(candidate);
