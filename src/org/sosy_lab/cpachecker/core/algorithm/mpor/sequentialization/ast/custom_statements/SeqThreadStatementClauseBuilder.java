@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
 import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -303,10 +304,7 @@ public record SeqThreadStatementClauseBuilder(
     SeqThreadStatementClause newLastClause = lastClause.withBlocks(ImmutableList.of(newBlock));
 
     // replace the last clause with the new clause
-    return ImmutableList.<SeqThreadStatementClause>builder()
-        .addAll(pClauses.subList(0, pClauses.size() - 1))
-        .add(newLastClause)
-        .build();
+    return listAndElement(pClauses.subList(0, pClauses.size() - 1), newLastClause);
   }
 
   private ImmutableList<CCompoundStatementElement> getResetAssignmentsForOutOfScopePointers(
@@ -333,8 +331,7 @@ public record SeqThreadStatementClauseBuilder(
         if (localVariableInScope.getType() instanceof CPointerType) {
           LocalVariableDeclarationSubstitute localVariableDeclarationSubstitute =
               Objects.requireNonNull(
-                  localVariableSubstituteTable.get(
-                      pThreadNode.callContext, (CVariableDeclaration) localVariableInScope));
+                  localVariableSubstituteTable.get(pThreadNode.callContext, localVariableInScope));
 
           CExpressionAssignmentStatement assignmentStatement =
               new CExpressionAssignmentStatement(
@@ -359,8 +356,7 @@ public record SeqThreadStatementClauseBuilder(
 
           ImmutableList<CIdExpression> parameterSubstitutes =
               Objects.requireNonNull(
-                  parameterSubstituteTable.get(
-                      pThreadNode.callContext, (CParameterDeclaration) parameterInScope));
+                  parameterSubstituteTable.get(pThreadNode.callContext, parameterInScope));
 
           for (CIdExpression parameterIdExpression : parameterSubstitutes) {
             CExpressionAssignmentStatement assignmentStatement =
