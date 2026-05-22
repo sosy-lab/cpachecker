@@ -157,8 +157,8 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
         pEntryNode,
         // at start, there is never an atomic block
         false,
-        // at start, create a dummy call context
-        new SeqCallContext(Optional.empty()),
+        // at start, use an empty call context
+        SeqCallContext.EMPTY,
         pStartRoutineCall);
 
     ImmutableList<CFANodeForThread> finalThreadNodes = threadNodes.build();

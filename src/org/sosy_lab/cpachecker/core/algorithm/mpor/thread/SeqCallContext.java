@@ -24,6 +24,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
  */
 public record SeqCallContext(Optional<CFAEdgeForThread> cfaEdgeForThread) {
 
+  public static final SeqCallContext EMPTY = new SeqCallContext(Optional.empty());
+
   public SeqCallContext {
     if (cfaEdgeForThread.isPresent()) {
       CFAEdgeForThread threadEdge = cfaEdgeForThread.orElseThrow();

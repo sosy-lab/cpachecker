@@ -136,7 +136,7 @@ public record MPORSubstitutionBuilder(
         CExpression substituteExpression =
             dummySubstitution.substitute(
                 initializerExpression.getExpression(),
-                new SeqCallContext(Optional.empty()),
+                SeqCallContext.EMPTY,
                 false,
                 false,
                 false,

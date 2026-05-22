@@ -334,8 +334,8 @@ public class SeqPointerAliasingStructTest {
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
             GLOBAL_POINTER_A_ID_EXPRESSION,
             OUTER_STRUCT_MEMBER_UNARY_EXPRESSION,
-            new SeqCallContext(Optional.empty()),
-            new SeqCallContext(Optional.empty()),
+            SeqCallContext.EMPTY,
+            SeqCallContext.EMPTY,
             ImmutableSortedMap.of(),
             SeqPointerAssignmentType.EXPLICIT);
 
@@ -361,8 +361,8 @@ public class SeqPointerAliasingStructTest {
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
             GLOBAL_POINTER_A_ID_EXPRESSION,
             OUTER_STRUCT_MEMBER_UNARY_EXPRESSION,
-            new SeqCallContext(Optional.empty()),
-            new SeqCallContext(Optional.empty()),
+            SeqCallContext.EMPTY,
+            SeqCallContext.EMPTY,
             ImmutableSortedMap.of(),
             SeqPointerAssignmentType.EXPLICIT);
     // global_ptr_A = &outer_struct.inner_struct.inner_member
@@ -370,8 +370,8 @@ public class SeqPointerAliasingStructTest {
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
             GLOBAL_POINTER_A_ID_EXPRESSION,
             OUTER_STRUCT_INNER_STRUCT_MEMBER_FIELD_REFERENCE,
-            new SeqCallContext(Optional.empty()),
-            new SeqCallContext(Optional.empty()),
+            SeqCallContext.EMPTY,
+            SeqCallContext.EMPTY,
             ImmutableSortedMap.of(),
             SeqPointerAssignmentType.EXPLICIT);
 
@@ -396,8 +396,8 @@ public class SeqPointerAliasingStructTest {
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
             PARAMETER_POINTER_OUTER_STRUCT_ID_EXPRESSION,
             OUTER_STRUCT_UNARY_EXPRESSION,
-            new SeqCallContext(Optional.empty()),
-            new SeqCallContext(Optional.empty()),
+            SeqCallContext.EMPTY,
+            SeqCallContext.EMPTY,
             ImmutableSortedMap.of(),
             SeqPointerAssignmentType.PARAMETER);
 
@@ -423,16 +423,16 @@ public class SeqPointerAliasingStructTest {
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
             PARAMETER_POINTER_P1_ID_EXPRESSION,
             OUTER_STRUCT_MEMBER_UNARY_EXPRESSION,
-            new SeqCallContext(Optional.empty()),
-            new SeqCallContext(Optional.empty()),
+            SeqCallContext.EMPTY,
+            SeqCallContext.EMPTY,
             ImmutableSortedMap.of(),
             SeqPointerAssignmentType.EXPLICIT);
     Optional<SeqPointerAssignment> parameterAssignment2 =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
             PARAMETER_POINTER_P2_ID_EXPRESSION,
             OUTER_STRUCT_INNER_STRUCT_MEMBER_UNARY_EXPRESSION,
-            new SeqCallContext(Optional.empty()),
-            new SeqCallContext(Optional.empty()),
+            SeqCallContext.EMPTY,
+            SeqCallContext.EMPTY,
             ImmutableSortedMap.of(),
             SeqPointerAssignmentType.EXPLICIT);
 
@@ -470,16 +470,16 @@ public class SeqPointerAliasingStructTest {
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
             OUTER_STRUCT_POINTER_MEMBER_FIELD_REFERENCE,
             LOCAL_L1_UNARY_EXPRESSION,
-            new SeqCallContext(Optional.empty()),
-            new SeqCallContext(Optional.empty()),
+            SeqCallContext.EMPTY,
+            SeqCallContext.EMPTY,
             ImmutableSortedMap.of(),
             SeqPointerAssignmentType.EXPLICIT);
     Optional<SeqPointerAssignment> pointerAssignment2 =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
             OUTER_STRUCT_INNER_STRUCT_POINTER_MEMBER_FIELD_REFERENCE,
             GLOBAL_G1_UNARY_EXPRESSION,
-            new SeqCallContext(Optional.empty()),
-            new SeqCallContext(Optional.empty()),
+            SeqCallContext.EMPTY,
+            SeqCallContext.EMPTY,
             ImmutableSortedMap.of(),
             SeqPointerAssignmentType.EXPLICIT);
 
@@ -492,16 +492,16 @@ public class SeqPointerAliasingStructTest {
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
             PARAMETER_POINTER_P1_ID_EXPRESSION,
             OUTER_STRUCT_POINTER_MEMBER_FIELD_REFERENCE,
-            new SeqCallContext(Optional.empty()),
-            new SeqCallContext(Optional.empty()),
+            SeqCallContext.EMPTY,
+            SeqCallContext.EMPTY,
             ImmutableSortedMap.of(),
             SeqPointerAssignmentType.PARAMETER);
     Optional<SeqPointerAssignment> parameterAssignment2 =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
             PARAMETER_POINTER_P2_ID_EXPRESSION,
             OUTER_STRUCT_INNER_STRUCT_POINTER_MEMBER_FIELD_REFERENCE,
-            new SeqCallContext(Optional.empty()),
-            new SeqCallContext(Optional.empty()),
+            SeqCallContext.EMPTY,
+            SeqCallContext.EMPTY,
             ImmutableSortedMap.of(),
             SeqPointerAssignmentType.PARAMETER);
 

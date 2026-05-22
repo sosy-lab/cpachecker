@@ -183,8 +183,8 @@ public class SeqPointerAliasingTest {
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
             GLOBAL_POINTER_A_ID_EXPRESSION,
             GLOBAL_X_UNARY_EXPRESSION,
-            new SeqCallContext(Optional.empty()),
-            new SeqCallContext(Optional.empty()),
+            SeqCallContext.EMPTY,
+            SeqCallContext.EMPTY,
             ImmutableSortedMap.of(),
             SeqPointerAssignmentType.EXPLICIT);
 
@@ -209,16 +209,16 @@ public class SeqPointerAliasingTest {
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
             GLOBAL_POINTER_A_ID_EXPRESSION,
             GLOBAL_X_UNARY_EXPRESSION,
-            new SeqCallContext(Optional.empty()),
-            new SeqCallContext(Optional.empty()),
+            SeqCallContext.EMPTY,
+            SeqCallContext.EMPTY,
             ImmutableSortedMap.of(),
             SeqPointerAssignmentType.EXPLICIT);
     Optional<SeqPointerAssignment> pointerAssignment2 =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
             GLOBAL_POINTER_A_ID_EXPRESSION,
             GLOBAL_Y_UNARY_EXPRESSION,
-            new SeqCallContext(Optional.empty()),
-            new SeqCallContext(Optional.empty()),
+            SeqCallContext.EMPTY,
+            SeqCallContext.EMPTY,
             ImmutableSortedMap.of(),
             SeqPointerAssignmentType.EXPLICIT);
 
@@ -247,16 +247,16 @@ public class SeqPointerAliasingTest {
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
             GLOBAL_POINTER_A_ID_EXPRESSION,
             GLOBAL_X_UNARY_EXPRESSION,
-            new SeqCallContext(Optional.empty()),
-            new SeqCallContext(Optional.empty()),
+            SeqCallContext.EMPTY,
+            SeqCallContext.EMPTY,
             ImmutableSortedMap.of(),
             SeqPointerAssignmentType.EXPLICIT);
     Optional<SeqPointerAssignment> pointerAssignment2 =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
             GLOBAL_POINTER_B_ID_EXPRESSION,
             GLOBAL_POINTER_A_ID_EXPRESSION,
-            new SeqCallContext(Optional.empty()),
-            new SeqCallContext(Optional.empty()),
+            SeqCallContext.EMPTY,
+            SeqCallContext.EMPTY,
             ImmutableSortedMap.of(),
             SeqPointerAssignmentType.EXPLICIT);
 
@@ -280,8 +280,8 @@ public class SeqPointerAliasingTest {
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
             GLOBAL_POINTER_A_ID_EXPRESSION,
             LOCAL_Z_UNARY_EXPRESSION,
-            new SeqCallContext(Optional.empty()),
-            new SeqCallContext(Optional.empty()),
+            SeqCallContext.EMPTY,
+            SeqCallContext.EMPTY,
             ImmutableSortedMap.of(),
             SeqPointerAssignmentType.EXPLICIT);
 
@@ -307,24 +307,24 @@ public class SeqPointerAliasingTest {
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
             LOCAL_C_ID_EXPRESSION,
             LOCAL_Z_UNARY_EXPRESSION,
-            new SeqCallContext(Optional.empty()),
-            new SeqCallContext(Optional.empty()),
+            SeqCallContext.EMPTY,
+            SeqCallContext.EMPTY,
             ImmutableSortedMap.of(),
             SeqPointerAssignmentType.EXPLICIT);
     Optional<SeqPointerAssignment> pointerAssignment2 =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
             LOCAL_D_ID_EXPRESSION,
             LOCAL_C_ID_EXPRESSION,
-            new SeqCallContext(Optional.empty()),
-            new SeqCallContext(Optional.empty()),
+            SeqCallContext.EMPTY,
+            SeqCallContext.EMPTY,
             ImmutableSortedMap.of(),
             SeqPointerAssignmentType.EXPLICIT);
     Optional<SeqPointerAssignment> pointerAssignment3 =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
             GLOBAL_POINTER_A_ID_EXPRESSION,
             LOCAL_D_ID_EXPRESSION,
-            new SeqCallContext(Optional.empty()),
-            new SeqCallContext(Optional.empty()),
+            SeqCallContext.EMPTY,
+            SeqCallContext.EMPTY,
             ImmutableSortedMap.of(),
             SeqPointerAssignmentType.EXPLICIT);
 

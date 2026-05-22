@@ -106,8 +106,8 @@ public class SeqPointerAliasingStartRoutineArgTest {
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
             START_ROUTINE_ARG_ID_EXPRESSION,
             LOCAL_L1_UNARY_EXPRESSION,
-            new SeqCallContext(Optional.empty()),
-            new SeqCallContext(Optional.empty()),
+            SeqCallContext.EMPTY,
+            SeqCallContext.EMPTY,
             ImmutableSortedMap.of(),
             SeqPointerAssignmentType.START_ROUTINE_ARG);
 
