@@ -70,7 +70,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.input.InputState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
@@ -359,6 +358,9 @@ class KInductionProver implements AutoCloseable {
 
     BooleanFormula predecessorAssertion =
         predecessorCandidate.orElseThrow().getAssertion(predecessorStates, fmgr, pfmgr);
+    FluentIterable<AbstractState> loopHeadStates =
+        AbstractStates.filterLocations(reached, relevantLoopHeads);
+
     // Path formula (transition relation) for the universal closure check.
     Iterable<AbstractState> endStates = FluentIterable.from(reached).filter(BMCHelper::isEndState);
     BooleanFormula successorExistsAssertion =
@@ -366,13 +368,11 @@ class KInductionProver implements AutoCloseable {
 
     stats.inductionPreparation.stop();
 
-    // Universal closure check: no path from a C-predecessor reaches a ¬C successor. In
-    // non-termination mode we intentionally do not add loop-head invariants here, because an
-    // over-strong invariant can mask a real loop-exit or guard-violation successor and turn a
-    // terminating loop into a false non-termination proof.
+    // Universal closure check: no path from a C-predecessor reaches a ¬C successor.
+    BooleanFormula loopHeadInv =
+        inductiveLoopHeadInvariantAssertion(loopHeadStates, relevantLoopHeads);
     Multimap<BooleanFormula, BooleanFormula> successorViolationAssertions =
-        getNonTerminationClosureViolationAssertions(
-            pCandidateInvariant, pK + 1, relevantLoopHeads);
+        getNonTerminationClosureViolationAssertions(pCandidateInvariant, inductionHypothesis);
     if (successorViolationAssertions.isEmpty()) {
       logger.log(
           Level.FINER,
@@ -397,25 +397,8 @@ class KInductionProver implements AutoCloseable {
             "The non-termination closure predecessor is unsatisfiable; refusing vacuous proof.");
         return false;
       }
-      // Existential closure check: from a predecessor satisfying C, there must exist a successor
-      // at LH (one iteration later) still satisfying the FULL candidate. This is only a
-      // non-vacuity check. It must not stay on the stack for the universal violation check below:
-      // otherwise a feasible "good" continuation path can hide a different feasible exit path,
-      // because both path formulas would have to hold in the same SSA model.
-      BooleanFormula successorInCandidate =
-          buildSuccessorInCandidate(pCandidateInvariant, pK + 1, relevantLoopHeads);
-      prover.push(successorInCandidate);
+      prover.push(loopHeadInv);
       pushes++;
-      if (prover.isUnsat()) {
-        logger.log(
-            Level.FINER,
-            "No successor at LH (iter k+1) satisfies the full candidate; refusing vacuous closure"
-                + " proof.");
-        return false;
-      }
-      prover.pop();
-      pushes--;
-
       prover.push(successorViolation);
       pushes++;
       if (prover.isUnsat()) {
@@ -425,12 +408,7 @@ class KInductionProver implements AutoCloseable {
         List<ValueAssignment> model = prover.getModelAssignments();
         lastNonTerminationRefinement =
             buildValidatedNonTerminationRefinement(
-                pCandidateInvariant,
-                model,
-                inductionHypothesis,
-                successorViolation,
-                pK + 1,
-                relevantLoopHeads);
+                pCandidateInvariant, model, inductionHypothesis, successorViolation);
       }
       return false;
     } finally {
@@ -460,17 +438,15 @@ class KInductionProver implements AutoCloseable {
    *       successor, so its closure would be vacuous.
    * </ul>
    *
-   * Prover stack on entry: {successorExists, predecessor, successorViolation}. This method
-   * temporarily pops and re-pushes successorViolation so the caller's stack accounting remains
-   * correct.
+   * Prover stack on entry: {successorExists, predecessor, loopHeadInv, successorViolation}. This
+   * method temporarily pops and re-pushes successorViolation so the caller's stack accounting
+   * remains correct.
    */
   private Optional<CandidateInvariant> buildValidatedNonTerminationRefinement(
       CandidateInvariant pOriginal,
       List<ValueAssignment> pModel,
       Set<AbstractState> pInductionHypothesis,
-      BooleanFormula pSuccessorViolation,
-      int pSuccessorK,
-      Set<CFANode> pRelevantLoopHeads)
+      BooleanFormula pSuccessorViolation)
       throws CPATransferException, InterruptedException, SolverException {
     Map<CFANode, List<BooleanFormula>> equalitiesByLoopHead =
         extractBestRefinementEqualitiesByLoopHead(pOriginal, pModel, pInductionHypothesis);
@@ -520,7 +496,7 @@ class KInductionProver implements AutoCloseable {
       // Fix 1: ensure the refined candidate's violation formula is not vacuously false.
       CandidateInvariant refined = tentative.orElseThrow();
       Multimap<BooleanFormula, BooleanFormula> refinedViolationAssertions =
-          getNonTerminationClosureViolationAssertions(refined, pSuccessorK, pRelevantLoopHeads);
+          getNonTerminationClosureViolationAssertions(refined, pInductionHypothesis);
       if (refinedViolationAssertions.isEmpty()) {
         logger.log(
             Level.FINER,
@@ -1219,75 +1195,16 @@ class KInductionProver implements AutoCloseable {
     return stateViolationAssertionsBuilder.build();
   }
 
-  /**
-   * Build a disjunction of (path-formula AND full-candidate-assertion-on-path) over loop-head
-   * states at iteration {@code pK}. SAT means there exists a real successor at the next loop-head
-   * visit that still satisfies the full candidate, ruling out vacuous closure proofs where the
-   * candidate cannot actually be maintained one more step.
-   */
-  private BooleanFormula buildSuccessorInCandidate(
-      CandidateInvariant pCandidate, int pK, Set<CFANode> pRelevantLoopHeads)
-      throws CPATransferException, InterruptedException {
-    ReachedSet reached = reachedSet.getReachedSet();
-    Iterable<AbstractState> loopHeadStatesAtIterK =
-        filterIteration(
-            AbstractStates.filterLocations(reached, pRelevantLoopHeads), pK, pRelevantLoopHeads);
-    BooleanFormula result = bfmgr.makeFalse();
-    for (AbstractState stopState : loopHeadStatesAtIterK) {
-      Optional<BooleanFormula> pathContribution =
-          buildPathContributionForCandidate(stopState, pCandidate);
-      if (pathContribution.isPresent()) {
-        result = bfmgr.or(result, pathContribution.orElseThrow());
-      }
-    }
-    return result;
-  }
-
-  private Optional<BooleanFormula> buildPathContributionForCandidate(
-      AbstractState pStopState, CandidateInvariant pCandidate)
-      throws CPATransferException, InterruptedException {
-    ARGState argStopState = AbstractStates.extractStateByType(pStopState, ARGState.class);
-    if (argStopState == null) {
-      return Optional.empty();
-    }
-    PredicateAbstractState stopPredicateState =
-        AbstractStates.extractStateByType(pStopState, PredicateAbstractState.class);
-    if (stopPredicateState == null) {
-      return Optional.empty();
-    }
-    BooleanFormula stopStateFormula = stopPredicateState.getPathFormula().getFormula();
-    if (bfmgr.isFalse(stopStateFormula)) {
-      return Optional.empty();
-    }
-    BooleanFormula result = stopStateFormula;
-    boolean foundApplicableState = false;
-    for (ARGState pathState : ARGUtils.getOnePathTo(argStopState).asStatesList()) {
-      if (Iterables.isEmpty(pCandidate.filterApplicable(Collections.singleton(pathState)))) {
-        continue;
-      }
-      PredicateAbstractState predicateState =
-          AbstractStates.extractStateByType(pathState, PredicateAbstractState.class);
-      if (predicateState == null
-          || bfmgr.isFalse(predicateState.getPathFormula().getFormula())) {
-        continue;
-      }
-      BooleanFormula stateAssertion =
-          pCandidate.getAssertion(Collections.singleton(pathState), fmgr, pfmgr);
-      result = bfmgr.and(result, stateAssertion);
-      foundApplicableState = true;
-    }
-    return foundApplicableState ? Optional.of(result) : Optional.empty();
-  }
-
   private Multimap<BooleanFormula, BooleanFormula> getNonTerminationClosureViolationAssertions(
-      CandidateInvariant pCandidateInvariant, int pK, Set<CFANode> pRelevantLoopHeads)
+      CandidateInvariant pCandidateInvariant, Set<AbstractState> pHypothesis)
       throws CPATransferException, InterruptedException {
     ReachedSet reached = reachedSet.getReachedSet();
 
     ImmutableListMultimap.Builder<BooleanFormula, BooleanFormula> stateViolationAssertionsBuilder =
         ImmutableListMultimap.builder();
     Iterable<AbstractState> assertionStates =
-        filterIteration(pCandidateInvariant.filterApplicable(reached), pK, pRelevantLoopHeads);
+        from(pCandidateInvariant.filterApplicable(reached))
+            .filter(state -> !pHypothesis.contains(state));
 
     for (AbstractState state : assertionStates) {
       Set<AbstractState> stateAsSet = Collections.singleton(state);
