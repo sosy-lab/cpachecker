@@ -705,7 +705,7 @@ abstract class AbstractBMCAlgorithm
         if (useSymbolicNonTerminationStepCase) {
           boolean closureProven =
               kInductionProver.checkSymbolicNonTerminationClosure(
-                  candidate, k, getNonTerminationLoopScope(candidate));
+                  candidate, getNonTerminationLoopScope(candidate));
           if (closureProven) {
             nonTerminationConfirmed = true;
             reportConfirmedNonTermination(reachedSet, candidate);
