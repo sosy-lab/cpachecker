@@ -349,15 +349,18 @@ public class SeqMemoryLocationFinder {
       }
     }
 
-    // ignore function call right-hand side e.g. malloc always returns (void*)0 which may not match
+    // ignore function call right-hand side e.g. malloc always returns (void*) which may not match
     if (pTargetMemoryLocation.functionCallExpression().isEmpty()) {
-      CType typeA = pPointerDereference.getUnwrappedType();
-      CType typeB = pTargetMemoryLocation.getUnwrappedType();
-      checkArgument(
-          typeA.equals(typeB) || typeA.canBeAssignedFrom(typeB),
-          "CTypes are not equivalent or assignable: %s, %s",
-          typeA,
-          typeB);
+      // exclude start routine target memory locations, since they are always (void*)
+      if (!pTargetMemoryLocation.callContext().isStartRoutineCallContext()) {
+        CType typeA = pPointerDereference.getUnwrappedType();
+        CType typeB = pTargetMemoryLocation.getUnwrappedType();
+        checkArgument(
+            typeA.equals(typeB) || typeA.canBeAssignedFrom(typeB),
+            "CTypes are not equivalent or assignable: %s, %s",
+            typeA,
+            typeB);
+      }
     }
   }
 }

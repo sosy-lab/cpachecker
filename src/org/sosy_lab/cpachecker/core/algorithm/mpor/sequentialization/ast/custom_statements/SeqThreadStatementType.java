@@ -38,6 +38,7 @@ public enum SeqThreadStatementType {
   CPACHECKER_TMP_WITHOUT_INITIALIZER(true, false, false),
   /** A default statement requires no specific handling of the underlying {@link CFAEdge}. */
   DEFAULT(true, false, false),
+  FUNCTION_EXIT(true, false, false),
   /** A statement that contains only ghost code without any statement from the input program. */
   GHOST_ONLY(true, false, false),
   /**
@@ -50,7 +51,6 @@ public enum SeqThreadStatementType {
   MUTEX_LOCK(true, true, false),
   MUTEX_UNLOCK(true, false, false),
   PARAMETER_ASSIGNMENT(true, false, false),
-  RETURN_VALUE_ASSIGNMENT(true, false, false),
   RW_LOCK_RD_LOCK(true, true, true),
   RW_LOCK_UNLOCK(true, false, true),
   RW_LOCK_WR_LOCK(true, true, false),

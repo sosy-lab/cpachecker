@@ -88,7 +88,7 @@ public class SequentializationFields {
     substituteEdges = SubstituteEdgeBuilder.substituteEdges(pOptions, substitutions, pInputCfa);
 
     SeqFunctionStatementBuilder functionStatementBuilder =
-        new SeqFunctionStatementBuilder(threads, substitutions, substituteEdges);
+        new SeqFunctionStatementBuilder(threads, substitutions, substituteEdges, pUtils.logger());
     functionStatements = functionStatementBuilder.buildFunctionStatements();
 
     machineModel = pInputCfa.getMachineModel();
@@ -121,6 +121,7 @@ public class SequentializationFields {
             machineModel,
             pointerAliasingMap,
             ghostElements,
+            pInputCfa.getAstCfaRelation(),
             pUtils);
     clauses = clauseBuilder.buildClauses();
 
