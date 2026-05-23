@@ -466,13 +466,6 @@ class KInductionProver implements AutoCloseable {
     stats.inductionPreparation.start();
     BooleanFormula totalBad;
     try {
-      // DIAG: announce entry so each invocation is visible in the log.
-      logger.logf(
-          Level.INFO,
-          "Symbolic non-termination closure: entering for candidate %s (scope present: %s)",
-          pCandidateInvariant,
-          pLoopScope.isPresent());
-
       Loop loop = findLoopForSymbolicCheck(pCandidateInvariant, pLoopScope);
       if (loop == null) {
         // DIAG: bail #1 — loop matching failure.
@@ -525,55 +518,15 @@ class KInductionProver implements AutoCloseable {
 
       Set<CFANode> targets = new HashSet<>(componentsByLocation.keySet());
 
-      // DIAG: report what we extracted from the candidate, so we can correlate the per-source
-      // skip messages (which print "source=Nxx") with the candidate's actual location set.
-      logger.logf(
-          Level.INFO,
-          "Symbolic: loop heads=%s, loop nodes=%d, exit successors=%d; sources=%s; targets=%s.",
-          loop.getLoopHeads(),
-          loop.getLoopNodes().size(),
-          exitSuccessors.size(),
-          sources,
-          targets);
-
       // Make sure KInductionProver's *internal* reached set has been unrolled at least one
       // iteration. Without this, the very first symbolic call (before OLD has run any
       // setDesiredK / ensureK) sees an empty reached set, AbstractStates.filterLocations
       // finds nothing at the candidate source, every per-source skip fires "no reached
       // state", allBads stays empty, and the check bails (#5) — degenerating step case
       // back to OLD's BMC-bounded closure judgment in the fallback.
-      int previousDesiredK = reachedSet.getDesiredK();
-      int previousMaxK = reachedSet.getCurrentMaxK();
-      reachedSet.setDesiredK(Math.max(2, previousDesiredK));
+      reachedSet.setDesiredK(Math.max(2, reachedSet.getDesiredK()));
       reachedSet.ensureK();
       ReachedSet reached = reachedSet.getReachedSet();
-      logger.logf(
-          Level.INFO,
-          "Symbolic: ensureK done. reached size=%d, currentMaxK %d -> %d, desiredK %d -> %d.",
-          reached.size(),
-          previousMaxK,
-          reachedSet.getCurrentMaxK(),
-          previousDesiredK,
-          reachedSet.getDesiredK());
-
-      // DIAG: for each (source, target) we care about, how many states does the reached set
-      // actually carry at that location? If this is 0 for the source, the per-source skip
-      // "no reached state" message we get below is expected (and means the unrolling did
-      // not visit that node yet — typically a deeper-than-pK location, or a node that has
-      // been pruned by the analysis).
-      for (CFANode loc : sources) {
-        int count = AbstractStates.filterLocations(reached, ImmutableSet.of(loc)).size();
-        logger.logf(
-            Level.INFO, "Symbolic: reached states at source %s: %d.", loc, count);
-      }
-      for (CFANode loc : targets) {
-        if (sources.contains(loc)) {
-          continue;
-        }
-        int count = AbstractStates.filterLocations(reached, ImmutableSet.of(loc)).size();
-        logger.logf(
-            Level.INFO, "Symbolic: reached states at target %s: %d.", loc, count);
-      }
 
       List<BooleanFormula> allBads = new ArrayList<>();
 
@@ -638,7 +591,6 @@ class KInductionProver implements AutoCloseable {
         BooleanFormula cAtPre =
             instantiateComponentsAt(componentsByLocation.get(source), pfPre);
 
-        int targetsHitForThisSource = 0;
         for (Map.Entry<CFANode, PathFormula> arrival : arrivals.entrySet()) {
           CFANode target = arrival.getKey();
           if (!targets.contains(target)) {
@@ -650,15 +602,7 @@ class KInductionProver implements AutoCloseable {
           BooleanFormula bad =
               bfmgr.and(pfAtTarget.getFormula(), cAtPre, bfmgr.not(cAtTarget));
           allBads.add(bad);
-          targetsHitForThisSource++;
         }
-        // DIAG: how many target-arrivals from this source actually contributed to allBads.
-        logger.logf(
-            Level.INFO,
-            "Symbolic per-source done: source=%s, arrivals.size=%d, targets-in-candidate=%d.",
-            source,
-            arrivals.size(),
-            targetsHitForThisSource);
       }
 
       if (allBads.isEmpty()) {
@@ -674,12 +618,6 @@ class KInductionProver implements AutoCloseable {
             sourcesSkippedEmptyArrivals);
         return Optional.empty();
       }
-      // DIAG: ready to run the SMT check.
-      logger.logf(
-          Level.INFO,
-          "Symbolic ready: built %d bad transitions across %d processed source(s).",
-          allBads.size(),
-          sourcesProcessed);
       totalBad = bfmgr.or(allBads);
     } finally {
       stats.inductionPreparation.stop();
@@ -805,14 +743,6 @@ class KInductionProver implements AutoCloseable {
           pExitSuccessors.size());
       return new HashMap<>();
     }
-    // DIAG: how many distinct paths the enumeration found.
-    logger.logf(
-        Level.INFO,
-        "Symbolic propagation result: source=%s found %d path(s) to %d distinct target(s).",
-        pSource,
-        paths.size(),
-        paths.stream().map(p -> p.get(p.size() - 1).getSuccessor()).distinct().count());
-
     // For each path: chain makeAnd from pPfPre. Group by target. Disjoint paths to same target
     // are merged with one makeOr at the end. This avoids the quadratic / exponential formula
     // blow-up that a worklist with mid-walk makeOr-and-re-enqueue would cause at join nodes.
@@ -887,11 +817,6 @@ class KInductionProver implements AutoCloseable {
         pResult.add(new ArrayList<>(pCurrentPath));
         pCurrentPath.remove(pCurrentPath.size() - 1);
         if (pResult.size() >= MAX_SYMBOLIC_PATHS) {
-          // DIAG: budget hit after recording this path.
-          logger.logf(
-              Level.INFO,
-              "enumerateSymbolicPaths: path-count budget reached after recording path to %s.",
-              succ);
           return false;
         }
         continue;
