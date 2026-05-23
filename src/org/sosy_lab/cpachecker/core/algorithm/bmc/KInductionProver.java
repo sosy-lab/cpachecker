@@ -632,15 +632,11 @@ class KInductionProver implements AutoCloseable {
       Set<CFANode> pExitSuccessors)
       throws CPATransferException, InterruptedException {
 
-    // Heuristic bail-outs for Phase 1: refuse on nested loops and function calls in body.
-    for (CFANode node : pLoop.getLoopNodes()) {
-      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-        if (node.getLeavingEdge(i).getEdgeType()
-            == org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.FunctionCallEdge) {
-          return null;
-        }
-      }
-    }
+    // Bail out on nested loops only. Function calls in the loop body are handled by the
+    // edge-filtering inside enumerateSymbolicPaths: the FunctionCallEdge's successor lies in
+    // the callee, not in pLoop.getLoopNodes(), so it is naturally skipped; control stays in the
+    // caller via the corresponding FunctionSummaryEdge, which the path enumeration follows via
+    // pfmgr.makeAnd and which encodes the call's effect into the path formula.
     for (Loop other : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
       if (other.equals(pLoop)) {
         continue;
