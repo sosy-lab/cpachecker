@@ -466,11 +466,20 @@ class KInductionProver implements AutoCloseable {
     stats.inductionPreparation.start();
     BooleanFormula totalBad;
     try {
+      // DIAG: announce entry so each invocation is visible in the log.
+      logger.logf(
+          Level.INFO,
+          "Symbolic non-termination closure: entering for candidate %s (scope present: %s)",
+          pCandidateInvariant,
+          pLoopScope.isPresent());
+
       Loop loop = findLoopForSymbolicCheck(pCandidateInvariant, pLoopScope);
       if (loop == null) {
-        logger.log(
-            Level.FINER,
-            "Symbolic non-termination closure: could not determine target loop; bailing.");
+        // DIAG: bail #1 — loop matching failure.
+        logger.logf(
+            Level.INFO,
+            "Symbolic bail #1 (findLoop): could not determine target loop for candidate %s.",
+            pCandidateInvariant);
         return Optional.empty();
       }
 
@@ -478,11 +487,12 @@ class KInductionProver implements AutoCloseable {
       for (CandidateInvariant component :
           CandidateInvariantCombination.getConjunctiveParts(pCandidateInvariant)) {
         if (!(component instanceof SingleLocationFormulaInvariant slfi)) {
-          logger.log(
-              Level.FINER,
-              "Symbolic non-termination closure: unsupported candidate component type "
-                  + component.getClass().getSimpleName()
-                  + "; bailing.");
+          // DIAG: bail #2 — candidate carries a non-SLFI component.
+          logger.logf(
+              Level.INFO,
+              "Symbolic bail #2 (unsupported component): component type %s in candidate %s.",
+              component.getClass().getSimpleName(),
+              pCandidateInvariant);
           return Optional.empty();
         }
         componentsByLocation
@@ -504,9 +514,12 @@ class KInductionProver implements AutoCloseable {
         }
       }
       if (sources.isEmpty()) {
-        logger.log(
-            Level.FINER,
-            "Symbolic non-termination closure: no source nodes in candidate; bailing.");
+        // DIAG: bail #3 — every candidate component is successor-only (e.g. only false@exit).
+        logger.logf(
+            Level.INFO,
+            "Symbolic bail #3 (no sources): every component is successor-only;"
+                + " componentsByLocation=%s.",
+            componentsByLocation.keySet());
         return Optional.empty();
       }
 
@@ -514,17 +527,35 @@ class KInductionProver implements AutoCloseable {
       ReachedSet reached = reachedSet.getReachedSet();
       List<BooleanFormula> allBads = new ArrayList<>();
 
+      // DIAG: per-source statistics so we can tell which sources actually contributed.
+      int sourcesProcessed = 0;
+      int sourcesSkippedNoState = 0;
+      int sourcesSkippedNoPas = 0;
+      int sourcesSkippedEmptyArrivals = 0;
+
       for (CFANode source : sources) {
         shutdownNotifier.shutdownIfNecessary();
         Optional<AbstractState> anySourceState =
             AbstractStates.filterLocations(reached, ImmutableSet.of(source)).stream().findFirst();
         if (anySourceState.isEmpty()) {
+          sourcesSkippedNoState++;
+          // DIAG: per-source skip — no reached state at this source location.
+          logger.logf(
+              Level.INFO,
+              "Symbolic per-source skip (no reached state): source=%s.",
+              source);
           continue;
         }
         PredicateAbstractState pas =
             AbstractStates.extractStateByType(
                 anySourceState.orElseThrow(), PredicateAbstractState.class);
         if (pas == null) {
+          sourcesSkippedNoPas++;
+          // DIAG: per-source skip — reached state has no PredicateAbstractState.
+          logger.logf(
+              Level.INFO,
+              "Symbolic per-source skip (no PredicateAbstractState): source=%s.",
+              source);
           continue;
         }
         PathFormula pfPre = pfmgr.makeEmptyPathFormulaWithContextFrom(pas.getPathFormula());
@@ -532,17 +563,32 @@ class KInductionProver implements AutoCloseable {
         Map<CFANode, PathFormula> arrivals =
             propagateOneIterationSymbolically(loop, source, pfPre, targets, exitSuccessors);
         if (arrivals == null) {
-          logger.log(
-              Level.FINER,
-              "Symbolic non-termination closure: propagation exceeded budget at source "
-                  + source
-                  + "; bailing.");
+          // DIAG: bail #4 — propagation gave up (nested loop / path budget / etc.). The
+          // propagation function logs the specific reason at INFO before returning null.
+          logger.logf(
+              Level.INFO,
+              "Symbolic bail #4 (propagation null): source=%s, targets=%s.",
+              source,
+              targets);
           return Optional.empty();
         }
+        if (arrivals.isEmpty()) {
+          sourcesSkippedEmptyArrivals++;
+          // DIAG: per-source skip — no path from this source reached any target.
+          logger.logf(
+              Level.INFO,
+              "Symbolic per-source skip (empty arrivals: no path reached any target):"
+                  + " source=%s, targets=%s.",
+              source,
+              targets);
+          continue;
+        }
+        sourcesProcessed++;
 
         BooleanFormula cAtPre =
             instantiateComponentsAt(componentsByLocation.get(source), pfPre);
 
+        int targetsHitForThisSource = 0;
         for (Map.Entry<CFANode, PathFormula> arrival : arrivals.entrySet()) {
           CFANode target = arrival.getKey();
           if (!targets.contains(target)) {
@@ -554,15 +600,36 @@ class KInductionProver implements AutoCloseable {
           BooleanFormula bad =
               bfmgr.and(pfAtTarget.getFormula(), cAtPre, bfmgr.not(cAtTarget));
           allBads.add(bad);
+          targetsHitForThisSource++;
         }
+        // DIAG: how many target-arrivals from this source actually contributed to allBads.
+        logger.logf(
+            Level.INFO,
+            "Symbolic per-source done: source=%s, arrivals.size=%d, targets-in-candidate=%d.",
+            source,
+            arrivals.size(),
+            targetsHitForThisSource);
       }
 
       if (allBads.isEmpty()) {
-        logger.log(
-            Level.FINER,
-            "Symbolic non-termination closure: no bad transitions to check; bailing.");
+        // DIAG: bail #5 — nothing to check. Break down where the sources went.
+        logger.logf(
+            Level.INFO,
+            "Symbolic bail #5 (allBads empty): sources=%d, processed=%d,"
+                + " skipped(no state)=%d, skipped(no PAS)=%d, skipped(empty arrivals)=%d.",
+            sources.size(),
+            sourcesProcessed,
+            sourcesSkippedNoState,
+            sourcesSkippedNoPas,
+            sourcesSkippedEmptyArrivals);
         return Optional.empty();
       }
+      // DIAG: ready to run the SMT check.
+      logger.logf(
+          Level.INFO,
+          "Symbolic ready: built %d bad transitions across %d processed source(s).",
+          allBads.size(),
+          sourcesProcessed);
       totalBad = bfmgr.or(allBads);
     } finally {
       stats.inductionPreparation.stop();
@@ -643,6 +710,12 @@ class KInductionProver implements AutoCloseable {
       }
       if (pLoop.getLoopNodes().containsAll(other.getLoopNodes())
           && !other.getLoopNodes().containsAll(pLoop.getLoopNodes())) {
+        // DIAG: propagation gives up because pLoop strictly contains another loop.
+        logger.logf(
+            Level.INFO,
+            "Symbolic propagation bail (nested loop): outer=%s contains inner=%s.",
+            pLoop.getLoopHeads(),
+            other.getLoopHeads());
         return null;
       }
     }
@@ -656,11 +729,39 @@ class KInductionProver implements AutoCloseable {
     visitedInPath.push(pSource);
     if (!enumerateSymbolicPaths(
         pSource, new ArrayList<>(), visitedInPath, pTargets, pLoop, pExitSuccessors, paths)) {
+      // DIAG: enumerateSymbolicPaths returned false (hit a path-count or path-length budget).
+      // The enumerator itself logs which budget was hit; here we record the aggregate stats.
+      logger.logf(
+          Level.INFO,
+          "Symbolic propagation bail (path budget): source=%s, partial paths collected=%d"
+              + " (MAX_SYMBOLIC_PATHS=%d, MAX_SYMBOLIC_PATH_LENGTH=%d).",
+          pSource,
+          paths.size(),
+          MAX_SYMBOLIC_PATHS,
+          MAX_SYMBOLIC_PATH_LENGTH);
       return null;
     }
     if (paths.isEmpty()) {
+      // DIAG: enumeration completed but found no source→target path at all. This is the most
+      // likely cause of "allBads empty" downstream: every outgoing edge from the source either
+      // leaves the loop scope without hitting a target, or runs into a structural dead end.
+      logger.logf(
+          Level.INFO,
+          "Symbolic propagation result (no paths found): source=%s, targets=%s,"
+              + " loopNodes=%d, exitSuccessors=%d. Inspect CFA edges leaving source.",
+          pSource,
+          pTargets,
+          pLoop.getLoopNodes().size(),
+          pExitSuccessors.size());
       return new HashMap<>();
     }
+    // DIAG: how many distinct paths the enumeration found.
+    logger.logf(
+        Level.INFO,
+        "Symbolic propagation result: source=%s found %d path(s) to %d distinct target(s).",
+        pSource,
+        paths.size(),
+        paths.stream().map(p -> p.get(p.size() - 1).getSuccessor()).distinct().count());
 
     // For each path: chain makeAnd from pPfPre. Group by target. Disjoint paths to same target
     // are merged with one makeOr at the end. This avoids the quadratic / exponential formula
@@ -699,24 +800,48 @@ class KInductionProver implements AutoCloseable {
       List<List<CFAEdge>> pResult)
       throws InterruptedException {
     if (pResult.size() >= MAX_SYMBOLIC_PATHS) {
+      // DIAG: path-count budget exhausted.
+      logger.logf(
+          Level.INFO,
+          "enumerateSymbolicPaths: path-count budget exhausted at node %s"
+              + " (collected=%d == MAX_SYMBOLIC_PATHS=%d).",
+          pCurrent,
+          pResult.size(),
+          MAX_SYMBOLIC_PATHS);
       return false;
     }
     if (pCurrentPath.size() >= MAX_SYMBOLIC_PATH_LENGTH) {
+      // DIAG: path-length budget exhausted on a single path.
+      logger.logf(
+          Level.INFO,
+          "enumerateSymbolicPaths: path-length budget exhausted at node %s"
+              + " (currentPath.size=%d == MAX_SYMBOLIC_PATH_LENGTH=%d).",
+          pCurrent,
+          pCurrentPath.size(),
+          MAX_SYMBOLIC_PATH_LENGTH);
       return false;
     }
     shutdownNotifier.shutdownIfNecessary();
-    for (int i = 0; i < pCurrent.getNumLeavingEdges(); i++) {
+    int outgoing = pCurrent.getNumLeavingEdges();
+    int outgoingWalkable = 0;
+    for (int i = 0; i < outgoing; i++) {
       CFAEdge edge = pCurrent.getLeavingEdge(i);
       CFANode succ = edge.getSuccessor();
       if (!pLoop.getLoopNodes().contains(succ) && !pExitSuccessors.contains(succ)) {
         continue;
       }
+      outgoingWalkable++;
       pCurrentPath.add(edge);
       if (pTargets.contains(succ)) {
         // Reached a target — record the complete path and do not propagate further.
         pResult.add(new ArrayList<>(pCurrentPath));
         pCurrentPath.remove(pCurrentPath.size() - 1);
         if (pResult.size() >= MAX_SYMBOLIC_PATHS) {
+          // DIAG: budget hit after recording this path.
+          logger.logf(
+              Level.INFO,
+              "enumerateSymbolicPaths: path-count budget reached after recording path to %s.",
+              succ);
           return false;
         }
         continue;
@@ -735,6 +860,17 @@ class KInductionProver implements AutoCloseable {
       if (!ok) {
         return false;
       }
+    }
+    // DIAG: at a node that has outgoing edges but none of them lead anywhere walkable. This is
+    // a common source of "no paths found" downstream. Only log when it's actually a dead end
+    // (no walkable successors), to avoid flooding the log with every visited interior node.
+    if (outgoing > 0 && outgoingWalkable == 0 && pCurrentPath.isEmpty()) {
+      logger.logf(
+          Level.INFO,
+          "enumerateSymbolicPaths: source %s has %d outgoing edge(s) but none lead into the"
+              + " loop scope or to an exit successor; no path can be started.",
+          pCurrent,
+          outgoing);
     }
     return true;
   }
