@@ -524,7 +524,57 @@ class KInductionProver implements AutoCloseable {
       }
 
       Set<CFANode> targets = new HashSet<>(componentsByLocation.keySet());
+
+      // DIAG: report what we extracted from the candidate, so we can correlate the per-source
+      // skip messages (which print "source=Nxx") with the candidate's actual location set.
+      logger.logf(
+          Level.INFO,
+          "Symbolic: loop heads=%s, loop nodes=%d, exit successors=%d; sources=%s; targets=%s.",
+          loop.getLoopHeads(),
+          loop.getLoopNodes().size(),
+          exitSuccessors.size(),
+          sources,
+          targets);
+
+      // Make sure KInductionProver's *internal* reached set has been unrolled at least one
+      // iteration. Without this, the very first symbolic call (before OLD has run any
+      // setDesiredK / ensureK) sees an empty reached set, AbstractStates.filterLocations
+      // finds nothing at the candidate source, every per-source skip fires "no reached
+      // state", allBads stays empty, and the check bails (#5) — degenerating step case
+      // back to OLD's BMC-bounded closure judgment in the fallback.
+      int previousDesiredK = reachedSet.getDesiredK();
+      int previousMaxK = reachedSet.getCurrentMaxK();
+      reachedSet.setDesiredK(Math.max(2, previousDesiredK));
+      reachedSet.ensureK();
       ReachedSet reached = reachedSet.getReachedSet();
+      logger.logf(
+          Level.INFO,
+          "Symbolic: ensureK done. reached size=%d, currentMaxK %d -> %d, desiredK %d -> %d.",
+          reached.size(),
+          previousMaxK,
+          reachedSet.getCurrentMaxK(),
+          previousDesiredK,
+          reachedSet.getDesiredK());
+
+      // DIAG: for each (source, target) we care about, how many states does the reached set
+      // actually carry at that location? If this is 0 for the source, the per-source skip
+      // "no reached state" message we get below is expected (and means the unrolling did
+      // not visit that node yet — typically a deeper-than-pK location, or a node that has
+      // been pruned by the analysis).
+      for (CFANode loc : sources) {
+        int count = AbstractStates.filterLocations(reached, ImmutableSet.of(loc)).size();
+        logger.logf(
+            Level.INFO, "Symbolic: reached states at source %s: %d.", loc, count);
+      }
+      for (CFANode loc : targets) {
+        if (sources.contains(loc)) {
+          continue;
+        }
+        int count = AbstractStates.filterLocations(reached, ImmutableSet.of(loc)).size();
+        logger.logf(
+            Level.INFO, "Symbolic: reached states at target %s: %d.", loc, count);
+      }
+
       List<BooleanFormula> allBads = new ArrayList<>();
 
       // DIAG: per-source statistics so we can tell which sources actually contributed.
