@@ -438,21 +438,28 @@ class KInductionProver implements AutoCloseable {
    *   C(s) ∧ T(s, s') ∧ ¬C(s')
    * }</pre>
    *
-   * is satisfiable for any (source, target) pair. UNSAT proves {@code ∀ s ∈ C. ∀ s'. T(s,s') ⇒
-   * C(s')}, i.e., real one-step closure. SAT means the candidate is not 1-step inductive — the
-   * algorithm must not declare non-termination, but the model can be used to refine the
-   * candidate.
+   * is satisfiable for any (source, target) pair.
+   *
+   * <p>The return value is tri-state to let the caller distinguish "the check actually decided"
+   * from "the check could not even run":
+   *
+   * <ul>
+   *   <li>{@code Optional.of(true)} — UNSAT, real one-step closure proven ({@code ∀ s ∈ C. ∀ s'.
+   *       T(s,s') ⇒ C(s')}).
+   *   <li>{@code Optional.of(false)} — SAT, the candidate is not 1-step inductive and a concrete
+   *       symbolic counterexample exists. The algorithm must not declare non-termination based on
+   *       any heuristic (e.g., BMC-bounded closure check) that contradicts this.
+   *   <li>{@code Optional.empty()} — the check bailed out before producing a verdict (nested
+   *       loops, function calls inside the body, exhausted path-enumeration budget, etc.). The
+   *       caller is free to fall back to a less-precise verdict source.
+   * </ul>
    *
    * <p>This check is independent of the BMC unrolling depth k: the closure property holds (or
    * not) universally over the symbolic state space and does not need to "match" the base-case
-   * depth.
-   *
-   * <p>Limitations: single non-nested loop only; bails out conservatively (returns false) for
-   * nested loops, function calls inside the body, or path enumeration that exceeds its budget.
-   * The auxiliary loop-head invariant from the parallel invariant generator is deliberately NOT
-   * asserted here, to keep the check independent of side-channels.
+   * depth. The auxiliary loop-head invariant from the parallel invariant generator is
+   * deliberately NOT asserted here, to keep the check independent of side-channels.
    */
-  public final boolean checkSymbolicNonTerminationClosure(
+  public final Optional<Boolean> checkSymbolicNonTerminationClosure(
       CandidateInvariant pCandidateInvariant, Optional<NonTerminationLoopScope> pLoopScope)
       throws CPATransferException, InterruptedException, SolverException {
 
@@ -463,8 +470,8 @@ class KInductionProver implements AutoCloseable {
       if (loop == null) {
         logger.log(
             Level.FINER,
-            "Symbolic non-termination closure: could not determine target loop; refusing.");
-        return false;
+            "Symbolic non-termination closure: could not determine target loop; bailing.");
+        return Optional.empty();
       }
 
       Map<CFANode, List<CandidateInvariant>> componentsByLocation = new LinkedHashMap<>();
@@ -475,8 +482,8 @@ class KInductionProver implements AutoCloseable {
               Level.FINER,
               "Symbolic non-termination closure: unsupported candidate component type "
                   + component.getClass().getSimpleName()
-                  + "; refusing.");
-          return false;
+                  + "; bailing.");
+          return Optional.empty();
         }
         componentsByLocation
             .computeIfAbsent(slfi.getLocation(), k -> new ArrayList<>())
@@ -499,8 +506,8 @@ class KInductionProver implements AutoCloseable {
       if (sources.isEmpty()) {
         logger.log(
             Level.FINER,
-            "Symbolic non-termination closure: no source nodes in candidate; refusing.");
-        return false;
+            "Symbolic non-termination closure: no source nodes in candidate; bailing.");
+        return Optional.empty();
       }
 
       Set<CFANode> targets = new HashSet<>(componentsByLocation.keySet());
@@ -529,8 +536,8 @@ class KInductionProver implements AutoCloseable {
               Level.FINER,
               "Symbolic non-termination closure: propagation exceeded budget at source "
                   + source
-                  + "; refusing.");
-          return false;
+                  + "; bailing.");
+          return Optional.empty();
         }
 
         BooleanFormula cAtPre =
@@ -553,9 +560,8 @@ class KInductionProver implements AutoCloseable {
       if (allBads.isEmpty()) {
         logger.log(
             Level.FINER,
-            "Symbolic non-termination closure: no bad transitions to check; refusing vacuous"
-                + " proof.");
-        return false;
+            "Symbolic non-termination closure: no bad transitions to check; bailing.");
+        return Optional.empty();
       }
       totalBad = bfmgr.or(allBads);
     } finally {
@@ -572,7 +578,7 @@ class KInductionProver implements AutoCloseable {
           unsat
               ? "Symbolic non-termination closure check: UNSAT (closure proven)."
               : "Symbolic non-termination closure check: SAT (closure refuted).");
-      return unsat;
+      return Optional.of(unsat);
     } finally {
       prover.pop();
       stats.inductionCheck.stop();

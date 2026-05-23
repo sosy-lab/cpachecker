@@ -703,19 +703,55 @@ abstract class AbstractBMCAlgorithm
                 && canUseNonTerminationStepCaseRefinement(candidate);
 
         if (useSymbolicNonTerminationStepCase) {
-          boolean closureProven =
+          Optional<Boolean> symbolicVerdict =
               kInductionProver.checkSymbolicNonTerminationClosure(
                   candidate, getNonTerminationLoopScope(candidate));
-          if (closureProven) {
+
+          if (symbolicVerdict.isPresent() && symbolicVerdict.orElseThrow()) {
+            // Symbolic UNSAT: real universal-closure proven.
             nonTerminationConfirmed = true;
             reportConfirmedNonTermination(reachedSet, candidate);
             return false;
           }
-          // Symbolic step case says no closure (authoritative for soundness). To make progress
-          // we still want a refinement candidate, so we run the BMC-style closure check ONLY
-          // for its refinement side-effect. We deliberately ignore its boolean return value:
-          // the BMC check can return UNSAT spuriously on non-inductive candidates with shallow
-          // unrolling (the very gap the symbolic check exists to close).
+
+          if (symbolicVerdict.isEmpty()) {
+            // Symbolic bailed out (function calls in body, nested loops, path budget,
+            // unsupported candidate component, ...). The symbolic check could not decide,
+            // so we fall back to the BMC-bounded closure check and trust its verdict.
+            if (kInductionProver.checkNonTerminationClosure(
+                candidate,
+                k,
+                checkedKeys,
+                getNonTerminationLoopScope(candidate),
+                buildRefinement)) {
+              nonTerminationConfirmed = true;
+              reportConfirmedNonTermination(reachedSet, candidate);
+              return false;
+            }
+            if (buildRefinement) {
+              Optional<CandidateInvariant> refinement =
+                  kInductionProver.getLastNonTerminationRefinement();
+              if (refinement.isPresent()) {
+                CandidateInvariant refinedCandidate = refinement.orElseThrow();
+                if (shouldSuggestNonTerminationRefinement(candidate, refinedCandidate, k)
+                    && candidateGenerator.suggestCandidates(
+                        Collections.singleton(refinedCandidate))) {
+                  registerNonTerminationRefinement(candidate, refinedCandidate);
+                  logger.log(
+                      Level.INFO,
+                      "Non-termination mode (symbolic bailed): BMC step case refined"
+                          + " candidate for next iteration.");
+                }
+              }
+            }
+            sound = false;
+            continue;
+          }
+
+          // Symbolic SAT: candidate is not 1-step inductive; the symbolic check has a real
+          // counterexample. Do not trust the BMC closure check's verdict here (it can be
+          // spuriously UNSAT on non-inductive candidates with shallow unrolling), but still
+          // run it to harvest a refinement candidate from its model.
           if (buildRefinement) {
             kInductionProver.checkNonTerminationClosure(
                 candidate, k, checkedKeys, getNonTerminationLoopScope(candidate), true);
