@@ -461,7 +461,7 @@ class KInductionProver implements AutoCloseable {
    */
   public final Optional<Boolean> checkSymbolicNonTerminationClosure(
       CandidateInvariant pCandidateInvariant, Optional<NonTerminationLoopScope> pLoopScope)
-      throws CPATransferException, InterruptedException, SolverException {
+      throws CPAException, InterruptedException, SolverException {
 
     stats.inductionPreparation.start();
     BooleanFormula totalBad;
