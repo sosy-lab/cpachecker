@@ -22,7 +22,7 @@ public class CFAProgramTransformer {
 
   public static MutableCFA applyTransformations(MutableCFA pCFA) {
     //boolean finished = false;
-    ImmutableList<ProgramTransformationEnum> selectedProgramTransformations = (new ImmutableList.Builder<ProgramTransformationEnum>().add(ProgramTransformationEnum.TAIL_RECURSION_ELIMINATION)).build();
+    ImmutableList<ProgramTransformationEnum> selectedProgramTransformations = new ImmutableList.Builder<ProgramTransformationEnum>().add(ProgramTransformationEnum.TAIL_RECURSION_ELIMINATION).build();
 
     ImmutableList.Builder<SubCFA> newSubCFAs = new ImmutableList.Builder<>();
 
