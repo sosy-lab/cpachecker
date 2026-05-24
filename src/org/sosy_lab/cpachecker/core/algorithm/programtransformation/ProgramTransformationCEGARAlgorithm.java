@@ -12,6 +12,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.PrintStream;
@@ -164,7 +165,8 @@ public class ProgramTransformationCEGARAlgorithm implements Algorithm, Statistic
       pConfig.inject(this);
       algorithmFactory = pAlgorithmFactory;
       logger = pLogger;
-      nodesToProgramTransformations = pCFA.getMetadata().getNodesToProgramTransformations().orElse(ImmutableMultimap.of());
+      nodesToProgramTransformations = pCFA.getMetadata().getNodesToProgramTransformations().orElse(
+          ImmutableListMultimap.of());
       cpa = pCpa;
       try {
         refiner = ProgramTransformationRefiner.create(pCpa, nodesToProgramTransformations);

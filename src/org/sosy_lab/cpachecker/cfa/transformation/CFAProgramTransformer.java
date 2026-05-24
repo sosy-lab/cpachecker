@@ -34,13 +34,13 @@ public class CFAProgramTransformer {
         if (selectedProgramTransformations.contains(ProgramTransformationEnum.JUMP_THREADING)) {
           Optional<SubCFA> transformationResult = new JumpThreadingProgramTransformation().transform(pCFA, currentNode);
           if (transformationResult.isPresent()) {
-            newSubCFAs.add(transformationResult.get());
+            newSubCFAs.add(transformationResult.orElseThrow());
           }
         }
         if (selectedProgramTransformations.contains(ProgramTransformationEnum.TAIL_RECURSION_ELIMINATION)) {
           Optional<SubCFA> transformationResult = new TailRecursionEliminationProgramTransformation().transform(pCFA, currentNode);
           if (transformationResult.isPresent()) {
-            newSubCFAs.add(transformationResult.get());
+            newSubCFAs.add(transformationResult.orElseThrow());
           }
         }
       }

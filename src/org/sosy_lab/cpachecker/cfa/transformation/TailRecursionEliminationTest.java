@@ -8,26 +8,20 @@
 
 package org.sosy_lab.cpachecker.cfa.transformation;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Optional;
-import java.util.TreeMap;
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.Assert;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
-import org.sosy_lab.cpachecker.cfa.Language;
-import org.sosy_lab.cpachecker.cfa.MutableCFA;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -61,12 +55,12 @@ public class TailRecursionEliminationTest {
   @Test
   public void testSuccessfulTransformation(){
     Optional<SubCFA> successfulTransformation = new TailRecursionEliminationProgramTransformation().transform(tailRecursiveCFA, tailRecursiveCFA.getAllFunctions().get("add"));
-    Assert.assertFalse(successfulTransformation.isEmpty());
+    assertThat(successfulTransformation.isEmpty()).isFalse();
   }
 
   @Test
   public void testUnsuccessfulTransformation(){
     Optional<SubCFA> successfulTransformation = new TailRecursionEliminationProgramTransformation().transform(nonTailRecursiveCFA, nonTailRecursiveCFA.getAllFunctions().get("add"));
-    Assert.assertTrue(successfulTransformation.isEmpty());
+    assertThat(successfulTransformation.isEmpty()).isTrue();
   }
 }

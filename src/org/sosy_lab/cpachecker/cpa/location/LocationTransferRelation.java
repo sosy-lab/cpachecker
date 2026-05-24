@@ -56,7 +56,7 @@ public class LocationTransferRelation implements TransferRelation {
         }
         return Collections.singleton(factory.getState(cfaEdge.getSuccessor()));
       } else {
-        if (successor == currentStrategy.get().subCFAEntryNode()){
+        if (successor == currentStrategy.orElseThrow().subCFAEntryNode()){
           return Collections.singleton(factory.getState(successor));
         }
       }

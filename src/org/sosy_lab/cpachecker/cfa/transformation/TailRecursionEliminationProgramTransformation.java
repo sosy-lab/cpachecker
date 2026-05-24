@@ -61,7 +61,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
     if (transformationDataOptional.isEmpty()){
       return Optional.empty();
     } else {
-      transformationData = transformationDataOptional.get();
+      transformationData = transformationDataOptional.orElseThrow();
     }
 
     // perform transformation
@@ -191,7 +191,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
     if (functionEntryNode.getExitNode().isEmpty()) {
       return Optional.empty();
     }
-    exitNode = functionEntryNode.getExitNode().get(); // TODO maybe change this
+    exitNode = functionEntryNode.getExitNode().orElseThrow(); // TODO maybe change this
     functionName = pNode.getFunctionName();
 
     // check 2: at the start of the function is the exit condition check
@@ -222,7 +222,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
       if (edge instanceof CReturnStatementEdge returnEdge) {
         CReturnStatement returnStatement = returnEdge.getReturnStatement();
         if (returnStatement.getReturnValue().isPresent()) {
-          CExpression returnExpression = returnStatement.getReturnValue().get();
+          CExpression returnExpression = returnStatement.getReturnValue().orElseThrow();
           if (returnExpression instanceof CLeftHandSide returnLeftHandSide) {
             if (returnLeftHandSide instanceof CIdExpression returnIdExpression) {
               FluentIterable<CFAEdge> predecessorEdges = edge.getPredecessor().getEnteringEdges();
@@ -283,7 +283,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
     if (functionEntryNode.getExitNode().isEmpty()) {
       return Optional.empty();
     }
-    exitNode = functionEntryNode.getExitNode().get(); // TODO maybe change this
+    exitNode = functionEntryNode.getExitNode().orElseThrow(); // TODO maybe change this
     functionName = pNode.getFunctionName();
 
     // check 2: at the start of the function is the exit condition check
@@ -314,7 +314,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
       if (edge instanceof CReturnStatementEdge returnEdge) {
         CReturnStatement returnStatement = returnEdge.getReturnStatement();
         if (returnStatement.getReturnValue().isPresent()) {
-          CExpression returnExpression = returnStatement.getReturnValue().get();
+          CExpression returnExpression = returnStatement.getReturnValue().orElseThrow();
           if (returnExpression instanceof CLeftHandSide returnLeftHandSide) {
             if (returnLeftHandSide instanceof CIdExpression returnIdExpression) {
               FluentIterable<CFAEdge> predecessorEdges = edge.getPredecessor().getEnteringEdges();

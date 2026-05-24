@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.transformation;
 
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -54,8 +55,8 @@ public record SubCFA(
     originalCFAExitNode.addEnteringEdge(exitEdge);
     subCFAExitNode.addLeavingEdge(exitEdge);
     // set metadata
-    ImmutableMultimap<CFANode, ProgramTransformationInformation> nodeToProgramTransformation = pCFA.getMetadata().getNodesToProgramTransformations().isEmpty() ? ImmutableMultimap.of() : pCFA.getMetadata().getNodesToProgramTransformations().get();
-    ImmutableMultimap.Builder<CFANode, ProgramTransformationInformation> newMapBuilder = ImmutableMultimap.builder();
+    ImmutableMultimap<CFANode, ProgramTransformationInformation> nodeToProgramTransformation = pCFA.getMetadata().getNodesToProgramTransformations().isEmpty() ? ImmutableListMultimap.of() : pCFA.getMetadata().getNodesToProgramTransformations().orElseThrow();
+    ImmutableListMultimap.Builder<CFANode, ProgramTransformationInformation> newMapBuilder = ImmutableListMultimap.builder();
     newMapBuilder.putAll(nodeToProgramTransformation);
     newMapBuilder.put(originalCFAEntryNode, new ProgramTransformationInformation(this));
     pCFA.setMetadata(pCFA.getMetadata().withNodesToProgramTransformations(newMapBuilder.build()));

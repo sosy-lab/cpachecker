@@ -11,11 +11,9 @@ package org.sosy_lab.cpachecker.cfa.transformation;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -110,7 +108,7 @@ public class ProgramTransformationRefiner implements Refiner {
       LocationPrecision locationPrecision =
           ((WrapperPrecision) pReached.getPrecision(refinementState))
               .retrieveWrappedPrecision(LocationPrecision.class);
-      locationPrecision = (LocationPrecision) locationPrecision.add(new LocationPrecision(ImmutableSet.of(optionalStrategy.get())));
+      locationPrecision = (LocationPrecision) locationPrecision.add(new LocationPrecision(ImmutableSet.of(optionalStrategy.orElseThrow())));
       Precision newPrecision = ((WrapperPrecision) pReached.getPrecision(refinementState)).replaceWrappedPrecision(locationPrecision,
           Predicates.instanceOf(LocationPrecision.class));
       // set new precision
@@ -119,9 +117,7 @@ public class ProgramTransformationRefiner implements Refiner {
 
       // Using reached.removeSubtree does not remove only the children elements, but also the
       // element itself. Which in turn also removes the updated precision
-      List<ARGState> children = Lists.newArrayList(refinementState.getChildren());
-
-      for (ARGState child : children) {
+      for (ARGState child : refinementState.getChildren()) {
         reached.removeSubtree(child);
       }
 
