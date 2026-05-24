@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 /**
  * Representation of the result of a successful program transformation.
  */
-public record SubCFA (
+public record SubCFA(
     CFANode originalCFAEntryNode,
     CFANode originalCFAExitNode,
     CFANode subCFAEntryNode,

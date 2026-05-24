@@ -8,8 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.transformation;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.graph.Traverser;
-import java.util.ArrayList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -22,17 +23,15 @@ public class CFAProgramTransformer {
 
   public static MutableCFA applyTransformations(MutableCFA pCFA) {
     //boolean finished = false;
-    ArrayList<ProgramTransformationEnum> selectedProgramTransformations = new ArrayList<>();
-    selectedProgramTransformations.add(ProgramTransformationEnum.JUMP_THREADING);
-    selectedProgramTransformations.add(ProgramTransformationEnum.TAIL_RECURSION_ELIMINATION);
+    ImmutableList<ProgramTransformationEnum> selectedProgramTransformations = (new ImmutableList.Builder<ProgramTransformationEnum>().add(ProgramTransformationEnum.TAIL_RECURSION_ELIMINATION)).build();
 
-    ArrayList<SubCFA> newSubCFAs = new ArrayList<>();
+    ImmutableList.Builder<SubCFA> newSubCFAs = new Builder<>();
 
     for (FunctionEntryNode functionEntryNode : pCFA.entryNodes()) {
       Traverser<CFANode> cfaNetworkTraverser = Traverser.forGraph(pCFA.asGraph());
       Iterable<CFANode> cfaNodeIterable = cfaNetworkTraverser.breadthFirst(functionEntryNode);
 
-      for(CFANode currentNode : cfaNodeIterable) {
+      for (CFANode currentNode : cfaNodeIterable) {
         if (selectedProgramTransformations.contains(ProgramTransformationEnum.JUMP_THREADING)) {
           Optional<SubCFA> transformationResult = new JumpThreadingProgramTransformation().transform(pCFA, currentNode);
           if (transformationResult.isPresent()) {
@@ -48,7 +47,7 @@ public class CFAProgramTransformer {
       }
     }
 
-    for (SubCFA subCFA : newSubCFAs) {
+    for (SubCFA subCFA : newSubCFAs.build()) {
       subCFA.insertSubCFA(pCFA);
     }
 

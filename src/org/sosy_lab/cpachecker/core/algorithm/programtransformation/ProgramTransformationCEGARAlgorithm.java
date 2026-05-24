@@ -168,8 +168,8 @@ public class ProgramTransformationCEGARAlgorithm implements Algorithm, Statistic
       cpa = pCpa;
       try {
         refiner = ProgramTransformationRefiner.create(pCpa, nodesToProgramTransformations);
-      } catch (InterruptedException pE) {
-        throw new RuntimeException(pE);
+      } catch (InterruptedException eI) {
+        throw new RuntimeException(eI);
       }
     }
 

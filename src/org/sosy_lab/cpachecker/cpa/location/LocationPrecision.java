@@ -9,9 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.location;
 
 import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.ImmutableMultimap.Builder;
 import com.google.common.collect.ImmutableSet;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Optional;
 import java.util.Set;
@@ -29,7 +27,7 @@ public class LocationPrecision implements AdjustablePrecision {
   public LocationPrecision(Set<SubCFA> pPrecisions) {
     hasProgramTransformations = !pPrecisions.isEmpty();
     allowedProgramTransformations = ImmutableSet.copyOf(pPrecisions);
-    ImmutableMultimap.Builder<CFANode,SubCFA> nodesToStrategiesBuilder = new Builder<>();
+    ImmutableMultimap.Builder<CFANode, SubCFA> nodesToStrategiesBuilder = new ImmutableMultimap.Builder<>();
     for (SubCFA subCFA : allowedProgramTransformations) {
       nodesToStrategiesBuilder.put(subCFA.originalCFAEntryNode(), subCFA);
     }
@@ -70,10 +68,10 @@ public class LocationPrecision implements AdjustablePrecision {
 
   @Override
   public AdjustablePrecision add(AdjustablePrecision otherPrecision) {
-    if(otherPrecision instanceof LocationPrecision locPrec){
+    if (otherPrecision instanceof LocationPrecision locPrec){
       ImmutableSet.Builder<SubCFA> complement = new ImmutableSet.Builder<>();
       for (SubCFA subCFA : allowedProgramTransformations) {
-        if(!locPrec.allowedProgramTransformations.contains(subCFA)){
+        if (!locPrec.allowedProgramTransformations.contains(subCFA)){
           complement.add(subCFA);
         }
       }
@@ -84,10 +82,11 @@ public class LocationPrecision implements AdjustablePrecision {
 
   @Override
   public AdjustablePrecision subtract(AdjustablePrecision otherPrecision) {
-    if(otherPrecision instanceof LocationPrecision locPrec){
-      ArrayList<SubCFA> intersection = new ArrayList<>(allowedProgramTransformations);
+    if (otherPrecision instanceof LocationPrecision locPrec){
+      ImmutableSet.Builder<SubCFA> intersection = new ImmutableSet.Builder<>();
+      intersection.addAll(allowedProgramTransformations);
       intersection.addAll(locPrec.getAllowedProgramTransformations());
-      return new LocationPrecision(ImmutableSet.copyOf(intersection));
+      return new LocationPrecision(intersection.build());
     }
     return null;
   }

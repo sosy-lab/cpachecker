@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.location;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import java.util.Collection;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -41,10 +40,10 @@ public class LocationCPA extends AbstractCPA
     stateFactory = pStateFactory;
     boolean hasProgramTransformations =
         pCFA.getMetadata().getNodesToProgramTransformations().isPresent();
-    Builder<SubCFA> programTransformations = ImmutableSet.builder();
-    if(hasProgramTransformations){
+    ImmutableSet.Builder<SubCFA> programTransformations = ImmutableSet.builder();
+    if (hasProgramTransformations){
       Collection<ProgramTransformationInformation> programTransformationInformations = pCFA.getMetadata().getNodesToProgramTransformations().get().values();
-      for(ProgramTransformationInformation programTransformation : programTransformationInformations){
+      for (ProgramTransformationInformation programTransformation : programTransformationInformations){
         programTransformations.add(programTransformation.subCFA());
       }
     }

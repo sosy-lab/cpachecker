@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.transformation;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.graph.Traverser;
@@ -55,7 +54,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
     Optional<TransformationData> transformationDataOptional;
     if (isSuperGraph){
       transformationDataOptional = canBeAppliedOnSuperGraph(pNode);
-    }else{
+    } else {
       transformationDataOptional = canBeApplied(pNode);
     }
     TransformationData transformationData;
@@ -70,7 +69,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
     CFANode newExitNode = null;
     ImmutableList.Builder<CFANode> nodes = ImmutableList.builder();
     ImmutableList.Builder<CFAEdge> edges = ImmutableList.builder();
-    ImmutableMap.Builder<CFANode, CFANode> nodeMapBuilder = new Builder<>();
+    ImmutableMap.Builder<CFANode, CFANode> nodeMapBuilder = new ImmutableMap.Builder<>();
     Traverser<CFANode> cfaNetworkTraverser = Traverser.forGraph(pCFA.asGraph());
     Iterable<CFANode> cfaNodeIterable = cfaNetworkTraverser.breadthFirst(pNode);
     ImmutableList<? extends AParameterDeclaration> parameters = pNode.getFunction().getParameters();
@@ -80,7 +79,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
     });
 
     // first pass: add new nodes
-    for(CFANode currentNode : cfaNodeIterable) {
+    for (CFANode currentNode : cfaNodeIterable) {
       // dont add a normal node for the function exit node
       if (currentNode.getNodeNumber() != transformationData.exitNode.getNodeNumber()) {
         // dont add nodes for tail recursive call nodes
@@ -108,7 +107,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
       nodes.add(newNode);
     }
     ImmutableList<CFANode> nodesList = nodes.build();
-    ImmutableMap<CFANode, CFANode> nodeMap = nodeMapBuilder.build();
+    ImmutableMap<CFANode, CFANode> nodeMap = nodeMapBuilder.buildKeepingLast();
 
     // second pass: add new edges
     cfaNodeIterable = cfaNetworkTraverser.breadthFirst(pNode);
@@ -116,8 +115,8 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
       assert node != null;
       return node.getFunctionName().equals(transformationData.functionName);
     });
-    for(CFANode currentNode : cfaNodeIterable) {
-      for(CFAEdge currentEdge : currentNode.getAllLeavingEdges()){
+    for (CFANode currentNode : cfaNodeIterable) {
+      for (CFAEdge currentEdge : currentNode.getAllLeavingEdges()) {
         if (currentEdge.getSuccessor().getFunctionName().equals(transformationData.functionName) && nodeMap.containsKey(currentNode) && nodeMap.containsKey(currentEdge.getSuccessor())) {
           CFANode newPredecessorNode = nodeMap.get(currentNode);
           CFANode newSuccessorNode = nodeMap.get(currentEdge.getSuccessor());
@@ -132,13 +131,12 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
     // add parameter edges
     CFANode nodeBeforeParams = nodeMap.get(transformationData.tmpVarDeclarationEdge.getPredecessor());
     ImmutableList<CExpression> parameterExpressions;
-    if(isSuperGraph){
-      parameterExpressions = ((CFunctionSummaryEdge)transformationData.tmpVarAssignmentEdge).getExpression().getFunctionCallExpression().getParameterExpressions();
+    if (isSuperGraph) {
+      parameterExpressions = ((CFunctionSummaryEdge) transformationData.tmpVarAssignmentEdge).getExpression().getFunctionCallExpression().getParameterExpressions();
+    } else {
+      parameterExpressions = ((CFunctionCallAssignmentStatement) ((CStatementEdge) transformationData.tmpVarAssignmentEdge).getStatement()).getFunctionCallExpression().getParameterExpressions();
     }
-    else{
-      parameterExpressions = ((CFunctionCallAssignmentStatement)((CStatementEdge)transformationData.tmpVarAssignmentEdge).getStatement()).getFunctionCallExpression().getParameterExpressions();
-    }
-    CFunctionDeclaration functionDeclaration = (CFunctionDeclaration) ((FunctionEntryNode)pNode).getFunctionDefinition();
+    CFunctionDeclaration functionDeclaration = (CFunctionDeclaration) ((FunctionEntryNode) pNode).getFunctionDefinition();
     CFANode preNode = nodeBeforeParams;
     CFANode succNode;
     for (int i = 0; i < parameters.size(); i++) {
@@ -199,7 +197,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
     // check 2: at the start of the function is the exit condition check
     CFANode currentNode = pNode;
     CFAEdge currentEdge;
-    while(currentNode.getLeavingEdges().size() == 1){
+    while (currentNode.getLeavingEdges().size() == 1) {
       currentEdge = currentNode.getLeavingEdges().first().get();
       if (!(currentEdge instanceof BlankEdge || currentEdge instanceof CDeclarationEdge)) {
         break;
@@ -220,7 +218,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
     // check 3: we have a tail recursive function call
     boolean isTailRecursive = false;
     FluentIterable<CFAEdge> enteringEdges = exitNode.getEnteringEdges();
-    for(CFAEdge edge : enteringEdges) {
+    for (CFAEdge edge : enteringEdges) {
       if (edge instanceof CReturnStatementEdge returnEdge) {
         CReturnStatement returnStatement = returnEdge.getReturnStatement();
         if (returnStatement.getReturnValue().isPresent()) {
@@ -264,7 +262,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
       return Optional.empty();
     }
 
-    return Optional.of(new TransformationData(entryNode,exitNode,functionName,tmpVarName,tmpVarDeclarationEdge,tmpVarAssignmentEdge,tmpVarReturnEdge,nodeBeforeExitCondition));
+    return Optional.of(new TransformationData(entryNode, exitNode, functionName, tmpVarName, tmpVarDeclarationEdge, tmpVarAssignmentEdge, tmpVarReturnEdge, nodeBeforeExitCondition));
   }
 
   private static Optional<TransformationData> canBeAppliedOnSuperGraph(CFANode pNode){
@@ -291,7 +289,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
     // check 2: at the start of the function is the exit condition check
     CFANode currentNode = pNode;
     CFAEdge currentEdge;
-    while(currentNode.getLeavingEdges().size() == 1){
+    while (currentNode.getLeavingEdges().size() == 1) {
       currentEdge = currentNode.getLeavingEdges().first().get();
       if (!(currentEdge instanceof BlankEdge || currentEdge instanceof CDeclarationEdge)) {
         break;
@@ -312,7 +310,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
     // check 3: we have a tail recursive function call
     boolean isTailRecursive = false;
     FluentIterable<CFAEdge> enteringEdges = exitNode.getEnteringEdges();
-    for(CFAEdge edge : enteringEdges) {
+    for (CFAEdge edge : enteringEdges) {
       if (edge instanceof CReturnStatementEdge returnEdge) {
         CReturnStatement returnStatement = returnEdge.getReturnStatement();
         if (returnStatement.getReturnValue().isPresent()) {
@@ -324,7 +322,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
                 CFAEdge predecessorEdge = predecessorEdges.first().get();
                 if (predecessorEdge instanceof CFunctionReturnEdge predecessorFunctionCallEdge) {
                   CFunctionSummaryEdge summaryEdge = predecessorFunctionCallEdge.getSummaryEdge();
-                  if(summaryEdge.getExpression().getFunctionCallExpression().getDeclaration().getQualifiedName().equals(functionName)){
+                  if (summaryEdge.getExpression().getFunctionCallExpression().getDeclaration().getQualifiedName().equals(functionName)) {
                     tmpVarName = returnIdExpression.getName();
                     for (CFAEdge assumeEdge : nodeBeforeExitCondition.getLeavingEdges()){
                       // meh
@@ -349,7 +347,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
       return Optional.empty();
     }
 
-    return Optional.of(new TransformationData(entryNode,exitNode,functionName,tmpVarName,tmpVarDeclarationEdge,tmpVarAssignmentEdge,tmpVarReturnEdge,nodeBeforeExitCondition));
+    return Optional.of(new TransformationData(entryNode, exitNode, functionName, tmpVarName, tmpVarDeclarationEdge, tmpVarAssignmentEdge, tmpVarReturnEdge, nodeBeforeExitCondition));
   }
 
   private record TransformationData(

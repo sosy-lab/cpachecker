@@ -35,7 +35,7 @@ public class ProgramTransformationCFAEdgeCreator {
    * @return CFAEdge
    */
   public static CFAEdge copyCFAEdge(CFAEdge pCFAEdge, CFANode pNewPredecessor, CFANode pNewSuccessor) {
-    if (! (pCFAEdge instanceof CCfaEdge)) {
+    if (!(pCFAEdge instanceof CCfaEdge)) {
       return null;
     }
     return switch (pCFAEdge) {
