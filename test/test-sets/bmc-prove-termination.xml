@@ -27,10 +27,10 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
   </tasks>
 
-  <tasks name="SVBench-Termination-Small-False-YML">
+  <!-- <tasks name="SVBench-Termination-Small-False-YML">
     <includesfile>../programs/bmc-termination-local/bmc-prove-termination-small-false.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
-  </tasks>
+  </tasks> -->
 
   <rundefinition name="bmc-prove-termination">
     <option name="--config">config/bmc-prove-termination.properties</option>

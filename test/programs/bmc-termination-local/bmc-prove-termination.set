@@ -9,7 +9,9 @@
 ../simple/termination/simpleWithSpecificK.yml
 ../simple/termination/test.yml
 ../simple/termination/infiniteForWithBreak.yml
+../simple/termination/infiniteForWithConditionalBreak.yml
 ../simple/termination/infiniteForWithReturn.yml
+../simple/termination/doWhileBottomGuard.yml
 ../simple/termination/mixedExitWithBreak.yml
 ../simple/termination/mixedExitWithDelayedBreak.yml
 # ../simple/termination/simpleWithBigK.c

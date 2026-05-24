@@ -13,7 +13,7 @@ SPDX-License-Identifier: Apache-2.0
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
 <benchmark tool="cpachecker" displayName="CPAchecker" timelimit="15 min" hardtimelimit="16 min" memlimit="15 GB" cpuCores="2">
 
-  <require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz" />
+  <require cpuModel="AMD EPYC 7443 24-Core"/>
 
   <resultfiles>**/witness.*</resultfiles>
 
@@ -24,13 +24,22 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--timelimit" />
   <option name="900s" />
 
-  <!-- 88 programs: 54 currently proved + 7 lost since 2026-05-09 baseline
-       + 27 incorrect-false cases from the 2026-05-21 14:41:55 termination run.
+  <!-- 94 programs: 54 currently proved + 7 lost since 2026-05-09 baseline
+       + 27 incorrect-false cases from the 2026-05-21 14:41:55 termination run
+       + 6 new incorrect-false cases from the 2026-05-23 17:04:41 termination run.
        Subset of KInduction-prove-nontermination-strong-svcomp-nontermination.xml
        for fast regression validation. -->
   <rundefinition name="Focused-61">
     <tasks name="C.termination.Focused61">
       <includesfile>../programs/nontermination-strong-local/KInduction-prove-nontermination-strong-focused-61.set</includesfile>
+      <propertyfile>../sv-benchmarks/c/properties/termination.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <!-- 10 incorrect-false cases from the 2026-05-23 17:04:41 termination run. -->
+  <rundefinition name="IncorrectFalse-2026-05-23">
+    <tasks name="C.termination.IncorrectFalse20260523">
+      <includesfile>../programs/nontermination-strong-local/KInduction-prove-nontermination-strong-incorrect-false-2026-05-23.set</includesfile>
       <propertyfile>../sv-benchmarks/c/properties/termination.prp</propertyfile>
     </tasks>
   </rundefinition>

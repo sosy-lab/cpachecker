@@ -1,0 +1,19 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2026 CPAchecker contributors
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Incorrect FALSE results from the 2026-05-23 17:04:41 termination run.
+../../sv-benchmarks/c/termination-bwb/counting-bits-set.yml
+../../sv-benchmarks/c/termination-crafted/4BitCounterPointer.yml
+../../sv-benchmarks/c/termination-restricted-15/MinusBuiltIn.yml
+../../sv-benchmarks/c/termination-nla/dijkstra1-both-t.yml
+../../sv-benchmarks/c/termination-memory-alloca/java_LogBuiltIn-alloca.yml
+../../sv-benchmarks/c/ldv-regression/test_while_int.yml
+../../sv-benchmarks/c/loops/terminator_01.yml
+../../sv-benchmarks/c/loop-lit/mine2017-ex4.10.yml
+../../sv-benchmarks/c/loop-lit/mine2017-ex4.6.yml
+../../sv-benchmarks/c/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--input--misc--apanel.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml

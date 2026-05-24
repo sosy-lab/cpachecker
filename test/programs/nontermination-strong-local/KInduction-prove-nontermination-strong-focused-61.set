@@ -6,10 +6,11 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-# Focused set of 88 programs: 54 currently proved + 7 previously proved but
+# Focused set of 94 programs: 54 currently proved + 7 previously proved but
 # lost in the 2026-05-20 run + 27 incorrect-false cases from the 2026-05-21
+# termination run + 6 new incorrect-false cases from the 2026-05-23
 # termination run. Used to quickly validate non-termination proving without
-# running all 966 SV-COMP programs.
+# running the full SV-COMP termination suite.
 
 # --- 54 currently proved (2026-05-20 results) ---
 ../../sv-benchmarks/c/bitvector/jain_1-1.yml
@@ -104,3 +105,11 @@
 ../../sv-benchmarks/c/loops/trex01-1.yml
 ../../sv-benchmarks/c/loop-invgen/large_const.yml
 ../../sv-benchmarks/c/loop-lit/mine2017-ex4.10.yml
+
+# --- 6 new incorrect false in the 2026-05-23 17:04:41 termination run ---
+../../sv-benchmarks/c/termination-nla/dijkstra1-both-t.yml
+../../sv-benchmarks/c/termination-memory-alloca/java_LogBuiltIn-alloca.yml
+../../sv-benchmarks/c/ldv-regression/test_while_int.yml
+../../sv-benchmarks/c/loops/terminator_01.yml
+../../sv-benchmarks/c/loop-lit/mine2017-ex4.6.yml
+../../sv-benchmarks/c/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--input--misc--apanel.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml
