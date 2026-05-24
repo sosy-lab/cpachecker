@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.transformation;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.graph.Traverser;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -25,7 +24,7 @@ public class CFAProgramTransformer {
     //boolean finished = false;
     ImmutableList<ProgramTransformationEnum> selectedProgramTransformations = (new ImmutableList.Builder<ProgramTransformationEnum>().add(ProgramTransformationEnum.TAIL_RECURSION_ELIMINATION)).build();
 
-    ImmutableList.Builder<SubCFA> newSubCFAs = new Builder<>();
+    ImmutableList.Builder<SubCFA> newSubCFAs = new ImmutableList.Builder<>();
 
     for (FunctionEntryNode functionEntryNode : pCFA.entryNodes()) {
       Traverser<CFANode> cfaNetworkTraverser = Traverser.forGraph(pCFA.asGraph());
