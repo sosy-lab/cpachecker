@@ -1340,7 +1340,7 @@ def _handle_result(
         )
         logging.debug(
             "Number of result files: %d",
-            len({f for f in result_files if not f.endswith("/")})
+            len({f for f in result_files if not f.endswith("/")}),
         )
 
         if result_files:
