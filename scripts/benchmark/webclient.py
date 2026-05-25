@@ -1331,21 +1331,8 @@ def _handle_result(
     if result_files_patterns:
         result_files = set()
         for pattern in result_files_patterns:
-            matched_files = fnmatch.filter(files, pattern)
-            logging.debug(
-                "Files matching pattern '%s' for run %s: %s",
-                pattern,
-                run_identifier,
-                sorted(matched_files),
-            )
-            result_files.update(matched_files)
+            result_files.update(fnmatch.filter(files, pattern))
         result_files = result_files - SPECIAL_RESULT_FILES
-
-        # Debug logging for result files
-        logging.debug(
-            "Result files for run %s: %s", run_identifier, sorted(result_files)
-        )
-        logging.debug("Number of result files: %d", len(result_files))
 
         if result_files:
             # Ensure output directory exists
@@ -1356,14 +1343,8 @@ def _handle_result(
         # Retrieve the expected count from the run information
         if "resultFilesCount" in run_info_values:
             expected_count = int(run_info_values["resultFilesCount"])
-            actual_files = {f for f in result_files if not f.endswith("/")}
+            actual_files = {f for f in files if not f.endswith("/")}
             actual_count = len(actual_files)
-
-            # Adjust expected count to exclude special files that are handled separately
-            if "resultFileNames" in run_info_values:
-                expected_files = set(run_info_values["resultFileNames"].split(","))
-                expected_files -= SPECIAL_RESULT_FILES
-                expected_count = len(expected_files)
 
             if expected_count != actual_count:
                 if "resultFileNames" in run_info_values:
