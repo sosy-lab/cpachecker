@@ -169,11 +169,28 @@ public record SeqThreadStatementBuilder(
     pCoveredNodes.add(firstSuccessor);
     // const CPAchecker_TMP declarations can have only 1 successor edge
     CFAEdgeForThread firstSuccessorEdge = Iterables.getOnlyElement(firstSuccessor.leavingEdges());
-    assert firstSuccessorEdge.cfaEdge instanceof CStatementEdge
-        : "successor edge of const CPAchecker_TMP declaration must be CStatementEdge";
+    checkState(
+        firstSuccessorEdge.cfaEdge instanceof CStatementEdge,
+        "Expected CStatementEdge as successor edge of const CPAchecker_TMP declaration, got %s",
+        firstSuccessorEdge.cfaEdge);
+
     CFANodeForThread secondSuccessor = firstSuccessorEdge.getSuccessor();
-    // second successor of const CPAchecker_TMP declarations can have only 1 successor edge
+    checkState(!secondSuccessor.leavingEdges().isEmpty());
+    // multiple leaving edges are possible e.g. if an increment is followed by a function call:
+    // var++; function();
+    if (secondSuccessor.leavingEdges().size() > 1) {
+      checkState(secondSuccessor.leavingEdges().size() == 2);
+      checkState(secondSuccessor.leavingEdges().getFirst().cfaEdge instanceof CFunctionSummaryEdge);
+      checkState(secondSuccessor.leavingEdges().getLast().cfaEdge instanceof CFunctionCallEdge);
+      return buildTwoPartConstCpaCheckerTmpStatement(constCpaCheckerTmpEdge, firstSuccessorEdge);
+    }
+
     CFAEdgeForThread secondSuccessorEdge = Iterables.getOnlyElement(secondSuccessor.leavingEdges());
+    // the second successor edge can be blank if an increment is followed by a function return:
+    // function(int number) { number++; }
+    if (secondSuccessorEdge.cfaEdge instanceof BlankEdge) {
+      return buildTwoPartConstCpaCheckerTmpStatement(constCpaCheckerTmpEdge, firstSuccessorEdge);
+    }
 
     CStatementEdge secondSuccessorStatement = (CStatementEdge) secondSuccessorEdge.cfaEdge;
     // there are programs where a const CPAchecker_TMP statement has only two parts.
@@ -183,6 +200,9 @@ public record SeqThreadStatementBuilder(
     } else {
       // cover second successor only when it is a three part const CPAchecker_TMP statement
       pCoveredNodes.add(secondSuccessor);
+      CExpressionStatement expressionStatement =
+          (CExpressionStatement) secondSuccessorStatement.getStatement();
+      checkState(expressionStatement.getExpression() instanceof CIdExpression);
       return buildThreePartConstCpaCheckerTmpStatement(
           constCpaCheckerTmpEdge, firstSuccessorEdge, secondSuccessorEdge);
     }
