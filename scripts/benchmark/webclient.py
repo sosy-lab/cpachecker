@@ -1347,11 +1347,10 @@ def _handle_result(
         )
         logging.debug("Number of result files: %d", len(result_files))
 
-        # Ensure output directory exists
-        if not os.path.isdir(output_path):
-            os.makedirs(output_path, exist_ok=True)
-
         if result_files:
+            # Ensure output directory exists
+            if not os.path.isdir(output_path):
+                os.makedirs(output_path, exist_ok=True)
             resultZipFile.extractall(output_path, result_files)
 
         # Retrieve the expected count from the run information
@@ -1360,12 +1359,24 @@ def _handle_result(
             actual_count = len({f for f in result_files if not f.endswith("/")})
 
             if expected_count != actual_count:
-                logging.warning(
-                    "Number of result files received (%d) does not match the expected count (%d) for run %s.",
-                    actual_count,
-                    expected_count,
-                    run_identifier,
-                )
+                if "resultFileNames" in run_info_values:
+                    expected_files = set(run_info_values["resultFileNames"].split(","))
+                    missing_files = expected_files - actual_files
+                    logging.warning(
+                        "Number of result files received (%d) does not match the expected count (%d) for run %s. "
+                        "Missing files: %s",
+                        actual_count,
+                        expected_count,
+                        run_identifier,
+                        sorted(missing_files),
+                    )
+                else:
+                    logging.warning(
+                        "Number of result files received (%d) does not match the expected count (%d) for run %s.",
+                        actual_count,
+                        expected_count,
+                        run_identifier,
+                    )
         else:
             logging.warning(
                 "'resultFilesCount' not found in run info for run %s.",
