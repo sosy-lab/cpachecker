@@ -1297,7 +1297,6 @@ def _handle_result(
 ):
     files = set(resultZipFile.namelist())
     logging.debug("All files in ZIP for run %s: %s", run_identifier, sorted(files))
-    logging.debug("Output path for run %s: %s", run_identifier, output_path)
 
     # extract run info
     run_info_values = {}
@@ -1332,12 +1331,6 @@ def _handle_result(
         result_files = set()
         for pattern in result_files_patterns:
             matched_files = fnmatch.filter(files, pattern)
-            logging.debug(
-                "Files matching pattern '%s' for run %s: %s",
-                pattern,
-                run_identifier,
-                sorted(matched_files),
-            )
             result_files.update(matched_files)
         result_files = result_files - SPECIAL_RESULT_FILES
 
@@ -1345,7 +1338,10 @@ def _handle_result(
         logging.debug(
             "Result files for run %s: %s", run_identifier, sorted(result_files)
         )
-        logging.debug("Number of result files: %d", len(result_files))
+        logging.debug(
+            "Number of result files: %d",
+            len({f for f in result_files if not f.endswith("/")})
+        )
 
         if result_files:
             # Ensure output directory exists
@@ -1367,7 +1363,6 @@ def _handle_result(
 
             if expected_count != actual_count:
                 if "resultFileNames" in run_info_values:
-                    expected_files = set(run_info_values["resultFileNames"].split(","))
                     missing_files = expected_files - actual_files
                     logging.warning(
                         "Number of result files received (%d) does not match the expected count (%d) for run %s. "
@@ -1385,7 +1380,7 @@ def _handle_result(
                         run_identifier,
                     )
         else:
-            logging.warning(
+            logging.debug(
                 "'resultFilesCount' not found in run info for run %s.",
                 run_identifier,
             )
