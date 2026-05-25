@@ -1380,8 +1380,8 @@ def _handle_result(
         actual_count = len(actual_files)
 
         # Retrieve the expected count from the run information
-        if "matchedResultFilesCount" in run_info_values:
-            expected_count = int(run_info_values["matchedResultFilesCount"])
+        if "resultFilesCount" in run_info_values:
+            expected_count = int(run_info_values["resultFilesCount"])
             logging.debug(
                 "Expected result files count for run %s: %d",
                 run_identifier,
