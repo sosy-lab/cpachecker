@@ -359,49 +359,39 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
             # Check if the number of result files matches the expected count
             if os.path.isdir(vcloudFilesDirectory):
                 actual_result_files = os.listdir(vcloudFilesDirectory)
-                logging.debug(
-                    "All files in vcloudFilesDirectory for run %s: %s",
-                    run.identifier,
-                    sorted(actual_result_files),
-                )
                 actual_count = len(actual_result_files)
 
-                logging.debug(
-                    "Keys in values for run %s: %s",
-                    run.identifier,
-                    sorted(values.keys()),
-                )
-
-                logging.debug(
-                    "'vcloud-matchedResultFilesCount' in values: %s",
-                    "vcloud-matchedResultFilesCount" in values,
-                )
-
-                if "vcloud-matchedResultFilesCount" in values:
-                    logging.info(
-                        "Value of 'vcloud-matchedResultFilesCount': %s",
-                        values["vcloud-matchedResultFilesCount"],
-                    )
-
                 # Extract the expected count from the run information
-                if "vcloud-matchedResultFilesCount" in values:
-                    expected_count = int(values["vcloud-matchedResultFilesCount"])
-                    logging.info("Expected result files count: %d", expected_count)
-                    logging.info("Actual result files count: %d", actual_count)
+                if "vcloud-resultFilesCount" in values:
+                    expected_count = int(values["vcloud-resultFilesCount"])
 
                     if expected_count != actual_count:
-                        logging.warning(
-                            "Number of result files received (%d) does not match the expected count (%d) for run %s.",
-                            actual_count,
-                            expected_count,
-                            run.identifier,
-                        )
-                    else:
-                        logging.debug(
-                            "Number of result files received (%d) matches the expected count for run %s.",
-                            actual_count,
-                            run.identifier,
-                        )
+                        if "vcloud-resultFileNames" in values:
+                            expected_files = set(
+                                values["vcloud-resultFileNames"].split(",")
+                            )
+                            actual_files = set(os.listdir(vcloudFilesDirectory))
+                            missing_files = expected_files - actual_files
+                            logging.warning(
+                                "Number of result files received (%d) does not match the expected count (%d) for run %s. "
+                                "Missing files: %s",
+                                actual_count,
+                                expected_count,
+                                run.identifier,
+                                sorted(missing_files),
+                            )
+                        else:
+                            logging.warning(
+                                "Number of result files received (%d) does not match the expected count (%d) for run %s.",
+                                actual_count,
+                                expected_count,
+                                run.identifier,
+                            )
+                else:
+                    logging.debug(
+                        "'vcloud-resultFilesCount' not found in run values for run %s.",
+                        run.identifier,
+                    )
 
             if os.path.isdir(vcloudFilesDirectory) and not os.path.isdir(
                 benchexecFilesDirectory
