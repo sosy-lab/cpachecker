@@ -1356,7 +1356,8 @@ def _handle_result(
         # Retrieve the expected count from the run information
         if "resultFilesCount" in run_info_values:
             expected_count = int(run_info_values["resultFilesCount"])
-            actual_count = len({f for f in result_files if not f.endswith("/")})
+            actual_files = {f for f in result_files if not f.endswith("/")}
+            actual_count = len(actual_files)
 
             if expected_count != actual_count:
                 if "resultFileNames" in run_info_values:
