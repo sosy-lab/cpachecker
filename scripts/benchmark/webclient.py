@@ -1359,6 +1359,12 @@ def _handle_result(
             actual_files = {f for f in result_files if not f.endswith("/")}
             actual_count = len(actual_files)
 
+            # Adjust expected count to exclude special files that are handled separately
+            if "resultFileNames" in run_info_values:
+                expected_files = set(run_info_values["resultFileNames"].split(","))
+                expected_files -= SPECIAL_RESULT_FILES
+                expected_count = len(expected_files)
+
             if expected_count != actual_count:
                 if "resultFileNames" in run_info_values:
                     expected_files = set(run_info_values["resultFileNames"].split(","))
