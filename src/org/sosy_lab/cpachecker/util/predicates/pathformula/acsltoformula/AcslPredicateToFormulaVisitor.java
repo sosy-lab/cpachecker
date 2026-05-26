@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
@@ -18,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateVisitor;
@@ -31,6 +34,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.QuantifiedFormulaManagerView;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
@@ -67,7 +71,7 @@ public class AcslPredicateToFormulaVisitor
     this.ctoFormulaConverter = pCtoFormulaConverter;
     this.functionEntrySsa = Optional.empty();
     this.machineModel = pMachineModel;
-    this.typeHelper = new AcslTypeHelper(pMachineModel);
+    this.typeHelper = new AcslTypeHelper(pMachineModel, pFmgr, pCtoFormulaConverter);
   }
 
   public AcslPredicateToFormulaVisitor(
@@ -88,7 +92,7 @@ public class AcslPredicateToFormulaVisitor
     this.ctoFormulaConverter = pCtoFormulaConverter;
     this.functionEntrySsa = Optional.ofNullable(pFunctionEntrySsa);
     this.machineModel = pMachineModel;
-    this.typeHelper = new AcslTypeHelper(pMachineModel);
+    this.typeHelper = new AcslTypeHelper(pMachineModel, pFmgr, pCtoFormulaConverter);
   }
 
   // Constructor that should only be called by AcslTermToFormulaVisitor
@@ -110,7 +114,7 @@ public class AcslPredicateToFormulaVisitor
     this.ctoFormulaConverter = pCtoFormulaConverter;
     this.functionEntrySsa = oFunctionEntrySsa;
     this.machineModel = pMachineModel;
-    this.typeHelper = new AcslTypeHelper(pMachineModel);
+    this.typeHelper = new AcslTypeHelper(pMachineModel, pFmgr, pCtoFormulaConverter);
   }
 
   @Override
@@ -207,14 +211,40 @@ public class AcslPredicateToFormulaVisitor
 
   @Override
   public BooleanFormula visit(AcslForallPredicate pForallPredicate) throws NoException {
-    // TODO implementation definitely needed
-    throw new UnsupportedOperationException("Not yet implemented");
+    QuantifiedFormulaManagerView qfmr = fmgr.getQuantifiedFormulaManager();
+
+    // Important: the AcslRenamingVistor should have already been used to rename the binders to
+    // unique names,
+    // if this was not done, this might cause issues
+    BooleanFormula body = pForallPredicate.getPredicate().accept(this);
+
+    List<AcslParameterDeclaration> binders = pForallPredicate.getBinders();
+    List<Formula> smtVars = new ArrayList<>();
+
+    for (AcslParameterDeclaration decl : binders) {
+      smtVars.add(createSmtVarFromBinder(decl));
+    }
+
+    return qfmr.forall(smtVars, body);
   }
 
   @Override
   public BooleanFormula visit(AcslExistsPredicate pAcslExistsPredicate) throws NoException {
-    // TODO implementation definitely needed
-    throw new UnsupportedOperationException("Not yet implemented");
+    QuantifiedFormulaManagerView qfmr = fmgr.getQuantifiedFormulaManager();
+
+    // Important: the AcslRenamingVistor should have already been used to rename the binders to
+    // unique names,
+    // if this was not done, this might cause issues
+    BooleanFormula body = pAcslExistsPredicate.getPredicate().accept(this);
+
+    List<AcslParameterDeclaration> binders = pAcslExistsPredicate.getBinders();
+    List<Formula> smtVars = new ArrayList<>();
+
+    for (AcslParameterDeclaration decl : binders) {
+      smtVars.add(createSmtVarFromBinder(decl));
+    }
+
+    return qfmr.exists(smtVars, body);
   }
 
   @Override
@@ -222,5 +252,10 @@ public class AcslPredicateToFormulaVisitor
       throws NoException {
     // TODO implementation definitely needed
     throw new UnsupportedOperationException("Not yet implemented");
+  }
+
+  private Formula createSmtVarFromBinder(AcslParameterDeclaration pDecl) {
+    String varName = pDecl.getName();
+    return fmgr.makeVariable(typeHelper.acslTypeToFormulaType(pDecl.getType()), varName);
   }
 }
