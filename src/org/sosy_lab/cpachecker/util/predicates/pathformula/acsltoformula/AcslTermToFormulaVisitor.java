@@ -17,22 +17,14 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAtTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPointerType;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPolymorphicType;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslResultTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSetType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslStringLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
@@ -78,7 +70,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     this.functionEntrySsa = Optional.empty();
     this.ctoFormulaConverter = pCtoFormulaConverter;
     this.machineModel = pMachineModel;
-    this.typeHelper = new AcslTypeHelper(pMachineModel);
+    this.typeHelper = new AcslTypeHelper(pMachineModel, pFmgr, pCtoFormulaConverter);
   }
 
   public AcslTermToFormulaVisitor(
@@ -96,7 +88,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     this.functionEntrySsa = Optional.ofNullable(pFunctionEntrySsa);
     this.ctoFormulaConverter = pCtoFormulaConverter;
     this.machineModel = pMachineModel;
-    this.typeHelper = new AcslTypeHelper(pMachineModel);
+    this.typeHelper = new AcslTypeHelper(pMachineModel, pFmgr, pCtoFormulaConverter);
   }
 
   @Override
@@ -132,6 +124,9 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
   @Override
   public Formula visit(AcslBinaryTerm pAcslBinaryTerm) throws NoException {
+    AcslType operand1Type = pAcslBinaryTerm.getOperand1().getExpressionType();
+    AcslType operand2Type = pAcslBinaryTerm.getOperand2().getExpressionType();
+
     Formula operand1Formula = pAcslBinaryTerm.getOperand1().accept(this);
     Formula operand2Formula = pAcslBinaryTerm.getOperand2().accept(this);
 
@@ -144,10 +139,14 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
       signed = typeHelper.isSigned(pAcslBinaryTerm.getOperand1().getExpressionType());
     }
 
-    // TODO some typing stuff:
-    // take care of the case where the operands do not have the same type:
-    // upcast e.g. bitvector to int look into formulaManager,
-    // extract this into a function that takes the two formulas and maybe their types...
+    if (!(fmgr.getFormulaType(operand1Formula).equals(fmgr.getFormulaType(operand2Formula)))) {
+      AcslType commonType = AcslType.mostGeneralType(operand1Type, operand2Type);
+      // TODO take care of the case where the operands do not have the same type:
+      // upcast e.g. bitvector to int look into formulaManager??,
+      // extract this into a function that takes the two formulas and maybe their types...
+      // Example: x +1 where x is a C Int -> Bitvector formula but 1 is an integer formula
+      typeHelper.handleDifferentTypes(operand1Formula, operand2Formula, commonType);
+    }
 
     return switch (pAcslBinaryTerm.getOperator()) {
       // TODO make sure that fmgr really does bitwise and, or etc. here as I suspect
@@ -174,7 +173,8 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     String varName = variable.getQualifiedName();
     int useIndex = getIndex(varName, variable.getType());
 
-    return fmgr.makeVariable(getFormulaType(pAcslIdTerm.getExpressionType()), varName, useIndex);
+    return fmgr.makeVariable(
+        typeHelper.acslTypeToFormulaType(pAcslIdTerm.getExpressionType()), varName, useIndex);
   }
 
   @Override
@@ -221,7 +221,8 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
   public Formula visit(AcslFunctionCallTerm pAcslFunctionCallTerm) throws NoException {
 
     AcslFunctionDeclaration declaration = pAcslFunctionCallTerm.getDeclaration();
-    FormulaType<?> returnType = getFormulaType((AcslType) declaration.getType().getReturnType());
+    FormulaType<?> returnType =
+        typeHelper.acslTypeToFormulaType((AcslType) declaration.getType().getReturnType());
 
     String functionName = "ACSL#" + declaration.getQualifiedName();
 
@@ -262,31 +263,5 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
       currentSsa.setIndex(name, type, idx);
     }
     return idx;
-  }
-
-  private FormulaType<?> getFormulaType(AcslType acslType) {
-    // TODO implement  more of the mapping
-    return switch (acslType) {
-      case AcslCType cType -> ctoFormulaConverter.getFormulaTypeFromType(cType.getType());
-      case AcslFunctionType funcType ->
-          throw new IllegalArgumentException(
-              "This should not happen, AcslFunctionCallTerm should handle this");
-      case AcslLogicType logType ->
-          switch (logType) {
-            case AcslBuiltinLogicType builtinType ->
-                switch (builtinType) {
-                  case BOOLEAN -> FormulaType.BooleanType;
-                  case INTEGER -> FormulaType.IntegerType;
-                  case REAL -> FormulaType.RationalType;
-                  case ANY -> throw new UnsupportedOperationException("Not yet implemented");
-                };
-            case AcslPolymorphicType polyType ->
-                throw new UnsupportedOperationException("Not yet implemented");
-          };
-      case AcslPointerType poinType ->
-          throw new UnsupportedOperationException("Not yet implemented");
-      case AcslPredicateType predType -> FormulaType.BooleanType;
-      case AcslSetType setType -> throw new UnsupportedOperationException("Not yet implemented");
-    };
   }
 }

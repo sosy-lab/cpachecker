@@ -20,12 +20,26 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 public class AcslTypeHelper {
   private final MachineModel machineModel;
 
-  public AcslTypeHelper(MachineModel pMachineModel) {
+  @SuppressWarnings("unused")
+  private final FormulaManagerView fmgr;
+
+  private final CtoFormulaConverter ctoFormulaConverter;
+
+  public AcslTypeHelper(
+      MachineModel pMachineModel,
+      FormulaManagerView pFmgr,
+      CtoFormulaConverter pCtoFormulaConverter) {
+    ctoFormulaConverter = pCtoFormulaConverter;
     machineModel = pMachineModel;
+    fmgr = pFmgr;
   }
 
   public boolean isSigned(AcslType acslType) {
@@ -56,6 +70,37 @@ public class AcslTypeHelper {
       case AcslSetType setType -> throw new UnsupportedOperationException("Not yet implemented");
       case AcslFunctionType funcType ->
           throw new UnsupportedOperationException("Not yet implemented");
+    };
+  }
+
+  public void handleDifferentTypes(Formula f1, Formula f2, AcslType commonType) {
+    // TODO cast f1 and f2 to common type if necessary
+    // find a way to return results
+  }
+
+  public FormulaType<?> acslTypeToFormulaType(AcslType acslType) {
+    // TODO implement  more of the mapping
+    return switch (acslType) {
+      case AcslCType cType -> ctoFormulaConverter.getFormulaTypeFromType(cType.getType());
+      case AcslFunctionType funcType ->
+          throw new IllegalArgumentException(
+              "This should not happen, AcslFunctionCallTerm should handle this");
+      case AcslLogicType logType ->
+          switch (logType) {
+            case AcslBuiltinLogicType builtinType ->
+                switch (builtinType) {
+                  case BOOLEAN -> FormulaType.BooleanType;
+                  case INTEGER -> FormulaType.IntegerType;
+                  case REAL -> FormulaType.RationalType;
+                  case ANY -> throw new UnsupportedOperationException("Not yet implemented");
+                };
+            case AcslPolymorphicType polyType ->
+                throw new UnsupportedOperationException("Not yet implemented");
+          };
+      case AcslPointerType poinType ->
+          throw new UnsupportedOperationException("Not yet implemented");
+      case AcslPredicateType predType -> FormulaType.BooleanType;
+      case AcslSetType setType -> throw new UnsupportedOperationException("Not yet implemented");
     };
   }
 }
