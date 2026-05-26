@@ -33,9 +33,16 @@ CPAchecker is separate from that program and thus not under the terms of the GPL
 Prepare Programs for Verification by CPAchecker
 -----------------------------------------------
 
-All programs need to pre-processed with the C pre-processor,
-i.e., they may not contain `#define` and `#include` directives.
-You can enable pre-processing inside CPAchecker
+By default CPAchecker pre-processes C programs 
+using an external C pre-processor (like `cpp` or `gcc -E`).
+However, you can also pre-process programs yourself
+and provide the pre-processed C code to CPAchecker directly.
+This is especially useful if your program
+contains non-standard constructs that the external pre-processor cannot handle,
+or if the macros defined change the column numbers in
+the code (which CPAchecker cannot currently match back 
+to the locations in the original source code).
+You can enable pre-processing explicitly inside CPAchecker
 by specifying `--preprocess` on the command line.
 Multiple C files can be given and will be linked together
 and verified as a single program (experimental feature).
@@ -48,7 +55,8 @@ Verifying a Program with CPAchecker
 -----------------------------------
 
 1. Choose a source code file that you want to be checked.
-   If you use your own program, remember to pre-process it as mentioned above.
+   If you use your own program, remember to either pre-process 
+   it as mentioned above or let CPAchecker preprocess it internally.
    Example: `doc/examples/example.c` or `doc/examples/example_bug.c`
    A good source for more example programs is the
    [SV-Benchmarks](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks) repository
@@ -80,10 +88,10 @@ Verifying a Program with CPAchecker
    A specific analysis (like k-induction) can be chosen
    for example with `bin/cpachecker --config/kInduction.properties doc/examples/example.c`
    or the equivalent abbreviation `bin/cpachecker --kInduction doc/examples/example.c`.
-   Java 17 or later is necessary. If it is not in your PATH,
+   Java 21 or later is necessary. If it is not in your PATH,
    you need to specify it in the environment variable JAVA.
-   Example: `export JAVA=/usr/lib/jvm/java-17-openjdk-amd64/bin/java`
-   for 64bit OpenJDK 17 on Ubuntu.
+   Example: `export JAVA=/usr/lib/jvm/java-21-openjdk-amd64/bin/java`
+   for 64bit OpenJDK 21 on Ubuntu.
 
    Please note that not all analysis configurations are available for MacOS
    because we do not ship binaries for SMT solvers for this platform.
@@ -125,7 +133,7 @@ There are also additional output files in the directory `output/`:
  - `Statistics.txt`: Time statistics (can also be printed to console with `--stats`)
  
 Note that not all of these files will be available for all configurations.
-Also some of these files are only produced if an error is found (or vice-versa).
+Also, some of these files are only produced if an error is found (or vice-versa).
 CPAchecker will overwrite files in this directory!
 
 

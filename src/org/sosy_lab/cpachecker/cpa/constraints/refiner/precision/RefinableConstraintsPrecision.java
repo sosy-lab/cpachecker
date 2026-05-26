@@ -142,18 +142,18 @@ public class RefinableConstraintsPrecision implements ConstraintsPrecision {
 
     restoreMappingFromFile(
         pCfa, pLogger, trackedGlobalVariables, trackedFunctionsVariables, trackedLocationVariables);
-    switch (precisionType) {
-      case CONSTRAINTS:
-        // create a ConstraintBasedConstraintsPrecision, that tracks important variables of value
-        // precision
-        return new VariableTrackingConstraintsPrecision(
-            trackedFunctionsVariables,
-            trackedLocationVariables,
-            trackedGlobalVariables,
-            ConstraintBasedConstraintsPrecision.getEmptyPrecision(),
-            mustTrackAll);
+    return switch (precisionType) {
+      case CONSTRAINTS ->
+          // create a ConstraintBasedConstraintsPrecision, that tracks important variables of value
+          // precision
+          new VariableTrackingConstraintsPrecision(
+              trackedFunctionsVariables,
+              trackedLocationVariables,
+              trackedGlobalVariables,
+              ConstraintBasedConstraintsPrecision.getEmptyPrecision(),
+              mustTrackAll);
 
-      case LOCATION:
+      case LOCATION -> {
         // create LocationBasedConstraintsPrecision with important locations of value precision
         Multimap<CFANode, Constraint> cfaMultiMap = HashMultimap.create();
         if (!trackedGlobalVariables.isEmpty()) {
@@ -173,10 +173,9 @@ public class RefinableConstraintsPrecision implements ConstraintsPrecision {
           }
         }
         Increment locInc = Increment.builder().locallyTracked(cfaMultiMap).build();
-        return LocationBasedConstraintsPrecision.getEmptyPrecision().withIncrement(locInc);
-      default:
-        throw new AssertionError("Unsupported precision type");
-    }
+        yield LocationBasedConstraintsPrecision.getEmptyPrecision().withIncrement(locInc);
+      }
+    };
   }
 
   private void restoreMappingFromFile(

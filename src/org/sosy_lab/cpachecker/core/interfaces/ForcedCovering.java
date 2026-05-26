@@ -35,7 +35,7 @@ public interface ForcedCovering {
    * if this method returns true, the stop operator called with the same arguments after this method
    * returned also needs to return true.
    *
-   * @param state The state which hopefully is covered afterwards.
+   * @param state The state which hopefully is covered afterward.
    * @param precision The precision for the state.
    * @param reached The current reached set.
    * @return Whether forced covering was successful.

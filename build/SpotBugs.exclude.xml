@@ -11,7 +11,17 @@ SPDX-License-Identifier: Apache-2.0
 <FindBugsFilter>
     <!-- TODO: Investigate -->
     <Match><Bug code="SING"/></Match>
+    <!-- TODO: looks useful, but matches all non-volatile uses of any field
+         in a class that looks potentially multi-threaded,
+         even if that field is not used from other threads.
+         Maybe re-evaluate in the future. -->
+    <Match><Bug pattern="AT_STALE_THREAD_WRITE_OF_PRIMITIVE"/></Match>
+    <!-- Warns about every harmless subclass of Guava's Equivalence -->
+    <Match><Bug pattern="HE_INHERITS_EQUALS_USE_HASHCODE"/></Match>
 
+    <!-- Forbidding static methods in subclasses with same name often makes no sense,
+         for example for factor() etc. -->
+    <Match><Bug pattern="HSM_HIDING_METHOD"/></Match>
     <!-- Exceptions from constructors are not really a problem because we do not use finalizers -->
     <Match><Bug pattern="CT_CONSTRUCTOR_THROW"/></Match>
     <!-- These checks are too pessimistic: https://github.com/spotbugs/spotbugs/issues/1601 -->
@@ -29,6 +39,8 @@ SPDX-License-Identifier: Apache-2.0
     </And></Match>
     <!-- Error-prone checks this, too, and SpotBugs does not know @CanIgnoreReturnValue. -->
     <Match><Bug pattern="RV_RETURN_VALUE_IGNORED"/></Match>
+    <!-- Useless check because we forbid classic switch labels, and produces false alarms -->
+    <Match><Bug pattern="SF_SWITCH_FALLTHROUGH"/></Match>
     <!-- Exclude AutoValue classes -->
     <Match><Class name="~.*\.AutoValue_.*"/></Match>
 
@@ -44,14 +56,23 @@ SPDX-License-Identifier: Apache-2.0
     </And></Match>
     <Match>
         <!-- Handled by Eclipse. -->
-        <Or>
-          <Bug pattern="SF_SWITCH_FALLTHROUGH"/>
-          <Bug pattern="UPM_UNCALLED_PRIVATE_METHOD"/>
-        </Or>
+        <Bug pattern="UPM_UNCALLED_PRIVATE_METHOD"/>
     </Match>
     <Match>
         <!-- Ignore Antlr-generated files. -->
-        <Package name="org.sosy_lab.cpachecker.util.ltl.generated"/>
+        <OR>
+            <Package name="org.sosy_lab.cpachecker.util.ltl.generated"/>
+            <Package name="org.sosy_lab.cpachecker.cfa.ast.svlib.parser.generated"/>
+        </OR>
+    </Match>
+    <Match>
+        <!-- Generated parsers sometimes have more or less issues that need to be suppressed. -->
+        <Bug pattern="US_USELESS_SUPPRESSION_ON_CLASS"/>
+        <Class name="~.*Parser"/>
+    </Match>
+    <Match>
+        <!-- Ignore unmaintained package. -->
+        <Package name="org.sosy_lab.cpachecker.cfa.parser.llvm"/>
     </Match>
 
     <Match><And>

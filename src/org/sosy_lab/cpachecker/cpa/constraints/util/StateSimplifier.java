@@ -129,11 +129,8 @@ public class StateSimplifier {
       final SymbolicIdentifier currId = s.getIdentifier();
 
       switch (s.getActivity()) {
-        case DELETED:
-          reducedConstraints.removeAll(s.getUsingConstraints());
-          break;
-        case ACTIVE:
-        case UNUSED:
+        case DELETED -> reducedConstraints.removeAll(s.getUsingConstraints());
+        case ACTIVE, UNUSED -> {
           if (!symbolicValues.contains(currId)) {
             boolean canBeRemoved;
             if (s.getUsingConstraints().size() < 2) {
@@ -154,9 +151,7 @@ public class StateSimplifier {
               reducedConstraints.removeAll(s.getUsingConstraints());
             }
           }
-          break;
-        default:
-          throw new AssertionError("Unhandled activity type: " + s.getActivity());
+        }
       }
     }
 
@@ -181,12 +176,13 @@ public class StateSimplifier {
       }
 
       switch (t.getActivity()) {
-        case ACTIVE:
+        case ACTIVE -> {
           return false;
-        case DELETED:
+        }
+        case DELETED -> {
           // do nothing, we already know that this target is not needed
-          break;
-        case UNUSED:
+        }
+        case UNUSED -> {
           final Set<ActivityInfo> dependents = pSymIdActivity.get(t);
           dependents.removeAll(parents);
 
@@ -208,9 +204,7 @@ public class StateSimplifier {
           } else {
             t.markDeleted();
           }
-          break;
-        default:
-          throw new AssertionError("Unhandled state of ActivityInfo: " + t.getActivity());
+        }
       }
     }
 
@@ -320,27 +314,27 @@ public class StateSimplifier {
       usingConstraints.add(pConstraint);
     }
 
-    public SymbolicIdentifier getIdentifier() {
+    SymbolicIdentifier getIdentifier() {
       return identifier;
     }
 
-    public Set<Constraint> getUsingConstraints() {
+    Set<Constraint> getUsingConstraints() {
       return usingConstraints;
     }
 
-    public Activity getActivity() {
+    Activity getActivity() {
       return activity;
     }
 
-    public void disable() {
+    void disable() {
       activity = Activity.UNUSED;
     }
 
-    public void enable() {
+    void enable() {
       activity = Activity.ACTIVE;
     }
 
-    public void markDeleted() {
+    void markDeleted() {
       activity = Activity.DELETED;
     }
 

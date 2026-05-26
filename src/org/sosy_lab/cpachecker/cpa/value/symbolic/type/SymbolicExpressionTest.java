@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 
-/** Unit tests for {@link SymbolicExpression} sub types. */
+/** Unit tests for {@link SymbolicExpression} subtypes. */
 public class SymbolicExpressionTest {
 
   private static final CType OP_TYPE = CNumericTypes.INT;

@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.SMGGenericAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.util.smg.join.SMGJoinStatus;
 
 final class SMGJoinTargetObjects {
   private SMGJoinStatus status;
@@ -255,15 +256,14 @@ final class SMGJoinTargetObjects {
     Set<Long> restricted = new HashSet<>();
 
     switch (targetObject.getKind()) {
-      case DLL:
+      case DLL -> {
         restricted.add(((SMGDoublyLinkedList) targetObject).getNfo());
         restricted.add(((SMGDoublyLinkedList) targetObject).getPfo());
-        break;
-      case SLL:
-        restricted.add(((SMGSingleLinkedList) targetObject).getNfo());
-        break;
-      default:
+      }
+      case SLL -> restricted.add(((SMGSingleLinkedList) targetObject).getNfo());
+      default -> {
         return;
+      }
     }
 
     for (SMGEdgeHasValue hve : hves) {

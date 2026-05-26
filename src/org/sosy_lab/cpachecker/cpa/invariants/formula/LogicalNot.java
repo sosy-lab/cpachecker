@@ -38,31 +38,32 @@ public class LogicalNot<ConstantType> implements BooleanFormula<ConstantType> {
   @Override
   public String toString() {
     BooleanFormula<ConstantType> negated = getNegated();
-    if (negated instanceof LogicalNot) {
-      return ((LogicalNot<?>) negated).getNegated().toString();
-    }
-    if (negated instanceof Equal<?> equation) {
-      return String.format("(%s != %s)", equation.getOperand1(), equation.getOperand2());
-    }
-    if (negated instanceof LessThan<?> lessThan) {
-      return String.format("(%s >= %s)", lessThan.getOperand1(), lessThan.getOperand2());
-    }
-    if (negated instanceof LogicalAnd<?> and) {
-      final String left;
-      if (and.getOperand1() instanceof LogicalNot) {
-        left = ((LogicalNot<?>) and.getOperand1()).getNegated().toString();
-      } else {
-        left = String.format("(!%s)", and.getOperand1());
+    return switch (negated) {
+      case LogicalNot<?> not -> not.getNegated().toString();
+
+      case Equal<?> equation ->
+          String.format("(%s != %s)", equation.getOperand1(), equation.getOperand2());
+
+      case LessThan<?> lessThan ->
+          String.format("(%s >= %s)", lessThan.getOperand1(), lessThan.getOperand2());
+
+      case LogicalAnd<?> and -> {
+        final String left;
+        if (and.getOperand1() instanceof LogicalNot) {
+          left = ((LogicalNot<?>) and.getOperand1()).getNegated().toString();
+        } else {
+          left = String.format("(!%s)", and.getOperand1());
+        }
+        final String right;
+        if (and.getOperand2() instanceof LogicalNot) {
+          right = ((LogicalNot<?>) and.getOperand2()).getNegated().toString();
+        } else {
+          right = String.format("(!%s)", and.getOperand2());
+        }
+        yield String.format("(%s || %s)", left, right);
       }
-      final String right;
-      if (and.getOperand2() instanceof LogicalNot) {
-        right = ((LogicalNot<?>) and.getOperand2()).getNegated().toString();
-      } else {
-        right = String.format("(!%s)", and.getOperand2());
-      }
-      return String.format("(%s || %s)", left, right);
-    }
-    return String.format("(!%s)", negated);
+      default -> String.format("(!%s)", negated);
+    };
   }
 
   @Override

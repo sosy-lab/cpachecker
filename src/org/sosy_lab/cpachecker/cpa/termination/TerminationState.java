@@ -212,9 +212,9 @@ public class TerminationState extends AbstractSingleWrapperState
       sb.append("loop");
     }
 
-    if (getWrappedState() instanceof Graphable) {
+    if (getWrappedState() instanceof Graphable graphable) {
       sb.append("\n");
-      sb.append(((Graphable) getWrappedState()).toDOTLabel());
+      sb.append(graphable.toDOTLabel());
     }
 
     return sb.toString();
@@ -222,8 +222,8 @@ public class TerminationState extends AbstractSingleWrapperState
 
   @Override
   public boolean shouldBeHighlighted() {
-    if (getWrappedState() instanceof Graphable) {
-      return ((Graphable) getWrappedState()).shouldBeHighlighted();
+    if (getWrappedState() instanceof Graphable graphable) {
+      return graphable.shouldBeHighlighted();
     }
     return false;
   }

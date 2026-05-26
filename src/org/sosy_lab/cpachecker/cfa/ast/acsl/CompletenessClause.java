@@ -9,15 +9,15 @@
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import com.google.common.base.Joiner;
-import java.util.List;
+import com.google.common.collect.ImmutableList;
 import java.util.Objects;
 
 public class CompletenessClause {
 
-  private final List<Behavior> behaviors;
+  private final ImmutableList<Behavior> behaviors;
   private final RelationKind kind;
 
-  public CompletenessClause(List<Behavior> pBehaviors, RelationKind pKind) {
+  public CompletenessClause(ImmutableList<Behavior> pBehaviors, RelationKind pKind) {
     behaviors = pBehaviors;
     kind = pKind;
   }

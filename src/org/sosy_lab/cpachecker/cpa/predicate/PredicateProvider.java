@@ -127,7 +127,7 @@ final class PredicateProvider {
 
     Set<AbstractionPredicate> result = new HashSet<>();
     for (BooleanFormula possibleConstraint : abstractions.get(pLocation.getNodeNumber())) {
-      // lets try all available abstractions formulas, perhaps more of them are valid
+      // let's try all available abstractions formulas, perhaps more of them are valid
       result.addAll(predFmgr.getPredicatesForAtomsOf(possibleConstraint));
     }
     return result;

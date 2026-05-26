@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCdtWrapper.wrapCode;
 import static org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCdtWrapper.wrapFile;
 
@@ -19,6 +20,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import java.io.File;
@@ -49,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -168,7 +171,7 @@ class EclipseCParser implements CParser {
     return parseSomething(
         ImmutableList.of(new FileContentToParse(pFileName, pCode)),
         sourceOriginMapping,
-        pScope instanceof CProgramScope ? ((CProgramScope) pScope) : CProgramScope.empty(),
+        pScope instanceof CProgramScope cProgramScope ? cProgramScope : CProgramScope.empty(),
         (fileName, content) -> {
           Preconditions.checkArgument(content instanceof FileContentToParse);
           return wrapCode(fileName, ((FileContentToParse) content).getFileContent());
@@ -184,13 +187,12 @@ class EclipseCParser implements CParser {
     IASTDeclaration[] declarations = ast.getDeclarations();
     if (declarations == null
         || declarations.length != 1
-        || !(declarations[0] instanceof IASTFunctionDefinition)) {
+        || !(declarations[0] instanceof IASTFunctionDefinition func)) {
       throw new CParserException("Not a single function: " + ast.getRawSignature());
     }
 
-    IASTFunctionDefinition func = (IASTFunctionDefinition) declarations[0];
     IASTStatement body = func.getBody();
-    if (!(body instanceof IASTCompoundStatement)) {
+    if (!(body instanceof IASTCompoundStatement iASTCompoundStatement)) {
       throw new CParserException(
           "Function has an unexpected "
               + body.getClass().getSimpleName()
@@ -198,7 +200,7 @@ class EclipseCParser implements CParser {
               + func.getRawSignature());
     }
 
-    return ((IASTCompoundStatement) body).getStatements();
+    return iASTCompoundStatement.getStatements();
   }
 
   private ASTConverter prepareTemporaryConverter(Scope scope) {
@@ -212,7 +214,8 @@ class EclipseCParser implements CParser {
         ParseContext.dummy(),
         machine,
         "",
-        sa);
+        sa,
+        ImmutableSet.of());
   }
 
   @Override
@@ -270,7 +273,7 @@ class EclipseCParser implements CParser {
       for (IASTPreprocessorIncludeStatement include : result.getIncludeDirectives()) {
         if (!include.isResolved()) {
           if (include.isSystemInclude()) {
-            throw new CFAGenerationRuntimeException(
+            throw new CParsingFailureRequiringPreprocessingException(
                 "File includes system headers, either preprocess it manually or specify"
                     + " --preprocess.");
           } else {
@@ -304,7 +307,7 @@ class EclipseCParser implements CParser {
           .precomputed();
 
   /**
-   * Builds the cfa out of a list of pairs of translation units and their appropriate prefixes for
+   * Builds the CFA out of a list of pairs of translation units and their appropriate prefixes for
    * static variables
    *
    * @param asts a List of Pairs of translation units and the appropriate prefix for static
@@ -325,7 +328,7 @@ class EclipseCParser implements CParser {
 
       // we don't need any file prefix if we only have one file
       if (asts.size() == 1) {
-        builder.analyzeTranslationUnit(asts.get(0), "", pScope);
+        builder.analyzeTranslationUnit(asts.getFirst(), "", pScope);
 
         // in case of several files we need to add a file prefix to global variables
         // as there could be several equally named files in different directories
@@ -347,7 +350,9 @@ class EclipseCParser implements CParser {
           result.withASTStructure(
               AstCfaRelationBuilder.getASTCFARelation(
                   pSourceOriginMapping,
-                  result.getCFAEdges(),
+                  from(result.cfaNodes().values())
+                      .transformAndConcat(CFANode::getAllLeavingEdges)
+                      .toSet(),
                   asts,
                   result.cfaNodeToAstLocalVariablesInScope().orElseThrow(),
                   result.cfaNodeToAstParametersInScope().orElseThrow(),
@@ -443,7 +448,7 @@ class EclipseCParser implements CParser {
       CodePosition result =
           delegate.getOriginLineFromAnalysisCodeLine(analysisFile, pAnalysisCodeLine);
 
-      if (result.getFileName().equals(analysisFile)) {
+      if (result.fileName().equals(analysisFile)) {
         // reverse mapping
         result = result.withFileName(pAnalysisFile);
       }

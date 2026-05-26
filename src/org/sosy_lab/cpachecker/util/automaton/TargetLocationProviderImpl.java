@@ -45,7 +45,11 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
     shutdownNotifier = pShutdownNotifier;
     logManager = pLogManager.withComponentName("TargetLocationProvider");
     cfa = pCfa;
-    allNodes = ImmutableSet.copyOf(cfa.nodes());
+    allNodes =
+        // If cfa.nodes() is ImmutableSortedSet, copyOf() copies, but we can just use the instance.
+        cfa.nodes() instanceof ImmutableSet<CFANode> immutableNodes
+            ? immutableNodes
+            : ImmutableSet.copyOf(cfa.nodes());
   }
 
   @Override

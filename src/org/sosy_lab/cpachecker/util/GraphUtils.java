@@ -23,7 +23,6 @@ import com.google.common.collect.SetMultimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -109,7 +108,7 @@ public class GraphUtils {
    * @param pReached the {@link ReachedSet} to retrieve all other states which are ignored later on
    * @return An adjacency list containing all cycles, given as a list of {@link ARGState}
    */
-  public static List<List<ARGState>> retrieveSimpleCycles(
+  public static List<ImmutableList<ARGState>> retrieveSimpleCycles(
       List<ARGState> pStates, ReachedSet pReached) {
     Set<ARGState> filteredStates =
         new HashSet<>(Collections2.transform(pReached.asCollection(), s -> (ARGState) s));
@@ -132,12 +131,12 @@ public class GraphUtils {
    *     href="https://github.com/mission-peace/interview/blob/master/src/com/interview/graph/AllCyclesInDirectedGraphJohnson.java">code-references
    *     2</a>
    */
-  public static List<List<ARGState>> retrieveSimpleCycles(
+  public static List<ImmutableList<ARGState>> retrieveSimpleCycles(
       List<ARGState> pStates, Set<ARGState> pExcludeStates) {
     Set<ARGState> blockedSet = new HashSet<>();
     SetMultimap<ARGState, ARGState> blockedMap = HashMultimap.create();
     Deque<ARGState> stack = new ArrayDeque<>();
-    List<List<ARGState>> allCycles = new ArrayList<>();
+    List<ImmutableList<ARGState>> allCycles = new ArrayList<>();
 
     int startIndex = 0;
     while (startIndex < pStates.size() - 1) {
@@ -185,7 +184,7 @@ public class GraphUtils {
       Set<ARGState> pBlockedSet,
       SetMultimap<ARGState, ARGState> pBlockedMap,
       Deque<ARGState> pStack,
-      List<List<ARGState>> pAllCycles,
+      List<ImmutableList<ARGState>> pAllCycles,
       Set<ARGState> pExcludeSet) {
 
     if (pExcludeSet.contains(pCurrentState)) {
@@ -201,10 +200,8 @@ public class GraphUtils {
       // If the successor is equal to the startState, a cycle has been found.
       // Store contents of stack in the final result.
       if (successor.equals(pStartState)) {
-        List<ARGState> cycle = new ArrayList<>();
         pStack.push(pStartState);
-        cycle.addAll(pStack);
-        Collections.reverse(cycle);
+        ImmutableList<ARGState> cycle = ImmutableList.copyOf(pStack.reversed());
         pStack.pop();
         pAllCycles.add(cycle);
         foundCycle = true;
@@ -287,8 +284,7 @@ public class GraphUtils {
         strongConnect(state, index, stateIndex, stateLowLink, dfsStack, SCCs, pExcludeStates);
       }
     }
-    Collections.reverse(SCCs);
-    return ImmutableSet.copyOf(SCCs);
+    return ImmutableSet.copyOf(SCCs.reversed());
   }
 
   /** Recursively find {@link StronglyConnectedComponent}s using DFS traversal */

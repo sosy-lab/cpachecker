@@ -39,7 +39,7 @@ public final class DelegatingARGBasedRefinerWithRefinementSelection
 
   @Option(
       secure = true,
-      description = "whether or not to use refinement selection to decide which domain to refine")
+      description = "whether to use refinement selection to decide which domain to refine")
   private boolean useRefinementSelection = false;
 
   @Option(
@@ -205,11 +205,11 @@ public final class DelegatingARGBasedRefinerWithRefinementSelection
           }
         });
 
-    if (primaryRefiner instanceof StatisticsProvider) {
-      ((StatisticsProvider) primaryRefiner).collectStatistics(pStatsCollection);
+    if (primaryRefiner instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
-    if (secondaryRefiner instanceof StatisticsProvider) {
-      ((StatisticsProvider) secondaryRefiner).collectStatistics(pStatsCollection);
+    if (secondaryRefiner instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
   }
 }

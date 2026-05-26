@@ -173,8 +173,8 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
 
     slicerFactory.collectStatistics(pStatsCollection);
 
-    if (slicer instanceof StatisticsProvider) {
-      ((StatisticsProvider) slicer).collectStatistics(pStatsCollection);
+    if (slicer instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
 
     super.collectStatistics(pStatsCollection);

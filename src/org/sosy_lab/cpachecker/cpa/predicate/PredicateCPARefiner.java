@@ -348,9 +348,9 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
         "each abstraction state should have a state in the counterexample trace");
 
     // Set the atomic Predicates configuration in the RefinementStrategy
-    if (strategy instanceof PredicateAbstractionRefinementStrategy) {
-      ((PredicateAbstractionRefinementStrategy) strategy)
-          .setUseAtomicPredicates(atomicInterpolants);
+    if (strategy
+        instanceof PredicateAbstractionRefinementStrategy predicateAbstractionRefinementStrategy) {
+      predicateAbstractionRefinementStrategy.setUseAtomicPredicates(atomicInterpolants);
     }
 
     if (!repeatedCounterexample && (invariantsManager.addToPrecision() || usePathInvariants)) {
@@ -546,9 +546,9 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
   }
 
   /**
-   * This method determines whether or not to perform refinement selection.
+   * This method determines whether to perform refinement selection.
    *
-   * @return true, if refinement selection has to be performed, else false
+   * @return whether refinement selection has to be performed
    */
   private boolean isRefinementSelectionEnabled() {
     return !prefixPreference.equals(PrefixSelector.NO_SELECTION);
@@ -567,7 +567,7 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
     //    : "PredicateCPARefiner expects abstraction states to have only one parent, but at least
     // one state has more.";
 
-    assert Objects.equals(pPath.getLastState(), result.get(result.size() - 1));
+    assert Objects.equals(pPath.getLastState(), result.getLast());
     return result;
   }
 
@@ -619,8 +619,8 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(new Stats());
-    if (strategy instanceof StatisticsProvider) {
-      ((StatisticsProvider) strategy).collectStatistics(pStatsCollection);
+    if (strategy instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
     if (useNewtonRefinement) {
       newtonManager.orElseThrow().collectStatistics(pStatsCollection);

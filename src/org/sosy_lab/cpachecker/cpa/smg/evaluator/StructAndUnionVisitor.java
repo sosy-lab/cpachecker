@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 /**
  * This class evaluates expressions that evaluate to a struct or union type. The type of every
  * expression visited by this visitor has to be either {@link CElaboratedType} or {@link
- * CComplexType}. Furthermore, it must not be a enum. The result of the evaluation is an {@link
+ * CComplexType}. Furthermore, it must not be an enum. The result of the evaluation is an {@link
  * SMGAddress}. The object represents the memory this struct is placed in, the offset represents the
  * start of the struct.
  */

@@ -13,6 +13,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
@@ -23,7 +24,8 @@ public class CPreprocessor extends Preprocessor {
       description =
           "The command line for calling the preprocessor. "
               + "May contain binary name and arguments, but won't be expanded by a shell. "
-              + "The source file name will be appended to this string. "
+              + "The argument for the architecture "
+              + "and the source file name will be appended to this string. "
               + "The preprocessor needs to print the output to stdout.")
   private String preprocessor = "cpp";
 
@@ -32,10 +34,13 @@ public class CPreprocessor extends Preprocessor {
       description = "Whether to dump the results of the preprocessor to disk for debugging.")
   private boolean dumpResults = false;
 
-  public CPreprocessor(Configuration config, LogManager pLogger)
+  private final MachineModel machineModel;
+
+  public CPreprocessor(Configuration config, LogManager pLogger, MachineModel pMachineModel)
       throws InvalidConfigurationException {
     super(config, pLogger);
     config.inject(this);
+    machineModel = pMachineModel;
   }
 
   @Override
@@ -45,7 +50,7 @@ public class CPreprocessor extends Preprocessor {
 
   @Override
   protected String getCommandLine() {
-    return preprocessor;
+    return preprocessor + " " + getStandardCCompilerArchitectureArgument(machineModel);
   }
 
   @Override

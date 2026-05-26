@@ -108,7 +108,7 @@ class CompositePrecisionAdjustment implements PrecisionAdjustment {
 
   /**
    * Call {@link #strengthen(AbstractState, Precision, Iterable)} on contained precision
-   * adjustments. Returns identity if all of the strengthening operations are identities.
+   * adjustments. Returns identity if all the strengthening operations are identities.
    */
   private Optional<CompositeState> callStrengthen(
       CompositeState pCompositeState, CompositePrecision pCompositePrecision)

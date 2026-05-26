@@ -15,7 +15,7 @@ import com.google.common.collect.Multimap;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.SequencedSet;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
@@ -49,7 +49,7 @@ public class VerticalMergeDecomposition implements DssBlockDecomposition {
       }
     }
 
-    return BlockGraph.fromBlockNodesWithoutGraphInformation(cfa, nodes);
+    return BlockGraph.fromBlockNodesWithoutGraphInformation(nodes);
   }
 
   private Collection<BlockNodeWithoutGraphInformation> sorted(
@@ -69,7 +69,7 @@ public class VerticalMergeDecomposition implements DssBlockDecomposition {
           startingPoints.put(n.getInitialLocation(), n);
           endingPoints.put(n.getFinalLocation(), n);
         });
-    Set<BlockNodeWithoutGraphInformation> removed = new LinkedHashSet<>();
+    SequencedSet<BlockNodeWithoutGraphInformation> removed = new LinkedHashSet<>();
     for (BlockNodeWithoutGraphInformation node : pNodes) {
       if (removed.contains(node)) {
         continue;

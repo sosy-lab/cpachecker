@@ -55,7 +55,7 @@ public final class ResourceLimitChecker {
    *
    * <p>The given {@link ResourceLimit} instances must be fresh instances and not started yet.
    * Callers should only create them and pass them to this constructor, but not use them in any
-   * other way before or afterwards.
+   * other way before or afterward.
    *
    * <p>Note that {@link #start()} needs to be called in order to actually start the limits.
    *

@@ -14,7 +14,7 @@ import java.util.List;
 /**
  * Is used to represent a field reference without pointer dereferences.
  *
- * <p>E.g a.b.h. (is typically used with structs)
+ * <p>Example: a.b.h. (is typically used with structs)
  */
 public final class FieldReference extends LeftHandSide {
 

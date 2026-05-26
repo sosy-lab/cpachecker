@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatHist;
 class StatisticsReachedSet extends ForwardingReachedSet {
 
   private static class StatHist2 extends StatHist {
-    public StatHist2(String pTitle) {
+    StatHist2(String pTitle) {
       super(pTitle);
     }
 

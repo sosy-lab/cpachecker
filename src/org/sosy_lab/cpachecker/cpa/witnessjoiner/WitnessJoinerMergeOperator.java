@@ -24,9 +24,10 @@ public class WitnessJoinerMergeOperator implements MergeOperator {
   @Override
   public AbstractState merge(AbstractState pState1, AbstractState pState2, Precision pPrecision)
       throws CPAException, InterruptedException {
-    if (pState1 instanceof WitnessJoinerState && pState2 instanceof WitnessJoinerState) {
-      AbstractState wrappedState1 = ((WitnessJoinerState) pState1).getWrappedState();
-      AbstractState wrappedState2 = ((WitnessJoinerState) pState2).getWrappedState();
+    if (pState1 instanceof WitnessJoinerState witnessJoinerState1
+        && pState2 instanceof WitnessJoinerState witnessJoinerState2) {
+      AbstractState wrappedState1 = witnessJoinerState1.getWrappedState();
+      AbstractState wrappedState2 = witnessJoinerState2.getWrappedState();
 
       AbstractState wrappedMergeResult =
           wrappedMerge.merge(wrappedState1, wrappedState2, pPrecision);

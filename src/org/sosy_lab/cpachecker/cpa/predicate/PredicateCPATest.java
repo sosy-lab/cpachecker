@@ -94,8 +94,8 @@ public class PredicateCPATest {
       factory.set(Specification.alwaysSatisfied(), Specification.class);
 
       ConfigurableProgramAnalysis cpa = factory.createInstance();
-      if (cpa instanceof AutoCloseable) {
-        ((AutoCloseable) cpa).close();
+      if (cpa instanceof AutoCloseable autoCloseable) {
+        autoCloseable.close();
       }
 
       Field classesField = ClassLoader.class.getDeclaredField("classes");

@@ -19,9 +19,8 @@ abstract class AbstractExpressionTree<LeafType> implements ExpressionTree<LeafTy
   }
 
   private String formatLeafExpression(LeafType pLeafExpression) {
-    if (pLeafExpression instanceof CExpression) {
-      return ((CExpression) pLeafExpression)
-          .accept(CExpressionToOriginalCodeVisitor.BASIC_TRANSFORMER);
+    if (pLeafExpression instanceof CExpression cExpression) {
+      return cExpression.accept(CExpressionToOriginalCodeVisitor.BASIC_TRANSFORMER);
     }
     if (pLeafExpression == null) {
       return "null";

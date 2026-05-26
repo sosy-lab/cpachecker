@@ -239,8 +239,8 @@ public class SMGRefiner implements Refiner {
 
     // choose one path and remove all other target states,
     // so that only one is left (for CEX-checker)
-    ARGPath feasiblePath = Iterables.getFirst(feasibleErrorPaths, null);
-    if (feasiblePath != null) {
+    if (!feasibleErrorPaths.isEmpty()) {
+      ARGPath feasiblePath = feasibleErrorPaths.getFirst();
       for (ARGPath others : pErrorPaths) {
         if (others != feasiblePath) {
           pReached.removeSubtree(others.getLastState());

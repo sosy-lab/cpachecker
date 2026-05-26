@@ -50,7 +50,7 @@ public class LocationStateFactory {
       allNodes = ImmutableSortedSet.copyOf(tmpNodes);
     }
 
-    int maxNodeNumber = allNodes.last().getNodeNumber();
+    int maxNodeNumber = allNodes.getLast().getNodeNumber();
     states = new LocationState[maxNodeNumber + 1];
     for (CFANode node : allNodes) {
       LocationState state = createLocationState(node);

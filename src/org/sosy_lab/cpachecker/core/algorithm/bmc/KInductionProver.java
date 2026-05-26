@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.SequencedMap;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.logging.Level;
@@ -693,11 +694,11 @@ class KInductionProver implements AutoCloseable {
           if (ssaMap.containsVariable(input)) {
             inputs.put(input, ssaMap.getIndex(input) - 1);
             inputs.put(input, ssaMap.getIndex(input));
-            types.put(input, ssaMap.getType(input));
+            types.put(input, (CType) ssaMap.getType(input));
           }
         }
         for (String varName : ssaMap.allVariables()) {
-          types.put(varName, ssaMap.getType(varName));
+          types.put(varName, (CType) ssaMap.getType(varName));
         }
       }
       ARGState argState = AbstractStates.extractStateByType(current, ARGState.class);
@@ -729,7 +730,7 @@ class KInductionProver implements AutoCloseable {
     }
     Multimap<String, Integer> inputs = extractInputs(inputStates, types);
 
-    Map<CounterexampleToInductivity, BooleanFormula> ctis = new LinkedHashMap<>();
+    SequencedMap<CounterexampleToInductivity, BooleanFormula> ctis = new LinkedHashMap<>();
     for (CFANode loopHead : loopHeads) {
       // We compute the CTI state "at the start of the second loop iteration",
       // because that is where we will later apply it (or its negation) as a candidate invariant.
@@ -881,11 +882,6 @@ class KInductionProver implements AutoCloseable {
 
     @Override
     public TraversalProcess visitConstant(Formula pArg0, Object pArg1) {
-      return TraversalProcess.CONTINUE;
-    }
-
-    @Override
-    public TraversalProcess visitBoundVariable(Formula pArg0, int pArg1) {
       return TraversalProcess.CONTINUE;
     }
   }

@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 /**
- * Implements an Action with side-effects that has no return value. The Action can be executed
+ * Implements an Action with side effects that has no return value. The Action can be executed
  * multiple times.
  */
 abstract class AutomatonAction {
@@ -115,7 +115,7 @@ abstract class AutomatonAction {
     }
   }
 
-  /** Assigns the value of a AutomatonIntExpr to a AutomatonVariable determined by its name. */
+  /** Assigns the value of an AutomatonIntExpr to an AutomatonVariable determined by its name. */
   static class Assignment extends AutomatonAction {
     private final String varId;
     private final AutomatonIntExpr var;
@@ -139,8 +139,8 @@ abstract class AutomatonAction {
       Map<String, AutomatonVariable> vars = pArgs.getAutomatonVariables();
       if (vars.containsKey(varId)) {
         AutomatonVariable automatonVariable = vars.get(varId);
-        if (automatonVariable instanceof AutomatonIntVariable) {
-          ((AutomatonIntVariable) automatonVariable).setValue(res.getValue());
+        if (automatonVariable instanceof AutomatonIntVariable automatonIntVariable) {
+          automatonIntVariable.setValue(res.getValue());
         } else {
           throw new CPATransferException(
               "Cannot assign integer expression to variable '" + automatonVariable.getName() + "'");
@@ -157,7 +157,7 @@ abstract class AutomatonAction {
     }
   }
 
-  /** Change the value of a AutomatonSetVariable by adding or removing values. */
+  /** Change the value of an AutomatonSetVariable by adding or removing values. */
   static class SetAssignment extends AutomatonAction {
     private final String varId;
     private final boolean action;

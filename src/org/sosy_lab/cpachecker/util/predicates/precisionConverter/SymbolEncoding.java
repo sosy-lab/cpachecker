@@ -13,7 +13,7 @@ import static org.sosy_lab.java_smt.api.FormulaType.getBitvectorTypeWithSize;
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.Serial;
 import java.nio.charset.Charset;
@@ -41,21 +41,20 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.FormulaType;
 
 public class SymbolEncoding {
 
-  private Set<CSimpleDeclaration> decls = new HashSet<>();
-  private MachineModel machineModel = null;
+  private final Set<CSimpleDeclaration> decls;
+  private final MachineModel machineModel;
 
   /**
    * This set contains function symbols that have a (maybe) unknown, but valid type. We do not care
    * about the type, because it is automatically determined.
    */
-  private static final Set<String> functionSymbols =
-      Sets.newHashSet(
+  private static final ImmutableSet<String> FUNCTION_SYMBOLS =
+      ImmutableSet.of(
           "and",
           "or",
           "not",
@@ -108,9 +107,6 @@ public class SymbolEncoding {
           "_",
           "divisible");
 
-  /** create an empty symbol encoding */
-  public SymbolEncoding() {}
-
   /** create symbol encoding with information about symbol from variables of the CFA */
   public SymbolEncoding(CFA pCfa) {
     decls = getAllDeclarations(pCfa.nodes());
@@ -149,7 +145,7 @@ public class SymbolEncoding {
 
   public Type<FormulaType<?>> getType(String symbol) throws UnknownFormulaSymbolException {
 
-    if (functionSymbols.contains(symbol)) {
+    if (FUNCTION_SYMBOLS.contains(symbol)) {
       return null;
     }
 
@@ -173,15 +169,15 @@ public class SymbolEncoding {
 
   private Type<FormulaType<?>> getType(CType cType) {
     final FormulaType<?> fType;
-    if (cType instanceof CSimpleType && ((CSimpleType) cType).getType().isFloatingPointType()) {
+    if (cType instanceof CSimpleType cSimpleType && cSimpleType.getType().isFloatingPointType()) {
       fType = FormulaType.RationalType;
     } else {
       int length = machineModel.getSizeofInBits(cType).intValueExact();
       fType = FormulaType.getBitvectorTypeWithSize(length);
     }
     Type<FormulaType<?>> type = new Type<>(fType);
-    if (cType instanceof CSimpleType) {
-      type.setSigness(!((CSimpleType) cType).hasUnsignedSpecifier());
+    if (cType instanceof CSimpleType cSimpleType) {
+      type.setSigness(!cSimpleType.hasUnsignedSpecifier());
     }
     return type;
   }
@@ -191,15 +187,14 @@ public class SymbolEncoding {
     final Set<CSimpleDeclaration> sd = new HashSet<>();
     for (CFANode node : nodes) {
 
-      if (node instanceof CFunctionEntryNode) {
-        Optional<? extends CVariableDeclaration> retVar =
-            ((CFunctionEntryNode) node).getReturnVariable();
+      if (node instanceof CFunctionEntryNode cFunctionEntryNode) {
+        Optional<? extends CVariableDeclaration> retVar = cFunctionEntryNode.getReturnVariable();
         if (retVar.isPresent()) {
           sd.add(retVar.get());
         }
       }
 
-      final FluentIterable<CFAEdge> edges = CFAUtils.allLeavingEdges(node);
+      final FluentIterable<CFAEdge> edges = node.getAllLeavingEdges();
       for (CDeclarationEdge edge : edges.filter(CDeclarationEdge.class)) {
         sd.add(edge.getDeclaration());
       }

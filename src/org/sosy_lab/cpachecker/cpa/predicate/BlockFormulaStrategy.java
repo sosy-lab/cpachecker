@@ -26,7 +26,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 /**
  * This class represents a strategy to get the sequence of block formulas from an ARG path. This
  * class implements the trivial strategy (just get the formulas from the states), but for example
- * {@link BlockFormulaSlicer} implements a more refined strategy. Typically {@link
+ * {@link BlockFormulaSlicer} implements a more refined strategy. Typically, {@link
  * PredicateCPARefinerFactory} automatically creates the desired strategy.
  */
 public class BlockFormulaStrategy {

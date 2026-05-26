@@ -16,6 +16,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -43,8 +44,8 @@ import org.sosy_lab.cpachecker.cpa.constraints.refiner.ConstraintsPrecisionAdjus
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.FullConstraintsPrecision;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -69,7 +70,7 @@ public class ConstraintsCPA
   @Option(description = "Type of merge operator to use", toUppercase = true)
   private MergeType mergeType = MergeType.SEP;
 
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
 
   private AbstractDomain abstractDomain;
   private MergeOperator mergeOperator;
@@ -93,13 +94,15 @@ public class ConstraintsCPA
 
     pConfig.inject(this);
 
-    logger = pLogger;
+    logger = new LogManagerWithoutDuplicates(pLogger);
     solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
     FormulaManagerView formulaManager = solver.getFormulaManager();
     CtoFormulaConverter converter =
         initializeCToFormulaConverter(
             formulaManager, pLogger, pConfig, pShutdownNotifier, pCfa.getMachineModel());
-    constraintsSolver = new ConstraintsSolver(pConfig, solver, formulaManager, converter, stats);
+    constraintsSolver =
+        new ConstraintsSolver(
+            pConfig, pCfa.getMachineModel(), solver, formulaManager, converter, stats);
 
     abstractDomain = initializeAbstractDomain();
     mergeOperator = initializeMergeOperator();
@@ -121,8 +124,8 @@ public class ConstraintsCPA
       MachineModel pMachineModel)
       throws InvalidConfigurationException {
 
-    FormulaEncodingWithPointerAliasingOptions options =
-        new FormulaEncodingWithPointerAliasingOptions(pConfig);
+    CFormulaEncodingWithPointerAliasingOptions options =
+        new CFormulaEncodingWithPointerAliasingOptions(pConfig);
     TypeHandlerWithPointerAliasing typeHandler =
         new TypeHandlerWithPointerAliasing(logger, pMachineModel, options);
 
@@ -141,7 +144,6 @@ public class ConstraintsCPA
     return switch (mergeType) {
       case SEP -> MergeSepOperator.getInstance();
       case JOIN_FITTING_CONSTRAINT -> new ConstraintsMergeOperator(stats);
-      default -> throw new AssertionError("Unhandled merge type " + mergeType);
     };
   }
 
@@ -153,9 +155,6 @@ public class ConstraintsCPA
     abstractDomain =
         switch (lessOrEqualType) {
           case SUBSET -> SubsetLessOrEqualOperator.getInstance();
-          default ->
-              throw new AssertionError(
-                  "Unhandled type for less-or-equal operator: " + lessOrEqualType);
         };
 
     return abstractDomain;

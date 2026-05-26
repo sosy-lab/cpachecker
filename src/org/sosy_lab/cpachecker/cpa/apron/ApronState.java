@@ -130,10 +130,10 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
   @Override
   public boolean equals(Object pObj) {
     // TODO loopstack
-    if (!(pObj instanceof ApronState)) {
+    if (!(pObj instanceof ApronState otherApron)) {
       return false;
     }
-    ApronState otherApron = (ApronState) pObj;
+
     logger.log(Level.FINEST, "apron state: isEqual");
     boolean result;
     try {
@@ -793,17 +793,13 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
   abstract static class Texpr0NodeTraversal<T> {
 
     T visit(Texpr0Node node) {
-      if (node instanceof Texpr0BinNode) {
-        return visit((Texpr0BinNode) node);
-      } else if (node instanceof Texpr0CstNode) {
-        return visit((Texpr0CstNode) node);
-      } else if (node instanceof Texpr0DimNode) {
-        return visit((Texpr0DimNode) node);
-      } else if (node instanceof Texpr0UnNode) {
-        return visit((Texpr0UnNode) node);
-      }
-
-      throw new AssertionError("Unhandled Texpr0Node subclass.");
+      return switch (node) {
+        case Texpr0BinNode texpr0BinNode -> visit(texpr0BinNode);
+        case Texpr0CstNode texpr0CstNode -> visit(texpr0CstNode);
+        case Texpr0DimNode texpr0DimNode -> visit(texpr0DimNode);
+        case Texpr0UnNode texpr0UnNode -> visit(texpr0UnNode);
+        default -> throw new AssertionError("Unhandled Texpr0Node subclass.");
+      };
     }
 
     abstract T visit(Texpr0BinNode node);
@@ -844,17 +840,15 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
     @Override
     BitvectorFormula visit(Texpr0CstNode pNode) {
       if (pNode.isScalar()) {
-        double value;
         Scalar scalar = pNode.getConstant().inf();
-        if (scalar instanceof DoubleScalar) {
-          value = ((DoubleScalar) scalar).get();
-        } else if (scalar instanceof MpqScalar) {
-          value = ((MpqScalar) scalar).get().doubleValue();
-        } else if (scalar instanceof MpfrScalar) {
-          value = ((MpfrScalar) scalar).get().doubleValue(Mpfr.RNDN);
-        } else {
-          throw new AssertionError("Unhandled Scalar subclass: " + scalar.getClass());
-        }
+        final double value =
+            switch (scalar) {
+              case DoubleScalar doubleScalar -> doubleScalar.get();
+              case MpqScalar mpqScalar -> mpqScalar.get().doubleValue();
+              case MpfrScalar mpfrScalar -> mpfrScalar.get().doubleValue(Mpfr.RNDN);
+              default ->
+                  throw new AssertionError("Unhandled Scalar subclass: " + scalar.getClass());
+            };
         if (DoubleMath.isMathematicalInteger(value)) {
           // TODO fix size, machineModel needed?
           return bitFmgr.makeBitvector(32, (int) value);
@@ -894,12 +888,14 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
     BitvectorFormula visit(Texpr0UnNode pNode) {
       BitvectorFormula operand = visit(pNode.getArgument());
       switch (pNode.getOperation()) {
-        case Texpr0UnNode.OP_NEG:
+        case Texpr0UnNode.OP_NEG -> {
           return bitFmgr.negate(operand);
-        case Texpr0UnNode.OP_SQRT:
-          throw new AssertionError("sqrt not implemented in this visitor");
-        default:
+        }
+        case Texpr0UnNode.OP_SQRT ->
+            throw new AssertionError("sqrt not implemented in this visitor");
+        default -> {
           // nothing to do here, we ignore casts
+        }
       }
       return operand;
     }
@@ -925,7 +921,7 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
 
     @Override
     Boolean visit(Texpr0CstNode pNode) {
-      return Boolean.TRUE;
+      return true;
     }
 
     @Override

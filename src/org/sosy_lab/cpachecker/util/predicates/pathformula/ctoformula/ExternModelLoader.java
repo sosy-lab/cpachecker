@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -40,7 +41,7 @@ public class ExternModelLoader {
   public BooleanFormula handleExternModelFunction(List<CExpression> parameters, SSAMapBuilder ssa) {
     assert !parameters.isEmpty() : "No external model given!";
     // the parameter comes in C syntax (with ")
-    String filename = parameters.get(0).toASTString().replace("\"", "");
+    String filename = parameters.getFirst().toASTString().replace("\"", "");
     Path modelFile = Path.of(filename);
     return loadExternalFormula(modelFile, ssa);
   }
@@ -48,9 +49,9 @@ public class ExternModelLoader {
   /**
    * Loads a formula from an external dimacs file and returns it as BooleanFormula object. Each
    * variable in the dimacs file will be associated with a program variable if a corresponding (name
-   * equality) variable is known. Otherwise we use internal SMT variable to represent the dimacs
+   * equality) variable is known. Otherwise, we use internal SMT variable to represent the dimacs
    * variable and do not introduce a program variable. Might lead to problems when the program
-   * variable is introduced afterwards.
+   * variable is introduced afterward.
    *
    * @param pModelFile File with the dimacs model.
    * @return BooleanFormula
@@ -105,7 +106,9 @@ public class ExternModelLoader {
                 // this variable was already declared in the program
                 Formula formulaVar =
                     fmgr.makeVariable(
-                        conv.getFormulaTypeFromCType(ssa.getType(predName)), predName, ssaIndex);
+                        conv.getFormulaTypeFromType((CType) ssa.getType(predName)),
+                        predName,
+                        ssaIndex);
                 if (elem > 0) {
                   constraintPart =
                       fmgr.makeNot(fmgr.makeEqual(formulaVar, zero)); // C semantics (x) <=> (x!=0)

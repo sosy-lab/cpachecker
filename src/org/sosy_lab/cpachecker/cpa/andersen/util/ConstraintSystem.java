@@ -220,7 +220,7 @@ public class ConstraintSystem {
   }
 
   /**
-   * Constructs the online graph for the analysis. Additionally an offline graph for HCD is
+   * Constructs the online graph for the analysis. Additionally, an offline graph for HCD is
    * constructed to speed up the computation of the dynamic transitive closure with it.
    *
    * @param bConstr List of all {@link BaseConstraint}s that should be considered.<br>

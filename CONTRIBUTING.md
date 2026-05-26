@@ -86,5 +86,5 @@ Development is done in branches. Please follow these guidelines:
 
 - All branches are protected and force pushes are not allowed.
   We clean up merged branches and delete them from time to time.
-  So please do not link to them from outside of the project;
+  So please do not link to them from outside the project;
   use permalinks (with the git hash or a tag) instead.

@@ -186,14 +186,12 @@ public final class PredicatePrecisionBootstrapper {
           IO.checkReadableFile(predicatesFile);
           if (AutomatonGraphmlParser.isGraphmlAutomatonFromConfiguration(predicatesFile)) {
             switch (AutomatonGraphmlParser.getWitnessType(predicatesFile)) {
-              case CORRECTNESS_WITNESS:
-                result =
-                    result.mergeWith(
-                        parseInvariantsFromCorrectnessWitnessAsPredicates(predicatesFile));
-                break;
-              case VIOLATION_WITNESS:
-                logger.log(Level.WARNING, "Invariants do not exist in a violaton witness");
-                break;
+              case CORRECTNESS_WITNESS ->
+                  result =
+                      result.mergeWith(
+                          parseInvariantsFromCorrectnessWitnessAsPredicates(predicatesFile));
+              case VIOLATION_WITNESS ->
+                  logger.log(Level.WARNING, "Invariants do not exist in a violaton witness");
             }
           } else if (AutomatonWitnessV2ParserUtils.isYAMLWitness(predicatesFile)) {
             if (!AutomatonWitnessV2ParserUtils.getWitnessTypeIfYAML(predicatesFile)

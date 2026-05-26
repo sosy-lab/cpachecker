@@ -243,7 +243,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
     }
     if (!inserted) {
       if (pOther.touches(lastInterval)) {
-        resultIntervals.remove(resultIntervals.size() - 1);
+        resultIntervals.removeLast();
         lastInterval = union(pOther, lastInterval);
         resultIntervals.add(lastInterval);
       } else {
@@ -538,7 +538,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
   /**
    * Checks if there is a lower bound to this compound state.
    *
-   * @return <code>true</code> if there is an lower bound to this compound state, <code>false</code>
+   * @return <code>true</code> if there is a lower bound to this compound state, <code>false</code>
    *     otherwise.
    */
   @Override
@@ -625,8 +625,8 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
     if (this == pOther) {
       return true;
     }
-    return pOther instanceof CompoundMathematicalInterval
-        && Arrays.equals(intervals, ((CompoundMathematicalInterval) pOther).intervals);
+    return pOther instanceof CompoundMathematicalInterval other
+        && Arrays.equals(intervals, other.intervals);
   }
 
   @Override
@@ -1462,7 +1462,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
    * represents the false state while the other does not contain the false state, a state
    * representing true is returned. If either both of the states represent the false state or
    * neither of them represents false, a state representing false is returned. If one of the states
-   * is bottom, bottom is returned. Otherwise top is returned.
+   * is bottom, bottom is returned. Otherwise, top is returned.
    *
    * @param pState the state to XOR with this state.
    * @return a state representing true if either this state or the given state represents false
@@ -1513,7 +1513,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
    * the false state while the other does not contain the false state, a state representing true is
    * returned. If either both of the states represent the false state or neither of them represents
    * false, a state representing false is returned. If one of the states is bottom, bottom is
-   * returned. Otherwise top is returned.
+   * returned. Otherwise, top is returned.
    *
    * @param p1 one of the states to apply the exclusive or operation on.
    * @param p2 one of the states to apply the exclusive or operation on.

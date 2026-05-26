@@ -27,7 +27,7 @@ public class ValueAnalysisPrefixProvider extends GenericPrefixProvider<ValueAnal
    * This method acts as the constructor of the class.
    *
    * @param pLogger the logger to use
-   * @param pCfa the cfa in use
+   * @param pCfa the CFA in use
    */
   public ValueAnalysisPrefixProvider(
       LogManager pLogger, CFA pCfa, Configuration config, ShutdownNotifier pShutdownNotifier)

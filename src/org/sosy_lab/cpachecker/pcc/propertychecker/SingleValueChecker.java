@@ -44,7 +44,8 @@ public class SingleValueChecker extends PerElementPropertyChecker {
       throws UnsupportedOperationException {
     // check if value correctly specified at location
     CFANode node = AbstractStates.extractLocation(pElemToCheck);
-    if (node instanceof CFALabelNode && ((CFALabelNode) node).getLabel().equals(labelLocVarVal)) {
+    if (node instanceof CFALabelNode cFALabelNode
+        && cFALabelNode.getLabel().equals(labelLocVarVal)) {
       Value value =
           AbstractStates.extractStateByType(pElemToCheck, ValueAnalysisState.class)
               .getValueAndTypeFor(varValRep)

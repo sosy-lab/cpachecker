@@ -135,7 +135,7 @@ public final class PredicateBasedPrefixProvider implements PrefixProvider {
 
     PathIterator iterator = pPath.pathIterator();
     while (iterator.hasNext()) {
-      // if we should shutdown we do just break out of this while loop
+      // if we should shut down we do just break out of this while loop
       if (shutdownNotifier.shouldShutdown()) {
         break;
       }
@@ -172,7 +172,7 @@ public final class PredicateBasedPrefixProvider implements PrefixProvider {
 
             // create and add infeasible prefix, mind that the ARGPath has not (!)
             // failing assume operations replaced with no-ops, as this is not needed here,
-            // and it would be cumbersome for ABE, so lets skip it
+            // and it would be cumbersome for ABE, so let's skip it
             ARGPath currentPrefixPath = ARGUtils.getOnePathTo(currentState);
 
             // put prefix data into a simple container for now
@@ -189,11 +189,11 @@ public final class PredicateBasedPrefixProvider implements PrefixProvider {
             prover.pop();
 
             // replace respective term by tautology
-            terms.remove(terms.size() - 1);
+            terms.removeLast();
             terms.add(prover.push(makeTrue()));
 
             // replace failing block formula by tautology, too
-            pathFormula.remove(pathFormula.size() - 1);
+            pathFormula.removeLast();
             pathFormula.add(makeTrue());
           }
         } catch (SolverException e) {
@@ -228,13 +228,13 @@ public final class PredicateBasedPrefixProvider implements PrefixProvider {
   }
 
   /**
-   * This method checks if a unsat call is necessary. It the path is not single-block encoded, then
+   * This method checks if an unsat call is necessary. It the path is not single-block encoded, then
    * unsatisfiability has to be checked always. In case it is single-block encoded, then it suffices
    * to check unsatisfiability at assume edges.
    *
    * @param pPath the path to check
    * @param pCfaEdge the current edge
-   * @return true if a unsat call is neccessary, else false
+   * @return whether an unsat call is necessary
    */
   private boolean checkUnsat(final ARGPath pPath, final CFAEdge pCfaEdge) {
     if (!isSingleBlockEncoded(pPath)) {
@@ -257,7 +257,7 @@ public final class PredicateBasedPrefixProvider implements PrefixProvider {
    * in the path are abstraction states.
    *
    * @param pPath the path to check
-   * @return true, if all states in the path are abstraction states, else false
+   * @return whether all states in the path are abstraction states
    */
   private boolean isSingleBlockEncoded(final ARGPath pPath) {
     return from(pPath.asStatesList()).allMatch(PredicateAbstractState::containsAbstractionState);

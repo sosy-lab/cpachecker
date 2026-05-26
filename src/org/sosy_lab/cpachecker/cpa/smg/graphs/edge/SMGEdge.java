@@ -29,11 +29,11 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 public abstract class SMGEdge {
 
   /**
-   * Represents an (unique?) identifier of a memory cell (i.e., its address). We do not guarantee
+   * Represents a (unique?) identifier of a memory cell (i.e., its address). We do not guarantee
    * that it represents the actual content (data value) of the memory cell.
    *
    * <p>Special case: The value ZERO is special and represents the NULL_ADDRESS, i.e. can be
-   * interpreted as an unaccessible memory cell at position ZERO.
+   * interpreted as an inaccessible memory cell at position ZERO.
    */
   protected final SMGValue value;
 

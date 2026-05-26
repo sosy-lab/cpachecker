@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
  * Class implements so called B&B memory model. B&B stands for Rod Burstall and Richard Bornat.
  *
  * <p>In B&B model fields of struct-types can exist in separate memory space from the other fields
- * and pointers of the same type if there is no address-taking of the field in program. Otherwise
+ * and pointers of the same type if there is no address-taking of the field in program. Otherwise,
  * the field would exist in the memory space with entities mentioned above. That allows to eliminate
  * false positives that are caused by the assumptions made by the analysis due to unknown body of
  * the memory-returning functions.

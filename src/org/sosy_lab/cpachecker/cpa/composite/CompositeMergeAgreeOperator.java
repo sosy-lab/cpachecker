@@ -23,8 +23,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Provides a MergeOperator implementation that delegates to the component CPA. If any of those CPAs
- * returns an state that does not cover both its input states, this implementation returns its
- * second input state (i.e., it behaves like MergeSep).
+ * returns a state that does not cover both its input states, this implementation returns its second
+ * input state (i.e., it behaves like MergeSep).
  *
  * <p>This operator is good for the combination of CPAs where some CPAs never merge and some may
  * merge.

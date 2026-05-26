@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.test;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import java.io.File;
@@ -30,6 +29,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -71,21 +71,21 @@ public class TestDataTools {
     return new CIdExpression(loc, decl);
   }
 
-  public static CFA makeCFA(String... lines) throws ParserException, InterruptedException {
+  public static ImmutableCFA makeCFA(String program) throws ParserException, InterruptedException {
     try {
-      return makeCFA(configurationForTest().build(), lines);
+      return makeCFA(configurationForTest().build(), program);
     } catch (InvalidConfigurationException e) {
       throw new AssertionError("Default configuration is invalid?");
     }
   }
 
-  public static CFA makeCFA(Configuration config, String... lines)
+  public static ImmutableCFA makeCFA(Configuration config, String program)
       throws InvalidConfigurationException, ParserException, InterruptedException {
 
     CFACreator creator =
         new CFACreator(config, LogManager.createTestLogManager(), ShutdownNotifier.createDummy());
 
-    return creator.parseSourceAndCreateCFA(Joiner.on('\n').join(lines));
+    return creator.parseSourceAndCreateCFA(program);
   }
 
   /**
@@ -115,14 +115,14 @@ public class TestDataTools {
       Preconditions.checkState(!node.isLoopStart(), "Can only work on loop-free fragments");
       PathFormula path = mapping.get(node);
 
-      for (CFAEdge e : CFAUtils.leavingEdges(node)) {
+      for (CFAEdge e : node.getLeavingEdges()) {
         CFANode toNode = e.getSuccessor();
         PathFormula old = mapping.get(toNode);
 
         PathFormula n;
         if (ignoreDeclarations
-            && e instanceof CDeclarationEdge
-            && ((CDeclarationEdge) e).getDeclaration() instanceof CVariableDeclaration) {
+            && e instanceof CDeclarationEdge cDeclarationEdge
+            && cDeclarationEdge.getDeclaration() instanceof CVariableDeclaration) {
 
           // Skip variable declaration edges.
           n = path;
@@ -144,22 +144,27 @@ public class TestDataTools {
   }
 
   /** Convert a given string to a {@link CFA}, assuming it is a body of a single function. */
-  public static CFA toSingleFunctionCFA(CFACreator creator, String... parts)
+  public static ImmutableCFA toSingleFunctionCFA(CFACreator creator, String functionBody)
       throws InvalidConfigurationException, ParserException, InterruptedException {
-    return creator.parseSourceAndCreateCFA(getProgram(parts));
+    return creator.parseSourceAndCreateCFA(getProgram(functionBody));
   }
 
-  public static CFA toMultiFunctionCFA(CFACreator creator, String... parts)
+  public static ImmutableCFA toMultiFunctionCFA(CFACreator creator, String program)
       throws InvalidConfigurationException, ParserException, InterruptedException {
-    return creator.parseSourceAndCreateCFA(Joiner.on('\n').join(parts));
+    return creator.parseSourceAndCreateCFA(program);
   }
 
-  private static String getProgram(String... parts) {
-    return "int main() {" + Joiner.on('\n').join(parts) + "}";
+  private static String getProgram(String functionBody) {
+    return "int main() {\n" + functionBody + "\n}";
   }
 
   /**
-   * Returns and, if necessary, creates a new empty C or Java program in the given temporary folder.
+   * Returns and, if necessary, creates a new empty program of the given programming language in the
+   * given temporary folder.
+   *
+   * @param pTempFolder The temporary folder to create the program file in.
+   * @param pLanguage The programming language of the program.
+   * @return The path to the program file (for C, LLVM, SV-LIB)
    */
   public static String getEmptyProgram(TemporaryFolder pTempFolder, Language pLanguage)
       throws IOException {
@@ -167,23 +172,27 @@ public class TestDataTools {
     String fileContent;
     String program;
     switch (pLanguage) {
-      case C:
+      case C -> {
         tempFile = getTempFile(pTempFolder, "program.i");
-        fileContent = getProgram();
+        fileContent = getProgram("");
         program = tempFile.toString();
-        break;
-      case JAVA:
+      }
+      case JAVA -> {
         tempFile = getTempFile(pTempFolder, "Main.java");
         fileContent = "public class Main { public static void main(String... args) {} }";
         program = "Main";
-        break;
-      case LLVM:
+      }
+      case LLVM -> {
         tempFile = getTempFile(pTempFolder, "program.ll");
         fileContent = "define i32 @main() { entry:  ret i32 0}";
         program = tempFile.toString();
-        break;
-      default:
-        throw new AssertionError("Unhandled language: " + pLanguage);
+      }
+      case SVLIB -> {
+        tempFile = getTempFile(pTempFolder, "program.svlib");
+        fileContent = "(define-proc f1 () () () (sequence))\n" + "(verify-call f1 ())";
+        program = tempFile.toString();
+      }
+      default -> throw new AssertionError("Unhandled language: " + pLanguage);
     }
     if (tempFile.createNewFile()) {
       // if the file didn't exist yet, write its content

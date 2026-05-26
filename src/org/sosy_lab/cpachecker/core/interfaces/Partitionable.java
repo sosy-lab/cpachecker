@@ -23,7 +23,7 @@ public interface Partitionable {
    *
    * <p>- needs not to stay constant regarding the object identity relation defined by the ==
    * operator - should probably never be an array (they miss a meaningful equals() implementation),
-   * use an list instead
+   * use a list instead
    *
    * <p>There is no restriction on the number of different (regarding equals()) keys the objects of
    * one class may have: It is legal for all objects to have the same key as well as for all objects

@@ -429,14 +429,14 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
     }
     TimeSpan adjustedTimeLimit = cpuTimePerProperty;
     switch (limitsAdjustmentStrategy) {
-      case DISTRIBUTE_REMAINING:
-        adjustedTimeLimit =
-            TimeSpan.difference(overallCpuTimeLimit, overallSpentCpuTime)
-                .divide(overallPartitions - currentPartitionNumber);
-        break;
-      case DISTRIBUTE_BY_PROPERTY:
+      case DISTRIBUTE_REMAINING ->
+          adjustedTimeLimit =
+              TimeSpan.difference(overallCpuTimeLimit, overallSpentCpuTime)
+                  .divide(overallPartitions - currentPartitionNumber);
+      case DISTRIBUTE_BY_PROPERTY -> {
         if (partition.getNumberOfProperties() == 1) {
-          AbstractSingleProperty currentProperty = partition.getProperties().getProperties().get(0);
+          AbstractSingleProperty currentProperty =
+              partition.getProperties().getProperties().getFirst();
           if (propertyDistribution.containsKey(currentProperty)) {
             adjustedTimeLimit =
                 TimeSpan.ofMillis(
@@ -444,9 +444,8 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
                         propertyDistribution.get(currentProperty) * adjustedTimeLimit.asMillis()));
           }
         }
-        break;
-      default:
-        break;
+      }
+      default -> {}
     }
     if (currentPartitionNumber == 0) {
       adjustedTimeLimit =
@@ -477,9 +476,13 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
       Configuration singleConfig = innerConfigBuilder.build();
       CoreComponentsFactory coreComponents =
           new CoreComponentsFactory(
-              singleConfig, logger, shutdownManager.getNotifier(), AggregatedReachedSets.empty());
+              singleConfig,
+              logger,
+              shutdownManager.getNotifier(),
+              AggregatedReachedSets.empty(),
+              cfa);
 
-      return coreComponents.createAlgorithm(cpa, cfa, specification);
+      return coreComponents.createAlgorithm(cpa, specification);
     } catch (InvalidConfigurationException e) {
       // Should be unreachable, since configuration is already checked
       throw new CPAException("Cannot create configuration for inner algorithm", e);

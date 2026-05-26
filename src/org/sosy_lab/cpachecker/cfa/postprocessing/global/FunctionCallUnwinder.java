@@ -96,10 +96,9 @@ public class FunctionCallUnwinder {
       // get functioncalls from the CFA
       final FunctionCallCollector visitor = new FunctionCallCollector();
       CFATraversal.dfs().traverseOnce(entryNode, visitor);
-      final Collection<AStatementEdge> functionCalls = visitor.getFunctionCalls();
 
       // unwind recursion
-      for (AStatementEdge statementEdge : functionCalls) {
+      for (AStatementEdge statementEdge : visitor.getFunctionCalls()) {
 
         if (!isFunctionCall(statementEdge, functions.keySet())) {
           continue;
@@ -141,11 +140,10 @@ public class FunctionCallUnwinder {
     final AFunctionCall call = (AFunctionCall) functionCallEdge.getStatement();
 
     final AStatementEdge newEdge;
-    if (call instanceof CFunctionCall) {
+    if (call instanceof CFunctionCall cFunctionCall) {
 
       // get old values
-      final CDeclaration declaration =
-          ((CFunctionCall) call).getFunctionCallExpression().getDeclaration();
+      final CDeclaration declaration = cFunctionCall.getFunctionCallExpression().getDeclaration();
       Preconditions.checkNotNull(declaration);
       final String oldFunctionName = declaration.getQualifiedName();
 
@@ -182,15 +180,14 @@ public class FunctionCallUnwinder {
   }
 
   static @Nullable String getNameOfFunction(final AStatementEdge edge) {
-    if (!(edge instanceof CStatementEdge)) {
+    if (!(edge instanceof CStatementEdge cStatementEdge)) {
       return null;
     }
-    final CStatement statement = ((CStatementEdge) edge).getStatement();
-    if (!(statement instanceof CFunctionCall)) {
+    final CStatement statement = cStatementEdge.getStatement();
+    if (!(statement instanceof CFunctionCall cFunctionCall)) {
       return null;
     }
-    final CDeclaration declaration =
-        ((CFunctionCall) statement).getFunctionCallExpression().getDeclaration();
+    final CDeclaration declaration = cFunctionCall.getFunctionCallExpression().getDeclaration();
     if (declaration == null) {
       return null;
     }
@@ -208,7 +205,7 @@ public class FunctionCallUnwinder {
   }
 
   /**
-   * checks, iff there is an call-stack from father to child. In the graph this would be a way from
+   * checks, iff there is a call-stack from father to child. In the graph this would be a way from
    * father to child. It should be more efficient to search backwards, because children have only
    * one father in most cases.
    */

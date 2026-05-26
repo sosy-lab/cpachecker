@@ -326,7 +326,7 @@ class ComputeCoverage:
         )
 
     def generate_executions(self):
-        raise NotImplementedError("Instantiate one of the sub-classes.")
+        raise NotImplementedError("Instantiate one of the subclasses.")
 
     def get_coverage(self, cex_spec_file, instance, aa_file, heap_size, logger):
         cex_prefix_coverage_file = os.path.splitext(cex_spec_file)[0] + cov_extension

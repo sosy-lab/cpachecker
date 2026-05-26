@@ -88,7 +88,7 @@ public final class DOTBuilder {
     private final Optional<ImmutableSet<CFANode>> loopHeads;
     private final Function<CFANode, String> formatNodeLabel;
 
-    public DotGenerator(CFA cfa, Function<CFANode, String> pFormatNodeLabel) {
+    DotGenerator(CFA cfa, Function<CFANode, String> pFormatNodeLabel) {
       loopHeads = cfa.getAllLoopHeads();
       formatNodeLabel = pFormatNodeLabel;
     }

@@ -39,42 +39,39 @@ public class SolverViewBasedTest0 extends SolverBasedTest0 {
     // We could also use the same theory (QF_AUFLIA) for all solvers,
     // but maybe testing a set of several theories is not bad after all.
     switch (solverToUse()) {
-      case SMTINTERPOL:
+      case SMTINTERPOL -> {
         newConfig.setOption("cpa.predicate.encodeBitvectorAs", "INTEGER");
         newConfig.setOption("cpa.predicate.encodeFloatAs", "RATIONAL");
-        break;
-      case PRINCESS:
+      }
+      case PRINCESS -> {
         newConfig.setOption("cpa.predicate.encodeBitvectorAs", "INTEGER");
         newConfig.setOption("cpa.predicate.encodeFloatAs", "INTEGER");
-        break;
-      case BOOLECTOR:
-        assume()
-            .withMessage("Solver %s does not support the tested features", solverToUse())
-            .that(solverToUse())
-            .isNotEqualTo(Solvers.BOOLECTOR);
-        // newConfig.setOption("cpa.predicate.createFormulaEncodingEagerly", "false");
-        // newConfig.setOption("cpa.predicate.encodeIntegerAs", "BITVECTOR");
-        // newConfig.setOption("cpa.predicate.encodeBitvectorAs", "BITVECTOR");
-        // newConfig.setOption("cpa.predicate.encodeFloatAs", "INTEGER");
-        break;
-      case BITWUZLA:
-        newConfig.setOption("cpa.predicate.encodeIntegerAs", "BITVECTOR");
-        break;
-      case OPENSMT:
+      }
+      case BOOLECTOR ->
+          assume()
+              .withMessage("Solver %s does not support the tested features", solverToUse())
+              .that(solverToUse())
+              .isNotEqualTo(Solvers.BOOLECTOR);
+      // newConfig.setOption("cpa.predicate.createFormulaEncodingEagerly", "false");
+      // newConfig.setOption("cpa.predicate.encodeIntegerAs", "BITVECTOR");
+      // newConfig.setOption("cpa.predicate.encodeBitvectorAs", "BITVECTOR");
+      // newConfig.setOption("cpa.predicate.encodeFloatAs", "INTEGER");
+      case BITWUZLA -> newConfig.setOption("cpa.predicate.encodeIntegerAs", "BITVECTOR");
+      case OPENSMT -> {
         newConfig.setOption("cpa.predicate.encodeBitvectorAs", "INTEGER");
         newConfig.setOption("cpa.predicate.encodeFloatAs", "INTEGER");
-        break;
-      case YICES2:
-        assume()
-            .withMessage(
-                "Solver %s is not available on all systems, disabling it for CPAchecker",
-                solverToUse())
-            .that(solverToUse())
-            .isNotEqualTo(Solvers.YICES2);
-        break;
-      default:
+      }
+      case YICES2 ->
+          assume()
+              .withMessage(
+                  "Solver %s is not available on all systems, disabling it for CPAchecker",
+                  solverToUse())
+              .that(solverToUse())
+              .isNotEqualTo(Solvers.YICES2);
+      default -> {
         newConfig.setOption("cpa.predicate.encodeBitvectorAs", "BITVECTOR");
         newConfig.setOption("cpa.predicate.encodeFloatAs", "FLOAT");
+      }
     }
     return newConfig;
   }

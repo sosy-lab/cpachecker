@@ -129,7 +129,7 @@ class AssignmentHandler {
     }
   }
 
-  private final FormulaEncodingWithPointerAliasingOptions options;
+  private final CFormulaEncodingWithPointerAliasingOptions options;
   private final CToFormulaConverterWithPointerAliasing conv;
   private final TypeHandlerWithPointerAliasing typeHandler;
   private final CFAEdge edge;
@@ -437,7 +437,7 @@ class AssignmentHandler {
       CType lhsType = typeHandler.getSimplifiedType(lhsDummy);
 
       if (assignmentOptions.forcePointerAssignmentOrArrayAttachment()) {
-        // lhsType may be an array but we have to interpret it as a pointer instead
+        // lhsType may be an array, but we have to interpret it as a pointer instead
         lhsType = CTypes.adjustFunctionOrArrayType(lhsType);
       }
 
@@ -792,7 +792,7 @@ class AssignmentHandler {
 
       OptionalInt arrayLength = arrayType.getLengthAsInt();
 
-      CExpressionAssignmentStatement firstAssignment = assignments.get(0);
+      CExpressionAssignmentStatement firstAssignment = assignments.getFirst();
 
       // we can visit lhs and rhs multiple times without side effects
       // as there is no CFunctionCallExpression visit possible

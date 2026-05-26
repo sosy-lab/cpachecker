@@ -167,7 +167,7 @@ public class ReachedSetFactory {
               + "NORMAL: just a simple set\n"
               + "LOCATIONMAPPED: a different set per location (faster, states with different"
               + " locations cannot be merged)\n"
-              + "PARTITIONED: partitioning depending on CPAs (e.g Location, Callstack etc.)\n"
+              + "PARTITIONED: partitioning depending on CPAs (e.g. Location, Callstack etc.)\n"
               + "PSEUDOPARTITIONED: based on PARTITIONED, uses additional info about the states'"
               + " lattice (maybe faster for some special analyses which use merge_sep and stop_sep")
   private ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
@@ -272,7 +272,6 @@ public class ReachedSetFactory {
           case LOCATIONMAPPED -> new LocationMappedReachedSet(cpa, waitlistFactory);
           case USAGE -> new UsageReachedSet(cpa, waitlistFactory, usageConfig, logger);
           case NORMAL -> new DefaultReachedSet(cpa, waitlistFactory);
-          default -> new DefaultReachedSet(cpa, waitlistFactory);
         };
     if (withStatistics) {
       reached = new StatisticsReachedSet(reached);

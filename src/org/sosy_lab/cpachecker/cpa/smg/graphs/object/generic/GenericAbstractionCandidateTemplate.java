@@ -124,7 +124,7 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
       Set<SMGEdgeHasValue> pSharedFields,
       SMGRegion pRoot) {
 
-    /*It is assumed, that shared pointer connect the abstraction to outside of the abstraction in the smg.
+    /*It is assumed, that shared pointer connect the abstraction to outside the abstraction in the SMG.
      *For every shared pointer, generate such an edge. The stop step has no further abstractions connected to it,
      *so the pointers connecting regions within the abstraction are empty.*/
 
@@ -206,7 +206,7 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
    * Create simple inductive abstraction with one base object, the root region, and as many
    * inductive steps, as there are pointer leading to the base object.
    *
-   * <p>The abstraction is generated from two concrete regions of two smgs. One region represents
+   * <p>The abstraction is generated from two concrete regions of two SMGs. One region represents
    * the base object at the end of the abstraction, while the other represents an object in the
    * middle of the abstraction. Based on which pointer they share, that lead to and from these
    * objects, and which pointer they don't share, a simple inductive abstraction is generated.
@@ -216,7 +216,7 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
    * @param sharedIPointer shared Pointer
    * @param sharedOPointer shared Pointer
    * @param nonSharedOPointer non shared Pointer
-   * @param pRoot smg root object
+   * @param pRoot SMG root object
    * @return abstraction
    */
   public static GenericAbstractionCandidateTemplate createSimpleInductiveGenericAbstractionTemplate(

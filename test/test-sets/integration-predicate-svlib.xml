@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN"
+  "https://www.sosy-lab.org/benchexec/benchmark-1.9.dtd">
+<benchmark tool="cpachecker" timelimit="300 s" hardtimelimit="360 s" memlimit="5 GB" cpuCores="2">
+
+  <option name="--no-output-files"/>
+  <option name="--heap">2000M</option>
+  <option name="--option">counterexample.export.svlib=witness.svlib</option>
+  <option name="--option">cpa.arg.svLibCorrectnessWitness=witness.svlib</option>
+  <!--
+    Disable the saving of the witnesses. This should be enabled as soon as validation of
+    SV-LIB programs is supported by CPAchecker.
+
+    <resultfiles>**.svlib*</resultfiles>
+  -->
+
+  <rundefinition>
+    <option name="--predicateAnalysis-svlib"/>
+  </rundefinition>
+
+  <!--
+    Currently there are so few SV-LIB benchmarks that we can afford
+    to run all of them with witness generation enabled.
+  -->
+  <tasks name="SV-LIB.Main">
+    <include>../programs/sv-lib/*.yml</include>
+    <includesfile>../programs/svlib-benchmarks/CTranslated.set</includesfile>
+    <includesfile>../programs/svlib-benchmarks/CoreValidation.set</includesfile>
+    <includesfile>../programs/svlib-benchmarks/CoreVerification.set</includesfile>
+    <propertyfile>../programs/svlib-benchmarks/properties/correct-tags.prp</propertyfile>
+  </tasks>
+</benchmark>

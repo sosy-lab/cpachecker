@@ -33,18 +33,52 @@ class CFloatWrapper {
     mantissa = pMan;
   }
 
+  /**
+   * Get the exponent
+   *
+   * <p>The exponent returned will be <code>biased</code>. See {@link
+   * org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format#bias()} for how biased exponents
+   * work in IEEE-754.
+   */
   long getExponent() {
     return exponent;
   }
 
+  /**
+   * Set the exponent
+   *
+   * <p>The exponent is expected to be <code>biased</code>. See {@link
+   * org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format#bias()} for how biased exponents
+   * work in IEEE-754.
+   */
   void setExponent(long exponent) {
     this.exponent = exponent;
   }
 
+  /**
+   * Get the mantissa
+   *
+   * <p>For single- and double-precision values the leading bit of the mantissa (the so-called
+   * "hidden bit") is not included in the value returned by this function. For "extended" precision
+   * values the entire mantissa is returned as the format does not use a "hidden" bit.
+   *
+   * <p>"Hidden bit" refers to the leading bit of the significand. Since it is always <code>1</code>
+   * in normalized binary floating point numbers, it can be dropped to save space.
+   */
   long getMantissa() {
     return mantissa;
   }
 
+  /**
+   * Set the mantissa
+   *
+   * <p>For single- and double-precision values the leading bit of the mantissa (the so-called
+   * "hidden bit") must not be included in the argument. For "extended" precision values the entire
+   * mantissa must be used as there is no "hidden" bit in this format.
+   *
+   * <p>"Hidden bit" refers to the leading bit of the significand. Since it is always <code>1</code>
+   * in normalized binary floating point numbers, it can be dropped to save space.
+   */
   void setMantissa(long mantissa) {
     this.mantissa = mantissa;
   }

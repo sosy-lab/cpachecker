@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 /**
  * Contains assumptions {@link AExpressionStatement} for a given statement, which is represented as
- * cfa edge {@link CFAEdge}, in the error path.
+ * CFA edge {@link CFAEdge}, in the error path.
  */
 public class CFAEdgeWithAssumptions {
 
@@ -29,7 +29,7 @@ public class CFAEdgeWithAssumptions {
   private final String comment;
 
   /**
-   * Creates a edge {@link CFAEdgeWithAssumptions} that contains concrete assumptions along the
+   * Creates an edge {@link CFAEdgeWithAssumptions} that contains concrete assumptions along the
    * error path.
    *
    * @param pEdge The CFAEdge that represents a part of the errorpath.
@@ -88,10 +88,8 @@ public class CFAEdgeWithAssumptions {
     StringBuilder result = new StringBuilder();
 
     for (AExpressionStatement expressionStmt : expressionStmts) {
-      if (expressionStmt instanceof CExpressionStatement) {
-        result.append(
-            ((CExpressionStatement) expressionStmt)
-                .accept(CStatementToOriginalCodeVisitor.INSTANCE));
+      if (expressionStmt instanceof CExpressionStatement cExpressionStatement) {
+        result.append(cExpressionStatement.accept(CStatementToOriginalCodeVisitor.INSTANCE));
       } else {
         return "";
       }
@@ -147,7 +145,7 @@ public class CFAEdgeWithAssumptions {
    * Try to merge two different edges {@link CFAEdgeWithAssumptions}.
    *
    * @param pEdge the other edge to be merged with this edge.
-   * @return A Edge that contain both assumptions of the merged edges.
+   * @return An edge that contain both assumptions of the merged edges.
    */
   public CFAEdgeWithAssumptions mergeEdge(CFAEdgeWithAssumptions pEdge) {
     // FIXME this method is not matured, it just combines all assumptions

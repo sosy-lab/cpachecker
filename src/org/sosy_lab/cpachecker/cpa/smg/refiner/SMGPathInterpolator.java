@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedMap;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.UniqueIdGenerator;
@@ -96,7 +97,7 @@ public class SMGPathInterpolator {
    * This method propagates the interpolant "false" to all states that are in the original error
    * path, but are not anymore in the (shorter) prefix.
    *
-   * <p>The property that every state on the path beneath the first state with an false interpolant
+   * <p>The property that every state on the path beneath the first state with a false interpolant
    * is needed by some code in ValueAnalysisInterpolationTree a subclass of {@link
    * InterpolationTree}, i.e., for global refinement. This property could also be enforced there,
    * but interpolant creation should only happen during interpolation, and not in the data structure
@@ -139,7 +140,8 @@ public class SMGPathInterpolator {
     /*We may as well interpolate every possible target error if path contains more than one.*/
     boolean checkAllTargets = !checker.isFeasible(pErrorPath, true);
 
-    Map<ARGState, SMGInterpolant> pathInterpolants = new LinkedHashMap<>(pErrorPath.size());
+    SequencedMap<ARGState, SMGInterpolant> pathInterpolants =
+        new LinkedHashMap<>(pErrorPath.size());
 
     PathIterator pathIterator = pErrorPath.pathIterator();
 

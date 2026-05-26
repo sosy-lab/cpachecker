@@ -93,7 +93,7 @@ describe("CFA testing", () => {
 
   describe("Double click on node select function", () => {
     // Double Click not working
-    it("Display selected function CFA  graph", () => {
+    it("Display selected function CFA graph", () => {
       //  element(by.id('set-tab-1')).click();
       // browser.actions().doubleClick(element(by.xpath('//*[@id="cfa-node100001"]'))).click();
       // expect(element(by.xpath('//*[@id="cfa-svg-main0"]')).isDisplayed()).toBeFalsy();

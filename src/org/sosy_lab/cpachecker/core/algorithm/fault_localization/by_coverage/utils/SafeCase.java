@@ -52,7 +52,7 @@ public class SafeCase {
   /**
    * Checks whether there is a safe path in the ARG or not.
    *
-   * @return Returns <code>true</code> if the path exists otherwise returns <code>false</code>.
+   * @return <code>true</code> if the path exists otherwise returns <code>false</code>.
    */
   public boolean existsSafePath() {
     return !getSafeStates().isEmpty();

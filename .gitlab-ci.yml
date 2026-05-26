@@ -6,12 +6,41 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-# This file contains only some global CI config.
-# Most jobs are included here:
+# This file contains only some global CI config the auto-update-dependencies job.
+# Either the latter is executed or the regular jobs are included depending on input.
+
+spec:
+  inputs:
+    auto_update_dependencies:
+      description: "Run the auto-update-dependencies job instead of the normal CI pipeline"
+      type: boolean
+      default: false
+    git_push_remote:
+      description: 'Whether and where to push if a job wants to commit changes (e.g., "origin", leave empty for no push)'
+      rules:
+        - if: $[[ inputs.auto_update_dependencies ]] == true
+          default:
+    expensive_tests:
+      description: "Run expensive tests as part of unit tests"
+      type: boolean
+      rules:
+        - if: $[[ inputs.auto_update_dependencies ]] != true
+          default: false
+    tests_per_java_version:
+      description: "Run tests on several Java versions instead of just one"
+      type: boolean
+      rules:
+        - if: $[[ inputs.auto_update_dependencies ]] != true
+          default: false
+---
+
 include:
   - local: build/gitlab-ci.local.yml
+    inputs:
+      expensive_tests: $[[ inputs.expensive_tests ]]
+      tests_per_java_version: $[[ inputs.tests_per_java_version ]]
     rules:
-      - if: $AUTO_UPDATE_DEPENDENCIES != "true"
+      - if: $[[ inputs.auto_update_dependencies ]] != true
 
 # Run either MR pipelines or regular pipelines, but never both at the same time.
 # Cf. https://docs.gitlab.com/ee/ci/yaml/workflow.html#switch-between-branch-pipelines-and-merge-request-pipelines
@@ -24,27 +53,23 @@ workflow:
 variables:
   PROJECT_PATH: "sosy-lab/software/cpachecker"
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
-  REFASTER_REPO_REVISION: bba447e6b8e1df7ef8cdb6864319a4569e3e275b
+  # When updating, check if REFASTER_SOURCE_DIR in build/gitlab-ci.local.yml is still up-to-date.
+  REFASTER_REPO_REVISION: a66af582fcf15e2f5081cba4b653ac403bb8dc5d
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
-  REFASTER_VERSION: 2.36.0
+  REFASTER_VERSION: 2.49.0
+  ANT_PROPS_CHECKS: "-Divy.disable=true -DskipBuild=true"
+
 
 auto-update-dependencies:
   stage: deploy
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-17
-  before_script:
-    - apt-get update
-    - apt-get install -y --no-install-recommends git xmlstarlet openssh-client
-    - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY_BASE64" | base64 -d | ssh-add -
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
-    - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
-    - chmod 644 ~/.ssh/known_hosts
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-21
   script:
     - build/auto-update-dependencies.sh
   environment: repo/auto-update-dependencies
+  variables:
+    PUSH: "$[[ inputs.git_push_remote ]]"
   rules:
-    - if: $AUTO_UPDATE_DEPENDENCIES == "true"
+    - if: $[[ inputs.auto_update_dependencies ]] == true
   cache:
     key: "$CI_JOB_NAME"
     paths:

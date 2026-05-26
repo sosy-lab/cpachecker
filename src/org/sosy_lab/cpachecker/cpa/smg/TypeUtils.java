@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 
 public final class TypeUtils {
 
@@ -30,7 +31,7 @@ public final class TypeUtils {
               FileLocation.DUMMY,
               CNumericTypes.UNSIGNED_LONG_INT,
               BigInteger.valueOf(pSizeInBits / 8));
-      return new CArrayType(false, false, CNumericTypes.SIGNED_CHAR, arrayLen);
+      return new CArrayType(CTypeQualifiers.NONE, CNumericTypes.SIGNED_CHAR, arrayLen);
     } else {
       CSimpleType fieldType = CNumericTypes.SIGNED_CHAR;
       return new CBitFieldType(fieldType, pSizeInBits);

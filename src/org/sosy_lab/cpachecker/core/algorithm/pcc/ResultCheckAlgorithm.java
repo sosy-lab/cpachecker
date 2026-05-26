@@ -200,8 +200,8 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (analysisAlgorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) analysisAlgorithm).collectStatistics(pStatsCollection);
+    if (analysisAlgorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(stats);
   }
@@ -220,7 +220,8 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
       Configuration pConfig, ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException, IllegalArgumentException, InterruptedException {
     CoreComponentsFactory factory =
-        new CoreComponentsFactory(pConfig, logger, shutdownNotifier, AggregatedReachedSets.empty());
+        new CoreComponentsFactory(
+            pConfig, logger, shutdownNotifier, AggregatedReachedSets.empty(), analyzedProgram);
     ReachedSet reached = factory.createReachedSet(pCpa);
 
     reached.add(

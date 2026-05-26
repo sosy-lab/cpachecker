@@ -29,6 +29,7 @@ import org.sosy_lab.common.io.TempFile;
 import org.sosy_lab.common.io.TempFile.DeleteOnCloseFile;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -41,7 +42,7 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 public class AppliedCustomInstructionParserTest {
 
-  private CFA cfa;
+  private ImmutableCFA cfa;
   private AppliedCustomInstructionParser aciParser;
   private List<CFALabelNode> labelNodes;
 
@@ -49,43 +50,45 @@ public class AppliedCustomInstructionParserTest {
   public void init() throws ParserException, InterruptedException {
     cfa =
         TestDataTools.makeCFA(
-            "extern int test3(int);",
-            "int test(int p) {",
-            "  return p+1;",
-            "}",
-            "int test2(int p) {",
-            "  start_ci: return p+2;",
-            "}",
-            "void ci(int var) {",
-            "  var = var + 39;",
-            "  int globalVar;",
-            "  int u;",
-            "  int x = globalVar + 5;",
-            "  int y;",
-            "  int z;",
-            "  start_ci:",
-            "  if (z>0) {",
-            "    y = y + 1;",
-            "  } else {",
-            "    var = var + 1;",
-            "  }",
-            "  test(u);",
-            "  z = test(globalVar);",
-            "  end_ci_1: x = x + 1;",
-            "}",
-            "void main() {",
-            "  int m;",
-            "  int n;",
-            "  int o;",
-            "  start_ci:",
-            "  if (m>o) {",
-            "    ci(m);",
-            "  }",
-            "  test3(n);",
-            "  n = test3(o);",
-            "  end_ci_2:",
-            "  test2(4);",
-            "}");
+            """
+            extern int test3(int);
+            int test(int p) {
+              return p+1;
+            }
+            int test2(int p) {
+              start_ci: return p+2;
+            }
+            void ci(int var) {
+              var = var + 39;
+              int globalVar;
+              int u;
+              int x = globalVar + 5;
+              int y;
+              int z;
+              start_ci:
+              if (z>0) {
+                y = y + 1;
+              } else {
+                var = var + 1;
+              }
+              test(u);
+              z = test(globalVar);
+              end_ci_1: x = x + 1;
+            }
+            void main() {
+              int m;
+              int n;
+              int o;
+              start_ci:
+              if (m>o) {
+                ci(m);
+              }
+              test3(n);
+              n = test3(o);
+              end_ci_2:
+              test2(4);
+            }
+            """);
     aciParser =
         new AppliedCustomInstructionParser(
             ShutdownNotifier.createDummy(), LogManager.createTestLogManager(), cfa);
@@ -185,8 +188,8 @@ public class AppliedCustomInstructionParserTest {
   private List<CFALabelNode> getLabelNodes(CFA pCfa) {
     List<CFALabelNode> result = new ArrayList<>();
     for (CFANode n : pCfa.nodes()) {
-      if (n instanceof CFALabelNode) {
-        result.add((CFALabelNode) n);
+      if (n instanceof CFALabelNode cFALabelNode) {
+        result.add(cFALabelNode);
       }
     }
     return result;
@@ -196,15 +199,17 @@ public class AppliedCustomInstructionParserTest {
   public void testParse() throws Exception {
     cfa =
         TestDataTools.makeCFA(
-            "void main() {",
-            "  int x;",
-            "  int y;",
-            "  start_ci: x = x + y;",
-            "  end_ci_1:",
-            "  x = x + x;",
-            "  y = y + y;",
-            "  y = y + x;",
-            "}");
+            """
+            void main() {
+              int x;
+              int y;
+              start_ci: x = x + y;
+              end_ci_1:
+              x = x + x;
+              y = y + y;
+              y = y + x;
+            }
+            """);
 
     aciParser =
         new AppliedCustomInstructionParser(
@@ -280,7 +285,7 @@ public class AppliedCustomInstructionParserTest {
         ssaMap = entry.getValue().getIndicesForReturnVars();
         variables.add("main::x");
         Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
-        Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
+        Truth.assertThat(ssaMap.getIndex(variables.getFirst())).isEqualTo(1);
 
         Truth.assertThat(entry.getValue().getStartAndEndNodes())
             .containsExactlyElementsIn(aciNodes);
@@ -307,7 +312,7 @@ public class AppliedCustomInstructionParserTest {
         ssaMap = entry.getValue().getIndicesForReturnVars();
         variables.add("main::x");
         Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
-        Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
+        Truth.assertThat(ssaMap.getIndex(variables.getFirst())).isEqualTo(1);
 
         Truth.assertThat(entry.getValue().getStartAndEndNodes())
             .containsExactlyElementsIn(aciNodes);
@@ -334,7 +339,7 @@ public class AppliedCustomInstructionParserTest {
         ssaMap = entry.getValue().getIndicesForReturnVars();
         variables.add("main::y");
         Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
-        Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
+        Truth.assertThat(ssaMap.getIndex(variables.getFirst())).isEqualTo(1);
 
         Truth.assertThat(entry.getValue().getStartAndEndNodes())
             .containsExactlyElementsIn(aciNodes);
@@ -361,7 +366,7 @@ public class AppliedCustomInstructionParserTest {
         ssaMap = entry.getValue().getIndicesForReturnVars();
         variables.add("main::y");
         Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
-        Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
+        Truth.assertThat(ssaMap.getIndex(variables.getFirst())).isEqualTo(1);
 
         Truth.assertThat(entry.getValue().getStartAndEndNodes())
             .containsExactlyElementsIn(aciNodes);

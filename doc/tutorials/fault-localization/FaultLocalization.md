@@ -450,7 +450,7 @@ public Algorithm createAlgorithm(final ConfigurableProgramAnalysis cpa,final CFA
 }
 ```
 
-Afterwards, we can execute the following snippet from the root directory of CPAchecker to run our
+Afterward, we can execute the following snippet from the root directory of CPAchecker to run our
 implementation:
 ```
 ant && \

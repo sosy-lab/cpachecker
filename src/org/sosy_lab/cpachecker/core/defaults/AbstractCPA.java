@@ -25,7 +25,7 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
 
   private final AbstractDomain abstractDomain;
 
-  /* The operators can be overridden in sub-classes. Thus we allow Null as possible assignment. */
+  /* The operators can be overridden in subclasses. Thus, we allow Null as possible assignment. */
   private final @Nullable String mergeType;
   private final @Nullable String stopType;
   private final @Nullable TransferRelation transferRelation;

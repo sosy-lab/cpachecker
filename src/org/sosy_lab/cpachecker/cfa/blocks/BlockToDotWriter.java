@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.blocks;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.io.Writer;
@@ -32,9 +31,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
-/** This Writer can dump a cfa with blocks into a file. */
+/** This Writer can dump a CFA with blocks into a file. */
 public class BlockToDotWriter {
 
   private final BlockPartitioning blockPartitioning;
@@ -44,7 +42,7 @@ public class BlockToDotWriter {
     this.blockPartitioning = blockPartitioning;
   }
 
-  /** dump the cfa with blocks and colourful nodes. */
+  /** dump the CFA with blocks and colourful nodes. */
   public void dump(final Path filename, final LogManager logger) {
     try (Writer w = IO.openOutputFile(filename, Charset.defaultCharset())) {
       dump(w);
@@ -54,7 +52,7 @@ public class BlockToDotWriter {
     }
   }
 
-  /** dump the cfa with blocks and colourful nodes. */
+  /** dump the CFA with blocks and colourful nodes. */
   private void dump(final Appendable app) throws IOException {
 
     // get hierarchy, Multimap of <outer block, inner blocks>
@@ -95,10 +93,10 @@ public class BlockToDotWriter {
     // 'directly'.
     final Multimap<Block, Block> hierarchy = LinkedHashMultimap.create();
     while (!sortedBlocks.isEmpty()) {
-      // get smallest block and then the smallest outer block, that contains it
-      Block currentBlock = sortedBlocks.remove(sortedBlocks.size() - 1); // get smallest block,
+      // get the smallest block and then the smallest outer block, that contains it
+      Block currentBlock = sortedBlocks.removeLast(); // get the smallest block,
       for (Block possibleOuterBlock :
-          Lists.reverse(sortedBlocks)) { // order is important, smallest first
+          sortedBlocks.reversed()) { // order is important, smallest first
         // trick: we know, iff one node is contained in outer block, all nodes must be contained. So
         // we check only one.
         if (possibleOuterBlock.getNodes().contains(currentBlock.getNodes().iterator().next())) {
@@ -144,7 +142,7 @@ public class BlockToDotWriter {
     for (CFANode node : block.getNodes()) {
       if (finished.add(node)) {
         app.append(formatNode(node));
-        Iterables.addAll(edges, CFAUtils.leavingEdges(node));
+        Iterables.addAll(edges, node.getLeavingEdges());
         FunctionSummaryEdge func = node.getEnteringSummaryEdge();
         if (func != null) {
           edges.add(func);

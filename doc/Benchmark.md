@@ -47,7 +47,7 @@ The examples in the following are based on benchmark definitions of
 
 - *CPU Time*.
   Firstly, in order to get statistics even in case of a timeout,
-  is is important to specify different "soft" and "hard" CPU-time limits
+  it is important to specify different "soft" and "hard" CPU-time limits
   like in this example:
   `<benchmark timelimit="900s" hardtimelimit="1000s" ...`
   The soft time limit is automatically passed as parameter to CPAchecker,

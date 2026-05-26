@@ -92,9 +92,9 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
     if (this == pOther) {
       return true;
     }
-    return pOther instanceof TransitionCondition
-        && keyValues.equals(((TransitionCondition) pOther).keyValues)
-        && scope.equals(((TransitionCondition) pOther).scope);
+    return pOther instanceof TransitionCondition other
+        && keyValues.equals(other.keyValues)
+        && scope.equals(other.scope);
   }
 
   public Map<KeyDef, String> getMapping() {

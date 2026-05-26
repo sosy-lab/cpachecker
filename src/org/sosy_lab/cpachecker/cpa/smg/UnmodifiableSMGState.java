@@ -102,7 +102,7 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
   SMGState withViolationsOf(SMGState pOther);
 
   /**
-   * Stores a error-message in the state.
+   * Stores an error-message in the state.
    *
    * @return a new state with the corresponding error description.
    */

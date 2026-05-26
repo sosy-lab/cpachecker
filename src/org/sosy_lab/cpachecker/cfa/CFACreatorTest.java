@@ -19,15 +19,14 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
-import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -241,11 +240,8 @@ public class CFACreatorTest {
 
   @Test
   public void testFileLocationsInCfa() throws IOException, InterruptedException, ParserException {
-    Path program_path = Path.of("test/programs/cfa-creation/cfa-creation-test.c");
-    CFA createdCFA =
-        TestDataTools.makeCFA(
-            IOUtils.toString(
-                MoreFiles.asByteSource(program_path).openStream(), StandardCharsets.UTF_8));
+    Path programPath = Path.of("test/programs/cfa-creation/cfa-creation-test.c");
+    CFA createdCFA = TestDataTools.makeCFA(Files.readString(programPath, StandardCharsets.UTF_8));
 
     Path testFilepath = Path.of("./test");
     assertThat(TestDataTools.getEdge("x = 0", createdCFA).getFileLocation())
@@ -301,19 +297,18 @@ public class CFACreatorTest {
    * 'false'.
    */
   private static boolean isFunctionCall(CFAEdge pCfaEdge, String pExpectedFunctionName) {
-    if (!(pCfaEdge instanceof AStatementEdge)) {
+    if (!(pCfaEdge instanceof AStatementEdge aStatementEdge)) {
       return false;
     }
-    AStatement statement = ((AStatementEdge) pCfaEdge).getStatement();
-    if (!(statement instanceof AFunctionCall)) {
+    AStatement statement = aStatementEdge.getStatement();
+    if (!(statement instanceof AFunctionCall aFunctionCall)) {
       return false;
     }
-    AExpression callee =
-        ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-    if (!(callee instanceof AIdExpression)) {
+    AExpression callee = aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+    if (!(callee instanceof AIdExpression aIdExpression)) {
       return false;
     }
-    String functionName = ((AIdExpression) callee).getName();
+    String functionName = aIdExpression.getName();
     return functionName.equals(pExpectedFunctionName);
   }
 

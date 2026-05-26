@@ -97,7 +97,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     private final Collection<Statistics> currentSubStat;
     private int noOfRuns = 0;
 
-    public CompositionAlgorithmStatistics() {
+    CompositionAlgorithmStatistics() {
       totalTimer = new Timer();
       currentSubStat = new ArrayList<>();
     }
@@ -145,11 +145,11 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
 
-    public Collection<Statistics> getSubStatistics() {
+    Collection<Statistics> getSubStatistics() {
       return currentSubStat;
     }
 
-    public void resetSubStatistics() {
+    void resetSubStatistics() {
       currentSubStat.clear();
     }
   }
@@ -193,7 +193,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       secure = true,
       name = "initCondition",
       description =
-          "Whether or not to create an initial condition, that excludes no paths, "
+          "Whether to create an initial condition, that excludes no paths, "
               + "before first analysis is run."
               + "Required when first analysis uses condition from conditional model checking")
   private boolean generateInitialFalseCondition = false;
@@ -343,8 +343,8 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
             continue;
           }
 
-          if (fReached instanceof HistoryForwardingReachedSet) {
-            ((HistoryForwardingReachedSet) fReached).saveCPA(currentContext.getCPA());
+          if (fReached instanceof HistoryForwardingReachedSet historyForwardingReachedSet) {
+            historyForwardingReachedSet.saveCPA(currentContext.getCPA());
           }
           fReached.setDelegate(currentContext.getReachedSet());
 
@@ -479,17 +479,18 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
   @SuppressForbidden("System.out is correct for statistics")
   private void printIntermediateStatistics(ReachedSet pReached, AlgorithmContext currentContext) {
     switch (intermediateStatistics) {
-      case PRINT:
-        stats.printIntermediateStatistics(
-            System.out, Result.UNKNOWN, currentContext.getReachedSet());
-        break;
-      case EXECUTE:
+      case PRINT ->
+          stats.printIntermediateStatistics(
+              System.out, Result.UNKNOWN, currentContext.getReachedSet());
+      case EXECUTE -> {
         @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
         final PrintStream dummyStream = new PrintStream(ByteStreams.nullOutputStream());
         stats.printIntermediateStatistics(
             dummyStream, Result.UNKNOWN, currentContext.getReachedSet());
-        break;
-      default: // do nothing
+      }
+      default -> {
+        // do nothing
+      }
     }
 
     if (writeIntermediateOutputFiles) {
@@ -532,7 +533,8 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
               pCurrentContext.getConfig(),
               logger,
               localShutdownManager.getNotifier(),
-              aggregateReached);
+              aggregateReached,
+              cfa);
 
       boolean newReachedSet = false;
 
@@ -542,8 +544,8 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
           // create cpa only once when not initialized, use global limits (i.e. shutdownNotifier)
           CoreComponentsFactory globalCoreComponents =
               new CoreComponentsFactory(
-                  pCurrentContext.getConfig(), logger, shutdownNotifier, aggregateReached);
-          cpa = globalCoreComponents.createCPA(cfa, specification);
+                  pCurrentContext.getConfig(), logger, shutdownNotifier, aggregateReached, cfa);
+          cpa = globalCoreComponents.createCPA(specification);
           pCurrentContext.setCPA(cpa);
           if (!pCurrentContext.reusePrecision()) {
             // create reached set only once, continue analysis
@@ -554,7 +556,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       } else {
         // do not reuse cpa, and, thus reached set
         try {
-          cpa = localCoreComponents.createCPA(cfa, specification);
+          cpa = localCoreComponents.createCPA(specification);
           pCurrentContext.setCPA(cpa);
           newReachedSet = true;
         } catch (InvalidConfigurationException e) {
@@ -603,7 +605,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       // always create algorithm with new "local" shutdown manager
-      Algorithm algorithm = localCoreComponents.createAlgorithm(cpa, cfa, specification);
+      Algorithm algorithm = localCoreComponents.createAlgorithm(cpa, specification);
 
       if (algorithm instanceof CompositionAlgorithm) {
         // To avoid accidental infinitely-recursive nesting.
@@ -615,12 +617,12 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
         return null;
       }
 
-      if (algorithm instanceof StatisticsProvider) {
-        ((StatisticsProvider) algorithm).collectStatistics(stats.getSubStatistics());
+      if (algorithm instanceof StatisticsProvider statisticsProvider) {
+        statisticsProvider.collectStatistics(stats.getSubStatistics());
       }
 
-      if (pCurrentContext.getCPA() instanceof StatisticsProvider) {
-        ((StatisticsProvider) pCurrentContext.getCPA()).collectStatistics(stats.getSubStatistics());
+      if (pCurrentContext.getCPA() instanceof StatisticsProvider statisticsProvider) {
+        statisticsProvider.collectStatistics(stats.getSubStatistics());
       }
 
       return Pair.of(algorithm, localShutdownManager);
@@ -746,7 +748,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
     LoopBoundPrecision loopPrec =
         Precisions.extractPrecisionByType(resultPrec, LoopBoundPrecision.class);
-    if (loopPrec != null && pPreviousReachedSets.get(0) != null) {
+    if (loopPrec != null && pPreviousReachedSets.getFirst() != null) {
       resultPrec =
           Precisions.replaceByType(
               resultPrec, loopPrec, Predicates.instanceOf(LoopBoundPrecision.class));
@@ -755,9 +757,9 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     PredicatePrecision predPrec =
         Precisions.extractPrecisionByType(resultPrec, PredicatePrecision.class);
 
-    if (predPrec != null && pPreviousReachedSets.get(0) != null) {
+    if (predPrec != null && pPreviousReachedSets.getFirst() != null) {
       Iterable<Precision> allPrecisions =
-          FluentIterable.of(resultPrec).append(pPreviousReachedSets.get(0).getPrecisions());
+          FluentIterable.of(resultPrec).append(pPreviousReachedSets.getFirst().getPrecisions());
 
       resultPrec =
           Precisions.replaceByType(

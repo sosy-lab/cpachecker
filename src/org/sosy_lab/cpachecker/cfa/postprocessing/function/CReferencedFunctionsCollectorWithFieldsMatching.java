@@ -60,52 +60,49 @@ class CReferencedFunctionsCollectorWithFieldsMatching extends CReferencedFunctio
     if (decl.getInitializer() != null) {
       decl.getInitializer().accept(collector);
       CInitializer init = decl.getInitializer();
-      if (init instanceof CInitializerList) {
-        saveStructureDeclaration(decl.getType(), (CInitializerList) init);
-      } else if (decl.isGlobal() && init instanceof CInitializerExpression) {
+      if (init instanceof CInitializerList cInitializerList) {
+        saveStructureDeclaration(decl.getType(), cInitializerList);
+      } else if (decl.isGlobal() && init instanceof CInitializerExpression cInitializerExpression) {
         // Assignment to global variable and not a structure
-        saveInitializerExpression(
-            getGlobalsMatching(), (CInitializerExpression) init, decl.getName());
+        saveInitializerExpression(getGlobalsMatching(), cInitializerExpression, decl.getName());
       }
     }
   }
 
   private void saveStructureDeclaration(CType type, CInitializerList init) {
-    if (type instanceof CArrayType) {
+    if (type instanceof CArrayType cArrayType) {
       for (CInitializer cInit : init.getInitializers()) {
-        if (cInit instanceof CInitializerList) {
+        if (cInit instanceof CInitializerList cInitializerList) {
           // Array of structures
-          saveStructureDeclaration(((CArrayType) type).getType(), (CInitializerList) cInit);
+          saveStructureDeclaration(cArrayType.getType(), cInitializerList);
         }
       }
     } else if (type instanceof CElaboratedType) {
       saveStructureDeclaration(type.getCanonicalType(), init);
-    } else if (type instanceof CTypedefType) {
-      saveStructureDeclaration(((CTypedefType) type).getRealType(), init);
-    } else if (type instanceof CCompositeType) {
+    } else if (type instanceof CTypedefType cTypedefType) {
+      saveStructureDeclaration(cTypedefType.getRealType(), init);
+    } else if (type instanceof CCompositeType cCompositeType) {
       // Structure found
-      List<CCompositeTypeMemberDeclaration> list = ((CCompositeType) type).getMembers();
+      List<CCompositeTypeMemberDeclaration> list = cCompositeType.getMembers();
       List<CInitializer> initList = init.getInitializers();
       // Important to traverse via initList to handle such cases as
       // struct my_struct m = {.field = 1}
       for (int i = 0; i < initList.size(); i++) {
         CCompositeTypeMemberDeclaration decl = list.get(i);
         CInitializer cInit = initList.get(i);
-        if (cInit instanceof CDesignatedInitializer) {
-          List<CDesignator> des = ((CDesignatedInitializer) cInit).getDesignators();
+        if (cInit instanceof CDesignatedInitializer cDesignatedInitializer) {
+          List<CDesignator> des = cDesignatedInitializer.getDesignators();
           assert des.size() == 1;
-          CDesignator field = des.get(0);
-          CInitializer fieldInit = ((CDesignatedInitializer) cInit).getRightHandSide();
-          if (fieldInit instanceof CInitializerExpression && field instanceof CFieldDesignator) {
+          CDesignator field = des.getFirst();
+          CInitializer fieldInit = cDesignatedInitializer.getRightHandSide();
+          if (fieldInit instanceof CInitializerExpression cInitializerExpression
+              && field instanceof CFieldDesignator cFieldDesignator) {
             saveInitializerExpression(
-                getFieldMatching(),
-                ((CInitializerExpression) fieldInit),
-                ((CFieldDesignator) field).getFieldName());
+                getFieldMatching(), cInitializerExpression, cFieldDesignator.getFieldName());
           }
         }
-        if (cInit instanceof CInitializerExpression) {
-          saveInitializerExpression(
-              getFieldMatching(), (CInitializerExpression) cInit, decl.getName());
+        if (cInit instanceof CInitializerExpression cInitializerExpression) {
+          saveInitializerExpression(getFieldMatching(), cInitializerExpression, decl.getName());
         }
       }
     }
@@ -142,7 +139,7 @@ class CReferencedFunctionsCollectorWithFieldsMatching extends CReferencedFunctio
     private final Multimap<String, String> functionToGlobalMatching = HashMultimap.create();
     private @Nullable String lastFunction;
 
-    public CollectFunctionsVisitorWithFieldMatching(Set<String> collectedFuncs) {
+    CollectFunctionsVisitorWithFieldMatching(Set<String> collectedFuncs) {
       super(collectedFuncs);
     }
 
@@ -164,13 +161,13 @@ class CReferencedFunctionsCollectorWithFieldsMatching extends CReferencedFunctio
         // obvious assumption: the assignment is to single variable
         // - one value of 'lastFunction' is enough
         CLeftHandSide left = pIastExpressionAssignmentStatement.getLeftHandSide();
-        if (left instanceof CFieldReference) {
-          functionToFieldMatching.put(((CFieldReference) left).getFieldName(), lastFunction);
-        } else if (left instanceof CIdExpression) {
-          CSimpleDeclaration decl = ((CIdExpression) left).getDeclaration();
-          if (decl instanceof CVariableDeclaration) {
-            if (((CVariableDeclaration) decl).isGlobal()) {
-              functionToGlobalMatching.put(((CIdExpression) left).getName(), lastFunction);
+        if (left instanceof CFieldReference cFieldReference) {
+          functionToFieldMatching.put(cFieldReference.getFieldName(), lastFunction);
+        } else if (left instanceof CIdExpression cIdExpression) {
+          CSimpleDeclaration decl = cIdExpression.getDeclaration();
+          if (decl instanceof CVariableDeclaration cVariableDeclaration) {
+            if (cVariableDeclaration.isGlobal()) {
+              functionToGlobalMatching.put(cIdExpression.getName(), lastFunction);
             }
           }
         }

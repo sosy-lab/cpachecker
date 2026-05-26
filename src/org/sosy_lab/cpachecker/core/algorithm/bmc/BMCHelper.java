@@ -206,8 +206,8 @@ public final class BMCHelper {
     CFANode initialLocation = extractLocation(pReachedSet.getFirstState());
     for (AdjustableConditionCPA conditionCPA :
         CPAs.asIterable(pCPA).filter(AdjustableConditionCPA.class)) {
-      if (conditionCPA instanceof ReachedSetAdjustingCPA) {
-        ((ReachedSetAdjustingCPA) conditionCPA).adjustReachedSet(pReachedSet);
+      if (conditionCPA instanceof ReachedSetAdjustingCPA reachedSetAdjustingCPA) {
+        reachedSetAdjustingCPA.adjustReachedSet(pReachedSet);
       } else {
         pReachedSet.clear();
         pLogger.log(

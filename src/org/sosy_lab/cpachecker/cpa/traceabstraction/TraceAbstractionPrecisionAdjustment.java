@@ -62,7 +62,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 /**
  * PrecisionAdjustment of the {@link TraceAbstractionCPA}. It uses the result of the abstraction
  * computation of {@link PredicateAbstractionManager} to compute the actual successor of the
- * TraceAbstractionState afterwards.
+ * TraceAbstractionState afterward.
  */
 class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
 

@@ -197,7 +197,8 @@ public class LiveVariablesTransferRelation
     if (assumeGlobalVariablesAreAlwaysLive) {
       for (int i = 0; i < noVars; i++) {
         ASimpleDeclaration decl = allDeclarations.get(i).get();
-        if (decl instanceof AVariableDeclaration && ((AVariableDeclaration) decl).isGlobal()) {
+        if (decl instanceof AVariableDeclaration aVariableDeclaration
+            && aVariableDeclaration.isGlobal()) {
           globalVars.set(i);
         }
       }
@@ -261,9 +262,9 @@ public class LiveVariablesTransferRelation
         }
       }
 
-      for (CFAEdge e : CFAUtils.enteringEdges(node)) {
-        if (e instanceof ADeclarationEdge) {
-          ASimpleDeclaration decl = ((ADeclarationEdge) e).getDeclaration();
+      for (CFAEdge e : node.getEnteringEdges()) {
+        if (e instanceof ADeclarationEdge aDeclarationEdge) {
+          ASimpleDeclaration decl = aDeclarationEdge.getDeclaration();
           allDecls.add(LIVE_DECL_EQUIVALENCE.wrap(decl));
           if (decl instanceof AFunctionDeclaration funcDecl) {
             for (AParameterDeclaration param : funcDecl.getParameters()) {
@@ -400,8 +401,8 @@ public class LiveVariablesTransferRelation
       List<? extends AParameterDeclaration> parameters,
       String calledFunctionName)
       throws CPATransferException {
-    /* This analysis is (mostly) used during cfa creation, when no edges between
-     * different functions exist, thus this function is mainly unused. However
+    /* This analysis is (mostly) used during CFA creation, when no edges between
+     * different functions exist, thus this function is mainly unused. However,
      * for the purpose of having a complete CPA which works on the graph with
      * all functions connected, this method is implemented.
      */
@@ -422,16 +423,16 @@ public class LiveVariablesTransferRelation
   protected LiveVariablesState handleFunctionReturnEdge(
       FunctionReturnEdge cfaEdge, AFunctionCall summaryExpr, String callerFunctionName)
       throws CPATransferException {
-    /* This analysis is (mostly) used during cfa creation, when no edges between
-     * different functions exist, thus this function is mainly unused. However
+    /* This analysis is (mostly) used during CFA creation, when no edges between
+     * different functions exist, thus this function is mainly unused. However,
      * for the purpose of having a complete CPA which works on the graph with
      * all functions connected, this method is implemented.
      */
 
     // we can remove the assigned variable from the live variables
-    if (summaryExpr instanceof AFunctionCallAssignmentStatement) {
+    if (summaryExpr instanceof AFunctionCallAssignmentStatement aFunctionCallAssignmentStatement) {
       boolean isLeftHandsideLive =
-          isLeftHandSideLive(((AFunctionCallAssignmentStatement) summaryExpr).getLeftHandSide());
+          isLeftHandSideLive(aFunctionCallAssignmentStatement.getLeftHandSide());
       ASimpleDeclaration retVal = cfaEdge.getFunctionEntry().getReturnVariable().get();
       BitSet data = state.getDataCopy();
       handleAssignment((AAssignment) summaryExpr, data);
@@ -525,7 +526,7 @@ public class LiveVariablesTransferRelation
     newLiveVars.andNot(assignedVariable);
 
     // check all variables of the right-hand-sides, they should be live
-    // afterwards if the leftHandSide is live
+    // afterward if the leftHandSide is live
     if (assignment instanceof AExpressionAssignmentStatement) {
       handleExpression((AExpression) assignment.getRightHandSide(), newLiveVars);
 
@@ -555,7 +556,7 @@ public class LiveVariablesTransferRelation
 
         // when there is a field reference, an array access or a pointer expression,
         // and the assigned variable was live before, we need to let it also be
-        // live afterwards
+        // live afterward
         // Also, if there is an assignment to one of those, we have to over-approximate it to live
       } else if (lhs instanceof CFieldReference
           || lhs instanceof AArraySubscriptExpression
@@ -570,7 +571,7 @@ public class LiveVariablesTransferRelation
       }
 
       // if the leftHandSide is not life, but there is a pointer dereference
-      // we need to make the leftHandSide life. Thus afterwards everything from
+      // we need to make the leftHandSide life. Thus, afterward everything from
       // this statement is life.
     } else {
       assert lhsIsPointerDereference;
@@ -586,20 +587,18 @@ public class LiveVariablesTransferRelation
   private void getVariablesUsedForInitialization(AInitializer init, BitSet writeInto)
       throws CPATransferException {
     // e.g. .x=b or .p.x.=1  as part of struct initialization
-    if (init instanceof CDesignatedInitializer) {
-      getVariablesUsedForInitialization(
-          ((CDesignatedInitializer) init).getRightHandSide(), writeInto);
-
-      // e.g. {a, b, s->x} (array) , {.x=1, .y=0} (initialization of struct, array)
-    } else if (init instanceof CInitializerList) {
-      for (CInitializer inList : ((CInitializerList) init).getInitializers()) {
-        getVariablesUsedForInitialization(inList, writeInto);
+    switch (init) {
+      case CDesignatedInitializer cDesignatedInitializer ->
+          getVariablesUsedForInitialization(cDesignatedInitializer.getRightHandSide(), writeInto);
+      case CInitializerList cInitializerList -> {
+        for (CInitializer inList : cInitializerList.getInitializers()) {
+          getVariablesUsedForInitialization(inList, writeInto);
+        }
       }
-    } else if (init instanceof AInitializerExpression) {
-      handleExpression(((AInitializerExpression) init).getExpression(), writeInto);
-
-    } else {
-      throw new CPATransferException("Missing case for if-then-else statement.");
+      case AInitializerExpression aInitializerExpression ->
+          handleExpression(aInitializerExpression.getExpression(), writeInto);
+      case null, default ->
+          throw new CPATransferException("Missing case for if-then-else statement.");
     }
   }
 
@@ -654,7 +653,7 @@ public class LiveVariablesTransferRelation
   private static class LhsPointerDereferenceVisitor extends AExpressionVisitor<Boolean, NoException>
       implements CExpressionVisitor<Boolean, NoException> {
 
-    protected LhsPointerDereferenceVisitor() {}
+    LhsPointerDereferenceVisitor() {}
 
     @Override
     public Boolean visit(CBinaryExpression pIastBinaryExpression) throws NoException {

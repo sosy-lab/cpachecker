@@ -143,7 +143,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
       cbmcArgs.add("--no-built-in-assertions"); // do not check for memory safety etc.
 
       // Our paths are loop-free, but CBMC adds loops in stdlib functions like memcmp.
-      // CBMC would endlessly unroll them, so its better to break the loops.
+      // CBMC would endlessly unroll them, so it's better to break the loops.
       cbmcArgs.add("--unwind");
       cbmcArgs.add("100");
       cbmcArgs.add("--partial-loops");
@@ -170,13 +170,15 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
     if (!cbmc.producedErrorOutput()) {
       switch (exitCode) {
-        case 0: // Verification successful (Path is infeasible)
+        case 0 -> {
+          // Verification successful (Path is infeasible)
           return false;
-
-        case 10: // Verification failed (Path is feasible)
+        }
+        case 10 -> {
+          // Verification failed (Path is feasible)
           return true;
-
-        default:
+        }
+        default -> {}
       }
 
     } else {

@@ -317,12 +317,11 @@ public class FaultLocalizationWithTraceFormula
               new VariableCountScoring(),
               new SetSizeScoring(),
               new MinimalLineDistanceScoring(
-                  pTraceFormula.getPostCondition().getEdgesForPostCondition().get(0)));
+                  pTraceFormula.getPostCondition().getEdgesForPostCondition().getFirst()));
       case ERRINV, UNSAT ->
           FaultRankingUtils.concatHeuristics(
               new EdgeTypeScoring(),
               new CallHierarchyScoring(pTraceFormula.getTrace().toEdgeList()));
-      default -> throw new AssertionError("The specified algorithm type does not exist");
     };
   }
 
@@ -417,7 +416,6 @@ public class FaultLocalizationWithTraceFormula
       case LAST_ASSUME_EDGES_ON_SAME_LINE ->
           new FinalAssumeEdgesOnSameLinePostConditionComposer(context);
       case LAST_ASSUME_EDGE_CLUSTER -> new FinalAssumeClusterPostConditionComposer(context);
-      default -> throw new AssertionError("Unknown post-condition type");
     };
   }
 
@@ -428,24 +426,23 @@ public class FaultLocalizationWithTraceFormula
       case INITIAL_ASSIGNMENT ->
           new VariableAssignmentPreConditionComposer(context, options, true, includeDeclared);
       case ALWAYS_TRUE -> new TruePreConditionComposer(context);
-      default -> throw new AssertionError("Unknown precondition type: " + preconditionType);
     };
   }
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     statsCollection.add(this);
-    if (algorithm instanceof Statistics) {
-      statsCollection.add((Statistics) algorithm);
+    if (algorithm instanceof Statistics statistics) {
+      statsCollection.add(statistics);
     }
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) algorithm).collectStatistics(statsCollection);
+    if (algorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(statsCollection);
     }
-    if (faultAlgorithm instanceof Statistics) {
-      statsCollection.add((Statistics) faultAlgorithm);
+    if (faultAlgorithm instanceof Statistics statistics) {
+      statsCollection.add(statistics);
     }
-    if (faultAlgorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) faultAlgorithm).collectStatistics(statsCollection);
+    if (faultAlgorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(statsCollection);
     }
   }
 

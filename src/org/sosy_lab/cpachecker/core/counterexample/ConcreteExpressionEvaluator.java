@@ -25,7 +25,7 @@ public interface ConcreteExpressionEvaluator {
    * it will be evaluated based on the concrete expression evaluation of the value analysis.
    *
    * @param exp expression to be checked.
-   * @return True, if the expression should be evaluated with this class, false, if the expression
+   * @return True if the expression should be evaluated with this class, false if the expression
    *     should be evaluated based on the expression evaluation of the value analysis.
    */
   boolean shouldEvaluateExpressionWithThisEvaluator(AExpression exp);

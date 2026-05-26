@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.util.Collection;
 import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.SequencedSet;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -33,7 +33,8 @@ public enum AutomatonInvariantsUtils {
    */
   public static void checkForMissedInvariants(
       Specification pAutomataAsSpec, UnmodifiableReachedSet pReachedSet) throws CPAException {
-    final Set<AutomatonInternalState> automatonStatesWithInvariants = new LinkedHashSet<>();
+    final SequencedSet<AutomatonInternalState> automatonStatesWithInvariants =
+        new LinkedHashSet<>();
 
     // fill automatonStatesWithInvariants with all internal automaton states that we find in the
     // automata:

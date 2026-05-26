@@ -47,16 +47,13 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
   @Override
   protected synchronized void handleExitCode(int pCode) throws CounterexampleAnalysisFailed {
     switch (pCode) {
-      case 0: // Verification successful (Path is infeasible)
-        result = false;
-        break;
-
-      case 10: // Verification failed (Path is feasible)
-        result = true;
-        break;
-
-      default:
-        super.handleExitCode(pCode);
+      case 0 ->
+          // Verification successful (Path is infeasible)
+          result = false;
+      case 10 ->
+          // Verification failed (Path is feasible)
+          result = true;
+      default -> super.handleExitCode(pCode);
     }
   }
 

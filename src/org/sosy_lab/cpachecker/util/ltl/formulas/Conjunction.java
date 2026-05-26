@@ -44,8 +44,8 @@ public final class Conjunction extends PropositionalFormula {
         continue;
       }
 
-      if (child instanceof Conjunction) {
-        builder.addAll(((Conjunction) child).getChildren());
+      if (child instanceof Conjunction conjunction) {
+        builder.addAll(conjunction.getChildren());
       } else {
         builder.add(child);
       }

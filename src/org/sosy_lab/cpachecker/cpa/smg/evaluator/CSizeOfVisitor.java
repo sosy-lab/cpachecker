@@ -64,7 +64,7 @@ class CSizeOfVisitor extends BaseSizeofVisitor<CPATransferException> {
 
       /*
        * If we are not at the declaration of the variable array type, we try to get the
-       * smg object that represents the array, and calculate the current array size that way.
+       * SMG object that represents the array, and calculate the current array size that way.
        */
 
       if (expression.filter(CLeftHandSide.class::isInstance).isPresent()) {
@@ -79,7 +79,7 @@ class CSizeOfVisitor extends BaseSizeofVisitor<CPATransferException> {
         }
         assert !addressOfFieldAndState.isEmpty();
 
-        SMGAddress addressOfField = addressOfFieldAndState.get(0).getObject();
+        SMGAddress addressOfField = addressOfFieldAndState.getFirst().getObject();
 
         if (addressOfField.isUnknown()) {
           return handleUnkownArrayLengthValue(pArrayType);

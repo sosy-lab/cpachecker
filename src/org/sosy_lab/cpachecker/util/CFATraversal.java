@@ -19,6 +19,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.function.Function;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
@@ -51,7 +52,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
  * </code> For traversing the CFA, a {@link CFAVisitor} needs to be given. Several default
  * implementations are available.
  *
- * <p>Important: The instances of this class do not track a set of already visited nodes. Thus a
+ * <p>Important: The instances of this class do not track a set of already visited nodes. Thus, a
  * visitor may be called several times for a single node. If the visitor never specifies to stop the
  * traversal and the CFA contains loops, this will produce an infinite loop! It is strongly
  * recommended to use the {@link NodeCollectingCFAVisitor} to prevent this and visit each node only
@@ -60,10 +61,10 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 public class CFATraversal {
 
   private static final Function<CFANode, Iterable<CFAEdge>> FORWARD_EDGE_SUPPLIER =
-      CFAUtils::allLeavingEdges;
+      CFANode::getAllLeavingEdges;
 
   private static final Function<CFANode, Iterable<CFAEdge>> BACKWARD_EDGE_SUPPLIER =
-      CFAUtils::allEnteringEdges;
+      CFANode::getAllEnteringEdges;
 
   // function providing the outgoing edges for a CFANode
   private final Function<CFANode, Iterable<CFAEdge>> edgeSupplier;
@@ -117,7 +118,7 @@ public class CFATraversal {
   /**
    * Returns a new instance of this class which behaves exactly like the current instance, except it
    * ignores function call and return edges. It will not call the visitor for them, and it will not
-   * follow this edge during traversing. Thus it will always stay inside the current function.
+   * follow this edge during traversing. Thus, it will always stay inside the current function.
    */
   @SuppressWarnings("unchecked")
   public CFATraversal ignoreFunctionCalls() {
@@ -215,7 +216,7 @@ public class CFATraversal {
     record CFANodeCFAEdgePair(CFANode successor, CFAEdge enteringEdge) {}
 
     Deque<CFANodeCFAEdgePair> toProcess = new ArrayDeque<>();
-    Set<CFANode> discovered = new LinkedHashSet<>();
+    SequencedSet<CFANode> discovered = new LinkedHashSet<>();
 
     toProcess.addLast(new CFANodeCFAEdgePair(startingNode, null));
 
@@ -418,12 +419,12 @@ public class CFATraversal {
     @Override
     public TraversalProcess visitEdge(CFAEdge pEdge) {
       String funName = pEdge.getSuccessor().getFunctionName();
-      if (pEdge instanceof ADeclarationEdge) {
-        ADeclaration decl = ((ADeclarationEdge) pEdge).getDeclaration();
+      if (pEdge instanceof ADeclarationEdge aDeclarationEdge) {
+        ADeclaration decl = aDeclarationEdge.getDeclaration();
         handleDeclaration(decl.isGlobal() ? "" : funName, decl.getOrigName());
-      } else if (pEdge instanceof FunctionCallEdge) {
+      } else if (pEdge instanceof FunctionCallEdge functionCallEdge) {
         for (AParameterDeclaration paramDecl :
-            ((FunctionCallEdge) pEdge).getSuccessor().getFunctionParameters()) {
+            functionCallEdge.getSuccessor().getFunctionParameters()) {
           handleDeclaration(funName, paramDecl.getOrigName());
         }
       }
@@ -455,7 +456,7 @@ public class CFATraversal {
    * will be called in the same order for each edge and node. If one visitor returns ABORT, the
    * other visitors will still be called, and ABORT is returned. If one visitor returns SKIP, the
    * other visitors will still be called, and SKIP is returned if none of them returned ABORT.
-   * Otherwise CONTINUE is returned.
+   * Otherwise, CONTINUE is returned.
    */
   public static class CompositeCFAVisitor implements CFAVisitor {
 

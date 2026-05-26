@@ -73,7 +73,6 @@ import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState.ProgramDefinitionPo
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils.VariableExtractor;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -124,7 +123,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
     List<AbstractState> successors = new ArrayList<>();
     List<CFAEdge> definitions = new ArrayList<>();
     for (CFANode node : nodes) {
-      for (CFAEdge cfaedge : CFAUtils.leavingEdges(node)) {
+      for (CFAEdge cfaedge : node.getLeavingEdges()) {
         shutdownNotifier.shutdownIfNecessary();
 
         if (!(cfaedge.getEdgeType() == CFAEdgeType.FunctionReturnEdge)) {
@@ -161,7 +160,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
           "Incorrect initialization of reaching definition transfer relation.");
     }
 
-    if (!(pState instanceof ReachingDefState)) {
+    if (!(pState instanceof ReachingDefState reachingDefState)) {
       throw new CPATransferException(
           "Unexpected type of abstract state. The transfer relation is not defined for this type");
     }
@@ -175,67 +174,43 @@ public class ReachingDefTransferRelation implements TransferRelation {
       return Collections.singleton(pState);
     }
 
-    ReachingDefState result;
-
-    switch (pCfaEdge.getEdgeType()) {
-      case StatementEdge:
-        {
-          result = handleStatementEdge((ReachingDefState) pState, (CStatementEdge) pCfaEdge);
-          break;
-        }
-      case DeclarationEdge:
-        {
-          result = handleDeclarationEdge((ReachingDefState) pState, (CDeclarationEdge) pCfaEdge);
-          break;
-        }
-      case FunctionCallEdge:
-        {
-          result = handleCallEdge((ReachingDefState) pState, (CFunctionCallEdge) pCfaEdge);
-          break;
-        }
-      case FunctionReturnEdge:
-        {
-          result = handleReturnEdge((ReachingDefState) pState, (CFunctionReturnEdge) pCfaEdge);
-          break;
-        }
-      case ReturnStatementEdge:
-        result = handleReturnStatement((CReturnStatementEdge) pCfaEdge, (ReachingDefState) pState);
-        break;
-
-      case AssumeEdge:
-        result = handleAssumption((ReachingDefState) pState, (CAssumeEdge) pCfaEdge);
-        break;
-
-      case BlankEdge:
-        // TODO still correct?
-        // special case entering the main method for the first time (no local variables known)
-        logger.log(
-            Level.FINE,
-            "Start of main function. ",
-            "Add undefined position for local variables of main function. ",
-            "Add definition of parameters of main function.");
-        if (Objects.equals(pCfaEdge.getPredecessor(), main)
-            && ((ReachingDefState) pState).getLocalReachingDefinitions().size() == 0) {
-          result =
-              ((ReachingDefState) pState)
-                  .initVariables(
-                      localVariablesPerFunction.get(pCfaEdge.getPredecessor()),
-                      getParameters((CFunctionEntryNode) pCfaEdge.getPredecessor()),
-                      pCfaEdge.getPredecessor(),
-                      pCfaEdge.getSuccessor());
-          break;
-        }
-      // $FALL-THROUGH$
-      case CallToReturnEdge:
-        logger.log(
-            Level.FINE,
-            "Reaching definition not affected by edge. ",
-            "Keep reaching definition unchanged.");
-        result = (ReachingDefState) pState;
-        break;
-      default:
-        throw new CPATransferException("Unknown CFA edge type.");
-    }
+    ReachingDefState result =
+        switch (pCfaEdge.getEdgeType()) {
+          case StatementEdge -> handleStatementEdge(reachingDefState, (CStatementEdge) pCfaEdge);
+          case DeclarationEdge ->
+              handleDeclarationEdge(reachingDefState, (CDeclarationEdge) pCfaEdge);
+          case FunctionCallEdge -> handleCallEdge(reachingDefState, (CFunctionCallEdge) pCfaEdge);
+          case FunctionReturnEdge ->
+              handleReturnEdge(reachingDefState, (CFunctionReturnEdge) pCfaEdge);
+          case ReturnStatementEdge ->
+              handleReturnStatement((CReturnStatementEdge) pCfaEdge, reachingDefState);
+          case AssumeEdge -> handleAssumption(reachingDefState, (CAssumeEdge) pCfaEdge);
+          case BlankEdge -> {
+            // TODO still correct?
+            // special case entering the main method for the first time (no local variables known)
+            logger.log(
+                Level.FINE,
+                "Start of main function. ",
+                "Add undefined position for local variables of main function. ",
+                "Add definition of parameters of main function.");
+            if (Objects.equals(pCfaEdge.getPredecessor(), main)
+                && reachingDefState.getLocalReachingDefinitions().size() == 0) {
+              yield reachingDefState.initVariables(
+                  localVariablesPerFunction.get(pCfaEdge.getPredecessor()),
+                  getParameters((CFunctionEntryNode) pCfaEdge.getPredecessor()),
+                  pCfaEdge.getPredecessor(),
+                  pCfaEdge.getSuccessor());
+            }
+            yield reachingDefState;
+          }
+          case CallToReturnEdge -> {
+            logger.log(
+                Level.FINE,
+                "Reaching definition not affected by edge. ",
+                "Keep reaching definition unchanged.");
+            yield reachingDefState;
+          }
+        };
 
     return Collections.singleton(result);
   }
@@ -254,8 +229,8 @@ public class ReachingDefTransferRelation implements TransferRelation {
                   @Override
                   protected Collection<CLeftHandSide> visitDefault(CExpression pExp)
                       throws NoException {
-                    if (pExp instanceof CLeftHandSide) {
-                      return ImmutableList.of((CLeftHandSide) pExp);
+                    if (pExp instanceof CLeftHandSide cLeftHandSide) {
+                      return ImmutableList.of(cLeftHandSide);
 
                     } else if (pExp instanceof CLiteralExpression) {
                       return ImmutableList.of();
@@ -270,8 +245,8 @@ public class ReachingDefTransferRelation implements TransferRelation {
 
                       return res;
 
-                    } else if (pExp instanceof CUnaryExpression) {
-                      return ((CUnaryExpression) pExp).getOperand().accept(this);
+                    } else if (pExp instanceof CUnaryExpression cUnaryExpression) {
+                      return cUnaryExpression.getOperand().accept(this);
 
                     } else {
                       throw new AssertionError("Unhandled operation: " + pExp);
@@ -322,11 +297,12 @@ public class ReachingDefTransferRelation implements TransferRelation {
   private ReachingDefState handleStatement(
       ReachingDefState pState, CFAEdge pEdge, CStatement pStatement) {
     CLeftHandSide left;
-    if (pStatement instanceof CExpressionAssignmentStatement) {
-      left = ((CExpressionAssignmentStatement) pStatement).getLeftHandSide();
-    } else if (pStatement instanceof CFunctionCallAssignmentStatement) {
+    if (pStatement instanceof CExpressionAssignmentStatement cExpressionAssignmentStatement) {
+      left = cExpressionAssignmentStatement.getLeftHandSide();
+    } else if (pStatement
+        instanceof CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement) {
       // handle function call on right hand side to external method
-      left = ((CFunctionCallAssignmentStatement) pStatement).getLeftHandSide();
+      left = cFunctionCallAssignmentStatement.getLeftHandSide();
       logger.logOnce(
           Level.WARNING,
           "Analysis may be unsound if external method redefines global variables",
@@ -474,8 +450,8 @@ public class ReachingDefTransferRelation implements TransferRelation {
       throws CPATransferException, InterruptedException {
 
     for (AbstractState o : otherStates) {
-      if (o instanceof PointerState) {
-        return strengthen((ReachingDefState) state, (PointerState) o);
+      if (o instanceof PointerState pointerState) {
+        return strengthen((ReachingDefState) state, pointerState);
       }
     }
     return Collections.singleton(state);

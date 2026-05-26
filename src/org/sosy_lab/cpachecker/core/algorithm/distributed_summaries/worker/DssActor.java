@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
 import java.io.IOException;
 import java.util.Collection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssConnection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -56,13 +56,13 @@ public interface DssActor extends Runnable {
    * Returns false as long as this worker should run. Once it returns true it should never switch
    * back to returning false.
    *
-   * @return true iff actor should stop working and is never needed again, false otherwise.
+   * @return whether actor should stop working and is never needed again
    * @see DssWorker
    */
   boolean shutdownRequested();
 
   /**
-   * Get an unique ID of this actor.
+   * Get a unique ID of this actor.
    *
    * @return Unique ID of this worker.
    */

@@ -6,5 +6,11 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** A package to model C floating-point types in Java. */
+/**
+ * An implementation of multi-precision floating point numbers that generalizes the IEEE 754
+ * standard to arbitrary bit sizes.
+ *
+ * <p>See {@link org.sosy_lab.cpachecker.util.floatingpoint.FloatValue} and {@link
+ * org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format} for the classes in this package.
+ */
 package org.sosy_lab.cpachecker.util.floatingpoint;

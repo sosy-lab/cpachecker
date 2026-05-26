@@ -12,7 +12,7 @@
  *
  * <p>We use UFs to model some operations and let the solver choose arbitrary values
  * (over-approximation!) for the result of the UF. If a formula is UNSAT, we can ignore the UF.
- * Otherwise we try to compute a better result with the {@link
+ * Otherwise, we try to compute a better result with the {@link
  * org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.FunctionApplicationManager} and add an
  * additional constraint for the UF. This iteratively improves the solver's model.
  *

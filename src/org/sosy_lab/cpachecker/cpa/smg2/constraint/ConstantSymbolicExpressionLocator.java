@@ -85,7 +85,7 @@ public class ConstantSymbolicExpressionLocator
     final Set<ConstantSymbolicExpression> identifiersOnRight =
         pExpression.getOperand2().accept(this);
 
-    // all of the produced sets in this visitor are immutable sets,
+    // all the produced sets in this visitor are immutable sets,
     // so the union will also be immutable
     // and there is no need to generate a separate ImmutableSet.
     return Sets.union(identifiersOnLeft, identifiersOnRight);

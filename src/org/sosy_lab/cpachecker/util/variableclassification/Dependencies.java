@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.SequencedSet;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -31,12 +32,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 class Dependencies {
 
   /** partitions, each of them contains vars */
-  final Set<Partition> partitions = new LinkedHashSet<>();
+  final SequencedSet<Partition> partitions = new LinkedHashSet<>();
 
   /** map to get partition of a var */
   private final Map<String, Partition> varToPartition = new HashMap<>();
 
-  /** table to get a partition for a edge. */
+  /** table to get a partition for an edge. */
   final Table<CFAEdge, Integer, Partition> edgeToPartition = HashBasedTable.create();
 
   /**

@@ -51,7 +51,6 @@ public class ApronManager {
       case POLKA -> new Polka(false);
       case POLKA_STRICT -> new Polka(true);
       case POLKA_EQ -> new PolkaEq();
-      default -> throw new UnsupportedOperationException("Unexpected argument for domain option.");
     };
   }
 }

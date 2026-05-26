@@ -58,7 +58,7 @@ public class FiducciaMattheysesWeightedKWayAlgorithm {
   }
 
   /**
-   * Get partition given node belongs to afterwards structure was initialized
+   * Get partition given node belongs to afterward structure was initialized
    *
    * @param node node to be looked up
    * @return number of containing partition

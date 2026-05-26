@@ -33,7 +33,7 @@ public class BlockWaitlist implements Waitlist {
   }
 
   private static class Block {
-    public static final String ENTRY_BLOCK_NAME = "entry_block_main";
+    static final String ENTRY_BLOCK_NAME = "entry_block_main";
 
     // function name which is the basis for the block
     @SuppressWarnings("unused")
@@ -59,7 +59,7 @@ public class BlockWaitlist implements Waitlist {
     }
 
     @SuppressWarnings("unused")
-    public int getSavedResources() {
+    int getSavedResources() {
       return savedResources;
     }
 
@@ -72,7 +72,7 @@ public class BlockWaitlist implements Waitlist {
     /**
      * check resource limits
      *
-     * @return true if resource limit has been reached
+     * @return whether resource limit has been reached
      */
     boolean checkResources() {
       if (isEntryBlock) {
@@ -124,13 +124,10 @@ public class BlockWaitlist implements Waitlist {
     }
   }
 
-  private static final class BKey implements Comparable<BKey> {
-    private final String name;
-    private final int callStackDepth;
+  private static record BKey(String name, int callStackDepth) implements Comparable<BKey> {
 
-    BKey(String pName, int pDepth) {
-      name = checkNotNull(pName);
-      callStackDepth = pDepth;
+    BKey {
+      checkNotNull(name);
     }
 
     @Override
@@ -139,32 +136,6 @@ public class BlockWaitlist implements Waitlist {
           .compare(callStackDepth, k2.callStackDepth)
           .compare(name, k2.name)
           .result();
-    }
-
-    @Override
-    public String toString() {
-      return "[" + name + ", " + callStackDepth + "]";
-    }
-
-    @Override
-    public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + callStackDepth;
-      result = prime * result + name.hashCode();
-      return result;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      if (this == obj) {
-        return true;
-      }
-      if (obj == null || getClass() != obj.getClass()) {
-        return false;
-      }
-      BKey other = (BKey) obj;
-      return (callStackDepth == other.callStackDepth) && name.equals(other.name);
     }
   }
 
@@ -239,7 +210,7 @@ public class BlockWaitlist implements Waitlist {
    * checks whether function name is a block (for example, starts with emg_control or emg_callback
    * or matches ldv_.*_instance_)
    *
-   * @return true if it is a block entry
+   * @return whether it is a block entry
    */
   private boolean isBlock(String func) {
     for (Pattern p : ldvPattern) {
@@ -398,19 +369,7 @@ public class BlockWaitlist implements Waitlist {
   }
 
   private boolean isEmptyMap() {
-    if (activeBlocksMap.isEmpty()) {
-      return true;
-    }
-    // fast detection if last block is not empty
-    Entry<BKey, Block> highestEntry = activeBlocksMap.lastEntry();
-    if (!highestEntry.getValue().isEmpty()) {
-      return false;
-    }
-
-    // slow path
-
-    for (BKey key : activeBlocksMap.descendingKeySet()) {
-      Block b = activeBlocksMap.get(key);
+    for (Block b : activeBlocksMap.reversed().values()) {
       if (!b.isEmpty()) {
         return false;
       }

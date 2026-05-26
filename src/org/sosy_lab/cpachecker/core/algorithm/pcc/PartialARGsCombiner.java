@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
@@ -219,7 +218,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
       // identify possible successor edges
       CFANode locPred = AbstractStates.extractLocation(composedState);
       nextEdge:
-      for (CFAEdge succEdge : CFAUtils.allLeavingEdges(locPred)) {
+      for (CFAEdge succEdge : locPred.getAllLeavingEdges()) {
         shutdown.shutdownIfNecessary();
 
         successorsForEdge.clear();
@@ -232,7 +231,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
               Lists.newArrayList(
                   Iterables.filter(component.getChildren(), edgeSuccessorIdentifier)));
           // check if stopped because no concrete successors exists, then do not
-          if (successorsForEdge.get(successorsForEdge.size() - 1).isEmpty()
+          if (successorsForEdge.getLast().isEmpty()
               && noConcreteSuccessorExist(component, succEdge, pForwaredReachedSet)) {
             continue nextEdge;
           }
@@ -279,10 +278,10 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     // check if analysis stopped exploration due to true state in automaton --> concrete successors
     // may exist
     for (AbstractState state : AbstractStates.asIterable(pPredecessor)) {
-      if (state instanceof AutomatonState
-          && ((AutomatonState) state).getOwningAutomatonName().equals("AssumptionAutomaton")) {
+      if (state instanceof AutomatonState automatonState
+          && automatonState.getOwningAutomatonName().equals("AssumptionAutomaton")) {
         if (AutomatonStateARGCombiningHelper.endsInAssumptionTrueState(
-            (AutomatonState) state, pSuccEdge, logger)) {
+            automatonState, pSuccEdge, logger)) {
           return false;
         }
       }
@@ -361,8 +360,8 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     // assume root is the root node of the first ARG constructed
     ARGState root = rootNodes.iterator().next();
 
-    if (root.getWrappedState() instanceof AbstractWrapperState) {
-      wrapped = ((AbstractWrapperState) root.getWrappedState()).getWrappedStates();
+    if (root.getWrappedState() instanceof AbstractWrapperState abstractWrapperState) {
+      wrapped = abstractWrapperState.getWrappedStates();
     } else {
       wrapped = Collections.singleton(root.getWrappedState());
     }
@@ -394,16 +393,16 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
   }
 
   private Iterable<AbstractState> getWrappedStates(ARGState wrapper) {
-    if (wrapper.getWrappedState() instanceof AbstractWrapperState) {
-      return ((AbstractWrapperState) wrapper.getWrappedState()).getWrappedStates();
+    if (wrapper.getWrappedState() instanceof AbstractWrapperState abstractWrapperState) {
+      return abstractWrapperState.getWrappedStates();
     } else {
       return Collections.singleton(wrapper.getWrappedState());
     }
   }
 
   private String getName(AbstractState pState) {
-    if (pState instanceof AutomatonState) {
-      return ((AutomatonState) pState).getOwningAutomatonName();
+    if (pState instanceof AutomatonState automatonState) {
+      return automatonState.getOwningAutomatonName();
     }
     if (pState instanceof PredicateAbstractState) {
       return PredicateAbstractState.class.getName();
@@ -436,7 +435,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     int[] indices = new int[pSuccessorsForEdge.size()];
     int nextIndex = 0;
     boolean restart;
-    int lastSize = pSuccessorsForEdge.get(pSuccessorsForEdge.size() - 1).size();
+    int lastSize = pSuccessorsForEdge.getLast().size();
 
     if (lastSize == 0) {
       lastSize = 1;
@@ -572,8 +571,8 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (restartAlgorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) restartAlgorithm).collectStatistics(pStatsCollection);
+    if (restartAlgorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(stats);
   }

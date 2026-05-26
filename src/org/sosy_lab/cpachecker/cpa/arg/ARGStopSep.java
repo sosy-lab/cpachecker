@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
@@ -84,7 +83,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
         }
 
       } else {
-        // unexpected case, not sure if it this possible
+        // unexpected case, not sure if it is possible
         logger.log(
             Level.FINEST,
             "Element was merged into an element that's not in the reached set, merged-with element"
@@ -103,7 +102,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
     // Check if the argElement has only one parent and remember it for later:
     ARGState parent = null;
     if (argElement.getParents().size() == 1) {
-      parent = Iterables.get(argElement.getParents(), 0);
+      parent = argElement.getParents().getFirst();
     }
 
     for (AbstractState reachedState : pReached) {
@@ -157,7 +156,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
   public boolean isForcedCoveringPossible(
       AbstractState pElement, AbstractState pReachedState, Precision pPrecision)
       throws CPAException, InterruptedException {
-    if (!(wrappedStop instanceof ForcedCoveringStopOperator)) {
+    if (!(wrappedStop instanceof ForcedCoveringStopOperator forcedCoveringStopOperator)) {
       return false;
     }
 
@@ -172,8 +171,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
       return false;
     }
 
-    return ((ForcedCoveringStopOperator) wrappedStop)
-        .isForcedCoveringPossible(
-            element.getWrappedState(), reachedState.getWrappedState(), pPrecision);
+    return forcedCoveringStopOperator.isForcedCoveringPossible(
+        element.getWrappedState(), reachedState.getWrappedState(), pPrecision);
   }
 }

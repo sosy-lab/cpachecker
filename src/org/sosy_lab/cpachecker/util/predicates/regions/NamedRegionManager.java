@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -292,7 +293,7 @@ public class NamedRegionManager implements RegionManager {
   /** Get the current variables in the BDD. */
   public Set<String> getPredicatesFromRegion(Region region) {
     synchronized (regionMap) {
-      Set<String> predicates = new LinkedHashSet<>();
+      SequencedSet<String> predicates = new LinkedHashSet<>();
       Set<Region> finished = new HashSet<>();
       Deque<Region> waitlist = new ArrayDeque<>();
       waitlist.push(region);

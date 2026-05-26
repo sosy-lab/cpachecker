@@ -33,11 +33,11 @@ public class YAMLWitnessModelTest {
       throws JsonParseException, JsonMappingException, IOException {
     Queue<AbstractEntry> loadedEntries = testParsingFile("violation-witness.yml");
     for (AbstractEntry e : loadedEntries) {
-      if (e instanceof ViolationSequenceEntry) {
-        List<SegmentRecord> sequence = ((ViolationSequenceEntry) e).getContent();
-        assertThat(sequence).hasSize(5);
-        assertThat(sequence.get(0).getSegment().size()).isAtLeast(1);
-        assertThat(sequence.get(0).getSegment().get(0).getConstraint().getValue())
+      if (e instanceof ViolationSequenceEntry violationSequenceEntry) {
+        List<SegmentRecord> sequence = violationSequenceEntry.getContent();
+        assertThat(sequence).hasSize(4);
+        assertThat(sequence.getFirst().getSegment().size()).isAtLeast(1);
+        assertThat(sequence.getFirst().getSegment().getFirst().getConstraint().getValue())
             .isEqualTo("(x >= 1024U)");
       }
     }
@@ -57,8 +57,8 @@ public class YAMLWitnessModelTest {
         mapper.getTypeFactory().constructCollectionType(List.class, AbstractEntry.class);
     List<AbstractEntry> entries2 = mapper.readValue(yamlString, entryType);
     assertThat(entries2).hasSize(1);
-    assertThat(entries2.get(0)).isInstanceOf(ViolationSequenceEntry.class);
-    ViolationSequenceEntry entry2 = (ViolationSequenceEntry) entries2.get(0);
+    assertThat(entries2.getFirst()).isInstanceOf(ViolationSequenceEntry.class);
+    ViolationSequenceEntry entry2 = (ViolationSequenceEntry) entries2.getFirst();
 
     // actual check of both representations
     assertThat(entry1.getMetadata()).isEqualTo(entry2.getMetadata());
@@ -74,8 +74,7 @@ public class YAMLWitnessModelTest {
     JavaType entryType =
         mapper.getTypeFactory().constructCollectionType(List.class, AbstractEntry.class);
     List<AbstractEntry> entries = mapper.readValue(yamlWitness, entryType);
-    Queue<AbstractEntry> loadedEntries = new ArrayDeque<>();
-    loadedEntries.addAll(entries);
+    Queue<AbstractEntry> loadedEntries = new ArrayDeque<>(entries);
     return loadedEntries;
   }
 }

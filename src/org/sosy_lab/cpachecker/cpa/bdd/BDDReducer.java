@@ -118,7 +118,7 @@ class BDDReducer extends GenericReducer<BDDState, Precision> {
       return pExpandedState;
     }
 
-    // lets start the block abstraction with "x==input_x && global==input_global"
+    // let's start the block abstraction with "x==input_x && global==input_global"
     // for all variables of the block.
     // This lets us compute a block abstraction relative to the input variables.
     BDDState state = new BDDState(manager, bvmgr, manager.makeTrue());
