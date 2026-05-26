@@ -428,7 +428,8 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   private AbstractState processElements(CounterexampleInfo cexInfo, AbstractState abstractState) {
     if (abstractState instanceof ValueAnalysisState vaState) {
       return initializeVAState(
-          cexInfo, ValueAnalysisState.copyOf(vaState);
+          cexInfo,
+          ValueAnalysisState.copyOf(vaState));
     } else {
       return abstractState;
     }
