@@ -26,9 +26,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
+import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.testtargets.reduction.TestTargetAdaption;
@@ -89,6 +91,12 @@ public class TestTargetCPA extends AbstractCPA implements ConfigurableProgramAna
             "CFA edge if only a specific edge should be considered, e.g., in counterexample check")
     private String targetEdge = null;
 
+    @Option(
+        secure = true,
+        name = "stopAtTarget",
+        description = "whether to stop or continue analysis once a test target is hit")
+    private boolean stopAtTarget = true;
+
     public TestTargetOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
 
@@ -142,15 +150,9 @@ public class TestTargetCPA extends AbstractCPA implements ConfigurableProgramAna
     }
   }
 
-  private final TestTargetPrecisionAdjustment precisionAdjustment;
+  private final PrecisionAdjustment precisionAdjustment;
   private final TransferRelation transferRelation;
   private final TestTargetOptions targetOptions;
-
-  @Option(
-      secure = true,
-      name = "extractorMode",
-      description = "CPA is running in extractor mode of test case generation")
-  private boolean extractorMode = false;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(TestTargetCPA.class);
@@ -162,7 +164,11 @@ public class TestTargetCPA extends AbstractCPA implements ConfigurableProgramAna
 
     targetOptions = new TestTargetOptions(pConfig);
 
-    precisionAdjustment = new TestTargetPrecisionAdjustment(extractorMode);
+    if (targetOptions.stopAtTarget) {
+      precisionAdjustment = new TestTargetPrecisionAdjustment();
+    } else {
+      precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+    }
     transferRelation = new TestTargetTransferRelation(targetOptions, pCfa, pLogger);
   }
 
@@ -178,7 +184,7 @@ public class TestTargetCPA extends AbstractCPA implements ConfigurableProgramAna
   }
 
   @Override
-  public TestTargetPrecisionAdjustment getPrecisionAdjustment() {
+  public PrecisionAdjustment getPrecisionAdjustment() {
     return precisionAdjustment;
   }
 
