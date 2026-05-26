@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -110,12 +112,11 @@ public class AcslRenamingVisitor
 
   @Override
   public AcslPredicate visit(AcslForallPredicate pForallPredicate) throws NoException {
-    context.depth++;
     List<AcslParameterDeclaration> newBinders = new ArrayList<>();
     Map<AcslSimpleDeclaration, AcslSimpleDeclaration> localMap = new HashMap<>();
 
     for (AcslParameterDeclaration declaration : pForallPredicate.getBinders()) {
-      String newName = "ACSL#q" + context.depth + "#" + declaration.getName();
+      String newName = "ACSL#q" + (context.counter++) + "#" + declaration.getName();
 
       AcslParameterDeclaration renamed =
           new AcslParameterDeclaration(
@@ -124,12 +125,11 @@ public class AcslRenamingVisitor
       localMap.put(declaration, renamed);
       newBinders.add(renamed);
     }
-    context.renaming.putAll(localMap);
+    context.push(localMap);
 
     AcslPredicate renamedPredicate = pForallPredicate.getPredicate().accept(this);
 
-    context.depth--;
-    context.renaming.keySet().removeAll(localMap.keySet());
+    context.pop();
 
     return new AcslForallPredicate(
         pForallPredicate.getFileLocation(), newBinders, renamedPredicate);
@@ -137,12 +137,11 @@ public class AcslRenamingVisitor
 
   @Override
   public AcslPredicate visit(AcslExistsPredicate pAcslExistsPredicate) throws NoException {
-    context.depth++;
     List<AcslParameterDeclaration> newBinders = new ArrayList<>();
     Map<AcslSimpleDeclaration, AcslSimpleDeclaration> localMap = new HashMap<>();
 
     for (AcslParameterDeclaration declaration : pAcslExistsPredicate.getBinders()) {
-      String newName = "ACSL#q" + context.depth + "#" + declaration.getName();
+      String newName = "ACSL#q" + (context.counter++) + "#" + declaration.getName();
 
       AcslParameterDeclaration renamed =
           new AcslParameterDeclaration(
@@ -151,14 +150,13 @@ public class AcslRenamingVisitor
       localMap.put(declaration, renamed);
       newBinders.add(renamed);
     }
-    context.renaming.putAll(localMap);
+    context.push(localMap);
 
     AcslPredicate renamedPredicate = pAcslExistsPredicate.getPredicate().accept(this);
 
-    context.depth--;
-    context.renaming.keySet().removeAll(localMap.keySet());
+    context.pop();
 
-    return new AcslForallPredicate(
+    return new AcslExistsPredicate(
         pAcslExistsPredicate.getFileLocation(), newBinders, renamedPredicate);
   }
 
@@ -220,7 +218,7 @@ public class AcslRenamingVisitor
   @Override
   public AcslTerm visit(AcslIdTerm pAcslIdTerm) throws NoException {
     AcslSimpleDeclaration declaration = pAcslIdTerm.getDeclaration();
-    AcslSimpleDeclaration renamed = context.renaming.get(declaration);
+    AcslSimpleDeclaration renamed = context.lookup(declaration);
     if (renamed != null) {
       return new AcslIdTerm(pAcslIdTerm.getFileLocation(), renamed);
     } else {
@@ -264,8 +262,24 @@ public class AcslRenamingVisitor
   }
 
   private static final class RenamingContext {
-    int depth = 0;
+    private int counter = 0;
+    private Deque<Map<AcslSimpleDeclaration, AcslSimpleDeclaration>> stack = new ArrayDeque<>();
 
-    final Map<AcslSimpleDeclaration, AcslSimpleDeclaration> renaming = new HashMap<>();
+    AcslSimpleDeclaration lookup(AcslSimpleDeclaration decl) {
+      for (Map<AcslSimpleDeclaration, AcslSimpleDeclaration> scope : stack) {
+        if (scope.containsKey(decl)) {
+          return scope.get(decl);
+        }
+      }
+      return null;
+    }
+
+    void push(Map<AcslSimpleDeclaration, AcslSimpleDeclaration> p) {
+      stack.push(p);
+    }
+
+    void pop() {
+      stack.pop();
+    }
   }
 }
