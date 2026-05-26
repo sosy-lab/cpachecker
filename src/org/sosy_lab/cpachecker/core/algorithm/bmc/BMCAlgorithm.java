@@ -811,6 +811,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
 
     int added = 0;
+    List<CandidateInvariant> cumulativeEqualities = new ArrayList<>();
     for (ValueAssignment valueAssignment : pModelAssignments) {
       Pair<String, OptionalInt> parsedName =
           FormulaManagerView.parseName(valueAssignment.getName());
@@ -819,16 +820,21 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       boolean modifiedInLoop = modifiedVariables.orElseThrow().contains(actualName);
       boolean onlyNoOpModifiedInLoop =
           modifiedInLoop && isOnlyNoOpModifiedInLoopsContaining(pLocation, actualName);
+      // Filter steps:
+      //  c1/c2/c3: assignment must be SSA-indexed and the index must match the variable's
+      //            current SSA index at pLocation.
+      //  c4: if the variable is modified in the loop body, the only safe case is when every
+      //      assignment in the loop is a no-op (e.g. `x = x + 0`); otherwise the model's
+      //      value is iteration-specific and not invariant.
+      // Variables that are *never* assigned inside the loop are loop-invariant by definition
+      // - their model value carries from the prologue (e.g. `c = 0` before `while (x >= 0)`),
+      // which is exactly the class of facts a non-termination closure proof needs. We must
+      // NOT additionally require a "repeated stable value across SSA indices", because such
+      // variables only have a single SSA index and would always fail that check.
       if (index.isEmpty()
           || !pPathFormula.getSsa().containsVariable(actualName)
           || pPathFormula.getSsa().getIndex(actualName) != index.orElseThrow()
-          || (modifiedInLoop && !onlyNoOpModifiedInLoop)
-          || (!onlyNoOpModifiedInLoop
-              && !hasRepeatedStableModelValue(
-                  actualName,
-                  valueAssignment.getValue(),
-                  index.orElseThrow(),
-                  pModelAssignments))) {
+          || (modifiedInLoop && !onlyNoOpModifiedInLoop)) {
         continue;
       }
 
@@ -837,12 +843,27 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       CandidateInvariant equalityCandidate =
           SingleLocationFormulaInvariant.makeLocationInvariant(
               pLocation, equality, getFormulaManager());
-      addStrengthenedCandidate(
-          pStrengthenedCandidates,
-          pCandidateInvariant,
-          CandidateInvariantCombination.conjunction(
-              ImmutableList.of(pCandidateInvariant, equalityCandidate)));
-      added++;
+      cumulativeEqualities.add(equalityCandidate);
+
+      if (added < MAX_MODEL_EQUALITY_STRENGTHENINGS) {
+        addStrengthenedCandidate(
+            pStrengthenedCandidates,
+            pCandidateInvariant,
+            CandidateInvariantCombination.conjunction(
+                ImmutableList.of(pCandidateInvariant, equalityCandidate)));
+        added++;
+      }
+
+      if (cumulativeEqualities.size() > 1 && added < MAX_MODEL_EQUALITY_STRENGTHENINGS) {
+        ImmutableList.Builder<CandidateInvariant> cumulativeCandidate = ImmutableList.builder();
+        cumulativeCandidate.add(pCandidateInvariant);
+        cumulativeCandidate.addAll(cumulativeEqualities);
+        addStrengthenedCandidate(
+            pStrengthenedCandidates,
+            pCandidateInvariant,
+            CandidateInvariantCombination.conjunction(cumulativeCandidate.build()));
+        added++;
+      }
       if (added >= MAX_MODEL_EQUALITY_STRENGTHENINGS) {
         return;
       }
@@ -1025,28 +1046,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private boolean isSupportedModelEqualityValue(ValueAssignment pValueAssignment) {
     Object value = pValueAssignment.getValue();
     return value instanceof Number || value instanceof Boolean;
-  }
-
-  private boolean hasRepeatedStableModelValue(
-      String pVariableName,
-      Object pValue,
-      int pCurrentIndex,
-      Iterable<ValueAssignment> pModelAssignments) {
-    for (ValueAssignment otherAssignment : pModelAssignments) {
-      if (otherAssignment.isFunction()
-          || !isSupportedModelEqualityValue(otherAssignment)
-          || !pValue.equals(otherAssignment.getValue())) {
-        continue;
-      }
-      Pair<String, OptionalInt> parsedName =
-          FormulaManagerView.parseName(otherAssignment.getName());
-      if (parsedName.getSecond().isPresent()
-          && parsedName.getSecond().orElseThrow() != pCurrentIndex
-          && parsedName.getFirst().equals(pVariableName)) {
-        return true;
-      }
-    }
-    return false;
   }
 
   private BooleanFormula createNonTerminationBaseCaseFormula(
