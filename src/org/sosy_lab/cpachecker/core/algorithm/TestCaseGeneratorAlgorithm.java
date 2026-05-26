@@ -388,11 +388,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
       ResourceLimitChecker.fromConfiguration(lConfig, logger, lShutdownManager).start();
       CoreComponentsFactory eFactory =
           new CoreComponentsFactory(
-              lConfig,
-              logger,
-              lShutdownManager.getNotifier(),
-              AggregatedReachedSets.empty(),
-              cfa);
+              lConfig, logger, lShutdownManager.getNotifier(), AggregatedReachedSets.empty(), cfa);
 
       ConfigurableProgramAnalysis eCpas = eFactory.createCPA(spec);
       extractionAlgorithm = eFactory.createAlgorithm(eCpas, spec);
@@ -430,9 +426,9 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
   // ValueAnalysisState is explicitly copied before initialization to circumvent side effects
   private AbstractState processElements(CounterexampleInfo cexInfo, AbstractState abstractState) {
-    if (abstractState instanceof ValueAnalysisState) {
+    if (abstractState instanceof ValueAnalysisState vaState) {
       return initializeVAState(
-          cexInfo, ValueAnalysisState.copyOf((ValueAnalysisState) abstractState));
+          cexInfo, ValueAnalysisState.copyOf(vaState);
     } else {
       return abstractState;
     }
