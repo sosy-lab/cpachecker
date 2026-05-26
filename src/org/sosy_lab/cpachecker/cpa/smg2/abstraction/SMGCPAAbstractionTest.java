@@ -284,8 +284,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   }
 
   // test list specifier after normal abstraction
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void listAbstractionSpecifierSLLTest() throws SMGException, SMGSolverException {
     int listLength = 15;
@@ -431,8 +430,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   }
 
   // test list specifier after normal abstraction
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void listAbstractionSpecifierDLLTest() throws SMGException, SMGSolverException {
     int listLength = 15;
@@ -577,8 +575,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   }
 
   // test list specifier with a concrete element in the middle of 2 abstractions
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void listSpecifierConcreteInBetweenTwoAbstractedSLLTest()
       throws SMGException, SMGSolverException {
@@ -695,8 +692,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   }
 
   // test list specifier with a concrete element in the middle of 2 abstractions
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void listSpecifierConcreteInBetweenTwoAbstractedDLLTest()
       throws SMGException, SMGSolverException {
@@ -872,8 +868,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   }
 
   // DLL with pointer target offset 32 in the middle, 2 elements left and right w offset 0
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void dllWithPointerOffsetsAbstractionTest() throws SMGException, SMGSolverException {
     int listLength = 10;
@@ -899,8 +894,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   }
 
   // SLL with pointer target offset 32 in the middle, 2 elements left and right w offset 0
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void sllWithPointerOffsetsAbstractionTest() throws SMGException, SMGSolverException {
     int listLength = 10;
@@ -934,8 +928,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
   // SLL with pointer target offset 32 in the middle, 2 elements left and right w offset 0
   // Then nest the same in the top SLL with same length (abstractable for top)
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void sllWithPointerOffsetsNestedAbstractionTest() throws SMGException, SMGSolverException {
     int listLength = 8;
@@ -1115,8 +1108,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
   // DLL with pointer target offset 32 in the middle, 2 elements left and right w offset 0
   // Then nest the same in the top SLL with same length (abstractable for top)
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void dllWithPointerOffsetsNestedAbstractionTest() throws SMGException, SMGSolverException {
     int listLength = 8;
@@ -1309,8 +1301,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * SLL that has 2 pointers with differing target offsets to itself in different offsets.
    * Is abstractable, but the self-pointers need to be correct.
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void sllWithSelfPointerWithOffsetsAbstractionTest()
       throws SMGException, SMGSolverException {
@@ -1506,8 +1497,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * DLL that has 2 pointers with differing target offsets to itself in different offsets.
    * Is abstractable, but the self-pointers need to be correct.
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void dllWithSelfPointerWithOffsetsAbstractionTest()
       throws SMGException, SMGSolverException {
@@ -1745,8 +1735,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * SLL that has 2 pointers with differing target offsets to itself in different offsets.
    * Is abstractable, but the self-pointers need to be correct.
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void sllWithSelfPointerWithOffsetsLeftMaterializationTest()
       throws SMGException, SMGSolverException {
@@ -2014,8 +2003,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * Is abstractable, but the self-pointers need to be correct.
    * We test materialization from the left to the right, including 0+.
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void sllLoopingWithSelfPointerWithOffsetsLeftMaterializationTest()
       throws SMGException, SMGSolverException {
@@ -2284,8 +2272,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * Is abstractable, but the self-pointers need to be correct.
    * Materializes the list from the left.
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void dllWithSelfPointerWithOffsetsLeftMaterializationTest()
       throws SMGException, SMGSolverException {
@@ -2604,8 +2591,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * Is abstractable, but the self-pointers need to be correct.
    * Materializes the list from the left.
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void dllLoopingWithSelfPointerWithOffsetsLeftMaterializationTest()
       throws SMGException, SMGSolverException {
@@ -2936,8 +2922,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     }
   }
 
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void dllWithSelfPointerWithOffsetsRightMaterializationTest()
       throws SMGException, SMGSolverException {
@@ -3261,8 +3246,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
   // Looping sll with 2 self pointers in each list segment with multiple target offsets and ptr
   // offsets.
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void sllWithSelfPointerWithOffsetsRightMaterializationTest()
       throws SMGException, SMGSolverException {
@@ -3495,8 +3479,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
   // Looping dll with 2 self pointers in each list segment with multiple target offsets and ptr
   // offsets.
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void dllLoopingWithSelfPointersWithOffsetsRightMaterializationTest()
       throws SMGException, SMGSolverException {
@@ -3877,8 +3860,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     }
   }
 
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void sllLoopingWithSelfPointersWithOffsetsRightMaterializationTest()
       throws SMGException, SMGSolverException {
@@ -4944,8 +4926,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   // nested in each top list (abstractable for top)
   // We materialize the first pointer until 0+ materialization has occurred at least once
   // This test materializes only by dereference of pointers.
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void dllWithPointerOffsetsNestedFstMaterializationTest()
       throws SMGException, SMGSolverException {
@@ -5111,8 +5092,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   // nested in each top list (abstractable for top)
   // We materialize the first pointer until 0+ materialization has occurred at least once
   // This test materializes by read and deref.
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void dllWithPointerOffsetsNestedFstMaterializationTest2()
       throws SMGException, SMGSolverException {
@@ -5312,8 +5292,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * List with a concrete, non abstractable element in the beginning and end, and then nest the
    * same structure. Stack objs pointing at only 1 top element.
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void dllAbstractionNestingTest2() throws SMGException, SMGSolverException {
     int listLength = 8;
@@ -5388,8 +5367,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * List with a concrete, non abstractable element in the beginning and end, and then nest the
    * same structure. Stack objs pointing at every top list element.
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void dllAbstractionNestingTest() throws SMGException, SMGSolverException {
     int listLength = 8;
@@ -5446,8 +5424,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
   // SLL with pointer target offset 32 in the middle, 2 elements left and right w offset 0
   // Then nest the same in the top SLL with differing length (non abstractable for top)
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void sllWithPointerOffsetsNestedNoAbstractionTest()
       throws SMGException, SMGSolverException {
@@ -5652,8 +5629,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   // SLL with pointer target offset 32 in the middle, 2 elements left and right w offset 0
   // Then nest the same in the top SLL with differing length but list threshold is length -1,
   // so abstractable for top as long as it's at the edges
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void sllWithPointerOffsetsNestedPartialAbstractionTest()
       throws SMGException, SMGSolverException {
@@ -5881,8 +5857,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * then abstracted and checked. This works if we correctly check equality by shape and not pointer
    * identity.
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void nestedListSLLTest() throws SMGException, SMGSolverException {
     // Smaller lengths are fine here, else this runs a while!
@@ -6099,8 +6074,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * materializes the list up to that memory, and all pointers are still valid, correctly nested and
    * point to the correct segments.
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void correctPointerNestingSLLTest() throws SMGException, SMGSolverException {
     int lengthOfList = 10;
@@ -6123,8 +6097,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * materializes the list up to that memory, and all pointers are still valid, correctly nested and
    * point to the correct segments.
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void correctPointerNestingDLLTest() throws SMGException, SMGSolverException {
     int lengthOfList = 10;
@@ -6147,8 +6120,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * the original abstracted list with all pointers being correctly nested and no extra segments or
    * states added.
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void correctZeroPlusAbsorptionSLLTest() throws SMGException, SMGSolverException {
     int lengthOfList = 10;
@@ -6181,8 +6153,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * it is then correctly reabsorbed to the original abstracted list with all pointers being
    * correctly nested and no extra segments or states added.
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void correctLeftZeroPlusAbsorptionDLLTest() throws SMGException, SMGSolverException {
     int lengthOfList = 10;
@@ -6270,8 +6241,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * the original abstracted list with all pointers being correctly nested and no extra segments or
    * states added.
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void correctZeroPlusAbsorptionDLLTest() throws SMGException, SMGSolverException {
     int lengthOfList = 10;
@@ -6364,8 +6334,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    *
    * @throws SMGException not thrown
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void zeroPlusRemovalSLLTest() throws SMGException, SMGSolverException {
     // We use a small length, does not matter at all
@@ -6423,8 +6392,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    *
    * @throws SMGException not thrown
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void zeroPlusRemovalDLLTest() throws SMGException, SMGSolverException {
     // We use a small length, does not matter at all
@@ -6566,8 +6534,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   /*
    * Build a concrete list by hand and then use the abstraction algorithm on it and check the result.
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void basicSLLFullAbstractionTest() throws SMGException, SMGSolverException {
     Value[] pointers = buildConcreteSLL();
@@ -6633,8 +6600,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   /*
    * Build a concrete list by hand and then use the abstraction algorithm on it and check the result.
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void basicDLLFullAbstractionTest() throws SMGException, SMGSolverException {
     Value[] pointers =
@@ -6690,8 +6656,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   /*
    * Build a concrete list by hand that has pointers from the outside on it and then use the abstraction algorithm on it and check the result.
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void basicSLLFullAbstractionWithExternalPointerTest()
       throws SMGException, SMGSolverException {
@@ -6755,8 +6720,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   /*
    * Build a concrete list by hand that has pointers from the outside on it and then use the abstraction algorithm on it and check the result.
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void basicDLLFullAbstractionWithExternalPointerTest()
       throws SMGException, SMGSolverException {
@@ -6834,8 +6798,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * Build a concrete list by hand that has pointers from the outside on it and then use the abstraction algorithm on it and check the result.
    * Then materialize the list back and check every pointer.
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void basicDLLFullAbstractionWithExternalPointerMaterializationTest()
       throws SMGException, SMGSolverException {
@@ -6996,8 +6959,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * Build a concrete list by hand that has pointers from the outside on it and then use the abstraction algorithm on it and check the result.
    * Then materialize the list back and check every pointer.
    */
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void basicSLLFullAbstractionWithExternalPointerMaterializationTest()
       throws SMGException, SMGSolverException {
@@ -7714,8 +7676,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     }
   }
 
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void abstractReverseSLLTest() throws SMGException, SMGSolverException {
     // Minimum abstraction length before a list is abstracted
@@ -7762,8 +7723,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     }
   }
 
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @SuppressWarnings("null")
   @Test
   public void abstractSLLTest() throws SMGException, SMGSolverException {
@@ -7808,8 +7768,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     }
   }
 
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @SuppressWarnings("null")
   @Test
   public void abstractDLLTest() throws SMGException, SMGSolverException {
@@ -7864,8 +7823,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
   // Test the minimum length needed for abstraction
   @SuppressWarnings("null")
-  // TODO: fix test for non-abstraction of regions w pointers from outside the list
-  @Ignore
+  @Ignore("TODO: fix test for non-abstraction of regions w pointers from outside the list")
   @Test
   public void abstractDLLLimitTest() throws SMGException, SMGSolverException {
     // Min abstraction length before the list is abstracted
