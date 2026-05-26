@@ -116,7 +116,7 @@ public class AcslRenamingVisitor
     Map<AcslSimpleDeclaration, AcslSimpleDeclaration> localMap = new HashMap<>();
 
     for (AcslParameterDeclaration declaration : pForallPredicate.getBinders()) {
-      String newName = "ACSL#q" + (context.counter++) + "#" + declaration.getName();
+      String newName = "ACSL#q" + context.counter++ + "#" + declaration.getName();
 
       AcslParameterDeclaration renamed =
           new AcslParameterDeclaration(
@@ -141,7 +141,7 @@ public class AcslRenamingVisitor
     Map<AcslSimpleDeclaration, AcslSimpleDeclaration> localMap = new HashMap<>();
 
     for (AcslParameterDeclaration declaration : pAcslExistsPredicate.getBinders()) {
-      String newName = "ACSL#q" + (context.counter++) + "#" + declaration.getName();
+      String newName = "ACSL#q" + context.counter++ + "#" + declaration.getName();
 
       AcslParameterDeclaration renamed =
           new AcslParameterDeclaration(
