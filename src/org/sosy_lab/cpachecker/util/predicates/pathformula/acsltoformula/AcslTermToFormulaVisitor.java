@@ -139,7 +139,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
       signed = typeHelper.isSigned(pAcslBinaryTerm.getOperand1().getExpressionType());
     }
 
-    if (! fmgr.getFormulaType(operand1Formula).equals(fmgr.getFormulaType(operand2Formula))) {
+    if (!fmgr.getFormulaType(operand1Formula).equals(fmgr.getFormulaType(operand2Formula))) {
       AcslType commonType = AcslType.mostGeneralType(operand1Type, operand2Type);
       // TODO take care of the case where the operands do not have the same type:
       // upcast e.g. bitvector to int look into formulaManager??,
