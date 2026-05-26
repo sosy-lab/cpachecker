@@ -5785,9 +5785,6 @@ testcase.excludeInitialization = false
 # configuration file for test case extraction with CPAchecker
 testcase.extractor.config = no default value
 
-# CPA is running in extractor mode of test case generation
-testcase.extractorMode = false
-
 # export test harness to file as code
 testcase.file = no default value
 
@@ -5830,6 +5827,9 @@ testcase.randomInputSeed = 0
 # test case and report false (only possible in combination with error call
 # property specification
 testcase.reportCoveredErrorCallAsError = false
+
+# whether to stop or continue analysis once a test target is hit
+testcase.stopAtTarget = true
 
 # CFA edge if only a specific edge should be considered, e.g., in
 # counterexample check
