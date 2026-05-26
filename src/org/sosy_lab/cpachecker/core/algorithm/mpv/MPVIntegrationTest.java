@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpv.property.AutomataSinglePropert
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 
-public class MPVTest {
+public class MPVIntegrationTest {
 
   private static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
   private static final int DEFAULT_TIME_LIMIT_PER_PROPERTY = 5; // seconds

@@ -8,8 +8,8 @@
 
 spec:
   inputs:
-    expensive_tests:
-      description: "Run expensive tests as part of unit tests"
+    extended_tests:
+      description: "Run extended set of unit and integration tests"
       type: boolean
       default: false
     tests_per_java_version:
@@ -321,34 +321,64 @@ deploy-docker:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 
-# No coverage is computed for CPAchecker
+# Unit tests are split into basic and extended tests, and coverage is disabled.
 unit-tests:jdk-21:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
   artifacts:
+    paths:
+      - "UnitTests.html"
     reports:
-      junit: "output/junit/TESTS-TestSuites.xml"
+      junit: "output/unit-tests/TESTS-TestSuites.xml"
   rules:
     - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
       when: never
-    - if: $[[ inputs.expensive_tests ]] == true
+    - if: $[[ inputs.extended_tests ]] == true
       when: never
     - when: on_success
 
 unit-tests-extended:jdk-21:
   extends: unit-tests:jdk-21
-  script: "ant $ANT_PROPS_CHECKS unit-tests -DenableExpensiveTests=true"
+  script: "ant $ANT_PROPS_CHECKS unit-tests -DenableExtendedTests=true"
   rules:
     - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
-    - if: $[[ inputs.expensive_tests ]] == true
+    - if: $[[ inputs.extended_tests ]] == true
 
 unit-tests:jdk-25:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
   artifacts:
+    paths:
+      - "UnitTests.html"
     reports:
-      junit: "output/junit/TESTS-TestSuites.xml"
+      junit: "output/unit-tests/TESTS-TestSuites.xml"
   rules:
     - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
     - if: $[[ inputs.tests_per_java_version ]] == true
+
+
+# Separate jobs for integration tests
+.integration-tests:
+  script: "ant $ANT_PROPS_CHECKS integration-tests"
+  artifacts:
+    paths:
+      - "IntegrationTests.html"
+    reports:
+      junit: "output/integration-tests/TESTS-TestSuites.xml"
+
+integration-tests:jdk-21:
+  extends:
+    - unit-tests:jdk-21
+    - .integration-tests
+
+integration-tests-extended:jdk-21:
+  extends:
+    - unit-tests-extended:jdk-21
+    - .integration-tests
+  script: "ant $ANT_PROPS_CHECKS integration-tests -DenableExtendedTests=true"
+
+integration-tests:jdk-25:
+  extends:
+    - unit-tests:jdk-25
+    - .integration-tests
 
 
 # Parallelize Refaster job

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.test;
 
+import com.google.common.truth.TruthJUnit;
+import com.google.errorprone.annotations.CheckReturnValue;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
@@ -24,6 +26,50 @@ import org.sosy_lab.common.configuration.converters.FileTypeConverter;
  * it for tests, look at {@link TestCfaUtils}.
  */
 public class TestUtils {
+
+  /**
+   * Flag for deciding whether extended/expensive tests should be executed.
+   *
+   * <p>Use <code>ant tests -DenableExtendedTests=true</code> to set this flag to true. The test
+   * suite will then generate a much more exhaustive set of input values for the tested methods.
+   */
+  private static final boolean ENABLE_EXTENDED_TESTS =
+      Boolean.parseBoolean(System.getProperty("enableExtendedTests"));
+
+  /**
+   * Automatically skips the current test if only the standard tests are desired. This can be called
+   * by developers adding tests that are expensive and unlikely to fail when nothing in the
+   * respective component changes. Extended can still be executed with <code>
+   * ant tests -DenableExtendedTests=true</code>.
+   *
+   * <p>If a whole test class should be run only when extended tests are disabled, this method can
+   * be called from a public static {@link org.junit.BeforeClass} method. Otherwise just call it at
+   * the start of the test. {@link #shouldRunExtendedTests()} can be used if the test should not be
+   * skipped completely by default but for example use a reduced set of test values.
+   */
+  public static void skipUnlessExtendedTestsEnabled() {
+    TruthJUnit.assume()
+        .withMessage(
+            "Extended tests are disabled by default, "
+                + "use 'ant tests -DenableExtendedTests=true' to enable such tests. "
+                + "System property enableExtendedTests was false but")
+        .that(ENABLE_EXTENDED_TESTS)
+        .isTrue();
+  }
+
+  /**
+   * Returns true if extended tests are desired (off by default). This can be called by developers
+   * adding tests that are expensive and unlikely to fail when nothing in the respective component
+   * changes. Extended can still be executed with <code>
+   * ant tests -DenableExtendedTests=true</code>.
+   *
+   * <p>Calling {@link #skipUnlessExtendedTestsEnabled()} is recommended for most cases instead of
+   * this method.
+   */
+  @CheckReturnValue
+  public static boolean shouldRunExtendedTests() {
+    return ENABLE_EXTENDED_TESTS;
+  }
 
   /**
    * Create a configuration suitable for unit tests (writing output files is disabled).

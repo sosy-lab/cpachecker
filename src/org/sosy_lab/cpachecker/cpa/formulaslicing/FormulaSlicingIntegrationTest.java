@@ -15,6 +15,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.util.Map;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,7 +34,12 @@ import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestRe
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 @RunWith(Parameterized.class)
-public class FormulaSlicingTest {
+public class FormulaSlicingIntegrationTest {
+
+  @BeforeClass
+  public static void skipUnlessExtendedTestsEnabled() {
+    IntegrationTestRunner.skipUnlessExtendedTestsEnabled();
+  }
 
   @Parameters(name = "{0}")
   public static Object[] getWeakeningStrategies() {
@@ -144,7 +150,7 @@ public class FormulaSlicingTest {
   private Configuration getProperties(Map<String, String> extra)
       throws InvalidConfigurationException {
     return TestUtils.configurationForTest()
-        .loadFromResource(FormulaSlicingTest.class, "formula-slicing.properties")
+        .loadFromResource(FormulaSlicingIntegrationTest.class, "formula-slicing.properties")
         .setOption("cpa.slicing.weakeningStrategy", weakeningStrategy.toString())
         .setOptions(extra)
         .build();

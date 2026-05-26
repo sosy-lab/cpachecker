@@ -26,7 +26,6 @@ import java.util.Objects;
 import java.util.SequencedMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -39,7 +38,7 @@ import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.ExpectedVerdict;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
-public class WitnessExporterTest {
+public class WitnessExporterIntegrationTest {
 
   private static final Pattern PROOF_WITNESS_OPTION_PATTERN =
       Pattern.compile("(cpa.arg.proofWitness\\s*=\\s*)(.+)");
@@ -103,17 +102,21 @@ public class WitnessExporterTest {
         .performTest();
   }
 
-  @Test(timeout = 90000)
-  @Ignore // TODO takes too long and needs replacement, cf. #926
+  @Test(timeout = 100000)
   public void concurrency_false_fib_bench() throws Exception {
+    // TODO takes too long and needs replacement, cf. #926
+    IntegrationTestRunner.skipUnlessExtendedTestsEnabled();
+
     new WitnessTester(
             "fib_bench-2.i", ExpectedVerdict.FALSE, WitnessGenerationConfig.BDD_CONCURRENCY)
         .performTest();
   }
 
-  @Test(timeout = 200000)
-  @Ignore // TODO takes too long and needs replacement, cf. #926
+  @Test(timeout = 300000)
   public void concurrency_false_mix000_power() throws Exception {
+    // TODO takes too long and needs replacement, cf. #926
+    IntegrationTestRunner.skipUnlessExtendedTestsEnabled();
+
     new WitnessTester(
             "mix000_power.oepc.i", ExpectedVerdict.FALSE, WitnessGenerationConfig.BDD_CONCURRENCY)
         .performTest();
@@ -296,7 +299,8 @@ public class WitnessExporterTest {
       String pConfigFile, Map<String, String> pOverrideOptions, String pSpecification)
       throws InvalidConfigurationException {
     ConfigurationBuilder configBuilder =
-        TestUtils.configurationForTest().loadFromResource(WitnessExporterTest.class, pConfigFile);
+        TestUtils.configurationForTest()
+            .loadFromResource(WitnessExporterIntegrationTest.class, pConfigFile);
     if (!Strings.isNullOrEmpty(pSpecification)) {
       pOverrideOptions.put(SPECIFICATION_OPTION, pSpecification);
     }
@@ -379,7 +383,7 @@ public class WitnessExporterTest {
     }
 
     void performTest() throws Exception {
-      WitnessExporterTest.performTest(
+      WitnessExporterIntegrationTest.performTest(
           programFile,
           specificationFile,
           expected,
