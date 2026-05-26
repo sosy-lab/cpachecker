@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 
 /** Helper class for running CPA tests. */
-public class CPATestRunner {
+public class IntegrationTestRunner {
 
   public enum ExpectedVerdict {
     TRUE,
@@ -29,19 +29,45 @@ public class CPATestRunner {
     NONE
   }
 
-  public static TestResults run(Map<String, String> pProperties, String pSourceCodeFilePath)
-      throws Exception {
+  public record IntegrationTestResult(String log, CPAcheckerResult cpaCheckerResult) {
 
-    Configuration config = TestDataTools.configurationForTest().setOptions(pProperties).build();
+    public void assertIs(CPAcheckerResult.Result expected) {
+      if (cpaCheckerResult.getResult() != expected) {
+        throw new AssertionError(
+            String.format(
+                "Not true that verification result is %s, it is %s. Log output was:%n---%n%s%n---",
+                expected, cpaCheckerResult.getResult(), log.trim()));
+      }
+    }
+
+    public void assertIsSafe() {
+      assertIs(CPAcheckerResult.Result.TRUE);
+    }
+
+    public void assertIsUnsafe() {
+      assertIs(CPAcheckerResult.Result.FALSE);
+    }
+
+    @Override
+    public String toString() {
+      return log;
+    }
+  }
+
+  public static IntegrationTestResult run(
+      Map<String, String> pProperties, String pSourceCodeFilePath) throws Exception {
+
+    Configuration config = TestUtils.configurationForTest().setOptions(pProperties).build();
     return run(config, pSourceCodeFilePath);
   }
 
-  public static TestResults run(Configuration config, String pSourceCodeFilePath) throws Exception {
+  public static IntegrationTestResult run(Configuration config, String pSourceCodeFilePath)
+      throws Exception {
     return run(config, pSourceCodeFilePath, Level.INFO);
   }
 
-  public static TestResults run(Configuration config, String pSourceCodeFilePath, Level logLevel)
-      throws Exception {
+  public static IntegrationTestResult run(
+      Configuration config, String pSourceCodeFilePath, Level logLevel) throws Exception {
     StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
     stringLogHandler.setLevel(logLevel);
     stringLogHandler.setFormatter(ConsoleLogFormatter.withoutColors());
@@ -51,6 +77,6 @@ public class CPATestRunner {
     CPAchecker cpaChecker = new CPAchecker(config, logger, shutdownManager);
     CPAcheckerResult results = cpaChecker.run(ImmutableList.of(pSourceCodeFilePath));
     logger.flush();
-    return new TestResults(stringLogHandler.getLog(), results);
+    return new IntegrationTestResult(stringLogHandler.getLog(), results);
   }
 }

@@ -15,8 +15,8 @@ import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cmdline.CPAMain;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
-import org.sosy_lab.cpachecker.util.test.TestResults;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 
 public class AutomatonWitnessV2d0ValidationTest {
 
@@ -62,9 +62,10 @@ public class AutomatonWitnessV2d0ValidationTest {
                 })
             .configuration();
 
-    TestResults results = CPATestRunner.run(generationConfig, pFilePath.toString());
+    IntegrationTestResult results =
+        IntegrationTestRunner.run(generationConfig, pFilePath.toString());
 
-    assertThat(results.getCheckerResult().getResult()).isEqualTo(pExpectedVerdict);
+    assertThat(results.cpaCheckerResult().getResult()).isEqualTo(pExpectedVerdict);
   }
 
   @Test(timeout = 3000)
