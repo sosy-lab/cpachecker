@@ -233,7 +233,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
         boolean ignoreTargetState = false;
 
         assert ARGUtils.checkARG(pReached);
-//        assert from(pReached).filter(AbstractStates::isTargetState).isEmpty();
+        //        assert from(pReached).filter(AbstractStates::isTargetState).isEmpty();
 
         AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_IMPRECISE;
         try {
@@ -377,7 +377,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     logger.log(Level.INFO, "Finished Extraction Analysis.");
   }
 
-  //the ExtractorAlgorithm is an CPA algorithm with special properties regarding
+  // the ExtractorAlgorithm is an CPA algorithm with special properties regarding
   // breaks and successor generation
   private Algorithm createExtractorAlgorithm(ShutdownManager lShutdownManager) throws CPAException {
     Algorithm extractionAlgorithm = null;
@@ -388,10 +388,14 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
       ResourceLimitChecker.fromConfiguration(lConfig, logger, lShutdownManager).start();
       CoreComponentsFactory eFactory =
           new CoreComponentsFactory(
-              lConfig, logger, lShutdownManager.getNotifier(), AggregatedReachedSets.empty());
+              lConfig,
+              logger,
+              lShutdownManager.getNotifier(),
+              AggregatedReachedSets.empty(),
+              cfa);
 
-      ConfigurableProgramAnalysis eCpas = eFactory.createCPA(cfa, spec);
-      extractionAlgorithm = eFactory.createAlgorithm(eCpas, cfa, spec);
+      ConfigurableProgramAnalysis eCpas = eFactory.createCPA(spec);
+      extractionAlgorithm = eFactory.createAlgorithm(eCpas, spec);
 
     } catch (InvalidConfigurationException e) {
       logger.log(
@@ -427,8 +431,8 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   // ValueAnalysisState is explicitly copied before initialization to circumvent side effects
   private AbstractState processElements(CounterexampleInfo cexInfo, AbstractState abstractState) {
     if (abstractState instanceof ValueAnalysisState) {
-      return initializeVAState(cexInfo,
-          ValueAnalysisState.copyOf((ValueAnalysisState) abstractState));
+      return initializeVAState(
+          cexInfo, ValueAnalysisState.copyOf((ValueAnalysisState) abstractState));
     } else {
       return abstractState;
     }
@@ -436,10 +440,15 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
   // extracts individual expressions from the counterexample and adds them to the ValueAnalysisState
   // of the starting state in descending order relative to the line number of the c program
-  private ValueAnalysisState initializeVAState(CounterexampleInfo cexInfo, ValueAnalysisState valueAnalysisState) {
-    //todo leave main here as it is working just fine
-    ExpressionValueVisitor visitor = new ExpressionValueVisitor(valueAnalysisState, "main",
-        cfa.getMachineModel(), new LogManagerWithoutDuplicates(logger));
+  private ValueAnalysisState initializeVAState(
+      CounterexampleInfo cexInfo, ValueAnalysisState valueAnalysisState) {
+    // todo leave main here as it is working just fine
+    ExpressionValueVisitor visitor =
+        new ExpressionValueVisitor(
+            valueAnalysisState,
+            "main",
+            cfa.getMachineModel(),
+            new LogManagerWithoutDuplicates(logger));
     CFAPathWithAssumptions reachStateAssignments = cexInfo.getCFAPathWithAssignments();
     for (int i = reachStateAssignments.size() - 1; i >= 0; i--) {
       CFAEdgeWithAssumptions edgeWithAssignment = reachStateAssignments.get(i);
@@ -457,8 +466,8 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
       return;
     }
     for (int i = 0; i < expStmt.size(); i++) {
-      writeExpressionToState((CBinaryExpression) expStmt.get(i).getExpression(),
-          valueAnalysisState, visitor);
+      writeExpressionToState(
+          (CBinaryExpression) expStmt.get(i).getExpression(), valueAnalysisState, visitor);
     }
   }
 
@@ -486,9 +495,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
   // exploring new successors of eStartState
   private void extractorRunCPAA(
-      ReachedSet eReached,
-      Algorithm extractionAlgorithm,
-      ShutdownManager lShutdownManager) {
+      ReachedSet eReached, Algorithm extractionAlgorithm, ShutdownManager lShutdownManager) {
 
     AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_IMPRECISE;
     try {
