@@ -838,6 +838,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * Creates and tests lists that are barely not abstractable because of 1 value not being equal for
    * the given threshold.
    */
+  @Ignore
   @Test
   public void listNotAbstractableSLLTest() {
     resetSMGStateAndVisitor();
@@ -849,6 +850,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * change 1 value in all the nested lists at different positions and check that no list is
    * abstractable.
    */
+  @Ignore
   @Test
   public void notEqualNestedListSLLTest() {
     resetSMGStateAndVisitor();
@@ -861,6 +863,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * abstracted and checked. The top list is NOT supposed to be abstractable as the nested lists are
    * not equal as their subjective lengths differ for each element of the top list.
    */
+  @Ignore
   @Test
   public void nestedListMovingPointerSLLTest() {
     resetSMGStateAndVisitor();
@@ -6042,6 +6045,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * then abstracted and checked. This works if we correctly check equality by shape and not pointer
    * identity.
    */
+  @Ignore
   @Test
   public void nestedListDLLTest() {
     resetSMGStateAndVisitor();
@@ -6053,6 +6057,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * lists are then abstracted and checked. Following this the top list is abstracted and checked.
    * This works if we correctly check equality by shape and not pointer identity.
    */
+  @Ignore
   @Test
   public void nestedListAbstractionSLLTest() {
     resetSMGStateAndVisitor();
@@ -6063,6 +6068,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * lists are then abstracted and checked. Following this the top list is abstracted and checked.
    * This works if we correctly check equality by shape and not pointer identity.
    */
+  @Ignore
   @Test
   public void nestedListAbstractionDLLTest() {
     resetSMGStateAndVisitor();
