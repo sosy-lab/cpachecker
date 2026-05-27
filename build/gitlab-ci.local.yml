@@ -6,6 +6,18 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+spec:
+  inputs:
+    extended_tests:
+      description: "Run extended set of unit and integration tests"
+      type: boolean
+      default: false
+    tests_per_java_version:
+      description: "Run tests on several Java versions instead of just one"
+      type: boolean
+      default: false
+---
+
 include: build/gitlab-ci.yml
 
 variables:
@@ -49,15 +61,18 @@ configuration-checks:jdk-21:
     - build:jdk-21
   image: ${CI_REGISTRY_IMAGE}/test:jdk-21
 
-configuration-checks:jdk-24:
+configuration-checks:jdk-25:
   <<: *configuration-checks
   dependencies:
     - build-dependencies
-    - build:jdk-24
+    - build:jdk-25
   needs:
     - build-dependencies
-    - build:jdk-24
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-24
+    - build:jdk-25
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-25
+  rules:
+    - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
+    - if: $[[ inputs.tests_per_java_version ]] == true
 
 
 configuration-documentation:
@@ -107,12 +122,10 @@ check-code-patterns:
   image: ubuntu:22.04
 
 
-.python-unit-tests: &python-unit-tests
+python-unit-tests:
   <<: *binary_check
-  script: "ant $ANT_PROPS_CHECKS python-unit-tests"
-
-python-unit-tests:jdk-21:
-  <<: *python-unit-tests
+  script: "python3 -m unittest discover scripts"
+  # The tests run CPAchecker, so they need the respective image and dependencies.
   dependencies:
     - build-dependencies
     - build:jdk-21
@@ -120,16 +133,6 @@ python-unit-tests:jdk-21:
     - build-dependencies
     - build:jdk-21
   image: ${CI_REGISTRY_IMAGE}/test:jdk-21
-
-python-unit-tests:jdk-24:
-  <<: *python-unit-tests
-  dependencies:
-    - build-dependencies
-    - build:jdk-24
-  needs:
-    - build-dependencies
-    - build:jdk-24
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-24
 
 
 javascript-build:
@@ -318,18 +321,74 @@ deploy-docker:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 
-# No coverage is computed for CPAchecker
+# Unit tests are split into basic and extended tests, and coverage is disabled.
 unit-tests:jdk-21:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
   artifacts:
+    paths:
+      - "UnitTests.html"
     reports:
-      junit: "output/junit/TESTS-TestSuites.xml"
+      junit: "output/unit-tests/TESTS-TestSuites.xml"
+  rules:
+    - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
+      when: never
+    - if: $[[ inputs.extended_tests ]] == true
+      when: never
+    - when: on_success
 
-unit-tests:jdk-24:
+unit-tests-extended:jdk-21:
+  extends: unit-tests:jdk-21
+  script: "ant $ANT_PROPS_CHECKS unit-tests -DenableExtendedTests=true"
+  rules:
+    - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
+    - if: $[[ inputs.extended_tests ]] == true
+
+unit-tests:jdk-25:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
   artifacts:
+    paths:
+      - "UnitTests.html"
     reports:
-      junit: "output/junit/TESTS-TestSuites.xml"
+      junit: "output/unit-tests/TESTS-TestSuites.xml"
+  rules:
+    - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
+    - if: $[[ inputs.tests_per_java_version ]] == true
+
+
+# Separate jobs for integration tests
+.integration-tests:
+  script: "ant $ANT_PROPS_CHECKS integration-tests"
+  artifacts:
+    paths:
+      - "IntegrationTests.html"
+    reports:
+      junit: "output/integration-tests/TESTS-TestSuites.xml"
+
+integration-tests:jdk-21:
+  extends:
+    - unit-tests:jdk-21
+    - .integration-tests
+
+integration-tests-extended:jdk-21:
+  extends:
+    - unit-tests-extended:jdk-21
+    - .integration-tests
+  script: "ant $ANT_PROPS_CHECKS integration-tests -DenableExtendedTests=true"
+
+integration-tests:jdk-25:
+  extends:
+    - unit-tests:jdk-25
+    - .integration-tests
+
+
+# Parallelize Refaster job
+refaster:
+  parallel:
+    matrix:
+      # Must list all directories of https://gitlab.com/sosy-lab/software/refaster/-/tree/java21/src/org/sosy_lab/refaster/rules here
+      - REFASTER_SOURCE_DIR: [common, guava, java, java_collection, truth]
+  variables:
+    REFASTER_SOURCE_PATTERN: "**/$REFASTER_SOURCE_DIR/**/*.java"
 
 
 # Override Java version for some jobs
@@ -343,22 +402,6 @@ spotbugs:
     - build-dependencies
     - build:jdk-21
 
-refaster:
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-21
-
-
-# Disable Java 11 jobs
-build-docker:test:jdk-11:
-  rules:
-    - when: never
-
-build:jdk-11:
-  rules:
-    - when: never
-
-unit-tests:jdk-11:
-  rules:
-    - when: never
 
 # Disable Java 17 jobs
 build-docker:test:jdk-17:
@@ -369,7 +412,7 @@ build:jdk-17:
   rules:
     - when: never
 
-build-project-ecj:jdk-17:
+build-ecj:jdk-17:
   rules:
     - when: never
 

@@ -15,18 +15,18 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import java.util.Objects;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqInstrumentationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
@@ -34,16 +34,18 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqThreadSimulationFunctionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.SeqGhostElements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
 import org.sosy_lab.cpachecker.util.cwriter.export.CLabelStatement;
+import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
 
 /**
  * Contains methods that can be used to build thread simulations based on the specified {@link
@@ -53,22 +55,21 @@ public class NondeterministicSimulationBuilder {
 
   public static NondeterministicSimulation buildNondeterministicSimulationBySource(
       MPOROptions pOptions,
-      MachineModel pMachineModel,
-      Optional<MemoryModel> pMemoryModel,
-      GhostElements pGhostElements,
+      SeqPointerAliasingMap pPointerAliasingMap,
+      SeqGhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils) {
 
     return switch (pOptions.nondeterminismSource()) {
       case NEXT_THREAD ->
           new NextThreadNondeterministicSimulation(
-              pOptions, pMachineModel, pMemoryModel, pGhostElements, pClauses, pUtils);
+              pOptions, pPointerAliasingMap, pGhostElements, pClauses, pUtils);
       case NEXT_THREAD_AND_NUM_STATEMENTS ->
           new NextThreadAndNumStatementsNondeterministicSimulation(
-              pOptions, pMachineModel, pMemoryModel, pGhostElements, pClauses, pUtils);
+              pOptions, pPointerAliasingMap, pGhostElements, pClauses, pUtils);
       case NUM_STATEMENTS ->
           new NumStatementsNondeterministicSimulation(
-              pOptions, pMachineModel, pMemoryModel, pGhostElements, pClauses, pUtils);
+              pOptions, pPointerAliasingMap, pGhostElements, pClauses, pUtils);
     };
   }
 
@@ -76,9 +77,8 @@ public class NondeterministicSimulationBuilder {
 
   public static ImmutableMap<MPORThread, CExportFunctionDefinition> buildThreadSimulationFunctions(
       MPOROptions pOptions,
-      MachineModel pMachineModel,
-      Optional<MemoryModel> pMemoryModel,
-      GhostElements pGhostElements,
+      SeqPointerAliasingMap pPointerAliasingMap,
+      SeqGhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
@@ -87,7 +87,7 @@ public class NondeterministicSimulationBuilder {
     for (MPORThread thread : pClauses.keySet()) {
       CCompoundStatement threadSimulation =
           buildNondeterministicSimulationBySource(
-                  pOptions, pMachineModel, pMemoryModel, pGhostElements, pClauses, pUtils)
+                  pOptions, pPointerAliasingMap, pGhostElements, pClauses, pUtils)
               .buildSingleThreadSimulation(thread);
       rFunctions.put(
           thread,
@@ -157,11 +157,34 @@ public class NondeterministicSimulationBuilder {
 
   // round and round_max injections ================================================================
 
-  /** Returns the expression for {@code round = 1;} */
-  static CExpressionAssignmentStatement buildRoundReset() {
+  static ImmutableList<CCompoundStatementElement>
+      buildNumStatementsNondeterministicPrecedingStatements(
+          MPOROptions pOptions,
+          MPORThread pThread,
+          CBinaryExpressionBuilder pBinaryExpressionBuilder)
+          throws UnrecognizedCodeException {
+
+    ImmutableList.Builder<CCompoundStatementElement> precedingStatements = ImmutableList.builder();
+
+    if (pOptions.abortPreviousThreadReentry()) {
+      // assume(prev_thread != current_thread_id);
+      CIntegerLiteralExpression threadIdExpression =
+          SeqExpressionBuilder.buildIntegerLiteralExpression(pThread.id());
+      CBinaryExpression prevThreadUnequalCurrentThread =
+          pBinaryExpressionBuilder.buildBinaryExpression(
+              SeqIdExpressions.PREV_THREAD, threadIdExpression, BinaryOperator.NOT_EQUALS);
+      CFunctionCallStatement assumeCall =
+          SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(prevThreadUnequalCurrentThread);
+      precedingStatements.add(new CStatementWrapper(assumeCall));
+    }
+
     // r is set to 1, because we increment after the r < K check succeeds
-    return SeqStatementBuilder.buildExpressionAssignmentStatement(
-        SeqIdExpressions.ROUND, SeqIntegerLiteralExpressions.INT_1);
+    CExpressionAssignmentStatement roundReset =
+        SeqStatementBuilder.buildExpressionAssignmentStatement(
+            SeqIdExpressions.ROUND, CIntegerLiteralExpression.ONE);
+    precedingStatements.add(new CStatementWrapper(roundReset));
+
+    return precedingStatements.build();
   }
 
   private static SeqThreadStatementBlock injectRoundGotoIntoBlock(
@@ -191,7 +214,7 @@ public class NondeterministicSimulationBuilder {
     if (pStatement.targetPc().isPresent()) {
       // int target is present -> retrieve label by pc from map
       int targetPc = pStatement.targetPc().orElseThrow();
-      if (targetPc != ProgramCounterVariables.EXIT_PC) {
+      if (targetPc != SeqProgramCounterVariables.EXIT_PC) {
         SeqThreadStatementClause target = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
         // check if the target is a separate loop
         if (!SeqThreadStatementClauseUtil.isSeparateLoopStart(pOptions, target)) {

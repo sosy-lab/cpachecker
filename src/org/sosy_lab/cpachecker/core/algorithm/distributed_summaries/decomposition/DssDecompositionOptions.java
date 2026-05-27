@@ -8,9 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Comparator;
+import java.util.Map;
 import java.util.function.Predicate;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -21,6 +24,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.ImportedBlock;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
@@ -31,7 +35,6 @@ public class DssDecompositionOptions {
   public enum DecompositionType {
     LINEAR_DECOMPOSITION,
     MERGE_DECOMPOSITION,
-    BRIDGE_DECOMPOSITION,
     NO_DECOMPOSITION
   }
 
@@ -51,6 +54,13 @@ public class DssDecompositionOptions {
               + "A tolerance of 1 means, that we subtract 1 of the total number of functions.",
       secure = true)
   private boolean allowSingleBlockDecompositionWhenMerging = false;
+
+  @Option(
+      description =
+          "Limits the horizontal merge so that blocks with more Nodes than this are not merged,"
+              + "allowing for more parallelism in the analysis. Negative value allows all merges",
+      secure = true)
+  private int largestHorizontalMerge = HorizontalMergeDecomposition.NO_MERGE_LIMIT;
 
   @Option(
       description =
@@ -88,7 +98,10 @@ public class DssDecompositionOptions {
 
   public DssBlockDecomposition getConfiguredDecomposition() throws IOException {
     if (importDecomposition != null) {
-      return new ImportDecomposition(importDecomposition);
+      ObjectMapper objectMapper = new ObjectMapper();
+      Map<String, ImportedBlock> importData =
+          objectMapper.readValue(importDecomposition.toFile(), new TypeReference<>() {});
+      return new ImportDecomposition(importData);
     }
     Predicate<CFANode> isBlockEnd = n -> blockOperator.isBlockEnd(n, -1);
     return switch (decompositionType) {
@@ -97,11 +110,9 @@ public class DssDecompositionOptions {
           new MergeBlockNodesDecomposition(
               new LinearBlockNodeDecomposition(isBlockEnd),
               2,
+              largestHorizontalMerge,
               Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
               allowSingleBlockDecompositionWhenMerging);
-      case BRIDGE_DECOMPOSITION ->
-          new VerticalMergeDecomposition(
-              new BridgeDecomposition(), 1, Comparator.comparingInt(b -> b.getEdges().size()));
       case NO_DECOMPOSITION -> new SingleBlockDecomposition();
     };
   }

@@ -16,18 +16,16 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.VerifierNondetFunctionType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.SeqGhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector.CommutingThreadsFirstInjector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -43,13 +41,12 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
 
   NumStatementsNondeterministicSimulation(
       MPOROptions pOptions,
-      MachineModel pMachineModel,
-      Optional<MemoryModel> pMemoryModel,
-      GhostElements pGhostElements,
+      SeqPointerAliasingMap pPointerAliasingMap,
+      SeqGhostElements pGhostElements,
       ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses,
       SequentializationUtils pUtils) {
 
-    super(pOptions, pMachineModel, pMemoryModel, pGhostElements, pClauses, pUtils);
+    super(pOptions, pPointerAliasingMap, pGhostElements, pClauses, pUtils);
   }
 
   @Override
@@ -67,7 +64,7 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
 
     // add "if (pc != 0 ...)" condition
     CBinaryExpression ifCondition =
-        ghostElements.getPcVariables().getThreadActiveExpression(pThread.id());
+        ghostElements.programCounterVariables().getThreadActiveExpression(pThread.id());
     ImmutableList.Builder<CCompoundStatementElement> ifBlock = ImmutableList.builder();
 
     // add the round_max = nondet assignment for this thread
@@ -94,7 +91,7 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
             .binaryExpressionBuilder()
             .buildBinaryExpression(
                 SeqIdExpressions.ROUND_MAX,
-                SeqIntegerLiteralExpressions.INT_0,
+                CIntegerLiteralExpression.ZERO,
                 BinaryOperator.GREATER_THAN);
     CExportExpression innerIfCondition = new CExpressionWrapper(roundMaxGreaterZero);
 
@@ -122,12 +119,11 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
   }
 
   @Override
-  public CCompoundStatement buildPrecedingStatements(MPORThread pThread) {
-    // assume("pc active") is not necessary since the simulation starts with 'if (pc* != 0)'
-    CExpressionAssignmentStatement roundReset = NondeterministicSimulationBuilder.buildRoundReset();
+  public CCompoundStatement buildPrecedingStatements(MPORThread pThread)
+      throws UnrecognizedCodeException {
+
     return new CCompoundStatement(
-        ImmutableList.<CCompoundStatementElement>builder()
-            .add(new CStatementWrapper(roundReset))
-            .build());
+        NondeterministicSimulationBuilder.buildNumStatementsNondeterministicPrecedingStatements(
+            options, pThread, utils.binaryExpressionBuilder()));
   }
 }

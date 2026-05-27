@@ -15,11 +15,19 @@ import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /** Helper class for Distributed Summary Synthesis tests. */
 public class TestUtil {
   private static final Language language = Language.C;
+
+  private static final String CFA_CONFIGURATION_FILE = "config/generateCFA.properties";
+  // public so that this can be accessed for the LinearDecomposition test
+  public static final String DSS_CONFIGURATION_FILE = "config/dss.properties";
 
   // Do not use TestDataTools.configurationForTest() because we want output files
   public static Configuration generateConfig(String configFile, Path testFolder)
@@ -34,5 +42,21 @@ public class TestUtil {
         .setOption("language", language.name())
         .addConverter(FileOption.class, fileTypeConverter);
     return configBuilder.build();
+  }
+
+  public static CFA buildTestCFA(String path) throws Exception {
+
+    Configuration config =
+        TestUtils.configurationForTest().loadFromFile(CFA_CONFIGURATION_FILE).build();
+
+    IntegrationTestResult result = IntegrationTestRunner.run(config, path);
+
+    CFA cfa = result.cpaCheckerResult().getCfa();
+
+    if (cfa == null) {
+      throw new IllegalArgumentException("Could not create a CFA out of the file '" + path + "'");
+    }
+
+    return result.cpaCheckerResult().getCfa();
   }
 }

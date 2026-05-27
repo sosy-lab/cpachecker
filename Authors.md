@@ -34,6 +34,7 @@ SPDX-License-Identifier: Apache-2.0
 - Ruckstuhl, Sara (since 2024); LMU Munich, Germany
 - Salgado, Diego (since 2024); LMU Munich, Germany
 - Schlüßlhuber, Johannes (since 2025); LMU Munich, Germany
+- Telbisz, Csanád (since 2026); Budapest University of Technology and Economics, Hungary
 - Wachowitz, Henrik (since 2022); LMU Munich, Germany
 
 # Former Developers/Contributors

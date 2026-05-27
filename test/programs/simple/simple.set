@@ -9,7 +9,9 @@
 arrayAsPointer/array*.yml
 atexit/memsafety*.yml
 atexit/reach*.yml
+atomic/*.yml
 bitvectors/*.yml
+cast_to_union/*.yml
 pointer_aliasing/*.yml
 arrays/*.yml
 *.yml
@@ -17,3 +19,7 @@ nested_operators/*.yml
 builtin_overflow_functions/*.yml
 multipleCFiles/*.yml
 multipleCFiles/*/*.yml
+witness_output/*.yml
+type_tests/*.yml
+pointer_arithmetics/*.yml
+function_pointers/*.yml

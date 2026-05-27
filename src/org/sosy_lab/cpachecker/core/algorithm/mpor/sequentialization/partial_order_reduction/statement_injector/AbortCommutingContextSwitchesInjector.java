@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -20,8 +19,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryReachType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
@@ -33,15 +36,11 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.LastDenseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.LastSparseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.SparseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.PrevDenseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.PrevSparseBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables.SeqSparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.evaluation.BitVectorEvaluationBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
@@ -52,212 +51,177 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
 
 public record AbortCommutingContextSwitchesInjector(
     MPOROptions options,
-    int numThreads,
     MPORThread activeThread,
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap,
     ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap,
     SeqBitVectorVariables bitVectorVariables,
-    MachineModel machineModel,
-    MemoryModel memoryModel,
+    SeqPointerAliasingMap pointerAliasingMap,
     SequentializationUtils utils) {
 
   /**
-   * Returns a {@link CIfStatement} that encodes the Last Thread Order (LTO) reduction. The
+   * Returns a {@link CIfStatement} that encodes the abortCommutingContextSwitches reduction. The
    * statement precedes a thread simulation and takes the following form:
    *
    * <pre>{@code
-   * if (LAST_THREAD < CURRENT_THREAD) {
-   *    assume(*conflict between LAST_THREAD and CURRENT_THREAD*);
+   * if (prev_thread < current_thread_id) {
+   *    assume(*conflict between prev_thread and current_thread*);
    * }
    * }</pre>
    *
-   * <p>This ensures that if {@code LAST_THREAD < CURRENT_THREAD}, the simulation performs a context
-   * switch only when a conflict exists between the two threads.
+   * <p>This ensures that if {@code prev_thread < current_thread_id}, the simulation performs a
+   * context switch only when a conflict exists between the two threads.
    */
   public CIfStatement buildAbortCommutingContextSwitchesStatement(MPORThread pThread)
       throws UnrecognizedCodeException {
 
     checkArgument(
         !pThread.isMain(),
-        "Cannot build a last thread order (LTO) statement when pThread is the main thread. The LTO"
-            + " statement contains a guard of the form 'if (LAST_THREAD < CURRENT_THREAD)' where"
-            + " CURRENT_THREAD = 0 for the main thread and LAST_THREAD is in the interval"
-            + " [0;NUM_THREADS]. This means that the guard always evaluates to false for the main"
-            + " thread, and the LTO statement should be pruned entirely.");
+        "Cannot build a statement for abortCommutingContextSwitches (ACS) when pThread is the main"
+            + " thread. The ACS statement contains a guard of the form 'if (prev_thread <"
+            + " current_thread_id)' where current_thread_id = 0 for the main thread and prev_thread"
+            + " is in the interval [0;NUM_THREADS]. This means that the guard always evaluates to"
+            + " false for the main thread, and the ACS statement should be pruned entirely.");
 
+    // prev_thread < n
+    CBinaryExpression prevThreadLessThanThreadId =
+        utils
+            .binaryExpressionBuilder()
+            .buildBinaryExpression(
+                SeqIdExpressions.PREV_THREAD,
+                SeqExpressionBuilder.buildIntegerLiteralExpression(activeThread.id()),
+                BinaryOperator.LESS_THAN);
+
+    // *conflict between prev_thread and current_thread*
     SeqThreadStatementBlock firstBlock =
-        Objects.requireNonNull(labelBlockMap.get(ProgramCounterVariables.INIT_PC));
-    Optional<CExportExpression> lastBitVectorEvaluation =
-        BitVectorEvaluationBuilder.buildLastBitVectorEvaluation(
+        Objects.requireNonNull(labelBlockMap.get(SeqProgramCounterVariables.INIT_PC));
+    Optional<CExportExpression> prevBitVectorEvaluation =
+        BitVectorEvaluationBuilder.buildPrevBitVectorEvaluation(
             options,
+            pThread,
             labelClauseMap,
             labelBlockMap,
             firstBlock,
             bitVectorVariables,
-            machineModel,
-            memoryModel,
+            pointerAliasingMap,
             utils);
 
-    // LAST_THREAD < n
-    CBinaryExpression lastThreadLessThanThreadId =
-        utils
-            .binaryExpressionBuilder()
-            .buildBinaryExpression(
-                SeqIdExpressions.LAST_THREAD,
-                SeqExpressionBuilder.buildIntegerLiteralExpression(activeThread.id()),
-                BinaryOperator.LESS_THAN);
-
-    // if (LAST_THREAD < n) ...
-    CExpressionWrapper ifCondition = new CExpressionWrapper(lastThreadLessThanThreadId);
-    if (lastBitVectorEvaluation.isEmpty()) {
+    // if (prev_thread < n) ...
+    CExpressionWrapper ifCondition = new CExpressionWrapper(prevThreadLessThanThreadId);
+    if (prevBitVectorEvaluation.isEmpty()) {
       return new CIfStatement(
           ifCondition,
           // if the evaluation is empty, it results in assume(0) i.e. abort()
           new CCompoundStatement(
               new CStatementWrapper(SeqAssumeFunctionBuilder.ABORT_FUNCTION_CALL_STATEMENT)));
     } else {
-      // assume(*conflict*) i.e. continue in thread n only if it is in conflict with LAST_THREAD
+      // assume(*conflict*) i.e. continue in thread n only if it is in conflict with prev_thread
       return new CIfStatement(
           ifCondition,
           new CCompoundStatement(
               SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
-                  lastBitVectorEvaluation.orElseThrow())));
+                  prevBitVectorEvaluation.orElseThrow())));
     }
   }
 
-  // Last Updates ==================================================================================
+  // Prev Updates ==================================================================================
 
-  SeqThreadStatement injectLastUpdatesIntoStatement(
-      SeqThreadStatement pStatement,
-      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
-
+  SeqThreadStatement injectPrevBitVectorUpdatesIntoStatement(SeqThreadStatement pStatement) {
     if (pStatement.targetPc().isPresent()) {
-      int targetPc = pStatement.targetPc().orElseThrow();
-      // if a thread exits, set last_thread to NUM_THREADS - 1.
-      if (targetPc == ProgramCounterVariables.EXIT_PC) {
-        return injectLastThreadUpdateIntoStatement(pStatement, numThreads, ImmutableList.of());
-      }
-      // if targetPc != EXIT_PC, then pLabelClause contains targetPc, otherwise NPE
-      SeqThreadStatementClause targetClause = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
-      // for sync locations, set LAST_THREAD to NUM_THREADS - 1. this is necessary, otherwise
-      // the analysis is unsound.
-      // simple example: LAST_THREAD is at a sync location that uses assume. the current thread
-      // has a abortCommutingContextSwitches instrumentation and because it is not in conflict with
-      // LAST_THREAD, current thread aborts. but LAST_THREAD may e.g. call pthread_join on the
-      // current thread -> both abort, and no thread makes any progress
-      if (SeqThreadStatementUtil.anySynchronizesThreads(targetClause.getAllStatements())) {
-        return injectLastThreadUpdateIntoStatement(pStatement, numThreads, ImmutableList.of());
-      } else {
-        // bit vector updates are only added when the LAST_THREAD != NUM_THREADS -1.
-        // this is because the bit vectors are only accessed anyway if LAST_THREAD < some_int holds.
-        ImmutableList<CExpressionAssignmentStatement> lastBitVectorUpdates =
-            buildLastAccessBitVectorUpdatesByEncoding();
-        // for all other target pc, set last_thread to current thread id and update last bitvectors
-        return injectLastThreadUpdateIntoStatement(
-            pStatement, activeThread.id(), lastBitVectorUpdates);
-      }
+      ImmutableList<CExpressionAssignmentStatement> prevBitVectorUpdates =
+          buildPrevAccessBitVectorUpdatesByEncoding();
+      return SeqThreadStatementUtil.appendedInstrumentationStatement(
+          pStatement,
+          SeqInstrumentationBuilder.buildPrevBitVectorUpdateStatement(prevBitVectorUpdates));
     }
     // no valid target pc -> no conflict order required
     return pStatement;
   }
 
-  private SeqThreadStatement injectLastThreadUpdateIntoStatement(
-      SeqThreadStatement pStatement,
-      int pLastThreadValue,
-      ImmutableList<CExpressionAssignmentStatement> pLastBitVectorUpdates) {
-
-    CExpressionAssignmentStatement lastThreadExit =
-        SeqStatementBuilder.buildExpressionAssignmentStatement(
-            SeqIdExpressions.LAST_THREAD,
-            SeqExpressionBuilder.buildIntegerLiteralExpression(pLastThreadValue));
-    return SeqThreadStatementUtil.appendedInstrumentationStatement(
-        pStatement,
-        SeqInstrumentationBuilder.buildLastThreadUpdateStatement(lastThreadExit),
-        SeqInstrumentationBuilder.buildLastBitVectorUpdateStatement(pLastBitVectorUpdates));
-  }
-
-  // Last Access Bit Vectors =======================================================================
+  // Prev Access Bit Vectors =======================================================================
 
   private ImmutableList<CExpressionAssignmentStatement>
-      buildLastAccessBitVectorUpdatesByEncoding() {
+      buildPrevAccessBitVectorUpdatesByEncoding() {
 
     return switch (options.bitVectorEncoding()) {
       case NONE ->
           throw new IllegalArgumentException(
               String.format(
                   "cannot build updates for bitVectorEncoding %s", options.bitVectorEncoding()));
-      case BINARY, OCTAL, DECIMAL, HEXADECIMAL -> buildDenseLastBitVectorUpdates();
-      case SPARSE -> buildSparseLastBitVectorUpdates();
+      case BINARY, OCTAL, DECIMAL, HEXADECIMAL -> buildDensePrevBitVectorUpdates();
+      case SPARSE -> buildSparsePrevBitVectorUpdates();
     };
   }
 
-  private ImmutableList<CExpressionAssignmentStatement> buildDenseLastBitVectorUpdates() {
+  private ImmutableList<CExpressionAssignmentStatement> buildDensePrevBitVectorUpdates() {
     return switch (options.partialOrderReductionMode()) {
       case NONE ->
           throw new IllegalArgumentException(
               String.format(
                   "cannot build updates for partialOrderReductionMode %s",
                   options.partialOrderReductionMode()));
-      case ACCESS_ONLY -> buildDenseLastBitVectorUpdatesByAccessType(MemoryAccessType.ACCESS);
+      case ACCESS_ONLY -> buildDensePrevBitVectorUpdatesByAccessType(SeqMemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
           ImmutableList.<CExpressionAssignmentStatement>builder()
-              .addAll(buildDenseLastBitVectorUpdatesByAccessType(MemoryAccessType.ACCESS))
-              .addAll(buildDenseLastBitVectorUpdatesByAccessType(MemoryAccessType.WRITE))
+              .addAll(buildDensePrevBitVectorUpdatesByAccessType(SeqMemoryAccessType.READ))
+              .addAll(buildDensePrevBitVectorUpdatesByAccessType(SeqMemoryAccessType.WRITE))
               .build();
     };
   }
 
-  private ImmutableList<CExpressionAssignmentStatement> buildSparseLastBitVectorUpdates() {
+  private ImmutableList<CExpressionAssignmentStatement> buildSparsePrevBitVectorUpdates() {
     return switch (options.partialOrderReductionMode()) {
       case NONE ->
           throw new IllegalArgumentException(
               String.format(
                   "cannot build updates for partialOrderReductionMode %s",
                   options.partialOrderReductionMode()));
-      case ACCESS_ONLY -> buildSparseLastBitVectorUpdatesByAccessType(MemoryAccessType.ACCESS);
+      case ACCESS_ONLY -> buildSparsePrevBitVectorUpdatesByAccessType(SeqMemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
           ImmutableList.<CExpressionAssignmentStatement>builder()
-              .addAll(buildSparseLastBitVectorUpdatesByAccessType(MemoryAccessType.ACCESS))
-              .addAll(buildSparseLastBitVectorUpdatesByAccessType(MemoryAccessType.WRITE))
+              .addAll(buildSparsePrevBitVectorUpdatesByAccessType(SeqMemoryAccessType.READ))
+              .addAll(buildSparsePrevBitVectorUpdatesByAccessType(SeqMemoryAccessType.WRITE))
               .build();
     };
   }
 
-  private ImmutableList<CExpressionAssignmentStatement> buildDenseLastBitVectorUpdatesByAccessType(
-      MemoryAccessType pAccessType) {
+  private ImmutableList<CExpressionAssignmentStatement> buildDensePrevBitVectorUpdatesByAccessType(
+      SeqMemoryAccessType pAccessType) {
 
-    LastDenseBitVector lastDenseBitVector =
-        bitVectorVariables.getLastDenseBitVectorByAccessType(pAccessType);
+    PrevDenseBitVector prevDenseBitVector =
+        bitVectorVariables.getPrevDenseBitVectorByAccessType(pAccessType);
     CExpression rightHandSide =
-        bitVectorVariables.getDenseBitVector(activeThread, pAccessType, ReachType.REACHABLE);
+        bitVectorVariables.getDenseBitVector(activeThread, pAccessType, SeqMemoryReachType.DIRECT);
     CExpressionAssignmentStatement update =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            lastDenseBitVector.reachableVariable(), rightHandSide);
+            prevDenseBitVector.directVariable(), rightHandSide);
     return ImmutableList.of(update);
   }
 
-  private ImmutableList<CExpressionAssignmentStatement> buildSparseLastBitVectorUpdatesByAccessType(
-      MemoryAccessType pAccessType) {
+  private ImmutableList<CExpressionAssignmentStatement> buildSparsePrevBitVectorUpdatesByAccessType(
+      SeqMemoryAccessType pAccessType) {
 
     ImmutableList.Builder<CExpressionAssignmentStatement> rUpdates = ImmutableList.builder();
-    ImmutableMap<SeqMemoryLocation, LastSparseBitVector> lastSparseBitVectors =
-        bitVectorVariables.getLastSparseBitVectorByAccessType(pAccessType);
-    ImmutableMap<SeqMemoryLocation, SparseBitVector> sparseBitVectors =
+    ImmutableMap<SeqMemoryLocation, PrevSparseBitVector> prevSparseBitVectors =
+        bitVectorVariables.getPrevSparseBitVectorByAccessType(pAccessType);
+    ImmutableMap<SeqMemoryLocation, SeqSparseBitVector> sparseBitVectors =
         bitVectorVariables.getSparseBitVectorByAccessType(pAccessType);
     for (var entry : sparseBitVectors.entrySet()) {
-      ImmutableMap<MPORThread, CIdExpression> reachableVariableMap =
-          entry.getValue().getVariablesByReachType(ReachType.REACHABLE);
-      for (var reachableVariable : reachableVariableMap.entrySet()) {
-        if (reachableVariable.getKey().equals(activeThread)) {
-          SeqMemoryLocation memoryLocation = entry.getKey();
-          LastSparseBitVector lastSparseBitVector = lastSparseBitVectors.get(memoryLocation);
-          CIdExpression rightHandSide = reachableVariable.getValue();
-          CExpressionAssignmentStatement update =
-              SeqStatementBuilder.buildExpressionAssignmentStatement(
-                  checkNotNull(lastSparseBitVector).reachableVariable(), rightHandSide);
-          rUpdates.add(update);
-        }
-      }
+      Optional<CIdExpression> directVariable =
+          entry
+              .getValue()
+              .tryGetVariableByReachTypeAndThread(SeqMemoryReachType.DIRECT, activeThread);
+      // If directVariable is present, then set the prev bit vector to the threads bit vector.
+      // Otherwise, then there is no bit vector for the thread and the prev bit vector is set to 0.
+      CExpression rightHandSide =
+          directVariable.isPresent()
+              ? directVariable.orElseThrow()
+              : CIntegerLiteralExpression.ZERO;
+      PrevSparseBitVector prevSparseBitVector =
+          Objects.requireNonNull(prevSparseBitVectors.get(entry.getKey()));
+      CExpressionAssignmentStatement update =
+          SeqStatementBuilder.buildExpressionAssignmentStatement(
+              prevSparseBitVector.directVariable(), rightHandSide);
+      rUpdates.add(update);
     }
     return rUpdates.build();
   }

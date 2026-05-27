@@ -11,6 +11,9 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement.createNoArgsFunctionCall;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.ATOMIC_BEGIN_DECLARATION;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.ATOMIC_END_DECLARATION;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -669,6 +672,15 @@ class ASTConverter {
     return false;
   }
 
+  /** Check whether the given expression is a local variable. */
+  private boolean isLocalVariable(CExpression exp) {
+    if (exp instanceof CIdExpression cIdExpression
+        && cIdExpression.getDeclaration() instanceof CVariableDeclaration cVariableDeclaration) {
+      return !cVariableDeclaration.isGlobal();
+    }
+    return false;
+  }
+
   /**
    * Evaluate a constant expression into an integer literal. This method is for cases where the
    * frontend really needs to know the resulting int value, so we simplify the expression and force
@@ -913,13 +925,37 @@ class ASTConverter {
         };
 
       } else {
-        // a += b etc.
+        // a += b, a *= b etc.
         CExpression rightHandSide = convertExpressionWithoutSideEffects(e.getOperand2());
 
-        // first create expression "a + b"
-        CBinaryExpression exp = buildBinaryExpression(leftHandSide, rightHandSide, op);
+        if (isLocalVariable(lhs)) {
+          // If `a` is a local variable, we can directly do a = a + b without worrying about
+          // interleaved accesses from other threads, because local variables are thread-local.
+          CBinaryExpression exp = buildBinaryExpression(leftHandSide, rightHandSide, op);
+          return new CExpressionAssignmentStatement(fileLoc, lhs, exp);
+        }
 
-        // and now the assignment
+        // C11 _Atomic compound assignments (+=, -=, etc.) must appear inside an atomic
+        // section so that concurrent analyses treat the read-modify-write as indivisible.
+        // see https://en.cppreference.com/w/c/language/atomic.html
+        if (lhs.getExpressionType().isAtomic()) {
+          // If a has an atomic type, a += b is transformed to
+          // atomic_begin(); a = a + b; atomic_end();
+          CBinaryExpression exp = buildBinaryExpression(lhs, rightHandSide, op);
+          CExpressionAssignmentStatement result =
+              new CExpressionAssignmentStatement(fileLoc, lhs, exp);
+
+          sideAssignmentStack.addPreSideAssignment(
+              createNoArgsFunctionCall(lhs.getFileLocation(), ATOMIC_BEGIN_DECLARATION));
+          sideAssignmentStack.addPreSideAssignment(result);
+          sideAssignmentStack.addPreSideAssignment(
+              createNoArgsFunctionCall(lhs.getFileLocation(), ATOMIC_END_DECLARATION));
+
+          return lhs;
+        }
+
+        CExpression tmp = createTemporaryVariableWithInitializer(fileLoc, lhs);
+        CBinaryExpression exp = buildBinaryExpression(tmp, rightHandSide, op);
         return new CExpressionAssignmentStatement(fileLoc, lhs, exp);
       }
 
@@ -991,7 +1027,15 @@ class ASTConverter {
       return new CComplexCastExpression(loc, castType, operand, castType, true);
     }
 
-    if (options.simplifyPointerExpressions()
+    // Cast-to-union extension (GCC): initialize the union member whose type is an exact match of
+    // the operand's type.
+    // https://gcc.gnu.org/onlinedocs/gcc/Cast-to-Union.html
+    // We found out, that 'match' means exact type match in this case through our own experiments.
+    // Lower this to a designated initializer stored in a temporary variable.
+    CAstNode loweredUnionCast = tryLowerGccCastToUnion(loc, castType, operand);
+    if (loweredUnionCast != null) {
+      return loweredUnionCast;
+    } else if (options.simplifyPointerExpressions()
         && e.getOperand() instanceof IASTFieldReference iASTFieldReference
         && iASTFieldReference.isPointerDereference()) {
       return createTemporaryVariableWithInitializer(
@@ -999,6 +1043,70 @@ class ASTConverter {
     } else {
       return new CCastExpression(loc, castType, operand);
     }
+  }
+
+  /**
+   * Try to lower a GCC cast-to-union extension into a temporary union value initialized with a
+   * designated initializer. Returns {@code null} if this cast is not a cast to a union type.
+   *
+   * <p>GCC extension: (U)expr is valid iff {@code expr}'s type is an exact match of a direct union
+   * member type. If no member matches (or the union is empty), this method throws a {@link
+   * CFAGenerationRuntimeException}.
+   */
+  private @Nullable CAstNode tryLowerGccCastToUnion(
+      FileLocation loc, CType castType, CExpression castOperand) {
+
+    if (!(castType.getCanonicalType() instanceof CCompositeType compositeType)
+        || compositeType.getKind() != ComplexTypeKind.UNION) {
+      return null;
+    }
+
+    if (compositeType.getMembers().isEmpty()) {
+      throw new CFAGenerationRuntimeException("Invalid cast to empty union type at " + loc);
+    }
+
+    CType operandType = castOperand.getExpressionType().getCanonicalType();
+    CCompositeTypeMemberDeclaration matchingMember =
+        findUnionMemberWithExactType(compositeType, operandType);
+
+    if (matchingMember == null) {
+      throw new CFAGenerationRuntimeException(
+          "Invalid cast to union type: operand type "
+              + operandType.toASTString("")
+              + " does not exactly match any union member's type at "
+              + loc);
+    }
+
+    CInitializer init = buildDesignatedUnionMemberInitializer(loc, matchingMember, castOperand);
+    return createTemporaryVariable(loc, castType, init);
+  }
+
+  /**
+   * Returns the first union member whose canonical type exactly matches the given operand type.
+   * Deterministic: first matching member wins.
+   */
+  private @Nullable CCompositeTypeMemberDeclaration findUnionMemberWithExactType(
+      CCompositeType unionType, CType operandType) {
+
+    for (CCompositeTypeMemberDeclaration member : unionType.getMembers()) {
+      if (member.getType().getCanonicalType().equals(operandType)) {
+        return member;
+      }
+    }
+    return null;
+  }
+
+  /** Build initializer list equivalent to: (U){ .member = operand } */
+  private CInitializer buildDesignatedUnionMemberInitializer(
+      FileLocation loc, CCompositeTypeMemberDeclaration member, CExpression operand) {
+
+    String memberName = member.getName();
+    CFieldDesignator designator = new CFieldDesignator(loc, memberName);
+    CInitializer designated =
+        new CDesignatedInitializer(
+            loc, ImmutableList.of(designator), new CInitializerExpression(loc, operand));
+
+    return new CInitializerList(loc, ImmutableList.of(designated));
   }
 
   private static class ContainsProblemTypeVisitor
@@ -1575,8 +1683,32 @@ class ASTConverter {
         CBinaryExpression preExp =
             buildBinaryExpression(operand, CIntegerLiteralExpression.ONE, preOp);
         CLeftHandSide lhsPre = (CLeftHandSide) operand;
+        CExpressionAssignmentStatement result =
+            new CExpressionAssignmentStatement(fileLoc, lhsPre, preExp);
 
-        return new CExpressionAssignmentStatement(fileLoc, lhsPre, preExp);
+        // C11 _Atomic operations must appear inside an atomic section so that concurrent
+        // analyses treat the read-modify-write as a single indivisible step.
+        if (operandType.isAtomic() && !isLocalVariable(operand)) {
+          // if x is an atomic type, ++x is transformed to
+          // atomic_begin(); x = x + 1; tmp = x; atomic_end(); return tmp;
+          //
+          // e.g., y = ++x; is transformed to
+          // atomic_begin(); x = x + 1; tmp = x; atomic_end(); y = tmp;
+          //
+          // That is, the new value of x is saved to a temporary variable still in the atomic block
+          // so that the value of the expression is correct even for concurrent analyses.
+          // Without the temporary variable, another thread modifying x could interleave with the
+          // incrementing thread after the atomic block end, but before the value of x is read.
+          sideAssignmentStack.addPreSideAssignment(
+              createNoArgsFunctionCall(operand.getFileLocation(), ATOMIC_BEGIN_DECLARATION));
+          sideAssignmentStack.addPreSideAssignment(result);
+          CExpression tmp = createTemporaryVariableWithInitializer(fileLoc, lhsPre);
+          sideAssignmentStack.addPreSideAssignment(
+              createNoArgsFunctionCall(operand.getFileLocation(), ATOMIC_END_DECLARATION));
+          return tmp;
+        }
+
+        return result;
       }
       case IASTUnaryExpression.op_postFixIncr, IASTUnaryExpression.op_postFixDecr -> {
         // instead of x++ create "x = x + 1"
@@ -1598,8 +1730,34 @@ class ASTConverter {
           return result;
         }
 
+        // C11 _Atomic operations must appear inside an atomic section so that concurrent
+        // analyses treat the read-modify-write as a single indivisible step.
+        // see https://en.cppreference.com/w/c/language/atomic.html
+
+        // if x is an atomic type, x++ is transformed to
+        // atomic_begin(); tmp = x; x = x + 1; atomic_end(); return tmp;
+        //
+        // e.g., y = x++; is transformed to
+        // atomic_begin(); tmp = x; x = x + 1; atomic_end(); y = tmp;
+        //
+        // That is, the old value of x is saved to a temporary variable within the atomic block
+        // so that the value of the expression is correct even for concurrent analyses.
+        // Without the temporary variable, another thread modifying x could interleave with the
+        // incrementing thread after saving the old value of x, but before the atomic block start.
+        boolean isAtomic = operandType.isAtomic() && !isLocalVariable(operand);
+
+        if (isAtomic) {
+          sideAssignmentStack.addPreSideAssignment(
+              createNoArgsFunctionCall(operand.getFileLocation(), ATOMIC_BEGIN_DECLARATION));
+        }
+
         CExpression tmp = createTemporaryVariableWithInitializer(fileLoc, lhsPost);
         sideAssignmentStack.addPreSideAssignment(result);
+
+        if (isAtomic) {
+          sideAssignmentStack.addPreSideAssignment(
+              createNoArgsFunctionCall(operand.getFileLocation(), ATOMIC_END_DECLARATION));
+        }
 
         return tmp;
       }
