@@ -93,8 +93,17 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
   @Override
   public Formula visit(AcslUnaryTerm pAcslUnaryTerm) throws NoException {
-    // TODO implementation definitely needed
-    throw new UnsupportedOperationException("Not yet implemented");
+    // TODO handle pointer and address operators
+    Formula operandFormula = pAcslUnaryTerm.getOperand().accept(this);
+
+    return switch (pAcslUnaryTerm.getOperator()) {
+      case SIZEOF -> throw new UnsupportedOperationException("Not yet implemented");
+      case PLUS -> operandFormula; // unary plus should not change the value
+      case MINUS -> fmgr.makeNegate(operandFormula);
+      case POINTER_DEREFERENCE -> throw new UnsupportedOperationException("Not yet implemented");
+      case ADDRESS_OF -> throw new UnsupportedOperationException("Not yet implemented");
+      case NEGATION -> fmgr.makeNot(operandFormula);
+    };
   }
 
   @Override
