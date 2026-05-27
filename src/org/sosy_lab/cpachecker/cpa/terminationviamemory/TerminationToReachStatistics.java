@@ -15,6 +15,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -44,6 +45,7 @@ import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
 
 @Options(prefix = "terminationtoreach")
 public class TerminationToReachStatistics extends TerminationStatistics implements Statistics {
@@ -96,7 +98,7 @@ public class TerminationToReachStatistics extends TerminationStatistics implemen
 
     if (!validation && pResult == Result.TRUE) {
       try {
-        terminationWitnessExporter.export(terminationArguments, yamlWitnessOutputFileTemplate);
+        terminationWitnessExporter.export(ImmutableList.of(), yamlWitnessOutputFileTemplate);
       } catch (IOException e) {
         logger.logUserException(
             WARNING, e, "There is a problem when writing the witness into a file.");
