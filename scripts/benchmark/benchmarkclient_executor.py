@@ -304,7 +304,6 @@ def getToolDataForCloud(benchmark):
 
 def handleCloudResults(benchmark, output_handler, start_time, end_time):
     outputDir = benchmark.log_folder
-    runCollectionId = None
     if not os.path.isdir(outputDir) or not os.listdir(outputDir):
         # outputDir does not exist or is empty
         logging.warning(
