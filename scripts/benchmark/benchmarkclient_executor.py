@@ -324,6 +324,7 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
             continue
 
         output_handler.output_before_run_set(runSet, start_time=start_time)
+        runCollectionId = getRunCollectionId(runSet)
 
         for run in runSet.runs:
             run.cmdline()  # ignore result, but necessary, otherwise _cmdline is not set
@@ -331,8 +332,6 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
             if os.path.exists(dataFile) and os.path.exists(run.log_file):
                 try:
                     values = parseCloudRunResultFile(dataFile)
-                    if runCollectionId is None and "vcloud-runCollectionId" in values:
-                        runCollectionId = values["vcloud-runCollectionId"]
                     if not benchmark.config.debug:
                         os.remove(dataFile)
                 except IOError as e:
@@ -398,6 +397,17 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
             os.path.join(outputDir, "*.stdError"),
         )
 
+def getRunCollectionId(runSet):
+    for run in runSet.runs:
+        dataFile = run.log_file + ".data"
+        if os.path.exists(dataFile):
+            try:
+                values = parseCloudRunResultFile(dataFile)
+                if "vcloud-runCollectionId" in values:
+                    return values["vcloud-runCollectionId"]
+            except IOError:
+                pass
+    return None
 
 def parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark):
     filePath = os.path.join(outputDir, "hostInformation.txt")
