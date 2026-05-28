@@ -1019,9 +1019,24 @@ bmc.kinduction.reuse.pred.strategy = GLOBAL
   enum:     [ALL, GLOBAL, FUNCTION, LOCAL, GLOBAL_AND_FUNCTION, GLOBAL_AND_LOCAL,
              FUNCTION_AND_LOCAL]
 
+# Use a symbolic step-case check for non-termination closure: build a fresh
+# pre-state path formula at the candidate source, use the CPA transfer
+# relation to encode one body transition, and check C(pre) AND trans AND NOT
+# C(post) for UNSAT. This avoids the BMC-style soundness gap where small
+# unrolling depths can mask the non-inductivity of a candidate (e.g.
+# 4-bit-counter style loops). When this is enabled the BMC-style closure
+# check and its refinement are bypassed.
+bmc.kinduction.useSymbolicNonTerminationStepCase = true
+
 # Switch BMC to a strong non-termination mode that uses a SAT base case and
 # safety-style k-induction over loop-continuation conditions.
 bmc.nonTerminationMode = false
+
+# In non-termination mode, after failing to prove non-termination for the
+# current unrolling depth, also check the unwinding assertions. If all
+# bound-frontier states are unreachable, report a sound termination proof
+# instead of UNKNOWN.
+bmc.nonTerminationProveTerminationFallback = false
 
 # Propagates the interrupts of the invariant generator.
 bmc.propagateInvGenInterrupts = false

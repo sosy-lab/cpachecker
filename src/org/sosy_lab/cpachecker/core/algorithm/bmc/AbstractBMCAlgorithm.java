@@ -150,11 +150,11 @@ abstract class AbstractBMCAlgorithm
       name = "kinduction.useSymbolicNonTerminationStepCase",
       description =
           "Use a symbolic step-case check for non-termination closure: build a fresh pre-state"
-              + " path formula at the candidate source, encode one body transition with"
-              + " makeAnd / makeOr, and check C(pre) AND trans AND NOT C(post) for UNSAT. This"
-              + " avoids the BMC-style soundness gap where small unrolling depths can mask the"
-              + " non-inductivity of a candidate (e.g. 4-bit-counter style loops). When this is"
-      + " enabled the BMC-style closure check and its refinement are bypassed.")
+              + " path formula at the candidate source, use the CPA transfer relation to encode"
+              + " one body transition, and check C(pre) AND trans AND NOT C(post) for UNSAT."
+              + " This avoids the BMC-style soundness gap where small unrolling depths can mask"
+              + " the non-inductivity of a candidate (e.g. 4-bit-counter style loops). When this"
+              + " is enabled the BMC-style closure check and its refinement are bypassed.")
   private boolean useSymbolicNonTerminationStepCase = true;
 
   @Option(
@@ -779,11 +779,7 @@ abstract class AbstractBMCAlgorithm
         }
 
         if (kInductionProver.checkNonTerminationClosure(
-            candidate,
-            k,
-            checkedKeys,
-            getNonTerminationLoopScope(candidate),
-            buildRefinement)) {
+            candidate, k, checkedKeys, getNonTerminationLoopScope(candidate), buildRefinement)) {
           nonTerminationConfirmed = true;
           reportConfirmedNonTermination(reachedSet, candidate);
           return false;
@@ -990,8 +986,7 @@ abstract class AbstractBMCAlgorithm
     return Optional.empty();
   }
 
-  protected boolean canUseNonTerminationStepCaseRefinement(
-      CandidateInvariant pCandidateInvariant) {
+  protected boolean canUseNonTerminationStepCaseRefinement(CandidateInvariant pCandidateInvariant) {
     checkNotNull(pCandidateInvariant);
     return true;
   }

@@ -19,7 +19,9 @@ import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.unroll;
 import com.google.common.base.Functions;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
@@ -48,8 +50,8 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -67,7 +69,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -455,11 +456,11 @@ class KInductionProver implements AutoCloseable {
    * <p>For every candidate-source location, builds a fresh pre-state path formula via {@link
    * PathFormulaManager#makeEmptyPathFormulaWithContextFrom} (inherits the SSA/PTS context without
    * binding values to the main-init constraints), enumerates the body's CFA paths to all
-   * candidate-target locations via {@link #propagateOneIterationSymbolically}, and asks the
+   * candidate-target locations via {@link #propagateOneIterationWithTransferRelation}, and asks the
    * solver whether
    *
    * <pre>{@code
-   *   C(s) AND T(s, s') AND NOT C(s')
+   * C(s) AND T(s, s') AND NOT C(s')
    * }</pre>
    *
    * is satisfiable for any (source, target) pair.
@@ -473,15 +474,15 @@ class KInductionProver implements AutoCloseable {
    *   <li>{@code Optional.of(false)} - SAT, the candidate is not 1-step inductive and a concrete
    *       symbolic counterexample exists. The algorithm must not declare non-termination based on
    *       any heuristic (e.g., BMC-bounded closure check) that contradicts this.
-   *   <li>{@code Optional.empty()} - the check bailed out before producing a verdict (nested
-   *       loops, function calls inside the body, exhausted path-enumeration budget, etc.). The
-   *       caller is free to fall back to a less-precise verdict source.
+   *   <li>{@code Optional.empty()} - the check bailed out before producing a verdict (nested loops,
+   *       function calls inside the body, exhausted path-enumeration budget, etc.). The caller is
+   *       free to fall back to a less-precise verdict source.
    * </ul>
    *
-   * <p>This check is independent of the BMC unrolling depth k: the closure property holds (or
-   * not) universally over the symbolic state space and does not need to "match" the base-case
-   * depth. The auxiliary loop-head invariant from the parallel invariant generator is
-   * deliberately NOT asserted here, to keep the check independent of side-channels.
+   * <p>This check is independent of the BMC unrolling depth k: the closure property holds (or not)
+   * universally over the symbolic state space and does not need to "match" the base-case depth. The
+   * auxiliary loop-head invariant from the parallel invariant generator is deliberately NOT
+   * asserted here, to keep the check independent of side-channels.
    */
   public final Optional<Boolean> checkSymbolicNonTerminationClosure(
       CandidateInvariant pCandidateInvariant,
@@ -553,12 +554,9 @@ class KInductionProver implements AutoCloseable {
       //   the same candidate location can violate its component. SAT is a real closure
       //   counterexample, so the caller must not fall back to the bounded closure check as a
       //   proof.
-      ImmutableSet<CFANode> loopHeads = ImmutableSet.copyOf(loop.getLoopHeads());
-      if (loopHeads.isEmpty()) {
-        logger.logf(
-            Level.INFO,
-            "Symbolic bail #3 (no loop heads): loop=%s.",
-            loop);
+      ImmutableSet<CFANode> symbolicLoopHeads = ImmutableSet.copyOf(loop.getLoopHeads());
+      if (symbolicLoopHeads.isEmpty()) {
+        logger.logf(Level.INFO, "Symbolic bail #3 (no loop heads): loop=%s.", loop);
         return Optional.empty();
       }
       Map<CFANode, List<CandidateInvariant>> nonSuccOnlyComponentsByLocation =
@@ -568,7 +566,7 @@ class KInductionProver implements AutoCloseable {
           .removeIf(entry -> !loop.getLoopNodes().contains(entry.getKey()));
       Map<CFANode, List<CandidateInvariant>> sourceComponentsByLocation =
           getTerminalCandidateSources(
-              nonSuccOnlyComponentsByLocation, loop, loopHeads, exitSuccessors);
+              nonSuccOnlyComponentsByLocation, loop, symbolicLoopHeads, exitSuccessors);
       if (nonSuccOnlyComponentsByLocation.isEmpty()) {
         logger.logf(
             Level.INFO,
@@ -599,7 +597,7 @@ class KInductionProver implements AutoCloseable {
       int loopHeadsSkippedNoState = 0;
       int sourcePrefixesSkipped = 0;
 
-      for (CFANode loopHead : loopHeads) {
+      for (CFANode loopHead : symbolicLoopHeads) {
         shutdownNotifier.shutdownIfNecessary();
         Optional<AbstractState> anySourceState =
             AbstractStates.filterLocations(reached, ImmutableSet.of(loopHead)).stream().findFirst();
@@ -635,13 +633,11 @@ class KInductionProver implements AutoCloseable {
                 replacePredicatePathFormula(loopHeadState, pfAtLoopHead);
             if (seededLoopHeadState.isEmpty()) {
               logger.logf(
-                  Level.INFO,
-                  "Symbolic bail #4 (loop-head seed failed): loopHead=%s.",
-                  loopHead);
+                  Level.INFO, "Symbolic bail #4 (loop-head seed failed): loopHead=%s.", loopHead);
               return Optional.empty();
             }
             sourceArrivals =
-                List.of(
+                ImmutableList.of(
                     new SymbolicTransferArrival(
                         loopHead,
                         pfAtLoopHead,
@@ -666,7 +662,7 @@ class KInductionProver implements AutoCloseable {
                   source);
               return Optional.empty();
             }
-            sourceArrivals = sourcePrefixArrivals.getOrDefault(source, List.of());
+            sourceArrivals = sourcePrefixArrivals.getOrDefault(source, ImmutableList.of());
             if (sourceArrivals.isEmpty()) {
               sourcePrefixesSkipped++;
               logger.logf(
@@ -727,7 +723,7 @@ class KInductionProver implements AutoCloseable {
                     pfAtSource,
                     sourceArrival.state(),
                     sourceArrival.precision(),
-                    loopHeads,
+                    symbolicLoopHeads,
                     exitSuccessors,
                     nonSuccOnlyComponentsByLocation,
                     false);
@@ -753,7 +749,7 @@ class KInductionProver implements AutoCloseable {
                           nextLoopHeadArrival.precision(),
                           exitSuccessors,
                           exitSuccessors,
-                          Map.of(),
+                          ImmutableMap.of(),
                           false);
                   if (postIterationExitArrivals == null) {
                     logger.logf(
@@ -788,7 +784,7 @@ class KInductionProver implements AutoCloseable {
 
                 List<SymbolicTransferArrival> nextSourceArrivals;
                 if (source.equals(nextLoopHead)) {
-                  nextSourceArrivals = List.of(nextLoopHeadArrival);
+                  nextSourceArrivals = ImmutableList.of(nextLoopHeadArrival);
                 } else {
                   Map<CFANode, List<SymbolicTransferArrival>> targetArrivals =
                       propagateOneIterationWithTransferRelation(
@@ -798,7 +794,7 @@ class KInductionProver implements AutoCloseable {
                           nextLoopHeadArrival.precision(),
                           ImmutableSet.of(source),
                           exitSuccessors,
-                          Map.of(),
+                          ImmutableMap.of(),
                           false);
                   if (targetArrivals == null) {
                     logger.logf(
@@ -810,7 +806,7 @@ class KInductionProver implements AutoCloseable {
                         source);
                     return Optional.empty();
                   }
-                  nextSourceArrivals = targetArrivals.getOrDefault(source, List.of());
+                  nextSourceArrivals = targetArrivals.getOrDefault(source, ImmutableList.of());
                   if (nextSourceArrivals.isEmpty()) {
                     continue;
                   }
@@ -858,7 +854,7 @@ class KInductionProver implements AutoCloseable {
             Level.INFO,
             "Symbolic bail #5 (allBads empty): loopHeads=%d, processedSources=%d,"
                 + " skipped(no state)=%d, skipped(no source prefix)=%d.",
-            loopHeads.size(),
+            symbolicLoopHeads.size(),
             sourcesProcessed,
             loopHeadsSkippedNoState,
             sourcePrefixesSkipped);
@@ -882,9 +878,7 @@ class KInductionProver implements AutoCloseable {
         prover.pop();
       }
       if (!unsat) {
-        logger.log(
-            Level.INFO,
-            "Symbolic non-termination closure check: SAT (closure refuted).");
+        logger.log(Level.INFO, "Symbolic non-termination closure check: SAT (closure refuted).");
         if (pBuildRefinement) {
           lastNonTerminationRefinement =
               findSymbolicNonTerminationRefinement(pCandidateInvariant, badObligations);
@@ -908,9 +902,7 @@ class KInductionProver implements AutoCloseable {
                 + " -- vacuous closure; deferring to BMC fallback.");
         return Optional.empty();
       }
-      logger.log(
-          Level.INFO,
-          "Symbolic non-termination closure check: UNSAT (closure proven).");
+      logger.log(Level.INFO, "Symbolic non-termination closure check: UNSAT (closure proven).");
       return Optional.of(true);
     } finally {
       stats.inductionCheck.stop();
@@ -955,46 +947,6 @@ class KInductionProver implements AutoCloseable {
 
   private static final int MAX_SYMBOLIC_PATHS = 64;
   private static final int MAX_SYMBOLIC_PATH_LENGTH = 200;
-
-  private Map<CFANode, PathFormula> propagateOneIterationSymbolically(
-      Loop pLoop,
-      CFANode pSource,
-      PathFormula pPfPre,
-      Set<CFANode> pTargets,
-      Set<CFANode> pExitSuccessors)
-      throws CPAException, InterruptedException {
-    return propagateOneIterationSymbolically(
-        pLoop, pSource, pPfPre, pTargets, pExitSuccessors, Map.of(), false);
-  }
-
-  private Map<CFANode, PathFormula> propagateOneIterationSymbolically(
-      Loop pLoop,
-      CFANode pSource,
-      PathFormula pPfPre,
-      Set<CFANode> pTargets,
-      Set<CFANode> pExitSuccessors,
-      Map<CFANode, List<CandidateInvariant>> pAssertionsByLocation,
-      boolean pAssertAtTargets)
-      throws CPAException, InterruptedException {
-
-    if (symbolicTransferPropagationUnsupported(pLoop)) {
-      return null;
-    }
-
-    StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
-    AbstractState initialState = cpa.getInitialState(pSource, partition);
-    Precision initialPrecision = cpa.getInitialPrecision(pSource, partition);
-    return mergeTransferArrivals(
-        propagateOneIterationWithTransferRelation(
-            pSource,
-            pPfPre,
-            initialState,
-            initialPrecision,
-            pTargets,
-            pExitSuccessors,
-            pAssertionsByLocation,
-            pAssertAtTargets));
-  }
 
   private boolean symbolicTransferPropagationUnsupported(Loop pLoop) {
     if (loopRequiresNestedLoopSummary(pLoop)) {
@@ -1357,24 +1309,6 @@ class KInductionProver implements AutoCloseable {
     return byTarget;
   }
 
-  private Map<CFANode, PathFormula> mergeTransferArrivals(
-      Map<CFANode, List<SymbolicTransferArrival>> pByTarget) throws InterruptedException {
-    if (pByTarget == null) {
-      return null;
-    }
-    Map<CFANode, PathFormula> arrivals = new HashMap<>();
-    for (Map.Entry<CFANode, List<SymbolicTransferArrival>> entry : pByTarget.entrySet()) {
-      List<SymbolicTransferArrival> targetArrivals = entry.getValue();
-      PathFormula merged = targetArrivals.get(0).pathFormula();
-      for (int i = 1; i < targetArrivals.size(); i++) {
-        shutdownNotifier.shutdownIfNecessary();
-        merged = pfmgr.makeOr(merged, targetArrivals.get(i).pathFormula());
-      }
-      arrivals.put(entry.getKey(), merged);
-    }
-    return arrivals;
-  }
-
   private int countTransferArrivals(Map<CFANode, List<SymbolicTransferArrival>> pArrivals) {
     int result = 0;
     for (List<SymbolicTransferArrival> arrivals : pArrivals.values()) {
@@ -1597,8 +1531,7 @@ class KInductionProver implements AutoCloseable {
     Set<String> seenVariables = new HashSet<>();
 
     for (ValueAssignment valueAssignment : pModel) {
-      if (valueAssignment.isFunction()
-          || !isSupportedSymbolicRefinementValue(valueAssignment)) {
+      if (valueAssignment.isFunction() || !isSupportedSymbolicRefinementValue(valueAssignment)) {
         continue;
       }
       Pair<String, OptionalInt> parsedName =
