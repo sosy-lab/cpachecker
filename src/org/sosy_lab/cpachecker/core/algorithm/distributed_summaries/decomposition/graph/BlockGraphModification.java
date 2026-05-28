@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.SequencedSet;
 import org.sosy_lab.common.configuration.Configuration;
@@ -69,7 +70,7 @@ public class BlockGraphModification {
       ImmutableSet<CFANode> unableToAbstract,
       ImmutableMap<CFANode, CFAEdge> abstractions) {}
 
-  private record MappingInformation(
+  public record MappingInformation(
       Map<CFANode, CFANode> originalToInstrumentedNodes,
       Map<CFAEdge, CFAEdge> originalToInstrumentedEdges) {}
 
@@ -82,10 +83,21 @@ public class BlockGraphModification {
     }
 
     MutableCFA mutableCfa = MutableCFA.copyOf(pCFA, pConfig, pLogger);
+
     ModificationMetadata modificationMetadata =
         addBlankEdgesAtBlockEnds(mutableCfa, pCFA, pBlockGraph);
     Map<CFANode, CFANode> originalInstrumentedMapping =
         modificationMetadata.mappingInfo().originalToInstrumentedNodes();
+
+    // We want this information for the correctness witnesses
+    // TODO probably the copy should also copy this attribute -> fix there?
+    for (Entry<CFANode, CFANode> entry : originalInstrumentedMapping.entrySet()) {
+
+      if (entry.getKey().isLoopStart()) {
+        entry.getValue().setLoopStart();
+      }
+    }
+
     // Adjust the block graph to the modified CFA
     BlockGraph adjustedBlockGraph =
         adaptBlockGraph(

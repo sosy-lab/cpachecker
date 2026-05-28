@@ -12,6 +12,7 @@ import java.io.IOException;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssArgStateCollector;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusAndResult;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -31,9 +32,10 @@ public interface DssExecutor extends StatisticsProvider {
    *
    * @param cfa The CFA to analyze
    * @param blockGraph The block decomposition of the CFA
+   * @param stateCollector collecting states for correctness witness
    * @return The status and result of the analysis
    */
-  StatusAndResult execute(CFA cfa, BlockGraph blockGraph)
+  StatusAndResult execute(CFA cfa, BlockGraph blockGraph, DssArgStateCollector stateCollector)
       throws CPAException,
           IOException,
           InterruptedException,

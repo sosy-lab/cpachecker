@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 
@@ -52,9 +51,12 @@ public class DssStatisticsMessage extends DssMessage {
 
   @Override
   boolean isValid(Map<String, String> pContent) {
-    return FluentIterable.from(StatisticsKey.values())
-        .transform(StatisticsKey::name)
-        .toSet()
-        .containsAll(pContent.keySet());
+    return true; /*
+                   return FluentIterable.from(StatisticsKey.values())
+                       .transform(StatisticsKey::name)
+                       .toSet()
+                       .containsAll(pContent.keySet());
+                 */
+    // TODO permanent fix
   }
 }

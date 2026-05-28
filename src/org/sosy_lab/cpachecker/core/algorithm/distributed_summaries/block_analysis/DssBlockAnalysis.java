@@ -340,7 +340,7 @@ public class DssBlockAnalysis {
    * @return A list of StateAndPrecision objects restored from the message.
    * @throws InterruptedException If the deserialization is interrupted.
    */
-  private ImmutableList<@NonNull StateAndPrecision> deserialize(final DssMessage pMessage)
+  public ImmutableList<@NonNull StateAndPrecision> deserialize(final DssMessage pMessage)
       throws InterruptedException {
     OptionalInt optionalNumberOfStates = pMessage.getNumberOfContainedStates();
     if (optionalNumberOfStates.isEmpty()) {
@@ -357,6 +357,10 @@ public class DssBlockAnalysis {
       statesAndPrecisions.add(new StateAndPrecision(state, precision));
     }
     return statesAndPrecisions.build();
+  }
+
+  public ImmutableMap<String, String> serializedPreconditions() {
+    return serialize(List.copyOf(preconditions.values()));
   }
 
   private Collection<ARGPath> collectPaths(Iterable<@NonNull ARGState> states) {

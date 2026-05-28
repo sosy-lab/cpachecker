@@ -63,15 +63,28 @@ public class DssMessageFactory {
 
   public DssStatisticsMessage createDssStatisticsMessage(
       String pSenderId, ImmutableMap<StatisticsKey, String> pContent) {
+    return createDssStatisticsMessage(pSenderId, pContent, ImmutableMap.of());
+  }
+
+  public DssStatisticsMessage createDssStatisticsMessage(
+      String pSenderId,
+      ImmutableMap<StatisticsKey, String> pContent,
+      ImmutableMap<String, String> pSerializedRelevantPreconditions) {
+
     ImmutableMap.Builder<String, String> serializedContentBuilder = ImmutableMap.builder();
     for (Map.Entry<StatisticsKey, String> entry : pContent.entrySet()) {
       serializedContentBuilder.put(entry.getKey().name(), entry.getValue());
     }
+    serializedContentBuilder.putAll(pSerializedRelevantPreconditions);
     return new DssStatisticsMessage(pSenderId, serializedContentBuilder.buildOrThrow());
   }
 
-  public DssResultMessage createDssResultMessage(String pSenderId, Result pResult) {
-    return new DssResultMessage(pSenderId, pResult.name());
+  public DssResultMessage createDssCorrectnessResultMessage(String pSenderId) {
+    return new DssResultMessage(pSenderId, Result.TRUE.name());
+  }
+
+  public DssResultMessage createDssViolationResultMessage(String pSenderId, String violationPath) {
+    return new DssResultMessage(pSenderId, Result.FALSE.name(), violationPath);
   }
 
   public DssExceptionMessage createDssExceptionMessage(String pSenderId, Throwable pThrowable) {

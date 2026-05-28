@@ -23,7 +23,11 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssArgStateCollector;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.ResultWithWitnessInformation;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -49,35 +53,58 @@ public class DssObserverWorker extends DssWorker implements Statistics {
   private final DssConnection connection;
   private final StatusObserver statusObserver;
   private boolean shutdown;
-  private Optional<Result> result;
+  private Optional<ResultWithWitnessInformation> result;
   private Optional<String> errorMessage;
 
   private final Map<String, Map<StatisticsKey, String>> stats = new HashMap<>();
 
-  private final int numberOfBlocks;
+  private final BlockGraph blockGraph;
+  private final DssArgStateCollector stateCollector;
 
-  public record StatusAndResult(AlgorithmStatus status, Result result) {}
+  public record StatusAndResult(AlgorithmStatus status, ResultWithWitnessInformation result) {
+
+    public StatusAndResult(AlgorithmStatus status, Result pResult) {
+      // allows other executors that do not use this observer worker to remain unchanged
+      // TODO extract witness information from them as well?
+      this(status, ResultWithWitnessInformation.ofResultWithoutInformation(pResult));
+    }
+  }
 
   public DssObserverWorker(
       String pId,
       DssConnection pConnection,
-      int pNumberOfBlocks,
+      BlockGraph pBlockGraph,
       DssMessageFactory pMessageFactory,
-      LogManager pLogger) {
+      LogManager pLogger,
+      DssArgStateCollector pStateCollector) {
     super(pId, pMessageFactory, pLogger);
     shutdown = false;
     connection = pConnection;
     statusObserver = new StatusObserver();
     errorMessage = Optional.empty();
     result = Optional.empty();
-    numberOfBlocks = pNumberOfBlocks;
+    blockGraph = pBlockGraph;
+    stateCollector = pStateCollector;
   }
 
   @Override
   public Collection<DssMessage> processMessage(DssMessage pMessage) {
     switch (pMessage.getType()) {
       case RESULT -> {
-        result = Optional.of(pMessage.getResult());
+        // TODO make these clauses also sit behind a guard for witness enabled?
+        if (pMessage.getResult() == Result.FALSE) {
+          result =
+              Optional.of(
+                  ResultWithWitnessInformation.ofViolationPath(pMessage.getViolationPath()));
+        } else if (pMessage.getResult() == Result.TRUE) {
+          result =
+              Optional.of(
+                  ResultWithWitnessInformation.ofCorrectnessPreConditionCollector(stateCollector));
+        } else {
+          result =
+              Optional.of(
+                  ResultWithWitnessInformation.ofResultWithoutInformation(pMessage.getResult()));
+        }
         statusObserver.updateStatus(pMessage);
       }
       case VIOLATION_CONDITION, POST_CONDITION -> statusObserver.updateStatus(pMessage);
@@ -87,7 +114,10 @@ public class DssObserverWorker extends DssWorker implements Statistics {
       }
       case STATISTIC -> {
         stats.put(pMessage.getSenderId(), pMessage.getStats());
-        shutdown = stats.size() == numberOfBlocks;
+
+        stateCollector.collectFromMessage((DssStatisticsMessage) pMessage);
+
+        shutdown = stats.size() == blockGraph.getNodes().size();
       }
     }
     return ImmutableList.of();

@@ -10,10 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries;
 
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.JSON;
@@ -25,7 +23,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssDecompositionOptions;
@@ -37,16 +34,16 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.Ds
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.MultithreadingDssExecutor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.SequentialDssExecutor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.SingleWorkerDssExecutor;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssArgStateCollector;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssWitnessExporter;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusAndResult;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -106,6 +103,9 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
   private final DistributedSummarySynthesisStatistics dssStats;
   private final DssExecutor executor;
   private final DssDecompositionOptions decompositionOptions;
+  private final Specification spec;
+
+  private final DssWitnessExporter witnessExporter;
 
   @Option(description = "Decomposition type to use for the block analysis.", secure = true)
   private ExecutorType executorType = ExecutorType.DSS;
@@ -124,7 +124,8 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
       LogManager pLogger,
       CFA pInitialCFA,
       ShutdownManager pShutdownManager,
-      Specification pSpecification)
+      Specification pSpecification,
+      ConfigurableProgramAnalysis pViolationCPA)
       throws InvalidConfigurationException {
     configuration = pConfig;
     configuration.inject(this);
@@ -136,6 +137,11 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     initialCFA = pInitialCFA;
     shutdownManager = pShutdownManager;
     executor = getExecutor(pSpecification);
+    spec = pSpecification;
+
+    witnessExporter =
+        new DssWitnessExporter(
+            pViolationCPA, logger, configuration, shutdownManager, pSpecification);
   }
 
   private DssExecutor getExecutor(Specification specification)
@@ -183,20 +189,12 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     return modification;
   }
 
-  private AlgorithmStatus interpretResult(StatusAndResult statusAndResult, ReachedSet reachedSet) {
-    Result result = statusAndResult.result();
-    if (result == Result.FALSE) {
-      ARGState state = (ARGState) reachedSet.getFirstState();
-      assert state != null;
-      CompositeState cState = (CompositeState) state.getWrappedState();
-      Precision initialPrecision = reachedSet.getPrecision(state);
-      assert cState != null;
-      List<AbstractState> states = new ArrayList<>(cState.getWrappedStates());
-      states.add(DummyTargetState.withoutTargetInformation());
-      reachedSet.add(new ARGState(new CompositeState(states), null), initialPrecision);
-    } else if (result == Result.TRUE) {
-      reachedSet.clear();
-    }
+  private AlgorithmStatus interpretResult(
+      StatusAndResult statusAndResult, ReachedSet reachedSet, Modification pModification)
+      throws CPAException, InterruptedException, InvalidConfigurationException {
+
+    witnessExporter.export(statusAndResult.result(), reachedSet, pModification);
+
     return statusAndResult.status();
   }
 
@@ -234,7 +232,12 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
           blockGraph.getNodes().size(),
           decompositionOptions.getDecompositionType());
 
-      return interpretResult(executor.execute(cfa, blockGraph), reachedSet);
+      DssArgStateCollector stateCollector =
+          new DssArgStateCollector(
+              new DssAnalysisOptions(configuration), blockGraph, modification, spec, logger);
+
+      return interpretResult(
+          executor.execute(cfa, blockGraph, stateCollector), reachedSet, modification);
     } catch (InvalidConfigurationException | IOException | SolverException e) {
       logger.logException(Level.SEVERE, e, "Block analysis stopped unexpectedly.");
       throw new CPAException("Component Analysis run into an error.", e);

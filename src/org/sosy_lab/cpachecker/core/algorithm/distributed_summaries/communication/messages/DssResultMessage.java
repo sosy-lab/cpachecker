@@ -10,13 +10,25 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
 public class DssResultMessage extends DssMessage {
 
   public static final String DSS_MESSAGE_RESULT_KEY = "result";
+  public static final String DSS_MESSAGE_VIOLATION_PATH_KEY = "violationPath";
 
   DssResultMessage(String pSenderId, String pResult) {
     super(pSenderId, DssMessageType.RESULT, ImmutableMap.of(DSS_MESSAGE_RESULT_KEY, pResult));
+    assert !pResult.equals(Result.FALSE.name());
+  }
+
+  DssResultMessage(String pSenderId, String pResult, String violationPath) {
+    super(
+        pSenderId,
+        DssMessageType.RESULT,
+        ImmutableMap.of(
+            DSS_MESSAGE_RESULT_KEY, pResult, DSS_MESSAGE_VIOLATION_PATH_KEY, violationPath));
+    assert pResult.equals(Result.FALSE.name());
   }
 
   DssResultMessage(String pSenderId, ImmutableMap<String, String> pResult) {
@@ -25,9 +37,12 @@ public class DssResultMessage extends DssMessage {
 
   @Override
   boolean isValid(Map<String, String> pContent) {
-    return pContent.size() == 1
+    return (pContent.size() == 1 || pContent.size() == 2)
         && pContent.containsKey(DSS_MESSAGE_RESULT_KEY)
         && pContent.get(DSS_MESSAGE_RESULT_KEY) != null
-        && !pContent.get(DSS_MESSAGE_RESULT_KEY).isEmpty();
+        && !pContent.get(DSS_MESSAGE_RESULT_KEY).isEmpty()
+        && (!pContent.get(DSS_MESSAGE_RESULT_KEY).equals(Result.FALSE.name())
+            || (pContent.containsKey(DSS_MESSAGE_VIOLATION_PATH_KEY)
+                && pContent.get(DSS_MESSAGE_VIOLATION_PATH_KEY) != null));
   }
 }

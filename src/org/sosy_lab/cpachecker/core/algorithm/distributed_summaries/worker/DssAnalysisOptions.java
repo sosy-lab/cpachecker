@@ -15,6 +15,7 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.PathTemplate;
 
 @Options(prefix = "distributedSummaries")
 public class DssAnalysisOptions {
@@ -71,6 +72,19 @@ public class DssAnalysisOptions {
       secure = true)
   private boolean combineByHash = true;
 
+  // TODO is there a reasonable way to reuse the ARG setting?
+  @Option(
+      secure = true,
+      name = "yamlProofWitness",
+      description =
+          "The template from which the different "
+              + "versions of the correctness witnesses will be exported. "
+              + "Each version replaces the string '%s' "
+              + "with its version number.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate yamlWitnessOutputFileTemplate =
+      PathTemplate.ofFormatString("witness-dss-%s.yml");
+
   public DssAnalysisOptions(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
   }
@@ -101,5 +115,9 @@ public class DssAnalysisOptions {
 
   public boolean combineByHash() {
     return combineByHash;
+  }
+
+  public PathTemplate getYamlCorrectnessWitnessOutputFileTemplate() {
+    return yamlWitnessOutputFileTemplate;
   }
 }

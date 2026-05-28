@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssResultMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssArgStateCollector;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActors;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
@@ -73,7 +74,8 @@ public class SequentialDssExecutor implements DssExecutor {
   }
 
   @Override
-  public StatusAndResult execute(CFA cfa, BlockGraph blockGraph)
+  public StatusAndResult execute(
+      CFA cfa, BlockGraph blockGraph, DssArgStateCollector stateCollector)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     DssActors actors = createDssActors(cfa, blockGraph);
     stats.addAll(actors.getWorkersWithStats());

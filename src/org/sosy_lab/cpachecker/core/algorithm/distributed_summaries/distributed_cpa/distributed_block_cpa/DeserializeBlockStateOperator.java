@@ -12,6 +12,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
@@ -30,6 +31,21 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
   @Override
   public AbstractState deserialize(DssMessage pMessage) throws InterruptedException {
     String content = pMessage.getAbstractStateContent(BlockState.class).get(STATE_KEY);
+    ParseResult parsed = parseWitness(content);
+    Preconditions.checkNotNull(parsed.serializedBlockState());
+    Preconditions.checkArgument(
+        blockNode.getPredecessorIds().contains(parsed.serializedBlockState())
+            || blockNode.getSuccessorIds().contains(parsed.serializedBlockState()));
+    return new BlockState(
+        DeserializeOperator.startLocationFromMessageType(pMessage, blockNode),
+        blockNode,
+        BlockStateType.INITIAL,
+        ImmutableList.of(),
+        parsed.history(),
+        parsed.witness());
+  }
+
+  public static @NonNull ParseResult parseWitness(String content) {
     List<String> idAndWitnessAndMaybeHistory = Splitter.on(" W:").limit(2).splitToList(content);
     Preconditions.checkArgument(idAndWitnessAndMaybeHistory.size() == 2);
     String serializedBlockState = idAndWitnessAndMaybeHistory.getFirst();
@@ -40,16 +56,9 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
         witnessAndMaybeHistory.size() == 2
             ? Splitter.on(",").splitToList(witnessAndMaybeHistory.getLast())
             : ImmutableList.of();
-    Preconditions.checkNotNull(serializedBlockState);
-    Preconditions.checkArgument(
-        blockNode.getPredecessorIds().contains(serializedBlockState)
-            || blockNode.getSuccessorIds().contains(serializedBlockState));
-    return new BlockState(
-        DeserializeOperator.startLocationFromMessageType(pMessage, blockNode),
-        blockNode,
-        BlockStateType.INITIAL,
-        ImmutableList.of(),
-        history,
-        witness);
+    return new ParseResult(serializedBlockState, witness, history);
   }
+
+  public record ParseResult(
+      String serializedBlockState, List<String> witness, List<String> history) {}
 }
