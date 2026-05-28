@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.assertAt;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.createFormulaFor;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterIteration;
@@ -524,7 +525,7 @@ class KInductionProver implements AutoCloseable {
       }
 
       ImmutableSet<CFANode> exitSuccessors =
-          FluentIterable.from(loop.getOutgoingEdges()).transform(CFAEdge::getSuccessor).toSet();
+          transformedImmutableSetCopy(loop.getOutgoingEdges(), CFAEdge::getSuccessor);
       if (symbolicTransferPropagationUnsupported(loop)) {
         return Optional.empty();
       }
