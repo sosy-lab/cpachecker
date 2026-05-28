@@ -396,6 +396,7 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
             os.path.join(outputDir, "*.stdError"),
         )
 
+
 def getRunCollectionId(runSet):
     for run in runSet.runs:
         dataFile = run.log_file + ".data"
@@ -407,6 +408,7 @@ def getRunCollectionId(runSet):
             except IOError:
                 pass
     return None
+
 
 def parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark):
     filePath = os.path.join(outputDir, "hostInformation.txt")
