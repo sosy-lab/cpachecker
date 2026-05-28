@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableListMultimap;
@@ -63,7 +65,7 @@ public class DssArgStateCollector implements RelevantArgStatesCollector {
         Configuration.builder().loadFromFile(options.getForwardConfiguration()).build();
     analysis =
         new DssBlockAnalysis(
-            pLogger,
+            LogManager.createNullLogManager(),
             pBlockGraph.getRoot(),
             pModification.cfa(),
             spec,
@@ -94,9 +96,9 @@ public class DssArgStateCollector implements RelevantArgStatesCollector {
         Collection<ARGState> states;
         try {
           states =
-              FluentIterable.from(analysis.deserialize(message))
-                  .transform(sp -> AbstractStates.extractStateByType(sp.state(), ARGState.class))
-                  .toList();
+              transformedImmutableListCopy(
+                  analysis.deserialize(message),
+                  sp -> AbstractStates.extractStateByType(sp.state(), ARGState.class));
           collectedLoopHeadPreconditions.putAll(senderBlock.getInitialLocation(), states);
         } catch (InterruptedException e) {
           allStatsContainedStates = false;

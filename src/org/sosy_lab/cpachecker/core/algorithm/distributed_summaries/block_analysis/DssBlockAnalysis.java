@@ -360,7 +360,7 @@ public class DssBlockAnalysis {
   }
 
   public ImmutableMap<String, String> serializedPreconditions() {
-    return serialize(List.copyOf(preconditions.values()));
+    return serialize(ImmutableList.copyOf(preconditions.values()));
   }
 
   private Collection<ARGPath> collectPaths(Iterable<@NonNull ARGState> states) {
