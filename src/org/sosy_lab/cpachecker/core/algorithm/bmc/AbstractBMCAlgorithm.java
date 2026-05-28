@@ -154,8 +154,17 @@ abstract class AbstractBMCAlgorithm
               + " makeAnd / makeOr, and check C(pre) AND trans AND NOT C(post) for UNSAT. This"
               + " avoids the BMC-style soundness gap where small unrolling depths can mask the"
               + " non-inductivity of a candidate (e.g. 4-bit-counter style loops). When this is"
-              + " enabled the BMC-style closure check and its refinement are bypassed.")
+      + " enabled the BMC-style closure check and its refinement are bypassed.")
   private boolean useSymbolicNonTerminationStepCase = true;
+
+  @Option(
+      secure = true,
+      name = "nonTerminationProveTerminationFallback",
+      description =
+          "In non-termination mode, after failing to prove non-termination for the current"
+              + " unrolling depth, also check the unwinding assertions. If all bound-frontier"
+              + " states are unreachable, report a sound termination proof instead of UNKNOWN.")
+  private boolean nonTerminationProveTerminationFallback = false;
 
   protected static boolean isStopState(AbstractState state) {
     AssumptionStorageState assumptionState =
@@ -479,10 +488,15 @@ abstract class AbstractBMCAlgorithm
       // a proof.
       if (!candidateGenerator.produceMoreCandidates()) {
         if (isNonTerminationMode()) {
-          reachedSet.clearWaitlist();
-          return AlgorithmStatus.UNSOUND_AND_PRECISE;
-        }
-        if (!isTerminationMode()) {
+          if (!nonTerminationProveTerminationFallback) {
+            reachedSet.clearWaitlist();
+            return AlgorithmStatus.UNSOUND_AND_PRECISE;
+          }
+          logger.log(
+              Level.INFO,
+              "Non-termination mode: no loop-continuation candidates are available; trying"
+                  + " termination fallback via unwinding assertions.");
+        } else if (!isTerminationMode()) {
           reachedSet.clearWaitlist();
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
@@ -602,7 +616,8 @@ abstract class AbstractBMCAlgorithm
           // check bounding assertions
           if (isNonTerminationMode()) {
             // This mode is a one-sided prover for non-termination. Failing to prove
-            // non-termination must not be interpreted as a termination proof.
+            // non-termination must not be interpreted as a termination proof unless the
+            // opt-in fallback below proves that all unwinding-assertion states are unreachable.
             sound = false;
           } else {
             sound =
@@ -645,6 +660,21 @@ abstract class AbstractBMCAlgorithm
               }
             }
           }
+          if (isNonTerminationMode()
+              && nonTerminationProveTerminationFallback
+              && !nonTerminationConfirmed) {
+            logger.log(
+                Level.INFO,
+                "Non-termination mode: no non-termination proof for current k; checking"
+                    + " unwinding assertions for a termination proof.");
+            if (checkBoundingAssertions(reachedSet, prover)) {
+              logger.log(
+                  Level.INFO,
+                  "Non-termination mode: unwinding assertions prove termination for the current"
+                      + " bound.");
+              return AlgorithmStatus.SOUND_AND_PRECISE;
+            }
+          }
           if (!isNonTerminationMode()
               && (invariantGenerator.isProgramSafe()
                   || (sound && !candidateGenerator.produceMoreCandidates()))) {
@@ -654,10 +684,13 @@ abstract class AbstractBMCAlgorithm
 
         if (!candidateGenerator.hasCandidatesAvailable() && !isTerminationMode()) {
           if (isNonTerminationMode()) {
-            return AlgorithmStatus.UNSOUND_AND_PRECISE;
+            if (!nonTerminationProveTerminationFallback) {
+              return AlgorithmStatus.UNSOUND_AND_PRECISE;
+            }
+          } else {
+            // no remaining invariants to be proven
+            return status;
           }
-          // no remaining invariants to be proven
-          return status;
         }
       } while (status.isSound() && adjustConditions());
     }
@@ -705,7 +738,7 @@ abstract class AbstractBMCAlgorithm
         if (useSymbolicNonTerminationStepCase) {
           Optional<Boolean> symbolicVerdict =
               kInductionProver.checkSymbolicNonTerminationClosure(
-                  candidate, getNonTerminationLoopScope(candidate));
+                  candidate, getNonTerminationLoopScope(candidate), buildRefinement);
 
           if (symbolicVerdict.isPresent() && symbolicVerdict.orElseThrow()) {
             // Symbolic UNSAT: real universal-closure proven.
@@ -716,45 +749,16 @@ abstract class AbstractBMCAlgorithm
 
           if (symbolicVerdict.isEmpty()) {
             // Symbolic bailed out (function calls in body, nested loops, path budget,
-            // unsupported candidate component, ...). The symbolic check could not decide,
-            // so we fall back to the BMC-bounded closure check and trust its verdict.
-            if (kInductionProver.checkNonTerminationClosure(
-                candidate,
-                k,
-                checkedKeys,
-                getNonTerminationLoopScope(candidate),
-                buildRefinement)) {
-              nonTerminationConfirmed = true;
-              reportConfirmedNonTermination(reachedSet, candidate);
-              return false;
-            }
-            if (buildRefinement) {
-              Optional<CandidateInvariant> refinement =
-                  kInductionProver.getLastNonTerminationRefinement();
-              if (refinement.isPresent()) {
-                CandidateInvariant refinedCandidate = refinement.orElseThrow();
-                if (shouldSuggestNonTerminationRefinement(candidate, refinedCandidate, k)
-                    && candidateGenerator.suggestCandidates(
-                        Collections.singleton(refinedCandidate))) {
-                  registerNonTerminationRefinement(candidate, refinedCandidate);
-                  logger.log(
-                      Level.INFO,
-                      "Non-termination mode (symbolic bailed): BMC step case refined"
-                          + " candidate for next iteration.");
-                }
-              }
-            }
+            // unsupported candidate component, ...). The symbolic check could not decide.
+            // Do not run the BMC-bounded closure check as a fallback here: even when used only for
+            // refinement, it can spend the remaining budget in a less precise reached-set query.
             sound = false;
             continue;
           }
 
           // Symbolic SAT: candidate is not 1-step inductive; the symbolic check has a real
-          // counterexample. Do not trust the BMC closure check's verdict here (it can be
-          // spuriously UNSAT on non-inductive candidates with shallow unrolling), but still
-          // run it to harvest a refinement candidate from its model.
+          // counterexample. Use the symbolic counterexample itself to suggest a refinement.
           if (buildRefinement) {
-            kInductionProver.checkNonTerminationClosure(
-                candidate, k, checkedKeys, getNonTerminationLoopScope(candidate), true);
             Optional<CandidateInvariant> refinement =
                 kInductionProver.getLastNonTerminationRefinement();
             if (refinement.isPresent()) {
@@ -766,7 +770,7 @@ abstract class AbstractBMCAlgorithm
                 logger.log(
                     Level.INFO,
                     "Non-termination mode (symbolic): step case refuted closure;"
-                        + " refining candidate for next iteration.");
+                        + " symbolic counterexample refined candidate for next iteration.");
               }
             }
           }
