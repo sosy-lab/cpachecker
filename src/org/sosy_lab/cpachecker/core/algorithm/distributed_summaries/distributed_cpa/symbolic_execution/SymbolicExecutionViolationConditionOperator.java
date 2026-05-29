@@ -8,9 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.symbolic_execution;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -21,11 +25,14 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.symbolicExecution.SymbolicExecutionCPA;
 import org.sosy_lab.cpachecker.cpa.symbolicExecution.SymbolicExecutionState;
+import org.sosy_lab.cpachecker.cpa.symbolicExecution.SymbolicExecutionTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -51,45 +58,41 @@ public class SymbolicExecutionViolationConditionOperator implements ViolationCon
       throws InterruptedException, CPATransferException, SolverException {
 
     // Simulate the path on an empty state
-    // SymbolicExecutionState lastState = initialState;
-    SymbolicExecutionState lastState =
-        AbstractStates.extractStateByType(pARGPath.getLastState(), SymbolicExecutionState.class);
-    /*for (CFAEdge edge : pARGPath.getFullPath()) {
-          Set<AbstractState> nextStates =
-              new HashSet<>(
-                  cpa.getTransferRelation()
-                      .getAbstractSuccessorsForEdge(lastState, SingletonPrecision.getInstance(), edge));
-          Preconditions.checkArgument(nextStates.size() == 1);
-          AbstractState successor = Objects.requireNonNull(Iterables.getOnlyElement(nextStates));
-
-          nextStates.clear();
-          nextStates.addAll(
+    SymbolicExecutionState lastState = initialState;
+    for (CFAEdge edge : pARGPath.getFullPath()) {
+      Set<AbstractState> nextStates =
+          new HashSet<>(
               cpa.getTransferRelation()
-                  .strengthen(successor, ImmutableSet.of(), edge, SingletonPrecision.getInstance()));
-          Preconditions.checkArgument(nextStates.size() == 1);
+                  .getAbstractSuccessorsForEdge(lastState, SingletonPrecision.getInstance(), edge));
+      Preconditions.checkArgument(nextStates.size() == 1);
+      AbstractState successor = Objects.requireNonNull(Iterables.getOnlyElement(nextStates));
 
-          lastState =
-              (SymbolicExecutionState) Objects.requireNonNull(Iterables.getOnlyElement(nextStates));
-        }
+      nextStates.clear();
+      nextStates.addAll(
+          cpa.getTransferRelation()
+              .strengthen(successor, ImmutableSet.of(), edge, SingletonPrecision.getInstance()));
+      Preconditions.checkArgument(nextStates.size() == 1);
 
-        // Strengthen the last state with the violation condition
-        BlockState blockVC =
-            AbstractStates.extractStateByType(pARGPath.getLastState(), BlockState.class);
-        lastState =
-            ((SymbolicExecutionTransferRelation) cpa.getTransferRelation())
-                .strengthenWithBlockState(
-                    lastState,
-                    blockVC,
-                    pARGPath.getFullPath().getLast(),
-                    SingletonPrecision.getInstance());
-    */
+      lastState =
+          (SymbolicExecutionState) Objects.requireNonNull(Iterables.getOnlyElement(nextStates));
+    }
+
+    // Strengthen the last state with the violation condition
+    BlockState blockVC =
+        AbstractStates.extractStateByType(pARGPath.getLastState(), BlockState.class);
+    lastState =
+        ((SymbolicExecutionTransferRelation) cpa.getTransferRelation())
+            .strengthenWithBlockState(
+                lastState,
+                blockVC,
+                pARGPath.getFullPath().getLast(),
+                SingletonPrecision.getInstance());
+
     // Add the initial assignment to the VC
-    SymbolicExecutionState firstState =
-        AbstractStates.extractStateByType(pARGPath.getFirstState(), SymbolicExecutionState.class);
     ValueAnalysisState violationCondition =
-        new ValueAnalysisState(firstState.valueAnalysisState().getMachineModel());
+        new ValueAnalysisState(initialState.valueAnalysisState().getMachineModel());
     for (Map.Entry<MemoryLocation, ValueAndType> variable :
-        firstState.valueAnalysisState().getConstants()) {
+        initialState.valueAnalysisState().getConstants()) {
       violationCondition.assignConstant(
           variable.getKey(), variable.getValue().getValue(), variable.getValue().getType());
     }
