@@ -214,8 +214,7 @@ public class AcslPredicateToFormulaVisitor
     QuantifiedFormulaManagerView qfmr = fmgr.getQuantifiedFormulaManager();
 
     // Important: the AcslRenamingVistor should have already been used to rename the binders to
-    // unique names,
-    // if this was not done, this might cause issues
+    // unique names, if this was not done, this might cause issues
     BooleanFormula body = pForallPredicate.getPredicate().accept(this);
 
     List<AcslParameterDeclaration> binders = pForallPredicate.getBinders();
@@ -233,8 +232,7 @@ public class AcslPredicateToFormulaVisitor
     QuantifiedFormulaManagerView qfmr = fmgr.getQuantifiedFormulaManager();
 
     // Important: the AcslRenamingVistor should have already been used to rename the binders to
-    // unique names,
-    // if this was not done, this might cause issues
+    // unique names, if this was not done, this might cause issues
     BooleanFormula body = pAcslExistsPredicate.getPredicate().accept(this);
 
     List<AcslParameterDeclaration> binders = pAcslExistsPredicate.getBinders();

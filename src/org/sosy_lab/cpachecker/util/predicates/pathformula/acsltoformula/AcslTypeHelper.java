@@ -73,6 +73,7 @@ public class AcslTypeHelper {
     };
   }
 
+  @SuppressWarnings("unused")
   public void handleDifferentTypes(Formula f1, Formula f2, AcslType commonType) {
     // TODO cast f1 and f2 to common type if necessary
     // find a way to return results
