@@ -18,13 +18,16 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -38,6 +41,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.QuantifiedFormulaManagerView;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 public class AcslPredicateToFormulaVisitor
     implements AcslPredicateVisitor<BooleanFormula, NoException> {
@@ -248,8 +252,18 @@ public class AcslPredicateToFormulaVisitor
   @Override
   public BooleanFormula visit(AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate)
       throws NoException {
-    // TODO implementation definitely needed
-    throw new UnsupportedOperationException("Not yet implemented");
+    AcslPredicateDeclaration declaration =
+        pAcslPredicateApplicationPredicate.getPredicateDeclaration();
+
+    String predName = "ACSLPred#" + declaration.getQualifiedName();
+
+    List<Formula> params = new ArrayList<>();
+    for (AcslTerm param : pAcslPredicateApplicationPredicate.getParameters()) {
+      params.add(param.accept(termVisitor));
+    }
+
+    return fmgr.getFunctionFormulaManager()
+        .declareAndCallUF(predName, FormulaType.BooleanType, params);
   }
 
   private Formula createSmtVarFromBinder(AcslParameterDeclaration pDecl) {
