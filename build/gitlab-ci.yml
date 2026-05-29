@@ -66,9 +66,18 @@ build:jdk-25:
 
 
 # For checks that need the binaries
-.binary_check: &binary_check
+.check-binaries: &binary_check
   stage: checks
   interruptible: true
+
+.check-binaries-default-jdk:
+  extends: .check-binaries
+  dependencies:
+    - build-dependencies
+    - build:jdk-17
+  needs:
+    - build-dependencies
+    - build:jdk-17
 
 # For checks that only need build-dependencies and the source code, not the binaries
 .source_check: &source_check
@@ -118,23 +127,17 @@ checkstyle:
     when: on_failure
 
 javadoc:
-  <<: *binary_check
+  extends: .check-binaries-default-jdk
   script: "ant $ANT_PROPS_CHECKS javadoc"
-  needs:
-    - build-dependencies
-    - build:jdk-17
   artifacts:
     paths:
       - "Javadoc/"
 
 spotbugs:
-  <<: *binary_check
+  extends: .check-binaries-default-jdk
   script:
     - 'ant $ANT_PROPS_CHECKS spotbugs'
     - 'test \! -f SpotBugs.html'
-  needs:
-    - build-dependencies
-    - build:jdk-17
   artifacts:
     paths:
       - "SpotBugs.html"

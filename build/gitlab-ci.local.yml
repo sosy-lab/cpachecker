@@ -37,12 +37,9 @@ variables:
     paths:
       - ".cache/npm"
 
-.binary_check: &binary_check
-  stage: checks
-
 
 .configuration-checks: &configuration-checks
-  <<: *binary_check
+  extends: .check-binaries
   script: "ant $ANT_PROPS_CHECKS configuration-checks"
   artifacts:
     paths:
@@ -77,18 +74,11 @@ configuration-checks:jdk-25:
 
 
 configuration-documentation:
-  <<: *binary_check
+  extends: .check-binaries-default-jdk
   script:
     - "cp doc/ConfigurationOptions.txt doc/ConfigurationOptions.txt.old"
     - "ant $ANT_PROPS_CHECKS build-documentation -Ddocumentation.uptodate=false"
     - "diff doc/ConfigurationOptions.txt.old doc/ConfigurationOptions.txt"
-  dependencies:
-    - build-dependencies
-    - build:jdk-21
-  needs:
-    - build-dependencies
-    - build:jdk-21
-
 
 configuration-plot:
   extends: .check-without-dependencies
@@ -103,14 +93,8 @@ configuration-plot:
 
 
 forbidden-apis:
-  <<: *binary_check
+  extends: .check-binaries-default-jdk
   script: "ant $ANT_PROPS_CHECKS forbiddenapis"
-  dependencies:
-    - build-dependencies
-    - build:jdk-21
-  needs:
-    - build-dependencies
-    - build:jdk-21
 
 
 check-code-patterns:
@@ -120,16 +104,9 @@ check-code-patterns:
 
 
 python-unit-tests:
-  <<: *binary_check
-  script: "python3 -m unittest discover scripts"
   # The tests run CPAchecker, so they need the respective image and dependencies.
-  dependencies:
-    - build-dependencies
-    - build:jdk-21
-  needs:
-    - build-dependencies
-    - build:jdk-21
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-21
+  extends: .check-binaries-default-jdk
+  script: "python3 -m unittest discover scripts"
 
 
 javascript-build:
@@ -227,13 +204,7 @@ build-docker:release:
 
 
 javascript-e2e-tests:
-  stage: checks
-  dependencies:
-    - build-dependencies
-    - build:jdk-21
-  needs:
-    - build-dependencies
-    - build:jdk-21
+  extends: .check-binaries-default-jdk
   image: ${CI_REGISTRY_IMAGE}/test:java-node
   before_script:
       # generate example report
@@ -280,13 +251,7 @@ flake8:
 
 
 build-tar:
-  stage: checks
-  dependencies:
-    - build-dependencies
-    - build:jdk-21
-  needs:
-    - build-dependencies
-    - build:jdk-21
+  extends: .check-binaries-default-jdk
   script: "ant $ANT_PROPS_CHECKS dist-unix -Dnamet=cpachecker"
   artifacts:
     paths:
@@ -383,7 +348,7 @@ refaster:
 # Override Java version for some jobs
 image: ${CI_REGISTRY_IMAGE}/test:jdk-21
 
-spotbugs:
+.check-binaries-default-jdk:
   dependencies:
     - build-dependencies
     - build:jdk-21
