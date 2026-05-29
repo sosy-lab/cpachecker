@@ -58,7 +58,7 @@ public class SymbolicExecutionViolationConditionOperator implements ViolationCon
       throws InterruptedException, CPATransferException, SolverException {
 
     // Simulate the path on an empty state
-    SymbolicExecutionState lastState = initialState;
+    SymbolicExecutionState lastState = SymbolicExecutionState.copyOf(initialState);
     for (CFAEdge edge : pARGPath.getFullPath()) {
       Set<AbstractState> nextStates =
           new HashSet<>(

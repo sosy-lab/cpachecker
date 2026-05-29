@@ -48,4 +48,9 @@ public record SymbolicExecutionState(
     }
     return identifiers;
   }
+
+  public static SymbolicExecutionState copyOf(SymbolicExecutionState pState) {
+    return new SymbolicExecutionState(
+        ValueAnalysisState.copyOf(pState.valueAnalysisState()), pState.constraintsState());
+  }
 }
