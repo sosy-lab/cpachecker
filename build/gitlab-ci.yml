@@ -70,11 +70,18 @@ build:jdk-25:
   stage: checks
   interruptible: true
 
-# For checks that only need the source code, not the binaries
+# For checks that only need build-dependencies and the source code, not the binaries
 .source_check: &source_check
   stage: checks
   needs:
     - build-dependencies
+  interruptible: true
+
+# For checks that only need the source, not even build-dependencies
+.check-without-dependencies:
+  stage: checks
+  dependencies: []
+  needs: []
   interruptible: true
 
 
@@ -198,9 +205,7 @@ refaster:
 
 # check license declarations etc.
 reuse:
-  stage: checks
-  dependencies: []
-  needs: []
+  extends: .check-without-dependencies
   image:
     name: fsfe/reuse:6
     entrypoint: [""]

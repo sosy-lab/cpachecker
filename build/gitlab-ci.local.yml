@@ -40,6 +40,7 @@ variables:
 .binary_check: &binary_check
   stage: checks
 
+
 .configuration-checks: &configuration-checks
   <<: *binary_check
   script: "ant $ANT_PROPS_CHECKS configuration-checks"
@@ -90,14 +91,12 @@ configuration-documentation:
 
 
 configuration-plot:
-  stage: checks
+  extends: .check-without-dependencies
   script:
     - "mkdir -p output"
     - "touch output/AssumptionAutomaton.txt"
     - "scripts/configViz.py > ConfigurationPlot.dot"
     - "dot -Tsvg ConfigurationPlot.dot -O"
-  dependencies: []
-  needs: []
   artifacts:
     paths:
       - "ConfigurationPlot.dot.svg"
@@ -115,10 +114,8 @@ forbidden-apis:
 
 
 check-code-patterns:
-  stage: checks
+  extends: .check-without-dependencies
   script: "build/check-code-patterns.sh"
-  dependencies: []
-  needs: []
   image: ubuntu:22.04
 
 
@@ -136,9 +133,7 @@ python-unit-tests:
 
 
 javascript-build:
-  stage: checks
-  dependencies: []
-  needs: []
+  extends: .check-without-dependencies
   image: ${CI_REGISTRY_IMAGE}/test:node
   before_script:
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
@@ -153,9 +148,7 @@ javascript-build:
   <<: *node-cache
 
 javascript-unit-tests:
-  stage: checks
-  dependencies: []
-  needs: []
+  extends: .check-without-dependencies
   image: ${CI_REGISTRY_IMAGE}/test:node
   before_script:
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
@@ -172,9 +165,7 @@ javascript-unit-tests:
   <<: *node-cache
 
 javascript-eslint:
-  stage: checks
-  dependencies: []
-  needs: []
+  extends: .check-without-dependencies
   image: ${CI_REGISTRY_IMAGE}/test:node
   before_script:
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
@@ -264,10 +255,7 @@ javascript-e2e-tests:
 
 # Checks for Python code
 .base_ruff:
-  stage: checks
-  dependencies: []
-  needs: []
-  interruptible: true
+  extends: .check-without-dependencies
   image: ghcr.io/astral-sh/ruff:0.14-alpine
   before_script:
     - ruff --version
@@ -282,9 +270,7 @@ check-format-python:
     - "ruff format --check --diff"
 
 flake8:
-  stage: checks
-  dependencies: []
-  needs: []
+  extends: .check-without-dependencies
   image: python:3.8
   before_script:
     - "pip install 'flake8<6' flake8-awesome"
