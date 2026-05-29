@@ -215,7 +215,7 @@ build-docker:dev-base:
     - podman login docker.io --username "$DOCKER_HUB_USER" --password "$DOCKER_HUB_TOKEN"
   script:
     - echo "Building $CI_REGISTRY_IMAGE:$TAG from $DOCKERFILE"
-    - podman build --pull -t $CI_REGISTRY_IMAGE:$TAG $BUILD_CONTEXT < $CI_PROJECT_DIR/$DOCKERFILE
+    - podman build --pull -t $CI_REGISTRY_IMAGE:$TAG $BUILD_CONTEXT -f - < $DOCKERFILE
     - podman push $CI_REGISTRY_IMAGE:$TAG
     - podman push $CI_REGISTRY_IMAGE:$TAG docker.io/sosylab/cpachecker:$TAG
   environment: deploy/docker
