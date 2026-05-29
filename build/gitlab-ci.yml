@@ -238,9 +238,9 @@ deploy-gh-pages:
   before_script:
     - podman login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password "$CI_REGISTRY_PASSWORD"
   script:
-    - echo "Building $CI_REGISTRY_IMAGE/$IMAGE from $DOCKERFILE"
-    - podman build --pull -t $CI_REGISTRY_IMAGE/$IMAGE $BUILD_CONTEXT < $CI_PROJECT_DIR/$DOCKERFILE
-    - podman push $CI_REGISTRY_IMAGE/$IMAGE
+    - echo "Building $CI_REGISTRY_IMAGE$IMAGE from $DOCKERFILE"
+    - podman build --pull -t $CI_REGISTRY_IMAGE$IMAGE $BUILD_CONTEXT < $CI_PROJECT_DIR/$DOCKERFILE
+    - podman push $CI_REGISTRY_IMAGE$IMAGE
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_PIPELINE_SOURCE == "web"
@@ -249,16 +249,16 @@ build-docker:test:jdk-17:
   extends: .build-docker
   variables:
     DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-17
-    IMAGE: test:jdk-17
+    IMAGE: /test:jdk-17
 
 build-docker:test:jdk-21:
   extends: .build-docker
   variables:
     DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-21
-    IMAGE: test:jdk-21
+    IMAGE: /test:jdk-21
 
 build-docker:test:jdk-25:
   extends: .build-docker
   variables:
     DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-25
-    IMAGE: test:jdk-25
+    IMAGE: /test:jdk-25
