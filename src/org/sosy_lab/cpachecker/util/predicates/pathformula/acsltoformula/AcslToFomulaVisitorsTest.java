@@ -12,6 +12,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Objects;
 import java.util.Optional;
@@ -30,16 +31,22 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -68,6 +75,8 @@ public class AcslToFomulaVisitorsTest {
 
   @Before
   public void setUp() throws InvalidConfigurationException {
+    // Configuration config =
+    //    TestDataTools.configurationForTest().setOption("solver.solver", "Z3").build();
     Configuration config = TestDataTools.configurationForTest().build();
     smtSolver = Solver.create(config, logger, ShutdownNotifier.createDummy());
     fmgr = smtSolver.getFormulaManager();
@@ -175,35 +184,6 @@ public class AcslToFomulaVisitorsTest {
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 
-  @Ignore("Not implemented yet: Visitor for AcslBinaryTermPredicate")
-  @Test
-  public void testNeutralElementOfMultiplication()
-      throws InvalidConfigurationException, SolverException, InterruptedException {
-    // x * 1 != x should be unsatisfiable for all x
-    CProgramScope cProgramScope = getCProgramScope();
-    AcslTerm x =
-        new AcslIdTerm(
-            FileLocation.DUMMY,
-            new AcslCVariableDeclaration(
-                (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable("x"))));
-
-    AcslPredicate pred =
-        new AcslBinaryTermPredicate(
-            FileLocation.DUMMY,
-            new AcslBinaryTerm(
-                FileLocation.DUMMY,
-                AcslBuiltinLogicType.INTEGER,
-                x,
-                new AcslIntegerLiteralTerm(
-                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE),
-                AcslBinaryTermOperator.MULTIPLY),
-            x,
-            AcslBinaryTermExpressionOperator.NOT_EQUALS);
-
-    BooleanFormula f = translate(pred, false);
-    assertThat(smtSolver.isUnsat(f)).isTrue();
-  }
-
   @Test
   public void testLessEqualAntisymmetry()
       throws SolverException, InterruptedException, InvalidConfigurationException {
@@ -246,7 +226,207 @@ public class AcslToFomulaVisitorsTest {
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 
-  @Ignore("Missing solvere that supports quantifiers")
+  @Test
+  public void testGreaterEqualAndLess()
+      throws SolverException, InterruptedException, InvalidConfigurationException {
+    // (x >= y AND x < y) should be unsatisfiable
+
+    CProgramScope cProgramScope = getCProgramScope();
+    AcslTerm x =
+        new AcslIdTerm(
+            FileLocation.DUMMY,
+            new AcslCVariableDeclaration(
+                (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable("x"))));
+    AcslTerm y =
+        new AcslIdTerm(
+            FileLocation.DUMMY,
+            new AcslCVariableDeclaration(
+                (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable("y"))));
+
+    AcslPredicate pred =
+        new AcslBinaryPredicate(
+            FileLocation.DUMMY,
+            new AcslBinaryTermPredicate(
+                FileLocation.DUMMY, x, y, AcslBinaryTermExpressionOperator.GREATER_EQUAL),
+            new AcslBinaryTermPredicate(
+                FileLocation.DUMMY, x, y, AcslBinaryTermExpressionOperator.LESS_THAN),
+            AcslBinaryPredicateOperator.AND);
+
+    BooleanFormula f = translate(pred, false);
+    assertThat(smtSolver.isUnsat(f)).isTrue();
+  }
+
+  @Test
+  public void testUnaryPlus()
+      throws SolverException, InterruptedException, InvalidConfigurationException {
+    // NOT(x = +x) should be unsatisfiable
+
+    CProgramScope cProgramScope = getCProgramScope();
+    AcslTerm x =
+        new AcslIdTerm(
+            FileLocation.DUMMY,
+            new AcslCVariableDeclaration(
+                (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable("x"))));
+
+    AcslPredicate pred =
+        new AcslBinaryTermPredicate(
+            FileLocation.DUMMY,
+            x,
+            new AcslUnaryTerm(
+                FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, x, AcslUnaryTermOperator.PLUS),
+            AcslBinaryTermExpressionOperator.EQUALS);
+
+    AcslPredicate unsatPred =
+        new AcslUnaryPredicate(FileLocation.DUMMY, pred, AcslUnaryExpressionOperator.NEGATION);
+
+    BooleanFormula f = translate(unsatPred, false);
+    assertThat(smtSolver.isUnsat(f)).isTrue();
+  }
+
+  @Test
+  public void testUnaryMinus()
+      throws SolverException, InterruptedException, InvalidConfigurationException {
+    // NOT(x = -(-x)) should be unsatisfiable
+
+    CProgramScope cProgramScope = getCProgramScope();
+    AcslTerm x =
+        new AcslIdTerm(
+            FileLocation.DUMMY,
+            new AcslCVariableDeclaration(
+                (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable("x"))));
+
+    AcslTerm minusx =
+        new AcslUnaryTerm(
+            FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, x, AcslUnaryTermOperator.MINUS);
+
+    AcslPredicate pred =
+        new AcslBinaryTermPredicate(
+            FileLocation.DUMMY,
+            x,
+            new AcslUnaryTerm(
+                FileLocation.DUMMY,
+                AcslBuiltinLogicType.INTEGER,
+                minusx,
+                AcslUnaryTermOperator.MINUS),
+            AcslBinaryTermExpressionOperator.EQUALS);
+
+    AcslPredicate unsatPred =
+        new AcslUnaryPredicate(FileLocation.DUMMY, pred, AcslUnaryExpressionOperator.NEGATION);
+
+    BooleanFormula f = translate(unsatPred, false);
+    assertThat(smtSolver.isUnsat(f)).isTrue();
+  }
+
+  @Test
+  public void testRealNumbers()
+      throws SolverException, InterruptedException, InvalidConfigurationException {
+    // NOT(5.0 * 0.2 == 1.0) should be unsatisfiable
+
+    AcslPredicate pred =
+        new AcslBinaryTermPredicate(
+            FileLocation.DUMMY,
+            new AcslBinaryTerm(
+                FileLocation.DUMMY,
+                AcslBuiltinLogicType.REAL,
+                new AcslRealLiteralTerm(
+                    FileLocation.DUMMY, AcslBuiltinLogicType.REAL, new BigDecimal("5.0")),
+                new AcslRealLiteralTerm(
+                    FileLocation.DUMMY, AcslBuiltinLogicType.REAL, new BigDecimal("0.2")),
+                AcslBinaryTermOperator.MULTIPLY),
+            new AcslRealLiteralTerm(
+                FileLocation.DUMMY, AcslBuiltinLogicType.REAL, new BigDecimal("1.0")),
+            AcslBinaryTermExpressionOperator.EQUALS);
+
+    AcslPredicate unsatPred =
+        new AcslUnaryPredicate(FileLocation.DUMMY, pred, AcslUnaryExpressionOperator.NEGATION);
+
+    BooleanFormula f = translate(unsatPred, false);
+    assertThat(smtSolver.isUnsat(f)).isTrue();
+  }
+
+  @Test
+  public void testNegationAndBooleanLiteralTerm()
+      throws SolverException, InterruptedException, InvalidConfigurationException {
+    // NOT(true = NEGATION(False)) should be unsatisfiable
+
+    AcslPredicate pred =
+        new AcslBinaryTermPredicate(
+            FileLocation.DUMMY,
+            new AcslBooleanLiteralTerm(FileLocation.DUMMY, true),
+            new AcslUnaryTerm(
+                FileLocation.DUMMY,
+                AcslBuiltinLogicType.BOOLEAN,
+                new AcslBooleanLiteralTerm(FileLocation.DUMMY, false),
+                AcslUnaryTermOperator.NEGATION),
+            AcslBinaryTermExpressionOperator.EQUALS);
+
+    AcslPredicate unsatPred =
+        new AcslUnaryPredicate(FileLocation.DUMMY, pred, AcslUnaryExpressionOperator.NEGATION);
+
+    BooleanFormula f = translate(unsatPred, false);
+    assertThat(smtSolver.isUnsat(f)).isTrue();
+  }
+
+  @Test
+  public void testEquivalenceAndBooleanLiteralPredicate()
+      throws SolverException, InterruptedException, InvalidConfigurationException {
+    // NOT(true <=> (x = x)) should be unsatisfiable
+
+    CProgramScope cProgramScope = getCProgramScope();
+    AcslTerm x =
+        new AcslIdTerm(
+            FileLocation.DUMMY,
+            new AcslCVariableDeclaration(
+                (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable("x"))));
+
+    AcslPredicate pred =
+        new AcslBinaryPredicate(
+            FileLocation.DUMMY,
+            new AcslBooleanLiteralPredicate(FileLocation.DUMMY, true),
+            new AcslBinaryTermPredicate(
+                FileLocation.DUMMY, x, x, AcslBinaryTermExpressionOperator.EQUALS),
+            AcslBinaryPredicateOperator.EQUIVALENT);
+
+    AcslPredicate unsatPred =
+        new AcslUnaryPredicate(FileLocation.DUMMY, pred, AcslUnaryExpressionOperator.NEGATION);
+
+    BooleanFormula f = translate(unsatPred, false);
+    assertThat(smtSolver.isUnsat(f)).isTrue();
+  }
+
+  // TODO These are tests that I know will fail and will require me to figure some stuff out
+  // Therefore they all have the ignore annotation for now
+
+  @Ignore("Not implemented yet: Typecasting for Binary Operations")
+  @Test
+  public void testNeutralElementOfMultiplication()
+      throws InvalidConfigurationException, SolverException, InterruptedException {
+    // x * 1 != x should be unsatisfiable for all x
+    CProgramScope cProgramScope = getCProgramScope();
+    AcslTerm x =
+        new AcslIdTerm(
+            FileLocation.DUMMY,
+            new AcslCVariableDeclaration(
+                (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable("x"))));
+
+    AcslPredicate pred =
+        new AcslBinaryTermPredicate(
+            FileLocation.DUMMY,
+            new AcslBinaryTerm(
+                FileLocation.DUMMY,
+                AcslBuiltinLogicType.INTEGER,
+                x,
+                new AcslIntegerLiteralTerm(
+                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE),
+                AcslBinaryTermOperator.MULTIPLY),
+            x,
+            AcslBinaryTermExpressionOperator.NOT_EQUALS);
+
+    BooleanFormula f = translate(pred, false);
+    assertThat(smtSolver.isUnsat(f)).isTrue();
+  }
+
+  @Ignore("Missing solver that supports quantifiers")
   @Test
   public void testForAll()
       throws SolverException, InterruptedException, InvalidConfigurationException {
@@ -285,6 +465,35 @@ public class AcslToFomulaVisitorsTest {
             body);
 
     BooleanFormula f = translate(forall, true);
+    assertThat(smtSolver.isUnsat(f)).isTrue();
+  }
+
+  @Ignore("Missing solver that supports quantifiers")
+  @Test
+  public void testExists()
+      throws SolverException, InterruptedException, InvalidConfigurationException {
+    // \exists x: x != x should be unsatisfiable
+
+    CProgramScope cProgramScope = getCProgramScope();
+
+    AcslCVariableDeclaration decl =
+        new AcslCVariableDeclaration(
+            (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable("x")));
+
+    AcslTerm x = new AcslIdTerm(FileLocation.DUMMY, decl);
+
+    AcslPredicate body =
+        new AcslBinaryTermPredicate(
+            FileLocation.DUMMY, x, x, AcslBinaryTermExpressionOperator.NOT_EQUALS);
+
+    AcslPredicate exists =
+        new AcslExistsPredicate(
+            FileLocation.DUMMY,
+            ImmutableList.of(
+                new AcslParameterDeclaration(FileLocation.DUMMY, decl.getType(), decl.getName())),
+            body);
+
+    BooleanFormula f = translate(exists, true);
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 }
