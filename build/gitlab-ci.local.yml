@@ -204,20 +204,13 @@ build-docker:dev-base:
 
 # Build container images and push to Docker Hub
 .build-docker-hub:
-  image:
-    name: quay.io/podman/stable
-  variables:
-    BUILD_CONTEXT: "-"
-  tags:
-    - podman
+  extends: .build-docker
   before_script:
-    - podman login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password "$CI_REGISTRY_PASSWORD"
+    - !reference [.build-docker, before_script]
     - podman login docker.io --username "$DOCKER_HUB_USER" --password "$DOCKER_HUB_TOKEN"
   script:
-    - echo "Building $CI_REGISTRY_IMAGE:$TAG from $DOCKERFILE"
-    - podman build --pull -t $CI_REGISTRY_IMAGE:$TAG $BUILD_CONTEXT -f - < $DOCKERFILE
-    - podman push $CI_REGISTRY_IMAGE:$TAG
-    - podman push $CI_REGISTRY_IMAGE:$TAG docker.io/sosylab/cpachecker:$TAG
+    - !reference [.build-docker, script]
+    - podman push $CI_REGISTRY_IMAGE$IMAGE docker.io/sosylab/cpachecker$IMAGE
   environment: deploy/docker
   rules:
     - if: $DOCKER_HUB_USER == null
@@ -230,12 +223,12 @@ build-docker:release:
   extends: .build-docker-hub
   variables:
     DOCKERFILE: build/Dockerfile.release
-    TAG: "4.2.2"
+    IMAGE: ":4.2.2"
   script:
     - !reference [.build-docker-hub, script]
     # also push image to :latest
-    - podman push $CI_REGISTRY_IMAGE:$TAG $CI_REGISTRY_IMAGE:latest
-    - podman push $CI_REGISTRY_IMAGE:$TAG docker.io/sosylab/cpachecker:latest
+    - podman push $CI_REGISTRY_IMAGE$IMAGE $CI_REGISTRY_IMAGE:latest
+    - podman push $CI_REGISTRY_IMAGE$IMAGE docker.io/sosylab/cpachecker:latest
   rules:
     - !reference [.build-docker-hub, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule"
@@ -324,7 +317,7 @@ deploy-docker:
   extends: .build-docker-hub
   variables:
     DOCKERFILE: build/Dockerfile.dev
-    TAG: "dev"
+    IMAGE: ":dev"
     BUILD_CONTEXT: "."
   rules:
     - !reference [.build-docker-hub, rules]

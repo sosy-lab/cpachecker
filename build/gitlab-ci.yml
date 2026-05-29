@@ -239,7 +239,7 @@ deploy-gh-pages:
     - podman login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password "$CI_REGISTRY_PASSWORD"
   script:
     - echo "Building $CI_REGISTRY_IMAGE$IMAGE from $DOCKERFILE"
-    - podman build --pull -t $CI_REGISTRY_IMAGE$IMAGE $BUILD_CONTEXT < $CI_PROJECT_DIR/$DOCKERFILE
+    - podman build --pull -t $CI_REGISTRY_IMAGE$IMAGE $BUILD_CONTEXT -f - < $DOCKERFILE
     - podman push $CI_REGISTRY_IMAGE$IMAGE
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
