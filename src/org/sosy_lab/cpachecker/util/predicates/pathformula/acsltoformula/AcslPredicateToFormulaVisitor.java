@@ -160,6 +160,8 @@ public class AcslPredicateToFormulaVisitor
       signed = typeHelper.isSigned(pAcslBinaryTermPredicate.getOperand1().getExpressionType());
     }
 
+    // TODO this might need the same typecasting as AcslBinaryTerm, add this here, once it works
+
     return switch (pAcslBinaryTermPredicate.getOperator()) {
       case EQUALS -> fmgr.makeEqual(operand1Formula, operand2Formula);
       case NOT_EQUALS -> bfmgr.not(fmgr.makeEqual(operand1Formula, operand2Formula));

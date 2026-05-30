@@ -77,15 +77,14 @@ public class AcslTypeHelper {
   public void handleDifferentTypes(Formula f1, Formula f2, AcslType commonType) {
     // TODO cast f1 and f2 to common type if necessary
     // find a way to return results
+    // this is needed for binary expressions in Predicate and Term visitors
   }
 
   public FormulaType<?> acslTypeToFormulaType(AcslType acslType) {
-    // TODO implement  more of the mapping
     return switch (acslType) {
       case AcslCType cType -> ctoFormulaConverter.getFormulaTypeFromType(cType.getType());
       case AcslFunctionType funcType ->
-          throw new IllegalArgumentException(
-              "This should not happen, AcslFunctionCallTerm should handle this");
+          throw new UnsupportedOperationException("Not yet implemented"); // TODO
       case AcslLogicType logType ->
           switch (logType) {
             case AcslBuiltinLogicType builtinType ->
@@ -99,7 +98,7 @@ public class AcslTypeHelper {
                 throw new UnsupportedOperationException("Not yet implemented");
           };
       case AcslPointerType poinType ->
-          throw new UnsupportedOperationException("Not yet implemented");
+          throw new UnsupportedOperationException("Not yet implemented"); // TODO
       case AcslPredicateType predType -> FormulaType.BooleanType;
       case AcslSetType setType -> throw new UnsupportedOperationException("Not yet implemented");
     };

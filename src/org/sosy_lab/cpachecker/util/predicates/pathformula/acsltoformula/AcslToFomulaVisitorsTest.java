@@ -77,6 +77,7 @@ public class AcslToFomulaVisitorsTest {
   public void setUp() throws InvalidConfigurationException {
     // Configuration config =
     //    TestDataTools.configurationForTest().setOption("solver.solver", "Z3").build();
+    // TODO z3 will be needed for tests with quantifiers
     Configuration config = TestDataTools.configurationForTest().build();
     smtSolver = Solver.create(config, logger, ShutdownNotifier.createDummy());
     fmgr = smtSolver.getFormulaManager();

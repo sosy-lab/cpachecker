@@ -253,12 +253,15 @@ public class AcslRenamingVisitor
 
   @Override
   public AcslTerm visit(AcslFunctionCallTerm pAcslFunctionCallTerm) throws NoException {
-    throw new UnsupportedOperationException("Renaming of function calls is implemented yet");
+    // TODO
+    throw new UnsupportedOperationException("Renaming of function calls is not implemented yet");
   }
 
   @Override
   public AcslTerm visit(AcslArraySubscriptTerm pAcslArraySubscriptTerm) throws NoException {
-    throw new UnsupportedOperationException("Renaming in Array subscript terms is implemented yet");
+    // TODO
+    throw new UnsupportedOperationException(
+        "Renaming in Array subscript terms is not implemented yet");
   }
 
   private static final class RenamingContext {
