@@ -144,16 +144,16 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     // Bitvector case: signed is important with some of the operators
     if (operand1Formula instanceof BitvectorFormula
         && operand2Formula instanceof BitvectorFormula) {
-      // TODO do I use the Expression Type of the operand or of the whole term?
+      // TODO do I use the expression Type of the operand or of the whole term?
       signed = typeHelper.isSigned(pAcslBinaryTerm.getOperand1().getExpressionType());
     }
 
     if (!fmgr.getFormulaType(operand1Formula).equals(fmgr.getFormulaType(operand2Formula))) {
       AcslType commonType = AcslType.mostGeneralType(operand1Type, operand2Type);
       // TODO take care of the case where the operands do not have the same type:
-      // upcast e.g. bitvector to int look into formulaManager??,
+      // upcast e.g. bitvector to int -> look into formulaManager??,
       // extract this into a function that takes the two formulas and maybe their types...
-      // Example: x +1 where x is a C Int -> Bitvector formula but 1 is an integer formula
+      // Example: x + 1 where x is a C Int -> Bitvector formula but 1 is an Integer formula
       typeHelper.handleDifferentTypes(operand1Formula, operand2Formula, commonType);
     }
 
@@ -245,6 +245,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
   @Override
   public Formula visit(AcslArraySubscriptTerm pAcslArraySubscriptTerm) throws NoException {
+    // TODO this will be needed for my thesis examples
     throw new UnsupportedOperationException("Not yet implemented");
   }
 
