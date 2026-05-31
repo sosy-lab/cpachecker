@@ -46,6 +46,13 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
 
   @Serial private static final long serialVersionUID = 7169472946910382516L;
 
+  public static final FunArray BOTTOM =
+      new FunArray(
+          ImmutableList.of(
+              new Bound(new NormalFormExpression(0)), new Bound(new NormalFormExpression(1))),
+          ImmutableList.of(Interval.EMPTY),
+          ImmutableList.of(false));
+
   /**
    * Constructor for FunArray.
    *
@@ -156,6 +163,9 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
     var i = 1;
     while (i < newBounds.size()) {
       if (newBounds.get(i).isEmpty()) {
+        if (newBounds.size() <= 2) {
+          return BOTTOM;
+        }
         joinValueWithPredecessor(newValues, i);
         newBounds.remove(i);
         newEmptiness.set(i - 1, newEmptiness.get(i - 1) && newEmptiness.get(i));

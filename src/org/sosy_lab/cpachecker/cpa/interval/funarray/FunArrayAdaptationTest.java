@@ -185,4 +185,19 @@ public class FunArrayAdaptationTest {
 
     assertThat(array.isReachable()).isFalse();
   }
+
+  @Test
+  public void testIsReachableBottom() {
+    assertThat(FunArray.BOTTOM.isReachable()).isFalse();
+  }
+
+  @Test
+  public void testRemoveEmptyBoundsProducesBottom() {
+    FunArray array =
+        new FunArray(
+            ImmutableList.of(new Bound(exp(0)), new Bound(ImmutableSet.of())),
+            ImmutableList.of(Interval.UNBOUND),
+            ImmutableList.of(false));
+    assertThat(array.removeEmptyBounds()).isEqualTo(FunArray.BOTTOM);
+  }
 }

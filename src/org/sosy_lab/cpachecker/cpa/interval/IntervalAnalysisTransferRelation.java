@@ -273,6 +273,7 @@ public class IntervalAnalysisTransferRelation
                 default -> e;
               };
             })
+        .filter(IntervalAnalysisState::isReachable)
         .collect(ImmutableList.toImmutableList());
   }
 
@@ -340,6 +341,9 @@ public class IntervalAnalysisTransferRelation
   protected Collection<IntervalAnalysisState> handleDeclarationEdge(
       CDeclarationEdge declarationEdge, CDeclaration declaration) throws UnrecognizedCodeException {
     if (declarationEdge.getDeclaration() instanceof CVariableDeclaration decl) {
+      if (decl.getType() instanceof CArrayType) {
+        return handleArrayVariableDeclarationEdge(declarationEdge, decl);
+      }
       return ImmutableSet.of(handleVariableDeclarationEdge(declarationEdge, decl));
     }
     return ImmutableSet.of(state.withLocation(declarationEdge.getSuccessor()));
@@ -351,9 +355,6 @@ public class IntervalAnalysisTransferRelation
 
     if (decl.getType() instanceof CSimpleType) {
       return handleSimpleTypeVariableDeclarationEdge(declarationEdge, decl);
-    }
-    if (decl.getType() instanceof CArrayType) {
-      return handleArrayVariableDeclarationEdge(declarationEdge, decl);
     }
     return state;
   }
@@ -375,23 +376,28 @@ public class IntervalAnalysisTransferRelation
         decl.getQualifiedName(), interval, threshold, declarationEdge.getSuccessor());
   }
 
-  private IntervalAnalysisState handleArrayVariableDeclarationEdge(
+  private Collection<IntervalAnalysisState> handleArrayVariableDeclarationEdge(
       CDeclarationEdge declarationEdge, CVariableDeclaration decl)
       throws UnrecognizedCodeException {
     ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, declarationEdge);
     if (decl.getInitializer() instanceof CInitializerList initializerList) {
-      return state.addArray(
-          decl.getQualifiedName(),
-          FunArray.ofInitializerList(initializerList.getInitializers(), visitor),
-          declarationEdge.getSuccessor());
+      return ImmutableSet.of(
+          state.addArray(
+              decl.getQualifiedName(),
+              FunArray.ofInitializerList(initializerList.getInitializers(), visitor),
+              declarationEdge.getSuccessor()));
     } else if (decl.getType() instanceof CArrayType arrayType) {
       Set<NormalFormExpression> normalFormLengthExpressions =
           ImmutableSet.<NormalFormExpression>builder()
               .addAll(normalizeExpression(getNonWrappedExpression(arrayType.getLength()), visitor))
               .addAll(normalizeExpression(arrayType.getLength(), visitor))
               .build();
+      if (normalFormLengthExpressions.contains(new NormalFormExpression(0))) {
+        return ImmutableSet.of();
+      }
       FunArray simpleArray = new FunArray(normalFormLengthExpressions);
-      return state.addArray(decl.getQualifiedName(), simpleArray, declarationEdge.getSuccessor());
+      return ImmutableSet.of(
+          state.addArray(decl.getQualifiedName(), simpleArray, declarationEdge.getSuccessor()));
     }
     throw new RuntimeException("Not yet implemented");
   }

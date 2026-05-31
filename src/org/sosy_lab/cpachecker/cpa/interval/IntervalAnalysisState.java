@@ -187,6 +187,10 @@ public final class IntervalAnalysisState
     return this.withArrays(arrays.putAndCopy(variableName, funArray)).withLocation(pLocation);
   }
 
+  public boolean isReachable() {
+    return arrays.values().stream().allMatch(FunArray::isReachable);
+  }
+
   public IntervalAnalysisState assignArrayElement(
       String arrayName,
       NormalFormExpression index,
