@@ -555,6 +555,9 @@ public final class Interval implements Serializable {
    * @return the unique concrete value abstracted by this interval.
    */
   public Optional<Long> getUniqueConcreteValue() {
+    if (isEmpty()) {
+      return Optional.empty();
+    }
     if (low.equals(high)) {
       return Optional.of(low);
     }

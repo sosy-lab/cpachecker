@@ -198,6 +198,10 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
     int greatestLowerBoundIndex = getRightmostLowerBoundIndex(indeces, visitor);
     int leastUpperBoundIndex = getLeastUpperBoundIndex(trailingIndeces, visitor);
 
+    if (greatestLowerBoundIndex >= values.size()) {
+      return this;
+    }
+
     final Bound greatestLowerBound = bounds.get(greatestLowerBoundIndex);
     final Bound leastUpperBound = bounds.get(leastUpperBoundIndex);
 
@@ -286,6 +290,9 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
 
   public Interval get(NormalFormExpression abstractIndex, ExpressionValueVisitor visitor) {
     int greatestLowerBoundIndex = getRightmostLowerBoundIndex(abstractIndex, visitor);
+    if (greatestLowerBoundIndex >= values.size()) {
+      return Interval.EMPTY;
+    }
     int leastUpperBoundIndex = getLeastUpperBoundIndex(abstractIndex.add(1L), visitor);
     return getJointValue(greatestLowerBoundIndex, leastUpperBoundIndex);
   }
