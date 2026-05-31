@@ -178,28 +178,4 @@ public class ExpressionUtility {
         expression,
         UnaryOperator.MINUS);
   }
-
-  public static boolean isSyntacticallyGreaterThanOrEqualTo(
-      CExpression a, CExpression b, ExpressionValueVisitor visitor) {
-    try {
-      return NormalFormExpression.anyInSets(
-          normalizeExpression(a, visitor),
-          normalizeExpression(b, visitor),
-          (normalA, normalB) -> normalA.isSyntacticallyGreaterThanOrEqualTo(normalB));
-    } catch (UnrecognizedCodeException exception) {
-      return false;
-    }
-  }
-
-  public static boolean isSyntacticallyLessThanOrEqualTo(
-      CExpression a, CExpression b, ExpressionValueVisitor visitor) {
-    try {
-      return NormalFormExpression.anyInSets(
-          normalizeExpression(a, visitor),
-          normalizeExpression(b, visitor),
-          (normalA, normalB) -> normalA.isSyntacticallyLessThanOrEqualTo(normalB));
-    } catch (UnrecognizedCodeException exception) {
-      return false;
-    }
-  }
 }
