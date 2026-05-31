@@ -146,6 +146,22 @@ public class FunArraySatisfyTest {
   }
 
   @Test
+  public void testSatisfyLessEqualSquashEntireArrayReturnsBottom() throws FunArrayBuilderException {
+    // {0} ⊤ {n}?
+    // assert n <= 0: squash collapses all bounds into one → BOTTOM
+    FunArray initial =
+        FunArrayBuilder.firstBound(exp(0))
+            .value(Interval.UNBOUND)
+            .mayBeEmpty()
+            .bound(exp("n"))
+            .build();
+
+    FunArray result = initial.satisfyLessEqual(exp("n"), exp(0));
+
+    assertThat(result).isEqualTo(FunArray.BOTTOM);
+  }
+
+  @Test
   public void testSatisfyLessEqualContradictionRemovesBounds() throws FunArrayBuilderException {
     // {0} ⊤ {1} ⊤ {n}
     // assert 1 <= 0: non-empty segment, contradiction

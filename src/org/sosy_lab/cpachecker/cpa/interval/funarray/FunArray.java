@@ -542,6 +542,9 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
       modifiedValues.subList(rightIndex, leftIndex).clear();
       modifiedEmptiness.subList(rightIndex, leftIndex).clear();
 
+      if (modifiedBounds.size() < 2) {
+        return BOTTOM;
+      }
       return new FunArray(modifiedBounds, modifiedValues, modifiedEmptiness);
     }
   }
