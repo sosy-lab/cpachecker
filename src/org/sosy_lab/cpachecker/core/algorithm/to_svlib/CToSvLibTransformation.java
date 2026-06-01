@@ -259,8 +259,10 @@ class CToSvLibTransformation {
       ImmutableMap.Builder<CFAEdge, PointerTargetSet> pEdgeToPointerTargetSet)
       throws CPATransferException, InterruptedException {
     switch (pEdge.getEdgeType()) {
-      case BlankEdge ->
-          pCreatedStatements.put(pEdge.getPredecessor(), createGotoStatement(pEdge.getSuccessor()));
+      case BlankEdge -> {
+        transformToSvLibTerm(pEdge, pEdgeToPointerTargetSet);
+        pCreatedStatements.put(pEdge.getPredecessor(), createGotoStatement(pEdge.getSuccessor()));
+      }
       case AssumeEdge -> {
         SvLibTerm transformedTerm = transformToSvLibTerm(pEdge, pEdgeToPointerTargetSet);
         SvLibGotoStatement gotoStatement = createGotoStatement(pEdge.getSuccessor());
