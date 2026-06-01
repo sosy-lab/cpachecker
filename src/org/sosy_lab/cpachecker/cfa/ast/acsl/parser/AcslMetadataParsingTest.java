@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AntlrToInternalNot
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 @RunWith(Parameterized.class)
 public class AcslMetadataParsingTest {
@@ -60,7 +60,7 @@ public class AcslMetadataParsingTest {
     expectedNumOfDeclarations = pExpectedNumOfDeclarations;
     nodeAttributes = pNodeAttributes;
     Configuration config =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .loadFromResource(AcslMetadataParsingTest.class, "withAcslMetadata.properties")
             .build();
     LogManager logManager = LogManager.createTestLogManager();
