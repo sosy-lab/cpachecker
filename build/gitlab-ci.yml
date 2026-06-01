@@ -18,7 +18,7 @@ stages:
   - deploy
 
 # Default image for non-JDK-specific jobs
-image: ${CI_REGISTRY_IMAGE}/test:jdk-11
+image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
 variables:
   IVY_CACHE_DIR: "${CI_PROJECT_DIR}/.ivy2"
@@ -52,10 +52,6 @@ build-dependencies:
       - "classes/"
       - "*.jar"
 
-build:jdk-11:
-  <<: *build
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-11
-
 build:jdk-17:
   <<: *build
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
@@ -64,9 +60,9 @@ build:jdk-21:
   <<: *build
   image: ${CI_REGISTRY_IMAGE}/test:jdk-21
 
-build:jdk-24:
+build:jdk-25:
   <<: *build
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-24
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-25
 
 
 # For checks that need the binaries
@@ -82,21 +78,21 @@ build:jdk-24:
   interruptible: true
 
 
-.build-project-ecj: &build-project-ecj
+.build-ecj: &build-ecj
   <<: *source_check
   script: "ant $ANT_PROPS_BUILD build-project-ecj"
 
-build-project-ecj:jdk-17:
-  <<: *build-project-ecj
+build-ecj:jdk-17:
+  <<: *build-ecj
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
-build-project-ecj:jdk-21:
-  <<: *build-project-ecj
+build-ecj:jdk-21:
+  <<: *build-ecj
   image: ${CI_REGISTRY_IMAGE}/test:jdk-21
 
-build-project-ecj:jdk-24:
-  <<: *build-project-ecj
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-24
+build-ecj:jdk-25:
+  <<: *build-ecj
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-25
 
 
 check-format:
@@ -105,6 +101,7 @@ check-format:
 
 checkstyle:
   <<: *source_check
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-21
   script:
     - "ant $ANT_PROPS_CHECKS checkstyle"
     - "ant $ANT_PROPS_CHECKS run-checkstyle -Dcheckstyle.output=plain && cat Checkstyle*.xml && test $(cat Checkstyle*xml | grep -vic audit) -eq 0"
@@ -118,7 +115,7 @@ javadoc:
   script: "ant $ANT_PROPS_CHECKS javadoc"
   needs:
     - build-dependencies
-    - build:jdk-11
+    - build:jdk-17
   artifacts:
     paths:
       - "Javadoc/"
@@ -130,7 +127,7 @@ spotbugs:
     - 'test \! -f SpotBugs.html'
   needs:
     - build-dependencies
-    - build:jdk-11
+    - build:jdk-17
   artifacts:
     paths:
       - "SpotBugs.html"
@@ -148,13 +145,6 @@ spotbugs:
     reports:
       junit: "junit/TESTS-TestSuites.xml"
 
-unit-tests:jdk-11:
-  <<: *unit-tests
-  needs:
-    - build-dependencies
-    - build:jdk-11
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-11
-
 unit-tests:jdk-17:
   <<: *unit-tests
   needs:
@@ -169,23 +159,25 @@ unit-tests:jdk-21:
     - build:jdk-21
   image: ${CI_REGISTRY_IMAGE}/test:jdk-21
 
-unit-tests:jdk-24:
+unit-tests:jdk-25:
   <<: *unit-tests
   needs:
     - build-dependencies
-    - build:jdk-24
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-24
+    - build:jdk-25
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-25
 
 
 refaster:
   <<: *source_check
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-11
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-21
+  variables:
+    REFASTER_SOURCE_PATTERN: "**/*.java"
   before_script:
     - 'test -d refaster || git clone https://gitlab.com/sosy-lab/software/refaster.git'
     - 'cd refaster'
     - 'git fetch'
     - 'git checkout $REFASTER_REPO_REVISION'
-    - 'ant build-refaster-rule -Drefaster.source.pattern=**/*.java -Drefaster.rule.file=../rule.refaster -Derrorprone.version=$REFASTER_VERSION'
+    - 'ant build-refaster-rule -Drefaster.source.pattern=$REFASTER_SOURCE_PATTERN -Drefaster.rule.file=../rule.refaster -Derrorprone.version=$REFASTER_VERSION'
     - 'cd -'
   script:
     - 'ant $ANT_PROPS_BUILD refaster -Drefaster.rule.file=rule.refaster'
@@ -220,7 +212,7 @@ deploy-gh-pages:
   stage: deploy
   script: "build/deploy-gh-pages.sh"
   needs:
-    - build:jdk-11
+    - build:jdk-17
     - javadoc
   environment: deploy/gh-pages
   rules:
@@ -235,27 +227,23 @@ deploy-gh-pages:
 
 
 # Build container images
-# following this guideline: https://docs.gitlab.com/ee/ci/docker/using_kaniko.html
 .build-docker:
   stage: images
   image:
-    name: gcr.io/kaniko-project/executor:debug
-    entrypoint: [""]
+    name: quay.io/podman/stable
   variables:
-    EXTRA_ARGS: ""
+    BUILD_CONTEXT: "-"
+  tags:
+    - podman
+  before_script:
+    - podman login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password "$CI_REGISTRY_PASSWORD"
   script:
-    - mkdir -p /root/.docker
-    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-    - /kaniko/executor --dockerfile $CI_PROJECT_DIR/$DOCKERFILE --destination $CI_REGISTRY_IMAGE$IMAGE $EXTRA_ARGS
+    - echo "Building $CI_REGISTRY_IMAGE$IMAGE from $DOCKERFILE"
+    - podman build --pull -t $CI_REGISTRY_IMAGE$IMAGE $BUILD_CONTEXT -f - < $DOCKERFILE
+    - podman push $CI_REGISTRY_IMAGE$IMAGE
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_PIPELINE_SOURCE == "web"
-
-build-docker:test:jdk-11:
-  extends: .build-docker
-  variables:
-    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-11
-    IMAGE: /test:jdk-11
 
 build-docker:test:jdk-17:
   extends: .build-docker
@@ -269,8 +257,8 @@ build-docker:test:jdk-21:
     DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-21
     IMAGE: /test:jdk-21
 
-build-docker:test:jdk-24:
+build-docker:test:jdk-25:
   extends: .build-docker
   variables:
-    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-24
-    IMAGE: /test:jdk-24
+    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-25
+    IMAGE: /test:jdk-25

@@ -472,4 +472,19 @@ public final class AstCfaRelation {
     }
     return Optional.of(globalVariables);
   }
+
+  public ImmutableSet<AVariableDeclaration> getAstLocalVariablesInScopeByCfaNode(CFANode pCfaNode) {
+    if (!cfaNodeToAstLocalVariablesInScope.containsKey(pCfaNode)) {
+      return ImmutableSet.of();
+    }
+    return ImmutableSet.copyOf(
+        Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(pCfaNode)));
+  }
+
+  public ImmutableSet<AParameterDeclaration> getAstParametersInScopeByCfaNode(CFANode pCfaNode) {
+    if (!cfaNodeToAstParametersInScope.containsKey(pCfaNode)) {
+      return ImmutableSet.of();
+    }
+    return ImmutableSet.copyOf(Objects.requireNonNull(cfaNodeToAstParametersInScope.get(pCfaNode)));
+  }
 }

@@ -15,10 +15,10 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorDirection;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SeqNameUtil {
@@ -125,8 +125,8 @@ public class SeqNameUtil {
       MPOROptions pOptions,
       Optional<MPORThread> pThread,
       Optional<SeqMemoryLocation> pMemoryLocation,
-      MemoryAccessType pAccessType,
-      ReachType pReachType,
+      SeqMemoryAccessType pAccessType,
+      SeqMemoryReachType pReachType,
       SeqBitVectorDirection pDirection) {
 
     return switch (pDirection) {
@@ -141,73 +141,56 @@ public class SeqNameUtil {
       MPOROptions pOptions,
       int pThreadId,
       Optional<SeqMemoryLocation> pMemoryLocation,
-      MemoryAccessType pAccessType,
-      ReachType pReachType) {
+      SeqMemoryAccessType pAccessType,
+      SeqMemoryReachType pReachType) {
 
-    return switch (pOptions.bitVectorEncoding()) {
-      case NONE ->
-          throw new IllegalArgumentException(
-              "Cannot build name, bitVectorEncoding is " + pOptions.bitVectorEncoding());
-      case BINARY, OCTAL, DECIMAL, HEXADECIMAL ->
-          pOptions.shortVariableNames()
-              ? BIT_VECTOR_PREFIX_SHORT + pReachType.shortName + pAccessType.shortName + pThreadId
-              : Joiner.on(STRING_SEPARATOR)
-                  .join(
-                      buildThreadPrefix(pOptions, pThreadId),
-                      BIT_VECTOR_PREFIX,
-                      pReachType.longName,
-                      pAccessType.longName);
-      case SPARSE ->
-          pOptions.shortVariableNames()
-              ? BIT_VECTOR_PREFIX_SHORT
-                  + pReachType.shortName
-                  + pAccessType.shortName
-                  + pThreadId
-                  + STRING_SEPARATOR
-                  + pMemoryLocation.orElseThrow().getName()
-              : Joiner.on(STRING_SEPARATOR)
-                  .join(
-                      buildThreadPrefix(pOptions, pThreadId),
-                      BIT_VECTOR_PREFIX,
-                      pReachType.longName,
-                      pAccessType.longName,
-                      pMemoryLocation.orElseThrow().getName());
-    };
+    checkArgument(pOptions.bitVectorEncoding().isEnabled(), "bitVectorEncoding must be enabled.");
+
+    String memoryLocationSuffix =
+        pOptions.bitVectorEncoding().isSparse
+            ? STRING_SEPARATOR + pMemoryLocation.orElseThrow().getName()
+            : "";
+
+    if (pOptions.shortVariableNames()) {
+      return BIT_VECTOR_PREFIX_SHORT
+          + pReachType.shortName
+          + pAccessType.shortName
+          + pThreadId
+          + memoryLocationSuffix;
+    }
+    return buildThreadPrefix(pOptions, pThreadId)
+        + BIT_VECTOR_PREFIX
+        + pReachType.longName
+        + pAccessType.longName
+        + memoryLocationSuffix;
   }
 
   private static String buildPrevBitVectorName(
       MPOROptions pOptions,
       Optional<SeqMemoryLocation> pMemoryLocation,
-      MemoryAccessType pAccessType,
-      ReachType pReachType) {
+      SeqMemoryAccessType pAccessType,
+      SeqMemoryReachType pReachType) {
 
+    checkArgument(pOptions.bitVectorEncoding().isEnabled(), "bitVectorEncoding must be enabled.");
     checkArgument(
-        pReachType.equals(ReachType.DIRECT),
+        pReachType.equals(SeqMemoryReachType.DIRECT),
         "For PREVIOUS bit vectors, the ReachType must be DIRECT.");
 
-    return switch (pOptions.bitVectorEncoding()) {
-      case NONE ->
-          throw new IllegalArgumentException(
-              "Cannot build name, bitVectorEncoding is " + pOptions.bitVectorEncoding());
-      case BINARY, OCTAL, DECIMAL, HEXADECIMAL ->
-          pOptions.shortVariableNames()
-              ? PREV_BIT_VECTOR_PREFIX_SHORT + pReachType.shortName + pAccessType.shortName
-              : Joiner.on(STRING_SEPARATOR)
-                  .join(PREV_BIT_VECTOR_PREFIX, pReachType.longName, pAccessType.longName);
-      case SPARSE ->
-          pOptions.shortVariableNames()
-              ? PREV_BIT_VECTOR_PREFIX_SHORT
-                  + pReachType.shortName
-                  + pAccessType.shortName
-                  + STRING_SEPARATOR
-                  + pMemoryLocation.orElseThrow().getName()
-              : Joiner.on(STRING_SEPARATOR)
-                  .join(
-                      PREV_BIT_VECTOR_PREFIX,
-                      pReachType.longName,
-                      pAccessType.longName,
-                      pMemoryLocation.orElseThrow().getName());
-    };
+    String memoryLocationSuffix =
+        pOptions.bitVectorEncoding().isSparse
+            ? STRING_SEPARATOR + pMemoryLocation.orElseThrow().getName()
+            : "";
+
+    if (pOptions.shortVariableNames()) {
+      return PREV_BIT_VECTOR_PREFIX_SHORT
+          + pReachType.shortName
+          + pAccessType.shortName
+          + memoryLocationSuffix;
+    }
+    return PREV_BIT_VECTOR_PREFIX
+        + pReachType.longName
+        + pAccessType.longName
+        + memoryLocationSuffix;
   }
 
   // Other =========================================================================================

@@ -68,7 +68,7 @@ import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 
 /** Test that the bundled configuration files are all valid. */
 @RunWith(Parameterized.class)
@@ -630,7 +630,7 @@ public class ConfigurationFileChecks {
   }
 
   private String createEmptyProgram(Language pLanguage) throws IOException {
-    return TestDataTools.getEmptyProgram(tempFolder, pLanguage);
+    return TestCfaUtils.getEmptyProgram(tempFolder, pLanguage);
   }
 
   private Stream<String> getSevereMessages(
