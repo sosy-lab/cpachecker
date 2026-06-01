@@ -112,12 +112,12 @@ class CToSvLibInitializer {
           collectInputParameters(cEntryNode.getFunctionParameters(), procedureName);
       ImmutableList<SvLibParsingParameterDeclaration> returnParameter =
           collectReturnParameter(cEntryNode.getReturnVariable(), procedureName);
-      ImmutableList.Builder<SvLibParsingParameterDeclaration> localParametersCollector =
-          ImmutableList.builder();
+      ImmutableSet.Builder<SvLibParsingParameterDeclaration> localVariablesCollector =
+          ImmutableSet.builder();
 
       // create (assignable) dummy parameters for (non-assignable) inputParameters
       for (SvLibParsingParameterDeclaration inputParameter : inputParameters) {
-        localParametersCollector.add(createDummyForInputParameter(inputParameter));
+        localVariablesCollector.add(createDummyForInputParameter(inputParameter));
       }
 
       ImmutableList.Builder<CFunctionCallExpression> undeclaredFunctionsCollector =
@@ -125,7 +125,6 @@ class CToSvLibInitializer {
       ImmutableSet.Builder<SvLibParsingVariableDeclaration> createdHeapArrays =
           ImmutableSet.builder();
       ImmutableSet.Builder<String> namesOfCreatedAddressVariables = ImmutableSet.builder();
-      ImmutableSet.Builder<SvLibType> typesOfCreatedDummyReturnVariables = ImmutableSet.builder();
       for (CFAEdge edge : getAllRelevantEdges(entryNode)) {
         if (edge instanceof CDeclarationEdge declarationEdge) {
           CDeclaration declaration = declarationEdge.getDeclaration();
@@ -136,7 +135,7 @@ class CToSvLibInitializer {
                     edge,
                     procedureName,
                     pCommandsCollector,
-                    localParametersCollector,
+                    localVariablesCollector,
                     createdHeapArrays,
                     namesOfCreatedAddressVariables);
 
@@ -152,7 +151,7 @@ class CToSvLibInitializer {
                 SvLibParsingParameterDeclaration parameter =
                     new SvLibParsingParameterDeclaration(
                         FileLocation.DUMMY, type, declaration.getName(), procedureName);
-                localParametersCollector.add(parameter);
+                localVariablesCollector.add(parameter);
               }
             }
 
@@ -182,12 +181,7 @@ class CToSvLibInitializer {
           // assignment and non-void return type
           SvLibParsingParameterDeclaration dummyReturnParameter =
               createDummyReturnParameter(functionCall, procedureName);
-
-          if (!typesOfCreatedDummyReturnVariables
-              .build()
-              .contains(dummyReturnParameter.getType())) {
-            localParametersCollector.add(dummyReturnParameter);
-          }
+          localVariablesCollector.add(dummyReturnParameter);
 
         } else if (edge instanceof CStatementEdge cStatementEdge
             && cStatementEdge.getStatement() instanceof CFunctionCallStatement functionCall
@@ -195,12 +189,7 @@ class CToSvLibInitializer {
                 instanceof CVoidType)) {
           SvLibParsingParameterDeclaration dummyReturnParameter =
               createDummyReturnParameter(functionCall, procedureName);
-
-          if (!typesOfCreatedDummyReturnVariables
-              .build()
-              .contains(dummyReturnParameter.getType())) {
-            localParametersCollector.add(dummyReturnParameter);
-          }
+          localVariablesCollector.add(dummyReturnParameter);
         }
       }
 
@@ -216,7 +205,7 @@ class CToSvLibInitializer {
               procedureName,
               inputParameters,
               returnParameter,
-              localParametersCollector.build());
+              localVariablesCollector.build().asList());
       scope.addProcedureDeclaration(procedureDeclaration);
     }
   }
@@ -225,7 +214,7 @@ class CToSvLibInitializer {
       CFAEdge pEdge,
       String pProcedureName,
       ImmutableList.Builder<SvLibCommand> pCommandsCollector,
-      ImmutableList.Builder<SvLibParsingParameterDeclaration> pLocalParametersCollector,
+      ImmutableSet.Builder<SvLibParsingParameterDeclaration> pLocalVariablesCollector,
       ImmutableSet.Builder<SvLibParsingVariableDeclaration> pCreatedHeapModels,
       ImmutableSet.Builder<String> pNamesOfCreatedAddressVariables)
       throws CPATransferException, InterruptedException {
@@ -247,7 +236,7 @@ class CToSvLibInitializer {
                 baseEntry.getValue(),
                 pProcedureName,
                 pCommandsCollector,
-                pLocalParametersCollector,
+                pLocalVariablesCollector,
                 pNamesOfCreatedAddressVariables);
       }
     }
@@ -299,7 +288,7 @@ class CToSvLibInitializer {
       CType pBaseType,
       String pProcedureName,
       ImmutableList.Builder<SvLibCommand> pCommandsCollector,
-      ImmutableList.Builder<SvLibParsingParameterDeclaration> pLocalParametersCollector,
+      ImmutableSet.Builder<SvLibParsingParameterDeclaration> pLocalVariablesCollector,
       ImmutableSet.Builder<String> pNamesOfCreatedAddressVariables) {
     boolean addressCreated = false;
     ImmutableSet<String> namesOfCreatedAddressVariablesBuilt =
@@ -325,7 +314,7 @@ class CToSvLibInitializer {
         SvLibParsingParameterDeclaration localAddressVariable =
             new SvLibParsingParameterDeclaration(
                 FileLocation.DUMMY, addressType, addressName, pProcedureName);
-        pLocalParametersCollector.add(localAddressVariable);
+        pLocalVariablesCollector.add(localAddressVariable);
         pNamesOfCreatedAddressVariables.add(addressName);
         addressCreated = true;
       }
