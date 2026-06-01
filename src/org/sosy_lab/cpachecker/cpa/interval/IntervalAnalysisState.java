@@ -175,7 +175,8 @@ public final class IntervalAnalysisState
 
       if (pThreshold == -1 || referenceCount < pThreshold) {
         return this.withIntervals(intervals.putAndCopy(variableName, interval))
-            .withReferenceCounts(referenceCounts.putAndCopy(variableName, referenceCount + 1));
+            .withReferenceCounts(referenceCounts.putAndCopy(variableName, referenceCount + 1))
+            .withLocation(pLocation);
       } else {
         return removeInterval(variableName, pLocation);
       }
