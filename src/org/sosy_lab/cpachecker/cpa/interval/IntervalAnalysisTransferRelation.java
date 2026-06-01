@@ -466,9 +466,10 @@ public class IntervalAnalysisTransferRelation
           value.accept(new ExpressionValueVisitor(state, cfaEdge)),
           threshold,
           cfaEdge.getSuccessor());
+    } else if (assignee instanceof CArraySubscriptExpression) {
+      return assign(assignee, value.accept(new ExpressionValueVisitor(state, cfaEdge)), cfaEdge);
     }
     return state;
-    // TODO: Erweitern, sodass auch array assignments abgedeckt sind
   }
 
   private IntervalAnalysisState assign(CExpression assignee, Interval value, CFAEdge cfaEdge)
