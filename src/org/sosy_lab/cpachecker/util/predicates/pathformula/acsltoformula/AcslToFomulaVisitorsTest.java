@@ -75,10 +75,9 @@ public class AcslToFomulaVisitorsTest {
 
   @Before
   public void setUp() throws InvalidConfigurationException {
-    // Configuration config =
-    //    TestDataTools.configurationForTest().setOption("solver.solver", "Z3").build();
-    // TODO z3 will be needed for tests with quantifiers
-    Configuration config = TestUtils.configurationForTest().build();
+    // We need Z3 because some tests require quantifier support
+    Configuration config =
+        TestUtils.configurationForTest().setOption("solver.solver", "Z3").build();
     smtSolver = Solver.create(config, logger, ShutdownNotifier.createDummy());
     fmgr = smtSolver.getFormulaManager();
   }
@@ -395,6 +394,34 @@ public class AcslToFomulaVisitorsTest {
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 
+  @Test
+  public void testExists()
+      throws SolverException, InterruptedException, InvalidConfigurationException {
+    // \exists x: x != x should be unsatisfiable
+
+    CProgramScope cProgramScope = getCProgramScope();
+
+    AcslCVariableDeclaration decl =
+        new AcslCVariableDeclaration(
+            (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable("x")));
+
+    AcslTerm x = new AcslIdTerm(FileLocation.DUMMY, decl);
+
+    AcslPredicate body =
+        new AcslBinaryTermPredicate(
+            FileLocation.DUMMY, x, x, AcslBinaryTermExpressionOperator.NOT_EQUALS);
+
+    AcslPredicate exists =
+        new AcslExistsPredicate(
+            FileLocation.DUMMY,
+            ImmutableList.of(
+                new AcslParameterDeclaration(FileLocation.DUMMY, decl.getType(), decl.getName())),
+            body);
+
+    BooleanFormula f = translate(exists, true);
+    assertThat(smtSolver.isUnsat(f)).isTrue();
+  }
+
   // TODO These are tests that I know will fail and will require me to figure some stuff out
   // Therefore they all have the ignore annotation for now
 
@@ -427,7 +454,7 @@ public class AcslToFomulaVisitorsTest {
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 
-  @Ignore("Missing solver that supports quantifiers")
+  @Ignore("Also needs typecasting for binary operations")
   @Test
   public void testForAll()
       throws SolverException, InterruptedException, InvalidConfigurationException {
@@ -466,35 +493,6 @@ public class AcslToFomulaVisitorsTest {
             body);
 
     BooleanFormula f = translate(forall, true);
-    assertThat(smtSolver.isUnsat(f)).isTrue();
-  }
-
-  @Ignore("Missing solver that supports quantifiers")
-  @Test
-  public void testExists()
-      throws SolverException, InterruptedException, InvalidConfigurationException {
-    // \exists x: x != x should be unsatisfiable
-
-    CProgramScope cProgramScope = getCProgramScope();
-
-    AcslCVariableDeclaration decl =
-        new AcslCVariableDeclaration(
-            (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable("x")));
-
-    AcslTerm x = new AcslIdTerm(FileLocation.DUMMY, decl);
-
-    AcslPredicate body =
-        new AcslBinaryTermPredicate(
-            FileLocation.DUMMY, x, x, AcslBinaryTermExpressionOperator.NOT_EQUALS);
-
-    AcslPredicate exists =
-        new AcslExistsPredicate(
-            FileLocation.DUMMY,
-            ImmutableList.of(
-                new AcslParameterDeclaration(FileLocation.DUMMY, decl.getType(), decl.getName())),
-            body);
-
-    BooleanFormula f = translate(exists, true);
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 }
