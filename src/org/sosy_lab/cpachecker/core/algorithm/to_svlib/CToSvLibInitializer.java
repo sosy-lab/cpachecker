@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.to_svlib;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Map.Entry;
@@ -102,6 +103,8 @@ class CToSvLibInitializer {
 
   void initialize(ImmutableList.Builder<SvLibCommand> pCommandsCollector)
       throws UnsupportedOperationException, CPATransferException, InterruptedException {
+    ImmutableSet.Builder<CType> typesOfHeapArraysToBuild = ImmutableSet.builder();
+
     for (FunctionEntryNode entryNode : cfa.entryNodes()) {
       CFunctionEntryNode cEntryNode = (CFunctionEntryNode) entryNode;
       String procedureName = entryNode.getFunctionName();
@@ -120,37 +123,24 @@ class CToSvLibInitializer {
 
       ImmutableSet.Builder<CFunctionCallExpression> undeclaredFunctionsCollector =
           ImmutableSet.builder();
-      ImmutableSet.Builder<SvLibParsingVariableDeclaration> createdHeapArrays =
-          ImmutableSet.builder();
-      ImmutableSet.Builder<String> namesOfCreatedAddressVariables = ImmutableSet.builder();
       for (CFAEdge edge : getAllRelevantEdges(entryNode)) {
         if (edge instanceof CDeclarationEdge declarationEdge) {
           CDeclaration declaration = declarationEdge.getDeclaration();
 
           if (declaration instanceof CVariableDeclaration variableDeclaration) {
-            boolean addressCreated =
-                initializeHeapForEdge(
-                    edge,
-                    procedureName,
-                    pCommandsCollector,
-                    localVariablesCollector,
-                    createdHeapArrays,
-                    namesOfCreatedAddressVariables);
+            SvLibSimpleParsingDeclaration parsingDeclaration =
+                initializeVariableDeclaration(
+                    edge, variableDeclaration, procedureName, typesOfHeapArraysToBuild);
 
-            SvLibType type = convertToSvLibSmtLibType(variableDeclaration.getType());
-            if (!addressCreated) {
-              if (variableDeclaration.isGlobal()) {
-                SvLibParsingVariableDeclaration globalVariable =
-                    createGlobalVariableDeclaration(variableDeclaration, type);
-                scope.addVariable(globalVariable);
-                pCommandsCollector.add(
-                    new SvLibVariableDeclarationCommand(globalVariable, FileLocation.DUMMY));
-              } else {
-                SvLibParsingParameterDeclaration parameter =
-                    new SvLibParsingParameterDeclaration(
-                        FileLocation.DUMMY, type, declaration.getName(), procedureName);
-                localVariablesCollector.add(parameter);
-              }
+            if (parsingDeclaration
+                instanceof SvLibParsingVariableDeclaration globalVariableDeclaration) {
+              scope.addVariable(globalVariableDeclaration);
+              pCommandsCollector.add(
+                  new SvLibVariableDeclarationCommand(
+                      globalVariableDeclaration, FileLocation.DUMMY));
+            } else if (parsingDeclaration
+                instanceof SvLibParsingParameterDeclaration localVariableDeclaration) {
+              localVariablesCollector.add(localVariableDeclaration);
             }
 
           } else if (declaration instanceof CFunctionDeclaration functionDeclaration) {
@@ -206,62 +196,88 @@ class CToSvLibInitializer {
               localVariablesCollector.build().asList());
       scope.addProcedureDeclaration(procedureDeclaration);
     }
-  }
 
-  private boolean initializeHeapForEdge(
-      CFAEdge pEdge,
-      String pProcedureName,
-      ImmutableList.Builder<SvLibCommand> pCommandsCollector,
-      ImmutableSet.Builder<SvLibParsingParameterDeclaration> pLocalVariablesCollector,
-      ImmutableSet.Builder<SvLibParsingVariableDeclaration> pCreatedHeapModels,
-      ImmutableSet.Builder<String> pNamesOfCreatedAddressVariables)
-      throws CPATransferException, InterruptedException {
-    boolean addressCreated = false;
-
-    PointerTargetSet pointerTargetSetForEdge =
-        pathFormulaManager
-            .makeAnd(pathFormulaManager.makeEmptyPathFormula(), pEdge)
-            .getPointerTargetSet();
-
-    if (!pointerTargetSetForEdge.equals(PointerTargetSet.emptyPointerTargetSet())) {
-      PersistentSortedMap<PointerBase, CType> bases = pointerTargetSetForEdge.getBases();
-      for (Entry<PointerBase, CType> baseEntry : bases.entrySet().reversed()) {
-        // create array for heap model if no array for the CType of the PointerBase has been created
-        createArrayForHeap(baseEntry.getValue(), pCommandsCollector, pCreatedHeapModels);
-        addressCreated =
-            createAddressOfVariables(
-                baseEntry.getKey(),
-                baseEntry.getValue(),
-                pProcedureName,
-                pCommandsCollector,
-                pLocalVariablesCollector,
-                pNamesOfCreatedAddressVariables);
-      }
-    }
-    return addressCreated;
-  }
-
-  private void createArrayForHeap(
-      CType pBaseType,
-      ImmutableList.Builder<SvLibCommand> pCommandsCollector,
-      ImmutableSet.Builder<SvLibParsingVariableDeclaration> pCreatedHeapArrays) {
-    // create array for heap model if no such array has been created before
-
-    ImmutableSet<SvLibParsingVariableDeclaration> createdHeapArraysBuilt =
-        pCreatedHeapArrays.build();
-    SvLibParsingVariableDeclaration heapArrayParsingVariableDeclaration =
-        createHeapArrayDeclaration(pBaseType);
-    if (!createdHeapArraysBuilt.contains(heapArrayParsingVariableDeclaration)) {
+    for (CType heapArrayType : typesOfHeapArraysToBuild.build()) {
+      SvLibParsingVariableDeclaration heapArrayParsingVariableDeclaration =
+          createArrayDeclarationForHeap(heapArrayType);
       SvLibVariableDeclarationCommand heapArrayVariableDeclarationCommand =
           new SvLibVariableDeclarationCommand(
               heapArrayParsingVariableDeclaration, FileLocation.DUMMY);
       pCommandsCollector.add(heapArrayVariableDeclarationCommand);
       scope.addVariable(heapArrayParsingVariableDeclaration);
-      pCreatedHeapArrays.add(heapArrayParsingVariableDeclaration);
     }
   }
 
-  private SvLibParsingVariableDeclaration createHeapArrayDeclaration(CType pElementType) {
+  private SvLibSimpleParsingDeclaration initializeVariableDeclaration(
+      CFAEdge pEdge,
+      CVariableDeclaration pVariableDeclaration,
+      String pProcedureName,
+      ImmutableSet.Builder<CType> pTypesOfHeapArraysToCreate)
+      throws CPATransferException, InterruptedException {
+
+    PointerTargetSet pointerTargetSetForEdge =
+        pathFormulaManager
+            .makeAnd(pathFormulaManager.makeEmptyPathFormula(), pEdge)
+            .getPointerTargetSet();
+    if (!pointerTargetSetForEdge.equals(PointerTargetSet.emptyPointerTargetSet())) {
+      PersistentSortedMap<PointerBase, CType> bases = pointerTargetSetForEdge.getBases();
+      Verify.verify(bases.size() == 1, "PointerTargetSet contains more than one base entry");
+
+      Entry<PointerBase, CType> baseEntry = bases.entrySet().getFirst();
+      if (baseEntry.getKey().name().equals(pVariableDeclaration.getQualifiedName())) {
+        if (baseEntry.getValue() instanceof CArrayType arrayType) {
+          CType arrayElementType = arrayType.getType();
+          pTypesOfHeapArraysToCreate.add(arrayElementType);
+        } else {
+          pTypesOfHeapArraysToCreate.add(baseEntry.getValue());
+        }
+        return createAddressOfVariable(
+            baseEntry.getKey(), baseEntry.getValue(), pVariableDeclaration, pProcedureName);
+      }
+    }
+
+    return createVariable(pVariableDeclaration, pProcedureName);
+  }
+
+  private SvLibSimpleParsingDeclaration createAddressOfVariable(
+      PointerBase pPointerBase,
+      CType pBaseType,
+      CVariableDeclaration pVariableDeclaration,
+      String pProcedureName) {
+    String addressNameEscaped = "|" + pPointerBase.formulaEncoding() + "|";
+    SvLibSmtLibType addressType = convertToSvLibSmtLibType(pBaseType);
+
+    if (pVariableDeclaration.isGlobal()) {
+      // global address variable declaration
+      return new SvLibParsingVariableDeclaration(
+          FileLocation.DUMMY,
+          true,
+          false,
+          addressType,
+          addressNameEscaped,
+          addressNameEscaped,
+          null);
+    } else {
+      // local address variable declaration
+      return new SvLibParsingParameterDeclaration(
+          FileLocation.DUMMY, addressType, addressNameEscaped, pProcedureName);
+    }
+  }
+
+  private SvLibSimpleParsingDeclaration createVariable(
+      CVariableDeclaration pVariableDeclaration, String pProcedureName) {
+    SvLibType type = convertToSvLibSmtLibType(pVariableDeclaration.getType());
+    if (pVariableDeclaration.isGlobal()) {
+      // global variable declaration
+      return createGlobalVariableDeclaration(pVariableDeclaration, type);
+    } else {
+      // local variable declaration
+      return new SvLibParsingParameterDeclaration(
+          FileLocation.DUMMY, type, pVariableDeclaration.getName(), pProcedureName);
+    }
+  }
+
+  private SvLibParsingVariableDeclaration createArrayDeclarationForHeap(CType pElementType) {
     String heapTypeName = "";
     if (pElementType instanceof CSimpleType simpleType) {
       heapTypeName = simpleType.getType().toASTString();
@@ -279,50 +295,6 @@ class CToSvLibInitializer {
             SvLibSmtLibPredefinedType.INT, convertToSvLibSmtLibType(pElementType));
     return new SvLibParsingVariableDeclaration(
         FileLocation.DUMMY, true, false, arrayType, heapTypeName, heapTypeName, null);
-  }
-
-  private boolean createAddressOfVariables(
-      PointerBase pPointerBase,
-      CType pBaseType,
-      String pProcedureName,
-      ImmutableList.Builder<SvLibCommand> pCommandsCollector,
-      ImmutableSet.Builder<SvLibParsingParameterDeclaration> pLocalVariablesCollector,
-      ImmutableSet.Builder<String> pNamesOfCreatedAddressVariables) {
-    boolean addressCreated = false;
-    ImmutableSet<String> namesOfCreatedAddressVariablesBuilt =
-        pNamesOfCreatedAddressVariables.build();
-    String addressNameEscaped = "|" + pPointerBase.formulaEncoding() + "|";
-    SvLibSmtLibType addressType = convertToSvLibSmtLibType(pBaseType);
-
-    boolean hasProcedureNamePrefix = pPointerBase.name().startsWith(pProcedureName + "::");
-    if (!hasProcedureNamePrefix /* -> is global variable*/) {
-      if (!namesOfCreatedAddressVariablesBuilt.contains(addressNameEscaped)) {
-        SvLibParsingVariableDeclaration addressVariable =
-            new SvLibParsingVariableDeclaration(
-                FileLocation.DUMMY,
-                true,
-                false,
-                addressType,
-                addressNameEscaped,
-                addressNameEscaped,
-                null);
-        scope.addVariable(addressVariable);
-        pCommandsCollector.add(
-            new SvLibVariableDeclarationCommand(addressVariable, FileLocation.DUMMY));
-        pNamesOfCreatedAddressVariables.add(addressNameEscaped);
-        addressCreated = true;
-      }
-    } else {
-      if (!namesOfCreatedAddressVariablesBuilt.contains(addressNameEscaped)) {
-        SvLibParsingParameterDeclaration localAddressVariable =
-            new SvLibParsingParameterDeclaration(
-                FileLocation.DUMMY, addressType, addressNameEscaped, pProcedureName);
-        pLocalVariablesCollector.add(localAddressVariable);
-        pNamesOfCreatedAddressVariables.add(addressNameEscaped);
-        addressCreated = true;
-      }
-    }
-    return addressCreated;
   }
 
   private SvLibParsingParameterDeclaration createDummyReturnParameter(
