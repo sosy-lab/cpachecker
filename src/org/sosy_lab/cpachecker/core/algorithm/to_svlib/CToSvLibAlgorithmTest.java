@@ -24,11 +24,13 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibToAstParser;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibToAstParser.SvLibAstParseException;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibScript;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestResults;
 
 public class CToSvLibAlgorithmTest {
 
@@ -154,5 +156,237 @@ public class CToSvLibAlgorithmTest {
   public void testRandom() throws Exception {
     Path inputFilePath = Path.of(examplesPathRealC(), "random.c");
     testTransformationToSvLib(inputFilePath, encodeBitvectorsAsIntegersOption);
+  }
+
+  // **************************************** with property ****************************************
+
+  private String examplesBlockAnalysis() {
+    return Path.of("test", "programs", "block_analysis").toAbsolutePath().toString();
+  }
+
+  private String examplesProgramSlicing() {
+    return Path.of("test", "programs", "program_slicing").toAbsolutePath().toString();
+  }
+
+  private String examplesWitnessValidation() {
+    return Path.of("test", "programs", "witnessValidation").toAbsolutePath().toString();
+  }
+
+  private void testAndVerifyError(Path pInputFilePath, Result pExpectedVerdict) throws Exception {
+    Configuration config =
+        TestDataTools.configurationForTest()
+            .loadFromFile(Path.of("config/transformToSvLib.properties"))
+            .build();
+
+    TestResults results = CPATestRunner.run(config, pInputFilePath.toString());
+    results.assertIs(pExpectedVerdict);
+    @SuppressWarnings("unused")
+    String resultString = results.toString();
+  }
+
+  // ********** witness validation **********
+
+  @Test
+  public void testMax() throws Exception {
+    Path inputFilePath = Path.of(examplesWitnessValidation(), "max.c");
+    testAndVerifyError(inputFilePath, Result.TRUE);
+  }
+
+  @Test
+  public void testMultiVar() throws Exception {
+    Path inputFilePath = Path.of(examplesWitnessValidation(), "multivar.i");
+    testAndVerifyError(inputFilePath, Result.TRUE);
+  }
+
+  @Test
+  public void testValueInvariant() throws Exception {
+    Path inputFilePath = Path.of(examplesWitnessValidation(), "valueInvariant.c");
+    testAndVerifyError(inputFilePath, Result.TRUE);
+  }
+
+  @Test
+  public void testWeekdays() throws Exception {
+    Path inputFilePath = Path.of(examplesWitnessValidation(), "weekdays.c");
+    testAndVerifyError(inputFilePath, Result.TRUE);
+  }
+
+  @Test
+  public void testWeekdaysNoTermination() throws Exception {
+    Path inputFilePath = Path.of(examplesWitnessValidation(), "weekdays_no_termination.c");
+    testAndVerifyError(inputFilePath, Result.TRUE);
+  }
+
+  // ********** block analysis **********
+
+  @Test
+  public void testAbstractionSafe() throws Exception {
+    Path inputFilePath = Path.of(examplesBlockAnalysis(), "abstraction_safe.c");
+    testAndVerifyError(inputFilePath, Result.TRUE);
+  }
+
+  @Test
+  public void testComplexLoopUnsafe() throws Exception {
+    Path inputFilePath = Path.of(examplesBlockAnalysis(), "complex_loop_unsafe.c");
+    testAndVerifyError(inputFilePath, Result.FALSE);
+  }
+
+  @Test
+  public void testDoubleLoopSafe() throws Exception {
+    Path inputFilePath = Path.of(examplesBlockAnalysis(), "double_loop_safe.c");
+    testAndVerifyError(inputFilePath, Result.TRUE);
+  }
+
+  @Test
+  public void testFaultUnsafe() throws Exception {
+    Path inputFilePath = Path.of(examplesBlockAnalysis(), "fault_unsafe.c");
+    testAndVerifyError(inputFilePath, Result.FALSE);
+  }
+
+  @Test
+  public void testForLoopSafe() throws Exception {
+    Path inputFilePath = Path.of(examplesBlockAnalysis(), "for-loop_safe.c");
+    testAndVerifyError(inputFilePath, Result.TRUE);
+  }
+
+  @Test
+  public void testHardLoopSafe() throws Exception {
+    Path inputFilePath = Path.of(examplesBlockAnalysis(), "hard_loop_safe.c");
+    testAndVerifyError(inputFilePath, Result.TRUE);
+  }
+
+  @Test
+  public void testGotoLoopUnsafe() throws Exception {
+    Path inputFilePath = Path.of(examplesBlockAnalysis(), "goto_loop_unsafe.c");
+    testAndVerifyError(inputFilePath, Result.FALSE);
+  }
+
+  @Test
+  public void testInstantiateSafe() throws Exception {
+    Path inputFilePath = Path.of(examplesBlockAnalysis(), "instantiate_safe.c");
+    testAndVerifyError(inputFilePath, Result.TRUE);
+  }
+
+  @Test
+  public void testInstantiateUnsafe() throws Exception {
+    Path inputFilePath = Path.of(examplesBlockAnalysis(), "instantiate_unsafe.c");
+    testAndVerifyError(inputFilePath, Result.FALSE);
+  }
+
+  // FIXME CFACreator fails: dead code in main
+  /*@Test
+  public void testMinepumpSpec2() throws Exception {
+    Path inputFilePath = Path.of(examplesBlockAnalysis(), "minepump_spec2_product41.cil.c");
+    testAndVerifyError(inputFilePath, Result.FALSE);
+  }*/
+
+  // is true if nondet_uint is used instead of nondet_int, see multiplication_safe_unsigned.c
+  @Test
+  public void testMultiplicationSafe() throws Exception {
+    Path inputFilePath = Path.of(examplesBlockAnalysis(), "multiplication_safe.c");
+    testAndVerifyError(inputFilePath, Result.FALSE);
+  }
+
+  @Test
+  public void testSimpleArraySafe() throws Exception {
+    Path inputFilePath = Path.of(examplesBlockAnalysis(), "simple_array_safe.c");
+    testAndVerifyError(inputFilePath, Result.TRUE);
+  }
+
+  @Test
+  public void testSimpleArrayUnsafe() throws Exception {
+    Path inputFilePath = Path.of(examplesBlockAnalysis(), "simple_array_unsafe.c");
+    testAndVerifyError(inputFilePath, Result.FALSE);
+  }
+
+  @Test
+  public void testSimpleCalculationsSafe() throws Exception {
+    Path inputFilePath = Path.of(examplesBlockAnalysis(), "simple_calculations_safe.c");
+    testAndVerifyError(inputFilePath, Result.TRUE);
+  }
+
+  @Test
+  public void testSimpleCalculationsUnsafe() throws Exception {
+    Path inputFilePath = Path.of(examplesBlockAnalysis(), "simple_calculations_unsafe.c");
+    testAndVerifyError(inputFilePath, Result.FALSE);
+  }
+
+  @Test
+  public void testSimpleForSafe() throws Exception {
+    Path inputFilePath = Path.of(examplesBlockAnalysis(), "simple_for_safe.c");
+    testAndVerifyError(inputFilePath, Result.TRUE);
+  }
+
+  @Test
+  public void testSimpleFunctionCall() throws Exception {
+    Path inputFilePath = Path.of(examplesBlockAnalysis(), "simple_function_call.c");
+    testAndVerifyError(inputFilePath, Result.FALSE);
+  }
+
+  @Test
+  public void testSimpleFunctionCalls() throws Exception {
+    Path inputFilePath = Path.of(examplesBlockAnalysis(), "simple_function_calls.c");
+    testAndVerifyError(inputFilePath, Result.TRUE);
+  }
+
+  @Test
+  public void testSimpleLoopDoubleSafe() throws Exception {
+    Path inputFilePath = Path.of(examplesBlockAnalysis(), "simple_loop_double_safe.c");
+    testAndVerifyError(inputFilePath, Result.TRUE);
+  }
+
+  @Test
+  public void testSimpleLoopSafe() throws Exception {
+    Path inputFilePath = Path.of(examplesBlockAnalysis(), "simple_loop_safe.c");
+    testAndVerifyError(inputFilePath, Result.TRUE);
+  }
+
+  @Test
+  public void testSimpleLoopUnsafe() throws Exception {
+    Path inputFilePath = Path.of(examplesBlockAnalysis(), "simple_loop_unsafe.c");
+    testAndVerifyError(inputFilePath, Result.FALSE);
+  }
+
+  @Test
+  public void testSimpleNondetSafe() throws Exception {
+    Path inputFilePath = Path.of(examplesBlockAnalysis(), "simple_nondet_safe.c");
+    testAndVerifyError(inputFilePath, Result.TRUE);
+  }
+
+  @Test
+  public void testSimpleNondetUnsafe() throws Exception {
+    Path inputFilePath = Path.of(examplesBlockAnalysis(), "simple_nondet_unsafe.c");
+    testAndVerifyError(inputFilePath, Result.FALSE);
+  }
+
+  // ********** program slicing **********
+
+  @Test
+  public void testBranchBothRelevant() throws Exception {
+    Path inputFilePath = Path.of(examplesProgramSlicing(), "branch_both_relevant.c");
+    testAndVerifyError(inputFilePath, Result.TRUE);
+  }
+
+  @Test
+  public void testBranchNoneRelevant() throws Exception {
+    Path inputFilePath = Path.of(examplesProgramSlicing(), "branch_none_relevant.c");
+    testAndVerifyError(inputFilePath, Result.TRUE);
+  }
+
+  @Test
+  public void testBranchNoneRelevant2() throws Exception {
+    Path inputFilePath = Path.of(examplesProgramSlicing(), "branch_none_relevant2.c");
+    testAndVerifyError(inputFilePath, Result.FALSE);
+  }
+
+  @Test
+  public void testBranchOnlyElseRelevant() throws Exception {
+    Path inputFilePath = Path.of(examplesProgramSlicing(), "branch_only_else_relevant.c");
+    testAndVerifyError(inputFilePath, Result.TRUE);
+  }
+
+  @Test
+  public void testBranchOnlyIfRelevant() throws Exception {
+    Path inputFilePath = Path.of(examplesProgramSlicing(), "branch_only_if_relevant.c");
+    testAndVerifyError(inputFilePath, Result.TRUE);
   }
 }
