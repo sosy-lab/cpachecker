@@ -61,6 +61,7 @@ SPDX-License-Identifier: Apache-2.0
             <classpath refid="classpath.junit"/>
             <sysproperty key="java.awt.headless" value="true" />
             <sysproperty key="enableExtendedTests" value="${enableExtendedTests}"/>
+            <jvmarg value="--enable-native-access=ALL-UNNAMED"/>
             <batchtest fork="true" todir="${junit.dir}">
                 <fileset dir="${class.dir}">
                     <include name="**/*Test.*"/>
@@ -94,6 +95,7 @@ SPDX-License-Identifier: Apache-2.0
                 <formatter type="xml"/>
                 <classpath refid="classpath.junit"/>
                 <sysproperty key="java.awt.headless" value="true" />
+                <jvmarg value="--enable-native-access=ALL-UNNAMED"/>
                 <batchtest fork="true" todir="${junit.dir}">
                     <fileset dir="${class.dir}">
                         <include name="**/*Test.*"/>
