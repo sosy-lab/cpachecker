@@ -63,7 +63,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -78,7 +78,7 @@ public class AcslToFomulaVisitorsTest {
     // Configuration config =
     //    TestDataTools.configurationForTest().setOption("solver.solver", "Z3").build();
     // TODO z3 will be needed for tests with quantifiers
-    Configuration config = TestDataTools.configurationForTest().build();
+    Configuration config = TestUtils.configurationForTest().build();
     smtSolver = Solver.create(config, logger, ShutdownNotifier.createDummy());
     fmgr = smtSolver.getFormulaManager();
   }
@@ -88,7 +88,7 @@ public class AcslToFomulaVisitorsTest {
     SSAMapBuilder ssaMapBuilder = SSAMap.emptySSAMap().builder();
     MachineModel machineModel = MachineModel.LINUX64;
 
-    Configuration config = TestDataTools.configurationForTest().build();
+    Configuration config = TestUtils.configurationForTest().build();
     CFormulaEncodingOptions options = new CFormulaEncodingOptions(config);
     CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(logger, machineModel);
 
