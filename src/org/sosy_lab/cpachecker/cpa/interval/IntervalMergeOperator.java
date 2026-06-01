@@ -30,7 +30,7 @@ public class IntervalMergeOperator implements MergeOperator {
         return intervalState2;
       }
 
-      return intervalState1.widen(intervalState2, intervalState2.location());
+      return intervalState2.widen(intervalState1, intervalState2.location());
     }
     throw new CPAException("Can only merge interval states");
   }
