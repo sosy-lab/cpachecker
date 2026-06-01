@@ -284,6 +284,10 @@ public class IntervalAnalysisTransferRelation
       Interval staticComparee)
       throws UnrecognizedCodeException {
 
+    if (dynamicOperand instanceof CArraySubscriptExpression) {
+      return ImmutableSet.of(state);
+    }
+
     ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, cfaEdge);
     Interval dynamicOperandValue = dynamicOperand.accept(visitor);
 

@@ -244,7 +244,6 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
         }
       }
       rightBound = newBounds.get(leastUpperBoundIndex);
-      leftBound = rightBound.increase(-1);
     }
 
     if (leftAdjacent) {
@@ -255,7 +254,6 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
         }
       }
       leftBound = newBounds.get(greatestLowerBoundIndex);
-      rightBound = leftBound.increase(1);
     }
 
     var jointValue = getJointValue(greatestLowerBoundIndex, leastUpperBoundIndex);
@@ -567,7 +565,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
       }
     }
     for (int i = 0; i < unifyResult.resultA().values.size(); i++) {
-      if (!unifyResult.resultA().emptiness.get(i) && unifyResult.resultB().emptiness.get(i)) {
+      if (unifyResult.resultA().emptiness.get(i) && !unifyResult.resultB().emptiness.get(i)) {
         return false;
       }
     }
