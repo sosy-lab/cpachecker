@@ -11,27 +11,39 @@ package org.sosy_lab.cpachecker.core.algorithm.to_svlib;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.math.BigInteger;
 import java.util.Map.Entry;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.collect.PersistentSortedMap;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibCurrentScope;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibUninterpretedScope;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
@@ -41,10 +53,12 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibProcedureDefin
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibVariableDeclarationCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibAssumeStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibHavocStatement;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibSequenceStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
@@ -53,13 +67,16 @@ import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerBase;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.svlibwitnessexport.FormulaToSvLibVisitor;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
@@ -76,6 +93,7 @@ class CToSvLibInitializer {
     HAVOC
   }
 
+  private final LogManager logger;
   private final CFA cfa;
   private final SvLibCurrentScope scope;
   private final FormulaManagerView formulaManager;
@@ -86,6 +104,7 @@ class CToSvLibInitializer {
   private final ImmutableSet<String> NAMES_OF_ASSERT_FUNCTIONS;
 
   CToSvLibInitializer(
+      LogManager pLogger,
       CFA pCFA,
       SvLibCurrentScope pCurrentScope,
       FormulaManagerView pFormulaManager,
@@ -93,6 +112,7 @@ class CToSvLibInitializer {
       CtoFormulaConverter pConverter,
       String pINPUT_DUMMY_VAR_PREFIX,
       ImmutableSet<String> pNAMES_OF_ASSERT_FUNCTIONS) {
+    logger = pLogger;
     cfa = pCFA;
     scope = pCurrentScope;
     formulaManager = pFormulaManager;
@@ -417,7 +437,7 @@ class CToSvLibInitializer {
   }
 
   private SvLibProcedureDefinitionCommand createExternProcedureDefinition(
-      CFunctionDeclaration pFunctionDeclaration) {
+      CFunctionDeclaration pFunctionDeclaration) throws CPATransferException, InterruptedException {
     if (NAMES_OF_ASSERT_FUNCTIONS.contains(pFunctionDeclaration.getName())) {
       // Special handling of a set of external __assert functions that have char* input parameters
       // in the C program, since Transformation via the FormulaToSvlibVisitor cannot yet handle
@@ -428,7 +448,9 @@ class CToSvLibInitializer {
     } else {
       SvLibProcedureDeclaration externProcedureDeclaration =
           createProcedureDeclarationForExternFunction(pFunctionDeclaration);
-      SvLibStatement externProcedureBody = createBodyForExternProcedure(externProcedureDeclaration);
+      CType cReturnType = pFunctionDeclaration.getType().getReturnType();
+      SvLibStatement externProcedureBody =
+          createBodyForExternProcedure(externProcedureDeclaration, cReturnType);
       return new SvLibProcedureDefinitionCommand(
           FileLocation.DUMMY, externProcedureDeclaration, externProcedureBody);
     }
@@ -458,7 +480,8 @@ class CToSvLibInitializer {
 
   private void initializeUndeclaredFunctions(
       ImmutableSet<CFunctionCallExpression> pUndeclaredFunctions,
-      ImmutableList.Builder<SvLibCommand> pCommandsCollector) {
+      ImmutableList.Builder<SvLibCommand> pCommandsCollector)
+      throws CPATransferException, InterruptedException {
     for (CFunctionCallExpression functionCallExpression : pUndeclaredFunctions) {
       String functionName = functionCallExpression.getFunctionNameExpression().toASTString();
       CType expressionType = functionCallExpression.getExpressionType();
@@ -470,7 +493,7 @@ class CToSvLibInitializer {
   }
 
   private SvLibProcedureDefinitionCommand createProcedureDefinitionForUndeclaredFunction(
-      String pFunctionName, CType pReturnType) {
+      String pFunctionName, CType pReturnType) throws CPATransferException, InterruptedException {
     ImmutableList.Builder<SvLibParsingParameterDeclaration> returnParameterCollector =
         ImmutableList.builder();
     if (!(pReturnType instanceof CVoidType)) {
@@ -488,7 +511,8 @@ class CToSvLibInitializer {
             ImmutableList.of(),
             returnParameterCollector.build(),
             ImmutableList.of());
-    SvLibStatement body = createBodyForExternProcedure(procedureDeclarationForUndeclaredFunction);
+    SvLibStatement body =
+        createBodyForExternProcedure(procedureDeclarationForUndeclaredFunction, pReturnType);
     return new SvLibProcedureDefinitionCommand(
         FileLocation.DUMMY, procedureDeclarationForUndeclaredFunction, body);
   }
@@ -535,7 +559,8 @@ class CToSvLibInitializer {
   }
 
   private SvLibStatement createBodyForExternProcedure(
-      SvLibProcedureDeclaration pProcedureDeclaration) {
+      SvLibProcedureDeclaration pProcedureDeclaration, CType pCReturnType)
+      throws CPATransferException, InterruptedException {
     String procedureName = pProcedureDeclaration.getProcedureName();
 
     if (procedureName.equals("abort") || procedureName.equals("exit")) {
@@ -552,33 +577,123 @@ class CToSvLibInitializer {
         throw new UnsupportedOperationException(
             "Transformation of programs that include extern function __VERIFIER_nondet_memory() is"
                 + " not supported.");
-      } else if ((procedureName.startsWith("__VERIFIER_nondet_")
-              || procedureName.startsWith("nondet_"))
-          && !pProcedureDeclaration.getReturnValues().isEmpty()) {
-        // TODO assume statement to conform to C type
-        return new SvLibHavocStatement(
-            FileLocation.DUMMY,
-            ImmutableList.of(),
-            ImmutableList.of(new SvLibTagReference(procedureName, FileLocation.DUMMY)),
-            castListToSimpleParsingDeclaration(pProcedureDeclaration.getReturnValues()));
       }
     }
 
-    // havoc return value for extern, non-void functions
     if (!pProcedureDeclaration.getReturnValues().isEmpty()) {
-      return new SvLibHavocStatement(
-          FileLocation.DUMMY,
-          ImmutableList.of(),
-          ImmutableList.of(new SvLibTagReference(procedureName, FileLocation.DUMMY)),
-          castListToSimpleParsingDeclaration(pProcedureDeclaration.getReturnValues()));
+      return createHavocWithBounds(pProcedureDeclaration, pCReturnType);
     }
-
-    // skip for extern, void functions
-    return new SvLibAssumeStatement(
+    // empty sequence statement for external, void functions
+    return new SvLibSequenceStatement(
+        ImmutableList.of(),
         FileLocation.DUMMY,
-        new SvLibBooleanConstantTerm(true, FileLocation.DUMMY),
         ImmutableList.of(),
         ImmutableList.of(new SvLibTagReference(procedureName, FileLocation.DUMMY)));
+  }
+
+  private SvLibSequenceStatement createHavocWithBounds(
+      SvLibProcedureDeclaration pProcedureDeclaration, CType pCReturnType)
+      throws CPATransferException, InterruptedException {
+    SvLibHavocStatement havocStatement =
+        new SvLibHavocStatement(
+            FileLocation.DUMMY,
+            ImmutableList.of(),
+            ImmutableList.of(),
+            castListToSimpleParsingDeclaration(pProcedureDeclaration.getReturnValues()));
+
+    SvLibAssumeStatement assumeStatement;
+    if (pCReturnType instanceof CSimpleType simpleReturnType
+        && simpleReturnType.getType().isIntegerType()) {
+
+      assumeStatement =
+          createAssumeBounds(
+              pProcedureDeclaration,
+              pCReturnType,
+              cfa.getMachineModel().getMinimalIntegerValue(simpleReturnType),
+              cfa.getMachineModel().getMaximalIntegerValue(simpleReturnType));
+      return new SvLibSequenceStatement(
+          ImmutableList.of(havocStatement, assumeStatement),
+          FileLocation.DUMMY,
+          ImmutableList.of(),
+          ImmutableList.of());
+    } else {
+      // TODO log that no assume statement for bounds was created?
+      return new SvLibSequenceStatement(
+          ImmutableList.of(havocStatement),
+          FileLocation.DUMMY,
+          ImmutableList.of(),
+          ImmutableList.of());
+    }
+  }
+
+  private SvLibAssumeStatement createAssumeBounds(
+      SvLibProcedureDeclaration pProcedureDeclaration,
+      CType pCReturnType,
+      BigInteger pMinValue,
+      BigInteger pMaxValue)
+      throws CPATransferException, InterruptedException {
+
+    String variableName = pProcedureDeclaration.getReturnValues().getFirst().getName();
+    CIdExpression variableExpression =
+        new CIdExpression(
+            FileLocation.DUMMY,
+            pCReturnType,
+            variableName,
+            getDummyVariableDeclaration(variableName, pCReturnType));
+    CAssumeEdge minValueDummyAssumeEdge =
+        createAssumeEdgeForBound(variableExpression, pCReturnType, pMinValue, true);
+    CAssumeEdge maxValueDummyAssumeEdge =
+        createAssumeEdgeForBound(variableExpression, pCReturnType, pMaxValue, false);
+
+    SvLibTerm combinedBoundsTerm =
+        transformToSvLibTerm(minValueDummyAssumeEdge, maxValueDummyAssumeEdge);
+    return new SvLibAssumeStatement(
+        FileLocation.DUMMY, combinedBoundsTerm, ImmutableList.of(), ImmutableList.of());
+  }
+
+  private CAssumeEdge createAssumeEdgeForBound(
+      CIdExpression pVariableExpression,
+      CType pCReturnType,
+      BigInteger pBoundValue,
+      Boolean isLowerLimit)
+      throws UnrecognizedCodeException {
+    CIntegerLiteralExpression limitLiteral =
+        new CIntegerLiteralExpression(FileLocation.DUMMY, pCReturnType, pBoundValue);
+    BinaryOperator operator =
+        isLowerLimit ? BinaryOperator.GREATER_EQUAL : BinaryOperator.LESS_EQUAL;
+    CBinaryExpressionBuilder expressionBuilder =
+        new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
+    CBinaryExpression limitAssumption =
+        expressionBuilder.buildBinaryExpression(pVariableExpression, limitLiteral, operator);
+    return new CAssumeEdge(
+        limitAssumption.toASTString(),
+        FileLocation.DUMMY,
+        CFANode.newDummyCFANode(),
+        CFANode.newDummyCFANode(),
+        limitAssumption,
+        true);
+  }
+
+  private @NonNull SvLibTerm transformToSvLibTerm(CFAEdge pEdge1, CFAEdge pEdge2)
+      throws CPATransferException, InterruptedException {
+    PathFormula edgeFormula = pathFormulaManager.makeEmptyPathFormula();
+    edgeFormula = pathFormulaManager.makeAnd(edgeFormula, pEdge1);
+    edgeFormula = pathFormulaManager.makeAnd(edgeFormula, pEdge2);
+    return formulaManager.visit(
+        edgeFormula.getFormula(),
+        new FormulaToSvLibVisitor(formulaManager, new SvLibUninterpretedScope()));
+  }
+
+  private CVariableDeclaration getDummyVariableDeclaration(String pVariableName, CType pCType) {
+    return new CVariableDeclaration(
+        FileLocation.DUMMY,
+        false,
+        CStorageClass.AUTO,
+        pCType,
+        pVariableName,
+        pVariableName,
+        pVariableName,
+        null);
   }
 
   private ImmutableList<SvLibSimpleParsingDeclaration> castListToSimpleParsingDeclaration(

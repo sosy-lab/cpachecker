@@ -190,6 +190,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     try {
       CToSvLibInitializer initializer =
           new CToSvLibInitializer(
+              logger,
               cfa,
               scope,
               formulaManager,
