@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibAssumeStatem
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibHavocStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -340,6 +341,19 @@ class CToSvLibInitializer {
                 convertToSvLibSmtLibType(asSimpleType),
                 getNameForInputParameterDummy(parameter.getName()),
                 pProcedureName));
+      } else if (parameter.asVariableDeclaration().getType()
+          instanceof CPointerType asPointerType) {
+        parameterCollector.add(
+            new SvLibParsingParameterDeclaration(
+                FileLocation.DUMMY,
+                convertToSvLibSmtLibType(asPointerType.getType()),
+                getNameForInputParameterDummy(parameter.getName()),
+                pProcedureName));
+      } else if (parameter.asVariableDeclaration().getType() instanceof CArrayType) {
+        throw new UnsupportedOperationException(
+            "Transformation of function "
+                + pProcedureName
+                + " with an array %s as input is currently not supported.");
       }
     }
     return parameterCollector.build();
