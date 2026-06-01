@@ -39,7 +39,10 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * @param values the FunArray's values.
  * @param emptiness a list determining whether a segment might be empty.
  */
-public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> emptiness)
+public record FunArray(
+    ImmutableList<Bound> bounds,
+    ImmutableList<Interval> values,
+    ImmutableList<Boolean> emptiness)
     implements Serializable, LatticeAbstractState<FunArray> {
 
   @Serial private static final long serialVersionUID = 7169472946910382516L;
@@ -51,15 +54,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
           ImmutableList.of(Interval.EMPTY),
           ImmutableList.of(false));
 
-  /**
-   * Constructor for FunArray.
-   *
-   * @param bounds the FunArray's segment bounds.
-   * @param values the FunArray's values.
-   * @param emptiness a list determining whether a segment might be empty.
-   */
-  public FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> emptiness) {
-
+  public FunArray {
     checkArgument(bounds.size() >= 2, "FunArray requires at least two bounds.");
 
     checkArgument(
@@ -78,10 +73,10 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
       throw new IllegalArgumentException(
           "Given list of bounds contains duplicate expressions: %s".formatted(bounds));
     }
+  }
 
-    this.bounds = ImmutableList.copyOf(bounds);
-    this.values = ImmutableList.copyOf(values);
-    this.emptiness = ImmutableList.copyOf(emptiness);
+  public FunArray(List<Bound> pBounds, List<Interval> pValues, List<Boolean> pEmptiness) {
+    this(ImmutableList.copyOf(pBounds), ImmutableList.copyOf(pValues), ImmutableList.copyOf(pEmptiness));
   }
 
   public FunArray(Set<NormalFormExpression> lengthExpressions) {
