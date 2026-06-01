@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm.CEGARAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification.Modification;
@@ -158,7 +159,14 @@ public class DssWitnessExporter {
             StateSpacePartition.getDefaultPartition()));
 
     Algorithm violationAlgorithm =
-        CPAAlgorithm.create(violationCPA, logger, configuration, shutdownManager.getNotifier());
+        new CEGARAlgorithmFactory(
+                CPAAlgorithm.create(
+                    violationCPA, logger, configuration, shutdownManager.getNotifier()),
+                violationCPA,
+                logger,
+                configuration,
+                shutdownManager.getNotifier())
+            .newInstance();
 
     violationAlgorithm.run(reachedSet);
   }

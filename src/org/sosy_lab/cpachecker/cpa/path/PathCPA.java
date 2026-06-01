@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.path;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -26,9 +27,9 @@ public class PathCPA extends AbstractCPA {
   }
 
   public void init(ImmutableList<CFAEdge> pPath) {
-    assert pPath != null;
-    assert path == null;
-    assert !pPath.isEmpty();
+    Preconditions.checkNotNull(pPath);
+    Preconditions.checkState(path == null);
+    Preconditions.checkArgument(!pPath.isEmpty());
     path = pPath;
   }
 
