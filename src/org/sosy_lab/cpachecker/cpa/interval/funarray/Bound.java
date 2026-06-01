@@ -81,7 +81,7 @@ public record Bound(Set<NormalFormExpression> expressions) {
   }
 
   public boolean contains(NormalFormExpression expression) {
-    return expressions().stream().anyMatch(e -> e.equals(expression));
+    return expressions().contains(expression);
   }
 
   public boolean contains(Predicate<NormalFormExpression> predicate) {
@@ -171,16 +171,18 @@ public record Bound(Set<NormalFormExpression> expressions) {
       BiPredicate<Interval, Interval> predicate)
       throws UnrecognizedCodeException {
     Interval otherValue = other.toInterval(visitor);
-    return expressions.stream()
-        .map(
-            e -> {
-              try {
-                return e.toInterval(visitor);
-              } catch (UnrecognizedCodeException exception) {
-                return Interval.EMPTY;
-              }
-            })
-        .anyMatch(e -> predicate.test(e, otherValue));
+    for (var expression : expressions) {
+      Interval value;
+      try {
+        value = expression.toInterval(visitor);
+      } catch (UnrecognizedCodeException exception) {
+        value = Interval.EMPTY;
+      }
+      if (predicate.test(value, otherValue)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override

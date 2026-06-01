@@ -20,8 +20,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BinaryOperator;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -99,26 +97,23 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
 
   public static FunArray ofInitializerList(
       List<CInitializer> initializers, ExpressionValueVisitor visitor) {
-    List<Interval> values =
-        initializers.stream()
-            .map(
-                e -> {
-                  if (e instanceof CInitializerExpression cInitializerExpression) {
-                    try {
-                      return cInitializerExpression.getExpression().accept(visitor);
-                    } catch (UnrecognizedCodeException exception) {
-                      return Interval.UNBOUND;
-                    }
-                  }
-                  return Interval.UNBOUND;
-                })
-            .toList();
+    List<Interval> values = new ArrayList<>();
+    for (CInitializer e : initializers) {
+      if (e instanceof CInitializerExpression cInitializerExpression) {
+        try {
+          values.add(cInitializerExpression.getExpression().accept(visitor));
+        } catch (UnrecognizedCodeException exception) {
+          values.add(Interval.UNBOUND);
+        }
+      } else {
+        values.add(Interval.UNBOUND);
+      }
+    }
 
-    List<Bound> bounds =
-        IntStream.range(0, initializers.size() + 1)
-            .mapToObj(e -> new NormalFormExpression(e))
-            .map(e -> new Bound(e))
-            .toList();
+    List<Bound> bounds = new ArrayList<>();
+    for (int i = 0; i <= initializers.size(); i++) {
+      bounds.add(new Bound(new NormalFormExpression(i)));
+    }
 
     List<Boolean> emptiness = Collections.nCopies(initializers.size(), false);
 
@@ -127,19 +122,20 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
 
   @Override
   public String toString() {
-    return IntStream.range(0, bounds.size())
-        .mapToObj(
-            i -> {
-              if (values().size() <= i) {
-                return "%s%s".formatted(bounds.get(i), emptiness.get(i - 1) ? "?" : "");
-              }
-              if (i == 0) {
-                return "%s %s".formatted(bounds.get(i), values.get(i));
-              }
-              return "%s%s %s"
-                  .formatted(bounds.get(i), emptiness.get(i - 1) ? "?" : "", values.get(i));
-            })
-        .collect(Collectors.joining(" "));
+    var sb = new StringBuilder();
+    for (int i = 0; i < bounds.size(); i++) {
+      if (i > 0) {
+        sb.append(" ");
+      }
+      if (values().size() <= i) {
+        sb.append("%s%s".formatted(bounds.get(i), emptiness.get(i - 1) ? "?" : ""));
+      } else if (i == 0) {
+        sb.append("%s %s".formatted(bounds.get(i), values.get(i)));
+      } else {
+        sb.append("%s%s %s".formatted(bounds.get(i), emptiness.get(i - 1) ? "?" : "", values.get(i)));
+      }
+    }
+    return sb.toString();
   }
 
   public FunArray adaptToVariableAssignment(
@@ -205,26 +201,28 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
     final Bound greatestLowerBound = bounds.get(greatestLowerBoundIndex);
     final Bound leastUpperBound = bounds.get(leastUpperBoundIndex);
 
-    var leftAdjacent =
-        indeces.stream()
-            .anyMatch(
-                e -> {
-                  try {
-                    return greatestLowerBound.isEqualTo(e, visitor);
-                  } catch (UnrecognizedCodeException exception) {
-                    return false;
-                  }
-                });
-    var rightAdjacent =
-        trailingIndeces.stream()
-            .anyMatch(
-                e -> {
-                  try {
-                    return leastUpperBound.isEqualTo(e, visitor);
-                  } catch (UnrecognizedCodeException exception) {
-                    return false;
-                  }
-                });
+    var leftAdjacent = false;
+    for (var e : indeces) {
+      try {
+        if (greatestLowerBound.isEqualTo(e, visitor)) {
+          leftAdjacent = true;
+          break;
+        }
+      } catch (UnrecognizedCodeException exception) {
+        throw new RuntimeException(exception);
+      }
+    }
+    var rightAdjacent = false;
+    for (var e : trailingIndeces) {
+      try {
+        if (leastUpperBound.isEqualTo(e, visitor)) {
+          rightAdjacent = true;
+          break;
+        }
+      } catch (UnrecognizedCodeException exception) {
+        throw new RuntimeException(exception);
+      }
+    }
 
     var newBounds = new ArrayList<>(bounds);
     var newValues = new ArrayList<>(values);
@@ -436,15 +434,15 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
     var thisUnified = unifiedArrays.resultA();
     var otherUnified = unifiedArrays.resultB();
 
-    var modifiedValues =
-        IntStream.range(0, thisUnified.values.size())
-            .mapToObj(i -> operation.apply(thisUnified.values.get(i), otherUnified.values.get(i)))
-            .toList();
+    var modifiedValues = new ArrayList<Interval>();
+    for (int i = 0; i < thisUnified.values.size(); i++) {
+      modifiedValues.add(operation.apply(thisUnified.values.get(i), otherUnified.values.get(i)));
+    }
 
-    var modifiedEmptiness =
-        IntStream.range(0, thisUnified.emptiness.size())
-            .mapToObj(i -> thisUnified.emptiness.get(i) || otherUnified.emptiness.get(i))
-            .toList();
+    var modifiedEmptiness = new ArrayList<Boolean>();
+    for (int i = 0; i < thisUnified.emptiness.size(); i++) {
+      modifiedEmptiness.add(thisUnified.emptiness.get(i) || otherUnified.emptiness.get(i));
+    }
 
     return new FunArray(thisUnified.bounds, modifiedValues, modifiedEmptiness);
   }
@@ -562,23 +560,17 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
   public boolean isLessOrEqual(FunArray other) {
     UnifyResult unifyResult = unify(other, Interval.EMPTY, Interval.UNBOUND);
 
-    boolean valuesLessThan =
-        IntStream.range(0, unifyResult.resultA().values.size())
-            .allMatch(
-                i ->
-                    unifyResult
-                        .resultA()
-                        .values
-                        .get(i)
-                        .abstractLatticeIsLessEqualThan(unifyResult.resultB().values.get(i)));
-
-    boolean emptinessLessThan =
-        IntStream.range(0, unifyResult.resultA().values.size())
-            .allMatch(
-                i ->
-                    unifyResult.resultA().emptiness.get(i)
-                        || !unifyResult.resultB().emptiness.get(i));
-
-    return valuesLessThan && emptinessLessThan;
+    for (int i = 0; i < unifyResult.resultA().values.size(); i++) {
+      if (!unifyResult.resultA().values.get(i)
+          .abstractLatticeIsLessEqualThan(unifyResult.resultB().values.get(i))) {
+        return false;
+      }
+    }
+    for (int i = 0; i < unifyResult.resultA().values.size(); i++) {
+      if (!unifyResult.resultA().emptiness.get(i) && unifyResult.resultB().emptiness.get(i)) {
+        return false;
+      }
+    }
+    return true;
   }
 }

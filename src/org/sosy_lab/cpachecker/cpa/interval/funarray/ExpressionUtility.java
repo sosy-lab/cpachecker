@@ -121,33 +121,27 @@ public class ExpressionUtility {
   private static Set<NormalFormExpression> normalizeAndConcretize(
       CExpression normalize, CExpression concretize, ExpressionValueVisitor visitor)
       throws UnrecognizedCodeException {
-    return concretize
-        .accept(visitor)
-        .getUniqueConcreteValue()
-        .map(
-            concreteValue -> {
-              try {
-                return transformedImmutableSetCopy(
-                    normalizeExpression(normalize, visitor),
-                    normalized -> normalized.add(concreteValue));
-              } catch (UnrecognizedCodeException ignored) {
-                return ImmutableSet.<NormalFormExpression>of();
-              }
-            })
-        .orElse(ImmutableSet.of());
+    var concreteValue = concretize.accept(visitor).getUniqueConcreteValue();
+    if (concreteValue.isEmpty()) {
+      return ImmutableSet.of();
+    }
+    try {
+      return transformedImmutableSetCopy(
+          normalizeExpression(normalize, visitor),
+          normalized -> normalized.add(concreteValue.orElseThrow()));
+    } catch (UnrecognizedCodeException ignored) {
+      return ImmutableSet.of();
+    }
   }
 
   public static Set<NormalFormExpression> normalizeUnaryExpression(
       CUnaryExpression expression, ExpressionValueVisitor visitor)
       throws UnrecognizedCodeException {
     if (expression.getOperator() == UnaryOperator.MINUS) {
-      return expression
-          .getOperand()
-          .accept(visitor)
-          .getUniqueConcreteValue()
-          .map(e -> new NormalFormExpression(-e))
-          .stream()
-          .collect(ImmutableSet.toImmutableSet());
+      var concreteValue = expression.getOperand().accept(visitor).getUniqueConcreteValue();
+      if (concreteValue.isPresent()) {
+        return ImmutableSet.of(new NormalFormExpression(-concreteValue.orElseThrow()));
+      }
     }
     return ImmutableSet.of(); // Other operators not yet implemented
   }
