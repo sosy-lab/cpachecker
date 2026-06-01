@@ -20,7 +20,7 @@ public class FunArrayUnificationTest {
   private void testUnification(
       FunArray initialA, FunArray initialB, FunArray expectedResultA, FunArray expectedResultB) {
     var unification = new FunArrayUnification(initialA, initialB);
-    var result = unification.unify(Interval.EMPTY, Interval.EMPTY);
+    FunArrayUnification.UnifyResult result = unification.unify(Interval.EMPTY, Interval.EMPTY);
 
     FunArray resultA = result.resultA();
     FunArray resultB = result.resultB();

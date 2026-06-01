@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -121,7 +122,7 @@ public class ExpressionUtility {
   private static Set<NormalFormExpression> normalizeAndConcretize(
       CExpression normalize, CExpression concretize, ExpressionValueVisitor visitor)
       throws UnrecognizedCodeException {
-    var concreteValue = concretize.accept(visitor).getUniqueConcreteValue();
+    Optional<Long> concreteValue = concretize.accept(visitor).getUniqueConcreteValue();
     if (concreteValue.isEmpty()) {
       return ImmutableSet.of();
     }
@@ -138,7 +139,7 @@ public class ExpressionUtility {
       CUnaryExpression expression, ExpressionValueVisitor visitor)
       throws UnrecognizedCodeException {
     if (expression.getOperator() == UnaryOperator.MINUS) {
-      var concreteValue = expression.getOperand().accept(visitor).getUniqueConcreteValue();
+      Optional<Long> concreteValue = expression.getOperand().accept(visitor).getUniqueConcreteValue();
       if (concreteValue.isPresent()) {
         return ImmutableSet.of(new NormalFormExpression(-concreteValue.orElseThrow()));
       }

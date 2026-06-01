@@ -50,13 +50,13 @@ public class FunArrayUnification {
         continue;
       }
 
-      var currentBoundA = boundsA.get(currentIndex);
-      var currentBoundB = boundsB.get(currentIndex);
+      Bound currentBoundA = boundsA.get(currentIndex);
+      Bound currentBoundB = boundsB.get(currentIndex);
 
-      var intersection = currentBoundA.intersection(currentBoundB);
+      Bound intersection = currentBoundA.intersection(currentBoundB);
 
-      var uniqueToA = currentBoundA.difference(currentBoundB);
-      var uniqueToB = currentBoundB.difference(currentBoundA);
+      Bound uniqueToA = currentBoundA.difference(currentBoundB);
+      Bound uniqueToB = currentBoundB.difference(currentBoundA);
 
       if (uniqueToA.isEmpty()) {
         if (uniqueToB.isEmpty()) {
@@ -132,7 +132,7 @@ public class FunArrayUnification {
       List<Boolean> emptiness,
       List<Bound> oppositeBounds,
       Interval neutralElement) {
-    var anticipatedInOppositeBounds =
+    Set<NormalFormExpression> anticipatedInOppositeBounds =
         filterAnticipatedInOppositeBounds(uniqueToSuperset, oppositeBounds);
     if (anticipatedInOppositeBounds.isEmpty()) {
       // Corresponds to case 2.1 (or 3.1)
@@ -148,7 +148,7 @@ public class FunArrayUnification {
 
   private Set<NormalFormExpression> filterAnticipatedInOppositeBounds(
       Bound bound, List<Bound> oppositeBounds) {
-    var anticipatedInOppositeBounds =
+    Set<NormalFormExpression> anticipatedInOppositeBounds =
         oppositeBounds.stream()
             .skip(currentIndex)
             .flatMap(b -> b.expressions().stream())
@@ -166,8 +166,8 @@ public class FunArrayUnification {
       Bound intersection,
       Interval neutralElementA,
       Interval neutralElementB) {
-    var anticipatedFromA = filterAnticipatedInOppositeBounds(uniqueToA, boundsB);
-    var anticipatedFromB = filterAnticipatedInOppositeBounds(uniqueToB, boundsA);
+    Set<NormalFormExpression> anticipatedFromA = filterAnticipatedInOppositeBounds(uniqueToA, boundsB);
+    Set<NormalFormExpression> anticipatedFromB = filterAnticipatedInOppositeBounds(uniqueToB, boundsA);
 
     if (anticipatedFromA.containsAll(uniqueToA.expressions())
         && anticipatedFromB.containsAll(uniqueToB.expressions())) {
@@ -214,7 +214,7 @@ public class FunArrayUnification {
     assert index < list.size();
     assert index > 0;
 
-    var union = join.apply(list.get(index - 1), list.get(index));
+    T union = join.apply(list.get(index - 1), list.get(index));
     list.set(index, union);
     list.remove(index - 1);
   }
@@ -242,11 +242,11 @@ public class FunArrayUnification {
     assert ongoingBounds.size() > currentIndex + 1;
     assert ongoingBounds.size() != exhaustedBounds.size();
 
-    var currentBoundExhausted = exhaustedBounds.get(currentIndex);
-    var currentBoundOngoing = ongoingBounds.get(currentIndex);
-    var nextBoundOngoing = ongoingBounds.get(currentIndex + 1);
+    Bound currentBoundExhausted = exhaustedBounds.get(currentIndex);
+    Bound currentBoundOngoing = ongoingBounds.get(currentIndex);
+    Bound nextBoundOngoing = ongoingBounds.get(currentIndex + 1);
 
-    var joinedBound = currentBoundExhausted.union(currentBoundOngoing).union(nextBoundOngoing);
+    Bound joinedBound = currentBoundExhausted.union(currentBoundOngoing).union(nextBoundOngoing);
 
     exhaustedBounds.set(currentIndex, joinedBound);
     ongoingBounds.set(currentIndex, joinedBound);

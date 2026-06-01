@@ -73,7 +73,7 @@ public record Bound(Set<NormalFormExpression> expressions) {
   }
 
   public Bound removeVariableOccurrences(CIdExpression removeVariable) {
-    var modifiedExpressions =
+    ImmutableSet<NormalFormExpression> modifiedExpressions =
         expressions.stream()
             .filter(e -> !e.containsVariable(removeVariable))
             .collect(ImmutableSet.toImmutableSet());
@@ -108,7 +108,7 @@ public record Bound(Set<NormalFormExpression> expressions) {
   }
 
   public Bound union(Set<NormalFormExpression> otherExpressions) {
-    var newExpressions =
+    ImmutableSet<NormalFormExpression> newExpressions =
         Stream.concat(this.expressions.stream(), otherExpressions.stream())
             .collect(ImmutableSet.toImmutableSet());
     return new Bound(newExpressions);
@@ -119,7 +119,7 @@ public record Bound(Set<NormalFormExpression> expressions) {
   }
 
   public Bound intersection(Set<NormalFormExpression> otherExpressions) {
-    var newExpressions =
+    ImmutableSet<NormalFormExpression> newExpressions =
         this.expressions.stream()
             .filter(otherExpressions::contains)
             .collect(ImmutableSet.toImmutableSet());
@@ -131,7 +131,7 @@ public record Bound(Set<NormalFormExpression> expressions) {
   }
 
   public Bound difference(Set<NormalFormExpression> otherExpressions) {
-    var newExpressions =
+    ImmutableSet<NormalFormExpression> newExpressions =
         this.expressions.stream()
             .filter(o -> !otherExpressions.contains(o))
             .collect(ImmutableSet.toImmutableSet());
@@ -143,7 +143,7 @@ public record Bound(Set<NormalFormExpression> expressions) {
   }
 
   public Bound relativeComplement(Set<NormalFormExpression> otherExpressions) {
-    var newExpressions =
+    ImmutableSet<NormalFormExpression> newExpressions =
         otherExpressions.stream()
             .filter(o -> !this.expressions.contains(o))
             .collect(ImmutableSet.toImmutableSet());
@@ -171,7 +171,7 @@ public record Bound(Set<NormalFormExpression> expressions) {
       BiPredicate<Interval, Interval> predicate)
       throws UnrecognizedCodeException {
     Interval otherValue = other.toInterval(visitor);
-    for (var expression : expressions) {
+    for (NormalFormExpression expression : expressions) {
       Interval value;
       try {
         value = expression.toInterval(visitor);

@@ -73,7 +73,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
             + "exactly one less.");
 
     // Check if there are duplicate expressions in bounds
-    var expressions = bounds.stream().flatMap(e -> e.expressions().stream()).toList();
+    List<NormalFormExpression> expressions = bounds.stream().flatMap(e -> e.expressions().stream()).toList();
     if (expressions.size() != expressions.stream().distinct().count()) {
       throw new IllegalArgumentException(
           "Given list of bounds contains duplicate expressions: %s".formatted(bounds));
@@ -140,21 +140,21 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
 
   public FunArray adaptToVariableAssignment(
       CIdExpression changedVariable, Set<NormalFormExpression> expressions) {
-    var newBounds =
+    ArrayList<Bound> newBounds =
         new ArrayList<>(
             bounds.stream()
                 .map(b -> b.adaptForChangedVariableValues(changedVariable, expressions))
                 .toList());
-    var newValues = new ArrayList<>(values);
-    var newEmptiness = new ArrayList<>(emptiness);
+    ArrayList<Interval> newValues = new ArrayList<>(values);
+    ArrayList<Boolean> newEmptiness = new ArrayList<>(emptiness);
 
     return new FunArray(newBounds, newValues, newEmptiness);
   }
 
   public FunArray removeEmptyBounds() {
-    var newBounds = new ArrayList<>(bounds);
-    var newValues = new ArrayList<>(values);
-    var newEmptiness = new ArrayList<>(emptiness);
+    ArrayList<Bound> newBounds = new ArrayList<>(bounds);
+    ArrayList<Interval> newValues = new ArrayList<>(values);
+    ArrayList<Boolean> newEmptiness = new ArrayList<>(emptiness);
 
     var i = 1;
     while (i < newBounds.size()) {
@@ -190,7 +190,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
     if (indeces.isEmpty()) {
       return this;
     }
-    var trailingIndeces = transformedImmutableSetCopy(indeces, e -> e.add(1L));
+    ImmutableSet<NormalFormExpression> trailingIndeces = transformedImmutableSetCopy(indeces, e -> e.add(1L));
     int greatestLowerBoundIndex = getRightmostLowerBoundIndex(indeces, visitor);
     int leastUpperBoundIndex = getLeastUpperBoundIndex(trailingIndeces, visitor);
 
@@ -202,7 +202,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
     final Bound leastUpperBound = bounds.get(leastUpperBoundIndex);
 
     var leftAdjacent = false;
-    for (var e : indeces) {
+    for (NormalFormExpression e : indeces) {
       try {
         if (greatestLowerBound.isEqualTo(e, visitor)) {
           leftAdjacent = true;
@@ -213,7 +213,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
       }
     }
     var rightAdjacent = false;
-    for (var e : trailingIndeces) {
+    for (NormalFormExpression e : trailingIndeces) {
       try {
         if (leastUpperBound.isEqualTo(e, visitor)) {
           rightAdjacent = true;
@@ -224,9 +224,9 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
       }
     }
 
-    var newBounds = new ArrayList<>(bounds);
-    var newValues = new ArrayList<>(values);
-    var newEmptiness = new ArrayList<>(this.emptiness);
+    ArrayList<Bound> newBounds = new ArrayList<>(bounds);
+    ArrayList<Interval> newValues = new ArrayList<>(values);
+    ArrayList<Boolean> newEmptiness = new ArrayList<>(this.emptiness);
 
     if (leftAdjacent && rightAdjacent) {
       newValues.set(greatestLowerBoundIndex, value);
@@ -256,11 +256,11 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
       leftBound = newBounds.get(greatestLowerBoundIndex);
     }
 
-    var jointValue = getJointValue(greatestLowerBoundIndex, leastUpperBoundIndex);
+    Interval jointValue = getJointValue(greatestLowerBoundIndex, leastUpperBoundIndex);
 
-    var boundsSubList = newBounds.subList(greatestLowerBoundIndex + 1, leastUpperBoundIndex);
-    var valuesSubList = newValues.subList(greatestLowerBoundIndex, leastUpperBoundIndex);
-    var emptinessSubList = newEmptiness.subList(greatestLowerBoundIndex, leastUpperBoundIndex);
+    List<Bound> boundsSubList = newBounds.subList(greatestLowerBoundIndex + 1, leastUpperBoundIndex);
+    List<Interval> valuesSubList = newValues.subList(greatestLowerBoundIndex, leastUpperBoundIndex);
+    List<Boolean> emptinessSubList = newEmptiness.subList(greatestLowerBoundIndex, leastUpperBoundIndex);
 
     boundsSubList.clear();
     valuesSubList.clear();
@@ -377,7 +377,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
    * @return the joint of all values.
    */
   private Interval getJointValue(int from, int to) {
-    var jointValue = values.get(from);
+    Interval jointValue = values.get(from);
     for (int i = from + 1; i < to; i++) {
       jointValue = jointValue.union(values.get(i));
     }
@@ -406,7 +406,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
    */
   private static void joinValueWithPredecessor(List<Interval> list, int i) {
 
-    var joinedValue = list.get(i - 1).union(list.get(i));
+    Interval joinedValue = list.get(i - 1).union(list.get(i));
     list.remove(i);
     list.remove(i - 1);
     list.add(i - 1, joinedValue);
@@ -428,9 +428,9 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
       Interval thisNeutralElement,
       Interval otherNeutralElement) {
 
-    var unifiedArrays = this.unify(other, thisNeutralElement, otherNeutralElement);
-    var thisUnified = unifiedArrays.resultA();
-    var otherUnified = unifiedArrays.resultB();
+    UnifyResult unifiedArrays = this.unify(other, thisNeutralElement, otherNeutralElement);
+    FunArray thisUnified = unifiedArrays.resultA();
+    FunArray otherUnified = unifiedArrays.resultB();
 
     var modifiedValues = new ArrayList<Interval>();
     for (int i = 0; i < thisUnified.values.size(); i++) {
@@ -491,7 +491,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
     if (leftIndex + 1 == rightIndex) {
       // Since the condition requires strict inequality, a single segment between the expressions
       // cannot be empty.
-      var modifiedEmptiness = new ArrayList<>(this.emptiness());
+      ArrayList<Boolean> modifiedEmptiness = new ArrayList<>(this.emptiness());
       modifiedEmptiness.set(leftIndex, false);
       return new FunArray(this.bounds(), this.values(), modifiedEmptiness);
     } else if (leftIndex < rightIndex) {
@@ -503,7 +503,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
       // Condition states that left expression is less than right expression
       // --> Condition cannot be satisfied --> Remove expressions in question
 
-      var newBounds =
+      List<Bound> newBounds =
           this.bounds().stream().map(b -> b.difference(ImmutableSet.of(lesser, greater))).toList();
       return new FunArray(newBounds, this.values(), this.emptiness()).removeEmptyBounds();
     }
@@ -519,9 +519,9 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
       return this;
     }
 
-    var modifiedBounds = new ArrayList<>(this.bounds());
-    var modifiedValues = new ArrayList<>(this.values());
-    var modifiedEmptiness = new ArrayList<>(this.emptiness());
+    ArrayList<Bound> modifiedBounds = new ArrayList<>(this.bounds());
+    ArrayList<Interval> modifiedValues = new ArrayList<>(this.values());
+    ArrayList<Boolean> modifiedEmptiness = new ArrayList<>(this.emptiness());
 
     if (leftIndex <= rightIndex) {
       // Condition is already met, change nothing
@@ -530,15 +530,15 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
       // Bound order states that left expression is greater than right expression
       // Condition states that left expression is less equal than right expression
       // --> Condition cannot be satisfied --> Remove expressions in question
-      var newBounds =
+      List<Bound> newBounds =
           modifiedBounds.stream().map(b -> b.difference(ImmutableSet.of(lesser, greater))).toList();
       return new FunArray(newBounds, this.values(), this.emptiness()).removeEmptyBounds();
     } else {
       // Bound order states that left expression is greater equal than right expression
       // Condition states that left expression is less equal than right expression
       // --> left expression has to be equal to right expression --> Squash segments
-      var boundsToBeSquashed = modifiedBounds.subList(rightIndex, leftIndex + 1);
-      var squashedBound = Bound.union(boundsToBeSquashed);
+      List<Bound> boundsToBeSquashed = modifiedBounds.subList(rightIndex, leftIndex + 1);
+      Bound squashedBound = Bound.union(boundsToBeSquashed);
       boundsToBeSquashed.clear();
       boundsToBeSquashed.add(squashedBound);
 
