@@ -31,6 +31,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslFunctionContract;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadataException.AcslNodeMappingException;
@@ -38,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AntlrToInternalNot
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 @RunWith(Parameterized.class)
 public class AcslMetadataParsingTest {
@@ -60,7 +61,7 @@ public class AcslMetadataParsingTest {
     expectedNumOfDeclarations = pExpectedNumOfDeclarations;
     nodeAttributes = pNodeAttributes;
     Configuration config =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .loadFromResource(AcslMetadataParsingTest.class, "withAcslMetadata.properties")
             .build();
     LogManager logManager = LogManager.createTestLogManager();
@@ -446,7 +447,7 @@ public class AcslMetadataParsingTest {
           assertThrows(AcslMetadataException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
       assertThat(exception.getMessage()).contains("is of unknown type.");
     } else {
-      CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
+      ImmutableCFA cfa = cfaCreator.parseFileAndCreateCFA(files);
       AcslMetadata metadata = cfa.getAcslMetadata();
       assertThat(metadata).isNotNull();
 
