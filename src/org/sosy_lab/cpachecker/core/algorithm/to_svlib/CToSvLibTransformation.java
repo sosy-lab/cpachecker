@@ -15,9 +15,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.math.BigInteger;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -109,7 +107,6 @@ class CToSvLibTransformation {
     String procedureName = procedureDeclaration.getProcedureName();
     ImmutableListMultimap.Builder<CFANode, SvLibStatement> statementCollector =
         ImmutableListMultimap.builder();
-    Set<CFANode> labelsCreated = new HashSet<>();
     ImmutableMap.Builder<CFAEdge, PointerTargetSet> edgeToPointerTargetSet = ImmutableMap.builder();
 
     scope.enterProcedure(
@@ -153,12 +150,12 @@ class CToSvLibTransformation {
     }
 
     ImmutableList<CFAEdge> relevantEdges = getAllRelevantEdges(pEntryNode);
-    addLabelStatement(pEntryNode, statementCollector, labelsCreated);
+
+    createAllLabels(pEntryNode, relevantEdges, statementCollector);
 
     // transform each edge to SV-LIB statement(s)
     for (CFAEdge currentEdge : relevantEdges) {
       handleEdge(currentEdge, statementCollector, edgeToPointerTargetSet);
-      addLabelStatement(currentEdge.getSuccessor(), statementCollector, labelsCreated);
 
       if (!(currentEdge instanceof CReturnStatementEdge)
           && currentEdge.getSuccessor() instanceof FunctionExitNode functionExitNode) {
@@ -182,6 +179,34 @@ class CToSvLibTransformation {
     final EdgeCollectingCFAVisitor edgeCollector = new EdgeCollectingCFAVisitor();
     CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(pEntryNode, edgeCollector);
     return ImmutableList.copyOf(edgeCollector.getVisitedEdges());
+  }
+
+  private void createAllLabels(
+      FunctionEntryNode pFunctionEntryNode,
+      ImmutableList<CFAEdge> pRelevantEdges,
+      ImmutableListMultimap.Builder<CFANode, SvLibStatement> pStatementCollector) {
+    ImmutableSet.Builder<CFANode> relevantNodesCollector = ImmutableSet.builder();
+    relevantNodesCollector.add(pFunctionEntryNode);
+    for (CFAEdge currentEdge : pRelevantEdges) {
+      relevantNodesCollector.add(currentEdge.getSuccessor());
+    }
+
+    ImmutableSet<CFANode> relevantNodes = relevantNodesCollector.build();
+    for (CFANode node : relevantNodes) {
+      String nodeNumber = node.toString();
+      pStatementCollector.put(node, createLabelStatement(nodeNumber));
+
+      if (node instanceof CFALabelNode labelNode) {
+        String labelNodeName = labelNode.getLabel() + "__" + nodeNumber;
+        pStatementCollector.put(node, createLabelStatement(labelNodeName));
+      }
+    }
+  }
+
+  private SvLibLabelStatement createLabelStatement(String pLabelName) {
+    SvLibTagReference tagReference = new SvLibTagReference(pLabelName, FileLocation.DUMMY);
+    return new SvLibLabelStatement(
+        FileLocation.DUMMY, ImmutableList.of(), ImmutableList.of(tagReference), pLabelName);
   }
 
   private SvLibAssignmentStatement createDefaultReturnForMain(
@@ -719,30 +744,6 @@ class CToSvLibTransformation {
   private SvLibGotoStatement createGotoStatement(CFANode pGotoTarget) {
     return new SvLibGotoStatement(
         FileLocation.DUMMY, ImmutableList.of(), ImmutableList.of(), pGotoTarget.toString());
-  }
-
-  private void addLabelStatement(
-      CFANode pNode,
-      ImmutableListMultimap.Builder<CFANode, SvLibStatement> pStatementsCollector,
-      Set<CFANode> pLabelCreated) {
-    if (!pLabelCreated.contains(pNode)) {
-      String labelNodeNumber = pNode.toString();
-      pStatementsCollector.put(pNode, createLabelStatement(labelNodeNumber));
-      pLabelCreated.add(pNode);
-      // transformationStatistics.numberOfLabelsCreated++;
-
-      if (pNode instanceof CFALabelNode labelNode) {
-        String originalLabel = labelNode.getLabel() + "__" + labelNodeNumber;
-        pStatementsCollector.put(pNode, createLabelStatement(originalLabel));
-        // transformationStatistics.numberOfLabelsCreated++;
-      }
-    }
-  }
-
-  private SvLibLabelStatement createLabelStatement(String pLabelName) {
-    SvLibTagReference tagReference = new SvLibTagReference(pLabelName, FileLocation.DUMMY);
-    return new SvLibLabelStatement(
-        FileLocation.DUMMY, ImmutableList.of(), ImmutableList.of(tagReference), pLabelName);
   }
 
   private SvLibSequenceStatement createSequenceStatement(
