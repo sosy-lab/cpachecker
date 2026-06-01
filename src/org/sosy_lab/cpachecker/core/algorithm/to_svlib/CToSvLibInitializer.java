@@ -291,29 +291,34 @@ class CToSvLibInitializer {
     boolean addressCreated = false;
     ImmutableSet<String> namesOfCreatedAddressVariablesBuilt =
         pNamesOfCreatedAddressVariables.build();
-    // Replace :: in addresses of local variables, since : causes an issue with the SV-LIB parser
-    String addressName = pPointerBase.formulaEncoding().replace("::", "_");
+    String addressNameEscaped = "|" + pPointerBase.formulaEncoding() + "|";
     SvLibSmtLibType addressType = convertToSvLibSmtLibType(pBaseType);
 
     boolean hasProcedureNamePrefix = pPointerBase.name().startsWith(pProcedureName + "::");
     if (!hasProcedureNamePrefix /* -> is global variable*/) {
-      if (!namesOfCreatedAddressVariablesBuilt.contains(addressName)) {
+      if (!namesOfCreatedAddressVariablesBuilt.contains(addressNameEscaped)) {
         SvLibParsingVariableDeclaration addressVariable =
             new SvLibParsingVariableDeclaration(
-                FileLocation.DUMMY, true, false, addressType, addressName, addressName, null);
+                FileLocation.DUMMY,
+                true,
+                false,
+                addressType,
+                addressNameEscaped,
+                addressNameEscaped,
+                null);
         scope.addVariable(addressVariable);
         pCommandsCollector.add(
             new SvLibVariableDeclarationCommand(addressVariable, FileLocation.DUMMY));
-        pNamesOfCreatedAddressVariables.add(addressName);
+        pNamesOfCreatedAddressVariables.add(addressNameEscaped);
         addressCreated = true;
       }
     } else {
-      if (!namesOfCreatedAddressVariablesBuilt.contains(addressName)) {
+      if (!namesOfCreatedAddressVariablesBuilt.contains(addressNameEscaped)) {
         SvLibParsingParameterDeclaration localAddressVariable =
             new SvLibParsingParameterDeclaration(
-                FileLocation.DUMMY, addressType, addressName, pProcedureName);
+                FileLocation.DUMMY, addressType, addressNameEscaped, pProcedureName);
         pLocalVariablesCollector.add(localAddressVariable);
-        pNamesOfCreatedAddressVariables.add(addressName);
+        pNamesOfCreatedAddressVariables.add(addressNameEscaped);
         addressCreated = true;
       }
     }
