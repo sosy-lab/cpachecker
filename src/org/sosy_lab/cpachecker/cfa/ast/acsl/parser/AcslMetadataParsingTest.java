@@ -31,6 +31,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslFunctionContract;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslMetadataException.AcslNodeMappingException;
@@ -446,7 +447,7 @@ public class AcslMetadataParsingTest {
           assertThrows(AcslMetadataException.class, () -> cfaCreator.parseFileAndCreateCFA(files));
       assertThat(exception.getMessage()).contains("is of unknown type.");
     } else {
-      CFA cfa = cfaCreator.parseFileAndCreateCFA(files);
+      ImmutableCFA cfa = cfaCreator.parseFileAndCreateCFA(files);
       AcslMetadata metadata = cfa.getAcslMetadata();
       assertThat(metadata).isNotNull();
 
