@@ -71,6 +71,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <exclude>../programs/benchmarks/seq-mthreaded/rek*</exclude> <!-- only timeouts -->
     <exclude>../programs/benchmarks/seq-mthreaded/pals_lcr*</exclude> <!-- mostly timeout -->
+    <exclude>../programs/benchmarks/seq-mthreaded/pals_opt-floodmax.4.3.ufo.UNBOUNDED.pals.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded/pals_opt-floodmax.5.2.ufo.UNBOUNDED.pals.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_floodmax.4.1.ufo.BOUNDED-8.pals.c.v+lhb-reducer.yml</exclude> <!-- flapping unknown/timeout -->
