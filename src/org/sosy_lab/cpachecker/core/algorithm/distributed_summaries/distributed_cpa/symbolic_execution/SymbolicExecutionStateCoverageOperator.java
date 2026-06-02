@@ -156,9 +156,11 @@ public class SymbolicExecutionStateCoverageOperator implements CoverageOperator 
         bfm.and(constraintsSolver.getFullFormula(pValueComparison, functionName));
 
     try {
-      return constraintsSolver
-          .getSolver()
-          .implies(bfm.and(stateAsFormula1, compareValues), stateAsFormula2);
+
+      return !constraintsSolver.getSolver().isUnsat(bfm.and(stateAsFormula1, compareValues))
+          && constraintsSolver
+              .getSolver()
+              .implies(bfm.and(stateAsFormula1, compareValues), stateAsFormula2);
     } catch (SolverException e) {
       throw new CPAException("Solver encountered an issue when calculating implication.", e);
     }
