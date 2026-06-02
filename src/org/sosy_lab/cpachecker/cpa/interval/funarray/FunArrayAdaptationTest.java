@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.interval.funarray;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.sosy_lab.cpachecker.cpa.interval.funarray.FunArrayBuilder.exp;
 import static org.sosy_lab.cpachecker.cpa.interval.funarray.FunArrayBuilder.variable;
 
@@ -58,15 +59,11 @@ public class FunArrayAdaptationTest {
             .bound(exp("n"))
             .build();
 
-    FunArray adapted =
-        initial.adaptToVariableAssignment(variable("i"), ImmutableSet.of(exp("k")));
+    FunArray adapted = initial.adaptToVariableAssignment(variable("i"), ImmutableSet.of(exp("k")));
     FunArray result = adapted.removeEmptyBounds();
 
     FunArray expected =
-        FunArrayBuilder.firstBound(exp(0))
-            .value(Interval.UNBOUND)
-            .bound(exp("n"))
-            .build();
+        FunArrayBuilder.firstBound(exp(0)).value(Interval.UNBOUND).bound(exp("n")).build();
 
     assertThat(result).isEqualTo(expected);
   }
@@ -78,13 +75,11 @@ public class FunArrayAdaptationTest {
     FunArray initial =
         FunArrayBuilder.firstBound(exp(0)).value(Interval.UNBOUND).bound(exp("n")).build();
 
-    FunArray result =
-        initial.adaptToVariableAssignment(variable("i"), ImmutableSet.of(exp(0)));
+    FunArray result = initial.adaptToVariableAssignment(variable("i"), ImmutableSet.of(exp(0)));
 
     FunArray expected =
         new FunArray(
-            ImmutableList.of(
-                new Bound(ImmutableSet.of(exp(0), exp("i"))), new Bound(exp("n"))),
+            ImmutableList.of(new Bound(ImmutableSet.of(exp(0), exp("i"))), new Bound(exp("n"))),
             ImmutableList.of(Interval.UNBOUND),
             ImmutableList.of(false));
 
@@ -96,16 +91,14 @@ public class FunArrayAdaptationTest {
     // Manually build {0} [0,5] {} [1,3] {n} — middle bound is empty
     FunArray withEmptyBound =
         new FunArray(
-            ImmutableList.of(
-                new Bound(exp(0)), new Bound(ImmutableSet.of()), new Bound(exp("n"))),
+            ImmutableList.of(new Bound(exp(0)), new Bound(ImmutableSet.of()), new Bound(exp("n"))),
             ImmutableList.of(new Interval(0L, 5L), new Interval(1L, 3L)),
             ImmutableList.of(false, false));
 
     FunArray result = withEmptyBound.removeEmptyBounds();
 
     // Empty bound removed; [0,5] ∪ [1,3] = [0,5] stored in the remaining segment
-    FunArray expected =
-        FunArrayBuilder.firstBound(exp(0)).value(0, 5).bound(exp("n")).build();
+    FunArray expected = FunArrayBuilder.firstBound(exp(0)).value(0, 5).bound(exp("n")).build();
 
     assertThat(result).isEqualTo(expected);
   }
@@ -149,12 +142,12 @@ public class FunArrayAdaptationTest {
     assertThat(array.findIndex(exp("n"))).isEqualTo(2);
   }
 
-  @Test(expected = IndexOutOfBoundsException.class)
+  @Test
   public void testFindIndexNotPresent() throws FunArrayBuilderException {
     FunArray array =
         FunArrayBuilder.firstBound(exp(0)).value(Interval.UNBOUND).bound(exp("n")).build();
 
-    array.findIndex(exp("k"));
+    assertThrows(IndexOutOfBoundsException.class, () -> array.findIndex(exp("k")));
   }
 
   @Test

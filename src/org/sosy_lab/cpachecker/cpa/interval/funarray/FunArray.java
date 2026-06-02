@@ -40,9 +40,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * @param emptiness a list determining whether a segment might be empty.
  */
 public record FunArray(
-    ImmutableList<Bound> bounds,
-    ImmutableList<Interval> values,
-    ImmutableList<Boolean> emptiness)
+    ImmutableList<Bound> bounds, ImmutableList<Interval> values, ImmutableList<Boolean> emptiness)
     implements Serializable, LatticeAbstractState<FunArray> {
 
   @Serial private static final long serialVersionUID = 7169472946910382516L;
@@ -68,7 +66,8 @@ public record FunArray(
             + "exactly one less.");
 
     // Check if there are duplicate expressions in bounds
-    List<NormalFormExpression> expressions = bounds.stream().flatMap(e -> e.expressions().stream()).toList();
+    List<NormalFormExpression> expressions =
+        bounds.stream().flatMap(e -> e.expressions().stream()).toList();
     if (expressions.size() != expressions.stream().distinct().count()) {
       throw new IllegalArgumentException(
           "Given list of bounds contains duplicate expressions: %s".formatted(bounds));
@@ -76,7 +75,10 @@ public record FunArray(
   }
 
   public FunArray(List<Bound> pBounds, List<Interval> pValues, List<Boolean> pEmptiness) {
-    this(ImmutableList.copyOf(pBounds), ImmutableList.copyOf(pValues), ImmutableList.copyOf(pEmptiness));
+    this(
+        ImmutableList.copyOf(pBounds),
+        ImmutableList.copyOf(pValues),
+        ImmutableList.copyOf(pEmptiness));
   }
 
   public FunArray(Set<NormalFormExpression> lengthExpressions) {
@@ -117,7 +119,7 @@ public record FunArray(
 
   @Override
   public String toString() {
-    var sb = new StringBuilder();
+    StringBuilder sb = new StringBuilder();
     for (int i = 0; i < bounds.size(); i++) {
       if (i > 0) {
         sb.append(" ");
@@ -127,7 +129,8 @@ public record FunArray(
       } else if (i == 0) {
         sb.append("%s %s".formatted(bounds.get(i), values.get(i)));
       } else {
-        sb.append("%s%s %s".formatted(bounds.get(i), emptiness.get(i - 1) ? "?" : "", values.get(i)));
+        sb.append(
+            "%s%s %s".formatted(bounds.get(i), emptiness.get(i - 1) ? "?" : "", values.get(i)));
       }
     }
     return sb.toString();
@@ -151,7 +154,7 @@ public record FunArray(
     ArrayList<Interval> newValues = new ArrayList<>(values);
     ArrayList<Boolean> newEmptiness = new ArrayList<>(emptiness);
 
-    var i = 1;
+    int i = 1;
     while (i < newBounds.size()) {
       if (newBounds.get(i).isEmpty()) {
         if (newBounds.size() <= 2) {
@@ -185,7 +188,8 @@ public record FunArray(
     if (indeces.isEmpty()) {
       return this;
     }
-    ImmutableSet<NormalFormExpression> trailingIndeces = transformedImmutableSetCopy(indeces, e -> e.add(1L));
+    ImmutableSet<NormalFormExpression> trailingIndeces =
+        transformedImmutableSetCopy(indeces, e -> e.add(1L));
     int greatestLowerBoundIndex = getRightmostLowerBoundIndex(indeces, visitor);
     int leastUpperBoundIndex = getLeastUpperBoundIndex(trailingIndeces, visitor);
 
@@ -196,7 +200,7 @@ public record FunArray(
     final Bound greatestLowerBound = bounds.get(greatestLowerBoundIndex);
     final Bound leastUpperBound = bounds.get(leastUpperBoundIndex);
 
-    var leftAdjacent = false;
+    boolean leftAdjacent = false;
     for (NormalFormExpression e : indeces) {
       try {
         if (greatestLowerBound.isEqualTo(e, visitor)) {
@@ -207,7 +211,7 @@ public record FunArray(
         throw new RuntimeException(exception);
       }
     }
-    var rightAdjacent = false;
+    boolean rightAdjacent = false;
     for (NormalFormExpression e : trailingIndeces) {
       try {
         if (leastUpperBound.isEqualTo(e, visitor)) {
@@ -253,9 +257,11 @@ public record FunArray(
 
     Interval jointValue = getJointValue(greatestLowerBoundIndex, leastUpperBoundIndex);
 
-    List<Bound> boundsSubList = newBounds.subList(greatestLowerBoundIndex + 1, leastUpperBoundIndex);
+    List<Bound> boundsSubList =
+        newBounds.subList(greatestLowerBoundIndex + 1, leastUpperBoundIndex);
     List<Interval> valuesSubList = newValues.subList(greatestLowerBoundIndex, leastUpperBoundIndex);
-    List<Boolean> emptinessSubList = newEmptiness.subList(greatestLowerBoundIndex, leastUpperBoundIndex);
+    List<Boolean> emptinessSubList =
+        newEmptiness.subList(greatestLowerBoundIndex, leastUpperBoundIndex);
 
     boundsSubList.clear();
     valuesSubList.clear();
@@ -427,12 +433,12 @@ public record FunArray(
     FunArray thisUnified = unifiedArrays.resultA();
     FunArray otherUnified = unifiedArrays.resultB();
 
-    var modifiedValues = new ArrayList<Interval>();
+    ArrayList<Interval> modifiedValues = new ArrayList<>();
     for (int i = 0; i < thisUnified.values.size(); i++) {
       modifiedValues.add(operation.apply(thisUnified.values.get(i), otherUnified.values.get(i)));
     }
 
-    var modifiedEmptiness = new ArrayList<Boolean>();
+    ArrayList<Boolean> modifiedEmptiness = new ArrayList<>();
     for (int i = 0; i < thisUnified.emptiness.size(); i++) {
       modifiedEmptiness.add(thisUnified.emptiness.get(i) || otherUnified.emptiness.get(i));
     }
@@ -554,7 +560,10 @@ public record FunArray(
     UnifyResult unifyResult = unify(other, Interval.EMPTY, Interval.UNBOUND);
 
     for (int i = 0; i < unifyResult.resultA().values.size(); i++) {
-      if (!unifyResult.resultA().values.get(i)
+      if (!unifyResult
+          .resultA()
+          .values
+          .get(i)
           .abstractLatticeIsLessEqualThan(unifyResult.resultB().values.get(i))) {
         return false;
       }

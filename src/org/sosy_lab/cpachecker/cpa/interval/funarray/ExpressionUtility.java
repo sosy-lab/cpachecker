@@ -139,7 +139,8 @@ public class ExpressionUtility {
       CUnaryExpression expression, ExpressionValueVisitor visitor)
       throws UnrecognizedCodeException {
     if (expression.getOperator() == UnaryOperator.MINUS) {
-      Optional<Long> concreteValue = expression.getOperand().accept(visitor).getUniqueConcreteValue();
+      Optional<Long> concreteValue =
+          expression.getOperand().accept(visitor).getUniqueConcreteValue();
       if (concreteValue.isPresent()) {
         return ImmutableSet.of(new NormalFormExpression(-concreteValue.orElseThrow()));
       }

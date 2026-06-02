@@ -14,7 +14,6 @@ import static org.sosy_lab.cpachecker.cpa.interval.funarray.FunArrayBuilder.vari
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.Set;
 import org.junit.Test;
 
 public class BoundTest {
@@ -22,29 +21,33 @@ public class BoundTest {
   @Test
   public void testInvertibleAdaption() {
     Bound bound = new Bound(exp("i"));
-    Bound updatedBound = bound.adaptForChangedVariableValues(variable("i"), Set.of(exp("i", -1)));
+    Bound updatedBound =
+        bound.adaptForChangedVariableValues(variable("i"), ImmutableSet.of(exp("i", -1)));
     assertThat(updatedBound.expressions()).contains(exp("i", 1));
   }
 
   @Test
   public void testNonInvertibleAdaption() {
-    Bound bound = new Bound(Set.of(exp("i"), exp("j")));
-    Bound updatedBound = bound.adaptForChangedVariableValues(variable("i"), Set.of(exp("k")));
+    Bound bound = new Bound(ImmutableSet.of(exp("i"), exp("j")));
+    Bound updatedBound =
+        bound.adaptForChangedVariableValues(variable("i"), ImmutableSet.of(exp("k")));
     assertThat(updatedBound.expressions()).doesNotContain(exp("i"));
   }
 
   @Test
   public void testIntroduceEqualVariableAdaption() {
-    Bound bound = new Bound(Set.of(exp(0)));
-    Bound updatedBound = bound.adaptForChangedVariableValues(variable("i"), Set.of(exp(0)));
+    Bound bound = new Bound(ImmutableSet.of(exp(0)));
+    Bound updatedBound =
+        bound.adaptForChangedVariableValues(variable("i"), ImmutableSet.of(exp(0)));
     assertThat(updatedBound.expressions()).contains(exp("i"));
     assertThat(updatedBound.expressions()).contains(exp(0));
   }
 
   @Test
   public void testRelateVariablesAdaption() {
-    Bound bound = new Bound(Set.of(exp("i", 1), exp("j", 1)));
-    Bound updatedBound = bound.adaptForChangedVariableValues(variable("i"), Set.of(exp("j")));
+    Bound bound = new Bound(ImmutableSet.of(exp("i", 1), exp("j", 1)));
+    Bound updatedBound =
+        bound.adaptForChangedVariableValues(variable("i"), ImmutableSet.of(exp("j")));
     assertThat(updatedBound.expressions()).contains(exp("i", 1));
     assertThat(updatedBound.expressions()).contains(exp("j", 1));
   }

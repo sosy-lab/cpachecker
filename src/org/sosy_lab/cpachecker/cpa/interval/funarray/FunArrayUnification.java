@@ -8,11 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.interval.funarray;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BinaryOperator;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cpa.interval.Interval;
 
 public class FunArrayUnification {
@@ -152,11 +152,11 @@ public class FunArrayUnification {
         oppositeBounds.stream()
             .skip(currentIndex)
             .flatMap(b -> b.expressions().stream())
-            .collect(Collectors.toSet());
+            .collect(ImmutableSet.toImmutableSet());
 
     return bound.expressions().stream()
         .filter(e -> anticipatedInOppositeBounds.contains(e))
-        .collect(Collectors.toSet());
+        .collect(ImmutableSet.toImmutableSet());
   }
 
   // Corresponds to case 4: The bounds are partially overlapping.
@@ -166,8 +166,10 @@ public class FunArrayUnification {
       Bound intersection,
       Interval neutralElementA,
       Interval neutralElementB) {
-    Set<NormalFormExpression> anticipatedFromA = filterAnticipatedInOppositeBounds(uniqueToA, boundsB);
-    Set<NormalFormExpression> anticipatedFromB = filterAnticipatedInOppositeBounds(uniqueToB, boundsA);
+    Set<NormalFormExpression> anticipatedFromA =
+        filterAnticipatedInOppositeBounds(uniqueToA, boundsB);
+    Set<NormalFormExpression> anticipatedFromB =
+        filterAnticipatedInOppositeBounds(uniqueToB, boundsA);
 
     if (anticipatedFromA.containsAll(uniqueToA.expressions())
         && anticipatedFromB.containsAll(uniqueToB.expressions())) {

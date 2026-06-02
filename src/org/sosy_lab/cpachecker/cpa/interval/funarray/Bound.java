@@ -41,18 +41,19 @@ public record Bound(Set<NormalFormExpression> expressions) {
 
     Set<NormalFormExpression> modifiedExpressions = new HashSet<>();
 
-    for (NormalFormExpression expression: expressions()) {
-      for (NormalFormExpression newValue: newValues) {
-        modifiedExpressions.addAll(
-            adaptSingleExpression(expression, changedVariableId, newValue)
-        );
+    for (NormalFormExpression expression : expressions()) {
+      for (NormalFormExpression newValue : newValues) {
+        modifiedExpressions.addAll(adaptSingleExpression(expression, changedVariableId, newValue));
       }
     }
 
     return new Bound(modifiedExpressions);
   }
 
-  private static ImmutableSet<NormalFormExpression> adaptSingleExpression(NormalFormExpression expression, CIdExpression changedVariableId, NormalFormExpression newValue) {
+  private static ImmutableSet<NormalFormExpression> adaptSingleExpression(
+      NormalFormExpression expression,
+      CIdExpression changedVariableId,
+      NormalFormExpression newValue) {
     if (expression.containsVariable(newValue.getVariable())) {
       if (expression.containsVariable(changedVariableId)) {
         return ImmutableSet.of(expression.increase(-newValue.getConstant()));
@@ -60,8 +61,7 @@ public record Bound(Set<NormalFormExpression> expressions) {
         return ImmutableSet.of(
             expression,
             new NormalFormExpression(
-                changedVariableId,
-                expression.getConstant() - newValue.getConstant()));
+                changedVariableId, expression.getConstant() - newValue.getConstant()));
       }
     } else {
       if (expression.containsVariable(changedVariableId)) {

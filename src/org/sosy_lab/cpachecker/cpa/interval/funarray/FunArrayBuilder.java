@@ -10,10 +10,10 @@ package org.sosy_lab.cpachecker.cpa.interval.funarray;
 
 import static org.sosy_lab.cpachecker.cfa.ast.FileLocation.DUMMY;
 
+import com.google.common.collect.ImmutableSet;
 import java.io.Serial;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -36,7 +36,7 @@ public class FunArrayBuilder {
 
   public FunArrayBuilder bound(NormalFormExpression... expressions)
       throws FunArrayBuilderException {
-    Bound bound = new Bound(Set.of(expressions));
+    Bound bound = new Bound(ImmutableSet.copyOf(expressions));
     if (bounds.size() != values.size()) {
       throw new FunArrayBuilderException(
           "Cannot append another bound %s. A value is needed first.".formatted(bound));
@@ -86,7 +86,7 @@ public class FunArrayBuilder {
   }
 
   public static FunArrayBuilder firstBound(NormalFormExpression... expressions) {
-    Bound bound = new Bound(Set.of(expressions));
+    Bound bound = new Bound(ImmutableSet.copyOf(expressions));
     return new FunArrayBuilder(bound);
   }
 

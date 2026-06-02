@@ -71,7 +71,7 @@ public class FunArrayPartialOrderTest {
         new Object[] {arrayA, arrayA},
         new Object[] {arrayA, arrayB},
         new Object[] {arrayC, arrayD},
-        new Object[] {arrayE, arrayA});
+        new Object[] {arrayA, arrayE});
   }
 
   @Test

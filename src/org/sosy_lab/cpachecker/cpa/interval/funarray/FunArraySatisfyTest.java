@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.cpa.interval.funarray.FunArrayBuilder.FunArrayBui
 
 public class FunArraySatisfyTest {
 
-
   @Test
   public void testSatisfyStrictLessThanMarksSegmentNonEmpty() throws FunArrayBuilderException {
     // {0} ⊤ {1}? ⊤ {n}
@@ -87,7 +86,6 @@ public class FunArraySatisfyTest {
     assertThat(result).isEqualTo(initial);
   }
 
-
   @Test
   public void testSatisfyLessEqualNoChange() throws FunArrayBuilderException {
     // {0} ⊤ {1} ⊤ {n}
@@ -121,10 +119,7 @@ public class FunArraySatisfyTest {
     FunArray result = initial.satisfyLessEqual(exp(1), exp(0));
 
     FunArray expected =
-        FunArrayBuilder.firstBound(exp(0), exp(1))
-            .value(Interval.UNBOUND)
-            .bound(exp("n"))
-            .build();
+        FunArrayBuilder.firstBound(exp(0), exp(1)).value(Interval.UNBOUND).bound(exp("n")).build();
 
     assertThat(result).isEqualTo(expected);
   }

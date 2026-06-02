@@ -31,8 +31,7 @@ public class IntervalMergeOperatorTest {
     AbstractState result = mergeOp.merge(newState, oldState, null);
 
     assertThat(result).isInstanceOf(IntervalAnalysisState.class);
-    assertThat(
-        ((IntervalAnalysisState) result).intervals().get("x")
-    ).isEqualTo(new Interval(0L, Long.MAX_VALUE));
+    assertThat(((IntervalAnalysisState) result).intervals().get("x"))
+        .isEqualTo(new Interval(0L, Long.MAX_VALUE));
   }
 }

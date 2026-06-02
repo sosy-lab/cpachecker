@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.interval;
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.cpa.interval.funarray.ExpressionUtility.normalizeExpression;
 
-import com.google.common.base.Objects;
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ComparisonChain;
@@ -21,10 +20,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -99,7 +100,10 @@ public final class IntervalAnalysisState
     return new IntervalAnalysisState(intervals, referenceCounts, pArrays, location, visitCounts);
   }
 
-  public IntervalAnalysisState withLocation(CFANode pLocation) {
+  public IntervalAnalysisState withLocation(@Nullable CFANode pLocation) {
+    if (pLocation == null) {
+      return new IntervalAnalysisState(intervals, referenceCounts, arrays, null, visitCounts);
+    }
     return new IntervalAnalysisState(
         intervals,
         referenceCounts,
@@ -398,7 +402,7 @@ public final class IntervalAnalysisState
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(this.intervals, this.arrays);
+    return Objects.hash(this.intervals, this.arrays);
   }
 
   @Override
