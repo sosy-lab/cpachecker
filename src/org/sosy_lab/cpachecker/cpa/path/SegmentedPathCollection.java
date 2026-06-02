@@ -41,7 +41,7 @@ public record SegmentedPathCollection(ImmutableList<PathSegment> segments) {
 
     @Override
     public String toString() {
-      return "[" + path.toString() + "]";
+      return path.toString();
     }
   }
 
@@ -87,7 +87,7 @@ public record SegmentedPathCollection(ImmutableList<PathSegment> segments) {
 
     @Override
     public String toString() {
-      return "{" + possiblePaths.toString() + "}";
+      return "{" + possiblePaths + "}";
     }
 
     public CFANode getLastNode() {
