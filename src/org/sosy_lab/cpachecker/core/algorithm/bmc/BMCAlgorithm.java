@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -81,7 +80,6 @@ import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationPro
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.InvariantProvider;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
@@ -163,8 +161,9 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private final Map<CandidateInvariant, NonTerminationLoopScope> nonTerminationLoopScopes =
       new HashMap<>();
   private ImmutableSet<CandidateInvariant> lastModelEqualityStrengthenings = ImmutableSet.of();
+  private ImmutableSet<CandidateInvariant> lastBranchConditionStrengthenings = ImmutableSet.of();
   private static final int MAX_MODEL_EQUALITY_STRENGTHENINGS = 8;
-  private static final int MAX_PATH_ASSIGNMENT_STRENGTHENINGS = 8;
+  private static final int MAX_BRANCH_CONDITION_STRENGTHENINGS = 8;
 
   public BMCAlgorithm(
       Algorithm pAlgorithm,
@@ -598,6 +597,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       CandidateInvariant pCandidateInvariant)
       throws CPATransferException, InterruptedException, SolverException {
     lastModelEqualityStrengthenings = ImmutableSet.of();
+    lastBranchConditionStrengthenings = ImmutableSet.of();
     BooleanFormula baseCase = createNonTerminationBaseCaseFormula(pReachedSet, pCandidateInvariant);
     logger.log(Level.INFO, "Starting satisfiability check for non-termination base case...");
     stats.satCheck.start();
@@ -605,6 +605,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       pProver.push(baseCase);
       boolean reachable = !pProver.isUnsat();
       if (reachable) {
+        lastBranchConditionStrengthenings =
+            createBranchConditionStrengthenings(pCandidateInvariant);
         lastModelEqualityStrengthenings =
             createModelEqualityStrengthenings(
                 pReachedSet, pCandidateInvariant, pProver.getModelAssignments());
@@ -619,7 +621,10 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Override
   protected Iterable<CandidateInvariant> getAdditionalCandidatesAfterSuccessfulBaseCase(
       ReachedSet pReachedSet, CandidateInvariant pCandidateInvariant) {
-    return lastModelEqualityStrengthenings;
+    return ImmutableSet.<CandidateInvariant>builder()
+        .addAll(lastBranchConditionStrengthenings)
+        .addAll(lastModelEqualityStrengthenings)
+        .build();
   }
 
   @Override
@@ -643,6 +648,50 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
   }
 
+  private ImmutableSet<CandidateInvariant> createBranchConditionStrengthenings(
+      CandidateInvariant pCandidateInvariant) {
+    Optional<NonTerminationLoopScope> loopScope = getNonTerminationLoopScope(pCandidateInvariant);
+    if (loopScope.isEmpty()) {
+      return ImmutableSet.of();
+    }
+
+    ImmutableSet<CandidateInvariant> baseParts =
+        ImmutableSet.copyOf(CandidateInvariantCombination.getConjunctiveParts(pCandidateInvariant));
+    ImmutableSet.Builder<CandidateInvariant> strengthenedCandidates = ImmutableSet.builder();
+    int added = 0;
+    NonTerminationLoopScope scope = loopScope.orElseThrow();
+
+    for (CFANode loopNode : scope.loopNodes()) {
+      if (scope.loopHeads().contains(loopNode)) {
+        continue;
+      }
+      for (CFAEdge leavingEdge : loopNode.getLeavingEdges()) {
+        if (!(leavingEdge instanceof AssumeEdge assumeEdge)
+            || !scope.loopNodes().contains(assumeEdge.getSuccessor())
+            || branchLeavesLoop(scope.loop(), assumeEdge)) {
+          continue;
+        }
+
+        CandidateInvariant branchCandidate = new EdgeFormula(loopNode, assumeEdge);
+        if (baseParts.contains(branchCandidate)) {
+          continue;
+        }
+        ImmutableList.Builder<CandidateInvariant> refinedParts = ImmutableList.builder();
+        refinedParts.addAll(baseParts);
+        refinedParts.add(branchCandidate);
+        addStrengthenedCandidate(
+            strengthenedCandidates,
+            pCandidateInvariant,
+            new StatewiseCandidateInvariantConjunction(refinedParts.build()));
+        added++;
+        if (added >= MAX_BRANCH_CONDITION_STRENGTHENINGS) {
+          return strengthenedCandidates.build();
+        }
+      }
+    }
+    return strengthenedCandidates.build();
+  }
+
   private ImmutableSet<CandidateInvariant> createModelEqualityStrengthenings(
       ReachedSet pReachedSet,
       CandidateInvariant pCandidateInvariant,
@@ -653,7 +702,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
 
     ImmutableSet.Builder<CandidateInvariant> strengthenedCandidates = ImmutableSet.builder();
-    int pathAssignmentStrengthenings = 0;
     int currentK =
         CPAs.retrieveCPA(analysisCpa, LoopIterationBounding.class).getMaxLoopIterations();
     Optional<NonTerminationLoopScope> loopScope = getNonTerminationLoopScope(pCandidateInvariant);
@@ -666,15 +714,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           || !isRelevantForReachability(stopState)
           || !candidateAppliesToState(pCandidateInvariant, stopState)) {
         continue;
-      }
-
-      if (pathAssignmentStrengthenings < MAX_PATH_ASSIGNMENT_STRENGTHENINGS) {
-        pathAssignmentStrengthenings +=
-            addPathAssignmentStrengthenings(
-                strengthenedCandidates,
-                pCandidateInvariant,
-                stopState,
-                MAX_PATH_ASSIGNMENT_STRENGTHENINGS - pathAssignmentStrengthenings);
       }
 
       for (AbstractState state : getPathStatesTo(stopState)) {
@@ -704,79 +743,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
     }
     return strengthenedCandidates.build();
-  }
-
-  private int addPathAssignmentStrengthenings(
-      ImmutableSet.Builder<CandidateInvariant> pStrengthenedCandidates,
-      CandidateInvariant pCandidateInvariant,
-      AbstractState pStopState,
-      int pLimit)
-      throws CPATransferException, InterruptedException {
-    if (pLimit <= 0) {
-      return 0;
-    }
-
-    ARGState stopArgState = AbstractStates.extractStateByType(pStopState, ARGState.class);
-    if (stopArgState == null) {
-      return 0;
-    }
-
-    int added = 0;
-    ARGPath path = ARGUtils.getOnePathTo(stopArgState);
-    for (CFAEdge edge : path.getFullPath()) {
-      if (added >= pLimit) {
-        return added;
-      }
-      if (!isSimpleConstantAssignmentEdge(edge)
-          || !isLoopNode(edge.getSuccessor())
-          || assignsVariableModifiedInContainingLoop(edge)) {
-        continue;
-      }
-
-      PathFormula assignmentPathFormula =
-          getPathFormulaManager().makeAnd(getPathFormulaManager().makeEmptyPathFormula(), edge);
-      BooleanFormula assignmentFormula =
-          getFormulaManager().uninstantiate(assignmentPathFormula.getFormula());
-      if (getBooleanFormulaManager().isTrue(assignmentFormula)
-          || getBooleanFormulaManager().isFalse(assignmentFormula)) {
-        continue;
-      }
-
-      CandidateInvariant assignmentCandidate =
-          SingleLocationFormulaInvariant.makeLocationInvariant(
-              edge.getSuccessor(), assignmentFormula, getFormulaManager());
-      addStrengthenedCandidate(
-          pStrengthenedCandidates,
-          pCandidateInvariant,
-          CandidateInvariantCombination.conjunction(
-              ImmutableList.of(pCandidateInvariant, assignmentCandidate)));
-      added++;
-    }
-    return added;
-  }
-
-  private boolean isSimpleConstantAssignmentEdge(CFAEdge pEdge) {
-    if (!(pEdge instanceof CStatementEdge statementEdge)
-        || !(statementEdge.getStatement() instanceof CAssignment assignment)
-        || !(assignment.getLeftHandSide() instanceof CIdExpression)) {
-      return false;
-    }
-
-    CRightHandSide rightHandSide = assignment.getRightHandSide();
-    return rightHandSide instanceof CIntegerLiteralExpression
-        || rightHandSide instanceof CCharLiteralExpression;
-  }
-
-  private boolean isLoopNode(CFANode pNode) {
-    if (cfa.getLoopStructure().isEmpty()) {
-      return false;
-    }
-    for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
-      if (loop.getLoopNodes().contains(pNode)) {
-        return true;
-      }
-    }
-    return false;
   }
 
   private List<ValueAssignment> prioritizeModelAssignments(
@@ -1003,35 +969,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return true;
   }
 
-  private boolean assignsVariableModifiedInContainingLoop(CFAEdge pEdge) {
-    if (!(pEdge instanceof CStatementEdge statementEdge)
-        || !(statementEdge.getStatement() instanceof CAssignment assignment)
-        || !(assignment.getLeftHandSide() instanceof CIdExpression idExpression)) {
-      return true;
-    }
-
-    Optional<Set<String>> modifiedVariables =
-        getModifiedVariablesInLoopsContaining(pEdge.getSuccessor());
-    if (modifiedVariables.isEmpty()) {
-      return true;
-    }
-
-    boolean modifiedInContainingLoop =
-        modifiedVariables.orElseThrow().contains(idExpression.getName())
-            || (idExpression.getDeclaration() != null
-                && modifiedVariables
-                    .orElseThrow()
-                    .contains(idExpression.getDeclaration().getQualifiedName()));
-    if (!modifiedInContainingLoop) {
-      return false;
-    }
-
-    return !isOnlyNoOpModifiedInLoopsContaining(pEdge.getSuccessor(), idExpression.getName())
-        && (idExpression.getDeclaration() == null
-            || !isOnlyNoOpModifiedInLoopsContaining(
-                pEdge.getSuccessor(), idExpression.getDeclaration().getQualifiedName()));
-  }
-
   private boolean addModifiedVariable(CLeftHandSide pLeftHandSide, Set<String> pModifiedVariables) {
     if (!(pLeftHandSide instanceof CIdExpression idExpression)) {
       return false;
@@ -1084,6 +1021,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           pCurrentK,
           loopScope.loopHeads());
     }
+    // almost useless, because the generated candidates in our approach always have a loop scope
     return BMCHelper.filterIteration(pReachedSet, pCurrentK, cfa.getAllLoopHeads().orElseThrow());
   }
 
