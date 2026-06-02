@@ -4623,6 +4623,9 @@ distributedSummaries.combineVcsByHash = true
 # information consumes resources and should not be used for benchmarks.
 distributedSummaries.debug = false
 
+# Allow the vertical merge to merge blocks from different functions
+distributedSummaries.decomposition.allowMergingAcrossFunctions = false
+
 # Abstraction nodes are added to each block after they are created. They are
 # needed to strengthen the preconditions of blocks. Missing blocks make the
 # analysis slower but not impossible.

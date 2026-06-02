@@ -31,11 +31,14 @@ public class MergeBlockNodesDecomposition implements DssBlockDecomposition {
       long pTargetNumber,
       int pHorizontalMergeLimit,
       Comparator<BlockNode> pSort,
-      boolean pAllowSingleBlockDecomposition) {
+      boolean pAllowSingleBlockDecomposition,
+      boolean mergeAcrossFunctionBoundaries) {
     horizontalMerger =
         new HorizontalMergeDecomposition(
             pDecomposition, pTargetNumber, pHorizontalMergeLimit, pSort);
-    verticalMerger = new VerticalMergeDecomposition(pDecomposition, pTargetNumber, pSort);
+    verticalMerger =
+        new VerticalMergeDecomposition(
+            pDecomposition, pTargetNumber, pSort, mergeAcrossFunctionBoundaries);
     decomposer = pDecomposition;
     targetNumber = pTargetNumber;
     sort = pSort;

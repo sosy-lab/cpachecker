@@ -58,6 +58,11 @@ public class DssDecompositionOptions {
   private boolean allowSingleBlockDecompositionWhenMerging = false;
 
   @Option(
+      description = "Allow the vertical merge to merge blocks from different functions",
+      secure = true)
+  private boolean allowMergingAcrossFunctions = false;
+
+  @Option(
       description =
           "Limits the horizontal merge so that blocks with more Nodes than this are not merged,"
               + "allowing for more parallelism in the analysis. Negative value allows all merges",
@@ -114,14 +119,16 @@ public class DssDecompositionOptions {
               2,
               largestHorizontalMerge,
               Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
-              allowSingleBlockDecompositionWhenMerging);
+              allowSingleBlockDecompositionWhenMerging,
+              allowMergingAcrossFunctions);
       case INLINING_DECOMPOSITION ->
           new MergeBlockNodesDecomposition(
               new InliningDecomposition(new LinearBlockNodeDecomposition(isBlockEnd)),
               2,
               largestHorizontalMerge,
               Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
-              allowSingleBlockDecompositionWhenMerging);
+              allowSingleBlockDecompositionWhenMerging,
+              allowMergingAcrossFunctions);
       case NO_DECOMPOSITION -> new SingleBlockDecomposition();
     };
   }
