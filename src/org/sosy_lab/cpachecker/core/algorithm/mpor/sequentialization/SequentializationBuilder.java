@@ -144,56 +144,43 @@ public class SequentializationBuilder {
       for (CVariableDeclaration localDeclaration : localDeclarations) {
         CVariableDeclaration variableDeclarationSubstitute =
             buildVariableDeclarationWithSubstituteType(localDeclaration);
-        Optional<CVariableDeclaration> variableDeclaration =
-            tryBuildInputLocalVariableDeclaration(variableDeclarationSubstitute);
-        if (variableDeclaration.isPresent()) {
-          rDeclarations.add(variableDeclaration.orElseThrow().toASTString());
-        }
+        rDeclarations.add(
+            buildInputLocalVariableDeclaration(variableDeclarationSubstitute).toASTString());
       }
     }
     return rDeclarations.toString();
   }
 
-  private static Optional<CVariableDeclaration> tryBuildInputLocalVariableDeclaration(
+  private static CVariableDeclaration buildInputLocalVariableDeclaration(
       CVariableDeclaration pVariableDeclaration) {
 
     checkArgument(!pVariableDeclaration.isGlobal(), "pVariableDeclaration must be local");
 
     // try remove const qualifier from variable
     if (pVariableDeclaration.getType().getQualifiers().containsConst()) {
-      // const CPAchecker_TMP variables are declared and initialized in the statement
-      if (MPORUtil.isConstCpaCheckerTmp(pVariableDeclaration)) {
-        return Optional.empty();
-      } else {
-        // create an identical copy of pVariableDeclaration, but remove const qualifier
-        CType type = pVariableDeclaration.getType();
-        CType typeWithoutConst = type.withQualifiersSetTo(type.getQualifiers().withoutConst());
-        CVariableDeclaration variableDeclarationWithoutConst =
-            new CVariableDeclaration(
-                pVariableDeclaration.getFileLocation(),
-                pVariableDeclaration.isGlobal(),
-                pVariableDeclaration.getCStorageClass(),
-                typeWithoutConst,
-                pVariableDeclaration.getName(),
-                pVariableDeclaration.getOrigName(),
-                pVariableDeclaration.getQualifiedName(),
-                pVariableDeclaration.getInitializer());
-        return tryBuildInputLocalVariableDeclaration(variableDeclarationWithoutConst);
-      }
+      // create an identical copy of pVariableDeclaration, but remove const qualifier
+      CType type = pVariableDeclaration.getType();
+      CType typeWithoutConst = type.withQualifiersSetTo(type.getQualifiers().withoutConst());
+      CVariableDeclaration variableDeclarationWithoutConst =
+          new CVariableDeclaration(
+              pVariableDeclaration.getFileLocation(),
+              pVariableDeclaration.isGlobal(),
+              pVariableDeclaration.getCStorageClass(),
+              typeWithoutConst,
+              pVariableDeclaration.getName(),
+              pVariableDeclaration.getOrigName(),
+              pVariableDeclaration.getQualifiedName(),
+              pVariableDeclaration.getInitializer());
+      return buildInputLocalVariableDeclaration(variableDeclarationWithoutConst);
     }
-
     // otherwise, for non-const variables
-    CInitializer initializer = pVariableDeclaration.getInitializer();
-    if (initializer == null) {
-      // no initializer -> add declaration as is
-      return Optional.of(pVariableDeclaration);
-    }
-    if (MPORUtil.isFunctionPointer(pVariableDeclaration.getInitializer())) {
-      // function pointer initializer -> add declaration as is
-      return Optional.of(pVariableDeclaration);
+    if (pVariableDeclaration.getInitializer() == null
+        || MPORUtil.isFunctionPointer(pVariableDeclaration.getInitializer())) {
+      // no initializer or function pointer initializer are returned without modification
+      return pVariableDeclaration;
     }
     // everything else: add declaration without initializer (and assign later in statements)
-    return Optional.of(MPORUtil.withInitializer(pVariableDeclaration, null));
+    return MPORUtil.withInitializer(pVariableDeclaration, null);
   }
 
   // Input Parameter Declarations ==================================================================
