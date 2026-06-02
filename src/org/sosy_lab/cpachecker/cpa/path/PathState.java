@@ -132,5 +132,4 @@ public class PathState implements AbstractState {
     }
     return "In segment " + segmentIndex + ", remaining paths: " + remainingPaths.build();
   }
-
 }

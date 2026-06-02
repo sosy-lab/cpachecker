@@ -190,7 +190,6 @@ public class DssWitnessExporter {
 
       addDummyTargetToReachedSet(reachedSet);
     }
-
   }
 
   private CFAEdge parseEdge(String edge, Modification pModification) {
