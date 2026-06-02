@@ -24,7 +24,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm.CEGARAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
@@ -80,22 +80,30 @@ public class DssWitnessExporter {
     }
 
     if (resultWithWitness.violationPath != null) {
+      logger.log(Level.INFO, "Preparing Violation Witness");
       fillReachedSetWithViolation(reachedSet, resultWithWitness.violationPath, pModification);
+      logger.log(Level.INFO, "Violation Witness prepared");
+
     } else if (resultWithWitness.correctnessPreConditionCollector != null
         && resultWithWitness.correctnessPreConditionCollector.recievedAllStates()) {
+      logger.log(Level.INFO, "Exporting Correctness Witness");
       exportCorrectnessWitness(resultWithWitness, reachedSet, pModification);
+      logger.log(Level.INFO, "Correctness Witness exported");
 
     } else if (result == Result.FALSE) {
-      // Fallback to dummy target if we did not get witness information
-      ARGState state = (ARGState) reachedSet.getFirstState();
-      assert state != null;
-      CompositeState cState = (CompositeState) state.getWrappedState();
-      Precision initialPrecision = reachedSet.getPrecision(state);
-      assert cState != null;
-      List<AbstractState> states = new ArrayList<>(cState.getWrappedStates());
-      states.add(DummyTargetState.withoutTargetInformation());
-      reachedSet.add(new ARGState(new CompositeState(states), null), initialPrecision);
+      addDummyTargetToReachedSet(reachedSet);
     }
+  }
+
+  private void addDummyTargetToReachedSet(ReachedSet reachedSet) {
+    ARGState state = (ARGState) reachedSet.getFirstState();
+    assert state != null;
+    CompositeState cState = (CompositeState) state.getWrappedState();
+    Precision initialPrecision = reachedSet.getPrecision(state);
+    assert cState != null;
+    List<AbstractState> states = new ArrayList<>(cState.getWrappedStates());
+    states.add(DummyTargetState.withoutTargetInformation());
+    reachedSet.add(new ARGState(new CompositeState(states), null), initialPrecision);
   }
 
   private void exportCorrectnessWitness(
@@ -146,10 +154,8 @@ public class DssWitnessExporter {
 
     reachedSet.clear();
 
-    // TODO Do we get more useful assumptions for the violation witness if we have a relevant
-    // precision for the violation conditions?
-    // Or can we run CEGAR? just using it directly, I came across problems where the path was not
-    // followed to the end
+    // TODO Do we need to speed this up by tracking the relevant precision for the violation
+    // conditions?
     reachedSet.add(
         violationCPA.getInitialState(
             modification.metadata().originalCfa().getMainFunction(),
@@ -158,7 +164,7 @@ public class DssWitnessExporter {
             modification.metadata().originalCfa().getMainFunction(),
             StateSpacePartition.getDefaultPartition()));
 
-    Algorithm violationAlgorithm =
+    try (CEGARAlgorithm violationAlgorithm =
         new CEGARAlgorithmFactory(
                 CPAAlgorithm.create(
                     violationCPA, logger, configuration, shutdownManager.getNotifier()),
@@ -166,9 +172,25 @@ public class DssWitnessExporter {
                 logger,
                 configuration,
                 shutdownManager.getNotifier())
-            .newInstance();
+            .newInstance()) {
 
-    violationAlgorithm.run(reachedSet);
+      violationAlgorithm.run(reachedSet);
+    }
+
+    if (!reachedSet.wasTargetReached()) {
+      logger.log(Level.SEVERE, "Violation path for witness was not correct, cancelling export");
+      reachedSet.clear();
+      reachedSet.add(
+          violationCPA.getInitialState(
+              modification.metadata().originalCfa().getMainFunction(),
+              StateSpacePartition.getDefaultPartition()),
+          violationCPA.getInitialPrecision(
+              modification.metadata().originalCfa().getMainFunction(),
+              StateSpacePartition.getDefaultPartition()));
+
+      addDummyTargetToReachedSet(reachedSet);
+    }
+
   }
 
   private CFAEdge parseEdge(String edge, Modification pModification) {
