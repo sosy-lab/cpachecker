@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 
 public class PathCPA extends AbstractCPA {
 
-  private ImmutableList<CFAEdge> path;
+  private SegmentedPathCollection pathCollection;
 
   public PathCPA() {
     super("sep", "sep", new FlatLatticeDomain(), new PathTransferRelation());
@@ -28,9 +28,17 @@ public class PathCPA extends AbstractCPA {
 
   public void init(ImmutableList<CFAEdge> pPath) {
     Preconditions.checkNotNull(pPath);
-    Preconditions.checkState(path == null);
-    Preconditions.checkArgument(!pPath.isEmpty());
-    path = pPath;
+    init(
+        new SegmentedPathCollection(
+            ImmutableList.of(
+                new SegmentedPathCollection.PathSegment(
+                    ImmutableList.of(new SegmentedPathCollection.CFAPath(pPath))))));
+  }
+
+  public void init(SegmentedPathCollection pPathCollection) {
+    Preconditions.checkNotNull(pPathCollection);
+    Preconditions.checkState(pathCollection == null);
+    pathCollection = pPathCollection;
   }
 
   public static CPAFactory factory() {
@@ -40,8 +48,9 @@ public class PathCPA extends AbstractCPA {
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    if (path != null && path.getFirst().getPredecessor().equals(node)) {
-      return new PathState(path);
+    if (pathCollection != null
+        && pathCollection.segments().getFirst().getFirstNode().equals(node)) {
+      return new PathState(pathCollection);
     } else {
       return PathState.INVALID;
     }

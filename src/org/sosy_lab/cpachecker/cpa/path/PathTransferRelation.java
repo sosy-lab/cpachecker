@@ -22,14 +22,16 @@ public class PathTransferRelation extends SingleEdgeTransferRelation {
       AbstractState element, Precision prec, CFAEdge cfaEdge) {
     PathState pathState = (PathState) element;
 
-    if (!pathState.canAdvance()) {
+    if (pathState.isInvalid()) {
       return ImmutableList.of();
     }
 
-    if (cfaEdge.equals(pathState.getAdvanceEdge())) {
-      return ImmutableList.of(pathState.advance());
-    } else {
+    PathState newState = pathState.followEdge(cfaEdge);
+
+    if (newState.isInvalid()) {
       return ImmutableList.of();
     }
+
+    return ImmutableList.of(newState);
   }
 }
