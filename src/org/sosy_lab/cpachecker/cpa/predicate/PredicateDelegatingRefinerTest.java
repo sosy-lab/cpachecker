@@ -92,7 +92,7 @@ public class PredicateDelegatingRefinerTest {
 
   // Creates a default map of available refiners for the DelegatingRefiner
   private ImmutableMap<DelegatingRefinerRefinerType, Refiner> setUpRefinerMap(
-      PredicateCPARefinerFactory pRefinerFactory) {
+      PredicateCPARefinerFactory pRefinerFactory) throws InvalidConfigurationException {
     return pRefinerFactory.buildRefinerMap(defaultRefiner, staticRefiner);
   }
 

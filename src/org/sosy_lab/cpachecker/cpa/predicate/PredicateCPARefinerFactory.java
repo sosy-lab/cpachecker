@@ -263,12 +263,16 @@ public final class PredicateCPARefinerFactory {
   // value for the DelegatingRefiner heuristics. To support a new refiner, please add an entry to
   // DelegatingRefinerRefinerType and extend this map accordingly.
   ImmutableMap<DelegatingRefinerRefinerType, Refiner> buildRefinerMap(
-      Refiner defaultRefiner, Refiner staticRefiner) {
+      Refiner defaultRefiner, Refiner staticRefiner) throws InvalidConfigurationException {
     return ImmutableMap.of(
         DelegatingRefinerRefinerType.DEFAULT,
         defaultRefiner,
         DelegatingRefinerRefinerType.STATIC,
         staticRefiner,
+        DelegatingRefinerRefinerType.IMPACT_GLOBAL,
+        ImpactGlobalRefiner.create(cpa),
+        DelegatingRefinerRefinerType.PREDICATE_GLOBAL,
+        PredicateGlobalRefiner.create(cpa),
         DelegatingRefinerRefinerType.STOP,
         new PredicateStopRefiner());
   }
