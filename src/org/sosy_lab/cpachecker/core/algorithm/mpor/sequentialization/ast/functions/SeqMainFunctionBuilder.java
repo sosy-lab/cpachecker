@@ -50,7 +50,7 @@ public final class SeqMainFunctionBuilder {
       throws UnrecognizedCodeException {
 
     return new CExportFunctionDefinition(
-        pFields.mainFunctionDeclaration, buildBody(pOptions, pFields, pUtils));
+        pFields.outputMainFunctionDeclaration, buildBody(pOptions, pFields, pUtils));
   }
 
   private static CCompoundStatement buildBody(

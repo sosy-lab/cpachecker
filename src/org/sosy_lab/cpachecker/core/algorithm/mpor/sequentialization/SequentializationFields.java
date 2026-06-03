@@ -44,10 +44,9 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
 
 public class SequentializationFields {
 
-  private static final CFunctionType MAIN_FUNCTION_TYPE =
-      new CFunctionType(CNumericTypes.INT, ImmutableList.of(), false);
+  public final CFunctionDeclaration inputMainFunctionDeclaration;
 
-  public final CFunctionDeclaration mainFunctionDeclaration;
+  public final CFunctionDeclaration outputMainFunctionDeclaration;
 
   public final int numThreads;
 
@@ -86,15 +85,16 @@ public class SequentializationFields {
 
     resetStaticFields();
 
-    // The sequentialized main function never has any parameters, regardless of the input CFA,
-    // because the main function arguments from the input program are explicit variables in the
-    // sequentialization.
-    String mainFunctionName = pInputCfa.getMainFunction().getFunctionName();
-    mainFunctionDeclaration =
+    inputMainFunctionDeclaration = (CFunctionDeclaration) pInputCfa.getMainFunction().getFunction();
+    outputMainFunctionDeclaration =
         new CFunctionDeclaration(
             FileLocation.DUMMY,
-            MAIN_FUNCTION_TYPE,
-            mainFunctionName,
+            // The sequentialized main function never has any parameters, regardless of the input
+            // CFA, because the main function arguments from the input program are explicit
+            // variables in the sequentialization.
+            new CFunctionType(CNumericTypes.INT, ImmutableList.of(), false),
+            // pass on the input main functions name
+            inputMainFunctionDeclaration.getName(),
             ImmutableList.of(),
             ImmutableSet.of());
 

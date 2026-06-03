@@ -57,7 +57,7 @@ public class SequentializationBuilder {
 
   public static String buildInputFunctionAndTypeDeclarations(
       MPOROptions pOptions,
-      CFunctionDeclaration pMainFunctionDeclaration,
+      CFunctionDeclaration pInputMainFunctionDeclaration,
       ImmutableList<MPORThread> pThreads)
       throws UnrecognizedCodeException {
 
@@ -70,7 +70,7 @@ public class SequentializationBuilder {
       ImmutableList<CDeclaration> nonVariableDeclarations =
           MPORThreadUtil.extractNonVariableDeclarations(thread);
       for (CDeclaration declaration : nonVariableDeclarations) {
-        if (isIncludedDeclaration(pOptions, declaration, pMainFunctionDeclaration)) {
+        if (isIncludedDeclaration(pOptions, declaration, pInputMainFunctionDeclaration)) {
           if (declaration instanceof CTypeDeclaration typeDeclaration) {
             // For CTypeDeclaration, substitute pthread types such as pthread_mutex_t so that they
             // can be simulated.
@@ -113,15 +113,12 @@ public class SequentializationBuilder {
   private static boolean isIncludedDeclaration(
       MPOROptions pOptions,
       CDeclaration pDeclaration,
-      CFunctionDeclaration pMainFunctionDeclaration) {
+      CFunctionDeclaration pInputMainFunctionDeclaration) {
 
     if (pDeclaration instanceof CFunctionDeclaration functionDeclaration) {
       if (!pOptions.inputFunctionDeclarations()
           // The main function declaration from the input is not included, we declare it ourselves.
-          // The comparison is done by name because the CType may mismatch, e.g., when comparing
-          // 'int main();' as declared by the sequentialization and 'int main(int arg);' from the
-          // input program, then they are not equal, but we want them to be equal here.
-          || functionDeclaration.getName().equals(pMainFunctionDeclaration.getName())) {
+          || functionDeclaration.equals(pInputMainFunctionDeclaration)) {
         return false;
       }
     }
@@ -344,11 +341,13 @@ public class SequentializationBuilder {
           .values()
           .forEach(f -> rDeclarations.add(f.getDeclaration().toASTString()));
     }
+
     // The main function declaration should always be included, regardless of whether the input
     // programs function declarations are included, because the main function declaration from the
     // input is never included to prevent type mismatches of duplicate declarations such as:
     // 'int main();' as declared by the sequentialization and 'int main(int arg);' from the input.
-    rDeclarations.add(pFields.mainFunctionDeclaration.toASTString());
+    rDeclarations.add(pFields.outputMainFunctionDeclaration.toASTString());
+
     return rDeclarations.toString();
   }
 
