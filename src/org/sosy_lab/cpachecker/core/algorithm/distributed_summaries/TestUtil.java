@@ -17,9 +17,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
-import org.sosy_lab.cpachecker.util.test.TestResults;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /** Helper class for Distributed Summary Synthesis tests. */
 public class TestUtil {
@@ -47,16 +47,16 @@ public class TestUtil {
   public static CFA buildTestCFA(String path) throws Exception {
 
     Configuration config =
-        TestDataTools.configurationForTest().loadFromFile(CFA_CONFIGURATION_FILE).build();
+        TestUtils.configurationForTest().loadFromFile(CFA_CONFIGURATION_FILE).build();
 
-    TestResults result = CPATestRunner.run(config, path);
+    IntegrationTestResult result = IntegrationTestRunner.run(config, path);
 
-    CFA cfa = result.getCheckerResult().getCfa();
+    CFA cfa = result.cpaCheckerResult().getCfa();
 
     if (cfa == null) {
       throw new IllegalArgumentException("Could not create a CFA out of the file '" + path + "'");
     }
 
-    return result.getCheckerResult().getCfa();
+    return result.cpaCheckerResult().getCfa();
   }
 }

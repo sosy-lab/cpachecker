@@ -56,6 +56,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/loops/vogal-2.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/cohendiv-ll_valuebound2.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/geo3-ll_valuebound2.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/nla-digbench-scaling/hard-ll_valuebound5.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/hard2_unwindbound5.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/knuth_valuebound50.yml</exclude> <!-- flapping timeout / interpolation failure -->
   </tasks>

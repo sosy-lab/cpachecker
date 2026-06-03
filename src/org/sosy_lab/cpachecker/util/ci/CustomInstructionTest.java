@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 
 public class CustomInstructionTest {
   private CustomInstructionApplications cia;
@@ -56,7 +56,7 @@ public class CustomInstructionTest {
   @SuppressForbidden("reflection only in test")
   public void init() throws Exception {
     cfa =
-        TestDataTools.makeCFA(
+        TestCfaUtils.makeCFA(
             """
             void main(int a) {
               int a;
@@ -221,7 +221,7 @@ public class CustomInstructionTest {
   @Test
   public void testInspectAppliedCustomInstruction() throws Exception {
     cfa =
-        TestDataTools.makeCFA(
+        TestCfaUtils.makeCFA(
             """
             extern int f2(int);
             int f(int x) {

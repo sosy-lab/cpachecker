@@ -21,7 +21,10 @@ import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
@@ -87,6 +90,10 @@ public final class SeqThreadStatementUtil {
       }
     }
     return false;
+  }
+
+  static boolean isFunctionExitOrTerminationNode(CFANode pCfaNode) {
+    return pCfaNode instanceof FunctionExitNode || pCfaNode instanceof CFATerminationNode;
   }
 
   // Statement Finder ==============================================================================
@@ -179,7 +186,7 @@ public final class SeqThreadStatementUtil {
 
     // create the pc write
     CExpressionAssignmentStatement pcAssignmentStatement =
-        ProgramCounterVariables.buildPcAssignmentStatement(pPcLeftHandSide, pTargetPc);
+        SeqProgramCounterVariables.buildPcAssignmentStatement(pPcLeftHandSide, pTargetPc);
     boolean emptyBitVectorEvaluation =
         SeqThreadStatementUtil.isAnyBitVectorEvaluationExpressionEmpty(pruned);
 

@@ -18,10 +18,9 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CVariableDeclarationWrapper;
 
 /**
  * Each {@link CFAEdge} from the input program corresponds to a {@link SeqThreadStatement} which is
@@ -60,17 +59,6 @@ public record SeqThreadStatement(
     checkArgument(
         targetPc.isPresent() ^ targetGoto.isPresent(),
         "Either targetPc or targetGoto must be present (exclusive or).");
-    if (data.getType().equals(SeqThreadStatementType.CONST_CPACHECKER_TMP)) {
-      checkArgument(
-          exportStatements.stream().anyMatch(n -> n instanceof CVariableDeclarationWrapper),
-          "If the statement type is CONST_CPACHECKER_TMP, then exportStatements must contain"
-              + " a CVariableDeclarationWrapper.");
-    } else {
-      checkArgument(
-          exportStatements.stream().noneMatch(n -> n instanceof CVariableDeclarationWrapper),
-          "If the statement type is not CONST_CPACHECKER_TMP, then exportStatements cannot contain"
-              + " a CVariableDeclarationWrapper.");
-    }
   }
 
   public static SeqThreadStatement of(
@@ -85,18 +73,18 @@ public record SeqThreadStatement(
 
   /**
    * Returns true if the target {@code pc} is present and not equal to {@link
-   * ProgramCounterVariables#EXIT_PC}, i.e. if it actually targets another statement.
+   * SeqProgramCounterVariables#EXIT_PC}, i.e. if it actually targets another statement.
    */
   public boolean isTargetPcValid() {
-    return targetPc.filter(pc -> pc != ProgramCounterVariables.EXIT_PC).isPresent();
+    return targetPc.filter(pc -> pc != SeqProgramCounterVariables.EXIT_PC).isPresent();
   }
 
   /**
    * Returns true if the target {@code pc} is present and equal to {@link
-   * ProgramCounterVariables#EXIT_PC}, i.e. if it terminates a thread.
+   * SeqProgramCounterVariables#EXIT_PC}, i.e. if it terminates a thread.
    */
   public boolean isTargetPcExit() {
-    return targetPc.filter(pc -> pc == ProgramCounterVariables.EXIT_PC).isPresent();
+    return targetPc.filter(pc -> pc == SeqProgramCounterVariables.EXIT_PC).isPresent();
   }
 
   /**
@@ -124,10 +112,10 @@ public record SeqThreadStatement(
   public SeqThreadStatement withTargetPc(int pTargetPc) {
     if (data.getType().equals(SeqThreadStatementType.THREAD_EXIT)) {
       checkArgument(
-          pTargetPc == ProgramCounterVariables.EXIT_PC,
+          pTargetPc == SeqProgramCounterVariables.EXIT_PC,
           "%s should only be cloned with exit pc %s",
           SeqThreadStatementType.THREAD_EXIT,
-          ProgramCounterVariables.EXIT_PC);
+          SeqProgramCounterVariables.EXIT_PC);
     }
     return new SeqThreadStatement(
         data, Optional.of(pTargetPc), Optional.empty(), instrumentation, exportStatements);

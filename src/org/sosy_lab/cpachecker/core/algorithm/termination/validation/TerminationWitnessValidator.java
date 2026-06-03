@@ -394,7 +394,7 @@ public class TerminationWitnessValidator implements Algorithm {
 
   private boolean isTheInvariantLocationInLoop(
       LoopStructure.Loop pLoop, CFANode pInvariantLocation) {
-    for (CFANode loopNode : pLoop.getLoopNodes()) {
+    for (CFANode loopNode : pLoop.getLoopHeads()) {
       if (loopNode.equals(pInvariantLocation)) {
         return true;
       }
