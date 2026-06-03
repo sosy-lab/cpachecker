@@ -22,7 +22,6 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
@@ -454,14 +453,16 @@ class KInductionProver implements AutoCloseable {
   /**
    * Symbolic 1-step universal-closure check for non-termination.
    *
-   * <p>For every candidate-source location, builds a fresh pre-state path formula via {@link
-   * PathFormulaManager#makeEmptyPathFormulaWithContextFrom} (inherits the SSA/PTS context without
-   * binding values to the main-init constraints), enumerates the body's CFA paths to all
-   * candidate-target locations via {@link #propagateOneIterationWithTransferRelation}, and asks the
-   * solver whether
+   * <p>A non-termination candidate is treated as one state-wise bundle whose conjuncts may live at
+   * different CFA locations in the same loop. For each loop head, this check builds a fresh
+   * symbolic path-formula context, propagates one loop iteration with CPAchecker's transfer
+   * relation, asserts candidate components whenever their locations are visited, and asks the solver
+   * whether any path can either exit the loop or reach a next-iteration candidate location where the
+   * corresponding component is violated:
    *
    * <pre>{@code
-   * C(s) AND T(s, s') AND NOT C(s')
+   * T(H_k -> P_k) AND C(P_k) AND T(P_k -> H_{k+1})
+   *     AND T(H_{k+1} -> Q_{k+1}) AND NOT C(Q_{k+1})
    * }</pre>
    *
    * is satisfiable for any (source, target) pair.
@@ -499,11 +500,6 @@ class KInductionProver implements AutoCloseable {
     try {
       Loop loop = findLoopForSymbolicCheck(pCandidateInvariant, pLoopScope);
       if (loop == null) {
-        // DIAG: bail #1 - loop matching failure.
-        logger.logf(
-            Level.INFO,
-            "Symbolic bail #1 (findLoop): could not determine target loop for candidate %s.",
-            pCandidateInvariant);
         return Optional.empty();
       }
 
@@ -511,12 +507,6 @@ class KInductionProver implements AutoCloseable {
       for (CandidateInvariant component :
           CandidateInvariantCombination.getConjunctiveParts(pCandidateInvariant)) {
         if (!(component instanceof SingleLocationFormulaInvariant slfi)) {
-          // DIAG: bail #2 - candidate carries a non-SLFI component.
-          logger.logf(
-              Level.INFO,
-              "Symbolic bail #2 (unsupported component): component type %s in candidate %s.",
-              component.getClass().getSimpleName(),
-              pCandidateInvariant);
           return Optional.empty();
         }
         componentsByLocation
@@ -530,34 +520,26 @@ class KInductionProver implements AutoCloseable {
         return Optional.empty();
       }
 
-      // Unified closure semantics:
-      //   The loop head is only the iteration anchor used for SSA/path-formula context.
-      //   The actual induction source is every non-successor-only candidate location P.
-      //
-      //   For every loop head H and candidate source P, first build the current-iteration
-      //   prefix H_k -> P_k. Then assert C(P_k) at P's own SSA context. This is the
-      //   missing current-round assumption for candidates that are not located at the loop
-      //   head (for example candidates at a while guard).
+      // Bundle closure semantics:
+      //   A non-termination candidate is state-wise/location-scoped: different conjuncts can
+      //   belong to different CFA nodes of the same loop.  We therefore must not prove every
+      //   location component independently.  Instead, one symbolic loop iteration starts at a
+      //   loop head H, and the transfer relation adds all candidate components whenever their
+      //   locations are visited on the path.  This encodes the current candidate bundle.
       //
       //   Bad clauses:
-      //     T(H_k -> P_k) and C(P_k) and T(P_k -> exit)
-      //     T(H_k -> P_k) and C(P_k) and T(P_k -> H_{k+1})
-      //       and T(H_{k+1} -> exit)
-      //     T(H_k -> P_k) and C(P_k) and T(P_k -> H_{k+1})
-      //       and T(H_{k+1} -> P_{k+1}) and not C(P_{k+1})
+      //     T(H_k -> exit) while all candidate components encountered before the exit hold
+      //     T(H_k -> H_{k+1}) and not C_H(H_{k+1})
+      //     T(H_k -> H_{k+1}) and T(H_{k+1} -> exit) while next-iteration components hold
+      //     T(H_k -> H_{k+1}) and T(H_{k+1} -> P_{k+1}) and not C_P(P_{k+1})
       //
-      //   The last clause is generated for the same candidate location P in the next
-      //   iteration. This checks that each candidate component is preserved by one full
-      //   loop iteration at its own CFA location instead of requiring a source P to imply
-      //   unrelated candidate locations Q.
-      //
-      //   UNSAT(all bad clauses) means no candidate source can exit and no next visit to
-      //   the same candidate location can violate its component. SAT is a real closure
-      //   counterexample, so the caller must not fall back to the bounded closure check as a
-      //   proof.
+      //   The last two clauses check the next iteration's bundle: all earlier candidate
+      //   components on the prefix to P are asserted by the transfer propagation, and P itself
+      //   is left unasserted so that the solver can witness a violation there.  UNSAT(all bad
+      //   clauses) means no path satisfying the current bundle can exit or reach a next
+      //   component violation.
       ImmutableSet<CFANode> symbolicLoopHeads = ImmutableSet.copyOf(loop.getLoopHeads());
       if (symbolicLoopHeads.isEmpty()) {
-        logger.logf(Level.INFO, "Symbolic bail #3 (no loop heads): loop=%s.", loop);
         return Optional.empty();
       }
       Map<CFANode, List<CandidateInvariant>> nonSuccOnlyComponentsByLocation =
@@ -565,24 +547,11 @@ class KInductionProver implements AutoCloseable {
       nonSuccOnlyComponentsByLocation
           .entrySet()
           .removeIf(entry -> !loop.getLoopNodes().contains(entry.getKey()));
-      Map<CFANode, List<CandidateInvariant>> sourceComponentsByLocation =
-          getTerminalCandidateSources(
-              nonSuccOnlyComponentsByLocation, loop, symbolicLoopHeads, exitSuccessors);
       if (nonSuccOnlyComponentsByLocation.isEmpty()) {
-        logger.logf(
-            Level.INFO,
-            "Symbolic bail #3 (no sources): every in-loop component is successor-only;"
-                + " componentsByLocation=%s.",
-            componentsByLocation.keySet());
         return Optional.empty();
       }
-      if (sourceComponentsByLocation.isEmpty()) {
-        logger.logf(
-            Level.INFO,
-            "Symbolic bail #3 (no terminal sources): sourceCandidates=%s.",
-            nonSuccOnlyComponentsByLocation.keySet());
-        return Optional.empty();
-      }
+      ImmutableSet<CFANode> candidateLocations =
+          ImmutableSet.copyOf(nonSuccOnlyComponentsByLocation.keySet());
 
       // Make sure KInductionProver's *internal* reached set has been unrolled at least one
       // iteration, so we can pull a PredicateAbstractState (and thus an SSA context) from
@@ -594,271 +563,171 @@ class KInductionProver implements AutoCloseable {
       List<BooleanFormula> allBads = new ArrayList<>();
       badObligations = new ArrayList<>();
       List<BooleanFormula> allPreconditions = new ArrayList<>();
-      int sourcesProcessed = 0;
-      int loopHeadsSkippedNoState = 0;
-      int sourcePrefixesSkipped = 0;
 
       for (CFANode loopHead : symbolicLoopHeads) {
         shutdownNotifier.shutdownIfNecessary();
         Optional<AbstractState> anySourceState =
             AbstractStates.filterLocations(reached, ImmutableSet.of(loopHead)).stream().findFirst();
         if (anySourceState.isEmpty()) {
-          loopHeadsSkippedNoState++;
-          logger.logf(
-              Level.INFO, "Symbolic per-loop-head skip (no reached state): source=%s.", loopHead);
           continue;
         }
         PredicateAbstractState pas =
             AbstractStates.extractStateByType(
                 anySourceState.orElseThrow(), PredicateAbstractState.class);
         if (pas == null) {
-          loopHeadsSkippedNoState++;
-          logger.logf(
-              Level.INFO,
-              "Symbolic per-loop-head skip (no PredicateAbstractState): source=%s.",
-              loopHead);
           continue;
         }
         PathFormula pfAtLoopHead = pfmgr.makeEmptyPathFormulaWithContextFrom(pas.getPathFormula());
         AbstractState loopHeadState = anySourceState.orElseThrow();
         Precision loopHeadPrecision = reached.getPrecision(loopHeadState);
 
-        for (Map.Entry<CFANode, List<CandidateInvariant>> sourceEntry :
-            sourceComponentsByLocation.entrySet()) {
-          shutdownNotifier.shutdownIfNecessary();
-          CFANode source = sourceEntry.getKey();
-
-          List<SymbolicTransferArrival> sourceArrivals;
-          if (source.equals(loopHead)) {
-            Optional<AbstractState> seededLoopHeadState =
-                replacePredicatePathFormula(loopHeadState, pfAtLoopHead);
-            if (seededLoopHeadState.isEmpty()) {
-              logger.logf(
-                  Level.INFO, "Symbolic bail #4 (loop-head seed failed): loopHead=%s.", loopHead);
-              return Optional.empty();
-            }
-            sourceArrivals =
-                ImmutableList.of(
-                    new SymbolicTransferArrival(
-                        loopHead,
-                        pfAtLoopHead,
-                        seededLoopHeadState.orElseThrow(),
-                        loopHeadPrecision));
-          } else {
-            Map<CFANode, List<SymbolicTransferArrival>> sourcePrefixArrivals =
-                propagateOneIterationWithTransferRelation(
-                    loopHead,
-                    pfAtLoopHead,
-                    loopHeadState,
-                    loopHeadPrecision,
-                    ImmutableSet.of(source),
-                    exitSuccessors,
-                    nonSuccOnlyComponentsByLocation,
-                    false);
-            if (sourcePrefixArrivals == null) {
-              logger.logf(
-                  Level.INFO,
-                  "Symbolic bail #4 (source-prefix propagation null): loopHead=%s, source=%s.",
+        if (!exitSuccessors.isEmpty()) {
+          Map<CFANode, List<SymbolicTransferArrival>> exitArrivals =
+              propagateOneIterationWithTransferRelation(
                   loopHead,
-                  source);
-              return Optional.empty();
-            }
-            sourceArrivals = sourcePrefixArrivals.getOrDefault(source, ImmutableList.of());
-            if (sourceArrivals.isEmpty()) {
-              sourcePrefixesSkipped++;
-              logger.logf(
-                  Level.INFO,
-                  "Symbolic per-source skip (no prefix from loop head): loopHead=%s, source=%s.",
-                  loopHead,
-                  source);
-              continue;
+                  pfAtLoopHead,
+                  loopHeadState,
+                  loopHeadPrecision,
+                  exitSuccessors,
+                  exitSuccessors,
+                  nonSuccOnlyComponentsByLocation);
+          if (exitArrivals == null) {
+            return Optional.empty();
+          }
+          for (Map.Entry<CFANode, List<SymbolicTransferArrival>> exitEntry :
+              exitArrivals.entrySet()) {
+            for (SymbolicTransferArrival exitArrival : exitEntry.getValue()) {
+              BooleanFormula exitBad = exitArrival.pathFormula().getFormula();
+              allBads.add(exitBad);
+              badObligations.add(
+                  new SymbolicBadObligation(
+                      "exit",
+                      loopHead,
+                      Optional.of(exitEntry.getKey()),
+                      pfAtLoopHead,
+                      nonSuccOnlyComponentsByLocation.getOrDefault(loopHead, ImmutableList.of()),
+                      exitBad));
             }
           }
+        }
 
-          for (SymbolicTransferArrival sourceArrival : sourceArrivals) {
-            PathFormula pfAtSource = sourceArrival.pathFormula();
-            BooleanFormula cAtSource = instantiateComponentsAt(sourceEntry.getValue(), pfAtSource);
-            BooleanFormula sourcePrecondition = bfmgr.and(pfAtSource.getFormula(), cAtSource);
-            List<BooleanFormula> sourceBads = new ArrayList<>();
-            boolean hasPreservationPath = false;
+        Map<CFANode, List<SymbolicTransferArrival>> nextLoopHeadArrivals =
+            propagateOneIterationWithTransferRelation(
+                loopHead,
+                pfAtLoopHead,
+                loopHeadState,
+                loopHeadPrecision,
+                symbolicLoopHeads,
+                exitSuccessors,
+                nonSuccOnlyComponentsByLocation);
+        if (nextLoopHeadArrivals == null) {
+          return Optional.empty();
+        }
+
+        for (Map.Entry<CFANode, List<SymbolicTransferArrival>> nextLoopHeadEntry :
+            nextLoopHeadArrivals.entrySet()) {
+          shutdownNotifier.shutdownIfNecessary();
+          CFANode nextLoopHead = nextLoopHeadEntry.getKey();
+          List<CandidateInvariant> nextLoopHeadComponents =
+              nonSuccOnlyComponentsByLocation.getOrDefault(nextLoopHead, ImmutableList.of());
+
+          for (SymbolicTransferArrival nextLoopHeadArrival : nextLoopHeadEntry.getValue()) {
+            PathFormula pfAtNextLoopHead = nextLoopHeadArrival.pathFormula();
+            allPreconditions.add(pfAtNextLoopHead.getFormula());
+
+            if (!nextLoopHeadComponents.isEmpty()) {
+              BooleanFormula cAtNextLoopHead =
+                  instantiateComponentsAt(nextLoopHeadComponents, pfAtNextLoopHead);
+              BooleanFormula loopHeadViolation =
+                  bfmgr.and(pfAtNextLoopHead.getFormula(), bfmgr.not(cAtNextLoopHead));
+              allBads.add(loopHeadViolation);
+              badObligations.add(
+                  new SymbolicBadObligation(
+                      "loop-head-preservation",
+                      nextLoopHead,
+                      Optional.of(nextLoopHead),
+                      pfAtNextLoopHead,
+                      nextLoopHeadComponents,
+                      loopHeadViolation));
+            }
 
             if (!exitSuccessors.isEmpty()) {
-              Map<CFANode, List<SymbolicTransferArrival>> exitArrivals =
+              Map<CFANode, List<SymbolicTransferArrival>> postIterationExitArrivals =
                   propagateOneIterationWithTransferRelation(
-                      source,
-                      pfAtSource,
-                      sourceArrival.state(),
-                      sourceArrival.precision(),
+                      nextLoopHead,
+                      pfAtNextLoopHead,
+                      nextLoopHeadArrival.state(),
+                      nextLoopHeadArrival.precision(),
                       exitSuccessors,
                       exitSuccessors,
-                      nonSuccOnlyComponentsByLocation,
-                      false);
-              if (exitArrivals == null) {
-                logger.logf(
-                    Level.INFO, "Symbolic bail #4 (exit propagation null): source=%s.", source);
+                      nonSuccOnlyComponentsByLocation);
+              if (postIterationExitArrivals == null) {
                 return Optional.empty();
               }
-              if (!exitArrivals.isEmpty()) {
-                List<BooleanFormula> exitTransitions = new ArrayList<>();
-                for (List<SymbolicTransferArrival> arrivalsAtExit : exitArrivals.values()) {
-                  for (SymbolicTransferArrival exitArrival : arrivalsAtExit) {
-                    exitTransitions.add(exitArrival.pathFormula().getFormula());
-                  }
-                }
-                BooleanFormula exitBad = bfmgr.and(cAtSource, bfmgr.or(exitTransitions));
-                sourceBads.add(exitBad);
-                badObligations.add(
-                    new SymbolicBadObligation(
-                        "exit",
-                        source,
-                        Optional.empty(),
-                        pfAtSource,
-                        sourceEntry.getValue(),
-                        exitBad));
-              }
-            }
-
-            Map<CFANode, List<SymbolicTransferArrival>> nextLoopHeadArrivals =
-                propagateOneIterationWithTransferRelation(
-                    source,
-                    pfAtSource,
-                    sourceArrival.state(),
-                    sourceArrival.precision(),
-                    symbolicLoopHeads,
-                    exitSuccessors,
-                    nonSuccOnlyComponentsByLocation,
-                    false);
-            if (nextLoopHeadArrivals == null) {
-              logger.logf(
-                  Level.INFO,
-                  "Symbolic bail #4 (next-loop-head propagation null): source=%s.",
-                  source);
-              return Optional.empty();
-            }
-            for (Map.Entry<CFANode, List<SymbolicTransferArrival>> nextLoopHeadEntry :
-                nextLoopHeadArrivals.entrySet()) {
-              shutdownNotifier.shutdownIfNecessary();
-              CFANode nextLoopHead = nextLoopHeadEntry.getKey();
-
-              for (SymbolicTransferArrival nextLoopHeadArrival : nextLoopHeadEntry.getValue()) {
-                if (!exitSuccessors.isEmpty()) {
-                  Map<CFANode, List<SymbolicTransferArrival>> postIterationExitArrivals =
-                      propagateOneIterationWithTransferRelation(
-                          nextLoopHead,
-                          nextLoopHeadArrival.pathFormula(),
-                          nextLoopHeadArrival.state(),
-                          nextLoopHeadArrival.precision(),
-                          exitSuccessors,
-                          exitSuccessors,
-                          ImmutableMap.of(),
-                          false);
-                  if (postIterationExitArrivals == null) {
-                    logger.logf(
-                        Level.INFO,
-                        "Symbolic bail #4 (post-iteration exit propagation null): source=%s,"
-                            + " nextLoopHead=%s.",
-                        source,
-                        nextLoopHead);
-                    return Optional.empty();
-                  }
-                  if (!postIterationExitArrivals.isEmpty()) {
-                    List<BooleanFormula> postIterationExitTransitions = new ArrayList<>();
-                    for (List<SymbolicTransferArrival> arrivalsAtExit :
-                        postIterationExitArrivals.values()) {
-                      for (SymbolicTransferArrival exitArrival : arrivalsAtExit) {
-                        postIterationExitTransitions.add(exitArrival.pathFormula().getFormula());
-                      }
-                    }
-                    BooleanFormula postIterationExitBad =
-                        bfmgr.and(cAtSource, bfmgr.or(postIterationExitTransitions));
-                    sourceBads.add(postIterationExitBad);
-                    badObligations.add(
-                        new SymbolicBadObligation(
-                            "post-iteration-exit",
-                            source,
-                            Optional.empty(),
-                            pfAtSource,
-                            sourceEntry.getValue(),
-                            postIterationExitBad));
-                  }
-                }
-
-                List<SymbolicTransferArrival> nextSourceArrivals;
-                if (source.equals(nextLoopHead)) {
-                  nextSourceArrivals = ImmutableList.of(nextLoopHeadArrival);
-                } else {
-                  Map<CFANode, List<SymbolicTransferArrival>> targetArrivals =
-                      propagateOneIterationWithTransferRelation(
-                          nextLoopHead,
-                          nextLoopHeadArrival.pathFormula(),
-                          nextLoopHeadArrival.state(),
-                          nextLoopHeadArrival.precision(),
-                          ImmutableSet.of(source),
-                          exitSuccessors,
-                          ImmutableMap.of(),
-                          false);
-                  if (targetArrivals == null) {
-                    logger.logf(
-                        Level.INFO,
-                        "Symbolic bail #4 (target propagation null): source=%s,"
-                            + " nextLoopHead=%s, target=%s.",
-                        source,
-                        nextLoopHead,
-                        source);
-                    return Optional.empty();
-                  }
-                  nextSourceArrivals = targetArrivals.getOrDefault(source, ImmutableList.of());
-                  if (nextSourceArrivals.isEmpty()) {
-                    continue;
-                  }
-                }
-
-                for (SymbolicTransferArrival nextSourceArrival : nextSourceArrivals) {
-                  hasPreservationPath = true;
-                  PathFormula pfAtNextSource = nextSourceArrival.pathFormula();
-                  BooleanFormula cAtNextSource =
-                      instantiateComponentsAt(sourceEntry.getValue(), pfAtNextSource);
-                  BooleanFormula preservationBad =
-                      bfmgr.and(cAtSource, pfAtNextSource.getFormula(), bfmgr.not(cAtNextSource));
-                  sourceBads.add(preservationBad);
+              for (Map.Entry<CFANode, List<SymbolicTransferArrival>> exitEntry :
+                  postIterationExitArrivals.entrySet()) {
+                for (SymbolicTransferArrival exitArrival : exitEntry.getValue()) {
+                  BooleanFormula postIterationExitBad = exitArrival.pathFormula().getFormula();
+                  allBads.add(postIterationExitBad);
                   badObligations.add(
                       new SymbolicBadObligation(
-                          "preservation",
-                          source,
-                          Optional.of(source),
-                          pfAtSource,
-                          sourceEntry.getValue(),
-                          preservationBad));
+                          "post-iteration-exit",
+                          nextLoopHead,
+                          Optional.of(exitEntry.getKey()),
+                          pfAtNextLoopHead,
+                          nextLoopHeadComponents,
+                          postIterationExitBad));
                 }
               }
             }
 
-            if (!hasPreservationPath && sourceBads.isEmpty()) {
-              logger.logf(
-                  Level.INFO,
-                  "Symbolic bail #5 (source has no preservation path): loopHead=%s, source=%s.",
-                  loopHead,
-                  source);
-              return Optional.empty();
-            }
-            if (!sourceBads.isEmpty()) {
-              sourcesProcessed++;
-              allBads.add(bfmgr.or(sourceBads));
-              allPreconditions.add(sourcePrecondition);
+            for (CFANode target : candidateLocations) {
+              shutdownNotifier.shutdownIfNecessary();
+              if (target.equals(nextLoopHead)) {
+                continue;
+              }
+              List<CandidateInvariant> targetComponents =
+                  nonSuccOnlyComponentsByLocation.getOrDefault(target, ImmutableList.of());
+              if (targetComponents.isEmpty()) {
+                continue;
+              }
+              Map<CFANode, List<SymbolicTransferArrival>> targetArrivals =
+                  propagateOneIterationWithTransferRelation(
+                      nextLoopHead,
+                      pfAtNextLoopHead,
+                      nextLoopHeadArrival.state(),
+                      nextLoopHeadArrival.precision(),
+                      ImmutableSet.of(target),
+                      exitSuccessors,
+                      nonSuccOnlyComponentsByLocation);
+              if (targetArrivals == null) {
+                return Optional.empty();
+              }
+              for (SymbolicTransferArrival targetArrival :
+                  targetArrivals.getOrDefault(target, ImmutableList.of())) {
+                PathFormula pfAtTarget = targetArrival.pathFormula();
+                BooleanFormula cAtTarget = instantiateComponentsAt(targetComponents, pfAtTarget);
+                BooleanFormula targetViolation =
+                    bfmgr.and(pfAtTarget.getFormula(), bfmgr.not(cAtTarget));
+                allBads.add(targetViolation);
+                badObligations.add(
+                    new SymbolicBadObligation(
+                        "preservation",
+                        target,
+                        Optional.of(target),
+                        pfAtTarget,
+                        targetComponents,
+                        targetViolation));
+              }
             }
           }
         }
       }
 
       if (allBads.isEmpty()) {
-        logger.logf(
-            Level.INFO,
-            "Symbolic bail #5 (allBads empty): loopHeads=%d, processedSources=%d,"
-                + " skipped(no state)=%d, skipped(no source prefix)=%d.",
-            symbolicLoopHeads.size(),
-            sourcesProcessed,
-            loopHeadsSkippedNoState,
-            sourcePrefixesSkipped);
+        return Optional.empty();
+      }
+      if (allPreconditions.isEmpty()) {
         return Optional.empty();
       }
       totalBad = bfmgr.or(allBads);
@@ -868,7 +737,6 @@ class KInductionProver implements AutoCloseable {
       stats.inductionPreparation.stop();
     }
 
-    logger.log(Level.INFO, "Starting symbolic non-termination closure check...");
     stats.inductionCheck.start();
     try {
       prover.push(totalBad);
@@ -879,7 +747,6 @@ class KInductionProver implements AutoCloseable {
         prover.pop();
       }
       if (!unsat) {
-        logger.log(Level.INFO, "Symbolic non-termination closure check: SAT (closure refuted).");
         if (pBuildRefinement) {
           lastNonTerminationRefinement =
               findSymbolicNonTerminationRefinement(pCandidateInvariant, badObligations);
@@ -897,13 +764,8 @@ class KInductionProver implements AutoCloseable {
         prover.pop();
       }
       if (precondUnsat) {
-        logger.log(
-            Level.INFO,
-            "Symbolic non-termination closure check: UNSAT but precondition is also UNSAT"
-                + " -- vacuous closure; deferring to BMC fallback.");
         return Optional.empty();
       }
-      logger.log(Level.INFO, "Symbolic non-termination closure check: UNSAT (closure proven).");
       return Optional.of(true);
     } finally {
       stats.inductionCheck.stop();
@@ -954,19 +816,9 @@ class KInductionProver implements AutoCloseable {
       return true;
     }
     if (loopContainsUnsupportedAliasingWrite(pLoop)) {
-      logger.logf(
-          Level.INFO,
-          "Symbolic propagation bail (aliasing write): loop=%s contains a write through a"
-              + " non-id left-hand side.",
-          pLoop.getLoopHeads());
       return true;
     }
     if (loopContainsUnsupportedFunctionCall(pLoop)) {
-      logger.logf(
-          Level.INFO,
-          "Symbolic propagation bail (function call): loop=%s contains a function call that is"
-              + " not pure scalar.",
-          pLoop.getLoopHeads());
       return true;
     }
     return false;
@@ -983,21 +835,9 @@ class KInductionProver implements AutoCloseable {
         continue;
       }
       if (loopNodes.containsAll(otherLoopNodes)) {
-        logger.logf(
-            Level.INFO,
-            "Symbolic propagation bail (nested loop summary missing): loop=%s contains nested"
-                + " loop=%s.",
-            pLoop.getLoopHeads(),
-            other.getLoopHeads());
         return true;
       }
       if (!otherLoopNodes.containsAll(loopNodes)) {
-        logger.logf(
-            Level.INFO,
-            "Symbolic propagation bail (overlapping loop): loop=%s partially overlaps with"
-                + " loop=%s.",
-            pLoop.getLoopHeads(),
-            other.getLoopHeads());
         return true;
       }
     }
@@ -1146,27 +986,18 @@ class KInductionProver implements AutoCloseable {
       Precision pSeedPrecision,
       Set<CFANode> pTargets,
       Set<CFANode> pExitSuccessors,
-      Map<CFANode, List<CandidateInvariant>> pAssertionsByLocation,
-      boolean pAssertAtTargets)
+      Map<CFANode, List<CandidateInvariant>> pAssertionsByLocation)
       throws CPAException, InterruptedException {
 
     PathFormula seedPathFormula = pPfPre;
     if (pAssertionsByLocation.containsKey(pSource)) {
       seedPathFormula =
-          pfmgr.makeAnd(
-              seedPathFormula,
-              getUninstantiatedComponentsFormula(
-                  pAssertionsByLocation.get(pSource), seedPathFormula));
+          addCandidateAssertions(seedPathFormula, pAssertionsByLocation.get(pSource));
     }
 
     Optional<AbstractState> seededInitialState =
         replacePredicatePathFormula(pSeedState, seedPathFormula);
     if (seededInitialState.isEmpty()) {
-      logger.logf(
-          Level.INFO,
-          "Symbolic propagation bail (transfer relation): could not seed predicate path"
-              + " formula at source %s.",
-          pSource);
       return null;
     }
 
@@ -1182,14 +1013,6 @@ class KInductionProver implements AutoCloseable {
     while (localReached.hasWaitingState()) {
       shutdownNotifier.shutdownIfNecessary();
       if (processedStates++ >= MAX_SYMBOLIC_TRANSFER_STATES) {
-        logger.logf(
-            Level.INFO,
-            "Symbolic propagation bail (transfer state budget): source=%s, targets=%s,"
-                + " processed=%d == MAX_SYMBOLIC_TRANSFER_STATES=%d.",
-            pSource,
-            pTargets,
-            processedStates,
-            MAX_SYMBOLIC_TRANSFER_STATES);
         return null;
       }
 
@@ -1197,14 +1020,6 @@ class KInductionProver implements AutoCloseable {
       Precision precision = localReached.getPrecision(current);
       int currentDepth = depths.getOrDefault(current, 0);
       if (currentDepth >= MAX_SYMBOLIC_PATH_LENGTH) {
-        logger.logf(
-            Level.INFO,
-            "Symbolic propagation bail (transfer path-length budget): source=%s,"
-                + " current=%s, depth=%d == MAX_SYMBOLIC_PATH_LENGTH=%d.",
-            pSource,
-            AbstractStates.extractLocation(current),
-            currentDepth,
-            MAX_SYMBOLIC_PATH_LENGTH);
         return null;
       }
 
@@ -1223,41 +1038,21 @@ class KInductionProver implements AutoCloseable {
         Precision successorPrecision = adjustedResult.precision();
         CFANode successorLocation = AbstractStates.extractLocation(successor);
         if (successorLocation == null) {
-          logger.logf(
-              Level.INFO,
-              "Symbolic propagation bail (transfer relation): successor without unique"
-                  + " CFA location from source %s.",
-              pSource);
           return null;
         }
 
         Optional<PathFormula> successorPathFormula = extractPredicatePathFormula(successor);
         if (successorPathFormula.isEmpty()) {
-          logger.logf(
-              Level.INFO,
-              "Symbolic propagation bail (transfer relation): successor without predicate"
-                  + " path formula at location %s from source %s.",
-              successorLocation,
-              pSource);
           return null;
         }
         PathFormula pathFormula = successorPathFormula.orElseThrow();
-        if ((pAssertAtTargets || !pTargets.contains(successorLocation))
+        if (!pTargets.contains(successorLocation)
             && pAssertionsByLocation.containsKey(successorLocation)) {
           pathFormula =
-              pfmgr.makeAnd(
-                  pathFormula,
-                  getUninstantiatedComponentsFormula(
-                      pAssertionsByLocation.get(successorLocation), pathFormula));
+              addCandidateAssertions(pathFormula, pAssertionsByLocation.get(successorLocation));
           Optional<AbstractState> successorWithAssertion =
               replacePredicatePathFormula(successor, pathFormula);
           if (successorWithAssertion.isEmpty()) {
-            logger.logf(
-                Level.INFO,
-                "Symbolic propagation bail (transfer relation): could not add assertion at"
-                    + " location %s from source %s.",
-                successorLocation,
-                pSource);
             return null;
           }
           successor = successorWithAssertion.orElseThrow();
@@ -1269,16 +1064,8 @@ class KInductionProver implements AutoCloseable {
               .computeIfAbsent(successorLocation, unused -> new ArrayList<>())
               .add(
                   new SymbolicTransferArrival(
-                      successorLocation, pathFormula, successor, successorPrecision));
+                      pathFormula, successor, successorPrecision));
           if (countTransferArrivals(byTarget) >= MAX_SYMBOLIC_PATHS) {
-            logger.logf(
-                Level.INFO,
-                "Symbolic propagation bail (transfer path-count budget): source=%s,"
-                    + " targets=%s, collected=%d == MAX_SYMBOLIC_PATHS=%d.",
-                pSource,
-                pTargets,
-                countTransferArrivals(byTarget),
-                MAX_SYMBOLIC_PATHS);
             return null;
           }
           continue;
@@ -1298,13 +1085,6 @@ class KInductionProver implements AutoCloseable {
     }
 
     if (byTarget.isEmpty()) {
-      logger.logf(
-          Level.INFO,
-          "Symbolic propagation result (no transfer paths found): source=%s, targets=%s,"
-              + " exitSuccessors=%d.",
-          pSource,
-          pTargets,
-          pExitSuccessors.size());
       return new HashMap<>();
     }
     return byTarget;
@@ -1372,67 +1152,6 @@ class KInductionProver implements AutoCloseable {
     return result;
   }
 
-  private Map<CFANode, List<CandidateInvariant>> getTerminalCandidateSources(
-      Map<CFANode, List<CandidateInvariant>> pComponentsByLocation,
-      Loop pLoop,
-      Set<CFANode> pLoopHeads,
-      Set<CFANode> pExitSuccessors)
-      throws InterruptedException {
-    Map<CFANode, List<CandidateInvariant>> result = new LinkedHashMap<>();
-    Set<CFANode> candidateLocations = pComponentsByLocation.keySet();
-    for (Map.Entry<CFANode, List<CandidateInvariant>> entry : pComponentsByLocation.entrySet()) {
-      shutdownNotifier.shutdownIfNecessary();
-      CFANode location = entry.getKey();
-      if (!canReachAnotherCandidateBeforeNextLoopHead(
-          location, candidateLocations, pLoop, pLoopHeads, pExitSuccessors)) {
-        result.put(location, entry.getValue());
-      }
-    }
-    return result;
-  }
-
-  private boolean canReachAnotherCandidateBeforeNextLoopHead(
-      CFANode pSource,
-      Set<CFANode> pCandidateLocations,
-      Loop pLoop,
-      Set<CFANode> pLoopHeads,
-      Set<CFANode> pExitSuccessors)
-      throws InterruptedException {
-    Deque<CFANode> waitlist = new ArrayDeque<>();
-    Set<CFANode> visited = new HashSet<>();
-    visited.add(pSource);
-    for (int i = 0; i < pSource.getNumLeavingEdges(); i++) {
-      CFANode successor = pSource.getLeavingEdge(i).getSuccessor();
-      if (!pLoop.getLoopNodes().contains(successor) || pExitSuccessors.contains(successor)) {
-        continue;
-      }
-      if (pLoopHeads.contains(successor)) {
-        continue;
-      }
-      waitlist.add(successor);
-    }
-    while (!waitlist.isEmpty()) {
-      shutdownNotifier.shutdownIfNecessary();
-      CFANode current = waitlist.removeFirst();
-      if (!visited.add(current)) {
-        continue;
-      }
-      if (pCandidateLocations.contains(current)) {
-        return true;
-      }
-      for (int i = 0; i < current.getNumLeavingEdges(); i++) {
-        CFANode successor = current.getLeavingEdge(i).getSuccessor();
-        if (!pLoop.getLoopNodes().contains(successor)
-            || pExitSuccessors.contains(successor)
-            || pLoopHeads.contains(successor)) {
-          continue;
-        }
-        waitlist.add(successor);
-      }
-    }
-    return false;
-  }
-
   private BooleanFormula instantiateComponentsAt(
       List<CandidateInvariant> pComponents, PathFormula pPfAt)
       throws CPATransferException, InterruptedException {
@@ -1450,18 +1169,15 @@ class KInductionProver implements AutoCloseable {
     return result;
   }
 
-  private BooleanFormula getUninstantiatedComponentsFormula(
-      List<CandidateInvariant> pComponents, PathFormula pPfAt)
+  private PathFormula addCandidateAssertions(
+      PathFormula pPathFormula, List<CandidateInvariant> pComponents)
       throws CPATransferException, InterruptedException {
-    if (pComponents == null || pComponents.isEmpty()) {
-      return bfmgr.makeTrue();
-    }
-    BooleanFormula result = bfmgr.makeTrue();
-    for (CandidateInvariant component : pComponents) {
-      shutdownNotifier.shutdownIfNecessary();
-      result = bfmgr.and(result, component.getFormula(fmgr, pfmgr, pPfAt));
-    }
-    return result;
+    PathFormula pathFormulaWithDefaultSsa =
+        pPathFormula.withContext(
+            pPathFormula.getSsa().withDefault(1), pPathFormula.getPointerTargetSet());
+    BooleanFormula assertions = instantiateComponentsAt(pComponents, pathFormulaWithDefaultSsa);
+    return pathFormulaWithDefaultSsa.withFormula(
+        bfmgr.and(pathFormulaWithDefaultSsa.getFormula(), assertions));
   }
 
   private record SymbolicBadObligation(
@@ -1473,7 +1189,7 @@ class KInductionProver implements AutoCloseable {
       BooleanFormula formula) {}
 
   private record SymbolicTransferArrival(
-      CFANode location, PathFormula pathFormula, AbstractState state, Precision precision) {}
+      PathFormula pathFormula, AbstractState state, Precision precision) {}
 
   private Optional<CandidateInvariant> findSymbolicNonTerminationRefinement(
       CandidateInvariant pOriginal, List<SymbolicBadObligation> pBadObligations)
@@ -1487,31 +1203,10 @@ class KInductionProver implements AutoCloseable {
           try {
             modelAssignments = prover.getModelAssignments();
           } catch (SolverException | RuntimeException e) {
-            logger.logUserException(
-                Level.INFO,
-                e,
-                "Symbolic non-termination refinement: could not extract model; continuing"
-                    + " without refinement.");
             return Optional.empty();
           }
           Optional<CandidateInvariant> refinement =
               buildSymbolicNonTerminationRefinement(pOriginal, obligation, modelAssignments);
-          if (refinement.isPresent()) {
-            logger.logf(
-                Level.INFO,
-                "Symbolic non-termination refinement: blocking %s counterexample at %s%s.",
-                obligation.kind(),
-                obligation.source(),
-                obligation.target().map(target -> " toward " + target).orElse(""));
-          } else {
-            logger.logf(
-                Level.FINER,
-                "Symbolic non-termination refinement: no usable model literals for %s"
-                    + " counterexample at %s%s.",
-                obligation.kind(),
-                obligation.source(),
-                obligation.target().map(target -> " toward " + target).orElse(""));
-          }
           return refinement;
         }
       } finally {
@@ -1638,10 +1333,6 @@ class KInductionProver implements AutoCloseable {
           prover.push(bfmgr.not(pSuccessorViolation));
           try {
             if (prover.isUnsat()) {
-              logger.log(
-                  Level.FINER,
-                  "Non-termination cex has no continuation in C; refusing termination-masking"
-                      + " refinement.");
               return Optional.empty();
             }
           } finally {
@@ -1664,10 +1355,6 @@ class KInductionProver implements AutoCloseable {
       Multimap<BooleanFormula, BooleanFormula> refinedViolationAssertions =
           getNonTerminationClosureViolationAssertions(refined, pInductionHypothesis);
       if (refinedViolationAssertions.isEmpty()) {
-        logger.log(
-            Level.FINER,
-            "Refined non-termination candidate has no violation assertions; refusing vacuous"
-                + " refinement.");
         return Optional.empty();
       }
       BooleanFormula refinedViolation =
@@ -1675,10 +1362,6 @@ class KInductionProver implements AutoCloseable {
       prover.push(refinedViolation);
       try {
         if (prover.isUnsat()) {
-          logger.log(
-              Level.FINER,
-              "Refined non-termination candidate's violation is unsatisfiable under the reached"
-                  + " set; refusing vacuous refinement.");
           return Optional.empty();
         }
       } finally {

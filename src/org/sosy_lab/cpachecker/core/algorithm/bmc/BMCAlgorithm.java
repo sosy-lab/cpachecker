@@ -599,14 +599,13 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     lastModelEqualityStrengthenings = ImmutableSet.of();
     lastBranchConditionStrengthenings = ImmutableSet.of();
     BooleanFormula baseCase = createNonTerminationBaseCaseFormula(pReachedSet, pCandidateInvariant);
-    logger.log(Level.INFO, "Starting satisfiability check for non-termination base case...");
     stats.satCheck.start();
     try {
       pProver.push(baseCase);
       boolean reachable = !pProver.isUnsat();
       if (reachable) {
         lastBranchConditionStrengthenings =
-            createBranchConditionStrengthenings(pCandidateInvariant);
+            createBranchConditionStrengthenings(pReachedSet, pCandidateInvariant);
         lastModelEqualityStrengthenings =
             createModelEqualityStrengthenings(
                 pReachedSet, pCandidateInvariant, pProver.getModelAssignments());
@@ -649,7 +648,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private ImmutableSet<CandidateInvariant> createBranchConditionStrengthenings(
-      CandidateInvariant pCandidateInvariant) {
+      ReachedSet pReachedSet, CandidateInvariant pCandidateInvariant) {
     Optional<NonTerminationLoopScope> loopScope = getNonTerminationLoopScope(pCandidateInvariant);
     if (loopScope.isEmpty()) {
       return ImmutableSet.of();
@@ -669,6 +668,18 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         if (!(leavingEdge instanceof AssumeEdge assumeEdge)
             || !scope.loopNodes().contains(assumeEdge.getSuccessor())
             || branchLeavesLoop(scope.loop(), assumeEdge)) {
+          continue;
+        }
+
+        // Skip strengthenings whose assume branch is never explored in the unrolled reached
+        // set: if no state was reached at the branch's successor, the branch is
+        // program-unreachable (typically detected by ValueAnalysisCPA on constants like
+        // `debug = 0; ... if (debug != 0) {...}`). Adding such a candidate would let
+        // PredicateCPA's abstraction smuggle a vacuous "non-term proof" through symbolic
+        // closure under a program-unreachable precondition.
+        if (AbstractStates.filterLocations(
+                pReachedSet, ImmutableSet.of(assumeEdge.getSuccessor()))
+            .isEmpty()) {
           continue;
         }
 

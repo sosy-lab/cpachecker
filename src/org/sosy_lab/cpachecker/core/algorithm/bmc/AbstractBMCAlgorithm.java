@@ -562,13 +562,6 @@ abstract class AbstractBMCAlgorithm
                 safe
                     ? "Termination mode: current candidate holds for the current k."
                     : "Termination mode: current candidate is violated for the current k.");
-          } else if (isNonTerminationMode()) {
-            logger.log(
-                Level.INFO,
-                safe
-                    ? "Non-termination mode: current candidate is reachable for the current k."
-                    : "Non-termination mode: current candidate is not reachable for the current"
-                        + " k.");
           }
           if (safe && isNonTerminationMode()) {
             if (isDirectlyConfirmedNonTerminationCandidate(candidateInvariant)) {
@@ -599,12 +592,8 @@ abstract class AbstractBMCAlgorithm
             return AlgorithmStatus.SOUND_AND_PRECISE;
           }
         }
-        if (!candidatesSuggestedAfterBaseCase.isEmpty()
-            && candidateGenerator.suggestCandidates(candidatesSuggestedAfterBaseCase)) {
-          logger.logf(
-              Level.INFO,
-              "Non-termination mode: suggested %d model-equality strengthened candidate(s).",
-              candidatesSuggestedAfterBaseCase.size());
+        if (!candidatesSuggestedAfterBaseCase.isEmpty()) {
+          candidateGenerator.suggestCandidates(candidatesSuggestedAfterBaseCase);
         }
 
         // second check soundness
@@ -767,10 +756,6 @@ abstract class AbstractBMCAlgorithm
                   && candidateGenerator.suggestCandidates(
                       Collections.singleton(refinedCandidate))) {
                 registerNonTerminationRefinement(candidate, refinedCandidate);
-                logger.log(
-                    Level.INFO,
-                    "Non-termination mode (symbolic): step case refuted closure;"
-                        + " symbolic counterexample refined candidate for next iteration.");
               }
             }
           }
@@ -792,10 +777,6 @@ abstract class AbstractBMCAlgorithm
             if (shouldSuggestNonTerminationRefinement(candidate, refinedCandidate, k)
                 && candidateGenerator.suggestCandidates(Collections.singleton(refinedCandidate))) {
               registerNonTerminationRefinement(candidate, refinedCandidate);
-              logger.log(
-                  Level.INFO,
-                  "Non-termination mode: step case found counterexample,"
-                      + " refining candidate for next iteration.");
             }
           }
         }
@@ -890,17 +871,17 @@ abstract class AbstractBMCAlgorithm
     if (!isNonTerminationMode()) {
       return ImmutableSet.copyOf(pCandidates);
     }
-    Set<CandidateInvariant> regularCandidates = new LinkedHashSet<>();
-    Set<CandidateInvariant> refinedCandidates = new LinkedHashSet<>();
-    for (CandidateInvariant candidate : pCandidates) {
-      if (isNonTerminationStepCaseRefinement(candidate)) {
-        refinedCandidates.add(candidate);
-      } else {
-        regularCandidates.add(candidate);
-      }
-    }
-    regularCandidates.addAll(refinedCandidates);
-    return regularCandidates;
+    return from(pCandidates)
+        .toSortedList(
+            Comparator
+                .comparingInt((CandidateInvariant candidate) -> countConjunctiveParts(candidate))
+                .reversed()
+                .thenComparingInt(
+                    candidate -> isNonTerminationStepCaseRefinement(candidate) ? 0 : 1));
+  }
+
+  private int countConjunctiveParts(CandidateInvariant pCandidateInvariant) {
+    return Iterables.size(CandidateInvariantCombination.getConjunctiveParts(pCandidateInvariant));
   }
 
   private boolean isNonTerminationStepCaseRefinement(CandidateInvariant pCandidateInvariant) {
