@@ -662,6 +662,11 @@ public class DssBlockAnalysis {
     return messages.build();
   }
 
+  private boolean isPredecessorWithTopSummary(String predecessor) {
+    return preconditions.get(predecessor).stream()
+        .anyMatch(sap -> !dcpa.isMostGeneralBlockEntryState(sap.state()));
+  }
+
   /**
    * Runs the CPA under an error condition, i.e., if the current block contains a block-end edge,
    * the error condition will be attached to that edge. In case this makes the path formula
@@ -682,11 +687,7 @@ public class DssBlockAnalysis {
 
     boolean hasNonTrivialSummariesForEachPredecessor =
         !preconditions.isEmpty()
-            && preconditions.keySet().stream()
-                .allMatch(
-                    k ->
-                        preconditions.get(k).stream()
-                            .anyMatch(sap -> !dcpa.isMostGeneralBlockEntryState(sap.state())));
+            && preconditions.keySet().stream().allMatch(this::isPredecessorWithTopSummary);
 
     // unreachable block ends might be caused by underapproximating summaries
     // therefore, a new violation condition cannot ignore them.
