@@ -108,11 +108,10 @@ public class SMGCPAAddressVisitor
   @Override
   public List<SMGStateAndOptionalSMGObjectAndOffset> visit(CStringLiteralExpression e)
       throws CPATransferException {
-    String globalVarName = evaluator.getCStringLiteralExpressionVairableName(e);
+    String globalVarName = state.getCStringLiteralExpressionVariableName(e);
     SMGState currentState = state;
     if (!currentState.isGlobalVariablePresent(globalVarName)) {
-      Value sizeOfString =
-          new NumericValue(evaluator.getBitSizeof(currentState, e.getExpressionType()));
+      Value sizeOfString = evaluator.getBitSizeof(currentState, e.getExpressionType(), cfaEdge);
       currentState =
           currentState.copyAndAddGlobalVariable(sizeOfString, globalVarName, e.getExpressionType());
       List<SMGState> statesWithString =
@@ -131,7 +130,8 @@ public class SMGCPAAddressVisitor
     }
     // TODO: assertion that the Strings are immutable
     ValueAndSMGState addressValueAndState =
-        evaluator.createAddressForLocalOrGlobalVariable(globalVarName, currentState);
+        evaluator.createAddressForLocalOrGlobalVariable(
+            globalVarName, e.getExpressionType(), currentState);
     Value addressValue = addressValueAndState.getValue();
     currentState = addressValueAndState.getState();
 
@@ -182,7 +182,7 @@ public class SMGCPAAddressVisitor
           continue;
         }
         // Calculate the offset out of the subscript value and the type
-        BigInteger typeSizeInBits = evaluator.getBitSizeof(currentState, e.getExpressionType());
+        Value typeSizeInBits = evaluator.getBitSizeof(currentState, e.getExpressionType(), cfaEdge);
         Value subscriptOffset = evaluator.multiplyBitOffsetValues(subscriptValue, typeSizeInBits);
 
         // Get the value from the array and return the value + state
@@ -356,7 +356,8 @@ public class SMGCPAAddressVisitor
       // Assignment using the solver only. While we get the concrete value here,
       //  we can't assign it to a variable.
       List<ValueAndSMGState> assignedResults =
-          pCurrentState.findValueAssignmentsWithSolver(symOffsetToAssign, cfaEdge);
+          pCurrentState.findValueAssignmentsWithSolver(
+              symOffsetToAssign, exprCurrentlyUnderEval, cfaEdge);
       ImmutableList.Builder<SMGStateAndOptionalSMGObjectAndOffset> concreteSubscriptHandling =
           ImmutableList.builder();
       for (ValueAndSMGState assignedValueAndState : assignedResults) {
@@ -504,13 +505,19 @@ public class SMGCPAAddressVisitor
       SMGState currentState = evaluatedSubExpr.getState();
       // Try to disassemble the values (AddressExpression)
       Value value = evaluatedSubExpr.getValue();
-      if (!(value instanceof AddressExpression pointerValue)) {
+
+      Value offset = new NumericValue(0);
+      Value memoryAddress = value;
+      if (value instanceof AddressExpression pointerValue) {
+        offset = pointerValue.getOffset();
+        memoryAddress = pointerValue.getMemoryAddress();
+      } else if (!currentState.isPointer(value)) {
+        // Pointers are let through w offset 0
         resultBuilder.add(SMGStateAndOptionalSMGObjectAndOffset.of(currentState));
         continue;
       }
 
       // The offset part of the pointer; its either numeric or we can't get a concrete value
-      Value offset = pointerValue.getOffset();
       if (!(offset instanceof NumericValue) && !options.trackErrorPredicates()) {
         // If the offset is not numerically known we can't read a value, return
         resultBuilder.add(SMGStateAndOptionalSMGObjectAndOffset.of(currentState));
@@ -527,8 +534,7 @@ public class SMGCPAAddressVisitor
         resultBuilder.addAll(visitDefault(e));
       } else {
         resultBuilder.addAll(
-            evaluator.getTargetObjectAndOffset(
-                currentState, pointerValue.getMemoryAddress(), offset));
+            evaluator.getTargetObjectAndOffset(currentState, memoryAddress, offset));
       }
     }
     return resultBuilder.build();

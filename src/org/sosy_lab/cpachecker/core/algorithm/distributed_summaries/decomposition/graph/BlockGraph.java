@@ -20,8 +20,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.HashMap;
@@ -32,8 +30,9 @@ import java.util.SequencedSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.NonNull;
-import org.sosy_lab.common.JSON;
+import org.jspecify.annotations.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.StronglyConnectedComponents;
@@ -80,10 +79,15 @@ public class BlockGraph {
           !blockNode.getEdges().isEmpty() || blockNode.getPredecessorIds().isEmpty(),
           "Every block needs at least one edge (%s).",
           blockNode);
-      Preconditions.checkState(
-          isBlockNodeValid(blockNode.getInitialLocation(), blockNode.getEdges()),
-          "BlockNodes require to have exactly one exit node (%s).",
-          blockNode);
+      // A block without a successor does not need a unique exit node, as it will never send a
+      // relevant postcondition and never receive a violation condition. Relaxing this check allows
+      // the SingleBlockDecomposition to work for programs with CFATerminationNodes
+      if (!blockNode.getSuccessorIds().isEmpty()) {
+        Preconditions.checkState(
+            isBlockNodeValid(blockNode.getInitialLocation(), blockNode.getEdges()),
+            "BlockNodes require to have exactly one exit node (%s).",
+            blockNode);
+      }
       Preconditions.checkState(
           blockNode.getPredecessorIds().containsAll(blockNode.getLoopPredecessorIds()),
           "Found loop predecessors that are not in the set of predecessors (%s).",
@@ -101,7 +105,7 @@ public class BlockGraph {
       boolean hasSuccessor = false;
       for (CFAEdge leavingEdge : curr.getAllLeavingEdges()) {
         if (pEdgesInBlock.contains(leavingEdge)) {
-          if (covered.contains(leavingEdge.getSuccessor())) {
+          if (!covered.contains(leavingEdge.getSuccessor())) {
             waiting.push(leavingEdge.getSuccessor());
           }
           hasSuccessor = true;
@@ -200,8 +204,10 @@ public class BlockGraph {
     return predecessors;
   }
 
-  public void export(Path blockCFAFile) throws IOException {
+  public Map<String, Map<String, Object>> getExportData(CFA cfa) {
     Map<String, Map<String, Object>> treeMap = new HashMap<>();
+    int minCfaNodeNumber =
+        cfa.nodes().stream().mapToInt(CFANode::getNodeNumber).min().orElseThrow();
     getNodes()
         .forEach(
             n -> {
@@ -215,16 +221,29 @@ public class BlockGraph {
                       n.getEdges(),
                       e ->
                           ImmutableList.of(
-                              e.getPredecessor().getNodeNumber(),
-                              e.getSuccessor().getNodeNumber())));
-              attributes.put("startNode", n.getInitialLocation().getNodeNumber());
-              attributes.put("endNode", n.getFinalLocation().getNodeNumber());
+                              shiftedNodeNumber(
+                                  e.getPredecessor().getNodeNumber(), minCfaNodeNumber),
+                              shiftedNodeNumber(
+                                  e.getSuccessor().getNodeNumber(), minCfaNodeNumber))));
+              attributes.put(
+                  "startNode",
+                  shiftedNodeNumber(n.getInitialLocation().getNodeNumber(), minCfaNodeNumber));
+              attributes.put(
+                  "endNode",
+                  shiftedNodeNumber(n.getFinalLocation().getNodeNumber(), minCfaNodeNumber));
               attributes.put("loopPredecessors", n.getLoopPredecessorIds());
               attributes.put(
-                  "abstractionLocation", n.getViolationConditionLocation().getNodeNumber());
+                  "abstractionLocation",
+                  shiftedNodeNumber(
+                      n.getViolationConditionLocation().getNodeNumber(), minCfaNodeNumber));
               treeMap.put(n.getId(), attributes);
             });
-    JSON.writeJSONString(treeMap, blockCFAFile);
+    return treeMap;
+  }
+
+  // All node IDs are shifted such that they start from 0
+  private int shiftedNodeNumber(int originalNodeNumber, int shift) {
+    return originalNodeNumber - shift;
   }
 
   @Override
@@ -233,5 +252,21 @@ public class BlockGraph {
         + "nodes="
         + nodes.stream().map(BlockNode::getId).collect(Collectors.joining(", "))
         + '}';
+  }
+
+  @Override
+  public boolean equals(@Nullable Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+
+    return pOther instanceof BlockGraph other
+        && nodes.equals(other.nodes)
+        && root.equals(other.root);
+  }
+
+  @Override
+  public int hashCode() {
+    return nodes.hashCode();
   }
 }

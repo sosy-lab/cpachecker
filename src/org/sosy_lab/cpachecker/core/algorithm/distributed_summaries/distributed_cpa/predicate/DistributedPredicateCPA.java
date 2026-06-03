@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.BiMap;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -35,7 +35,8 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
-public class DistributedPredicateCPA implements ForwardingDistributedConfigurableProgramAnalysis {
+public class DistributedPredicateCPA
+    implements ForwardingDistributedConfigurableProgramAnalysis, AutoCloseable {
 
   private final PredicateCPA predicateCPA;
 
@@ -59,14 +60,15 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
       DssAnalysisOptions pOptions,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
-      ImmutableMap<Integer, CFANode> pIdToNodeMap)
+      BiMap<Integer, CFANode> pIdToNodeMap)
       throws InvalidConfigurationException {
     predicateCPA = pPredicateCPA;
     final boolean writeReadableFormulas = pOptions.isDebugModeEnabled();
     serialize = new SerializePredicateStateOperator(predicateCPA, pCFA, writeReadableFormulas);
     deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode);
     serializePrecisionOperator =
-        new SerializePredicatePrecisionOperator(pPredicateCPA.getSolver().getFormulaManager());
+        new SerializePredicatePrecisionOperator(
+            pPredicateCPA.getSolver().getFormulaManager(), pIdToNodeMap.inverse());
     deserializePrecisionOperator =
         new DeserializePredicatePrecisionOperator(
             predicateCPA.getAbstractionManager(), predicateCPA.getSolver(), pIdToNodeMap::get);
@@ -162,5 +164,10 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
   @Override
   public CombineOperator getCombineOperator() {
     return combineOperator;
+  }
+
+  @Override
+  public void close() {
+    predicateCPA.close();
   }
 }

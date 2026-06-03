@@ -1194,10 +1194,6 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
      *     not belong to this SDG builder
      */
     void insertActualSummaryEdges(N pFormalInNode, N pFormalOutNode) {
-
-      Objects.requireNonNull(pFormalInNode, "pFormalInNode must not be null");
-      Objects.requireNonNull(pFormalInNode, "pFormalOutNode must not be null");
-
       Preconditions.checkArgument(
           pFormalInNode.getType() == NodeType.FORMAL_IN,
           "pFormalInNode does not have type FORMAL_IN");
