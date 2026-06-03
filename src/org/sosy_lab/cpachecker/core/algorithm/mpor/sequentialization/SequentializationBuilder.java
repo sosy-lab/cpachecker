@@ -56,7 +56,10 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
 public class SequentializationBuilder {
 
   public static String buildInputFunctionAndTypeDeclarations(
-      MPOROptions pOptions, ImmutableList<MPORThread> pThreads) throws UnrecognizedCodeException {
+      MPOROptions pOptions,
+      CFunctionDeclaration pMainFunctionDeclaration,
+      ImmutableList<MPORThread> pThreads)
+      throws UnrecognizedCodeException {
 
     StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
     if (pOptions.comments()) {
@@ -67,47 +70,67 @@ public class SequentializationBuilder {
       ImmutableList<CDeclaration> nonVariableDeclarations =
           MPORThreadUtil.extractNonVariableDeclarations(thread);
       for (CDeclaration declaration : nonVariableDeclarations) {
-        // add function and type declaration only if enabled in options
-        if (!(declaration instanceof CFunctionDeclaration)
-            || pOptions.inputFunctionDeclarations()) {
-          if (!(declaration instanceof CTypeDeclaration) || pOptions.inputTypeDeclarations()) {
-            if (declaration instanceof CTypeDeclaration typeDeclaration) {
-              switch (typeDeclaration) {
-                case CComplexTypeDeclaration complexTypeDeclaration -> {
-                  CType typeSubstitute =
-                      PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                          complexTypeDeclaration.getType(), ImmutableSet.of(CCompositeType.class));
-                  CComplexTypeDeclaration newComplexTypeDeclaration =
-                      new CComplexTypeDeclaration(
-                          complexTypeDeclaration.getFileLocation(),
-                          complexTypeDeclaration.isGlobal(),
-                          (CComplexType) typeSubstitute);
-                  rDeclarations.add(newComplexTypeDeclaration.toASTString());
-                }
-                case CTypeDefDeclaration typeDefDeclaration -> {
-                  CType typeSubstitute =
-                      PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                          typeDefDeclaration.getType(), ImmutableSet.of(CElaboratedType.class));
-                  CTypeDefDeclaration newTypeDefDeclaration =
-                      new CTypeDefDeclaration(
-                          typeDefDeclaration.getFileLocation(),
-                          typeDefDeclaration.isGlobal(),
-                          typeSubstitute,
-                          typeDefDeclaration.getName(),
-                          typeDefDeclaration.getOrigName());
-                  rDeclarations.add(newTypeDefDeclaration.toASTString());
-                }
-                default ->
-                    throw new AssertionError("Unhandled CTypeDeclaration: " + typeDeclaration);
+        if (isIncludedDeclaration(pOptions, declaration, pMainFunctionDeclaration)) {
+          if (declaration instanceof CTypeDeclaration typeDeclaration) {
+            // For CTypeDeclaration, substitute pthread types such as pthread_mutex_t so that they
+            // can be simulated.
+            switch (typeDeclaration) {
+              case CComplexTypeDeclaration complexTypeDeclaration -> {
+                CType typeSubstitute =
+                    PthreadObjectSubstitution.substitutePthreadObjectTypes(
+                        complexTypeDeclaration.getType(), ImmutableSet.of(CCompositeType.class));
+                CComplexTypeDeclaration newComplexTypeDeclaration =
+                    new CComplexTypeDeclaration(
+                        complexTypeDeclaration.getFileLocation(),
+                        complexTypeDeclaration.isGlobal(),
+                        (CComplexType) typeSubstitute);
+                rDeclarations.add(newComplexTypeDeclaration.toASTString());
               }
-            } else {
-              rDeclarations.add(declaration.toASTString());
+              case CTypeDefDeclaration typeDefDeclaration -> {
+                CType typeSubstitute =
+                    PthreadObjectSubstitution.substitutePthreadObjectTypes(
+                        typeDefDeclaration.getType(), ImmutableSet.of(CElaboratedType.class));
+                CTypeDefDeclaration newTypeDefDeclaration =
+                    new CTypeDefDeclaration(
+                        typeDefDeclaration.getFileLocation(),
+                        typeDefDeclaration.isGlobal(),
+                        typeSubstitute,
+                        typeDefDeclaration.getName(),
+                        typeDefDeclaration.getOrigName());
+                rDeclarations.add(newTypeDefDeclaration.toASTString());
+              }
+              default -> throw new AssertionError("Unhandled CTypeDeclaration: " + typeDeclaration);
             }
+          } else {
+            rDeclarations.add(declaration.toASTString());
           }
         }
       }
     }
     return rDeclarations.toString();
+  }
+
+  private static boolean isIncludedDeclaration(
+      MPOROptions pOptions,
+      CDeclaration pDeclaration,
+      CFunctionDeclaration pMainFunctionDeclaration) {
+
+    if (pDeclaration instanceof CFunctionDeclaration functionDeclaration) {
+      if (!pOptions.inputFunctionDeclarations()
+          // The main function declaration from the input is not included, we declare it ourselves.
+          // The comparison is done by name because the CType may mismatch, e.g., when comparing
+          // 'int main();' as declared by the sequentialization and 'int main(int arg);' from the
+          // input program, then they are not equal but we want them to be equal here.
+          || functionDeclaration.getName().equals(pMainFunctionDeclaration.getName())) {
+        return false;
+      }
+    }
+    if (pDeclaration instanceof CTypeDeclaration) {
+      if (!pOptions.inputTypeDeclarations()) {
+        return false;
+      }
+    }
+    return true;
   }
 
   // Input Variable Declarations ===================================================================
