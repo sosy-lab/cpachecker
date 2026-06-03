@@ -17,7 +17,6 @@ import java.math.BigInteger;
 import java.util.Objects;
 import java.util.Optional;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -422,10 +421,6 @@ public class AcslToFomulaVisitorsTest {
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 
-  // TODO These are tests that I know will fail and will require me to figure some stuff out
-  // Therefore they all have the ignore annotation for now
-
-  @Ignore("Not implemented yet: Typecasting for Binary Operations")
   @Test
   public void testNeutralElementOfMultiplication()
       throws InvalidConfigurationException, SolverException, InterruptedException {
@@ -454,7 +449,6 @@ public class AcslToFomulaVisitorsTest {
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 
-  @Ignore("Also needs typecasting for binary operations")
   @Test
   public void testForAll()
       throws SolverException, InterruptedException, InvalidConfigurationException {

@@ -52,9 +52,9 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
   private final SSAMapBuilder currentSsa;
   private final Optional<SSAMap>
       functionEntrySsa; // Optional SSA map for function-entry state (\old)
-  private CtoFormulaConverter ctoFormulaConverter;
-  private MachineModel machineModel;
-  private AcslTypeHelper typeHelper;
+  private final CtoFormulaConverter ctoFormulaConverter;
+  private final MachineModel machineModel;
+  private final AcslTypeHelper typeHelper;
 
   public AcslTermToFormulaVisitor(
       FormulaManagerView pFmgr,
@@ -150,11 +150,9 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
     if (!fmgr.getFormulaType(operand1Formula).equals(fmgr.getFormulaType(operand2Formula))) {
       AcslType commonType = AcslType.mostGeneralType(operand1Type, operand2Type);
-      // TODO take care of the case where the operands do not have the same type:
-      // upcast e.g. bitvector to int -> look into formulaManager??,
-      // extract this into a function that takes the two formulas and maybe their types...
-      // Example: x + 1 where x is a C Int -> Bitvector formula but 1 is an Integer formula
-      typeHelper.handleDifferentTypes(operand1Formula, operand2Formula, commonType);
+      // TODO right now typehelper can only updast from bitvector to int
+      operand1Formula = typeHelper.convertFormulaType(operand1Formula, commonType);
+      operand2Formula = typeHelper.convertFormulaType(operand2Formula, commonType);
     }
 
     return switch (pAcslBinaryTerm.getOperator()) {

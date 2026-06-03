@@ -22,15 +22,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
 public class AcslTypeHelper {
   private final MachineModel machineModel;
-
-  @SuppressWarnings("unused")
   private final FormulaManagerView fmgr;
-
   private final CtoFormulaConverter ctoFormulaConverter;
 
   public AcslTypeHelper(
@@ -73,11 +71,25 @@ public class AcslTypeHelper {
     };
   }
 
-  @SuppressWarnings("unused")
-  public void handleDifferentTypes(Formula f1, Formula f2, AcslType commonType) {
-    // TODO cast f1 and f2 to common type if necessary
-    // find a way to return results
-    // this is needed for binary expressions in Predicate and Term visitors
+  public Formula convertFormulaType(Formula f, AcslType commonType) {
+    switch (commonType) {
+      case AcslBuiltinLogicType.INTEGER -> {
+        FormulaType<Formula> ftype = fmgr.getFormulaType(f);
+        if (ftype.isIntegerType()) {
+          return f;
+        } else if (ftype.isBitvectorType()) {
+          BitvectorFormula bitF = (BitvectorFormula) f;
+          return fmgr.getBitvectorFormulaManager().toIntegerFormula(bitF, isSigned(commonType));
+        } else {
+          throw new UnsupportedOperationException("Not yet implemented");
+        }
+      }
+      case AcslBuiltinLogicType.REAL ->
+          throw new UnsupportedOperationException("Not yet implemented");
+      case AcslBuiltinLogicType.BOOLEAN ->
+          throw new UnsupportedOperationException("Not yet implemented");
+      default -> throw new UnsupportedOperationException("Not yet implemented");
+    }
   }
 
   public FormulaType<?> acslTypeToFormulaType(AcslType acslType) {

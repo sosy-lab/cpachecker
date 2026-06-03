@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -149,6 +150,9 @@ public class AcslPredicateToFormulaVisitor
 
   @Override
   public BooleanFormula visit(AcslBinaryTermPredicate pAcslBinaryTermPredicate) throws NoException {
+    AcslType operand1Type = pAcslBinaryTermPredicate.getOperand1().getExpressionType();
+    AcslType operand2Type = pAcslBinaryTermPredicate.getOperand2().getExpressionType();
+
     Formula operand1Formula = pAcslBinaryTermPredicate.getOperand1().accept(termVisitor);
     Formula operand2Formula = pAcslBinaryTermPredicate.getOperand2().accept(termVisitor);
 
@@ -160,7 +164,13 @@ public class AcslPredicateToFormulaVisitor
       signed = typeHelper.isSigned(pAcslBinaryTermPredicate.getOperand1().getExpressionType());
     }
 
-    // TODO this might need the same typecasting as AcslBinaryTerm, add this here, once it works
+    if (!fmgr.getFormulaType(operand1Formula).equals(fmgr.getFormulaType(operand2Formula))) {
+      AcslType commonType = AcslType.mostGeneralType(operand1Type, operand2Type);
+      // TODO this is same typecasting as AcslBinaryTerm, so keep this up to date if you fixed the
+      // other
+      operand1Formula = typeHelper.convertFormulaType(operand1Formula, commonType);
+      operand2Formula = typeHelper.convertFormulaType(operand2Formula, commonType);
+    }
 
     return switch (pAcslBinaryTermPredicate.getOperator()) {
       case EQUALS -> fmgr.makeEqual(operand1Formula, operand2Formula);
