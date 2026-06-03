@@ -318,7 +318,7 @@ public class SequentializationBuilder {
           .forEach(f -> rDeclarations.add(f.getDeclaration().toASTString()));
     }
     // main should always be duplicate
-    rDeclarations.add(SeqMainFunctionBuilder.MAIN_FUNCTION_DECLARATION.toASTString());
+    rDeclarations.add(pFields.mainFunctionDeclaration.toASTString());
     return rDeclarations.toString();
   }
 

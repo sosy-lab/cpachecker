@@ -11,10 +11,15 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMapBuilder;
@@ -38,6 +43,11 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
 
 public class SequentializationFields {
+
+  private static final CFunctionType MAIN_FUNCTION_TYPE =
+      new CFunctionType(CNumericTypes.INT, ImmutableList.of(), false);
+
+  public final CFunctionDeclaration mainFunctionDeclaration;
 
   public final int numThreads;
 
@@ -75,6 +85,19 @@ public class SequentializationFields {
       throws UnrecognizedCodeException {
 
     resetStaticFields();
+
+    // The sequentialized main function never has any parameters, regardless of the input CFA,
+    // because the main function arguments from the input program are explicit variables in the
+    // sequentialization.
+    String mainFunctionName = pInputCfa.getMainFunction().getFunctionName();
+    mainFunctionDeclaration =
+        new CFunctionDeclaration(
+            FileLocation.DUMMY,
+            MAIN_FUNCTION_TYPE,
+            mainFunctionName,
+            ImmutableList.of(),
+            ImmutableSet.of());
+
     MPORThreadBuilder threadBuilder = new MPORThreadBuilder(pOptions, pInputCfa);
     threads = threadBuilder.extractThreadsFromCfa();
     numThreads = threads.size();
