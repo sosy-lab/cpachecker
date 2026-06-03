@@ -65,11 +65,7 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
     }
     List<String> previousHistory =
         pPreviousCondition
-            .map(
-                state ->
-                    Objects.requireNonNull(
-                            AbstractStates.extractStateByType(state, BlockState.class))
-                        .getHistory())
+            .map(state -> AbstractStates.extractStateByType(state, BlockState.class).getHistory())
             .orElse(ImmutableList.of());
     BlockState withHistory =
         new BlockState(
