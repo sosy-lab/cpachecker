@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 
 /**
  * This abstract class serves as a base for writing tests that check various approaches for
@@ -45,11 +46,10 @@ public abstract class AbstractTranslationTest {
   private static final String PARAM_NO_LINKING = "-c";
 
   protected static ARGState run(Configuration config, Path program) throws Exception {
-    TestResults results = CPATestRunner.run(config, program.toString());
-    UnmodifiableReachedSet reached = results.getCheckerResult().getReached();
+    IntegrationTestResult results = IntegrationTestRunner.run(config, program.toString());
+    UnmodifiableReachedSet reached = results.cpaCheckerResult().getReached();
     assert_()
-        .withMessage(
-            "reached set: %s\nlog: %s\nfirst state of reached set", reached, results.getLog())
+        .withMessage("reached set: %s\nlog: %s\nfirst state of reached set", reached, results.log())
         .that(reached.getFirstState())
         .isNotNull();
     return (ARGState) reached.getFirstState();
@@ -65,7 +65,7 @@ public abstract class AbstractTranslationTest {
    */
   protected static void check(Configuration config, Path program, boolean expectedVerdict)
       throws Exception {
-    TestResults results = CPATestRunner.run(config, program.toString());
+    IntegrationTestResult results = IntegrationTestRunner.run(config, program.toString());
     if (expectedVerdict) {
       results.assertIsSafe();
     } else {

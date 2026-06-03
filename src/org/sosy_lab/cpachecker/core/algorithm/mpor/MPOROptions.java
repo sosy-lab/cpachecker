@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PartialOrderReductionMode;
 import org.sosy_lab.cpachecker.util.cwriter.ClangFormatStyle;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /** Contains all {@link Option} fields used to adjust {@link MporPreprocessingAlgorithm}. */
 @Options(prefix = "analysis.algorithm.MPOR")
@@ -278,7 +278,7 @@ public class MPOROptions {
 
   /** Returns an instance of {@link MPOROptions} with all standard {@link Option}s. */
   public static MPOROptions getDefaultTestInstance() throws InvalidConfigurationException {
-    return new MPOROptions(TestDataTools.configurationForTest().build());
+    return new MPOROptions(TestUtils.configurationForTest().build());
   }
 
   // Rejection =====================================================================================

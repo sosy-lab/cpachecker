@@ -42,6 +42,7 @@ public class DistributedFunctionPointerCPA
   private final CoverageOperator coverageOperator;
   private final CombinePreconditionsOperator combinePreconditionsOperator;
   private final CombinePrecisionOperator combinePrecisionOperator;
+  private final CombineViolationConditionsOperator combineViolationConditionsOperator;
 
   private final FunctionPointerCPA functionPointerCPA;
 
@@ -58,6 +59,18 @@ public class DistributedFunctionPointerCPA
     combinePreconditionsOperator =
         new EqualityCombinePreconditionsOperator(coverageOperator, getAbstractStateClass());
     combinePrecisionOperator = new CombineSingletonPrecisionOperator();
+    combineViolationConditionsOperator =
+        states -> {
+          FunctionPointerState prev = null;
+          for (AbstractState state : states) {
+            if (prev == null) {
+              prev = (FunctionPointerState) state;
+            } else {
+              Preconditions.checkState(getCoverageOperator().areStatesEqual(prev, state));
+            }
+          }
+          return prev;
+        };
   }
 
   @Override
@@ -131,17 +144,7 @@ public class DistributedFunctionPointerCPA
 
   @Override
   public CombineViolationConditionsOperator getCombineViolationConditionsOperator() {
-    return states -> {
-      FunctionPointerState prev = null;
-      for (AbstractState state : states) {
-        if (prev == null) {
-          prev = (FunctionPointerState) state;
-        } else {
-          Preconditions.checkState(getCoverageOperator().areStatesEqual(prev, state));
-        }
-      }
-      return prev;
-    };
+    return combineViolationConditionsOperator;
   }
 
   @Override

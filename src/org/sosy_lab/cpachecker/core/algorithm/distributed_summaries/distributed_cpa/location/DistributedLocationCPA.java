@@ -155,6 +155,6 @@ public class DistributedLocationCPA implements ForwardingDistributedConfigurable
     Preconditions.checkArgument(doesOperateOn(pAbstractState.getClass()));
     CFANode cfaNode = AbstractStates.extractLocation(pAbstractState);
     Preconditions.checkNotNull(cfaNode, "LocationState should always have a location");
-    return Objects.hash("N", cfaNode.getNodeNumber());
+    return cfaNode.getNodeNumber();
   }
 }

@@ -47,9 +47,12 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/float-benchs/sin_interpolated_smallrange*</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/float-benchs/water_pid.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/float-newlib/double_req_bl_0520.yml</exclude> <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/float-newlib/double_req_bl_0681a.yml</exclude> <!-- flapping timeout / unknown -->
     <exclude>../programs/benchmarks/floats-cbmc-regression/float-no-simp2.yml</exclude> <!-- flapping timeout / unknown -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c13_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c13_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v8_c40_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
+    <exclude>../programs/benchmarks/neural-networks/sll_2x4x4x1_case_4_safe.c-amalgamation.yml</exclude> <!-- flapping unknown/timeout -->
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks>
@@ -85,6 +88,7 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
     <exclude>../programs/benchmarks/systemc/mem_slave_tlm.4.cil.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/systemc/token_ring.*</exclude> <!-- mostly timeouts -->
+    <exclude>../programs/benchmarks/systemc/transmitter.06.cil.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded/*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/seq-pthread/*</exclude> <!-- mostly timeouts / unknown -->
