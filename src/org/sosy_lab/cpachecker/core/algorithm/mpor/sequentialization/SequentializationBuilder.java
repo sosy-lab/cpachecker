@@ -120,7 +120,7 @@ public class SequentializationBuilder {
           // The main function declaration from the input is not included, we declare it ourselves.
           // The comparison is done by name because the CType may mismatch, e.g., when comparing
           // 'int main();' as declared by the sequentialization and 'int main(int arg);' from the
-          // input program, then they are not equal but we want them to be equal here.
+          // input program, then they are not equal, but we want them to be equal here.
           || functionDeclaration.getName().equals(pMainFunctionDeclaration.getName())) {
         return false;
       }
@@ -319,7 +319,7 @@ public class SequentializationBuilder {
       rDeclarations.add(SeqComment.CUSTOM_FUNCTION_DECLARATIONS.toASTString());
     }
 
-    // reach_error, abort, assert, nondet_int may be duplicate depending on the input program
+    // nondet_{int, uint}, reach_error and abort may be duplicate depending on the input program
     if (pOptions.nondeterminismSigned()) {
       rDeclarations.add(VerifierNondetFunctionType.INT.getFunctionDeclaration().toASTString());
     } else {
@@ -329,8 +329,14 @@ public class SequentializationBuilder {
     rDeclarations.add(SeqAssumeFunctionBuilder.ASSUME_FUNCTION_DECLARATION.toASTString());
     rDeclarations.add(SeqAssumeFunctionBuilder.ABORT_FUNCTION_DECLARATION.toASTString());
 
-    // malloc is required for valid-memsafety tasks
-    rDeclarations.add(SeqFunctionDeclarations.MALLOC.toASTString());
+    // malloc is required for valid-memsafety tasks for CBMC, but only if the input programs
+    // function declarations are excluded (which should be done for CBMC). This is because if the
+    // input program contains a call to malloc, then its declaration is included in the input
+    // program. But since we exclude these for CBMC, and because CBMC still needs a function
+    // declaration (it produces incorrect results otherwise), we add it here.
+    if (!pOptions.inputFunctionDeclarations()) {
+      rDeclarations.add(SeqFunctionDeclarations.MALLOC.toASTString());
+    }
 
     // thread simulation functions, only enabled when loop is unrolled
     if (pOptions.threadSimulationUnrolling()) {
@@ -340,7 +346,10 @@ public class SequentializationBuilder {
           .values()
           .forEach(f -> rDeclarations.add(f.getDeclaration().toASTString()));
     }
-    // main should always be duplicate
+    // The main function declaration should always be included, regardless of whether the input
+    // programs function declarations are included, because the main function declaration from the
+    // input is never included to prevent type mismatches of duplicate declarations such as:
+    // 'int main();' as declared by the sequentialization and 'int main(int arg);' from the input.
     rDeclarations.add(pFields.mainFunctionDeclaration.toASTString());
     return rDeclarations.toString();
   }
