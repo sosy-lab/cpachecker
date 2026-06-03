@@ -319,11 +319,9 @@ public class SequentializationBuilder {
       rDeclarations.add(SeqComment.CUSTOM_FUNCTION_DECLARATIONS.toASTString());
     }
 
-    // nondet_{int, uint}, reach_error and abort may be duplicate depending on the input program
-    if (pOptions.nondeterminismSigned()) {
-      rDeclarations.add(VerifierNondetFunctionType.INT.getFunctionDeclaration().toASTString());
-    } else {
-      rDeclarations.add(VerifierNondetFunctionType.UINT.getFunctionDeclaration().toASTString());
+    // nondet_..., reach_error and abort may be duplicate depending on the input program
+    for (VerifierNondetFunctionType nondetFunctionType : VerifierNondetFunctionType.values()) {
+      rDeclarations.add(nondetFunctionType.getFunctionDeclaration().toASTString());
     }
     rDeclarations.add(SeqThreadStatementBuilder.REACH_ERROR_FUNCTION_DECLARATION.toASTString());
     rDeclarations.add(SeqAssumeFunctionBuilder.ASSUME_FUNCTION_DECLARATION.toASTString());
