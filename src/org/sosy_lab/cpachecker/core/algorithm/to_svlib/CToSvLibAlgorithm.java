@@ -211,6 +211,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
 
     CToSvLibTransformation transformation =
         new CToSvLibTransformation(
+            cfa,
             formulaManager,
             pathFormulaManager,
             formulaToSvLibVisitor,

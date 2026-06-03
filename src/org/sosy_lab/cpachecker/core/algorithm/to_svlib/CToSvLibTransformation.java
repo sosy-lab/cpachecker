@@ -17,6 +17,7 @@ import com.google.common.collect.Iterables;
 import java.math.BigInteger;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -74,7 +75,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.FormulaToSvLibVisitor;
 
 class CToSvLibTransformation {
-  // private final CFA cfa;
+  private final CFA cfa;
   private final FormulaManagerView formulaManager;
   private final PathFormulaManager pathFormulaManager;
   private final FormulaToSvLibVisitor formulaToSvLibVisitor;
@@ -85,13 +86,14 @@ class CToSvLibTransformation {
   private final ImmutableSet<String> NAMES_OF_ASSERT_FUNCTIONS;
 
   CToSvLibTransformation(
+      CFA pCFA,
       FormulaManagerView pFormulaManager,
       PathFormulaManager pPathFormulaManager,
       FormulaToSvLibVisitor pFormulaToSvLibVisitor,
       SvLibCurrentScope pCurrentScope,
       String pINPUT_DUMMY_VAR_PREFIX,
       ImmutableSet<String> pNAMES_OF_ASSERT_FUNCTIONS) {
-    // cfa = pCFA;
+    cfa = pCFA;
     formulaManager = pFormulaManager;
     pathFormulaManager = pPathFormulaManager;
     formulaToSvLibVisitor = pFormulaToSvLibVisitor;
@@ -319,19 +321,11 @@ class CToSvLibTransformation {
   private @NonNull SvLibTerm transformToSvLibTerm(
       CFAEdge pEdge, ImmutableMap.Builder<CFAEdge, PointerTargetSet> pEdgeToPointerTargetSet)
       throws CPATransferException, InterruptedException {
-    return transformToSvLibTerm(pEdge, pEdgeToPointerTargetSet, false);
-  }
-
-  private @NonNull SvLibTerm transformToSvLibTerm(
-      CFAEdge pEdge,
-      ImmutableMap.Builder<CFAEdge, PointerTargetSet> pEdgeToPointerTargetSet,
-      boolean isGhostEdge)
-      throws CPATransferException, InterruptedException {
     PointerTargetSet pointerTargetSet = getPtsForEdge(pEdge, pEdgeToPointerTargetSet);
     PathFormula edgeFormula =
         pathFormulaManager.makeEmptyPathFormulaWithContext(SSAMap.emptySSAMap(), pointerTargetSet);
     edgeFormula = pathFormulaManager.makeAnd(edgeFormula, pEdge);
-    if (!isGhostEdge) {
+    if (cfa.edges().contains(pEdge)) {
       pEdgeToPointerTargetSet.put(pEdge, edgeFormula.getPointerTargetSet());
     }
     return formulaManager.visit(edgeFormula.getFormula(), formulaToSvLibVisitor);
@@ -523,7 +517,7 @@ class CToSvLibTransformation {
     ImmutableList.Builder<SvLibTerm> callInputParameterCollector = ImmutableList.builder();
     for (int i = 0; i < pCParameters.size(); i++) {
       CExpression inputParameter = pCParameters.get(i);
-      CAssumeEdge ghostEdge =
+      CAssumeEdge transformationDummyEdge =
           new CAssumeEdge(
               inputParameter.toASTString(),
               FileLocation.DUMMY,
@@ -531,7 +525,7 @@ class CToSvLibTransformation {
               pCallEdge.getSuccessor(),
               inputParameter,
               true);
-      SvLibTerm term = transformToSvLibTerm(ghostEdge, pEdgeToPointerTargetSet, true);
+      SvLibTerm term = transformToSvLibTerm(transformationDummyEdge, pEdgeToPointerTargetSet);
 
       if (inputParameter instanceof CIdExpression
           && term instanceof SvLibSymbolApplicationTerm symbolApplicationTerm
@@ -558,11 +552,11 @@ class CToSvLibTransformation {
           if (argumentType.equals(SvLibSmtLibPredefinedType.BOOL)
               && parameterType.equals(SvLibSmtLibPredefinedType.INT)) {
 
-            SvLibSymbolApplicationTerm ghostTerm =
-                createIntegerTermsViaGhostEdge(
+            SvLibSymbolApplicationTerm transformedTerm =
+                createIntegerTermsViaTransformationDummyEdge(
                     pCallEdge, inputParameter.getExpressionType(), pEdgeToPointerTargetSet);
-            SvLibTerm oneTerm = ghostTerm.getTerms().getFirst();
-            SvLibTerm zeroTerm = ghostTerm.getTerms().get(1);
+            SvLibTerm oneTerm = transformedTerm.getTerms().getFirst();
+            SvLibTerm zeroTerm = transformedTerm.getTerms().get(1);
 
             term =
                 new SvLibSymbolApplicationTerm(
@@ -586,12 +580,12 @@ class CToSvLibTransformation {
     return callInputParameterCollector.build();
   }
 
-  private SvLibSymbolApplicationTerm createIntegerTermsViaGhostEdge(
+  private SvLibSymbolApplicationTerm createIntegerTermsViaTransformationDummyEdge(
       CFAEdge pEdge,
       CType pCType,
       ImmutableMap.Builder<CFAEdge, PointerTargetSet> pEdgeToPointerTargetSet)
       throws CPATransferException, InterruptedException {
-    CAssumeEdge ghostEdge =
+    CAssumeEdge transformationDummyEdge =
         new CAssumeEdge(
             "1",
             FileLocation.DUMMY,
@@ -599,13 +593,14 @@ class CToSvLibTransformation {
             pEdge.getSuccessor(),
             new CIntegerLiteralExpression(FileLocation.DUMMY, pCType, BigInteger.ONE),
             false);
-    SvLibTerm ghostTerm = transformToSvLibTerm(ghostEdge, pEdgeToPointerTargetSet, true);
-    if (ghostTerm instanceof SvLibSymbolApplicationTerm symbolApplicationTerm
+    SvLibTerm transformedTerm =
+        transformToSvLibTerm(transformationDummyEdge, pEdgeToPointerTargetSet);
+    if (transformedTerm instanceof SvLibSymbolApplicationTerm symbolApplicationTerm
         && symbolApplicationTerm.getTerms().size() == 2) {
       return symbolApplicationTerm;
     }
     throw new UnsupportedOperationException(
-        "Failed to generate integer constant terms via ghost edge.");
+        "Failed to generate integer constant terms via a dummy edge.");
   }
 
   private SvLibStatement handleAssignment(CFAEdge pEdge, SvLibTerm pTransformedTerm) {
