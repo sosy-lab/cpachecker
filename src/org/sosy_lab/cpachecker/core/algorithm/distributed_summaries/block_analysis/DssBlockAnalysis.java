@@ -95,7 +95,9 @@ public class DssBlockAnalysis {
       }
       return obj instanceof ArgPathAndCondition other
           && Objects.equals(getIdFromPath(), other.getIdFromPath())
-          && Objects.equals(condition, other.condition());
+          && Objects.equals(
+              condition == null ? null : Objects.toIdentityString(condition),
+              other.condition() == null ? null : Objects.toIdentityString(other.condition()));
     }
   }
 
