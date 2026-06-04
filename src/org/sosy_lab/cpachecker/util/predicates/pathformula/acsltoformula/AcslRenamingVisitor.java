@@ -111,13 +111,17 @@ public class AcslRenamingVisitor
   @Override
   public AcslPredicate visit(AcslForallPredicate pForallPredicate) throws NoException {
     return new AcslForallPredicate(
-        pForallPredicate.getFileLocation(), pForallPredicate.getBinders(), pForallPredicate.getPredicate().accept(this));
+        pForallPredicate.getFileLocation(),
+        pForallPredicate.getBinders(),
+        pForallPredicate.getPredicate().accept(this));
   }
 
   @Override
   public AcslPredicate visit(AcslExistsPredicate pAcslExistsPredicate) throws NoException {
     return new AcslExistsPredicate(
-        pAcslExistsPredicate.getFileLocation(), pAcslExistsPredicate.getBinders(), pAcslExistsPredicate.getPredicate().accept(this));
+        pAcslExistsPredicate.getFileLocation(),
+        pAcslExistsPredicate.getBinders(),
+        pAcslExistsPredicate.getPredicate().accept(this));
   }
 
   @Override
@@ -231,4 +235,4 @@ public class AcslRenamingVisitor
         pAcslArraySubscriptTerm.getArrayExpression().accept(this),
         pAcslArraySubscriptTerm.getSubscriptExpression().accept(this));
   }
-  }
+}
