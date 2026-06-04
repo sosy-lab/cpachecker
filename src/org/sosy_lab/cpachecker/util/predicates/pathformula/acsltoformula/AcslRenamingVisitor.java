@@ -253,15 +253,23 @@ public class AcslRenamingVisitor
 
   @Override
   public AcslTerm visit(AcslFunctionCallTerm pAcslFunctionCallTerm) throws NoException {
-    // TODO
-    throw new UnsupportedOperationException("Renaming of function calls is not implemented yet");
+    return new AcslFunctionCallTerm(
+        pAcslFunctionCallTerm.getFileLocation(),
+        pAcslFunctionCallTerm.getExpressionType(),
+        pAcslFunctionCallTerm.getFunctionNameExpression(),
+        pAcslFunctionCallTerm.getParameterExpressions().stream()
+            .map(arg -> arg.accept(this))
+            .toList(),
+        pAcslFunctionCallTerm.getDeclaration());
   }
 
   @Override
   public AcslTerm visit(AcslArraySubscriptTerm pAcslArraySubscriptTerm) throws NoException {
-    // TODO
-    throw new UnsupportedOperationException(
-        "Renaming in Array subscript terms is not implemented yet");
+    return new AcslArraySubscriptTerm(
+        pAcslArraySubscriptTerm.getFileLocation(),
+        pAcslArraySubscriptTerm.getExpressionType(),
+        pAcslArraySubscriptTerm.getArrayExpression().accept(this),
+        pAcslArraySubscriptTerm.getSubscriptExpression().accept(this));
   }
 
   private static final class RenamingContext {
