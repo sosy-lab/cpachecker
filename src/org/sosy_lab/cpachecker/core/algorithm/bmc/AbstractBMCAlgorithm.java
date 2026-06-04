@@ -873,8 +873,8 @@ abstract class AbstractBMCAlgorithm
     }
     return from(pCandidates)
         .toSortedList(
-            Comparator
-                .comparingInt((CandidateInvariant candidate) -> countConjunctiveParts(candidate))
+            Comparator.comparingInt(
+                    (CandidateInvariant candidate) -> countConjunctiveParts(candidate))
                 .reversed()
                 .thenComparingInt(
                     candidate -> isNonTerminationStepCaseRefinement(candidate) ? 0 : 1));
