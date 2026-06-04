@@ -677,8 +677,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         // `debug = 0; ... if (debug != 0) {...}`). Adding such a candidate would let
         // PredicateCPA's abstraction smuggle a vacuous "non-term proof" through symbolic
         // closure under a program-unreachable precondition.
-        if (AbstractStates.filterLocations(
-                pReachedSet, ImmutableSet.of(assumeEdge.getSuccessor()))
+        if (AbstractStates.filterLocations(pReachedSet, ImmutableSet.of(assumeEdge.getSuccessor()))
             .isEmpty()) {
           continue;
         }
@@ -706,8 +705,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private ImmutableSet<CandidateInvariant> createModelEqualityStrengthenings(
       ReachedSet pReachedSet,
       CandidateInvariant pCandidateInvariant,
-      Iterable<ValueAssignment> pModelAssignments)
-      throws CPATransferException, InterruptedException {
+      Iterable<ValueAssignment> pModelAssignments) {
     if (!(pCandidateInvariant instanceof StatewiseCandidateInvariantConjunction)) {
       return ImmutableSet.of();
     }

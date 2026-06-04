@@ -456,9 +456,9 @@ class KInductionProver implements AutoCloseable {
    * <p>A non-termination candidate is treated as one state-wise bundle whose conjuncts may live at
    * different CFA locations in the same loop. For each loop head, this check builds a fresh
    * symbolic path-formula context, propagates one loop iteration with CPAchecker's transfer
-   * relation, asserts candidate components whenever their locations are visited, and asks the solver
-   * whether any path can either exit the loop or reach a next-iteration candidate location where the
-   * corresponding component is violated:
+   * relation, asserts candidate components whenever their locations are visited, and asks the
+   * solver whether any path can either exit the loop or reach a next-iteration candidate location
+   * where the corresponding component is violated:
    *
    * <pre>{@code
    * T(H_k -> P_k) AND C(P_k) AND T(P_k -> H_{k+1})
@@ -498,10 +498,10 @@ class KInductionProver implements AutoCloseable {
     BooleanFormula totalPrecondition;
     List<SymbolicBadObligation> badObligations;
     try {
-      Loop loop = findLoopForSymbolicCheck(pCandidateInvariant, pLoopScope);
-      if (loop == null) {
+      if (pLoopScope.isEmpty()) {
         return Optional.empty();
       }
+      Loop loop = pLoopScope.orElseThrow().loop();
 
       Map<CFANode, List<CandidateInvariant>> componentsByLocation = new LinkedHashMap<>();
       for (CandidateInvariant component :
@@ -772,42 +772,6 @@ class KInductionProver implements AutoCloseable {
     }
   }
 
-  private Loop findLoopForSymbolicCheck(
-      CandidateInvariant pCandidateInvariant, Optional<NonTerminationLoopScope> pLoopScope) {
-    if (cfa.getLoopStructure().isEmpty()) {
-      return null;
-    }
-    if (pLoopScope.isPresent()) {
-      Set<CFANode> scopeNodes = pLoopScope.orElseThrow().loopNodes();
-      for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
-        if (loop.getLoopNodes().equals(scopeNodes)) {
-          return loop;
-        }
-      }
-      return null;
-    }
-    Set<CFANode> candidateLocations = new HashSet<>();
-    for (CandidateInvariant component :
-        CandidateInvariantCombination.getConjunctiveParts(pCandidateInvariant)) {
-      if (component instanceof SingleLocationFormulaInvariant slfi) {
-        candidateLocations.add(slfi.getLocation());
-      }
-    }
-    if (candidateLocations.isEmpty()) {
-      return null;
-    }
-    for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
-      Set<CFANode> reachable = new HashSet<>(loop.getLoopNodes());
-      for (CFAEdge edge : loop.getOutgoingEdges()) {
-        reachable.add(edge.getSuccessor());
-      }
-      if (reachable.containsAll(candidateLocations)) {
-        return loop;
-      }
-    }
-    return null;
-  }
-
   private static final int MAX_SYMBOLIC_PATHS = 64;
   private static final int MAX_SYMBOLIC_PATH_LENGTH = 200;
 
@@ -991,8 +955,7 @@ class KInductionProver implements AutoCloseable {
 
     PathFormula seedPathFormula = pPfPre;
     if (pAssertionsByLocation.containsKey(pSource)) {
-      seedPathFormula =
-          addCandidateAssertions(seedPathFormula, pAssertionsByLocation.get(pSource));
+      seedPathFormula = addCandidateAssertions(seedPathFormula, pAssertionsByLocation.get(pSource));
     }
 
     Optional<AbstractState> seededInitialState =
@@ -1062,9 +1025,7 @@ class KInductionProver implements AutoCloseable {
         if (pTargets.contains(successorLocation)) {
           byTarget
               .computeIfAbsent(successorLocation, unused -> new ArrayList<>())
-              .add(
-                  new SymbolicTransferArrival(
-                      pathFormula, successor, successorPrecision));
+              .add(new SymbolicTransferArrival(pathFormula, successor, successorPrecision));
           if (countTransferArrivals(byTarget) >= MAX_SYMBOLIC_PATHS) {
             return null;
           }
