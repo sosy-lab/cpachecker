@@ -37,7 +37,7 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
     BlockState topMost =
         Objects.requireNonNull(
             AbstractStates.extractStateByType(pARGPath.getFirstState(), BlockState.class));
-    List<String> previousWitness =
+    ImmutableList<ImmutableList<String>> previousWitness =
         pPreviousCondition
             .map(
                 state ->
@@ -45,13 +45,14 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
                             AbstractStates.extractStateByType(state, BlockState.class))
                         .getWitness())
             .orElse(ImmutableList.of());
-    List<String> currentWitness =
-        ImmutableList.<String>builder()
+    ImmutableList<ImmutableList<String>> currentWitness =
+        ImmutableList.<ImmutableList<String>>builder()
             .addAll(previousWitness)
             .addAll(
-                transformedImmutableListCopy(
-                        pARGPath.getFullPath(), BlockTransferRelation::edgeToString)
-                    .reverse())
+                ImmutableList.of(
+                    transformedImmutableListCopy(
+                            pARGPath.getFullPath(), BlockTransferRelation::edgeToString)
+                        .reverse()))
             .build();
     if (!trackHistory) {
       return Optional.of(

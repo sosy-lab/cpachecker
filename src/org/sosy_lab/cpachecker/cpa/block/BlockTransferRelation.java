@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.block;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -69,7 +70,9 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
                   getBlockStateTypeOfLocation(blockState.getBlockNode(), cfaEdge.getSuccessor()),
                   ImmutableList.of(vc),
                   blockState.getHistory(),
-                  Collections3.listAndElement(blockState.getWitness(), edgeToString(cfaEdge))));
+                  FluentIterable.from(blockState.getWitness())
+                      .transform(list -> Collections3.listAndElement(list, edgeToString(cfaEdge)))
+                      .toList()));
         }
         return successors.build();
       }
@@ -80,7 +83,9 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
               getBlockStateTypeOfLocation(blockState.getBlockNode(), cfaEdge.getSuccessor()),
               blockState.getViolationConditions(),
               blockState.getHistory(),
-              Collections3.listAndElement(blockState.getWitness(), edgeToString(cfaEdge))));
+              FluentIterable.from(blockState.getWitness())
+                  .transform(list -> Collections3.listAndElement(list, edgeToString(cfaEdge)))
+                  .toList()));
     }
     return ImmutableList.of();
   }

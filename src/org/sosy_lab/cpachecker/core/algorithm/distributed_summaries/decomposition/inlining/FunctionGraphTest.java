@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class FunctionGraphTest {
 
@@ -127,7 +127,7 @@ public class FunctionGraphTest {
 
     BlockOperator blockOperator = new BlockOperator();
     Configuration config =
-        TestDataTools.configurationForTest().loadFromFile(TestUtil.DSS_CONFIGURATION_FILE).build();
+        TestUtils.configurationForTest().loadFromFile(TestUtil.DSS_CONFIGURATION_FILE).build();
     config.inject(blockOperator);
     try {
       blockOperator.setCFA(cfa);

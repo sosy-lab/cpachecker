@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
@@ -29,7 +30,20 @@ public class BlockStateCombineViolationConditionOperator
             .filter(BlockState.class)
             .transform(BlockState::getLocationNode)
             .toSet();
-    Preconditions.checkState(locations.size() == 1, "All states must have the same location");
-    return Iterables.getFirst(states, null);
+    ImmutableList<ImmutableList<String>> finalWitness =
+        FluentIterable.from(states)
+            .filter(BlockState.class)
+            .transformAndConcat(BlockState::getWitness)
+            .toList();
+    AbstractState reference = Iterables.getFirst(states, null);
+    Preconditions.checkNotNull(reference);
+    BlockState blockState = (BlockState) reference;
+    return new BlockState(
+        Iterables.getOnlyElement(locations),
+        blockState.getBlockNode(),
+        blockState.getType(),
+        blockState.getViolationConditions(),
+        blockState.getHistory(),
+        finalWitness);
   }
 }

@@ -539,6 +539,13 @@ public class DssBlockAnalysis {
       boolean isRelevant = true;
       for (StateAndPrecision stateAndPrecision :
           ImmutableSet.copyOf(preconditions.get(pReceived.getSenderId()))) {
+        if (preconditions.keySet().size() == 1
+            && dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state())) {
+          preconditions.removeAll(pReceived.getSenderId());
+          preconditions.put(pReceived.getSenderId(), stateAndPrecision);
+          relevant.add(stateAndPrecision);
+          return DssMessageProcessing.proceed();
+        }
         if (dcpa.getCoverageOperator()
             .isSubsumed(
                 dcpa.reset(deserializedStateAndPrecision.state()), stateAndPrecision.state())) {

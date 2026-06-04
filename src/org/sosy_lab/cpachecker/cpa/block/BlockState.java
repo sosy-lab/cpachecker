@@ -45,7 +45,7 @@ public class BlockState
   private final BlockNode blockNode;
   private final ImmutableList<String> history;
   private List<? extends AbstractState> violationConditions;
-  private final ImmutableList<String> witness;
+  private final ImmutableList<ImmutableList<String>> witness;
 
   public BlockState(
       CFANode pNode,
@@ -53,7 +53,7 @@ public class BlockState
       BlockStateType pType,
       List<? extends AbstractState> pViolationConditions,
       List<String> pHistory,
-      List<String> pWitness) {
+      List<ImmutableList<String>> pWitness) {
     node = pNode;
     type = pType;
     blockNode = pTargetNode;
@@ -62,7 +62,7 @@ public class BlockState
     witness = ImmutableList.copyOf(pWitness);
   }
 
-  public ImmutableList<String> getWitness() {
+  public ImmutableList<@NonNull ImmutableList<@NonNull String>> getWitness() {
     return witness;
   }
 
