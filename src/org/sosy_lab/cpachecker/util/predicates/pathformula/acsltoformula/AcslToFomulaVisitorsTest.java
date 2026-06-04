@@ -81,7 +81,7 @@ public class AcslToFomulaVisitorsTest {
     fmgr = smtSolver.getFormulaManager();
   }
 
-  private BooleanFormula translate(AcslPredicate predicate, Boolean doRenaming)
+  private BooleanFormula translate(AcslPredicate predicate)
       throws InvalidConfigurationException {
     SSAMapBuilder ssaMapBuilder = SSAMap.emptySSAMap().builder();
     MachineModel machineModel = MachineModel.LINUX64;
@@ -103,11 +103,6 @@ public class AcslToFomulaVisitorsTest {
 
     AcslPredicateToFormulaVisitor visitorP =
         new AcslPredicateToFormulaVisitor(fmgr, ssaMapBuilder, converter, machineModel);
-
-    if (doRenaming) {
-      AcslRenamingVisitor vistorR = new AcslRenamingVisitor();
-      predicate = predicate.accept(vistorR);
-    }
 
     return predicate.accept(visitorP);
   }
@@ -179,7 +174,7 @@ public class AcslToFomulaVisitorsTest {
             y,
             AcslBinaryTermExpressionOperator.NOT_EQUALS);
 
-    BooleanFormula f = translate(pred, false);
+    BooleanFormula f = translate(pred);
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 
@@ -221,7 +216,7 @@ public class AcslToFomulaVisitorsTest {
     AcslPredicate unsatPred =
         new AcslUnaryPredicate(FileLocation.DUMMY, pred, AcslUnaryExpressionOperator.NEGATION);
 
-    BooleanFormula f = translate(unsatPred, false);
+    BooleanFormula f = translate(unsatPred);
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 
@@ -251,7 +246,7 @@ public class AcslToFomulaVisitorsTest {
                 FileLocation.DUMMY, x, y, AcslBinaryTermExpressionOperator.LESS_THAN),
             AcslBinaryPredicateOperator.AND);
 
-    BooleanFormula f = translate(pred, false);
+    BooleanFormula f = translate(pred);
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 
@@ -278,7 +273,7 @@ public class AcslToFomulaVisitorsTest {
     AcslPredicate unsatPred =
         new AcslUnaryPredicate(FileLocation.DUMMY, pred, AcslUnaryExpressionOperator.NEGATION);
 
-    BooleanFormula f = translate(unsatPred, false);
+    BooleanFormula f = translate(unsatPred);
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 
@@ -312,7 +307,7 @@ public class AcslToFomulaVisitorsTest {
     AcslPredicate unsatPred =
         new AcslUnaryPredicate(FileLocation.DUMMY, pred, AcslUnaryExpressionOperator.NEGATION);
 
-    BooleanFormula f = translate(unsatPred, false);
+    BooleanFormula f = translate(unsatPred);
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 
@@ -339,7 +334,7 @@ public class AcslToFomulaVisitorsTest {
     AcslPredicate unsatPred =
         new AcslUnaryPredicate(FileLocation.DUMMY, pred, AcslUnaryExpressionOperator.NEGATION);
 
-    BooleanFormula f = translate(unsatPred, false);
+    BooleanFormula f = translate(unsatPred);
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 
@@ -362,7 +357,7 @@ public class AcslToFomulaVisitorsTest {
     AcslPredicate unsatPred =
         new AcslUnaryPredicate(FileLocation.DUMMY, pred, AcslUnaryExpressionOperator.NEGATION);
 
-    BooleanFormula f = translate(unsatPred, false);
+    BooleanFormula f = translate(unsatPred);
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 
@@ -389,7 +384,7 @@ public class AcslToFomulaVisitorsTest {
     AcslPredicate unsatPred =
         new AcslUnaryPredicate(FileLocation.DUMMY, pred, AcslUnaryExpressionOperator.NEGATION);
 
-    BooleanFormula f = translate(unsatPred, false);
+    BooleanFormula f = translate(unsatPred);
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 
@@ -398,26 +393,20 @@ public class AcslToFomulaVisitorsTest {
       throws SolverException, InterruptedException, InvalidConfigurationException {
     // \exists x: x != x should be unsatisfiable
 
-    CProgramScope cProgramScope = getCProgramScope();
+    AcslParameterDeclaration x =
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "x");
 
-    AcslCVariableDeclaration decl =
-        new AcslCVariableDeclaration(
-            (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable("x")));
-
-    AcslTerm x = new AcslIdTerm(FileLocation.DUMMY, decl);
-
-    AcslPredicate body =
-        new AcslBinaryTermPredicate(
-            FileLocation.DUMMY, x, x, AcslBinaryTermExpressionOperator.NOT_EQUALS);
-
-    AcslPredicate exists =
+    AcslPredicate pred =
         new AcslExistsPredicate(
             FileLocation.DUMMY,
-            ImmutableList.of(
-                new AcslParameterDeclaration(FileLocation.DUMMY, decl.getType(), decl.getName())),
-            body);
+            ImmutableList.of(x),
+            new AcslBinaryTermPredicate(
+                FileLocation.DUMMY,
+                new AcslIdTerm(FileLocation.DUMMY, x),
+                new AcslIdTerm(FileLocation.DUMMY, x),
+                AcslBinaryTermExpressionOperator.NOT_EQUALS));
 
-    BooleanFormula f = translate(exists, true);
+    BooleanFormula f = translate(pred);
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 
@@ -445,7 +434,7 @@ public class AcslToFomulaVisitorsTest {
             x,
             AcslBinaryTermExpressionOperator.NOT_EQUALS);
 
-    BooleanFormula f = translate(pred, false);
+    BooleanFormula f = translate(pred);
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 
@@ -454,26 +443,21 @@ public class AcslToFomulaVisitorsTest {
       throws SolverException, InterruptedException, InvalidConfigurationException {
     // \forall x: (x=5) and (x=6) should be unsatisfiable
 
-    CProgramScope cProgramScope = getCProgramScope();
-
-    AcslCVariableDeclaration decl =
-        new AcslCVariableDeclaration(
-            (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable("x")));
-
-    AcslTerm x = new AcslIdTerm(FileLocation.DUMMY, decl);
+    AcslParameterDeclaration x =
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "x");
 
     AcslPredicate body =
         new AcslBinaryPredicate(
             FileLocation.DUMMY,
             new AcslBinaryTermPredicate(
                 FileLocation.DUMMY,
-                x,
+                new AcslIdTerm(FileLocation.DUMMY, x),
                 new AcslIntegerLiteralTerm(
                     FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.valueOf(5)),
                 AcslBinaryTermExpressionOperator.EQUALS),
             new AcslBinaryTermPredicate(
                 FileLocation.DUMMY,
-                x,
+                new AcslIdTerm(FileLocation.DUMMY, x),
                 new AcslIntegerLiteralTerm(
                     FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.valueOf(6)),
                 AcslBinaryTermExpressionOperator.EQUALS),
@@ -482,11 +466,10 @@ public class AcslToFomulaVisitorsTest {
     AcslPredicate forall =
         new AcslForallPredicate(
             FileLocation.DUMMY,
-            ImmutableList.of(
-                new AcslParameterDeclaration(FileLocation.DUMMY, decl.getType(), decl.getName())),
+            ImmutableList.of(x),
             body);
 
-    BooleanFormula f = translate(forall, true);
+    BooleanFormula f = translate(forall);
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 }
