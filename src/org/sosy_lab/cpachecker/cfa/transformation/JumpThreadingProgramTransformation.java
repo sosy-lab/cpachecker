@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 public class JumpThreadingProgramTransformation extends ProgramTransformation {
 
   @Override
-  public Optional<SubCFA> transform(CFA pCFA, CFANode pNode) {
+  public Optional<ProgramTransformationInformation> transform(CFA pCFA, CFANode pNode) {
 
     // TODO check conditions
 

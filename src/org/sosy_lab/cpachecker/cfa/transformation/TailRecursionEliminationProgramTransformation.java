@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 public class TailRecursionEliminationProgramTransformation extends ProgramTransformation{
 
   @Override
-  public Optional<SubCFA> transform(CFA pCFA, CFANode pNode) {
+  public Optional<ProgramTransformationInformation> transform(CFA pCFA, CFANode pNode) {
 
     // check if CFA is a supergraph
     boolean isSuperGraph =
@@ -161,16 +161,23 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
 
     ImmutableList<CFAEdge> edgesList = edges.build();
 
-    return Optional.of(new SubCFA(
-        transformationData.entryNode,
-        transformationData.exitNode,
-        newEntryNode,
-        newExitNode,
-        ProgramTransformationEnum.TAIL_RECURSION_ELIMINATION,
-        ProgramTransformationBehaviour.PRECISE,
-        ImmutableSet.copyOf(nodesList),
-        ImmutableSet.copyOf(edgesList)
-    ));
+    return Optional.of(
+        new ProgramTransformationInformation(
+            new SubCFA(
+                transformationData.entryNode,
+                transformationData.exitNode,
+                newEntryNode,
+                newExitNode,
+                ProgramTransformationEnum.TAIL_RECURSION_ELIMINATION,
+                ProgramTransformationBehaviour.PRECISE,
+                ImmutableSet.copyOf(nodesList),
+                ImmutableSet.copyOf(edgesList)),
+            new TailRecursionEliminationRecovery(
+                nodeMap,
+                parameters.size(),
+                transformationData.tmpVarDeclarationEdge,
+                transformationData.tmpVarAssignmentEdge,
+                transformationData.tmpVarReturnEdge)));
   }
 
   private static Optional<TransformationData> canBeApplied(CFANode pNode){

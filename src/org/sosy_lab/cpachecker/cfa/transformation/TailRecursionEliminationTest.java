@@ -54,13 +54,13 @@ public class TailRecursionEliminationTest {
 
   @Test
   public void testSuccessfulTransformation(){
-    Optional<SubCFA> successfulTransformation = new TailRecursionEliminationProgramTransformation().transform(tailRecursiveCFA, tailRecursiveCFA.getAllFunctions().get("add"));
+    Optional<ProgramTransformationInformation> successfulTransformation = new TailRecursionEliminationProgramTransformation().transform(tailRecursiveCFA, tailRecursiveCFA.getAllFunctions().get("add"));
     assertThat(successfulTransformation.isEmpty()).isFalse();
   }
 
   @Test
   public void testUnsuccessfulTransformation(){
-    Optional<SubCFA> successfulTransformation = new TailRecursionEliminationProgramTransformation().transform(nonTailRecursiveCFA, nonTailRecursiveCFA.getAllFunctions().get("add"));
+    Optional<ProgramTransformationInformation> successfulTransformation = new TailRecursionEliminationProgramTransformation().transform(nonTailRecursiveCFA, nonTailRecursiveCFA.getAllFunctions().get("add"));
     assertThat(successfulTransformation.isEmpty()).isTrue();
   }
 }

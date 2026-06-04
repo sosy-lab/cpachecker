@@ -15,11 +15,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 public abstract class ProgramTransformation {
 
   /**
-   * Perform the program transformation on a given CFANode and return the resulting SubCFA or Optional.empty.
+   * Perform the program transformation on a given CFANode and return the resulting ProgramTransformationInformation or Optional.empty.
    *
    * @param pCFA  CFA
    * @param pNode CFANode
-   * @return Optional SubCFA
+   * @return Optional ProgramTransformationInformation
    */
-  public abstract Optional<SubCFA> transform(CFA pCFA, CFANode pNode);
+  public abstract Optional<ProgramTransformationInformation> transform(CFA pCFA, CFANode pNode);
 }

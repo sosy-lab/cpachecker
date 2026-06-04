@@ -32,7 +32,7 @@ public record SubCFA(
   ) {
 
   /**
-   * Inserts the CFANodes and CFAEdges plus additional CFAMetadata into the given MutableCFA.
+   * Inserts the CFANodes and CFAEdges into the given MutableCFA.
    *
    * @param pCFA MutableCFA
    */
@@ -54,11 +54,5 @@ public record SubCFA(
     BlankEdge exitEdge = new BlankEdge("exit program transformation: " + programTransformationEnum.name(), FileLocation.DUMMY, subCFAExitNode, originalCFAExitNode, "exit program transformation: " + programTransformationEnum.name());
     originalCFAExitNode.addEnteringEdge(exitEdge);
     subCFAExitNode.addLeavingEdge(exitEdge);
-    // set metadata
-    ImmutableMultimap<CFANode, ProgramTransformationInformation> nodeToProgramTransformation = pCFA.getMetadata().getNodesToProgramTransformations().isEmpty() ? ImmutableListMultimap.of() : pCFA.getMetadata().getNodesToProgramTransformations().orElseThrow();
-    ImmutableListMultimap.Builder<CFANode, ProgramTransformationInformation> newMapBuilder = ImmutableListMultimap.builder();
-    newMapBuilder.putAll(nodeToProgramTransformation);
-    newMapBuilder.put(originalCFAEntryNode, new ProgramTransformationInformation(this));
-    pCFA.setMetadata(pCFA.getMetadata().withNodesToProgramTransformations(newMapBuilder.build()));
   }
 }

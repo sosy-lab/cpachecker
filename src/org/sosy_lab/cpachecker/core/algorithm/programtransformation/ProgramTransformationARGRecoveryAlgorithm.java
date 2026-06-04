@@ -19,12 +19,15 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.transformation.ProgramTransformationInformation;
-import org.sosy_lab.cpachecker.cfa.transformation.SubCFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
+import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -40,50 +43,61 @@ public class ProgramTransformationARGRecoveryAlgorithm implements Algorithm {
     private final AlgorithmFactory algorithmFactory;
     private final LogManager logger;
     private final ImmutableMultimap<CFANode, ProgramTransformationInformation> nodesToProgramTransformations;
+    LocationStateFactory locFac;
 
     public ProgramTransformationARGRecoveryAlgorithmFactory(
         Algorithm pAlgorithm,
+        ConfigurableProgramAnalysis cpa,
         LogManager pLogger,
         CFA pCFA)
         throws InvalidConfigurationException {
-      this(() -> pAlgorithm, pLogger, pCFA);
+      this(() -> pAlgorithm, cpa, pLogger, pCFA);
     }
 
     public ProgramTransformationARGRecoveryAlgorithmFactory(
         AlgorithmFactory pAlgorithmFactory,
+        ConfigurableProgramAnalysis pCPA,
         LogManager pLogger,
-        CFA pCFA)
-        throws InvalidConfigurationException {
+        CFA pCFA) {
       algorithmFactory = pAlgorithmFactory;
       logger = pLogger;
       nodesToProgramTransformations = pCFA.getMetadata().getNodesToProgramTransformations().orElse(
           ImmutableListMultimap.of());
+      ARGCPA argCPA = (ARGCPA) pCPA;
+      for (ConfigurableProgramAnalysis cpa : argCPA.getWrappedCPAs()) {
+        if (cpa instanceof LocationCPA locCPA) {
+          locFac = locCPA.getStateFactory();
+        }
+      }
     }
 
     @Override
     public Algorithm newInstance() {
-      return new ProgramTransformationARGRecoveryAlgorithm(logger, algorithmFactory.newInstance(), nodesToProgramTransformations);
+      return new ProgramTransformationARGRecoveryAlgorithm(logger, locFac, algorithmFactory.newInstance(), nodesToProgramTransformations);
     }
   }
 
   private final LogManager logger;
+  private final LocationStateFactory locationStateFactory;
   private final Algorithm algorithm;
   private final ImmutableMultimap<CFANode, ProgramTransformationInformation>
       nodesToProgramTransformations;
-  private final ImmutableMap<CFANode, SubCFA> nodeMap;
+  private final ImmutableMap<CFANode, ProgramTransformationInformation> nodeMap;
 
   private ProgramTransformationARGRecoveryAlgorithm(
       LogManager pLogger,
+      LocationStateFactory pLocationStateFactory,
       Algorithm pAlgorithm,
       ImmutableMultimap<CFANode, ProgramTransformationInformation> pNodesToProgramTransformations) {
     logger = pLogger;
+    locationStateFactory = pLocationStateFactory;
     algorithm = pAlgorithm;
     nodesToProgramTransformations = pNodesToProgramTransformations;
-    ImmutableMap.Builder<CFANode, SubCFA> nodeMapBuilder = new ImmutableMap.Builder<>();
+    ImmutableMap.Builder<CFANode, ProgramTransformationInformation> nodeMapBuilder = new ImmutableMap.Builder<>();
     for (ProgramTransformationInformation programTransformation :
         nodesToProgramTransformations.values()) {
       for (CFANode node : programTransformation.subCFA().allNodes()) {
-        nodeMapBuilder.put(node, programTransformation.subCFA());
+        nodeMapBuilder.put(node, programTransformation);
       }
     }
     nodeMap = nodeMapBuilder.build();
@@ -101,7 +115,6 @@ public class ProgramTransformationARGRecoveryAlgorithm implements Algorithm {
     if (algorithm instanceof ProgramTransformationCEGARAlgorithm ptCEGARAlgorithm) {
       logger.log(Level.FINE, "Reversing the ARG after possibly using program transformations for verification");
       assert ARGUtils.checkARG(reached) : "ARG and reached set do not match before ARG reversal";
-      // TODO continue
 
       boolean changed = true;
       while (changed) {
@@ -110,7 +123,8 @@ public class ProgramTransformationARGRecoveryAlgorithm implements Algorithm {
         // TODO revert a single program transformation
         Optional<AbstractState> stateBeforeEntering = detectNextProgramTransformation(reached.getFirstState());
         if(stateBeforeEntering.isPresent()) {
-          //revertProgramTransformation(SubCFA pt);
+          revertProgramTransformation(stateBeforeEntering.orElseThrow(), reached);
+          // TODO Comment out for now
           //changed = true;
         }
       }
@@ -137,10 +151,10 @@ public class ProgramTransformationARGRecoveryAlgorithm implements Algorithm {
         // if no children exist return Optional.empty for this branch
         return Optional.empty();
       } else {
-        SubCFA parentSubCFA = nodeMap.getOrDefault(AbstractStates.extractLocation(pState), null);
+        ProgramTransformationInformation parentProgramTransformation = nodeMap.getOrDefault(AbstractStates.extractLocation(pState), null);
         for (ARGState child : children) {
-          SubCFA childSubCFA = nodeMap.getOrDefault(AbstractStates.extractLocation(child), null);
-          if (parentSubCFA != childSubCFA) {
+          ProgramTransformationInformation childProgramTransformation = nodeMap.getOrDefault(AbstractStates.extractLocation(child), null);
+          if (parentProgramTransformation != childProgramTransformation) {
             // entering different program transformation
             return Optional.of(pState);
           }
@@ -157,4 +171,60 @@ public class ProgramTransformationARGRecoveryAlgorithm implements Algorithm {
     // If all branches return Optional.empty, then there are no program transformation states left in the arg
     return Optional.empty();
   }
+
+  private void revertProgramTransformation(AbstractState pState, ReachedSet reached) {
+    ARGState parentARGState = (ARGState) pState;
+    ProgramTransformationInformation parentProgramTransformation = nodeMap.getOrDefault(AbstractStates.extractLocation(pState), null);
+    ARGState childARGState = null;
+    ProgramTransformationInformation childProgramTransformation = null;
+
+    for (ARGState child : parentARGState.getChildren()) {
+      childProgramTransformation = nodeMap.getOrDefault(AbstractStates.extractLocation(child), null);
+      if (parentProgramTransformation != childProgramTransformation) {
+        childARGState = child;
+        break;
+      }
+    }
+    assert (childARGState != null && childProgramTransformation != null);
+    assert (nodesToProgramTransformations.containsKey(AbstractStates.extractLocation(pState)));
+    assert (nodeMap.get(AbstractStates.extractLocation(childARGState)) == childProgramTransformation);
+
+    switch (childProgramTransformation.subCFA().programTransformationEnum()) {
+      case TAIL_RECURSION_ELIMINATION:
+        childProgramTransformation.programTransformationRecovery().revertProgramTransformation(
+            parentARGState,
+            childARGState,
+            childProgramTransformation.subCFA(),
+            // TODO use Optional
+            parentProgramTransformation == null ? null : parentProgramTransformation.subCFA(),
+            reached,
+            locationStateFactory
+        );
+        break;
+      default:
+        break;
+    }
+  }
+
+//  private void revertTailRecursionElimination(
+//      AbstractState pBeforeState,
+//      AbstractState pInitialState,
+//      SubCFA pBeforeProgramTransformation,
+//      SubCFA pAfterProgramTransformation,
+//      ReachedSet reached
+//  ) {
+//    LocationStateFactory locFac;
+//    CompositeState newCompositeState;
+//    CompositeState compositeState = (CompositeState) ((ARGState) pInitialState).getWrappedState();
+//    for (AbstractState state : compositeState.getWrappedStates()) {
+//      if (state instanceof LocationState locState) {
+//
+//        newCompositeState = (CompositeState) compositeState.forkWithReplacements(new ArrayList<>());
+//      }
+//    }
+//
+//    //ARGState testState = new ARGState(newCompositeState, (ARGState) pBeforeState);
+//    //((ARGState) pInitialState).replaceInARGWith(testState);
+//
+//  }
 }

@@ -804,7 +804,7 @@ public class CoreComponentsFactory {
                 .newInstance();
         algorithm =
             new ProgramTransformationARGRecoveryAlgorithmFactory(
-                    algorithm, logger, cfa)
+                    algorithm, cpa, logger, cfa)
                 .newInstance();
       }
 
