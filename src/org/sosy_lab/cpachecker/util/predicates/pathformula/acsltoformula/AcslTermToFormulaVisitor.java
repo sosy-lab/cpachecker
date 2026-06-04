@@ -177,7 +177,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
   @Override
   public Formula visit(AcslIdTerm pAcslIdTerm) throws NoException {
     AcslSimpleDeclaration variable = pAcslIdTerm.getDeclaration();
-    String varName = variable.getQualifiedName();
+    String varName = variable.getName();
     int useIndex = getIndex(varName, variable.getType());
 
     return fmgr.makeVariable(
