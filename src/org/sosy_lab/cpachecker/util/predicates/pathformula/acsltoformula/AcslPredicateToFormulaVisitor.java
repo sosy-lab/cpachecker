@@ -11,7 +11,9 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
@@ -21,9 +23,11 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
@@ -57,6 +61,9 @@ public class AcslPredicateToFormulaVisitor
   private final MachineModel machineModel;
   private final Optional<SSAMap>
       functionEntrySsa; // Optional SSA map for function-entry state (\old)
+
+  // Counter for renaming binders in quantifiers to ensure unique names
+  private int renamingCounter = 0;
 
   public AcslPredicateToFormulaVisitor(
       FormulaManagerView pFmgr,
@@ -227,36 +234,60 @@ public class AcslPredicateToFormulaVisitor
   public BooleanFormula visit(AcslForallPredicate pForallPredicate) throws NoException {
     QuantifiedFormulaManagerView qfmr = fmgr.getQuantifiedFormulaManager();
 
-    // Important: the AcslRenamingVistor should have already been used to rename the binders to
-    // unique names, if this was not done, this might cause issues
-    BooleanFormula body = pForallPredicate.getPredicate().accept(this);
+    Map<AcslSimpleDeclaration, AcslSimpleDeclaration> renamingMap = new HashMap<>();
+    List<AcslParameterDeclaration> newBinders = new ArrayList<>();
+    for (AcslParameterDeclaration declaration : pForallPredicate.getBinders()) {
+      String newName = "ACSL#q" + renamingCounter++ + "#" + declaration.getName();
 
-    List<AcslParameterDeclaration> binders = pForallPredicate.getBinders();
+      AcslParameterDeclaration renamed =
+          new AcslParameterDeclaration(
+              declaration.getFileLocation(), declaration.getType(), newName);
+
+      renamingMap.put(declaration, renamed);
+      newBinders.add(renamed);
+    }
+    AcslRenamingVisitor renamingVisitor = new AcslRenamingVisitor(renamingMap);
+
+    AcslPredicate renamedBody = pForallPredicate.getPredicate().accept(renamingVisitor);
+    BooleanFormula bodyF = renamedBody.accept(this);
+
     List<Formula> smtVars = new ArrayList<>();
 
-    for (AcslParameterDeclaration decl : binders) {
+    for (AcslParameterDeclaration decl : newBinders) {
       smtVars.add(createSmtVarFromBinder(decl));
     }
 
-    return qfmr.forall(smtVars, body);
+    return qfmr.forall(smtVars, bodyF);
   }
 
   @Override
   public BooleanFormula visit(AcslExistsPredicate pAcslExistsPredicate) throws NoException {
     QuantifiedFormulaManagerView qfmr = fmgr.getQuantifiedFormulaManager();
 
-    // Important: the AcslRenamingVistor should have already been used to rename the binders to
-    // unique names, if this was not done, this might cause issues
-    BooleanFormula body = pAcslExistsPredicate.getPredicate().accept(this);
+    Map<AcslSimpleDeclaration, AcslSimpleDeclaration> renamingMap = new HashMap<>();
+    List<AcslParameterDeclaration> newBinders = new ArrayList<>();
+    for (AcslParameterDeclaration declaration : pAcslExistsPredicate.getBinders()) {
+      String newName = "ACSL#q" + renamingCounter++ + "#" + declaration.getName();
 
-    List<AcslParameterDeclaration> binders = pAcslExistsPredicate.getBinders();
+      AcslParameterDeclaration renamed =
+          new AcslParameterDeclaration(
+              declaration.getFileLocation(), declaration.getType(), newName);
+
+      renamingMap.put(declaration, renamed);
+      newBinders.add(renamed);
+    }
+    AcslRenamingVisitor renamingVisitor = new AcslRenamingVisitor(renamingMap);
+
+    AcslPredicate renamedBody = pAcslExistsPredicate.getPredicate().accept(renamingVisitor);
+    BooleanFormula bodyF = renamedBody.accept(this);
+
     List<Formula> smtVars = new ArrayList<>();
 
-    for (AcslParameterDeclaration decl : binders) {
+    for (AcslParameterDeclaration decl : newBinders) {
       smtVars.add(createSmtVarFromBinder(decl));
     }
 
-    return qfmr.exists(smtVars, body);
+    return qfmr.exists(smtVars, bodyF);
   }
 
   @Override

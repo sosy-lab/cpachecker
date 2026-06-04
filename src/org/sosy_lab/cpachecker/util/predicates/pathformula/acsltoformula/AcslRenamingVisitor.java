@@ -8,9 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,7 +49,11 @@ public class AcslRenamingVisitor
     implements AcslPredicateVisitor<AcslPredicate, NoException>,
         AcslTermVisitor<AcslTerm, NoException> {
 
-  private final RenamingContext context = new RenamingContext();
+  private final Map<AcslSimpleDeclaration, AcslSimpleDeclaration> renamingMap;
+
+  public AcslRenamingVisitor(Map<AcslSimpleDeclaration, AcslSimpleDeclaration> pRenamingMap) {
+    this.renamingMap = pRenamingMap;
+  }
 
   @Override
   public AcslPredicate visit(AcslBinaryPredicate pBinaryExpression) throws NoException {
@@ -112,52 +114,14 @@ public class AcslRenamingVisitor
 
   @Override
   public AcslPredicate visit(AcslForallPredicate pForallPredicate) throws NoException {
-    List<AcslParameterDeclaration> newBinders = new ArrayList<>();
-    Map<AcslSimpleDeclaration, AcslSimpleDeclaration> localMap = new HashMap<>();
-
-    for (AcslParameterDeclaration declaration : pForallPredicate.getBinders()) {
-      String newName = "ACSL#q" + context.counter++ + "#" + declaration.getName();
-
-      AcslParameterDeclaration renamed =
-          new AcslParameterDeclaration(
-              declaration.getFileLocation(), declaration.getType(), newName);
-
-      localMap.put(declaration, renamed);
-      newBinders.add(renamed);
-    }
-    context.push(localMap);
-
-    AcslPredicate renamedPredicate = pForallPredicate.getPredicate().accept(this);
-
-    context.pop();
-
     return new AcslForallPredicate(
-        pForallPredicate.getFileLocation(), newBinders, renamedPredicate);
+        pForallPredicate.getFileLocation(), pForallPredicate.getBinders(), pForallPredicate.getPredicate().accept(this));
   }
 
   @Override
   public AcslPredicate visit(AcslExistsPredicate pAcslExistsPredicate) throws NoException {
-    List<AcslParameterDeclaration> newBinders = new ArrayList<>();
-    Map<AcslSimpleDeclaration, AcslSimpleDeclaration> localMap = new HashMap<>();
-
-    for (AcslParameterDeclaration declaration : pAcslExistsPredicate.getBinders()) {
-      String newName = "ACSL#q" + context.counter++ + "#" + declaration.getName();
-
-      AcslParameterDeclaration renamed =
-          new AcslParameterDeclaration(
-              declaration.getFileLocation(), declaration.getType(), newName);
-
-      localMap.put(declaration, renamed);
-      newBinders.add(renamed);
-    }
-    context.push(localMap);
-
-    AcslPredicate renamedPredicate = pAcslExistsPredicate.getPredicate().accept(this);
-
-    context.pop();
-
     return new AcslExistsPredicate(
-        pAcslExistsPredicate.getFileLocation(), newBinders, renamedPredicate);
+        pAcslExistsPredicate.getFileLocation(), pAcslExistsPredicate.getBinders(), pAcslExistsPredicate.getPredicate().accept(this));
   }
 
   @Override
@@ -218,7 +182,7 @@ public class AcslRenamingVisitor
   @Override
   public AcslTerm visit(AcslIdTerm pAcslIdTerm) throws NoException {
     AcslSimpleDeclaration declaration = pAcslIdTerm.getDeclaration();
-    AcslSimpleDeclaration renamed = context.lookup(declaration);
+    AcslSimpleDeclaration renamed = renamingMap.get(declaration);
     if (renamed != null) {
       return new AcslIdTerm(pAcslIdTerm.getFileLocation(), renamed);
     } else {
@@ -271,26 +235,4 @@ public class AcslRenamingVisitor
         pAcslArraySubscriptTerm.getArrayExpression().accept(this),
         pAcslArraySubscriptTerm.getSubscriptExpression().accept(this));
   }
-
-  private static final class RenamingContext {
-    private int counter = 0;
-    private Deque<Map<AcslSimpleDeclaration, AcslSimpleDeclaration>> stack = new ArrayDeque<>();
-
-    AcslSimpleDeclaration lookup(AcslSimpleDeclaration decl) {
-      for (Map<AcslSimpleDeclaration, AcslSimpleDeclaration> scope : stack) {
-        if (scope.containsKey(decl)) {
-          return scope.get(decl);
-        }
-      }
-      return null;
-    }
-
-    void push(Map<AcslSimpleDeclaration, AcslSimpleDeclaration> p) {
-      stack.push(p);
-    }
-
-    void pop() {
-      stack.pop();
-    }
   }
-}
