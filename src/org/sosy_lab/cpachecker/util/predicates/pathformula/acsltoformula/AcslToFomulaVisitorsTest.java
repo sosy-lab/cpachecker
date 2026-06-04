@@ -81,8 +81,7 @@ public class AcslToFomulaVisitorsTest {
     fmgr = smtSolver.getFormulaManager();
   }
 
-  private BooleanFormula translate(AcslPredicate predicate)
-      throws InvalidConfigurationException {
+  private BooleanFormula translate(AcslPredicate predicate) throws InvalidConfigurationException {
     SSAMapBuilder ssaMapBuilder = SSAMap.emptySSAMap().builder();
     MachineModel machineModel = MachineModel.LINUX64;
 
@@ -463,11 +462,7 @@ public class AcslToFomulaVisitorsTest {
                 AcslBinaryTermExpressionOperator.EQUALS),
             AcslBinaryPredicateOperator.AND);
 
-    AcslPredicate forall =
-        new AcslForallPredicate(
-            FileLocation.DUMMY,
-            ImmutableList.of(x),
-            body);
+    AcslPredicate forall = new AcslForallPredicate(FileLocation.DUMMY, ImmutableList.of(x), body);
 
     BooleanFormula f = translate(forall);
     assertThat(smtSolver.isUnsat(f)).isTrue();
