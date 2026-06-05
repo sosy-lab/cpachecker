@@ -22,7 +22,9 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
@@ -110,6 +112,7 @@ public class DssBlockAnalysis {
   private final DistributedConfigurableProgramAnalysis dcpa;
   private final DssMessageFactory messageFactory;
   private final Multimap<String, @NonNull StateAndPrecision> preconditions;
+  private final Map<String, Boolean> keepTrivial;
   private final Multimap<String, @NonNull StateAndPrecision> violationConditions;
   private final List<StateAndPrecision> relevant;
 
@@ -169,6 +172,8 @@ public class DssBlockAnalysis {
 
     containsViolationInsideBlock = false;
     combineByHash = pOptions.combineByHash();
+    keepTrivial = new HashMap<>();
+    block.getPredecessorIds().forEach(id -> keepTrivial.put(id, false));
   }
 
   /**
@@ -533,14 +538,8 @@ public class DssBlockAnalysis {
       return processing;
     }
 
+    keepTrivial.put(pReceived.getSenderId(), pReceived.replaceContent());
     if (preconditions.get(pReceived.getSenderId()).isEmpty()) {
-      preconditions.putAll(pReceived.getSenderId(), deserializedStatesAndPrecisions);
-      relevant.addAll(deserializedStatesAndPrecisions);
-      appendTopToRelevantIfNecessary(pReceived.getSenderId());
-      return processing;
-    }
-    if (pReceived.replaceContent()) {
-      preconditions.removeAll(pReceived.getSenderId());
       preconditions.putAll(pReceived.getSenderId(), deserializedStatesAndPrecisions);
       relevant.addAll(deserializedStatesAndPrecisions);
       appendTopToRelevantIfNecessary(pReceived.getSenderId());
@@ -701,7 +700,8 @@ public class DssBlockAnalysis {
     }
 
     boolean hasNonTrivialSummariesForEachPredecessor =
-        !preconditions.isEmpty()
+        keepTrivial.values().stream().noneMatch(b -> b)
+            && !preconditions.isEmpty()
             && preconditions.keySet().stream().allMatch(this::isPredecessorWithTopSummary);
 
     // unreachable block ends might be caused by underapproximating summaries
