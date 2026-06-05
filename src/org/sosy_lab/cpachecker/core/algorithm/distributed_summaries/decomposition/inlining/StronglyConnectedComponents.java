@@ -42,10 +42,10 @@ public class StronglyConnectedComponents<T> {
     SequencedMap<T, Vertex<T>> cache = new LinkedHashMap<>();
     while (!waitlist.isEmpty()) {
       T current = waitlist.removeFirst();
+      Vertex<T> v1 = cache.getOrDefault(current, new Vertex<>(current));
+      cache.put(current, v1);
       for (T t : pSuccessors.apply(current)) {
-        Vertex<T> v1 = cache.getOrDefault(current, new Vertex<>(current));
         Vertex<T> v2 = cache.getOrDefault(t, new Vertex<>(t));
-        cache.put(current, v1);
         cache.put(t, v2);
         Edge<T> edge = new Edge<>(v1, v2);
         if (!edges.contains(edge)) {
