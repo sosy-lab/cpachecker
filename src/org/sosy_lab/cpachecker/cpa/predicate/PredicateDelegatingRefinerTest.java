@@ -36,7 +36,8 @@ import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.Delegat
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.HeuristicDelegatingRefinerRecord;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class PredicateDelegatingRefinerTest {
   private Configuration config;
@@ -69,11 +70,8 @@ public class PredicateDelegatingRefinerTest {
   private PredicateCPARefinerFactory setUpRefinerFactory(Configuration pConfig) throws Exception {
     config = pConfig;
     cfa =
-        TestDataTools.toSingleFunctionCFA(
-            new CFACreator(config, logger, shutdownNotifier),
-            "  int x;",
-            "  x = 0;",
-            "  return x;");
+        TestCfaUtils.toSingleFunctionCFA(
+            new CFACreator(config, logger, shutdownNotifier), "  int x; x = 0;return x;");
     PredicateCPA predicateCPA =
         new PredicateCPA(config, logger, blk, cfa, shutdownNotifier, spec, reachedSet);
     ARGCPA argCpa =
@@ -103,7 +101,7 @@ public class PredicateDelegatingRefinerTest {
   @Test
   public void setUpDefaultRefinementIndividualRuns() throws Exception {
     Configuration pDefaultIndividualRunsConfig =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .setOption(
                 "cpa.predicate.refinement.heuristicRefinerPairs", "REACHED_SET_RATIO:DEFAULT")
             .setOption(
@@ -131,7 +129,7 @@ public class PredicateDelegatingRefinerTest {
   @Test
   public void setUpNegatedHeuristic() throws Exception {
     Configuration pNegatedConfig =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .setOption(
                 "cpa.predicate.refinement.heuristicRefinerPairs",
                 "NEGATED(RUNREFINERNTIMES):DEFAULT,NEGATED(INTERPOLATION_RATE):DEFAULT")
@@ -166,7 +164,7 @@ public class PredicateDelegatingRefinerTest {
   @Test
   public void setUpRedundantHeuristicCustomThreshold() throws Exception {
     Configuration pRedundantCustomThresholdConfig =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .setOption(
                 "cpa.predicate.refinement.heuristicRefinerPairs", "REDUNDANT_PREDICATES:DEFAULT")
             .setOption(
@@ -194,7 +192,7 @@ public class PredicateDelegatingRefinerTest {
   @Test
   public void setUpMultipleRefinerHeuristicPairs() throws Exception {
     Configuration pMultipleConfig =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .setOption(
                 "cpa.predicate.refinement.heuristicRefinerPairs",
                 "REDUNDANT_PREDICATES:STATIC,RUNREFINERNTIMES:STATIC")
@@ -218,7 +216,7 @@ public class PredicateDelegatingRefinerTest {
   @Test
   public void checkCaseInsensitivity() throws Exception {
     Configuration plowerCaseConfig =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .setOption(
                 "cpa.predicate.refinement.heuristicRefinerPairs",
                 "runrefinerntimes:STATIC,RUNREFINERNTIMES:default")
@@ -244,7 +242,7 @@ public class PredicateDelegatingRefinerTest {
   @Test
   public void ignoreWhiteSpaceColon() throws Exception {
     Configuration pIgnoreWhiteSpaceColonConfig =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .setOption(
                 "cpa.predicate.refinement.heuristicRefinerPairs", "RUNREFINERNTIMES : STATIC")
             .build();
@@ -268,7 +266,7 @@ public class PredicateDelegatingRefinerTest {
   @Test
   public void ignoreWhiteSpaceComma() throws Exception {
     Configuration pIgnoreWhiteSpaceCommaConfig =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .setOption(
                 "cpa.predicate.refinement.heuristicRefinerPairs",
                 "RUNREFINERNTIMES:STATIC, REACHED_SET_RATIO:DEFAULT ,REDUNDANT_PREDICATES:DEFAULT")
@@ -299,7 +297,7 @@ public class PredicateDelegatingRefinerTest {
   @Test
   public void checkOtherSeparators() throws Exception {
     Configuration pOtherSeparatorsConfig =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .setOption(
                 "cpa.predicate.refinement.heuristicRefinerPairs",
                 "RUNREFINERNTIMES:STATIC;REACHED_SET_RATIO:DEFAULT")
@@ -307,11 +305,12 @@ public class PredicateDelegatingRefinerTest {
     PredicateCPARefinerFactory pIgnoreOtherSeparatorsRefinerFactory =
         setUpRefinerFactory(pOtherSeparatorsConfig);
 
+    ImmutableMap<DelegatingRefinerRefinerType, Refiner> refiners =
+        setUpRefinerMap(pIgnoreOtherSeparatorsRefinerFactory);
+
     assertThrows(
         InvalidConfigurationException.class,
-        () ->
-            pIgnoreOtherSeparatorsRefinerFactory.createDelegatingRefinerConfig(
-                setUpRefinerMap(pIgnoreOtherSeparatorsRefinerFactory)));
+        () -> pIgnoreOtherSeparatorsRefinerFactory.createDelegatingRefinerConfig(refiners));
   }
 
   /**
@@ -321,17 +320,18 @@ public class PredicateDelegatingRefinerTest {
   @Test
   public void checkMissingColon() throws Exception {
     Configuration pMissingColonConfig =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "RUNREFINERNTIMESSTATIC")
             .build();
     PredicateCPARefinerFactory pMissingColonRefinerFactory =
         setUpRefinerFactory(pMissingColonConfig);
 
+    ImmutableMap<DelegatingRefinerRefinerType, Refiner> refiners =
+        setUpRefinerMap(pMissingColonRefinerFactory);
+
     assertThrows(
         InvalidConfigurationException.class,
-        () ->
-            pMissingColonRefinerFactory.createDelegatingRefinerConfig(
-                setUpRefinerMap(pMissingColonRefinerFactory)));
+        () -> pMissingColonRefinerFactory.createDelegatingRefinerConfig(refiners));
   }
 
   /**
@@ -341,17 +341,18 @@ public class PredicateDelegatingRefinerTest {
   @Test
   public void checkOnlyComponentInPair() throws Exception {
     Configuration pOnlyOneComponentConfig =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "RUNREFINERNTIMES")
             .build();
     PredicateCPARefinerFactory pOnlyOneComponentRefinerFactory =
         setUpRefinerFactory(pOnlyOneComponentConfig);
 
+    ImmutableMap<DelegatingRefinerRefinerType, Refiner> refiners =
+        setUpRefinerMap(pOnlyOneComponentRefinerFactory);
+
     assertThrows(
         InvalidConfigurationException.class,
-        () ->
-            pOnlyOneComponentRefinerFactory.createDelegatingRefinerConfig(
-                setUpRefinerMap(pOnlyOneComponentRefinerFactory)));
+        () -> pOnlyOneComponentRefinerFactory.createDelegatingRefinerConfig(refiners));
   }
 
   /**
@@ -361,7 +362,7 @@ public class PredicateDelegatingRefinerTest {
   @Test
   public void checkThreeComponentsInPair() throws Exception {
     Configuration pThreeComponentsConfig =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .setOption(
                 "cpa.predicate.refinement.heuristicRefinerPairs",
                 "RUNREFINERNTIMES:RUNREFINERNTIMES:STATIC")
@@ -369,11 +370,12 @@ public class PredicateDelegatingRefinerTest {
     PredicateCPARefinerFactory pThreeComponentsRefinerFactory =
         setUpRefinerFactory(pThreeComponentsConfig);
 
+    ImmutableMap<DelegatingRefinerRefinerType, Refiner> refiners =
+        setUpRefinerMap(pThreeComponentsRefinerFactory);
+
     assertThrows(
         InvalidConfigurationException.class,
-        () ->
-            pThreeComponentsRefinerFactory.createDelegatingRefinerConfig(
-                setUpRefinerMap(pThreeComponentsRefinerFactory)));
+        () -> pThreeComponentsRefinerFactory.createDelegatingRefinerConfig(refiners));
   }
 
   /**
@@ -383,17 +385,18 @@ public class PredicateDelegatingRefinerTest {
   @Test
   public void checkUnknownHeuristic() throws Exception {
     Configuration pUnknownHeuristicConfig =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "FOO:RUNREFINERNTIMES")
             .build();
     PredicateCPARefinerFactory pUnknownHeuristicRefinerFactory =
         setUpRefinerFactory(pUnknownHeuristicConfig);
 
+    ImmutableMap<DelegatingRefinerRefinerType, Refiner> refiners =
+        setUpRefinerMap(pUnknownHeuristicRefinerFactory);
+
     assertThrows(
         InvalidConfigurationException.class,
-        () ->
-            pUnknownHeuristicRefinerFactory.createDelegatingRefinerConfig(
-                setUpRefinerMap(pUnknownHeuristicRefinerFactory)));
+        () -> pUnknownHeuristicRefinerFactory.createDelegatingRefinerConfig(refiners));
   }
 
   /**
@@ -403,17 +406,18 @@ public class PredicateDelegatingRefinerTest {
   @Test
   public void checkUnknownRefiner() throws Exception {
     Configuration pUnknownRefinerConfig =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "RUNREFINERNTIMES:FOO")
             .build();
-    PredicateCPARefinerFactory pUnkmownRefinerRefinerFactory =
+    PredicateCPARefinerFactory pUnknownRefinerRefinerFactory =
         setUpRefinerFactory(pUnknownRefinerConfig);
+
+    ImmutableMap<DelegatingRefinerRefinerType, Refiner> refiners =
+        setUpRefinerMap(pUnknownRefinerRefinerFactory);
 
     assertThrows(
         InvalidConfigurationException.class,
-        () ->
-            pUnkmownRefinerRefinerFactory.createDelegatingRefinerConfig(
-                setUpRefinerMap(pUnkmownRefinerRefinerFactory)));
+        () -> pUnknownRefinerRefinerFactory.createDelegatingRefinerConfig(refiners));
   }
 
   /**
@@ -423,7 +427,7 @@ public class PredicateDelegatingRefinerTest {
   @Test
   public void checkNegativeFixedRuns() throws Exception {
     Configuration pNegativeFixedRunsConfig =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .setOption(
                 "cpa.predicate.refinement.heuristicRefinerPairs", "REACHED_SET_RATIO:DEFAULT")
             .setOption(
@@ -433,11 +437,12 @@ public class PredicateDelegatingRefinerTest {
     PredicateCPARefinerFactory pNegativeFixedRunsFactory =
         setUpRefinerFactory(pNegativeFixedRunsConfig);
 
+    ImmutableMap<DelegatingRefinerRefinerType, Refiner> refiners =
+        setUpRefinerMap(pNegativeFixedRunsFactory);
+
     assertThrows(
         InvalidConfigurationException.class,
-        () ->
-            pNegativeFixedRunsFactory.createDelegatingRefinerConfig(
-                setUpRefinerMap(pNegativeFixedRunsFactory)));
+        () -> pNegativeFixedRunsFactory.createDelegatingRefinerConfig(refiners));
   }
 
   /**
@@ -447,7 +452,7 @@ public class PredicateDelegatingRefinerTest {
   @Test
   public void checkNegativeRedundancyThreshold() throws Exception {
     Configuration pNegativeRedundancyConfig =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .setOption(
                 "cpa.predicate.refinement.heuristicRefinerPairs", "REDUNDANT_PREDICATES:DEFAULT")
             .setOption(
@@ -457,11 +462,12 @@ public class PredicateDelegatingRefinerTest {
     PredicateCPARefinerFactory pNegativeRedundancyRefinerFactory =
         setUpRefinerFactory(pNegativeRedundancyConfig);
 
+    ImmutableMap<DelegatingRefinerRefinerType, Refiner> refiners =
+        setUpRefinerMap(pNegativeRedundancyRefinerFactory);
+
     assertThrows(
         InvalidConfigurationException.class,
-        () ->
-            pNegativeRedundancyRefinerFactory.createDelegatingRefinerConfig(
-                setUpRefinerMap(pNegativeRedundancyRefinerFactory)));
+        () -> pNegativeRedundancyRefinerFactory.createDelegatingRefinerConfig(refiners));
   }
 
   /**
@@ -471,7 +477,7 @@ public class PredicateDelegatingRefinerTest {
   @Test
   public void checkTooLargeRedundancyThreshold() throws Exception {
     Configuration pTooLargeRedundancyConfig =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .setOption(
                 "cpa.predicate.refinement.heuristicRefinerPairs", "REDUNDANT_PREDICATES:DEFAULT")
             .setOption(
@@ -481,11 +487,12 @@ public class PredicateDelegatingRefinerTest {
     PredicateCPARefinerFactory pTooLargeRedundancyRefinerFactory =
         setUpRefinerFactory(pTooLargeRedundancyConfig);
 
+    ImmutableMap<DelegatingRefinerRefinerType, Refiner> refiners =
+        setUpRefinerMap(pTooLargeRedundancyRefinerFactory);
+
     assertThrows(
         InvalidConfigurationException.class,
-        () ->
-            pTooLargeRedundancyRefinerFactory.createDelegatingRefinerConfig(
-                setUpRefinerMap(pTooLargeRedundancyRefinerFactory)));
+        () -> pTooLargeRedundancyRefinerFactory.createDelegatingRefinerConfig(refiners));
   }
 
   /**
@@ -495,7 +502,7 @@ public class PredicateDelegatingRefinerTest {
   @Test
   public void checkStringRedundancyThreshold() throws Exception {
     Configuration pStringRedundancyThresholdConfig =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .setOption(
                 "cpa.predicate.refinement.heuristicRefinerPairs", "REDUNDANT_PREDICATES:DEFAULT")
             .setOption(
@@ -505,9 +512,10 @@ public class PredicateDelegatingRefinerTest {
 
     PredicateCPARefinerFactory factory = setUpRefinerFactory(pStringRedundancyThresholdConfig);
 
+    ImmutableMap<DelegatingRefinerRefinerType, Refiner> refiners = setUpRefinerMap(factory);
+
     assertThrows(
-        InvalidConfigurationException.class,
-        () -> factory.createDelegatingRefinerConfig(setUpRefinerMap(factory)));
+        InvalidConfigurationException.class, () -> factory.createDelegatingRefinerConfig(refiners));
   }
 
   // A dummy refiner to serve as Refiner instances the DelegatingRefiner adds to its map of

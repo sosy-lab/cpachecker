@@ -34,7 +34,8 @@ import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.Heurist
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class PredicateStopRefinerTest {
   DummyAlgorithm countCallsToAlgorithmInCEGAR;
@@ -55,13 +56,13 @@ public class PredicateStopRefinerTest {
     logger = LogManager.createTestLogManager();
     shutdownNotifier = ShutdownNotifier.createDummy();
     config =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .setOption("cegar.refiner", "cpa.predicate.PredicateDelegatingRefiner")
             .setOption("analysis.reachedSet.withTracking", "true")
             .build();
     cfa =
-        TestDataTools.toSingleFunctionCFA(
-            new CFACreator(config, logger, shutdownNotifier), " int x;", " x = 0;", " return x;");
+        TestCfaUtils.toSingleFunctionCFA(
+            new CFACreator(config, logger, shutdownNotifier), "  int x; x = 0;return x;");
     PredicateCPA predicateCPA =
         new PredicateCPA(
             config,
