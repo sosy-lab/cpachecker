@@ -198,6 +198,10 @@ public abstract class DssMessage {
     }
   }
 
+  public final boolean replaceContent() {
+    return Boolean.parseBoolean(ContentReader.read(content).getOrDefault("replaceTop", "false"));
+  }
+
   public final String getExceptionMessage() {
     checkArgument(type == DssMessageType.EXCEPTION, "Cannot get content for type: " + "%s", type);
     String exceptionMessage = content.get(DssExceptionMessage.DSS_MESSAGE_EXCEPTION_KEY);

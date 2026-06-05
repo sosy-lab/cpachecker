@@ -225,7 +225,8 @@ public class DssBlockAnalysis {
   }
 
   private Collection<DssMessage> reportPostconditions(
-      Collection<@NonNull StateAndPrecision> summaries) throws CPAException, InterruptedException {
+      Collection<@NonNull StateAndPrecision> summaries, boolean replaceTop)
+      throws CPAException, InterruptedException {
 
     // reset all summaries and run cpa algorithm on them to remove redundant ones
     ImmutableList<StateAndPrecision> uniqueSummaries = deduplicateStates(summaries);
@@ -237,7 +238,9 @@ public class DssBlockAnalysis {
     // pack the message
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     ImmutableMap<String, String> serialized = serialize(uniqueSummaries);
-    messages.add(messageFactory.createDssPostConditionMessage(block.getId(), status, serialized));
+    messages.add(
+        messageFactory.createDssPostConditionMessage(
+            block.getId(), status, replaceTop, serialized));
     return messages.build();
   }
 
@@ -466,7 +469,7 @@ public class DssBlockAnalysis {
         summariesWithPrecision.add(
             new StateAndPrecision(finalState, reachedSet.getPrecision(finalState)));
       }
-      return reportPostconditions(summariesWithPrecision.build());
+      return reportPostconditions(summariesWithPrecision.build(), false);
     }
 
     ImmutableList.Builder<DssMessage> messages = ImmutableList.builder();
@@ -477,6 +480,7 @@ public class DssBlockAnalysis {
           messageFactory.createDssPostConditionMessage(
               block.getId(),
               status,
+              true,
               serialize(ImmutableList.of(new StateAndPrecision(startState, startPrecision)))));
     }
     return messages.addAll(reportFirstViolationConditions(result.getAllViolations())).build();
@@ -535,17 +539,17 @@ public class DssBlockAnalysis {
       appendTopToRelevantIfNecessary(pReceived.getSenderId());
       return processing;
     }
+    if (pReceived.replaceContent()) {
+      preconditions.removeAll(pReceived.getSenderId());
+      preconditions.putAll(pReceived.getSenderId(), deserializedStatesAndPrecisions);
+      relevant.addAll(deserializedStatesAndPrecisions);
+      appendTopToRelevantIfNecessary(pReceived.getSenderId());
+      return processing;
+    }
     for (StateAndPrecision deserializedStateAndPrecision : deserializedStatesAndPrecisions) {
       boolean isRelevant = true;
       for (StateAndPrecision stateAndPrecision :
           ImmutableSet.copyOf(preconditions.get(pReceived.getSenderId()))) {
-        if (preconditions.keySet().size() == 1
-            && dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state())) {
-          preconditions.removeAll(pReceived.getSenderId());
-          preconditions.put(pReceived.getSenderId(), stateAndPrecision);
-          relevant.add(stateAndPrecision);
-          return DssMessageProcessing.proceed();
-        }
         if (dcpa.getCoverageOperator()
             .isSubsumed(
                 dcpa.reset(deserializedStateAndPrecision.state()), stateAndPrecision.state())) {
@@ -637,7 +641,8 @@ public class DssBlockAnalysis {
       messages.addAll(reportViolationConditions(result.violationConditions()));
     }
     if (!result.summaries().isEmpty()) {
-      messages.addAll(reportPostconditions(result.summaries()));
+      messages.addAll(
+          reportPostconditions(result.summaries(), !result.violationConditions().isEmpty()));
     }
     return messages.build();
   }
@@ -663,7 +668,8 @@ public class DssBlockAnalysis {
         analyzeViolationCondition(
             transformedImmutableListCopy(violations, v -> (ARGState) v.state()), false);
     if (!result.summaries().isEmpty()) {
-      messages.addAll(reportPostconditions(result.summaries()));
+      messages.addAll(
+          reportPostconditions(result.summaries(), !result.violationConditions().isEmpty()));
     }
     if (!result.violationConditions().isEmpty()) {
       messages.addAll(reportViolationConditions(result.violationConditions()));
