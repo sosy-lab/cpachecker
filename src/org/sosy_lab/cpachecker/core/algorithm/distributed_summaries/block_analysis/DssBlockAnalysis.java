@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssDebugUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -668,7 +667,8 @@ public class DssBlockAnalysis {
         analyzeViolationCondition(
             transformedImmutableListCopy(violations, v -> (ARGState) v.state()), false);
     if (!result.summaries().isEmpty()) {
-      messages.addAll(reportPostconditions(result.summaries(), false));
+      messages.addAll(
+          reportPostconditions(result.summaries(), !result.violationConditions().isEmpty()));
     }
     if (!result.violationConditions().isEmpty()) {
       messages.addAll(reportViolationConditions(result.violationConditions()));
