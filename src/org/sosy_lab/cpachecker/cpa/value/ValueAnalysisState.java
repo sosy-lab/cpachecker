@@ -28,7 +28,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
@@ -121,7 +121,7 @@ public final class ValueAnalysisState
   private final @Nullable MachineModel machineModel;
 
   public ValueAnalysisState(MachineModel pMachineModel) {
-    this(checkNotNull(pMachineModel), PathCopyingPersistentTreeMap.of());
+    this(checkNotNull(pMachineModel), PathCopyingPersistentAvlTreeMap.of());
   }
 
   public ValueAnalysisState(
@@ -248,7 +248,8 @@ public final class ValueAnalysisState
     constantsMap = constantsMap.removeAndCopy(pMemoryLocation);
     hashCode -= (pMemoryLocation.hashCode() ^ value.hashCode());
 
-    PersistentMap<MemoryLocation, ValueAndType> valueAssignment = PathCopyingPersistentTreeMap.of();
+    PersistentMap<MemoryLocation, ValueAndType> valueAssignment =
+        PathCopyingPersistentAvlTreeMap.of();
     valueAssignment = valueAssignment.putAndCopy(pMemoryLocation, value);
 
     return new ValueAnalysisInformation(valueAssignment);
@@ -374,7 +375,8 @@ public final class ValueAnalysisState
    */
   @Override
   public ValueAnalysisState join(ValueAnalysisState reachedState) {
-    PersistentMap<MemoryLocation, ValueAndType> newConstantsMap = PathCopyingPersistentTreeMap.of();
+    PersistentMap<MemoryLocation, ValueAndType> newConstantsMap =
+        PathCopyingPersistentAvlTreeMap.of();
 
     for (Entry<MemoryLocation, ValueAndType> otherEntry : reachedState.constantsMap.entrySet()) {
       MemoryLocation key = otherEntry.getKey();
