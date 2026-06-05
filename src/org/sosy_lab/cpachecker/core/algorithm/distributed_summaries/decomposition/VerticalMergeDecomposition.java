@@ -17,8 +17,6 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.SequencedSet;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 
@@ -28,17 +26,18 @@ public class VerticalMergeDecomposition implements DssBlockDecomposition {
   private final long targetNumber;
   private final Comparator<BlockNode> sort;
   private int id;
-  private final boolean mergeAcrossFunctions;
+
+  private final boolean mergeFunctionCalls;
 
   public VerticalMergeDecomposition(
       DssBlockDecomposition pDecomposition,
       long pTargetNumber,
       Comparator<BlockNode> pSort,
-      boolean pMergeAcrossFunctions) {
+      boolean pMergeFunctionCalls) {
     decomposer = pDecomposition;
     targetNumber = pTargetNumber;
     sort = pSort;
-    this.mergeAcrossFunctions = pMergeAcrossFunctions;
+    mergeFunctionCalls = pMergeFunctionCalls;
   }
 
   @Override
@@ -78,12 +77,6 @@ public class VerticalMergeDecomposition implements DssBlockDecomposition {
         continue;
       }
 
-      if (!mergeAcrossFunctions
-          && (node.getFinalLocation() instanceof FunctionEntryNode
-              || node.getFinalLocation() instanceof FunctionExitNode)) {
-        continue;
-      }
-
       if (node.getSuccessorIds().size() == 1) {
 
         String uniqueSuccessorID =
@@ -92,6 +85,12 @@ public class VerticalMergeDecomposition implements DssBlockDecomposition {
         if (successor.getPredecessorIds().size() == 1) {
           String uniquePredecessorID = Iterables.getOnlyElement(successor.getPredecessorIds());
           assert uniquePredecessorID.equals(node.getId());
+
+          if (!mergeFunctionCalls
+              && MergeBlockNodesDecomposition.containCallsOrReturnsOfSameFunction(
+                  ImmutableList.of(successor, node))) {
+            continue;
+          }
 
           BlockNode result = mergeBlocksVertically(node, successor);
 

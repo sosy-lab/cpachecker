@@ -8,11 +8,14 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Comparator;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 
@@ -32,13 +35,12 @@ public class MergeBlockNodesDecomposition implements DssBlockDecomposition {
       int pHorizontalMergeLimit,
       Comparator<BlockNode> pSort,
       boolean pAllowSingleBlockDecomposition,
-      boolean mergeAcrossFunctionBoundaries) {
+      boolean mergeFunctionCalls) {
     horizontalMerger =
         new HorizontalMergeDecomposition(
-            pDecomposition, pTargetNumber, pHorizontalMergeLimit, pSort);
+            pDecomposition, pTargetNumber, pHorizontalMergeLimit, pSort, mergeFunctionCalls);
     verticalMerger =
-        new VerticalMergeDecomposition(
-            pDecomposition, pTargetNumber, pSort, mergeAcrossFunctionBoundaries);
+        new VerticalMergeDecomposition(pDecomposition, pTargetNumber, pSort, mergeFunctionCalls);
     decomposer = pDecomposition;
     targetNumber = pTargetNumber;
     sort = pSort;
@@ -64,6 +66,18 @@ public class MergeBlockNodesDecomposition implements DssBlockDecomposition {
       }
     }
     return new BlockGraph(ImmutableSet.copyOf(nodes));
+  }
+
+  public static boolean containCallsOrReturnsOfSameFunction(Iterable<BlockNode> toMerge) {
+
+    return FluentIterable.from(toMerge)
+        .transformAndConcat(b -> b.getEdges())
+        .filter(e -> e instanceof FunctionCallEdge || e instanceof FunctionReturnEdge)
+        .transform(e -> (e instanceof FunctionCallEdge) ? e.getSuccessor() : e.getPredecessor())
+        .toMultiset()
+        .entrySet()
+        .stream()
+        .anyMatch(entry -> entry.getCount() > 1);
   }
 
   private Collection<BlockNode> sorted(Collection<BlockNode> pSort) {

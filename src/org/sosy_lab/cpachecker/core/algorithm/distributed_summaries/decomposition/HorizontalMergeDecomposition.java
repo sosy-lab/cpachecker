@@ -30,6 +30,8 @@ public class HorizontalMergeDecomposition implements DssBlockDecomposition {
   private int id;
   private int mergeLimit;
 
+  private final boolean mergeFunctionCalls;
+
   private record BlockScope(
       ImmutableSet<String> predecessors, ImmutableSet<String> successors, CFANode finalLocation) {}
 
@@ -37,11 +39,13 @@ public class HorizontalMergeDecomposition implements DssBlockDecomposition {
       DssBlockDecomposition pDecomposition,
       long pTargetNumber,
       int pMergeLimit,
-      Comparator<BlockNode> pSort) {
+      Comparator<BlockNode> pSort,
+      boolean pMergeFunctionCalls) {
     decomposer = pDecomposition;
     targetNumber = pTargetNumber;
     mergeLimit = pMergeLimit;
     sort = pSort;
+    mergeFunctionCalls = pMergeFunctionCalls;
   }
 
   @Override
@@ -86,6 +90,12 @@ public class HorizontalMergeDecomposition implements DssBlockDecomposition {
               .filter(x -> x > mergeLimit)
               .count();
       if (mergeLimit >= 0 && largeBlocks > 1) {
+        continue;
+      }
+
+      if (!mergeFunctionCalls
+          && MergeBlockNodesDecomposition.containCallsOrReturnsOfSameFunction(
+              blockScopes.get(blockScope))) {
         continue;
       }
 
