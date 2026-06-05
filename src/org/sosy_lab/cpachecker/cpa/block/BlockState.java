@@ -46,6 +46,7 @@ public class BlockState
   private final ImmutableList<String> history;
   private List<? extends AbstractState> violationConditions;
   private final ImmutableList<ImmutableList<String>> witness;
+  private boolean stemsFromTopState;
 
   public BlockState(
       CFANode pNode,
@@ -53,17 +54,27 @@ public class BlockState
       BlockStateType pType,
       List<? extends AbstractState> pViolationConditions,
       List<String> pHistory,
-      List<ImmutableList<String>> pWitness) {
+      List<ImmutableList<String>> pWitness,
+      boolean pStemsFromTopState) {
     node = pNode;
     type = pType;
     blockNode = pTargetNode;
     violationConditions = pViolationConditions;
     history = ImmutableList.copyOf(pHistory);
     witness = ImmutableList.copyOf(pWitness);
+    stemsFromTopState = pStemsFromTopState;
+  }
+
+  public void setStemsFromTopState(boolean pStemsFromTopState) {
+    stemsFromTopState = pStemsFromTopState;
   }
 
   public ImmutableList<@NonNull ImmutableList<@NonNull String>> getWitness() {
     return witness;
+  }
+
+  public boolean isStemsFromTopState() {
+    return stemsFromTopState;
   }
 
   public ImmutableList<String> getHistory() {

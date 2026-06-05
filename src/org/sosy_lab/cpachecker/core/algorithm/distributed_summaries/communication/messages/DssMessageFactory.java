@@ -42,16 +42,12 @@ public class DssMessageFactory {
   }
 
   public DssPostConditionMessage createDssPostConditionMessage(
-      String pSenderId,
-      AlgorithmStatus pStatus,
-      boolean pReplaceTop,
-      ImmutableMap<String, String> pStateContent) {
+      String pSenderId, AlgorithmStatus pStatus, ImmutableMap<String, String> pStateContent) {
     return new DssPostConditionMessage(
         pSenderId,
         ImmutableMap.<String, String>builder()
             .putAll(serializeStatus(pStatus))
             .putAll(pStateContent)
-            .put("replaceTop", Boolean.toString(pReplaceTop))
             .buildOrThrow());
   }
 

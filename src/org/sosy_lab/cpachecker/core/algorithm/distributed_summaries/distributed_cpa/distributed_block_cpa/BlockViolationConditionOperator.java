@@ -62,7 +62,8 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
               topMost.getType(),
               topMost.getViolationConditions(),
               topMost.getHistory(),
-              currentWitness));
+              currentWitness,
+              false));
     }
     List<String> previousHistory =
         pPreviousCondition
@@ -75,7 +76,8 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
             topMost.getType(),
             topMost.getViolationConditions(),
             listAndElement(previousHistory, topMost.getBlockNode().getId()),
-            currentWitness);
+            currentWitness,
+            false);
     return Optional.of(withHistory);
   }
 }

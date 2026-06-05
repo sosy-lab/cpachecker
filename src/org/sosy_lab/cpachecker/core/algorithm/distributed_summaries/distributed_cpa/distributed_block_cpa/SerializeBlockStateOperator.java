@@ -27,7 +27,7 @@ public class SerializeBlockStateOperator implements SerializeOperator {
     suffix = suffix + (b.getHistory().isEmpty() ? "" : " H:" + Joiner.on(",").join(b.getHistory()));
     return ContentBuilder.builder()
         .pushLevel(BlockState.class.getName())
-        .put(STATE_KEY, b.getBlockNode().getId() + suffix)
+        .put(STATE_KEY, b.isStemsFromTopState() + " " + b.getBlockNode().getId() + suffix)
         .build();
   }
 }

@@ -22,9 +22,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
@@ -112,7 +110,6 @@ public class DssBlockAnalysis {
   private final DistributedConfigurableProgramAnalysis dcpa;
   private final DssMessageFactory messageFactory;
   private final Multimap<String, @NonNull StateAndPrecision> preconditions;
-  private final Map<String, Boolean> keepTrivial;
   private final Multimap<String, @NonNull StateAndPrecision> violationConditions;
   private final List<StateAndPrecision> relevant;
 
@@ -172,8 +169,6 @@ public class DssBlockAnalysis {
 
     containsViolationInsideBlock = false;
     combineByHash = pOptions.combineByHash();
-    keepTrivial = new HashMap<>();
-    block.getPredecessorIds().forEach(id -> keepTrivial.put(id, false));
   }
 
   /**
@@ -230,8 +225,7 @@ public class DssBlockAnalysis {
   }
 
   private Collection<DssMessage> reportPostconditions(
-      Collection<@NonNull StateAndPrecision> summaries, boolean replaceTop)
-      throws CPAException, InterruptedException {
+      Collection<@NonNull StateAndPrecision> summaries) throws CPAException, InterruptedException {
 
     // reset all summaries and run cpa algorithm on them to remove redundant ones
     ImmutableList<StateAndPrecision> uniqueSummaries = deduplicateStates(summaries);
@@ -243,9 +237,7 @@ public class DssBlockAnalysis {
     // pack the message
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     ImmutableMap<String, String> serialized = serialize(uniqueSummaries);
-    messages.add(
-        messageFactory.createDssPostConditionMessage(
-            block.getId(), status, replaceTop, serialized));
+    messages.add(messageFactory.createDssPostConditionMessage(block.getId(), status, serialized));
     return messages.build();
   }
 
@@ -474,7 +466,7 @@ public class DssBlockAnalysis {
         summariesWithPrecision.add(
             new StateAndPrecision(finalState, reachedSet.getPrecision(finalState)));
       }
-      return reportPostconditions(summariesWithPrecision.build(), false);
+      return reportPostconditions(summariesWithPrecision.build());
     }
 
     ImmutableList.Builder<DssMessage> messages = ImmutableList.builder();
@@ -485,7 +477,6 @@ public class DssBlockAnalysis {
           messageFactory.createDssPostConditionMessage(
               block.getId(),
               status,
-              true,
               serialize(ImmutableList.of(new StateAndPrecision(startState, startPrecision)))));
     }
     return messages.addAll(reportFirstViolationConditions(result.getAllViolations())).build();
@@ -538,7 +529,6 @@ public class DssBlockAnalysis {
       return processing;
     }
 
-    keepTrivial.put(pReceived.getSenderId(), pReceived.replaceContent());
     if (preconditions.get(pReceived.getSenderId()).isEmpty()) {
       preconditions.putAll(pReceived.getSenderId(), deserializedStatesAndPrecisions);
       relevant.addAll(deserializedStatesAndPrecisions);
@@ -640,8 +630,7 @@ public class DssBlockAnalysis {
       messages.addAll(reportViolationConditions(result.violationConditions()));
     }
     if (!result.summaries().isEmpty()) {
-      messages.addAll(
-          reportPostconditions(result.summaries(), !result.violationConditions().isEmpty()));
+      messages.addAll(reportPostconditions(result.summaries()));
     }
     return messages.build();
   }
@@ -667,8 +656,7 @@ public class DssBlockAnalysis {
         analyzeViolationCondition(
             transformedImmutableListCopy(violations, v -> (ARGState) v.state()), false);
     if (!result.summaries().isEmpty()) {
-      messages.addAll(
-          reportPostconditions(result.summaries(), !result.violationConditions().isEmpty()));
+      messages.addAll(reportPostconditions(result.summaries()));
     }
     if (!result.violationConditions().isEmpty()) {
       messages.addAll(reportViolationConditions(result.violationConditions()));
@@ -678,7 +666,12 @@ public class DssBlockAnalysis {
 
   private boolean isPredecessorWithTopSummary(String predecessor) {
     return preconditions.get(predecessor).stream()
-        .anyMatch(sap -> !dcpa.isMostGeneralBlockEntryState(sap.state()));
+            .noneMatch(
+                sap ->
+                    AbstractStates.extractStateByType(sap.state(), BlockState.class)
+                        .isStemsFromTopState())
+        && preconditions.get(predecessor).stream()
+            .anyMatch(sap -> !dcpa.isMostGeneralBlockEntryState(sap.state()));
   }
 
   /**
@@ -700,8 +693,7 @@ public class DssBlockAnalysis {
     }
 
     boolean hasNonTrivialSummariesForEachPredecessor =
-        keepTrivial.values().stream().noneMatch(b -> b)
-            && !preconditions.isEmpty()
+        !preconditions.isEmpty()
             && preconditions.keySet().stream().allMatch(this::isPredecessorWithTopSummary);
 
     // unreachable block ends might be caused by underapproximating summaries
@@ -748,6 +740,8 @@ public class DssBlockAnalysis {
       if (block.isAbstractionPossible()) {
         if (!result.getFinalLocationStates().isEmpty()) {
           for (AbstractState summary : result.getFinalLocationStates()) {
+            Objects.requireNonNull(AbstractStates.extractStateByType(summary, BlockState.class))
+                .setStemsFromTopState(isTrivial && dcpa.isMostGeneralBlockEntryState(summary));
             summaries.add(new StateAndPrecision(summary, reachedSet.getPrecision(summary)));
           }
         }

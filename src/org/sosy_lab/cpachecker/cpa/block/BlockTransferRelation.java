@@ -72,7 +72,8 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
                   blockState.getHistory(),
                   FluentIterable.from(blockState.getWitness())
                       .transform(list -> Collections3.listAndElement(list, edgeToString(cfaEdge)))
-                      .toList()));
+                      .toList(),
+                  blockState.isStemsFromTopState()));
         }
         return successors.build();
       }
@@ -85,7 +86,8 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
               blockState.getHistory(),
               FluentIterable.from(blockState.getWitness())
                   .transform(list -> Collections3.listAndElement(list, edgeToString(cfaEdge)))
-                  .toList()));
+                  .toList(),
+              blockState.isStemsFromTopState()));
     }
     return ImmutableList.of();
   }
