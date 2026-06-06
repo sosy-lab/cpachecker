@@ -9,8 +9,21 @@
 package org.sosy_lab.cpachecker.cpa.interval;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.sosy_lab.cpachecker.cfa.ast.FileLocation.DUMMY;
+import static org.sosy_lab.cpachecker.cpa.interval.funarray.ExpressionUtility.getIntegerExpression;
+import static org.sosy_lab.cpachecker.cpa.interval.funarray.FunArrayBuilder.exp;
 
 import org.junit.Test;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
+import org.sosy_lab.cpachecker.cpa.interval.funarray.FunArray;
+import org.sosy_lab.cpachecker.cpa.interval.funarray.FunArrayBuilder;
+import org.sosy_lab.cpachecker.cpa.interval.funarray.FunArrayBuilder.FunArrayBuilderException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class IntervalAnalysisStateTest {
@@ -63,5 +76,49 @@ public class IntervalAnalysisStateTest {
   private void checkEquals(Comparable c1, Comparable c2) {
     assertThat(c1.compareTo(c2)).isEqualTo(0);
     assertThat(c2.compareTo(c1)).isEqualTo(0);
+  }
+
+  @Test
+  public void arrayAccessOnUntrackedArrayReturnsUnbound() throws UnrecognizedCodeException {
+    IntervalAnalysisState state = new IntervalAnalysisState(null);
+    CExpression index = getIntegerExpression(0);
+    ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, null);
+    Interval result = state.arrayAccess("a", index, visitor);
+    assertThat(result).isEqualTo(Interval.UNBOUND);
+  }
+
+  @Test
+  public void arrayAccessWithNonNormalizableIndexReturnsUnbound()
+      throws UnrecognizedCodeException, FunArrayBuilderException {
+    IntervalAnalysisState state = new IntervalAnalysisState(null);
+    FunArray arr =
+        FunArrayBuilder.firstBound(exp(0))
+            .value(Interval.UNBOUND)
+            .mayBeEmpty()
+            .bound(exp("n"))
+            .build();
+    state = state.addArray("a", arr, null);
+    CSimpleType intType =
+        new CSimpleType(
+            CTypeQualifiers.create(false, false, false),
+            CBasicType.INT,
+            false,
+            false,
+            true,
+            false,
+            false,
+            false,
+            false);
+    CBinaryExpression multiplyIndex =
+        new CBinaryExpression(
+            DUMMY,
+            intType,
+            intType,
+            getIntegerExpression(2),
+            getIntegerExpression(3),
+            BinaryOperator.MULTIPLY);
+    ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, null);
+    Interval result = state.arrayAccess("a", multiplyIndex, visitor);
+    assertThat(result).isEqualTo(Interval.UNBOUND);
   }
 }
