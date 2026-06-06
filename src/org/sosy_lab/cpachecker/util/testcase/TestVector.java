@@ -18,7 +18,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 import java.util.List;
 import java.util.Objects;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
@@ -40,7 +40,8 @@ public class TestVector {
   private final ImmutableList<TestValue> inputValues;
 
   private TestVector() {
-    this(PathCopyingPersistentTreeMap.of(), PathCopyingPersistentTreeMap.of(), ImmutableList.of());
+    this(PathCopyingPersistentAvlTreeMap.of(), PathCopyingPersistentAvlTreeMap.of(),
+        ImmutableList.of());
   }
 
   private TestVector(

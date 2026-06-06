@@ -16,7 +16,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.NavigableSet;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -30,8 +30,8 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
   private int size = 0;
 
   public SMGHasValueEdgeSet() {
-    map = PathCopyingPersistentTreeMap.of();
-    sizesMap = PathCopyingPersistentTreeMap.of();
+    map = PathCopyingPersistentAvlTreeMap.of();
+    sizesMap = PathCopyingPersistentAvlTreeMap.of();
   }
 
   private SMGHasValueEdgeSet(
@@ -59,7 +59,7 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
     SMGHasValueEdgeSet result = this;
     Integer sizeForObject = sizesMap.getOrDefault(pEdge.getObject(), 0);
     PersistentSortedMap<Long, SMGEdgeHasValue> sortedByOffsets =
-        map.getOrDefault(pEdge.getObject(), PathCopyingPersistentTreeMap.of());
+        map.getOrDefault(pEdge.getObject(), PathCopyingPersistentAvlTreeMap.of());
 
     // Check on overlapping edges
     Entry<Long, SMGEdgeHasValue> ceilingEntry = sortedByOffsets.ceilingEntry(pEdge.getOffset());
@@ -98,7 +98,7 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
       }
       sizeForObject = result.sizesMap.getOrDefault(pEdge.getObject(), 0);
       sortedByOffsets =
-          result.map.getOrDefault(pEdge.getObject(), PathCopyingPersistentTreeMap.of());
+          result.map.getOrDefault(pEdge.getObject(), PathCopyingPersistentAvlTreeMap.of());
     }
 
     sortedByOffsets = sortedByOffsets.putAndCopy(pEdge.getOffset(), pEdge);
@@ -200,8 +200,8 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
   public SMGHasValueEdgeSet getEdgesForObject(SMGObject pObject) {
     PersistentSortedMap<Long, SMGEdgeHasValue> edges = map.get(pObject);
     PersistentSortedMap<SMGObject, PersistentSortedMap<Long, SMGEdgeHasValue>> newMap =
-        PathCopyingPersistentTreeMap.of();
-    PersistentSortedMap<SMGObject, Integer> newSizesMap = PathCopyingPersistentTreeMap.of();
+        PathCopyingPersistentAvlTreeMap.of();
+    PersistentSortedMap<SMGObject, Integer> newSizesMap = PathCopyingPersistentAvlTreeMap.of();
     int newSize = 0;
     if (edges != null && !edges.isEmpty()) {
       newSize = sizesMap.get(pObject);

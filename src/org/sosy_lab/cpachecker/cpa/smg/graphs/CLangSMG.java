@@ -25,7 +25,7 @@ import java.util.SequencedMap;
 import java.util.SequencedSet;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -89,7 +89,7 @@ public final class CLangSMG extends SMG implements UnmodifiableCLangSMG {
    */
   public CLangSMG(MachineModel pMachineModel) {
     super(pMachineModel);
-    global_objects = PathCopyingPersistentTreeMap.of();
+    global_objects = PathCopyingPersistentAvlTreeMap.of();
     heap_objects = PersistentSet.of();
     heap_objects = heap_objects.addAndCopy(SMGNullObject.INSTANCE);
   }
@@ -596,7 +596,7 @@ public final class CLangSMG extends SMG implements UnmodifiableCLangSMG {
 
   @Override
   public void clearObjects() {
-    global_objects = PathCopyingPersistentTreeMap.of();
+    global_objects = PathCopyingPersistentAvlTreeMap.of();
     heap_objects = PersistentSet.of();
     super.clearObjects();
 

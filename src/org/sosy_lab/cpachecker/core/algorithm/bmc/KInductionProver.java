@@ -43,7 +43,7 @@ import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.stream.Stream;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -761,7 +761,7 @@ class KInductionProver implements AutoCloseable {
                   return variableMapper.variableFormulas;
                 });
 
-        PersistentMap<String, ModelValue> model = PathCopyingPersistentTreeMap.of();
+        PersistentMap<String, ModelValue> model = PathCopyingPersistentAvlTreeMap.of();
         final List<BooleanFormula> input = new ArrayList<>();
 
         for (ValueAssignment valueAssignment : pModelAssignments) {

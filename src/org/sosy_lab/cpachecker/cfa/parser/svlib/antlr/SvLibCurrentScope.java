@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Objects;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibLogic;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingParameterDeclaration;
@@ -37,11 +37,11 @@ class SvLibCurrentScope extends SvLibScope {
 
   public SvLibCurrentScope() {
     super(new ImmutableSet.Builder<>(), new ImmutableMap.Builder<>(), new ImmutableMap.Builder<>());
-    globalVariables = PathCopyingPersistentTreeMap.of();
-    globalVariablesQualifiedNames = PathCopyingPersistentTreeMap.of();
-    procedureDeclarationVariables = PathCopyingPersistentTreeMap.of();
-    procedureDeclarationVariablesQualifiedNames = PathCopyingPersistentTreeMap.of();
-    procedureDeclarations = PathCopyingPersistentTreeMap.of();
+    globalVariables = PathCopyingPersistentAvlTreeMap.of();
+    globalVariablesQualifiedNames = PathCopyingPersistentAvlTreeMap.of();
+    procedureDeclarationVariables = PathCopyingPersistentAvlTreeMap.of();
+    procedureDeclarationVariablesQualifiedNames = PathCopyingPersistentAvlTreeMap.of();
+    procedureDeclarations = PathCopyingPersistentAvlTreeMap.of();
   }
 
   private SvLibCurrentScope(
@@ -96,7 +96,7 @@ class SvLibCurrentScope extends SvLibScope {
   @Override
   public void leaveProcedure() {
     // Clear the procedure declaration variables when exiting the function/procedure scope
-    procedureDeclarationVariables = PathCopyingPersistentTreeMap.of();
+    procedureDeclarationVariables = PathCopyingPersistentAvlTreeMap.of();
   }
 
   @Override

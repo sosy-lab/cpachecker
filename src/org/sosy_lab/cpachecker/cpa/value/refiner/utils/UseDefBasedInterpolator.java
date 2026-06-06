@@ -15,7 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.SequencedMap;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -137,7 +137,7 @@ public class UseDefBasedInterpolator {
    */
   private ValueAnalysisInterpolant createInterpolant(Collection<ASimpleDeclaration> uses) {
     PersistentMap<MemoryLocation, ValueAndType> useDefInterpolant =
-        PathCopyingPersistentTreeMap.of();
+        PathCopyingPersistentAvlTreeMap.of();
 
     for (ASimpleDeclaration use : uses) {
 

@@ -20,7 +20,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -86,7 +86,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     options = pOptions;
     machineModel = pMachineModel;
     logger = pLogger;
-    nonHeapAssignments = PathCopyingPersistentTreeMap.of();
+    nonHeapAssignments = PathCopyingPersistentAvlTreeMap.of();
     variableNameToMemorySizeInBits = new HashMap<>();
     variableToTypeMap = new HashMap<>();
     stackFrameDeclarations =

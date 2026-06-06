@@ -13,7 +13,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Set;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Constant;
@@ -39,7 +39,7 @@ public class NonRecursiveEnvironment
   private NonRecursiveEnvironment(
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
       Map<MemoryLocation, NumeralFormula<CompoundInterval>> pInner) {
-    this(pCompoundIntervalManagerFactory, PathCopyingPersistentTreeMap.copyOf(pInner));
+    this(pCompoundIntervalManagerFactory, PathCopyingPersistentAvlTreeMap.copyOf(pInner));
   }
 
   private NonRecursiveEnvironment(
@@ -248,7 +248,7 @@ public class NonRecursiveEnvironment
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory) {
     return new NonRecursiveEnvironment(
         pCompoundIntervalManagerFactory,
-        PathCopyingPersistentTreeMap.<MemoryLocation, NumeralFormula<CompoundInterval>>of());
+        PathCopyingPersistentAvlTreeMap.<MemoryLocation, NumeralFormula<CompoundInterval>>of());
   }
 
   public static NonRecursiveEnvironment copyOf(

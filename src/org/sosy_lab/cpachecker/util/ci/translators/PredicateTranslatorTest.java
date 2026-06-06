@@ -22,7 +22,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -113,7 +113,7 @@ public class PredicateTranslatorTest extends SolverViewBasedTest0 {
         new AbstractionFormula(fmv, region, bf, bf, pathFormula, ImmutableSet.of());
     ptrueState =
         PredicateAbstractState.mkAbstractionState(
-            pathFormula, aFormula, PathCopyingPersistentTreeMap.of());
+            pathFormula, aFormula, PathCopyingPersistentAvlTreeMap.of());
 
     // create PredicateAbstractState pf1State
     IntegerFormulaManager ifmgr = fmv.getIntegerFormulaManager();
@@ -126,7 +126,7 @@ public class PredicateTranslatorTest extends SolverViewBasedTest0 {
         new AbstractionFormula(fmv, region, bf1, bfmgr.makeTrue(), pathFormula, ImmutableSet.of());
     pf1State =
         PredicateAbstractState.mkAbstractionState(
-            pathFormula, aFormula, PathCopyingPersistentTreeMap.of());
+            pathFormula, aFormula, PathCopyingPersistentAvlTreeMap.of());
 
     // create PredicateAbstractState pf2State
     BooleanFormula bf21 =
@@ -137,7 +137,7 @@ public class PredicateTranslatorTest extends SolverViewBasedTest0 {
         new AbstractionFormula(fmv, region, bf2, bfmgr.makeTrue(), pathFormula, ImmutableSet.of());
     pf2State =
         PredicateAbstractState.mkAbstractionState(
-            pathFormula, aFormula, PathCopyingPersistentTreeMap.of());
+            pathFormula, aFormula, PathCopyingPersistentAvlTreeMap.of());
   }
 
   @Test

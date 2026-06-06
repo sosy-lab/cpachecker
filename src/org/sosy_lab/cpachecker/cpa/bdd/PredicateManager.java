@@ -14,7 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.SequencedMap;
 import org.sosy_lab.common.collect.CopyOnWriteSortedMap;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -73,7 +73,7 @@ public class PredicateManager {
    * reachable. This map contains the name of the variable and its bitsize in the BDD.
    */
   private final CopyOnWriteSortedMap<String, Integer> trackedVars =
-      CopyOnWriteSortedMap.copyOf(PathCopyingPersistentTreeMap.<String, Integer>of());
+      CopyOnWriteSortedMap.copyOf(PathCopyingPersistentAvlTreeMap.<String, Integer>of());
 
   private final NamedRegionManager rmgr;
 

@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import java.util.Iterator;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
@@ -21,7 +21,7 @@ public class SMGPointsToMap implements SMGPointsToEdges {
   private final PersistentMap<SMGValue, SMGEdgePointsTo> map;
 
   public SMGPointsToMap() {
-    map = PathCopyingPersistentTreeMap.of();
+    map = PathCopyingPersistentAvlTreeMap.of();
   }
 
   private SMGPointsToMap(PersistentMap<SMGValue, SMGEdgePointsTo> pMap) {

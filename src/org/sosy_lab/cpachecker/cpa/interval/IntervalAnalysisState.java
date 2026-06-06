@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -60,8 +60,8 @@ public class IntervalAnalysisState
    * counts to empty maps and the previous element to null.
    */
   public IntervalAnalysisState() {
-    intervals = PathCopyingPersistentTreeMap.of();
-    referenceCounts = PathCopyingPersistentTreeMap.of();
+    intervals = PathCopyingPersistentAvlTreeMap.of();
+    referenceCounts = PathCopyingPersistentAvlTreeMap.of();
   }
 
   /**
@@ -170,7 +170,7 @@ public class IntervalAnalysisState
   @Override
   public IntervalAnalysisState join(IntervalAnalysisState reachedState) {
     boolean changed = false;
-    PersistentMap<String, Interval> newIntervals = PathCopyingPersistentTreeMap.of();
+    PersistentMap<String, Interval> newIntervals = PathCopyingPersistentAvlTreeMap.of();
     PersistentMap<String, Integer> newReferences = referenceCounts;
 
     for (String variableName : reachedState.intervals.keySet()) {

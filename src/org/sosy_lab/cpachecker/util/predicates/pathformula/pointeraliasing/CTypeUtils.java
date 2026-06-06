@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.OptionalInt;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -179,7 +179,7 @@ class CTypeUtils {
 
   /**
    * The method is used to convert {@link CType}s to strings in order to use them as keys in a
-   * {@link PathCopyingPersistentTreeMap}.
+   * {@link PathCopyingPersistentAvlTreeMap}.
    *
    * <p>Note that {@link TypeHandlerWithPointerAliasing#getPointerAccessNameForType(CType)} also
    * converts types to string but in a different context.

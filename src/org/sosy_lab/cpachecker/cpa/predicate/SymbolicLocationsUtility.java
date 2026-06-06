@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableSet;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -53,7 +53,7 @@ public final class SymbolicLocationsUtility {
     return PredicateAbstractState.mkAbstractionState(
         pfmgr.makeEmptyPathFormula(),
         pamgr.asAbstraction(makeStateFormula(init, error), pfmgr.makeEmptyPathFormula()),
-        PathCopyingPersistentTreeMap.of());
+        PathCopyingPersistentAvlTreeMap.of());
   }
 
   public BooleanFormula makeStateFormula(boolean init, boolean error) {

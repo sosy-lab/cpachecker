@@ -43,7 +43,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -183,7 +183,7 @@ public class SymbolicProgramConfiguration {
     mallocZeroMemory = pMallocZeroMemory;
     readBlacklist = ImmutableSet.of();
     valueToTypeMap =
-        PathCopyingPersistentTreeMap.<SMGValue, CType>of()
+        PathCopyingPersistentAvlTreeMap.<SMGValue, CType>of()
             .putAndCopy(SMGValue.zeroValue(), CNumericTypes.INT)
             .putAndCopy(SMGValue.zeroDoubleValue(), CNumericTypes.DOUBLE)
             .putAndCopy(SMGValue.zeroFloatValue(), CNumericTypes.FLOAT);
@@ -2810,11 +2810,11 @@ public class SymbolicProgramConfiguration {
   public static SymbolicProgramConfiguration of(BigInteger sizeOfPtr, SMGOptions pOptions) {
     return new SymbolicProgramConfiguration(
         new SMG(sizeOfPtr),
-        PathCopyingPersistentTreeMap.of(),
+        PathCopyingPersistentAvlTreeMap.of(),
         PersistentStack.of(),
         PersistentStack.of(),
         PersistentSet.of(SMGObject.nullInstance()),
-        PathCopyingPersistentTreeMap.of(),
+        PathCopyingPersistentAvlTreeMap.of(),
         ImmutableBiMap.of(
             valueWrapper.wrap(new NumericValue(0)),
             SMGValue.zeroValue(),
@@ -2822,8 +2822,8 @@ public class SymbolicProgramConfiguration {
             SMGValue.zeroFloatValue(),
             valueWrapper.wrap(new NumericValue(FloatValue.zero(FloatValue.Format.Float64))),
             SMGValue.zeroDoubleValue()),
-        PathCopyingPersistentTreeMap.of(),
-        PathCopyingPersistentTreeMap.of(),
+        PathCopyingPersistentAvlTreeMap.of(),
+        PathCopyingPersistentAvlTreeMap.of(),
         pOptions);
   }
 
@@ -3171,7 +3171,7 @@ public class SymbolicProgramConfiguration {
       PersistentMap<SMGValue, CType> newValueToTypeMap = valueToTypeMap;
       /*
       for (SMGHasValueEdge hve : edgesInObj) {
-        if (newSmg.getValuesToRegionsTheyAreSavedIn().getOrDefault(hve.hasValue(), PathCopyingPersistentTreeMap.of()).isEmpty()) {
+        if (newSmg.getValuesToRegionsTheyAreSavedIn().getOrDefault(hve.hasValue(), PathCopyingPersistentAvlTreeMap.of()).isEmpty()) {
           newValueToTypeMap = newValueToTypeMap.removeAndCopy();
         }
       }
@@ -4555,7 +4555,7 @@ public class SymbolicProgramConfiguration {
    */
   PersistentMap<MemoryLocation, ValueAndValueSize> getMemoryLocationsAndValuesForSPCWithoutHeap() {
 
-    PersistentMap<MemoryLocation, ValueAndValueSize> map = PathCopyingPersistentTreeMap.of();
+    PersistentMap<MemoryLocation, ValueAndValueSize> map = PathCopyingPersistentAvlTreeMap.of();
 
     for (Entry<String, SMGObject> globalEntry : globalVariableMapping.entrySet()) {
       String qualifiedName = globalEntry.getKey();

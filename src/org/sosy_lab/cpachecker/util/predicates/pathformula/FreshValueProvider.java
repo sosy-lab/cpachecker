@@ -12,7 +12,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.Immutable;
 import java.io.Serial;
 import java.io.Serializable;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.common.collect.PersistentSortedMaps;
 
@@ -28,7 +28,7 @@ public final class FreshValueProvider implements Serializable {
   private final PersistentSortedMap<String, Integer> vars;
 
   public FreshValueProvider() {
-    vars = PathCopyingPersistentTreeMap.of();
+    vars = PathCopyingPersistentAvlTreeMap.of();
   }
 
   public FreshValueProvider(PersistentSortedMap<String, Integer> diffVars) {

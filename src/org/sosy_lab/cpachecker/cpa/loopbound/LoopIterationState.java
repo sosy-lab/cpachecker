@@ -14,7 +14,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
@@ -45,7 +45,7 @@ interface LoopIterationState {
     private final boolean loopCounterAbstracted;
 
     private UndeterminedLoopIterationState() {
-      this(PathCopyingPersistentTreeMap.of(), 0, false);
+      this(PathCopyingPersistentAvlTreeMap.of(), 0, false);
     }
 
     private UndeterminedLoopIterationState(

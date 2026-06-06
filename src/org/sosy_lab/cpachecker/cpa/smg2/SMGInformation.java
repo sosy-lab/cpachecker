@@ -13,7 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.CFunctionDeclarationAndOptionalValue;
@@ -49,17 +49,17 @@ public final class SMGInformation {
   }
 
   SMGInformation(Map<SMGObject, Set<SMGHasValueEdge>> pHeapValuesRemoved) {
-    nonHeapAssignments = PathCopyingPersistentTreeMap.of();
+    nonHeapAssignments = PathCopyingPersistentAvlTreeMap.of();
     variableNameAndSizeInBits = new HashMap<>();
-    variableToTypeMap = PathCopyingPersistentTreeMap.of();
+    variableToTypeMap = PathCopyingPersistentAvlTreeMap.of();
     stackDeclarations = PersistentStack.of();
     heapValuesRemoved = pHeapValuesRemoved;
   }
 
   private SMGInformation() {
-    nonHeapAssignments = PathCopyingPersistentTreeMap.of();
+    nonHeapAssignments = PathCopyingPersistentAvlTreeMap.of();
     variableNameAndSizeInBits = new HashMap<>();
-    variableToTypeMap = PathCopyingPersistentTreeMap.of();
+    variableToTypeMap = PathCopyingPersistentAvlTreeMap.of();
     stackDeclarations = PersistentStack.of();
     heapValuesRemoved = ImmutableMap.of();
   }

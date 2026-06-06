@@ -19,7 +19,7 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -56,7 +56,7 @@ public final class StackFrame {
   }
 
   public StackFrame(CFunctionDeclaration pDeclaration, MachineModel pMachineModel) {
-    stackVariables = PathCopyingPersistentTreeMap.of();
+    stackVariables = PathCopyingPersistentAvlTreeMap.of();
     stackFunction = pDeclaration;
     CType returnType = pDeclaration.getType().getReturnType().getCanonicalType();
     if (returnType instanceof CVoidType) {
@@ -73,7 +73,7 @@ public final class StackFrame {
       CFunctionDeclaration pDeclaration,
       MachineModel pMachineModel,
       @Nullable ImmutableList<Value> pVariableArguments) {
-    stackVariables = PathCopyingPersistentTreeMap.of();
+    stackVariables = PathCopyingPersistentAvlTreeMap.of();
     stackFunction = pDeclaration;
     CType returnType = pDeclaration.getType().getReturnType().getCanonicalType();
     if (returnType instanceof CVoidType) {
@@ -88,7 +88,7 @@ public final class StackFrame {
 
   /** Dummy Stackframe for tests */
   private StackFrame() {
-    stackVariables = PathCopyingPersistentTreeMap.of();
+    stackVariables = PathCopyingPersistentAvlTreeMap.of();
     stackFunction = CFunctionDeclaration.DUMMY;
     // use a plain int as return type for void functions
     returnValueObject = Optional.empty();
@@ -255,7 +255,7 @@ public final class StackFrame {
       Optional<SMGObject> pReturnOptional, Map<String, SMGObject> pFrameMapping) {
     return new StackFrame(
         stackFunction,
-        PathCopyingPersistentTreeMap.copyOf(pFrameMapping),
+        PathCopyingPersistentAvlTreeMap.copyOf(pFrameMapping),
         pReturnOptional,
         variableArguments);
   }

@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.antlr;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibLogic;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingParameterDeclaration;
@@ -31,7 +31,7 @@ public class SvLibUninterpretedScope extends SvLibScope {
 
   public SvLibUninterpretedScope() {
     super(new ImmutableSet.Builder<>(), new ImmutableMap.Builder<>(), new ImmutableMap.Builder<>());
-    procedureDeclarations = PathCopyingPersistentTreeMap.of();
+    procedureDeclarations = PathCopyingPersistentAvlTreeMap.of();
   }
 
   private SvLibUninterpretedScope(

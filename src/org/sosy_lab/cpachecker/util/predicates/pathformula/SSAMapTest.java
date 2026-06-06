@@ -17,7 +17,7 @@ import java.lang.reflect.Constructor;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.annotations.SuppressForbidden;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -39,10 +39,10 @@ public class SSAMapTest {
     PointerTargetSet dummyPTS =
         (PointerTargetSet)
             ptsConstructor.newInstance(
-                PathCopyingPersistentTreeMap.<String, CType>of().putAndCopy("foo", CVoidType.VOID),
-                PathCopyingPersistentTreeMap.of(),
+                PathCopyingPersistentAvlTreeMap.<String, CType>of().putAndCopy("foo", CVoidType.VOID),
+                PathCopyingPersistentAvlTreeMap.of(),
                 PersistentLinkedList.of(),
-                PathCopyingPersistentTreeMap.of(),
+                PathCopyingPersistentAvlTreeMap.of(),
                 PersistentLinkedList.of(),
                 0);
 
@@ -96,7 +96,7 @@ public class SSAMapTest {
 
   private static FreshValueProvider createFreshNewValueProviderWith(String name, int index) {
     PersistentSortedMap<String, Integer> mapping =
-        PathCopyingPersistentTreeMap.<String, Integer>of().putAndCopy(name, index);
+        PathCopyingPersistentAvlTreeMap.<String, Integer>of().putAndCopy(name, index);
     return new FreshValueProvider(mapping);
   }
 

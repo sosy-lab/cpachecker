@@ -18,7 +18,7 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -58,7 +58,7 @@ public final class CLangStackFrame {
    *     <p>TODO: [PARAMETERS] Create objects for function parameters
    */
   public CLangStackFrame(CFunctionDeclaration pDeclaration, MachineModel pMachineModel) {
-    stack_variables = PathCopyingPersistentTreeMap.of();
+    stack_variables = PathCopyingPersistentAvlTreeMap.of();
     stack_function = pDeclaration;
     CType returnType = pDeclaration.getType().getReturnType().getCanonicalType();
     if (returnType instanceof CVoidType) {

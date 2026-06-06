@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.NavigableSet;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.MapsDifference;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.common.collect.PersistentSortedMaps;
 import org.sosy_lab.common.collect.PersistentSortedMaps.MergeConflictHandler;
@@ -243,10 +243,10 @@ public final class SSAMap implements Serializable {
 
   private static final SSAMap EMPTY_SSA_MAP =
       new SSAMap(
-          PathCopyingPersistentTreeMap.of(),
+          PathCopyingPersistentAvlTreeMap.of(),
           new FreshValueProvider(),
           0,
-          PathCopyingPersistentTreeMap.of());
+          PathCopyingPersistentAvlTreeMap.of());
 
   /** Returns an empty immutable SSAMap. */
   public static SSAMap emptySSAMap() {

@@ -16,7 +16,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -42,7 +42,7 @@ public final class ValueAnalysisInterpolant
 
   /** Constructor for a new, empty interpolant, i.e. the interpolant representing "true" */
   private ValueAnalysisInterpolant() {
-    assignment = PathCopyingPersistentTreeMap.of();
+    assignment = PathCopyingPersistentAvlTreeMap.of();
   }
 
   /**

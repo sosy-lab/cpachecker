@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -54,7 +54,7 @@ public class TranslatorTest {
 
   @Test
   public void testValueTranslator() {
-    PersistentMap<MemoryLocation, ValueAndType> constantsMap = PathCopyingPersistentTreeMap.of();
+    PersistentMap<MemoryLocation, ValueAndType> constantsMap = PathCopyingPersistentAvlTreeMap.of();
 
     constantsMap =
         constantsMap.putAndCopy(
@@ -149,8 +149,8 @@ public class TranslatorTest {
 
   @Test
   public void testIntervalAndCartesianTranslator() {
-    PersistentMap<String, Interval> intervals = PathCopyingPersistentTreeMap.of();
-    PersistentMap<String, Integer> referenceMap = PathCopyingPersistentTreeMap.of();
+    PersistentMap<String, Interval> intervals = PathCopyingPersistentAvlTreeMap.of();
+    PersistentMap<String, Integer> referenceMap = PathCopyingPersistentAvlTreeMap.of();
 
     intervals = intervals.putAndCopy("var1", new Interval(Long.MIN_VALUE, 5L));
     intervals = intervals.putAndCopy("var2", new Interval(-7L, Long.MAX_VALUE));
@@ -239,8 +239,8 @@ public class TranslatorTest {
     Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
 
     // Test method convertToFormula() with another IntervalAnalysisState
-    intervals = PathCopyingPersistentTreeMap.of();
-    referenceMap = PathCopyingPersistentTreeMap.of();
+    intervals = PathCopyingPersistentAvlTreeMap.of();
+    referenceMap = PathCopyingPersistentAvlTreeMap.of();
     intervals = intervals.putAndCopy("var1", new Interval(0L, Long.MAX_VALUE));
     IntervalAnalysisState anotherIStateTest = new IntervalAnalysisState(intervals, referenceMap);
 

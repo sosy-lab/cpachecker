@@ -36,7 +36,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.smg2.StackFrame;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGAndSMGObjects;
@@ -95,14 +95,14 @@ public class SMG {
 
   /** Creates a new, empty SMG */
   public SMG(BigInteger pSizeOfPointer) {
-    hasValueEdges = PathCopyingPersistentTreeMap.of();
-    objectsAndPointersPointingAtThem = PathCopyingPersistentTreeMap.of();
-    valuesToRegionsTheyAreSavedIn = PathCopyingPersistentTreeMap.of();
+    hasValueEdges = PathCopyingPersistentAvlTreeMap.of();
+    objectsAndPointersPointingAtThem = PathCopyingPersistentAvlTreeMap.of();
+    valuesToRegionsTheyAreSavedIn = PathCopyingPersistentAvlTreeMap.of();
     PersistentMap<SMGValue, Integer> newSMGValues =
-        PathCopyingPersistentTreeMap.<SMGValue, Integer>of().putAndCopy(SMGValue.zeroValue(), 0);
+        PathCopyingPersistentAvlTreeMap.<SMGValue, Integer>of().putAndCopy(SMGValue.zeroValue(), 0);
     newSMGValues = newSMGValues.putAndCopy(SMGValue.zeroFloatValue(), 0);
     smgValuesAndNestingLvl = newSMGValues.putAndCopy(SMGValue.zeroDoubleValue(), 0);
-    PersistentMap<SMGObject, Boolean> smgObjectsTmp = PathCopyingPersistentTreeMap.of();
+    PersistentMap<SMGObject, Boolean> smgObjectsTmp = PathCopyingPersistentAvlTreeMap.of();
     smgObjects = smgObjectsTmp.putAndCopy(SMGObject.nullInstance(), false);
     SMGPointsToEdge nullPointer =
         new SMGPointsToEdge(getNullObject(), BigInteger.ZERO, SMGTargetSpecifier.IS_REGION);
@@ -500,13 +500,13 @@ public class SMG {
 
   public int getNumberOfValueUsages(SMGValue value) {
     PersistentMap<SMGObject, Integer> sourceObjectsMap =
-        valuesToRegionsTheyAreSavedIn.getOrDefault(value, PathCopyingPersistentTreeMap.of());
+        valuesToRegionsTheyAreSavedIn.getOrDefault(value, PathCopyingPersistentAvlTreeMap.of());
     return sourceObjectsMap.values().stream().reduce(0, Integer::sum);
   }
 
   public Set<SMGObject> getAllObjectsWithValueInThem(SMGValue value) {
     PersistentMap<SMGObject, Integer> sourceObjectsMap =
-        valuesToRegionsTheyAreSavedIn.getOrDefault(value, PathCopyingPersistentTreeMap.of());
+        valuesToRegionsTheyAreSavedIn.getOrDefault(value, PathCopyingPersistentAvlTreeMap.of());
     return sourceObjectsMap.keySet();
   }
 
@@ -518,7 +518,7 @@ public class SMG {
       smgEdges = smgEdges.addAndCopy(edgeToAdd);
       PersistentMap<SMGObject, Integer> sourceObjectsMap =
           newValuesToRegionsTheyAreSavedIn.getOrDefault(
-              edgeToAdd.hasValue(), PathCopyingPersistentTreeMap.of());
+              edgeToAdd.hasValue(), PathCopyingPersistentAvlTreeMap.of());
       int currentNumberOfValuesInSource = sourceObjectsMap.getOrDefault(source, 0) + 1;
       newValuesToRegionsTheyAreSavedIn =
           valuesToRegionsTheyAreSavedIn.putAndCopy(
@@ -647,7 +647,7 @@ public class SMG {
    */
   private SMG decrementValueToMemoryMapEntry(SMGObject pSmgObject, SMGValue pOldValue) {
     PersistentMap<SMGObject, Integer> oldInnerMapOldV =
-        valuesToRegionsTheyAreSavedIn.getOrDefault(pOldValue, PathCopyingPersistentTreeMap.of());
+        valuesToRegionsTheyAreSavedIn.getOrDefault(pOldValue, PathCopyingPersistentAvlTreeMap.of());
     Integer oldNumOldV = oldInnerMapOldV.get(pSmgObject);
     if (oldNumOldV == null) {
       // Can happen because some tests don't save pointers in memory
@@ -688,7 +688,7 @@ public class SMG {
    */
   public SMG incrementValueToMemoryMapEntry(SMGObject pSmgObject, SMGValue pNewValue) {
     PersistentMap<SMGObject, Integer> oldInnerMapNewV =
-        valuesToRegionsTheyAreSavedIn.getOrDefault(pNewValue, PathCopyingPersistentTreeMap.of());
+        valuesToRegionsTheyAreSavedIn.getOrDefault(pNewValue, PathCopyingPersistentAvlTreeMap.of());
     Integer oldNumNewV = oldInnerMapNewV.getOrDefault(pSmgObject, 0);
     SMG newSMG =
         of(
@@ -783,7 +783,7 @@ public class SMG {
 
     PersistentMap<SMGValue, Integer> newTargetInnerMap =
         newObjectsAndPointersPointingAtThem.getOrDefault(
-            newTarget, PathCopyingPersistentTreeMap.of());
+            newTarget, PathCopyingPersistentAvlTreeMap.of());
     int existingNumInNewTarget = newTargetInnerMap.getOrDefault(pointerToSwitch, 0);
     newObjectsAndPointersPointingAtThem =
         newObjectsAndPointersPointingAtThem
@@ -820,7 +820,7 @@ public class SMG {
     // Assert that the pointer is truly saved somewhere in the memory
     assert valuesToRegionsTheyAreSavedIn.containsKey(pointer);
     PersistentMap<SMGValue, Integer> innerMap =
-        objectsAndPointersPointingAtThem.getOrDefault(target, PathCopyingPersistentTreeMap.of());
+        objectsAndPointersPointingAtThem.getOrDefault(target, PathCopyingPersistentAvlTreeMap.of());
     Integer currentNum = innerMap.getOrDefault(pointer, 0);
     PersistentMap<SMGObject, PersistentMap<SMGValue, Integer>> newObjectsAndPointersPointingAtThem =
         objectsAndPointersPointingAtThem
@@ -983,7 +983,7 @@ public class SMG {
 
   public SMG copyAndRemoveAbstractedObjectFromHeap(SMGObject pUnreachableObject) {
     assert objectsAndPointersPointingAtThem
-        .getOrDefault(pUnreachableObject, PathCopyingPersistentTreeMap.of())
+        .getOrDefault(pUnreachableObject, PathCopyingPersistentAvlTreeMap.of())
         .isEmpty();
     PersistentMap<SMGObject, Boolean> newObjects = smgObjects.removeAndCopy(pUnreachableObject);
     PersistentSet<SMGHasValueEdge> values =
@@ -1624,7 +1624,7 @@ public class SMG {
     return FluentIterable.from(
         transformedImmutableSetCopy(
             objectsAndPointersPointingAtThem
-                .getOrDefault(pointingTo, PathCopyingPersistentTreeMap.of())
+                .getOrDefault(pointingTo, PathCopyingPersistentAvlTreeMap.of())
                 .keySet(),
             v -> pointsToEdges.get(v)));
   }
@@ -1637,7 +1637,7 @@ public class SMG {
    */
   public Set<SMGValue> getPointerValuesForTarget(SMGObject pointingTo) {
     return objectsAndPointersPointingAtThem
-        .getOrDefault(pointingTo, PathCopyingPersistentTreeMap.of())
+        .getOrDefault(pointingTo, PathCopyingPersistentAvlTreeMap.of())
         .keySet();
   }
 
@@ -1872,13 +1872,13 @@ public class SMG {
 
     for (SMGValue ptrPointingAt :
         objectsAndPointersPointingAtThem
-            .getOrDefault(pTarget, PathCopyingPersistentTreeMap.of())
+            .getOrDefault(pTarget, PathCopyingPersistentAvlTreeMap.of())
             .keySet()) {
       SMGPointsToEdge pte = pointsToEdges.get(ptrPointingAt);
       if (pte != null && pte.pointsTo().equals(pTarget)) {
         results.addAll(
             valuesToRegionsTheyAreSavedIn
-                .getOrDefault(ptrPointingAt, PathCopyingPersistentTreeMap.of())
+                .getOrDefault(ptrPointingAt, PathCopyingPersistentAvlTreeMap.of())
                 .keySet());
       }
     }
@@ -1892,14 +1892,15 @@ public class SMG {
     }
     Map<SMGObject, Integer> results = new HashMap<>();
     PersistentMap<SMGValue, Integer> pointersAndOcc =
-        objectsAndPointersPointingAtThem.getOrDefault(pTarget, PathCopyingPersistentTreeMap.of());
+        objectsAndPointersPointingAtThem.getOrDefault(pTarget,
+            PathCopyingPersistentAvlTreeMap.of());
 
     for (SMGValue ptrPointingAt : pointersAndOcc.keySet()) {
       SMGPointsToEdge pte = pointsToEdges.get(ptrPointingAt);
       if (pte != null && pte.pointsTo().equals(pTarget)) {
         for (Entry<SMGObject, Integer> sourceObjsAndOcc :
             valuesToRegionsTheyAreSavedIn
-                .getOrDefault(ptrPointingAt, PathCopyingPersistentTreeMap.of())
+                .getOrDefault(ptrPointingAt, PathCopyingPersistentAvlTreeMap.of())
                 .entrySet()) {
           SMGObject sourceObj = sourceObjsAndOcc.getKey();
           Integer occ = sourceObjsAndOcc.getValue();
@@ -1922,12 +1923,13 @@ public class SMG {
     }
     ImmutableSet.Builder<SMGValue> results = ImmutableSet.builder();
     PersistentMap<SMGValue, Integer> pointersAndOcc =
-        objectsAndPointersPointingAtThem.getOrDefault(pTarget, PathCopyingPersistentTreeMap.of());
+        objectsAndPointersPointingAtThem.getOrDefault(pTarget,
+            PathCopyingPersistentAvlTreeMap.of());
 
     for (SMGValue ptrPointingAt : pointersAndOcc.keySet()) {
       for (SMGObject sourceObjsForPTE :
           valuesToRegionsTheyAreSavedIn
-              .getOrDefault(ptrPointingAt, PathCopyingPersistentTreeMap.of())
+              .getOrDefault(ptrPointingAt, PathCopyingPersistentAvlTreeMap.of())
               .keySet()) {
         if (sourceObjsForPTE.equals(pSource)) {
           results.add(ptrPointingAt);
@@ -1964,7 +1966,7 @@ public class SMG {
 
     for (Entry<SMGValue, Integer> pointerValueAndNum :
         objectsAndPointersPointingAtThem
-            .getOrDefault(oldObj, PathCopyingPersistentTreeMap.of())
+            .getOrDefault(oldObj, PathCopyingPersistentAvlTreeMap.of())
             .entrySet()) {
       // Replace the PTEdge for the value
       SMGValue pointerValue = pointerValueAndNum.getKey();
@@ -2013,10 +2015,11 @@ public class SMG {
    */
   private SMG replaceTargetOfPointersMap(SMGObject oldObj, SMGObject newTarget) {
     PersistentMap<SMGValue, Integer> newTargetPtrValues =
-        objectsAndPointersPointingAtThem.getOrDefault(newTarget, PathCopyingPersistentTreeMap.of());
+        objectsAndPointersPointingAtThem.getOrDefault(newTarget,
+            PathCopyingPersistentAvlTreeMap.of());
     PersistentMap<SMGObject, PersistentMap<SMGValue, Integer>> newPointersTowardsObjectsMap;
     PersistentMap<SMGValue, Integer> oldTargetPtrValues =
-        objectsAndPointersPointingAtThem.getOrDefault(oldObj, PathCopyingPersistentTreeMap.of());
+        objectsAndPointersPointingAtThem.getOrDefault(oldObj, PathCopyingPersistentAvlTreeMap.of());
     if (newTargetPtrValues.isEmpty()) {
       newPointersTowardsObjectsMap =
           objectsAndPointersPointingAtThem
@@ -2068,7 +2071,7 @@ public class SMG {
     }
 
     PersistentMap<SMGValue, Integer> pointersTowardsOldObj =
-        objectsAndPointersPointingAtThem.getOrDefault(oldObj, PathCopyingPersistentTreeMap.of());
+        objectsAndPointersPointingAtThem.getOrDefault(oldObj, PathCopyingPersistentAvlTreeMap.of());
     for (Entry<SMGValue, Integer> pointerValueAndOcc : pointersTowardsOldObj.entrySet()) {
       SMGValue pointerValue = pointerValueAndOcc.getKey();
       // Switch points-to-edges to new target
@@ -2076,7 +2079,7 @@ public class SMG {
 
       PersistentMap<SMGObject, Integer> sources =
           valuesToRegionsTheyAreSavedIn.getOrDefault(
-              pointerValue, PathCopyingPersistentTreeMap.of());
+              pointerValue, PathCopyingPersistentAvlTreeMap.of());
       if (sources.size() == 1 && sources.containsKey(oldObj)) {
         // Self-pointer, does not need switching
         continue;
@@ -2127,7 +2130,8 @@ public class SMG {
     Preconditions.checkArgument(!isPointer(oldSMGValue) || oldSMGValue.isZero());
     // Replace the SMGValue in HVEdges(values of the edges, offsets and sizes), Objects (sizes)
     PersistentMap<SMGObject, Integer> oldValueHVELocations =
-        valuesToRegionsTheyAreSavedIn.getOrDefault(oldSMGValue, PathCopyingPersistentTreeMap.of());
+        valuesToRegionsTheyAreSavedIn.getOrDefault(oldSMGValue,
+            PathCopyingPersistentAvlTreeMap.of());
 
     SMG newSMG = this;
     for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> hvesForObj : hasValueEdges.entrySet()) {
@@ -2151,7 +2155,7 @@ public class SMG {
     Preconditions.checkArgument(
         newSMG
             .valuesToRegionsTheyAreSavedIn
-            .getOrDefault(oldSMGValue, PathCopyingPersistentTreeMap.of())
+            .getOrDefault(oldSMGValue, PathCopyingPersistentAvlTreeMap.of())
             .isEmpty());
 
     // Remove the old value from the known values
@@ -2180,7 +2184,7 @@ public class SMG {
     }
 
     PersistentMap<SMGValue, Integer> pointersTowardsOldObj =
-        objectsAndPointersPointingAtThem.getOrDefault(oldObj, PathCopyingPersistentTreeMap.of());
+        objectsAndPointersPointingAtThem.getOrDefault(oldObj, PathCopyingPersistentAvlTreeMap.of());
     // The values to change the nesting level are the values from this pointer set
     for (Entry<SMGValue, Integer> pointerValueAndOcc : pointersTowardsOldObj.entrySet()) {
       SMGValue pointerValue = pointerValueAndOcc.getKey();
@@ -2510,7 +2514,7 @@ public class SMG {
     Preconditions.checkArgument(pTarget instanceof SMGSinglyLinkedListSegment);
     Set<SMGValue> pointersTowardsTarget =
         objectsAndPointersPointingAtThem
-            .getOrDefault(pTarget, PathCopyingPersistentTreeMap.of())
+            .getOrDefault(pTarget, PathCopyingPersistentAvlTreeMap.of())
             .keySet();
     ImmutableMap.Builder<SMGValue, SMGPointsToEdge> newPTEs = ImmutableMap.builder();
     // We assume that there is only 1 pointer (value) in the set above
@@ -2560,7 +2564,7 @@ public class SMG {
       SMGObject pTarget, BigInteger pOffset, int pNestingLevel) {
     for (SMGValue ptr :
         objectsAndPointersPointingAtThem
-            .getOrDefault(pTarget, PathCopyingPersistentTreeMap.of())
+            .getOrDefault(pTarget, PathCopyingPersistentAvlTreeMap.of())
             .keySet()) {
       // All existing pointers towards the target
       Value pteOffset = pointsToEdges.get(ptr).getOffset();
@@ -2586,7 +2590,7 @@ public class SMG {
     }
     for (SMGValue ptr :
         objectsAndPointersPointingAtThem
-            .getOrDefault(pTarget, PathCopyingPersistentTreeMap.of())
+            .getOrDefault(pTarget, PathCopyingPersistentAvlTreeMap.of())
             .keySet()) {
       // All existing pointers towards the target
       SMGPointsToEdge pte = pointsToEdges.get(ptr);
@@ -2611,7 +2615,7 @@ public class SMG {
 
     Set<SMGValue> pointersTowardsOld =
         objectsAndPointersPointingAtThem
-            .getOrDefault(pOldTargetObj, PathCopyingPersistentTreeMap.of())
+            .getOrDefault(pOldTargetObj, PathCopyingPersistentAvlTreeMap.of())
             .keySet()
             .stream()
             .filter(v -> pSpecifierToSwitch.contains(pointsToEdges.get(v).targetSpecifier()))
@@ -2623,7 +2627,7 @@ public class SMG {
           ImmutableSet.<SMGObject>builder()
               .addAll(
                   valuesToRegionsTheyAreSavedIn
-                      .getOrDefault(ptrToRemove, PathCopyingPersistentTreeMap.of())
+                      .getOrDefault(ptrToRemove, PathCopyingPersistentAvlTreeMap.of())
                       .keySet())
               .addAll(sourcesOfPointersTowardsOld)
               .build();
@@ -2651,7 +2655,7 @@ public class SMG {
           } else {
             PersistentMap<SMGValue, Integer> allPtrsTowardsNew =
                 objectsAndPointersPointingAtThem.getOrDefault(
-                    pNewTargetObj, PathCopyingPersistentTreeMap.of());
+                    pNewTargetObj, PathCopyingPersistentAvlTreeMap.of());
             for (SMGValue valuesWithPtrsToNew : allPtrsTowardsNew.keySet()) {
               SMGPointsToEdge pteTowardsNew = pointsToEdges.get(valuesWithPtrsToNew);
               if (pteTowardsNew.equals(searchedForEdge)) {
@@ -2687,7 +2691,7 @@ public class SMG {
           if (!pte.targetSpecifier().equals(SMGTargetSpecifier.IS_REGION)) {
             Set<SMGObject> ptrSources =
                 valuesToRegionsTheyAreSavedIn
-                    .getOrDefault(ptr, PathCopyingPersistentTreeMap.of())
+                    .getOrDefault(ptr, PathCopyingPersistentAvlTreeMap.of())
                     .keySet();
             for (SMGObject source : ptrSources) {
               if (source instanceof SMGSinglyLinkedListSegment sllSource) {

@@ -42,7 +42,7 @@ import java.util.SequencedSet;
 import java.util.Set;
 import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -168,7 +168,7 @@ public class InvariantsState
     environment = NonRecursiveEnvironment.of(pCompoundIntervalManagerFactory);
     partialEvaluator = new PartialEvaluator(pCompoundIntervalManagerFactory, environment);
     variableSelection = pVariableSelection;
-    variableTypes = PathCopyingPersistentTreeMap.of();
+    variableTypes = PathCopyingPersistentAvlTreeMap.of();
     tools = new Tools(pCompoundIntervalManagerFactory);
     machineModel = pMachineModel;
     abstractionState = pAbstractionState;

@@ -12,7 +12,7 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.Map.Entry;
 import java.util.Set;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 
 public class PersistentBiMap<K extends Comparable<? super K>, V extends Comparable<? super V>>
@@ -30,7 +30,7 @@ public class PersistentBiMap<K extends Comparable<? super K>, V extends Comparab
   public static <K extends Comparable<? super K>, V extends Comparable<? super V>>
       PersistentBiMap<K, V> of() {
     return new PersistentBiMap<K, V>(
-        PathCopyingPersistentTreeMap.of(), PathCopyingPersistentTreeMap.of());
+        PathCopyingPersistentAvlTreeMap.of(), PathCopyingPersistentAvlTreeMap.of());
   }
 
   public int size() {

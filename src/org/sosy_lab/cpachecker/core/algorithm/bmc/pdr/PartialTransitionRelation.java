@@ -27,7 +27,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -399,7 +399,7 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
             filterIterationsUpTo(getReachedSet().getReachedSet(), getDesiredK() + 1), types);
     ImmutableMap<String, Formula> variables = getVariables();
 
-    PersistentMap<String, ModelValue> model = PathCopyingPersistentTreeMap.of();
+    PersistentMap<String, ModelValue> model = PathCopyingPersistentAvlTreeMap.of();
 
     for (ValueAssignment valueAssignment : pModelAssignments) {
       if (!valueAssignment.isFunction()) {

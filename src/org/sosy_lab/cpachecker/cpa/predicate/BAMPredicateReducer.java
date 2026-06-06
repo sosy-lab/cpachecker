@@ -21,7 +21,7 @@ import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.common.configuration.Configuration;
@@ -612,7 +612,7 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
 
     if (idx > oldIdx) {
       PersistentSortedMap<String, Integer> newMapping =
-          PathCopyingPersistentTreeMap.<String, Integer>of().putAndCopy(name, idx);
+          PathCopyingPersistentAvlTreeMap.<String, Integer>of().putAndCopy(name, idx);
       ssa.mergeFreshValueProviderWith(new FreshValueProvider(newMapping));
     }
   }

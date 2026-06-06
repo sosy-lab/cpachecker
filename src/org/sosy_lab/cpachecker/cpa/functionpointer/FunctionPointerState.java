@@ -17,7 +17,7 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
 import java.util.Set;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -249,7 +249,7 @@ public class FunctionPointerState
   }
 
   private static final FunctionPointerState EMPTY_STATE =
-      new FunctionPointerState(PathCopyingPersistentTreeMap.of(), PersistentStack.of());
+      new FunctionPointerState(PathCopyingPersistentAvlTreeMap.of(), PersistentStack.of());
 
   public static FunctionPointerState createEmptyState() {
     return EMPTY_STATE;

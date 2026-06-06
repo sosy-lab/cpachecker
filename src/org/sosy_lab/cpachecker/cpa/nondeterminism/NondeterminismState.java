@@ -15,7 +15,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -33,7 +33,7 @@ public abstract class NondeterminismState implements LatticeAbstractState<Nondet
     private final PersistentSortedMap<String, Object> nondetVariables;
 
     NondeterminismNonAbstractionState() {
-      nondetVariables = PathCopyingPersistentTreeMap.of();
+      nondetVariables = PathCopyingPersistentAvlTreeMap.of();
     }
 
     private NondeterminismNonAbstractionState(
@@ -42,7 +42,7 @@ public abstract class NondeterminismState implements LatticeAbstractState<Nondet
     }
 
     private NondeterminismNonAbstractionState(Map<String, Object> pNondetVariables) {
-      nondetVariables = PathCopyingPersistentTreeMap.copyOf(pNondetVariables);
+      nondetVariables = PathCopyingPersistentAvlTreeMap.copyOf(pNondetVariables);
     }
 
     public NondeterminismNonAbstractionState addNondetVariable(String pVariable) {

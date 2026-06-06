@@ -18,7 +18,7 @@ import java.io.Serial;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSerializableSingleWrapperState;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -73,7 +73,7 @@ public final class UsageState extends AbstractSerializableSingleWrapperState
     FunctionContainer initialContainer = FunctionContainer.createInitialContainer();
     return new UsageState(
         pWrappedElement,
-        PathCopyingPersistentTreeMap.of(),
+        PathCopyingPersistentAvlTreeMap.of(),
         new TemporaryUsageStorage(),
         initialContainer,
         new StateStatistics(initialContainer.getStatistics()),
@@ -250,7 +250,7 @@ public final class UsageState extends AbstractSerializableSingleWrapperState
 
     return new UsageState(
         wrappedState,
-        PathCopyingPersistentTreeMap.of(),
+        PathCopyingPersistentAvlTreeMap.of(),
         recentUsages.copy(),
         functionContainer.clone(difference),
         stats,
@@ -347,7 +347,7 @@ public final class UsageState extends AbstractSerializableSingleWrapperState
   private Object readResolve() {
     return new UsageState(
         getWrappedState(),
-        PathCopyingPersistentTreeMap.of(),
+        PathCopyingPersistentAvlTreeMap.of(),
         recentUsages,
         functionContainer,
         new StateStatistics(functionContainer.getStatistics()),

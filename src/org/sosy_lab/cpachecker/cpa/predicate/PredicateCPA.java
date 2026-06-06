@@ -14,7 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -308,7 +308,7 @@ public class PredicateCPA
     return PredicateAbstractState.mkAbstractionState(
         pathFormulaManager.makeEmptyPathFormula(),
         predAbsManager.makeTrueAbstractionFormula(null),
-        PathCopyingPersistentTreeMap.of());
+        PathCopyingPersistentAvlTreeMap.of());
   }
 
   @Override

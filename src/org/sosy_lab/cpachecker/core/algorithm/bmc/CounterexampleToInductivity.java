@@ -12,7 +12,7 @@ import com.google.common.collect.FluentIterable;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
@@ -29,7 +29,7 @@ public class CounterexampleToInductivity {
 
   public CounterexampleToInductivity(CFANode pLocation, Map<String, ModelValue> pModel) {
     location = Objects.requireNonNull(pLocation);
-    model = PathCopyingPersistentTreeMap.copyOf(pModel);
+    model = PathCopyingPersistentAvlTreeMap.copyOf(pModel);
   }
 
   public BooleanFormula getFormula(FormulaManagerView pFMGR) {

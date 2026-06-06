@@ -15,11 +15,11 @@ import java.io.Serializable;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Set;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 
 /**
- * A Set-implementation based on the {@link PathCopyingPersistentTreeMap}. We use {@code null} as
+ * A Set-implementation based on the {@link PathCopyingPersistentAvlTreeMap}. We use {@code null} as
  * internal value for the map.
  */
 @Immutable(containerOf = "K")
@@ -33,20 +33,20 @@ public class PersistentSet<K extends Comparable<? super K>> implements Set<K>, S
   }
 
   public PersistentSet() {
-    delegate = PathCopyingPersistentTreeMap.of();
+    delegate = PathCopyingPersistentAvlTreeMap.of();
   }
 
   public static <K extends Comparable<? super K>> PersistentSet<K> of() {
-    return new PersistentSet<K>(PathCopyingPersistentTreeMap.of());
+    return new PersistentSet<K>(PathCopyingPersistentAvlTreeMap.of());
   }
 
   public static <K extends Comparable<? super K>> PersistentSet<K> of(K entry) {
-    PersistentSet<K> retSet = new PersistentSet<K>(PathCopyingPersistentTreeMap.of());
+    PersistentSet<K> retSet = new PersistentSet<K>(PathCopyingPersistentAvlTreeMap.of());
     return retSet.addAndCopy(entry);
   }
 
   public static <K extends Comparable<? super K>> PersistentSet<K> copyOf(Collection<K> entries) {
-    PersistentSet<K> retSet = new PersistentSet<K>(PathCopyingPersistentTreeMap.of());
+    PersistentSet<K> retSet = new PersistentSet<K>(PathCopyingPersistentAvlTreeMap.of());
     for (K e : entries) {
       retSet = retSet.addAndCopy(e);
     }
@@ -54,7 +54,7 @@ public class PersistentSet<K extends Comparable<? super K>> implements Set<K>, S
   }
 
   public static <K extends Comparable<? super K>> PersistentSet<K> copyOf(Iterable<K> entries) {
-    PersistentSet<K> retSet = new PersistentSet<K>(PathCopyingPersistentTreeMap.of());
+    PersistentSet<K> retSet = new PersistentSet<K>(PathCopyingPersistentAvlTreeMap.of());
     for (K e : entries) {
       retSet = retSet.addAndCopy(e);
     }

@@ -24,7 +24,7 @@ import java.util.Objects;
 import java.util.SequencedSet;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -92,11 +92,11 @@ public class ThreadingState
   private final PersistentMap<String, Integer> threadIdsForWitness;
 
   public ThreadingState() {
-    threads = PathCopyingPersistentTreeMap.of();
-    locks = PathCopyingPersistentTreeMap.of();
+    threads = PathCopyingPersistentAvlTreeMap.of();
+    locks = PathCopyingPersistentAvlTreeMap.of();
     activeThread = null;
     entryFunction = null;
-    threadIdsForWitness = PathCopyingPersistentTreeMap.of();
+    threadIdsForWitness = PathCopyingPersistentAvlTreeMap.of();
   }
 
   private ThreadingState(

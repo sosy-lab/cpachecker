@@ -32,7 +32,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.CopyOnWriteSortedMap;
 import org.sosy_lab.common.collect.MapsDifference;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
@@ -297,9 +297,9 @@ class PointerTargetSetManager {
     // Handle bases
 
     final CopyOnWriteSortedMap<PointerBase, CType> basesOnlyPts1 =
-        CopyOnWriteSortedMap.copyOf(PathCopyingPersistentTreeMap.<PointerBase, CType>of());
+        CopyOnWriteSortedMap.copyOf(PathCopyingPersistentAvlTreeMap.<PointerBase, CType>of());
     final CopyOnWriteSortedMap<PointerBase, CType> basesOnlyPts2 =
-        CopyOnWriteSortedMap.copyOf(PathCopyingPersistentTreeMap.<PointerBase, CType>of());
+        CopyOnWriteSortedMap.copyOf(PathCopyingPersistentAvlTreeMap.<PointerBase, CType>of());
 
     PersistentSortedMap<PointerBase, CType> mergedBases =
         merge(
@@ -349,9 +349,9 @@ class PointerTargetSetManager {
     // Handle fields
 
     final CopyOnWriteSortedMap<CompositeField, Boolean> fieldsOnlyPts1 =
-        CopyOnWriteSortedMap.copyOf(PathCopyingPersistentTreeMap.<CompositeField, Boolean>of());
+        CopyOnWriteSortedMap.copyOf(PathCopyingPersistentAvlTreeMap.<CompositeField, Boolean>of());
     final CopyOnWriteSortedMap<CompositeField, Boolean> fieldsOnlyPts2 =
-        CopyOnWriteSortedMap.copyOf(PathCopyingPersistentTreeMap.<CompositeField, Boolean>of());
+        CopyOnWriteSortedMap.copyOf(PathCopyingPersistentAvlTreeMap.<CompositeField, Boolean>of());
 
     if (options.useArraysForHeap()) {
       verify(pts1.getFields().isEmpty() && pts2.getFields().isEmpty());

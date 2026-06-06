@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cpa.pointer2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
@@ -33,7 +33,7 @@ public class PointerState implements AbstractState {
 
   /** Creates a new pointer state with an empty initial points-to map. */
   private PointerState() {
-    pointsToMap = PathCopyingPersistentTreeMap.<MemoryLocation, LocationSet>of();
+    pointsToMap = PathCopyingPersistentAvlTreeMap.<MemoryLocation, LocationSet>of();
   }
 
   /**

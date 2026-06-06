@@ -6777,7 +6777,7 @@ public class SMGState
       return new StateAndInfo<>(
           this,
           new SMGInformation(
-              PathCopyingPersistentTreeMap.of(),
+              PathCopyingPersistentAvlTreeMap.of(),
               getMemoryModel().getSizeObMemoryForSPCWithoutHeap(),
               memoryModel.getVariableTypeMap(),
               memoryModel.getFunctionDeclarationsFromStackFrames()));
@@ -6796,7 +6796,7 @@ public class SMGState
     return new StateAndInfo<>(
         newState,
         new SMGInformation(
-            PathCopyingPersistentTreeMap.<MemoryLocation, ValueAndValueSize>of()
+            PathCopyingPersistentAvlTreeMap.<MemoryLocation, ValueAndValueSize>of()
                 .putAndCopy(
                     pLocation, ValueAndValueSize.of(removedValue, edgeToRemove.getSizeInBits())),
             getMemoryModel().getSizeObMemoryForSPCWithoutHeap(),

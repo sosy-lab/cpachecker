@@ -16,11 +16,11 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.Map.Entry;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 
 /**
- * A Stack-implementation based on the {@link PathCopyingPersistentTreeMap}. The runtime is
+ * A Stack-implementation based on the {@link PathCopyingPersistentAvlTreeMap}. The runtime is
  * O(log(n)) instead of O(1) for a default stack operation.
  */
 @Immutable(containerOf = "T")
@@ -34,7 +34,7 @@ public class PersistentStack<T> implements Iterable<T>, Serializable {
   }
 
   public static <T> PersistentStack<T> of() {
-    return new PersistentStack<>(PathCopyingPersistentTreeMap.of());
+    return new PersistentStack<>(PathCopyingPersistentAvlTreeMap.of());
   }
 
   public PersistentStack<T> pushAndCopy(T elem) {

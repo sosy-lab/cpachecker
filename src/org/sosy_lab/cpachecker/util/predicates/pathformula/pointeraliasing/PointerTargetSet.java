@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
@@ -145,10 +145,10 @@ public final class PointerTargetSet implements Serializable {
 
   private static final PointerTargetSet EMPTY_INSTANCE =
       new PointerTargetSet(
-          PathCopyingPersistentTreeMap.of(),
-          PathCopyingPersistentTreeMap.of(),
+          PathCopyingPersistentAvlTreeMap.of(),
+          PathCopyingPersistentAvlTreeMap.of(),
           PersistentLinkedList.of(),
-          PathCopyingPersistentTreeMap.of(),
+          PathCopyingPersistentAvlTreeMap.of(),
           PersistentLinkedList.of(),
           0);
 
@@ -244,7 +244,7 @@ public final class PointerTargetSet implements Serializable {
           bases,
           fields,
           PersistentLinkedList.copyOf(deferredAllocations),
-          PathCopyingPersistentTreeMap.copyOf(
+          PathCopyingPersistentAvlTreeMap.copyOf(
               Maps.transformValues(targets, PersistentLinkedList::copyOf)),
           highestAllocatedAddressesFormulas,
           allocationCount);

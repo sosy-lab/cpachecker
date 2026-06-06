@@ -16,7 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.SequencedMap;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -189,7 +189,7 @@ public class SMGUseDefBasedInterpolator {
   private SMGInterpolant createInterpolant(
       Collection<ASimpleDeclaration> declarationsNeededForState) {
     PersistentMap<MemoryLocation, ValueAndValueSize> useDefInterpolant =
-        PathCopyingPersistentTreeMap.of();
+        PathCopyingPersistentAvlTreeMap.of();
 
     for (ASimpleDeclaration declarationForState : declarationsNeededForState) {
 

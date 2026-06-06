@@ -19,7 +19,7 @@ import com.google.common.base.Verify;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Collection;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
@@ -441,10 +441,10 @@ public abstract sealed class PredicateAbstractState
       }*/
 
       return new AbstractionState(
-          pathFormula, abstractionFormula, PathCopyingPersistentTreeMap.of());
+          pathFormula, abstractionFormula, PathCopyingPersistentAvlTreeMap.of());
     }
     return new NonAbstractionState(
-        pathFormula, abstractionFormula, PathCopyingPersistentTreeMap.of());
+        pathFormula, abstractionFormula, PathCopyingPersistentAvlTreeMap.of());
   }
 
   @Override

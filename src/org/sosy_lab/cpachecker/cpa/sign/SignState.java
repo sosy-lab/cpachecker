@@ -16,7 +16,7 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -42,7 +42,7 @@ public class SignState
   }
 
   private SignState() {
-    signMap = PathCopyingPersistentTreeMap.of();
+    signMap = PathCopyingPersistentAvlTreeMap.of();
   }
 
   @Override
@@ -60,7 +60,7 @@ public class SignState
     }
 
     SignState result = SignState.TOP;
-    PersistentMap<String, Sign> newMap = PathCopyingPersistentTreeMap.of();
+    PersistentMap<String, Sign> newMap = PathCopyingPersistentAvlTreeMap.of();
     Sign combined;
     for (String varIdent : pToJoin.signMap.keySet()) {
       // only add those variables that are contained in both states (otherwise one has value ALL

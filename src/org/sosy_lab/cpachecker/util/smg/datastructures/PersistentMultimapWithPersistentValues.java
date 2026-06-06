@@ -16,10 +16,10 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.Set;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentAvlTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 
-/** A Multimap-implementation based on the {@link PathCopyingPersistentTreeMap}. */
+/** A Multimap-implementation based on the {@link PathCopyingPersistentAvlTreeMap}. */
 @Immutable(containerOf = {"K", "V"})
 public class PersistentMultimapWithPersistentValues<
         K extends Comparable<? super K>, V extends Comparable<? super V>>
@@ -35,7 +35,7 @@ public class PersistentMultimapWithPersistentValues<
 
   public static <K extends Comparable<? super K>, V extends Comparable<? super V>>
       PersistentMultimapWithPersistentValues<K, V> of() {
-    return new PersistentMultimapWithPersistentValues<K, V>(PathCopyingPersistentTreeMap.of());
+    return new PersistentMultimapWithPersistentValues<K, V>(PathCopyingPersistentAvlTreeMap.of());
   }
 
   public PersistentMultimapWithPersistentValues<K, V> putAndCopy(K key, V value) {
