@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorUtil.SeqMemoryAccessReachTypePair;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PartialOrderReductionMode;
@@ -80,13 +81,10 @@ public record BitVectorAssignmentInjector(
         "cannot build assignments for reduction NONE");
 
     ImmutableList.Builder<SeqInstrumentation> rAssignments = ImmutableList.builder();
-    for (SeqMemoryAccessType accessType : SeqMemoryAccessType.values()) {
-      for (SeqMemoryReachType reachType : SeqMemoryReachType.values()) {
-        if (SeqBitVectorUtil.isAccessReachPairNeeded(options, accessType, reachType)) {
-          rAssignments.addAll(
-              buildBitVectorAssignmentByEncoding(ImmutableSet.of(), accessType, reachType));
-        }
-      }
+    for (SeqMemoryAccessReachTypePair pair : SeqBitVectorUtil.getAccessReachTypePairs(options)) {
+      rAssignments.addAll(
+          buildBitVectorAssignmentByEncoding(
+              ImmutableSet.of(), pair.accessType(), pair.reachType()));
     }
     return rAssignments.build();
   }
@@ -101,21 +99,17 @@ public record BitVectorAssignmentInjector(
         "cannot build assignments for reduction NONE");
 
     ImmutableList.Builder<SeqInstrumentation> rAssignments = ImmutableList.builder();
-    for (SeqMemoryAccessType accessType : SeqMemoryAccessType.values()) {
-      for (SeqMemoryReachType reachType : SeqMemoryReachType.values()) {
-        if (SeqBitVectorUtil.isAccessReachPairNeeded(options, accessType, reachType)) {
-          ImmutableSet<SeqMemoryLocation> memoryLocations =
-              SeqMemoryLocationFinder.findMemoryLocationsByReachType(
-                  labelClauseMap,
-                  labelBlockMap,
-                  pTargetClause.getFirstBlock(),
-                  pointerAliasingMap,
-                  accessType,
-                  reachType);
-          rAssignments.addAll(
-              buildBitVectorAssignmentByEncoding(memoryLocations, accessType, reachType));
-        }
-      }
+    for (SeqMemoryAccessReachTypePair pair : SeqBitVectorUtil.getAccessReachTypePairs(options)) {
+      ImmutableSet<SeqMemoryLocation> memoryLocations =
+          SeqMemoryLocationFinder.findMemoryLocationsByReachType(
+              labelClauseMap,
+              labelBlockMap,
+              pTargetClause.getFirstBlock(),
+              pointerAliasingMap,
+              pair.accessType(),
+              pair.reachType());
+      rAssignments.addAll(
+          buildBitVectorAssignmentByEncoding(memoryLocations, pair.accessType(), pair.reachType()));
     }
     return rAssignments.build();
   }

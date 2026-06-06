@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elem
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
@@ -123,6 +124,27 @@ public class SeqBitVectorUtil {
       case DECIMAL, SPARSE -> CIntegerLiteralBase.DECIMAL;
       case HEXADECIMAL -> CIntegerLiteralBase.HEXADECIMAL;
     };
+  }
+
+  public record SeqMemoryAccessReachTypePair(
+      SeqMemoryAccessType accessType, SeqMemoryReachType reachType) {}
+
+  /**
+   * Returns the list of {@link SeqMemoryAccessReachTypePair} used in the output program based on
+   * the specified options.
+   */
+  public static ImmutableList<SeqMemoryAccessReachTypePair> getAccessReachTypePairs(
+      MPOROptions pOptions) {
+
+    ImmutableList.Builder<SeqMemoryAccessReachTypePair> rPairs = ImmutableList.builder();
+    for (SeqMemoryAccessType accessType : SeqMemoryAccessType.values()) {
+      for (SeqMemoryReachType reachType : SeqMemoryReachType.values()) {
+        if (SeqBitVectorUtil.isAccessReachPairNeeded(pOptions, accessType, reachType)) {
+          rPairs.add(new SeqMemoryAccessReachTypePair(accessType, reachType));
+        }
+      }
+    }
+    return rPairs.build();
   }
 
   /**
