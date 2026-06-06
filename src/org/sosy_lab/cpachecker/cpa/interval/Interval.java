@@ -483,6 +483,9 @@ public final class Interval implements Serializable {
    * @return new negated interval
    */
   public Interval negate() {
+    if (isEmpty()) {
+      return EMPTY;
+    }
     return new Interval(saturatedMultiply(high, -1L), saturatedMultiply(low, -1L));
   }
 

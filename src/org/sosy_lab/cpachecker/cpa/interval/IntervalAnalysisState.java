@@ -151,12 +151,16 @@ public final class IntervalAnalysisState
   public Interval arrayAccess(
       String variableName, CExpression index, ExpressionValueVisitor visitor)
       throws UnrecognizedCodeException {
-    return arrays
-        .get(variableName)
-        .get(
-            normalizeExpression(index, visitor).stream().findAny().orElseThrow(),
-            visitor); // TODO: Don't just pick any random normalization, but rather the one that
-    // results in the least abstract result
+    FunArray array = arrays.get(variableName);
+    if (array == null) {
+      return Interval.UNBOUND;
+    }
+    Set<NormalFormExpression> normalizations = normalizeExpression(index, visitor);
+    if (normalizations.isEmpty()) {
+      return Interval.UNBOUND;
+    }
+    // TODO: Don't just pick any normalization, but the one that results in the least abstract result
+    return array.get(normalizations.iterator().next(), visitor);
   }
 
   /**

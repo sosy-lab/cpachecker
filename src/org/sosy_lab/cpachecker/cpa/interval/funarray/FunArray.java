@@ -107,6 +107,10 @@ public record FunArray(
       }
     }
 
+    if (initializers.isEmpty()) {
+      return BOTTOM;
+    }
+
     List<Bound> bounds = new ArrayList<>();
     for (int i = 0; i <= initializers.size(); i++) {
       bounds.add(new Bound(new NormalFormExpression(i)));
