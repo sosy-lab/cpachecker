@@ -88,6 +88,33 @@ public class IntervalAnalysisStateTest {
   }
 
   @Test
+  public void joinMergesArraysFromBothBranches() throws FunArrayBuilder.FunArrayBuilderException {
+    FunArray arrayA = FunArrayBuilder.firstBound(exp(0)).value(5, 5).bound(exp("n")).build();
+    FunArray arrayB = FunArrayBuilder.firstBound(exp(0)).value(10, 10).bound(exp("n")).build();
+    FunArray expected = FunArrayBuilder.firstBound(exp(0)).value(5, 10).bound(exp("n")).build();
+
+    IntervalAnalysisState stateA = new IntervalAnalysisState(null).addArray("a", arrayA, null);
+    IntervalAnalysisState stateB = new IntervalAnalysisState(null).addArray("a", arrayB, null);
+
+    IntervalAnalysisState joined = stateA.join(stateB);
+
+    assertThat(joined.arrays().get("a")).isEqualTo(expected);
+  }
+
+  @Test
+  public void joinPreservesArrayOnlyPresentInOneState()
+      throws FunArrayBuilder.FunArrayBuilderException {
+    FunArray array = FunArrayBuilder.firstBound(exp(0)).value(3, 3).bound(exp("n")).build();
+
+    IntervalAnalysisState stateWithArray = new IntervalAnalysisState(null).addArray("a", array, null);
+    IntervalAnalysisState stateWithout = new IntervalAnalysisState(null);
+
+    IntervalAnalysisState joined = stateWithArray.join(stateWithout);
+
+    assertThat(joined.arrays().containsKey("a")).isTrue();
+  }
+
+  @Test
   public void arrayAccessWithNonNormalizableIndexReturnsUnbound()
       throws UnrecognizedCodeException, FunArrayBuilderException {
     IntervalAnalysisState state = new IntervalAnalysisState(null);
