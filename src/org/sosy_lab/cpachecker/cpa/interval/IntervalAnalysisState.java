@@ -246,10 +246,10 @@ public final class IntervalAnalysisState
    */
   @Override
   public IntervalAnalysisState join(IntervalAnalysisState reachedState) {
-    // TODO: Join arrays as well
     boolean changed = false;
     PersistentMap<String, Interval> newIntervals = PathCopyingPersistentTreeMap.of();
     PersistentMap<String, Integer> newReferences = referenceCounts;
+    PersistentMap<String, FunArray> newArrays = reachedState.arrays;
 
     // TODO: reduce runtime complexity by using 2 iterators over the interval maps (see MR !304)
     for (Entry<String, Interval> otherEntry : reachedState.intervals.entrySet()) {
@@ -282,13 +282,29 @@ public final class IntervalAnalysisState
       }
     }
 
+    for (Entry<String, FunArray> thisEntry : arrays.entrySet()) {
+      String arrayName = thisEntry.getKey();
+      FunArray thisArray = thisEntry.getValue();
+      if (reachedState.arrays.containsKey(arrayName)) {
+        FunArray joinedArray = thisArray.join(reachedState.arrays.get(arrayName));
+        if (!joinedArray.equals(reachedState.arrays.get(arrayName))) {
+          changed = true;
+          newArrays = newArrays.putAndCopy(arrayName, joinedArray);
+        }
+      } else {
+        changed = true;
+        newArrays = newArrays.putAndCopy(arrayName, thisArray);
+      }
+    }
+
     if (changed) {
       CFANode newLocation = null;
-      if (this.location.equals(reachedState.location)) {
+      if (Objects.equals(this.location, reachedState.location)) {
         newLocation = reachedState.location;
       }
       return this.withIntervals(newIntervals)
           .withReferenceCounts(newReferences)
+          .withArrays(newArrays)
           .withLocation(newLocation);
     } else {
       return reachedState;
@@ -305,7 +321,7 @@ public final class IntervalAnalysisState
    */
   @Override
   public boolean isLessOrEqual(IntervalAnalysisState reachedState) {
-    if (intervals.equals(reachedState.intervals)) {
+    if (intervals.equals(reachedState.intervals) && arrays.equals(reachedState.arrays)) {
       return true;
     }
     // this element is not less or equal than the reached state, if it contains less intervals
