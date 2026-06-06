@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing;
 
-
-
 public enum SeqMemoryReachType {
   /** For {@link SeqMemoryLocation}s that are reachable before any context switch occurs. */
   DIRECT("d", "DIRECT"),
