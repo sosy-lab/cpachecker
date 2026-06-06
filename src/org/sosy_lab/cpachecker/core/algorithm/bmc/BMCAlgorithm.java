@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -160,6 +161,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private final Set<CandidateInvariant> directlyConfirmedNonTerminationCandidates = new HashSet<>();
   private final Map<CandidateInvariant, NonTerminationLoopScope> nonTerminationLoopScopes =
       new HashMap<>();
+  private ImmutableSet<CandidateInvariant> lastBaseCaseStepCandidates = ImmutableSet.of();
   private ImmutableSet<CandidateInvariant> lastModelEqualityStrengthenings = ImmutableSet.of();
   private ImmutableSet<CandidateInvariant> lastBranchConditionStrengthenings = ImmutableSet.of();
   private static final int MAX_MODEL_EQUALITY_STRENGTHENINGS = 8;
@@ -596,6 +598,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       BasicProverEnvironment<?> pProver,
       CandidateInvariant pCandidateInvariant)
       throws CPATransferException, InterruptedException, SolverException {
+    lastBaseCaseStepCandidates = ImmutableSet.of();
     lastModelEqualityStrengthenings = ImmutableSet.of();
     lastBranchConditionStrengthenings = ImmutableSet.of();
     BooleanFormula baseCase = createNonTerminationBaseCaseFormula(pReachedSet, pCandidateInvariant);
@@ -604,11 +607,15 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       pProver.push(baseCase);
       boolean reachable = !pProver.isUnsat();
       if (reachable) {
+        ImmutableList<ValueAssignment> modelAssignments =
+            ImmutableList.copyOf(pProver.getModelAssignments());
+        lastBaseCaseStepCandidates =
+            createBaseCaseStepCandidates(pReachedSet, pCandidateInvariant, pProver);
         lastBranchConditionStrengthenings =
             createBranchConditionStrengthenings(pReachedSet, pCandidateInvariant);
         lastModelEqualityStrengthenings =
             createModelEqualityStrengthenings(
-                pReachedSet, pCandidateInvariant, pProver.getModelAssignments());
+                pReachedSet, pCandidateInvariant, pProver, modelAssignments);
       }
       return reachable;
     } finally {
@@ -624,6 +631,15 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         .addAll(lastBranchConditionStrengthenings)
         .addAll(lastModelEqualityStrengthenings)
         .build();
+  }
+
+  @Override
+  protected Iterable<CandidateInvariant> getCandidatesForStepCaseAfterSuccessfulBaseCase(
+      ReachedSet pReachedSet, CandidateInvariant pCandidateInvariant) {
+    if (lastBaseCaseStepCandidates.isEmpty()) {
+      return Collections.singleton(pCandidateInvariant);
+    }
+    return lastBaseCaseStepCandidates;
   }
 
   @Override
@@ -645,6 +661,69 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     if (loopScope != null) {
       nonTerminationLoopScopes.put(pRefinement, loopScope);
     }
+  }
+
+  private ImmutableSet<CandidateInvariant> createBaseCaseStepCandidates(
+      ReachedSet pReachedSet,
+      CandidateInvariant pCandidateInvariant,
+      BasicProverEnvironment<?> pProver)
+      throws CPATransferException, InterruptedException, SolverException {
+    if (!(pCandidateInvariant instanceof StatewiseCandidateInvariantConjunction)) {
+      return ImmutableSet.of(pCandidateInvariant);
+    }
+
+    ImmutableSet<CandidateInvariant> candidateParts =
+        ImmutableSet.copyOf(CandidateInvariantCombination.getConjunctiveParts(pCandidateInvariant));
+    ImmutableSet.Builder<CandidateInvariant> witnessCandidates = ImmutableSet.builder();
+    int currentK =
+        CPAs.retrieveCPA(analysisCpa, LoopIterationBounding.class).getMaxLoopIterations();
+    Optional<NonTerminationLoopScope> loopScope = getNonTerminationLoopScope(pCandidateInvariant);
+
+    for (AbstractState state : getNonTerminationBaseCaseStates(pReachedSet, currentK, loopScope)) {
+      if ((loopScope.isEmpty() && !isStopState(state))
+          || !isRelevantForReachability(state)
+          || !candidateAppliesToState(pCandidateInvariant, state)) {
+        continue;
+      }
+
+      Optional<BooleanFormula> pathBaseCase =
+          createNonTerminationPathBaseCaseFormula(state, pCandidateInvariant);
+      if (pathBaseCase.isEmpty()) {
+        continue;
+      }
+      pProver.push(pathBaseCase.orElseThrow());
+      boolean pathReachable;
+      try {
+        pathReachable = !pProver.isUnsat();
+      } finally {
+        pProver.pop();
+      }
+      if (!pathReachable) {
+        continue;
+      }
+
+      ImmutableSet<CandidateInvariant> pathParts =
+          getCandidatePartsOnPath(getPathStatesTo(state), candidateParts);
+      if (pathParts.isEmpty()) {
+        continue;
+      }
+      CandidateInvariant witnessCandidate = new StatewiseCandidateInvariantConjunction(pathParts);
+      addStrengthenedCandidate(witnessCandidates, pCandidateInvariant, witnessCandidate);
+    }
+    return witnessCandidates.build();
+  }
+
+  private ImmutableSet<CandidateInvariant> getCandidatePartsOnPath(
+      Iterable<AbstractState> pPathStates, Iterable<CandidateInvariant> pCandidateParts) {
+    Set<CandidateInvariant> pathParts = new LinkedHashSet<>();
+    for (AbstractState pathState : pPathStates) {
+      for (CandidateInvariant candidatePart : pCandidateParts) {
+        if (candidateAppliesToState(candidatePart, pathState)) {
+          pathParts.add(candidatePart);
+        }
+      }
+    }
+    return ImmutableSet.copyOf(pathParts);
   }
 
   private ImmutableSet<CandidateInvariant> createBranchConditionStrengthenings(
@@ -705,7 +784,9 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private ImmutableSet<CandidateInvariant> createModelEqualityStrengthenings(
       ReachedSet pReachedSet,
       CandidateInvariant pCandidateInvariant,
-      Iterable<ValueAssignment> pModelAssignments) {
+      BasicProverEnvironment<?> pProver,
+      Iterable<ValueAssignment> pModelAssignments)
+      throws InterruptedException, SolverException {
     if (!(pCandidateInvariant instanceof StatewiseCandidateInvariantConjunction)) {
       return ImmutableSet.of();
     }
@@ -734,6 +815,10 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         if (predicateState == null) {
           continue;
         }
+        Optional<BooleanFormula> stateFormula = createStateFormula(state);
+        if (stateFormula.isEmpty()) {
+          continue;
+        }
 
         for (CFANode location : AbstractStates.extractLocations(state)) {
           if (!pCandidateInvariant.appliesTo(location)) {
@@ -742,6 +827,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           addModelEqualityStrengtheningsAtLocation(
               strengthenedCandidates,
               pCandidateInvariant,
+              pProver,
+              stateFormula.orElseThrow(),
               predicateState.getPathFormula(),
               location,
               modelAssignments);
@@ -777,9 +864,12 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private void addModelEqualityStrengtheningsAtLocation(
       ImmutableSet.Builder<CandidateInvariant> pStrengthenedCandidates,
       CandidateInvariant pCandidateInvariant,
+      BasicProverEnvironment<?> pProver,
+      BooleanFormula pStateFormula,
       PathFormula pPathFormula,
       CFANode pLocation,
-      Iterable<ValueAssignment> pModelAssignments) {
+      Iterable<ValueAssignment> pModelAssignments)
+      throws InterruptedException, SolverException {
     Optional<Set<String>> modifiedVariables = getModifiedVariablesInLoopsContaining(pLocation);
     if (modifiedVariables.isEmpty()) {
       return;
@@ -815,6 +905,10 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
       BooleanFormula equality =
           getFormulaManager().uninstantiate(valueAssignment.getAssignmentAsFormula());
+      if (!isEntailedByStateFormula(
+          pProver, pStateFormula, valueAssignment.getAssignmentAsFormula())) {
+        continue;
+      }
       CandidateInvariant equalityCandidate =
           SingleLocationFormulaInvariant.makeLocationInvariant(
               pLocation, equality, getFormulaManager());
@@ -842,6 +936,20 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       if (added >= MAX_MODEL_EQUALITY_STRENGTHENINGS) {
         return;
       }
+    }
+  }
+
+  private boolean isEntailedByStateFormula(
+      BasicProverEnvironment<?> pProver,
+      BooleanFormula pStateFormula,
+      BooleanFormula pInstantiatedEquality)
+      throws InterruptedException, SolverException {
+    BooleanFormulaManagerView bfmgr = getBooleanFormulaManager();
+    pProver.push(bfmgr.and(pStateFormula, bfmgr.not(pInstantiatedEquality)));
+    try {
+      return pProver.isUnsat();
+    } finally {
+      pProver.pop();
     }
   }
 

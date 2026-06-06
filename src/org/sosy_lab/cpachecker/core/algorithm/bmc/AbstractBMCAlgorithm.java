@@ -569,7 +569,9 @@ abstract class AbstractBMCAlgorithm
               reportConfirmedNonTermination(reachedSet, candidateInvariant);
               return AlgorithmStatus.UNSOUND_AND_PRECISE;
             }
-            candidatesWithSuccessfulBaseCase.add(candidateInvariant);
+            Iterables.addAll(
+                candidatesWithSuccessfulBaseCase,
+                getCandidatesForStepCaseAfterSuccessfulBaseCase(reachedSet, candidateInvariant));
             Iterables.addAll(
                 candidatesSuggestedAfterBaseCase,
                 getAdditionalCandidatesAfterSuccessfulBaseCase(reachedSet, candidateInvariant));
@@ -983,6 +985,13 @@ abstract class AbstractBMCAlgorithm
     checkNotNull(pReachedSet);
     checkNotNull(pCandidateInvariant);
     return ImmutableSet.of();
+  }
+
+  protected Iterable<CandidateInvariant> getCandidatesForStepCaseAfterSuccessfulBaseCase(
+      ReachedSet pReachedSet, CandidateInvariant pCandidateInvariant) {
+    checkNotNull(pReachedSet);
+    checkNotNull(pCandidateInvariant);
+    return Collections.singleton(pCandidateInvariant);
   }
 
   protected final FormulaManagerView getFormulaManager() {
