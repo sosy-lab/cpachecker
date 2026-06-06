@@ -664,14 +664,14 @@ public class DssBlockAnalysis {
     return messages.build();
   }
 
-  private boolean isPredecessorWithTopSummary(String predecessor) {
+  private boolean canTopSummaryBeIgnoredForPredecessor(String predecessor) {
     return preconditions.get(predecessor).stream()
+            .anyMatch(sap -> !dcpa.isMostGeneralBlockEntryState(sap.state()))
+        && preconditions.get(predecessor).stream()
             .noneMatch(
                 sap ->
                     AbstractStates.extractStateByType(sap.state(), BlockState.class)
-                        .isStemsFromTopState())
-        && preconditions.get(predecessor).stream()
-            .anyMatch(sap -> !dcpa.isMostGeneralBlockEntryState(sap.state()));
+                        .doesSummaryOriginateFromNonTrivialStateButIsTrivial());
   }
 
   /**
@@ -694,7 +694,7 @@ public class DssBlockAnalysis {
 
     boolean hasNonTrivialSummariesForEachPredecessor =
         !preconditions.isEmpty()
-            && preconditions.keySet().stream().allMatch(this::isPredecessorWithTopSummary);
+            && preconditions.keySet().stream().allMatch(this::canTopSummaryBeIgnoredForPredecessor);
 
     // unreachable block ends might be caused by underapproximating summaries
     // therefore, a new violation condition cannot ignore them.
@@ -741,7 +741,8 @@ public class DssBlockAnalysis {
         if (!result.getFinalLocationStates().isEmpty()) {
           for (AbstractState summary : result.getFinalLocationStates()) {
             Objects.requireNonNull(AbstractStates.extractStateByType(summary, BlockState.class))
-                .setStemsFromTopState(isTrivial && dcpa.isMostGeneralBlockEntryState(summary));
+                .setTopSummaryFromNonTrivialState(
+                    !isTrivial && dcpa.isMostGeneralBlockEntryState(summary));
             summaries.add(new StateAndPrecision(summary, reachedSet.getPrecision(summary)));
           }
         }
