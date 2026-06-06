@@ -25,6 +25,7 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
+@SuppressWarnings("deprecation")
 public class SSAMapMerger {
 
   private final FormulaManagerView fmgr;
