@@ -166,6 +166,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private ImmutableSet<CandidateInvariant> lastBranchConditionStrengthenings = ImmutableSet.of();
   private static final int MAX_MODEL_EQUALITY_STRENGTHENINGS = 8;
   private static final int MAX_BRANCH_CONDITION_STRENGTHENINGS = 8;
+  private static final String NON_TERMINATION_BASE_CASE_SELECTOR_PREFIX =
+      "__CPAchecker_nontermination_base_selector_";
 
   public BMCAlgorithm(
       Algorithm pAlgorithm,
@@ -601,16 +603,17 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     lastBaseCaseStepCandidates = ImmutableSet.of();
     lastModelEqualityStrengthenings = ImmutableSet.of();
     lastBranchConditionStrengthenings = ImmutableSet.of();
-    BooleanFormula baseCase = createNonTerminationBaseCaseFormula(pReachedSet, pCandidateInvariant);
+    NonTerminationBaseCaseFormula baseCase =
+        createNonTerminationBaseCaseFormula(pReachedSet, pCandidateInvariant);
     stats.satCheck.start();
     try {
-      pProver.push(baseCase);
+      pProver.push(baseCase.formula());
       boolean reachable = !pProver.isUnsat();
       if (reachable) {
         ImmutableList<ValueAssignment> modelAssignments =
             ImmutableList.copyOf(pProver.getModelAssignments());
         lastBaseCaseStepCandidates =
-            createBaseCaseStepCandidates(pReachedSet, pCandidateInvariant, pProver);
+            createBaseCaseStepCandidates(pCandidateInvariant, baseCase, modelAssignments);
         lastBranchConditionStrengthenings =
             createBranchConditionStrengthenings(pReachedSet, pCandidateInvariant);
         lastModelEqualityStrengthenings =
@@ -664,53 +667,34 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private ImmutableSet<CandidateInvariant> createBaseCaseStepCandidates(
-      ReachedSet pReachedSet,
       CandidateInvariant pCandidateInvariant,
-      BasicProverEnvironment<?> pProver)
-      throws CPATransferException, InterruptedException, SolverException {
-    if (!(pCandidateInvariant instanceof StatewiseCandidateInvariantConjunction)) {
-      return ImmutableSet.of(pCandidateInvariant);
-    }
-
-    ImmutableSet<CandidateInvariant> candidateParts =
-        ImmutableSet.copyOf(CandidateInvariantCombination.getConjunctiveParts(pCandidateInvariant));
+      NonTerminationBaseCaseFormula pBaseCase,
+      Iterable<ValueAssignment> pModelAssignments) {
     ImmutableSet.Builder<CandidateInvariant> witnessCandidates = ImmutableSet.builder();
-    int currentK =
-        CPAs.retrieveCPA(analysisCpa, LoopIterationBounding.class).getMaxLoopIterations();
-    Optional<NonTerminationLoopScope> loopScope = getNonTerminationLoopScope(pCandidateInvariant);
-
-    for (AbstractState state : getNonTerminationBaseCaseStates(pReachedSet, currentK, loopScope)) {
-      if ((loopScope.isEmpty() && !isStopState(state))
-          || !isRelevantForReachability(state)
-          || !candidateAppliesToState(pCandidateInvariant, state)) {
-        continue;
+    Set<String> trueSelectors = getTrueBaseCaseSelectors(pModelAssignments);
+    if (!trueSelectors.isEmpty()) {
+      for (NonTerminationBaseCaseDisjunct disjunct : pBaseCase.disjuncts()) {
+        if (!trueSelectors.contains(disjunct.selectorName())) {
+          continue;
+        }
+        CandidateInvariant witnessCandidate =
+            new StatewiseCandidateInvariantConjunction(disjunct.pathParts());
+        addStrengthenedCandidate(witnessCandidates, pCandidateInvariant, witnessCandidate);
       }
-
-      Optional<BooleanFormula> pathBaseCase =
-          createNonTerminationPathBaseCaseFormula(state, pCandidateInvariant);
-      if (pathBaseCase.isEmpty()) {
-        continue;
-      }
-      pProver.push(pathBaseCase.orElseThrow());
-      boolean pathReachable;
-      try {
-        pathReachable = !pProver.isUnsat();
-      } finally {
-        pProver.pop();
-      }
-      if (!pathReachable) {
-        continue;
-      }
-
-      ImmutableSet<CandidateInvariant> pathParts =
-          getCandidatePartsOnPath(getPathStatesTo(state), candidateParts);
-      if (pathParts.isEmpty()) {
-        continue;
-      }
-      CandidateInvariant witnessCandidate = new StatewiseCandidateInvariantConjunction(pathParts);
-      addStrengthenedCandidate(witnessCandidates, pCandidateInvariant, witnessCandidate);
     }
-    return witnessCandidates.build();
+    ImmutableSet<CandidateInvariant> result = witnessCandidates.build();
+    return result.isEmpty() ? ImmutableSet.of(pCandidateInvariant) : result;
+  }
+
+  private Set<String> getTrueBaseCaseSelectors(Iterable<ValueAssignment> pModelAssignments) {
+    Set<String> trueSelectors = new HashSet<>();
+    for (ValueAssignment valueAssignment : pModelAssignments) {
+      if (Boolean.TRUE.equals(valueAssignment.getValue())
+          && valueAssignment.getName().startsWith(NON_TERMINATION_BASE_CASE_SELECTOR_PREFIX)) {
+        trueSelectors.add(valueAssignment.getName());
+      }
+    }
+    return trueSelectors;
   }
 
   private ImmutableSet<CandidateInvariant> getCandidatePartsOnPath(
@@ -1102,17 +1086,28 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return value instanceof Number || value instanceof Boolean;
   }
 
-  private BooleanFormula createNonTerminationBaseCaseFormula(
+  private record NonTerminationBaseCaseFormula(
+      BooleanFormula formula, ImmutableList<NonTerminationBaseCaseDisjunct> disjuncts) {}
+
+  private record NonTerminationBaseCaseDisjunct(
+      String selectorName, ImmutableSet<CandidateInvariant> pathParts) {}
+
+  private NonTerminationBaseCaseFormula createNonTerminationBaseCaseFormula(
       Iterable<AbstractState> pReachedSet, CandidateInvariant pCandidateInvariant)
       throws CPATransferException, InterruptedException {
     // initially set to false, so that loops without applicable states yield a trivially unsat
     // formula
     BooleanFormulaManagerView bfmgr = getBooleanFormulaManager();
     BooleanFormula result = bfmgr.makeFalse();
+    BooleanFormula selectorImplications = bfmgr.makeTrue();
+    ImmutableList.Builder<NonTerminationBaseCaseDisjunct> disjuncts = ImmutableList.builder();
     // get current k to only consider states from the first k iterations
     int currentK =
         CPAs.retrieveCPA(analysisCpa, LoopIterationBounding.class).getMaxLoopIterations();
     Optional<NonTerminationLoopScope> loopScope = getNonTerminationLoopScope(pCandidateInvariant);
+    ImmutableSet<CandidateInvariant> candidateParts =
+        ImmutableSet.copyOf(CandidateInvariantCombination.getConjunctiveParts(pCandidateInvariant));
+    int selectorIndex = 0;
 
     for (AbstractState state : getNonTerminationBaseCaseStates(pReachedSet, currentK, loopScope)) {
       if ((loopScope.isEmpty() && !isStopState(state))
@@ -1122,9 +1117,27 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
       Optional<BooleanFormula> pathBaseCase =
           createNonTerminationPathBaseCaseFormula(state, pCandidateInvariant);
-      result = bfmgr.or(result, pathBaseCase.orElse(bfmgr.makeFalse()));
+      if (pathBaseCase.isEmpty()) {
+        continue;
+      }
+      ImmutableSet<CandidateInvariant> pathParts =
+          getCandidatePartsOnPath(getPathStatesTo(state), candidateParts);
+      if (pathParts.isEmpty()) {
+        pathParts = ImmutableSet.of(pCandidateInvariant);
+      }
+      String selectorName = makeNonTerminationBaseCaseSelectorName(currentK, selectorIndex++);
+      BooleanFormula selector = bfmgr.makeVariable(selectorName);
+      result = bfmgr.or(result, selector);
+      selectorImplications =
+          bfmgr.and(selectorImplications, bfmgr.implication(selector, pathBaseCase.orElseThrow()));
+      disjuncts.add(new NonTerminationBaseCaseDisjunct(selectorName, pathParts));
     }
-    return result;
+    return new NonTerminationBaseCaseFormula(
+        bfmgr.and(result, selectorImplications), disjuncts.build());
+  }
+
+  private String makeNonTerminationBaseCaseSelectorName(int pCurrentK, int pSelectorIndex) {
+    return NON_TERMINATION_BASE_CASE_SELECTOR_PREFIX + pCurrentK + "_" + pSelectorIndex;
   }
 
   private Iterable<AbstractState> getNonTerminationBaseCaseStates(
