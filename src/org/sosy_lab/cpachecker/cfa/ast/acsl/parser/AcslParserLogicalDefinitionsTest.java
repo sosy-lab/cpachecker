@@ -70,9 +70,10 @@ public class AcslParserLogicalDefinitionsTest {
     AcslPolymorphicType polymorphicType = new AcslPolymorphicType("T");
     AcslPointerType pointerType = new AcslPointerType(polymorphicType);
     AcslParameterDeclaration inputArray =
-        new AcslParameterDeclaration(FileLocation.DUMMY, pointerType, "a");
+        new AcslParameterDeclaration(FileLocation.DUMMY, pointerType, "a", "MaxArray::a");
     AcslParameterDeclaration inputIndex =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i");
+        new AcslParameterDeclaration(
+            FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i", "MaxArray::i");
     AcslFunctionDeclaration maxArrayDeclaration =
         new AcslFunctionDeclaration(
             FileLocation.DUMMY,
@@ -180,9 +181,10 @@ public class AcslParserLogicalDefinitionsTest {
     AcslPolymorphicType polymorphicType = new AcslPolymorphicType("T");
     AcslPointerType pointerType = new AcslPointerType(polymorphicType);
     AcslParameterDeclaration inputArray =
-        new AcslParameterDeclaration(FileLocation.DUMMY, pointerType, "a");
+        new AcslParameterDeclaration(FileLocation.DUMMY, pointerType, "a", "MinArray::a");
     AcslParameterDeclaration inputIndex =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i");
+        new AcslParameterDeclaration(
+            FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i", "MinArray::i");
     AcslFunctionDeclaration minArrayDeclaration =
         new AcslFunctionDeclaration(
             FileLocation.DUMMY,
@@ -290,9 +292,10 @@ public class AcslParserLogicalDefinitionsTest {
     AcslPolymorphicType polymorphicType = new AcslPolymorphicType("T");
     AcslPointerType pointerType = new AcslPointerType(polymorphicType);
     AcslParameterDeclaration inputArray =
-        new AcslParameterDeclaration(FileLocation.DUMMY, pointerType, "a");
+        new AcslParameterDeclaration(FileLocation.DUMMY, pointerType, "a", "SumArray::a");
     AcslParameterDeclaration inputIndex =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i");
+        new AcslParameterDeclaration(
+            FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i", "SumArray::i");
     AcslFunctionDeclaration sumArrayDeclaration =
         new AcslFunctionDeclaration(
             FileLocation.DUMMY,
@@ -370,7 +373,8 @@ public class AcslParserLogicalDefinitionsTest {
   @Test
   public void parseFibLogicalFunctionDeclaration() throws AcslParseException {
     AcslParameterDeclaration inputValue =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i");
+        new AcslParameterDeclaration(
+            FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i", "Fib::i");
     AcslFunctionDeclaration fibDeclaration =
         new AcslFunctionDeclaration(
             FileLocation.DUMMY,
@@ -447,15 +451,19 @@ public class AcslParserLogicalDefinitionsTest {
     AcslPolymorphicType polymorphicType = new AcslPolymorphicType("T");
     AcslPointerType pointerType = new AcslPointerType(polymorphicType);
     AcslParameterDeclaration inputArray =
-        new AcslParameterDeclaration(FileLocation.DUMMY, pointerType, "a");
+        new AcslParameterDeclaration(FileLocation.DUMMY, pointerType, "a", "Sorted::a");
     AcslParameterDeclaration lowerLimit =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i");
+        new AcslParameterDeclaration(
+            FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i", "Sorted::i");
     AcslParameterDeclaration upperLimit =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "j");
+        new AcslParameterDeclaration(
+            FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "j", "Sorted::j");
     AcslParameterDeclaration firstIterator =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "k");
+        new AcslParameterDeclaration(
+            FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "k", "Sorted::k");
     AcslParameterDeclaration secondIterator =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "l");
+        new AcslParameterDeclaration(
+            FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "l", "Sorted::l");
 
     AcslPredicateDeclaration sortedDeclaration =
         new AcslPredicateDeclaration(
@@ -540,7 +548,8 @@ public class AcslParserLogicalDefinitionsTest {
     This example was taken from ANSI/ISO C Specification Language Version 1.23 §2.61 Example 2.40.
      */
     AcslParameterDeclaration i =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i");
+        new AcslParameterDeclaration(
+            FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i", "is_positive::i");
     AcslPredicateDeclaration declaration =
         new AcslPredicateDeclaration(
             FileLocation.DUMMY,
@@ -580,7 +589,8 @@ public class AcslParserLogicalDefinitionsTest {
   public void parseIsFalseTermPredicate() throws AcslParseException {
     String definition = "predicate is_false(boolean p) = !(p == \\true);";
     AcslParameterDeclaration p =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, "p");
+        new AcslParameterDeclaration(
+            FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, "p", "is_false::p");
     AcslPredicateDeclaration declaration =
         new AcslPredicateDeclaration(
             FileLocation.DUMMY,
@@ -610,7 +620,8 @@ public class AcslParserLogicalDefinitionsTest {
      */
     String input = "logic integer is_positive (integer i) = i >= 0 ? 1 : 0;";
     AcslParameterDeclaration i =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i");
+        new AcslParameterDeclaration(
+            FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i", "is_positive::i");
     AcslFunctionDeclaration declaration =
         new AcslFunctionDeclaration(
             FileLocation.DUMMY,

@@ -393,7 +393,7 @@ public class AcslToFomulaVisitorsTest {
     // \exists x: x != x should be unsatisfiable
 
     AcslParameterDeclaration x =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "x");
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "x", "x");
 
     AcslPredicate pred =
         new AcslExistsPredicate(
@@ -443,7 +443,7 @@ public class AcslToFomulaVisitorsTest {
     // \forall x: (x=5) and (x=6) should be unsatisfiable
 
     AcslParameterDeclaration x =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "x");
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "x", "x");
 
     AcslPredicate body =
         new AcslBinaryPredicate(

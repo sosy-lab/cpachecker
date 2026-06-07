@@ -225,7 +225,8 @@ ensures x <= 10;
     aScope.registerDeclaration(predDef.getDeclaration());
 
     AcslParameterDeclaration i =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i");
+        new AcslParameterDeclaration(
+            FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i", "is_positive::i");
     AcslPredicateDeclaration declaration =
         new AcslPredicateDeclaration(
             FileLocation.DUMMY,
@@ -312,7 +313,8 @@ ensures x <= 10;
     scope.registerDeclaration(a);
 
     AcslParameterDeclaration i =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i");
+        new AcslParameterDeclaration(
+            FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i", "is_positive::i");
     AcslFunctionDeclaration declaration =
         new AcslFunctionDeclaration(
             FileLocation.DUMMY,

@@ -241,7 +241,7 @@ public class AcslPredicateToFormulaVisitor
 
       AcslParameterDeclaration renamed =
           new AcslParameterDeclaration(
-              declaration.getFileLocation(), declaration.getType(), newName);
+              declaration.getFileLocation(), declaration.getType(), newName, newName);
 
       renamingMap.put(declaration, renamed);
       newBinders.add(renamed);
@@ -271,7 +271,7 @@ public class AcslPredicateToFormulaVisitor
 
       AcslParameterDeclaration renamed =
           new AcslParameterDeclaration(
-              declaration.getFileLocation(), declaration.getType(), newName);
+              declaration.getFileLocation(), declaration.getType(), newName, newName);
 
       renamingMap.put(declaration, renamed);
       newBinders.add(renamed);
