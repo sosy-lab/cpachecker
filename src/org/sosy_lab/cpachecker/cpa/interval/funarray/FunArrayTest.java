@@ -12,6 +12,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.sosy_lab.cpachecker.cpa.interval.funarray.FunArrayBuilder.exp;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cpa.interval.Interval;
 import org.sosy_lab.cpachecker.cpa.interval.funarray.FunArrayBuilder.FunArrayBuilderException;
@@ -22,6 +23,22 @@ public class FunArrayTest {
   public void ofInitializerListWithEmptyListReturnsBottom() {
     FunArray result = FunArray.ofInitializerList(ImmutableList.of(), null);
     assertThat(result).isEqualTo(FunArray.BOTTOM);
+  }
+
+  @Test
+  public void removeEmptyBoundsWithEmptyLastBoundReturnsBottom() {
+    Bound b0 = new Bound(new NormalFormExpression(0));
+    Bound b1 = new Bound(new NormalFormExpression(1));
+    Bound b2 = new Bound(new NormalFormExpression(2));
+    Bound emptyLastBound = new Bound(ImmutableSet.of());
+
+    FunArray array =
+        new FunArray(
+            ImmutableList.of(b0, b1, b2, emptyLastBound),
+            ImmutableList.of(Interval.ZERO, Interval.ZERO, Interval.ZERO),
+            ImmutableList.of(false, false, false));
+
+    assertThat(array.removeEmptyBounds()).isEqualTo(FunArray.BOTTOM);
   }
 
   @Test

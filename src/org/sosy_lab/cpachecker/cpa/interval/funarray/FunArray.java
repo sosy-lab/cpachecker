@@ -161,7 +161,7 @@ public record FunArray(
     int i = 1;
     while (i < newBounds.size()) {
       if (newBounds.get(i).isEmpty()) {
-        if (newBounds.size() <= 2) {
+        if (newBounds.size() <= 2 || i == newBounds.size() - 1) {
           return BOTTOM;
         }
         joinValueWithPredecessor(newValues, i);
