@@ -486,12 +486,17 @@ public class IntervalAnalysisTransferRelation
         String arrayName = arrayId.getDeclaration().getQualifiedName();
         CExpression index = arraySubscript.getSubscriptExpression();
         ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, cfaEdge);
+        Set<NormalFormExpression> normalizations = normalizeExpression(index, visitor);
+        if (normalizations.isEmpty()) {
+          return state.assignArrayElementUnknownIndex(arrayName, value, cfaEdge.getSuccessor());
+        }
+        // TODO: Don't just pick any normalization at random
         return state.assignArrayElement(
             arrayName,
-            normalizeExpression(index, visitor).stream().findAny().orElseThrow(),
+            normalizations.stream().findAny().orElseThrow(),
             value,
             visitor,
-            cfaEdge.getSuccessor()); // TODO: Dont just pick any normalization at random
+            cfaEdge.getSuccessor());
       }
     }
     return state;

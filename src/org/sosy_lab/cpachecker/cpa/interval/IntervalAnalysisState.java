@@ -214,6 +214,16 @@ public final class IntervalAnalysisState
     return this;
   }
 
+  public IntervalAnalysisState assignArrayElementUnknownIndex(
+      String pArrayName, Interval pValue, CFANode pLocation) {
+    if (arrays.containsKey(pArrayName)) {
+      return this.withArrays(
+              arrays.putAndCopy(pArrayName, arrays.get(pArrayName).assignAllSegments(pValue)))
+          .withLocation(pLocation);
+    }
+    return this;
+  }
+
   /**
    * This method removes the interval for a given variable.
    *

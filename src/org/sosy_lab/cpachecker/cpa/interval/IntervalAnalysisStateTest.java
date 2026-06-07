@@ -115,6 +115,21 @@ public class IntervalAnalysisStateTest {
   }
 
   @Test
+  public void testAssignArrayElementUnknownIndexWidensAllSegments()
+      throws FunArrayBuilderException {
+    FunArray arr =
+        FunArrayBuilder.firstBound(exp(0)).value(5, 5).bound(exp("n")).build();
+    IntervalAnalysisState state =
+        new IntervalAnalysisState(null).addArray("a", arr, null);
+
+    state = state.assignArrayElementUnknownIndex("a", new Interval(10L, 10L), null);
+
+    FunArray expected =
+        FunArrayBuilder.firstBound(exp(0)).value(5, 10).bound(exp("n")).build();
+    assertThat(state.arrays().get("a")).isEqualTo(expected);
+  }
+
+  @Test
   public void arrayAccessWithNonNormalizableIndexReturnsUnbound()
       throws UnrecognizedCodeException, FunArrayBuilderException {
     IntervalAnalysisState state = new IntervalAnalysisState(null);

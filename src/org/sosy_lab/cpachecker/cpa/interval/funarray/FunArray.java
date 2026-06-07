@@ -459,6 +459,14 @@ public record FunArray(
     throw new IndexOutOfBoundsException();
   }
 
+  public FunArray assignAllSegments(Interval pValue) {
+    ArrayList<Interval> newValues = new ArrayList<>();
+    for (Interval v : values) {
+      newValues.add(v.union(pValue));
+    }
+    return new FunArray(bounds, newValues, emptiness);
+  }
+
   @Override
   public FunArray join(FunArray other) {
     return unifyOperation(Interval::union, other, Interval.EMPTY, Interval.EMPTY);
