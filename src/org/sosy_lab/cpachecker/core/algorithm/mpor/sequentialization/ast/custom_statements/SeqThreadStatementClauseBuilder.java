@@ -183,6 +183,7 @@ public record SeqThreadStatementClauseBuilder(
     ImmutableList.Builder<SeqThreadStatementClause> rClauses = ImmutableList.builder();
     SeqThreadStatementBuilder statementBuilder =
         new SeqThreadStatementBuilder(
+            options,
             pThread,
             allThreads,
             substituteEdges,

@@ -83,6 +83,15 @@ public class MPOROptions {
   @Option(
       secure = true,
       description =
+          "Whether the const CPAchecker_TMP auxiliary variables should be declared globally (true)"
+              + " or inside the thread simulation functions (false). For some backends like CBMC it"
+              + " should be set to true, otherwise the programs cannot be parsed. For CPAchecker it"
+              + " is set to false by default, otherwise it can produce incorrect results.")
+  private boolean declareConstAuxiliaryVariablesGlobally = false;
+
+  @Option(
+      secure = true,
+      description =
           "Prefer the execution of threads that commute, i.e., they are not in conflict with any"
               + " other thread. Enabling this option together with abortCommutingContextSwitches is"
               + " unsound, because the next thread is chosen deterministically for execution only"
@@ -464,6 +473,10 @@ public class MPOROptions {
 
   public boolean consecutiveLabels() {
     return consecutiveLabels;
+  }
+
+  public boolean declareConstAuxiliaryVariablesGlobally() {
+    return declareConstAuxiliaryVariablesGlobally;
   }
 
   public boolean executeCommutingThreadsFirst() {
