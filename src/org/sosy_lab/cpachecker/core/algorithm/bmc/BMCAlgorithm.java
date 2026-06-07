@@ -861,75 +861,77 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     int added = 0;
     List<CandidateInvariant> cumulativeEqualities = new ArrayList<>();
-    for (ValueAssignment valueAssignment : pModelAssignments) {
-      Pair<String, OptionalInt> parsedName =
-          FormulaManagerView.parseName(valueAssignment.getName());
-      String actualName = parsedName.getFirst();
-      OptionalInt index = parsedName.getSecond();
-      boolean modifiedInLoop = modifiedVariables.orElseThrow().contains(actualName);
-      boolean onlyNoOpModifiedInLoop =
-          modifiedInLoop && isOnlyNoOpModifiedInLoopsContaining(pLocation, actualName);
-      // Filter steps:
-      //  c1/c2/c3: assignment must be SSA-indexed and the index must match the variable's
-      //            current SSA index at pLocation.
-      //  c4: if the variable is modified in the loop body, the only safe case is when every
-      //      assignment in the loop is a no-op (e.g. `x = x + 0`); otherwise the model's
-      //      value is iteration-specific and not invariant.
-      // Variables that are *never* assigned inside the loop are loop-invariant by definition
-      // - their model value carries from the prologue (e.g. `c = 0` before `while (x >= 0)`),
-      // which is exactly the class of facts a non-termination closure proof needs. We must
-      // NOT additionally require a "repeated stable value across SSA indices", because such
-      // variables only have a single SSA index and would always fail that check.
-      if (index.isEmpty()
-          || !pPathFormula.getSsa().containsVariable(actualName)
-          || pPathFormula.getSsa().getIndex(actualName) != index.orElseThrow()
-          || (modifiedInLoop && !onlyNoOpModifiedInLoop)) {
-        continue;
-      }
+    pProver.push(pStateFormula);
+    try {
+      for (ValueAssignment valueAssignment : pModelAssignments) {
+        Pair<String, OptionalInt> parsedName =
+            FormulaManagerView.parseName(valueAssignment.getName());
+        String actualName = parsedName.getFirst();
+        OptionalInt index = parsedName.getSecond();
+        boolean modifiedInLoop = modifiedVariables.orElseThrow().contains(actualName);
+        boolean onlyNoOpModifiedInLoop =
+            modifiedInLoop && isOnlyNoOpModifiedInLoopsContaining(pLocation, actualName);
+        // Filter steps:
+        //  c1/c2/c3: assignment must be SSA-indexed and the index must match the variable's
+        //            current SSA index at pLocation.
+        //  c4: if the variable is modified in the loop body, the only safe case is when every
+        //      assignment in the loop is a no-op (e.g. `x = x + 0`); otherwise the model's
+        //      value is iteration-specific and not invariant.
+        // Variables that are *never* assigned inside the loop are loop-invariant by definition
+        // - their model value carries from the prologue (e.g. `c = 0` before `while (x >= 0)`),
+        // which is exactly the class of facts a non-termination closure proof needs. We must
+        // NOT additionally require a "repeated stable value across SSA indices", because such
+        // variables only have a single SSA index and would always fail that check.
+        if (index.isEmpty()
+            || !pPathFormula.getSsa().containsVariable(actualName)
+            || pPathFormula.getSsa().getIndex(actualName) != index.orElseThrow()
+            || (modifiedInLoop && !onlyNoOpModifiedInLoop)) {
+          continue;
+        }
 
-      BooleanFormula equality =
-          getFormulaManager().uninstantiate(valueAssignment.getAssignmentAsFormula());
-      if (!isEntailedByStateFormula(
-          pProver, pStateFormula, valueAssignment.getAssignmentAsFormula())) {
-        continue;
-      }
-      CandidateInvariant equalityCandidate =
-          SingleLocationFormulaInvariant.makeLocationInvariant(
-              pLocation, equality, getFormulaManager());
-      cumulativeEqualities.add(equalityCandidate);
+        BooleanFormula equality =
+            getFormulaManager().uninstantiate(valueAssignment.getAssignmentAsFormula());
+        if (!isEntailedByCurrentContext(pProver, valueAssignment.getAssignmentAsFormula())) {
+          continue;
+        }
+        CandidateInvariant equalityCandidate =
+            SingleLocationFormulaInvariant.makeLocationInvariant(
+                pLocation, equality, getFormulaManager());
+        cumulativeEqualities.add(equalityCandidate);
 
-      if (added < MAX_MODEL_EQUALITY_STRENGTHENINGS) {
-        addStrengthenedCandidate(
-            pStrengthenedCandidates,
-            pCandidateInvariant,
-            CandidateInvariantCombination.conjunction(
-                ImmutableList.of(pCandidateInvariant, equalityCandidate)));
-        added++;
-      }
+        if (added < MAX_MODEL_EQUALITY_STRENGTHENINGS) {
+          addStrengthenedCandidate(
+              pStrengthenedCandidates,
+              pCandidateInvariant,
+              CandidateInvariantCombination.conjunction(
+                  ImmutableList.of(pCandidateInvariant, equalityCandidate)));
+          added++;
+        }
 
-      if (cumulativeEqualities.size() > 1 && added < MAX_MODEL_EQUALITY_STRENGTHENINGS) {
-        ImmutableList.Builder<CandidateInvariant> cumulativeCandidate = ImmutableList.builder();
-        cumulativeCandidate.add(pCandidateInvariant);
-        cumulativeCandidate.addAll(cumulativeEqualities);
-        addStrengthenedCandidate(
-            pStrengthenedCandidates,
-            pCandidateInvariant,
-            CandidateInvariantCombination.conjunction(cumulativeCandidate.build()));
-        added++;
+        if (cumulativeEqualities.size() > 1 && added < MAX_MODEL_EQUALITY_STRENGTHENINGS) {
+          ImmutableList.Builder<CandidateInvariant> cumulativeCandidate = ImmutableList.builder();
+          cumulativeCandidate.add(pCandidateInvariant);
+          cumulativeCandidate.addAll(cumulativeEqualities);
+          addStrengthenedCandidate(
+              pStrengthenedCandidates,
+              pCandidateInvariant,
+              CandidateInvariantCombination.conjunction(cumulativeCandidate.build()));
+          added++;
+        }
+        if (added >= MAX_MODEL_EQUALITY_STRENGTHENINGS) {
+          return;
+        }
       }
-      if (added >= MAX_MODEL_EQUALITY_STRENGTHENINGS) {
-        return;
-      }
+    } finally {
+      pProver.pop();
     }
   }
 
-  private boolean isEntailedByStateFormula(
-      BasicProverEnvironment<?> pProver,
-      BooleanFormula pStateFormula,
-      BooleanFormula pInstantiatedEquality)
+  private boolean isEntailedByCurrentContext(
+      BasicProverEnvironment<?> pProver, BooleanFormula pInstantiatedEquality)
       throws InterruptedException, SolverException {
     BooleanFormulaManagerView bfmgr = getBooleanFormulaManager();
-    pProver.push(bfmgr.and(pStateFormula, bfmgr.not(pInstantiatedEquality)));
+    pProver.push(bfmgr.not(pInstantiatedEquality));
     try {
       return pProver.isUnsat();
     } finally {
