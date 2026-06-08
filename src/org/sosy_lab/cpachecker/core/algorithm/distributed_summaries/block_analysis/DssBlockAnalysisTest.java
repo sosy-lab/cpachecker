@@ -51,20 +51,20 @@ public class DssBlockAnalysisTest {
   }
 
   @Parameter(0)
-  String program;
+  public String program;
 
   @Parameter(1)
-  String folder;
+  public String folder;
 
   @Parameter(2)
-  String blockID;
+  public String blockID;
 
   @Parameter(3)
-  int lastMessage;
+  public int lastMessage;
 
   // TODO load from files as well?
   @Parameter(4)
-  Responses expected;
+  public Responses expected;
 
   @Test
   public void test() throws Exception {
