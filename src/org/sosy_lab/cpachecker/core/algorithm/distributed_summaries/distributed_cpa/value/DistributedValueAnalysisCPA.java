@@ -93,7 +93,8 @@ public class DistributedValueAnalysisCPA
             pConfiguration,
             pLogManager,
             pShutdownNotifier,
-            pBlockNode.getInitialLocation().getFunctionName());
+            pBlockNode.getInitialLocation().getFunctionName(),
+            runSymExec);
     blockNode = pBlockNode;
   }
 

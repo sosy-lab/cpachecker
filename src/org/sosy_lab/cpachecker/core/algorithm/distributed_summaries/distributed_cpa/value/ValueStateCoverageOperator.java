@@ -48,22 +48,23 @@ import org.sosy_lab.java_smt.api.QuantifiedFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class ValueStateCoverageOperator implements CoverageOperator {
-  ConstraintsSolver constraintsSolver;
-  MachineModel machineModel;
-  CtoFormulaConverter c2Formula;
-  String functionName;
+  private final ConstraintsSolver constraintsSolver;
+  private final String functionName;
+  private final boolean isSymExec;
 
   public ValueStateCoverageOperator(
       MachineModel pMachineModel,
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      String pFunctionName)
+      String pFunctionName,
+      boolean pIsSymExec)
       throws InvalidConfigurationException {
     Solver solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
     FormulaManagerView formulaManager = solver.getFormulaManager();
+    isSymExec = pIsSymExec;
 
-    c2Formula =
+    CtoFormulaConverter c2Formula =
         new CtoFormulaConverter(
             new CFormulaEncodingOptions(pConfig),
             solver.getFormulaManager(),
@@ -77,7 +78,6 @@ public class ValueStateCoverageOperator implements CoverageOperator {
     constraintsSolver =
         new ConstraintsSolver(
             pConfig, pMachineModel, solver, formulaManager, c2Formula, new ConstraintsStatistics());
-    machineModel = pMachineModel;
     functionName = pFunctionName;
   }
 
@@ -90,6 +90,10 @@ public class ValueStateCoverageOperator implements CoverageOperator {
 
     if (valState1.isLessOrEqual(valState2)) {
       return true;
+    }
+
+    if (!isSymExec) {
+      return false;
     }
 
     Set<SymbolicIdentifier> identifiersState1 = new HashSet<>();
