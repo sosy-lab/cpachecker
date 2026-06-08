@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.interval.funarray.Bound;
 import org.sosy_lab.cpachecker.cpa.interval.funarray.FunArray;
 import org.sosy_lab.cpachecker.cpa.interval.funarray.NormalFormExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -384,7 +385,8 @@ public class IntervalAnalysisTransferRelation
       CDeclarationEdge declarationEdge, CVariableDeclaration decl)
       throws UnrecognizedCodeException {
     ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, declarationEdge);
-    if (decl.getInitializer() instanceof CInitializerList initializerList) {
+    if (decl.getInitializer() instanceof CInitializerList initializerList
+        && !initializerList.getInitializers().isEmpty()) {
       return ImmutableSet.of(
           state.addArray(
               decl.getQualifiedName(),
@@ -399,9 +401,15 @@ public class IntervalAnalysisTransferRelation
       if (normalFormLengthExpressions.contains(new NormalFormExpression(0))) {
         return ImmutableSet.of();
       }
-      FunArray simpleArray = new FunArray(normalFormLengthExpressions);
+
+      // Global arrays without an explicit initializer get an empty CInitializerList injected by
+      // CPAchecker. Locals without an initializer have null. Non-empty lists are already handled by
+      // the branch above
+      Interval initialValue =
+          decl.getInitializer() instanceof CInitializerList ? ZERO : Interval.UNBOUND;
+      FunArray array = new FunArray(new Bound(normalFormLengthExpressions), initialValue);
       return ImmutableSet.of(
-          state.addArray(decl.getQualifiedName(), simpleArray, declarationEdge.getSuccessor()));
+          state.addArray(decl.getQualifiedName(), array, declarationEdge.getSuccessor()));
     }
     throw new RuntimeException("Not yet implemented");
   }

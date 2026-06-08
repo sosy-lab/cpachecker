@@ -92,6 +92,13 @@ public record FunArray(
         ImmutableList.of(true));
   }
 
+  public FunArray(Bound pLength, Interval pInitialValue) {
+    this(
+        ImmutableList.of(new Bound(new NormalFormExpression(0)), pLength),
+        ImmutableList.of(pInitialValue),
+        ImmutableList.of(true));
+  }
+
   public static FunArray ofInitializerList(
       List<CInitializer> initializers, ExpressionValueVisitor visitor) {
     List<Interval> values = new ArrayList<>();

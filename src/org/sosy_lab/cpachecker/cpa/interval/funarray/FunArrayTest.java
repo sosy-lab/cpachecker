@@ -26,6 +26,14 @@ public class FunArrayTest {
   }
 
   @Test
+  public void constructorWithBoundAndInitialValueCreatesCorrectFunArray() {
+    Bound length = new Bound(new NormalFormExpression(10));
+    FunArray result = new FunArray(length, Interval.ZERO);
+    assertThat(result.isReachable()).isTrue();
+    assertThat(result.values()).containsExactly(Interval.ZERO);
+  }
+
+  @Test
   public void removeEmptyBoundsWithEmptyLastBoundReturnsBottom() {
     Bound b0 = new Bound(new NormalFormExpression(0));
     Bound b1 = new Bound(new NormalFormExpression(1));
