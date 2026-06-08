@@ -22,8 +22,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
-import org.sosy_lab.cpachecker.util.test.TestResults;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 
 public class DistributedSummarySynthesisTest {
 
@@ -46,9 +46,9 @@ public class DistributedSummarySynthesisTest {
         TestUtil.generateConfig(CONFIGURATION_FILE_GENERATE_BLOCK_GRAPH, tempFolderPath);
     File expectedBlocksJson = tempFolderPath.resolve(BLOCKS_JSON_PATH).toFile();
 
-    TestResults result = CPATestRunner.run(config, PROGRAM);
-    result.getCheckerResult().printStatistics(statisticsStream);
-    result.getCheckerResult().writeOutputFiles();
+    IntegrationTestResult result = IntegrationTestRunner.run(config, PROGRAM);
+    result.cpaCheckerResult().printStatistics(statisticsStream);
+    result.cpaCheckerResult().writeOutputFiles();
 
     result.assertIs(Result.DONE);
     assertWithMessage(

@@ -25,9 +25,9 @@ public enum SeqThreadStatementType {
    *
    * <p>{@code const int __CPAchecker_TMP = q->head; q->head = (q->head) + 1; CPAchecker_TMP;}
    *
-   * <p>The original code contained only one statement, but CPAchecker may transform it into 2 or 3,
-   * which are treated as one atomic section in the sequentialization, i.e., inside a single {@link
-   * SeqThreadStatement}.
+   * <p>The original code contained only one statement (e.g. {@code q->head++;}, but the front end
+   * may transform it into 2 or 3 statements which are treated as one atomic section in the
+   * sequentialization, i.e., inside a single {@link SeqThreadStatement}.
    *
    * <p>Reasoning: given that we declare all variables outside the main function in the
    * sequentialization, a const declaration will be assigned an undeclared value e.g. {@code
@@ -37,6 +37,7 @@ public enum SeqThreadStatementType {
   CPACHECKER_TMP_WITHOUT_INITIALIZER(true, false),
   /** A default statement requires no specific handling of the underlying {@link CFAEdge}. */
   DEFAULT(true, false),
+  FUNCTION_EXIT(true, false),
   /** A statement that contains only ghost code without any statement from the input program. */
   GHOST_ONLY(true, false),
   /**
@@ -49,7 +50,6 @@ public enum SeqThreadStatementType {
   MUTEX_LOCK(true, true),
   MUTEX_UNLOCK(true, false),
   PARAMETER_ASSIGNMENT(true, false),
-  RETURN_VALUE_ASSIGNMENT(true, false),
   RW_LOCK_RD_LOCK(true, true),
   RW_LOCK_UNLOCK(true, false),
   RW_LOCK_WR_LOCK(true, true),

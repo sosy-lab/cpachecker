@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 
@@ -39,8 +38,7 @@ public class CFANodeForThread {
   /** The corresponding program counter of the CFANode. */
   public final int pc;
 
-  /** Not all nodes have a calling context, e.g. {@code main()} function statements. */
-  public final Optional<CFAEdgeForThread> callContext;
+  public final SeqCallContext callContext;
 
   /** The list of context-sensitive return leaving edges of this ThreadNode. */
   private final List<CFAEdgeForThread> leavingEdges;
@@ -51,7 +49,7 @@ public class CFANodeForThread {
       int pThreadId,
       CFANode pCfaNode,
       int pPc,
-      Optional<CFAEdgeForThread> pCallContext,
+      SeqCallContext pCallContext,
       List<CFAEdgeForThread> pLeavingEdges,
       boolean pIsInAtomicBlock) {
 

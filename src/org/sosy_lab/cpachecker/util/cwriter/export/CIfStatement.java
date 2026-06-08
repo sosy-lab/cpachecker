@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.cwriter.export;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
@@ -91,6 +92,16 @@ public final class CIfStatement implements CExportStatement {
     condition = pCondition;
     ifStatement = pIfStatement;
     elseStatement = Optional.of(pElseStatement);
+  }
+
+  @Override
+  public ImmutableList<CCompoundStatementElement> getAllNestedStatements() {
+    ImmutableList.Builder<CCompoundStatementElement> nestedStatements = ImmutableList.builder();
+    nestedStatements.addAll(ifStatement.getAllNestedStatements());
+    if (elseStatement.isPresent()) {
+      nestedStatements.addAll(elseStatement.orElseThrow().getAllNestedStatements());
+    }
+    return nestedStatements.build();
   }
 
   @Override
