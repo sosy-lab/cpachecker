@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
@@ -52,14 +52,14 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
   private final SSAMapBuilder currentSsa;
   private final Optional<SSAMap>
       functionEntrySsa; // Optional SSA map for function-entry state (\old)
-  private final CtoFormulaConverter ctoFormulaConverter;
+  private final CToFormulaConverterWithPointerAliasing ctoFormulaConverter;
   private final MachineModel machineModel;
   private final AcslTypeHelper typeHelper;
 
   public AcslTermToFormulaVisitor(
       FormulaManagerView pFmgr,
       SSAMapBuilder pCurrentSsa,
-      CtoFormulaConverter pCtoFormulaConverter,
+      CToFormulaConverterWithPointerAliasing pCtoFormulaConverter,
       MachineModel pMachineModel) {
     checkNotNull(pFmgr);
     checkNotNull(pCurrentSsa);
@@ -77,7 +77,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
       FormulaManagerView pFmgr,
       SSAMapBuilder pCurrentSsa,
       SSAMap pFunctionEntrySsa,
-      CtoFormulaConverter pCtoFormulaConverter,
+      CToFormulaConverterWithPointerAliasing pCtoFormulaConverter,
       MachineModel pMachineModel) {
     checkNotNull(pFmgr);
     checkNotNull(pCurrentSsa);

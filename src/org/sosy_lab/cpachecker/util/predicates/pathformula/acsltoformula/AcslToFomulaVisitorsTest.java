@@ -57,9 +57,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CFormulaEncodingOptions;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
@@ -86,12 +86,14 @@ public class AcslToFomulaVisitorsTest {
     MachineModel machineModel = MachineModel.LINUX64;
 
     Configuration config = TestUtils.configurationForTest().build();
-    CFormulaEncodingOptions options = new CFormulaEncodingOptions(config);
-    CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(logger, machineModel);
+    CFormulaEncodingWithPointerAliasingOptions formulaOptions =
+        new CFormulaEncodingWithPointerAliasingOptions(config);
+    TypeHandlerWithPointerAliasing typeHandler =
+        new TypeHandlerWithPointerAliasing(logger, machineModel, formulaOptions);
 
-    CtoFormulaConverter converter =
-        new CtoFormulaConverter(
-            options,
+    CToFormulaConverterWithPointerAliasing converter =
+        new CToFormulaConverterWithPointerAliasing(
+            formulaOptions,
             fmgr,
             machineModel,
             Optional.empty(),

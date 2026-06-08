@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.QuantifiedFormulaManagerView;
@@ -52,7 +52,7 @@ public class AcslPredicateToFormulaVisitor
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final AcslTermToFormulaVisitor termVisitor;
-  private final CtoFormulaConverter ctoFormulaConverter;
+  private final CToFormulaConverterWithPointerAliasing ctoFormulaConverter;
   private final AcslTypeHelper typeHelper;
 
   @SuppressWarnings("unused") // I suspect currentSsa will be needed at some point
@@ -68,7 +68,7 @@ public class AcslPredicateToFormulaVisitor
   public AcslPredicateToFormulaVisitor(
       FormulaManagerView pFmgr,
       SSAMapBuilder pCurrentSsa,
-      CtoFormulaConverter pCtoFormulaConverter,
+      CToFormulaConverterWithPointerAliasing pCtoFormulaConverter,
       MachineModel pMachineModel) {
     checkNotNull(pFmgr);
     checkNotNull(pCurrentSsa);
@@ -88,7 +88,7 @@ public class AcslPredicateToFormulaVisitor
       FormulaManagerView pFmgr,
       SSAMapBuilder pCurrentSsa,
       SSAMap pFunctionEntrySsa,
-      CtoFormulaConverter pCtoFormulaConverter,
+      CToFormulaConverterWithPointerAliasing pCtoFormulaConverter,
       MachineModel pMachineModel) {
     checkNotNull(pFmgr);
     checkNotNull(pCurrentSsa);
@@ -112,7 +112,7 @@ public class AcslPredicateToFormulaVisitor
       AcslTermToFormulaVisitor pTermVisitor,
       SSAMapBuilder pCurrentSsa,
       Optional<SSAMap> oFunctionEntrySsa,
-      CtoFormulaConverter pCtoFormulaConverter,
+      CToFormulaConverterWithPointerAliasing pCtoFormulaConverter,
       MachineModel pMachineModel) {
     checkNotNull(pFmgr);
     checkNotNull(pTermVisitor);
