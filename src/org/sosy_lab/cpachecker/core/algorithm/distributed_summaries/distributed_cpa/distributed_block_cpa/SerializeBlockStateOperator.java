@@ -29,10 +29,7 @@ public class SerializeBlockStateOperator implements SerializeOperator {
         .pushLevel(BlockState.class.getName())
         .put(
             STATE_KEY,
-            b.doesSummaryOriginateFromNonTrivialStateButIsTrivial()
-                + " "
-                + b.getBlockNode().getId()
-                + suffix)
+            b.hasNonTrivialSummaryForEachPredecessor() + " " + b.getBlockNode().getId() + suffix)
         .build();
   }
 }

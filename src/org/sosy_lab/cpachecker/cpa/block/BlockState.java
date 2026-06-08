@@ -73,7 +73,7 @@ public class BlockState
     return witness;
   }
 
-  public boolean doesSummaryOriginateFromNonTrivialStateButIsTrivial() {
+  public boolean hasNonTrivialSummaryForEachPredecessor() {
     return topSummaryFromNonTrivialState;
   }
 
