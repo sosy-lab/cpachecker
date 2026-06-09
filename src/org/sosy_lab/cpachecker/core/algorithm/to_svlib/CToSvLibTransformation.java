@@ -22,6 +22,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -31,11 +32,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibTheoryDeclarations;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
@@ -670,7 +674,7 @@ class CToSvLibTransformation {
               true);
       SvLibTerm term = transformEdgeToSvLibTerm(transformationDummyEdge, pEdgeToPointerTargetSet);
 
-      if (inputParameter instanceof CIdExpression
+      if ((inputParameter instanceof CIdExpression || inputParameter instanceof CLiteralExpression)
           && term instanceof SvLibSymbolApplicationTerm symbolApplicationTerm
           && symbolApplicationTerm.getSymbol().getName().equals("not")
           && symbolApplicationTerm.getTerms().size() == 1
@@ -679,48 +683,78 @@ class CToSvLibTransformation {
           && innerTerm.getSymbol().getName().equals("=")) {
 
         term = innerTerm.getTerms().getFirst();
-      } else if (inputParameter instanceof CLiteralExpression
+
+      } else if ((inputParameter instanceof CBinaryExpression
+              || inputParameter instanceof CPointerExpression)
           && term instanceof SvLibSymbolApplicationTerm symbolApplicationTerm
           && symbolApplicationTerm.getSymbol().getName().equals("not")
           && symbolApplicationTerm.getTerms().size() == 1
           && symbolApplicationTerm.getTerms().getFirst()
               instanceof SvLibSymbolApplicationTerm innerTerm
-          && innerTerm.getSymbol().getName().equals("=")) {
+          && innerTerm.getSymbol().getName().equals("=")
+          && innerTerm.getTerms().size() == 2
+          && innerTerm.getTerms().get(1) instanceof SvLibIntegerConstantTerm integerConstantTerm
+          && integerConstantTerm.getValue().equals(BigInteger.ZERO)
+          && innerTerm.getTerms().getFirst()
+              instanceof SvLibSymbolApplicationTerm actualSymbolApplicationTerm) {
 
-        term = innerTerm.getTerms().getFirst();
-      } else {
-        SvLibType argumentType = term.getExpressionType();
+        term = actualSymbolApplicationTerm;
+
+      } else if (inputParameter instanceof CBinaryExpression inputBinaryExpression
+          && term instanceof SvLibSymbolApplicationTerm symbolApplicationTerm
+          && symbolApplicationTerm.getSymbol().getDeclaration()
+              instanceof SvLibFunctionDeclaration pSvLibFunctionDeclaration
+          && pSvLibFunctionDeclaration
+              .getType()
+              .getReturnType()
+              .equals(SvLibSmtLibPredefinedType.BOOL)) {
+
         SvLibType parameterType = pProcedureDeclaration.getParameters().get(i).getType();
-        if (!argumentType.equals(parameterType)) {
-          if (argumentType.equals(SvLibSmtLibPredefinedType.BOOL)
-              && parameterType.equals(SvLibSmtLibPredefinedType.INT)) {
-
-            SvLibSymbolApplicationTerm transformedTerm =
-                createIntegerTermsViaTransformationDummyEdge(
-                    pCallEdge, inputParameter.getExpressionType(), pEdgeToPointerTargetSet);
-            SvLibTerm oneTerm = transformedTerm.getTerms().getFirst();
-            SvLibTerm zeroTerm = transformedTerm.getTerms().get(1);
-
-            term =
-                new SvLibSymbolApplicationTerm(
-                    new SvLibIdTerm(
-                        SmtLibTheoryDeclarations.ite(parameterType), FileLocation.DUMMY),
-                    ImmutableList.of(term, oneTerm, zeroTerm),
-                    FileLocation.DUMMY);
-          } else {
-            throw new IllegalArgumentException(
-                "Cannot convert mismatched types! Type of argument "
-                    + argumentType
-                    + " does not match type "
-                    + parameterType
-                    + " expected by the declaration of the procedure "
-                    + pProcedureDeclaration.getProcedureName());
-          }
-        }
+        term =
+            castBooleanArgumentViaITE(
+                term,
+                parameterType,
+                inputBinaryExpression,
+                pCallEdge,
+                pProcedureDeclaration,
+                pEdgeToPointerTargetSet);
       }
       callInputParameterCollector.add(term);
     }
     return callInputParameterCollector.build();
+  }
+
+  private SvLibTerm castBooleanArgumentViaITE(
+      SvLibTerm pTerm,
+      SvLibType pParameterType,
+      CBinaryExpression pInputParameter,
+      CFAEdge pCallEdge,
+      SvLibProcedureDeclaration pProcedureDeclaration,
+      ImmutableMap.Builder<CFAEdge, PointerTargetSet> pEdgeToPointerTargetSet)
+      throws CPATransferException, InterruptedException {
+    SvLibType argumentType = pTerm.getExpressionType();
+    if (!argumentType.equals(pParameterType)
+        && argumentType.equals(SvLibSmtLibPredefinedType.BOOL)
+        && pParameterType.equals(SvLibSmtLibPredefinedType.INT)) {
+
+      SvLibSymbolApplicationTerm transformedTerm =
+          createIntegerTermsViaTransformationDummyEdge(
+              pCallEdge, pInputParameter.getExpressionType(), pEdgeToPointerTargetSet);
+      SvLibTerm oneTerm = transformedTerm.getTerms().getFirst();
+      SvLibTerm zeroTerm = transformedTerm.getTerms().get(1);
+
+      return new SvLibSymbolApplicationTerm(
+          new SvLibIdTerm(SmtLibTheoryDeclarations.ite(pParameterType), FileLocation.DUMMY),
+          ImmutableList.of(pTerm, oneTerm, zeroTerm),
+          FileLocation.DUMMY);
+    }
+    throw new IllegalArgumentException(
+        "Failed to convert mismatched types! Type of argument "
+            + argumentType
+            + " does not match type "
+            + pParameterType
+            + " expected by the declaration of the procedure "
+            + pProcedureDeclaration.getProcedureName());
   }
 
   private SvLibSymbolApplicationTerm createIntegerTermsViaTransformationDummyEdge(
