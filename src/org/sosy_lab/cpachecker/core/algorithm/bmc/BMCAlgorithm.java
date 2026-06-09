@@ -133,6 +133,14 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
               + " safety-style k-induction over loop-continuation conditions.")
   private boolean nonTerminationMode = false;
 
+  @Option(
+      name = "bmc.nonTerminationCollectAllBaseCaseWitnesses",
+      secure = true,
+      description =
+          "Collect all base-case witness candidates by enumerating selector models instead of"
+              + " using only one SAT model.")
+  private boolean nonTerminationCollectAllBaseCaseWitnesses = false;
+
   // Option copied from PathChecker, keep in sync (and hopefully remove at some point)
   @Option(
       name = "counterexample.export.allowImpreciseCounterexamples",
@@ -613,12 +621,11 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         ImmutableList<ValueAssignment> modelAssignments =
             ImmutableList.copyOf(pProver.getModelAssignments());
         lastBaseCaseStepCandidates =
-            createBaseCaseStepCandidates(pCandidateInvariant, baseCase, modelAssignments);
+            createBaseCaseStepCandidates(pCandidateInvariant, baseCase, modelAssignments, pProver);
         lastBranchConditionStrengthenings =
             createBranchConditionStrengthenings(pReachedSet, pCandidateInvariant);
         lastModelEqualityStrengthenings =
-            createModelEqualityStrengthenings(
-                pReachedSet, pCandidateInvariant, pProver, modelAssignments);
+            createModelEqualityStrengthenings(pReachedSet, pCandidateInvariant, modelAssignments);
       }
       return reachable;
     } finally {
@@ -669,12 +676,24 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private ImmutableSet<CandidateInvariant> createBaseCaseStepCandidates(
       CandidateInvariant pCandidateInvariant,
       NonTerminationBaseCaseFormula pBaseCase,
-      Iterable<ValueAssignment> pModelAssignments) {
-    ImmutableSet.Builder<CandidateInvariant> witnessCandidates = ImmutableSet.builder();
+      Iterable<ValueAssignment> pModelAssignments,
+      BasicProverEnvironment<?> pProver)
+      throws InterruptedException, SolverException {
     Set<String> trueSelectors = getTrueBaseCaseSelectors(pModelAssignments);
-    if (!trueSelectors.isEmpty()) {
+    if (nonTerminationCollectAllBaseCaseWitnesses) {
+      trueSelectors = collectAllReachableBaseCaseSelectors(pBaseCase, trueSelectors, pProver);
+    }
+    return createBaseCaseStepCandidatesForSelectors(pCandidateInvariant, pBaseCase, trueSelectors);
+  }
+
+  private ImmutableSet<CandidateInvariant> createBaseCaseStepCandidatesForSelectors(
+      CandidateInvariant pCandidateInvariant,
+      NonTerminationBaseCaseFormula pBaseCase,
+      Set<String> pTrueSelectors) {
+    ImmutableSet.Builder<CandidateInvariant> witnessCandidates = ImmutableSet.builder();
+    if (!pTrueSelectors.isEmpty()) {
       for (NonTerminationBaseCaseDisjunct disjunct : pBaseCase.disjuncts()) {
-        if (!trueSelectors.contains(disjunct.selectorName())) {
+        if (!pTrueSelectors.contains(disjunct.selectorName())) {
           continue;
         }
         CandidateInvariant witnessCandidate =
@@ -684,6 +703,64 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
     ImmutableSet<CandidateInvariant> result = witnessCandidates.build();
     return result.isEmpty() ? ImmutableSet.of(pCandidateInvariant) : result;
+  }
+
+  private Set<String> collectAllReachableBaseCaseSelectors(
+      NonTerminationBaseCaseFormula pBaseCase,
+      Set<String> pInitialTrueSelectors,
+      BasicProverEnvironment<?> pProver)
+      throws InterruptedException, SolverException {
+    Set<String> remainingSelectors = new LinkedHashSet<>();
+    for (NonTerminationBaseCaseDisjunct disjunct : pBaseCase.disjuncts()) {
+      remainingSelectors.add(disjunct.selectorName());
+    }
+
+    Set<String> trueSelectors = new LinkedHashSet<>();
+    addTrueRemainingBaseCaseSelectors(trueSelectors, remainingSelectors, pInitialTrueSelectors);
+    BooleanFormulaManagerView bfmgr = getBooleanFormulaManager();
+
+    while (!remainingSelectors.isEmpty()) {
+      pProver.push(createSelectorDisjunction(remainingSelectors, bfmgr));
+      boolean reachable;
+      boolean addedSelector = false;
+      try {
+        reachable = !pProver.isUnsat();
+        if (reachable) {
+          addedSelector =
+              addTrueRemainingBaseCaseSelectors(
+                  trueSelectors,
+                  remainingSelectors,
+                  getTrueBaseCaseSelectors(pProver.getModelAssignments()));
+        }
+      } finally {
+        pProver.pop();
+      }
+      if (!reachable || !addedSelector) {
+        break;
+      }
+    }
+    return trueSelectors;
+  }
+
+  private boolean addTrueRemainingBaseCaseSelectors(
+      Set<String> pTrueSelectors, Set<String> pRemainingSelectors, Set<String> pNewTrueSelectors) {
+    Set<String> selectorsToAdd = new LinkedHashSet<>(pNewTrueSelectors);
+    selectorsToAdd.retainAll(pRemainingSelectors);
+    if (selectorsToAdd.isEmpty()) {
+      return false;
+    }
+    pTrueSelectors.addAll(selectorsToAdd);
+    pRemainingSelectors.removeAll(selectorsToAdd);
+    return true;
+  }
+
+  private BooleanFormula createSelectorDisjunction(
+      Set<String> pSelectors, BooleanFormulaManagerView pBfmgr) {
+    BooleanFormula result = pBfmgr.makeFalse();
+    for (String selector : pSelectors) {
+      result = pBfmgr.or(result, pBfmgr.makeVariable(selector));
+    }
+    return result;
   }
 
   private Set<String> getTrueBaseCaseSelectors(Iterable<ValueAssignment> pModelAssignments) {
@@ -768,9 +845,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private ImmutableSet<CandidateInvariant> createModelEqualityStrengthenings(
       ReachedSet pReachedSet,
       CandidateInvariant pCandidateInvariant,
-      BasicProverEnvironment<?> pProver,
       Iterable<ValueAssignment> pModelAssignments)
-      throws InterruptedException, SolverException {
+      throws InterruptedException {
     if (!(pCandidateInvariant instanceof StatewiseCandidateInvariantConjunction)) {
       return ImmutableSet.of();
     }
@@ -799,10 +875,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         if (predicateState == null) {
           continue;
         }
-        Optional<BooleanFormula> stateFormula = createStateFormula(state);
-        if (stateFormula.isEmpty()) {
-          continue;
-        }
 
         for (CFANode location : AbstractStates.extractLocations(state)) {
           if (!pCandidateInvariant.appliesTo(location)) {
@@ -811,8 +883,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           addModelEqualityStrengtheningsAtLocation(
               strengthenedCandidates,
               pCandidateInvariant,
-              pProver,
-              stateFormula.orElseThrow(),
               predicateState.getPathFormula(),
               location,
               modelAssignments);
@@ -848,12 +918,9 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private void addModelEqualityStrengtheningsAtLocation(
       ImmutableSet.Builder<CandidateInvariant> pStrengthenedCandidates,
       CandidateInvariant pCandidateInvariant,
-      BasicProverEnvironment<?> pProver,
-      BooleanFormula pStateFormula,
       PathFormula pPathFormula,
       CFANode pLocation,
-      Iterable<ValueAssignment> pModelAssignments)
-      throws InterruptedException, SolverException {
+      Iterable<ValueAssignment> pModelAssignments) {
     Optional<Set<String>> modifiedVariables = getModifiedVariablesInLoopsContaining(pLocation);
     if (modifiedVariables.isEmpty()) {
       return;
@@ -861,81 +928,61 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     int added = 0;
     List<CandidateInvariant> cumulativeEqualities = new ArrayList<>();
-    pProver.push(pStateFormula);
-    try {
-      for (ValueAssignment valueAssignment : pModelAssignments) {
-        Pair<String, OptionalInt> parsedName =
-            FormulaManagerView.parseName(valueAssignment.getName());
-        String actualName = parsedName.getFirst();
-        OptionalInt index = parsedName.getSecond();
-        boolean modifiedInLoop = modifiedVariables.orElseThrow().contains(actualName);
-        boolean onlyNoOpModifiedInLoop =
-            modifiedInLoop && isOnlyNoOpModifiedInLoopsContaining(pLocation, actualName);
-        // Filter steps:
-        //  c1/c2/c3: assignment must be SSA-indexed and the index must match the variable's
-        //            current SSA index at pLocation.
-        //  c4: if the variable is modified in the loop body, the only safe case is when every
-        //      assignment in the loop is a no-op (e.g. `x = x + 0`); otherwise the model's
-        //      value is iteration-specific and not invariant.
-        // Variables that are *never* assigned inside the loop are loop-invariant by definition
-        // - their model value carries from the prologue (e.g. `c = 0` before `while (x >= 0)`),
-        // which is exactly the class of facts a non-termination closure proof needs. We must
-        // NOT additionally require a "repeated stable value across SSA indices", because such
-        // variables only have a single SSA index and would always fail that check.
-        if (index.isEmpty()
-            || !pPathFormula.getSsa().containsVariable(actualName)
-            || pPathFormula.getSsa().getIndex(actualName) != index.orElseThrow()
-            || (modifiedInLoop && !onlyNoOpModifiedInLoop)) {
-          continue;
-        }
-
-        BooleanFormula equality =
-            getFormulaManager().uninstantiate(valueAssignment.getAssignmentAsFormula());
-        if (!isEntailedByCurrentContext(pProver, valueAssignment.getAssignmentAsFormula())) {
-          continue;
-        }
-        CandidateInvariant equalityCandidate =
-            SingleLocationFormulaInvariant.makeLocationInvariant(
-                pLocation, equality, getFormulaManager());
-        cumulativeEqualities.add(equalityCandidate);
-
-        if (added < MAX_MODEL_EQUALITY_STRENGTHENINGS) {
-          addStrengthenedCandidate(
-              pStrengthenedCandidates,
-              pCandidateInvariant,
-              CandidateInvariantCombination.conjunction(
-                  ImmutableList.of(pCandidateInvariant, equalityCandidate)));
-          added++;
-        }
-
-        if (cumulativeEqualities.size() > 1 && added < MAX_MODEL_EQUALITY_STRENGTHENINGS) {
-          ImmutableList.Builder<CandidateInvariant> cumulativeCandidate = ImmutableList.builder();
-          cumulativeCandidate.add(pCandidateInvariant);
-          cumulativeCandidate.addAll(cumulativeEqualities);
-          addStrengthenedCandidate(
-              pStrengthenedCandidates,
-              pCandidateInvariant,
-              CandidateInvariantCombination.conjunction(cumulativeCandidate.build()));
-          added++;
-        }
-        if (added >= MAX_MODEL_EQUALITY_STRENGTHENINGS) {
-          return;
-        }
+    for (ValueAssignment valueAssignment : pModelAssignments) {
+      Pair<String, OptionalInt> parsedName =
+          FormulaManagerView.parseName(valueAssignment.getName());
+      String actualName = parsedName.getFirst();
+      OptionalInt index = parsedName.getSecond();
+      boolean modifiedInLoop = modifiedVariables.orElseThrow().contains(actualName);
+      boolean onlyNoOpModifiedInLoop =
+          modifiedInLoop && isOnlyNoOpModifiedInLoopsContaining(pLocation, actualName);
+      // Filter steps:
+      //  c1/c2/c3: assignment must be SSA-indexed and the index must match the variable's
+      //            current SSA index at pLocation.
+      //  c4: if the variable is modified in the loop body, the only safe case is when every
+      //      assignment in the loop is a no-op (e.g. `x = x + 0`); otherwise the model's
+      //      value is iteration-specific and not invariant.
+      // Variables that are *never* assigned inside the loop are loop-invariant by definition
+      // - their model value carries from the prologue (e.g. `c = 0` before `while (x >= 0)`),
+      // which is exactly the class of facts a non-termination closure proof needs. We must
+      // NOT additionally require a "repeated stable value across SSA indices", because such
+      // variables only have a single SSA index and would always fail that check.
+      if (index.isEmpty()
+          || !pPathFormula.getSsa().containsVariable(actualName)
+          || pPathFormula.getSsa().getIndex(actualName) != index.orElseThrow()
+          || (modifiedInLoop && !onlyNoOpModifiedInLoop)) {
+        continue;
       }
-    } finally {
-      pProver.pop();
-    }
-  }
 
-  private boolean isEntailedByCurrentContext(
-      BasicProverEnvironment<?> pProver, BooleanFormula pInstantiatedEquality)
-      throws InterruptedException, SolverException {
-    BooleanFormulaManagerView bfmgr = getBooleanFormulaManager();
-    pProver.push(bfmgr.not(pInstantiatedEquality));
-    try {
-      return pProver.isUnsat();
-    } finally {
-      pProver.pop();
+      BooleanFormula equality =
+          getFormulaManager().uninstantiate(valueAssignment.getAssignmentAsFormula());
+      CandidateInvariant equalityCandidate =
+          SingleLocationFormulaInvariant.makeLocationInvariant(
+              pLocation, equality, getFormulaManager());
+      cumulativeEqualities.add(equalityCandidate);
+
+      if (added < MAX_MODEL_EQUALITY_STRENGTHENINGS) {
+        addStrengthenedCandidate(
+            pStrengthenedCandidates,
+            pCandidateInvariant,
+            CandidateInvariantCombination.conjunction(
+                ImmutableList.of(pCandidateInvariant, equalityCandidate)));
+        added++;
+      }
+
+      if (cumulativeEqualities.size() > 1 && added < MAX_MODEL_EQUALITY_STRENGTHENINGS) {
+        ImmutableList.Builder<CandidateInvariant> cumulativeCandidate = ImmutableList.builder();
+        cumulativeCandidate.add(pCandidateInvariant);
+        cumulativeCandidate.addAll(cumulativeEqualities);
+        addStrengthenedCandidate(
+            pStrengthenedCandidates,
+            pCandidateInvariant,
+            CandidateInvariantCombination.conjunction(cumulativeCandidate.build()));
+        added++;
+      }
+      if (added >= MAX_MODEL_EQUALITY_STRENGTHENINGS) {
+        return;
+      }
     }
   }
 
