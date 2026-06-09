@@ -30,14 +30,29 @@ import org.sosy_lab.cpachecker.cpa.interval.funarray.FunArrayUnification.UnifyRe
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
- * A FunArray to represent an Array in abstract interpretation static analysis. See Patrick Cousot,
- * Radhia Cousot, and Francesco Logozzo. 2011. A parametric segmentation functor for fully automatic
- * and scalable array content analysis. SIGPLAN Not. 46, 1 (January 2011), 105–118. <a
- * href="https://doi.org/10.1145/1925844.1926399">https://doi.org/10.1145/1925844.1926399</a>
+ * Abstract representation of an array's contents as a sequence of contiguous, non-overlapping
+ * segments, each assigned an abstract interval value. Segments are delimited by {@link Bound}s;
+ * within each bound, all index expressions are equal in the concrete program state.
  *
- * @param bounds the FunArray's segment bounds.
- * @param values the FunArray's values.
- * @param emptiness a list determining whether a segment might be empty.
+ * <p>A FunArray {@code {0} v {i} w {n}} reads as: all elements at indices between {@code 0} and
+ * {@code i} are abstracted by {@code v}; all elements between {@code i} and {@code n} are
+ * abstracted by {@code w}. The leftmost bound always contains the constant expression {@code 0};
+ * the rightmost bound contains the length expression(s) of the array.
+ *
+ * <p>Each segment additionally carries an <em>emptiness flag</em>: {@code true} means the segment
+ * may span zero elements (its two delimiting bounds may be equal at runtime).
+ *
+ * <p>See Patrick Cousot, Radhia Cousot, and Francesco Logozzo. 2011. A parametric segmentation
+ * functor for fully automatic and scalable array content analysis. SIGPLAN Not. 46, 1 (January
+ * 2011), 105–118. <a href="https://doi.org/10.1145/1925844.1926399">
+ *   https://doi.org/10.1145/1925844.1926399</a>
+ *
+ * @param bounds the ordered list of segment boundaries, leftmost first. Must contain at least two
+ *     elements; no two bounds may share a {@link NormalFormExpression}.
+ * @param values the abstract interval value of each segment; must satisfy {@code values.size() ==
+ *     bounds.size() - 1}.
+ * @param emptiness for each segment, whether it may span zero elements; must satisfy {@code
+ *     emptiness.size() == bounds.size() - 1}.
  */
 public record FunArray(
     ImmutableList<Bound> bounds, ImmutableList<Interval> values, ImmutableList<Boolean> emptiness)
@@ -45,6 +60,12 @@ public record FunArray(
 
   @Serial private static final long serialVersionUID = 7169472946910382516L;
 
+  /**
+   * The bottom element of the FunArray lattice, representing an unreachable program state. Used as
+   * the absorbing element for analysis paths that contain contradictory constraints, and returned
+   * by {@link #removeEmptyBounds()} and {@link #ofInitializerList} when no valid segmentation
+   * remains.
+   */
   public static final FunArray BOTTOM =
       new FunArray(
           ImmutableList.of(
@@ -74,6 +95,15 @@ public record FunArray(
     }
   }
 
+  /**
+   * @deprecated work with immutable collections from the start.
+   * Convenience constructor that copies mutable lists into their immutable equivalents.
+   *
+   * @param pBounds the segment bounds.
+   * @param pValues the segment values.
+   * @param pEmptiness the emptiness flags.
+   */
+  @Deprecated
   public FunArray(List<Bound> pBounds, List<Interval> pValues, List<Boolean> pEmptiness) {
     this(
         ImmutableList.copyOf(pBounds),
@@ -81,10 +111,24 @@ public record FunArray(
         ImmutableList.copyOf(pEmptiness));
   }
 
+  /**
+   * Creates a FunArray for an array whose contents are entirely unknown. The single segment spans
+   * the entire array with value {@link Interval#UNBOUND} and is marked possibly empty because the
+   * array length may be zero.
+   *
+   * @param lengthExpressions the set of expressions representing the array length.
+   */
   public FunArray(Set<NormalFormExpression> lengthExpressions) {
     this(new Bound(lengthExpressions));
   }
 
+  /**
+   * Creates a FunArray for an array whose contents are entirely unknown, using a pre-constructed
+   * {@link Bound} as the length. Equivalent to {@link #FunArray(Set)} but accepts a {@link Bound}
+   * directly.
+   *
+   * @param length the bound representing the array length.
+   */
   public FunArray(Bound length) {
     this(
         ImmutableList.of(new Bound(new NormalFormExpression(0)), length),
@@ -92,6 +136,14 @@ public record FunArray(
         ImmutableList.of(true));
   }
 
+  /**
+   * Creates a FunArray for an array whose elements are all initialized to {@code pInitialValue}.
+   * The single segment spans the entire array and is marked possibly empty because the array length
+   * may be zero at the time of construction.
+   *
+   * @param pLength the bound representing the array length.
+   * @param pInitialValue the abstract value shared by all array elements.
+   */
   public FunArray(Bound pLength, Interval pInitialValue) {
     this(
         ImmutableList.of(new Bound(new NormalFormExpression(0)), pLength),
@@ -99,6 +151,16 @@ public record FunArray(
         ImmutableList.of(true));
   }
 
+  /**
+   * Creates a FunArray from a C initializer list (e.g., the right-hand side of {@code int a[] = {1,
+   * 2, 3}}). Each element becomes its own non-empty single-element segment with a concrete integer
+   * bound at its position. Returns {@link #BOTTOM} if the list is empty.
+   *
+   * @param initializers the list of C initializer expressions from the AST.
+   * @param visitor the expression value visitor for the current abstract state.
+   * @return a FunArray with one segment per initializer element, or {@link #BOTTOM} if the list is
+   *     empty.
+   */
   public static FunArray ofInitializerList(
       List<CInitializer> initializers, ExpressionValueVisitor visitor) {
     List<Interval> values = new ArrayList<>();
@@ -128,6 +190,11 @@ public record FunArray(
     return new FunArray(bounds, values, emptiness);
   }
 
+  /**
+   * Returns a human-readable representation of this FunArray, interleaving bounds and segment
+   * values. The closing bound of each possibly-empty segment is suffixed with {@code ?}. Example:
+   * {@code 0 [-inf,+inf] {i}? [0,10] {n}}.
+   */
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
@@ -147,6 +214,17 @@ public record FunArray(
     return sb.toString();
   }
 
+  /**
+   * Returns a new FunArray with all bounds updated to reflect an assignment to {@code
+   * changedVariable}. Each bound is adapted by substituting the old variable with {@code
+   * expressions} via {@link Bound#adaptForChangedVariableValues}. Segment values and emptiness
+   * flags are unchanged.
+   *
+   * @param changedVariable the variable that was assigned a new value.
+   * @param expressions the set of normal-form expressions representing the new possible values of
+   *     {@code changedVariable}.
+   * @return a new FunArray with updated bounds.
+   */
   public FunArray adaptToVariableAssignment(
       CIdExpression changedVariable, Set<NormalFormExpression> expressions) {
     ArrayList<Bound> newBounds =
@@ -160,6 +238,15 @@ public record FunArray(
     return new FunArray(newBounds, newValues, newEmptiness);
   }
 
+  /**
+   * Returns a new FunArray with all bounds that contain no expressions removed. Empty bounds arise
+   * after a variable assignment invalidates every expression in a bound. When a bound is removed,
+   * the values of the two adjacent segments are joined. Returns {@link #BOTTOM} if removal would
+   * leave fewer than two bounds.
+   *
+   * @return a new FunArray free of empty bounds, or {@link #BOTTOM} if no valid segmentation
+   *     remains.
+   */
   public FunArray removeEmptyBounds() {
     ArrayList<Bound> newBounds = new ArrayList<>(bounds);
     ArrayList<Interval> newValues = new ArrayList<>(values);
@@ -182,17 +269,45 @@ public record FunArray(
     return new FunArray(newBounds, newValues, newEmptiness);
   }
 
+  /**
+   * Single-expression convenience wrapper that delegates to {@link #insert(Set, Interval,
+   * ExpressionValueVisitor)}.
+   *
+   * @param index the index expression for the assignment.
+   * @param value the value to write at the index.
+   * @param visitor the expression value visitor for the current abstract state.
+   * @return the updated FunArray.
+   */
   public FunArray insert(
       NormalFormExpression index, Interval value, ExpressionValueVisitor visitor) {
     return insert(ImmutableSet.of(index), value, visitor);
   }
 
   /**
-   * Inserts a value into the FunArray.
+   * Records an abstract array assignment {@code a[index] = value} by updating the segment(s)
+   * covering {@code indeces}. The method locates the greatest lower bound for {@code indeces} and
+   * the least upper bound for {@code indeces + 1}, then replaces the covered region with up to
+   * three new segments:
    *
-   * @param indeces the leading bound expressions for the new value.
-   * @param value the value to be inserted.
-   * @return the modified Segmentation.
+   * <ol>
+   *   <li>A left overhang spanning {@code [lowerBound, index)} holding the previous joint value,
+   *       marked possibly empty.
+   *   <li>An exact segment spanning {@code [index, index+1)} with {@code value}, marked non-empty.
+   *   <li>A right overhang spanning {@code [index+1, upperBound)} holding the previous joint value,
+   *       marked possibly empty.
+   * </ol>
+   *
+   * If the lower bound already equals {@code index} (left-adjacent), the left overhang is omitted.
+   * If the upper bound already equals {@code index+1} (right-adjacent), the right overhang is
+   * omitted.
+   * <p>
+   * Implements the assignment operation described in Section 11.6 of Cousot, Cousot, and Logozzo
+   * (2011).
+   *
+   * @param indeces the set of normal-form index expressions for the assignment target.
+   * @param value the abstract value written at the index.
+   * @param visitor the expression value visitor for the current abstract state.
+   * @return the updated FunArray, or {@code this} if {@code indeces} is empty or out of bounds.
    */
   public FunArray insert(
       Set<NormalFormExpression> indeces, Interval value, ExpressionValueVisitor visitor) {
@@ -296,6 +411,18 @@ public record FunArray(
     return new FunArray(newBounds, newValues, newEmptiness);
   }
 
+  /**
+   * Returns the abstract value at array index {@code abstractIndex} by joining all segment values
+   * whose range overlaps with the index.
+   * <p>
+   * Implements the 'Abstract value of an indexed array element' operation described in section 11.6
+   * of Cousot, Cousot, and Logozzo (2011).
+   *
+   * @param abstractIndex the index expression to read.
+   * @param visitor the expression value visitor for the current abstract state.
+   * @return the join of all segment values that may cover {@code abstractIndex}, or {@link
+   *     Interval#EMPTY} if the index falls outside all segments.
+   */
   public Interval get(NormalFormExpression abstractIndex, ExpressionValueVisitor visitor) {
     int greatestLowerBoundIndex = getRightmostLowerBoundIndex(abstractIndex, visitor);
     if (greatestLowerBoundIndex >= values.size()) {
@@ -305,6 +432,11 @@ public record FunArray(
     return getJointValue(greatestLowerBoundIndex, leastUpperBoundIndex);
   }
 
+  /**
+   * Returns the greatest lower-bound index across all expressions in the set, by taking the maximum
+   * of {@link #getRightmostLowerBoundIndex(NormalFormExpression, ExpressionValueVisitor)} over
+   * each.
+   */
   private int getRightmostLowerBoundIndex(
       Set<NormalFormExpression> expressions, ExpressionValueVisitor visitor) {
     return expressions.stream()
@@ -331,6 +463,11 @@ public record FunArray(
     return greatestLowerBoundIndex;
   }
 
+  /**
+   * Utility method. Returns {@code true} if expression {@code a} is less than or equal to
+   * expression {@code b}. Checks syntactically first; falls back to interval comparison when the
+   * two expressions differ in variable and cannot be ordered by constant alone.
+   */
   private static boolean isLessEqualThan(
       NormalFormExpression a, NormalFormExpression b, ExpressionValueVisitor visitor) {
     try {
@@ -343,6 +480,10 @@ public record FunArray(
     }
   }
 
+  /**
+   * Returns the greatest upper-bound index across all expressions in the set, by taking the maximum
+   * of {@link #getLeastUpperBoundIndex(NormalFormExpression, ExpressionValueVisitor)} over each.
+   */
   private int getLeastUpperBoundIndex(
       Set<NormalFormExpression> expressions, ExpressionValueVisitor visitor) {
     return expressions.stream()
@@ -369,6 +510,11 @@ public record FunArray(
     return leastUpperBoundIndex;
   }
 
+  /**
+   * Utility method. Returns {@code true} if expression {@code a} is greater than or equal to
+   * expression {@code b}. Checks syntactically first; falls back to interval comparison when
+   * syntactic ordering is not applicable.
+   */
   private static boolean isGreaterEqualThan(
       NormalFormExpression a, NormalFormExpression b, ExpressionValueVisitor visitor) {
     try {
@@ -397,12 +543,13 @@ public record FunArray(
   }
 
   /**
-   * Unifies this FunArray with another one, so their segment bounds coincide.
+   * Aligns this FunArray with {@code other} so their segment bounds coincide, inserting neutral
+   * segments as needed. Delegates to {@link FunArrayUnification#unify}.
    *
-   * @param other the other.
-   * @param thisNeutralElement the neutral element for this.
-   * @param otherNeutralElement the neutral element for the other.
-   * @return two unified FunArrays.
+   * @param other the FunArray to unify with.
+   * @param thisNeutralElement the interval used to fill newly inserted segments in this array.
+   * @param otherNeutralElement the interval used to fill newly inserted segments in {@code other}.
+   * @return a {@link UnifyResult} containing two new FunArrays with identical bound structure.
    */
   public UnifyResult unify(
       FunArray other, Interval thisNeutralElement, Interval otherNeutralElement) {
@@ -457,6 +604,13 @@ public record FunArray(
     return new FunArray(thisUnified.bounds, modifiedValues, modifiedEmptiness);
   }
 
+  /**
+   * Returns the index of the bound in {@link #bounds} that contains {@code expression}.
+   *
+   * @param expression the expression to locate.
+   * @return the index of the bound containing {@code expression}.
+   * @throws IndexOutOfBoundsException if no bound contains {@code expression}.
+   */
   public int findIndex(NormalFormExpression expression) {
     for (int i = 0; i < bounds.size(); i++) {
       if (bounds.get(i).contains(expression)) {
@@ -466,6 +620,14 @@ public record FunArray(
     throw new IndexOutOfBoundsException();
   }
 
+  /**
+   * Returns a new FunArray in which the value of every segment has been joined with {@code pValue}.
+   * Used when an array element is assigned at an index that cannot be resolved to a specific
+   * segment — since any element may have been updated, {@code pValue} is joined into every segment.
+   *
+   * @param pValue the value to join into every segment.
+   * @return a new FunArray with each segment value joined with {@code pValue}.
+   */
   public FunArray assignAllSegments(Interval pValue) {
     ArrayList<Interval> newValues = new ArrayList<>();
     for (Interval v : values) {
@@ -474,30 +636,93 @@ public record FunArray(
     return new FunArray(bounds, newValues, emptiness);
   }
 
+  /**
+   * Returns the least upper bound (join) of this FunArray and {@code other} in the abstract domain.
+   * The arrays are unified with {@link Interval#EMPTY} as the neutral element for both sides, then
+   * corresponding segment values are joined pointwise with {@link Interval#union}. Corresponds to
+   * the join operator of the FunArray abstract domain (Section 11.5 of Cousot, Cousot, and Logozzo
+   * (2011)).
+   *
+   * @param other the FunArray to join with.
+   * @return the least upper bound of the two FunArrays.
+   */
   @Override
   public FunArray join(FunArray other) {
     return unifyOperation(Interval::union, other, Interval.EMPTY, Interval.EMPTY);
   }
 
+  /**
+   * Returns the greatest lower bound (meet) of this FunArray and {@code other} in the abstract
+   * domain. The arrays are unified with {@code unknown} as the neutral element for both sides, then
+   * corresponding segment values are intersected pointwise with {@link Interval#intersect}.
+   * Corresponds to the meet operator of the FunArray abstract domain (Section 11.5 of Cousot, Cousot,
+   * and Logozzo (2011)).
+   *
+   * @param other the FunArray to meet with.
+   * @param unknown the neutral element for unification; should be the top interval when the content
+   *     of a newly introduced segment is not known.
+   * @return the greatest lower bound of the two FunArrays.
+   */
   public FunArray meet(FunArray other, Interval unknown) {
     return unifyOperation(Interval::intersect, other, unknown, unknown);
   }
 
+  /**
+   * Returns the widening of this FunArray with {@code other} in the abstract domain. The arrays are
+   * unified with {@link Interval#EMPTY} as the neutral element for both sides, then corresponding
+   * segment values are widened pointwise with {@link Interval#widen}. Corresponds to the widening
+   * operator of the FunArray abstract domain (Section 11.5 of Cousot, Cousot, and Logozzo (2011)).
+   *
+   * @param other the FunArray to widen with.
+   * @return the widened FunArray.
+   */
   public FunArray widen(FunArray other) {
     Interval unreachable = Interval.EMPTY;
     return unifyOperation(Interval::widen, other, unreachable, unreachable);
   }
 
+  /**
+   * Returns all {@link NormalFormExpression}s appearing in any bound of this FunArray. Used to
+   * determine which program variables this FunArray tracks. Used for testing.
+   *
+   * @return an immutable set of all bound expressions.
+   */
   public Set<NormalFormExpression> getExpressions() {
     return bounds.stream()
         .flatMap(e -> e.expressions().stream())
         .collect(ImmutableSet.toImmutableSet());
   }
 
+  /**
+   * Returns {@code true} if this FunArray represents a reachable abstract state. A FunArray is
+   * unreachable when any segment has an empty ({@link Interval#isEmpty}) value, since no concrete
+   * array element could satisfy an empty interval.
+   *
+   * @return {@code true} if all segment values are non-empty.
+   */
   public boolean isReachable() {
     return values.stream().noneMatch(Interval::isEmpty);
   }
 
+  /**
+   * Narrows this FunArray to reflect the constraint {@code lesser < greater}. The method compares
+   * the positions of the two expressions in the bound list:
+   *
+   * <ul>
+   *   <li>If {@code lesser} immediately precedes {@code greater} (exactly one segment between
+   *       them), that segment is marked non-empty, since strict inequality implies at least one
+   *       element exists between the two bounds.
+   *   <li>If there is more than one segment between them, no change is made (it cannot be
+   *       determined which segment is non-empty).
+   *   <li>If {@code lesser} follows {@code greater} (contradiction), both expressions are removed
+   *       from all bounds and {@link #removeEmptyBounds()} is called.
+   * </ul>
+   *
+   * @param lesser the expression asserted to be strictly less than {@code greater}.
+   * @param greater the expression asserted to be strictly greater than {@code lesser}.
+   * @return a narrowed FunArray satisfying the constraint, or the unchanged FunArray if either
+   *     expression is absent from all bounds.
+   */
   public FunArray satisfyStrictLessThan(NormalFormExpression lesser, NormalFormExpression greater) {
     int leftIndex;
     int rightIndex;
@@ -529,6 +754,26 @@ public record FunArray(
     }
   }
 
+  /**
+   * Narrows this FunArray to reflect the constraint {@code lesser <= greater}. The method compares
+   * the positions of the two expressions in the bound list:
+   *
+   * <ul>
+   *   <li>If {@code lesser} already precedes or equals {@code greater} in bound order, the
+   *       constraint is trivially satisfied and no change is made.
+   *   <li>If {@code lesser} follows {@code greater} and all intermediate segments are possibly
+   *       empty (the expressions may be equal), the bounds between them are squashed into a single
+   *       bound containing both expressions.
+   *   <li>If {@code lesser} follows {@code greater} and any intermediate segment is non-empty
+   *       (contradiction), both expressions are removed from all bounds and {@link
+   *       #removeEmptyBounds()} is called.
+   * </ul>
+   *
+   * @param lesser the expression asserted to be less than or equal to {@code greater}.
+   * @param greater the expression asserted to be greater than or equal to {@code lesser}.
+   * @return a narrowed FunArray satisfying the constraint, or the unchanged FunArray if either
+   *     expression is absent from all bounds.
+   */
   public FunArray satisfyLessEqual(NormalFormExpression lesser, NormalFormExpression greater) {
     int leftIndex;
     int rightIndex;
@@ -574,6 +819,25 @@ public record FunArray(
 
   // TODO: Satisfy equal and not equal
 
+  /**
+   * Returns {@code true} if this FunArray is below {@code other} in the abstract domain partial
+   * order. The arrays are unified with {@link Interval#EMPTY} as the neutral element for this and
+   * {@link Interval#UNBOUND} for {@code other}, then the following conditions are checked pointwise
+   * for every segment:
+   *
+   * <ol>
+   *   <li>The segment value of this array is contained in the corresponding segment value of {@code
+   *       other} (checked via {@link Interval#abstractLatticeIsLessEqualThan}).
+   *   <li>No segment that is definitely non-empty in this array is marked possibly empty in {@code
+   *       other}.
+   * </ol>
+   *
+   * Implements the partial order of the FunArray abstract domain (Section 11.5 of Cousot, Cousot, and
+   * Logozzo (2011)).
+   *
+   * @param other the FunArray to compare against.
+   * @return {@code true} if this FunArray is below {@code other} in the lattice.
+   */
   @Override
   public boolean isLessOrEqual(FunArray other) {
     UnifyResult unifyResult = unify(other, Interval.EMPTY, Interval.UNBOUND);
