@@ -19,6 +19,7 @@ import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -102,6 +103,7 @@ class CToSvLibInitializer {
 
   private final String INPUT_VAR_DUMMY_PREFIX;
   private final String RETURN_VAR_DUMMY_PREFIX;
+  private final String TMP_VAR_ASSIGNMENT;
   private final ImmutableSet<String> NAMES_OF_ASSERT_FUNCTIONS;
 
   CToSvLibInitializer(
@@ -113,6 +115,7 @@ class CToSvLibInitializer {
       CtoFormulaConverter pConverter,
       String pINPUT_VAR_DUMMY_PREFIX,
       String pRETURN_VAR_DUMMY_PREFIX,
+      String pTMP_VAR_ASSIGNMENT,
       ImmutableSet<String> pNAMES_OF_ASSERT_FUNCTIONS) {
     logger = pLogger;
     cfa = pCFA;
@@ -122,6 +125,7 @@ class CToSvLibInitializer {
     converter = pConverter;
     INPUT_VAR_DUMMY_PREFIX = pINPUT_VAR_DUMMY_PREFIX;
     RETURN_VAR_DUMMY_PREFIX = pRETURN_VAR_DUMMY_PREFIX;
+    TMP_VAR_ASSIGNMENT = pTMP_VAR_ASSIGNMENT;
     NAMES_OF_ASSERT_FUNCTIONS = pNAMES_OF_ASSERT_FUNCTIONS;
   }
 
@@ -202,6 +206,49 @@ class CToSvLibInitializer {
           SvLibParsingParameterDeclaration dummyReturnParameter =
               createDummyReturnParameter(functionCall, procedureName);
           localVariablesCollector.add(dummyReturnParameter);
+
+        } else if (edge instanceof CFunctionSummaryEdge pCFunctionSummaryEdge
+            && pCFunctionSummaryEdge.getExpression()
+                instanceof CFunctionCallAssignmentStatement functionCallAssignmentStatement) {
+
+          SvLibType returnValueType;
+          if (functionCallAssignmentStatement.getLeftHandSide()
+              instanceof CArraySubscriptExpression arraySubscript) {
+            returnValueType = convertToSvLibSmtLibType(arraySubscript.getExpressionType());
+          } else {
+            returnValueType =
+                convertToSvLibSmtLibType(
+                    functionCallAssignmentStatement.getLeftHandSide().getExpressionType());
+          }
+          SvLibParsingParameterDeclaration tmpHeapAssignVariable =
+              new SvLibParsingParameterDeclaration(
+                  FileLocation.DUMMY,
+                  returnValueType,
+                  TMP_VAR_ASSIGNMENT + returnValueType,
+                  procedureName);
+          localVariablesCollector.add(tmpHeapAssignVariable);
+
+        } else if (edge instanceof CStatementEdge cStatementEdge
+            && cStatementEdge.getStatement()
+                instanceof CFunctionCallAssignmentStatement functionCallAssignmentStatement
+            && functionCallAssignmentStatement.getRightHandSide().getDeclaration() != null) {
+
+          SvLibType returnValueType;
+          if (functionCallAssignmentStatement.getLeftHandSide()
+              instanceof CArraySubscriptExpression arraySubscript) {
+            returnValueType = convertToSvLibSmtLibType(arraySubscript.getExpressionType());
+          } else {
+            returnValueType =
+                convertToSvLibSmtLibType(
+                    functionCallAssignmentStatement.getLeftHandSide().getExpressionType());
+          }
+          SvLibParsingParameterDeclaration tmpHeapAssignVariable =
+              new SvLibParsingParameterDeclaration(
+                  FileLocation.DUMMY,
+                  returnValueType,
+                  TMP_VAR_ASSIGNMENT + returnValueType,
+                  procedureName);
+          localVariablesCollector.add(tmpHeapAssignVariable);
         }
       }
 
@@ -376,7 +423,7 @@ class CToSvLibInitializer {
         throw new UnsupportedOperationException(
             "Transformation of function "
                 + pProcedureName
-                + " with an array %s as input is currently not supported.");
+                + " with an array as input is currently not supported.");
       }
     }
     return parameterCollector.build();

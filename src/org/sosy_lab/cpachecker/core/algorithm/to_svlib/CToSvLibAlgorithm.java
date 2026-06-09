@@ -112,6 +112,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
 
   private final String INPUT_VAR_DUMMY_PREFIX = "__originalInput_";
   private final String RETURN_VAR_DUMMY_PREFIX = "__transformationDummyReturn_";
+  private final String TMP_VAR_ASSIGNMENT = "__Transformation_TMP_VariableAssignment_";
   private final ImmutableSet<String> NAMES_OF_ASSERT_FUNCTIONS =
       ImmutableSet.of("__assert_fail", "__assert_perror_fail", "__assert");
 
@@ -199,6 +200,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
               converter,
               INPUT_VAR_DUMMY_PREFIX,
               RETURN_VAR_DUMMY_PREFIX,
+              TMP_VAR_ASSIGNMENT,
               NAMES_OF_ASSERT_FUNCTIONS);
       initializer.initialize(commandsCollector);
     } finally {
@@ -220,6 +222,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
             scope,
             INPUT_VAR_DUMMY_PREFIX,
             RETURN_VAR_DUMMY_PREFIX,
+            TMP_VAR_ASSIGNMENT,
             NAMES_OF_ASSERT_FUNCTIONS);
 
     try {

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.to_svlib;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -16,9 +17,11 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.math.BigInteger;
 import java.util.List;
+import java.util.NavigableSet;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -26,7 +29,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibTheoryDeclarations;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibConstantTerm;
@@ -60,6 +65,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibProcedureCal
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibReturnStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibSequenceStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
@@ -70,6 +76,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerBase;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.FormulaToSvLibVisitor;
@@ -84,6 +91,7 @@ class CToSvLibTransformation {
 
   private final String INPUT_VAR_DUMMY_PREFIX;
   private final String RETURN_VAR_DUMMY_PREFIX;
+  private final String TMP_VAR_ASSIGNMENT;
   private final ImmutableSet<String> NAMES_OF_ASSERT_FUNCTIONS;
 
   CToSvLibTransformation(
@@ -94,6 +102,7 @@ class CToSvLibTransformation {
       SvLibCurrentScope pCurrentScope,
       String pINPUT_VAR_DUMMY_PREFIX,
       String pRETURN_VAR_DUMMY_PREFIX,
+      String pTMP_VAR_ASSIGNMENT,
       ImmutableSet<String> pNAMES_OF_ASSERT_FUNCTIONS) {
     cfa = pCFA;
     formulaManager = pFormulaManager;
@@ -102,10 +111,11 @@ class CToSvLibTransformation {
     scope = pCurrentScope;
     INPUT_VAR_DUMMY_PREFIX = pINPUT_VAR_DUMMY_PREFIX;
     RETURN_VAR_DUMMY_PREFIX = pRETURN_VAR_DUMMY_PREFIX;
+    TMP_VAR_ASSIGNMENT = pTMP_VAR_ASSIGNMENT;
     NAMES_OF_ASSERT_FUNCTIONS = pNAMES_OF_ASSERT_FUNCTIONS;
   }
 
-  SvLibStatement transformFunction(CFunctionEntryNode pEntryNode)
+  SvLibStatement transformFunction(@NonNull CFunctionEntryNode pEntryNode)
       throws CPATransferException, InterruptedException {
     SvLibProcedureDeclaration procedureDeclaration =
         scope.getProcedureDeclaration(pEntryNode.getFunctionName());
@@ -232,7 +242,7 @@ class CToSvLibTransformation {
             FileLocation.DUMMY,
             pEntryNode,
             pEntryNode);
-    SvLibTerm assignmentTerm = transformToSvLibTerm(statementEdge, pEdgeToPointerTargetSet);
+    SvLibTerm assignmentTerm = transformEdgeToSvLibTerm(statementEdge, pEdgeToPointerTargetSet);
     // Obtain the only constant term inside the previous term
     // could be done with a visitor but is easier like this
     // and works for most cases
@@ -265,11 +275,11 @@ class CToSvLibTransformation {
       throws CPATransferException, InterruptedException {
     switch (pEdge.getEdgeType()) {
       case BlankEdge -> {
-        transformToSvLibTerm(pEdge, pEdgeToPointerTargetSet);
+        transformEdgeToSvLibTerm(pEdge, pEdgeToPointerTargetSet);
         pCreatedStatements.put(pEdge.getPredecessor(), createGotoStatement(pEdge.getSuccessor()));
       }
       case AssumeEdge -> {
-        SvLibTerm transformedTerm = transformToSvLibTerm(pEdge, pEdgeToPointerTargetSet);
+        SvLibTerm transformedTerm = transformEdgeToSvLibTerm(pEdge, pEdgeToPointerTargetSet);
         SvLibGotoStatement gotoStatement = createGotoStatement(pEdge.getSuccessor());
         SvLibIfStatement ifStatement =
             new SvLibIfStatement(
@@ -282,25 +292,34 @@ class CToSvLibTransformation {
       }
       case StatementEdge -> {
         CStatementEdge statementEdge = (CStatementEdge) pEdge;
-        if (statementEdge.getStatement() instanceof CFunctionCall) {
-          SvLibStatement externCallStatement =
-              handleExternFunctionCall(statementEdge, pEdgeToPointerTargetSet);
-          pCreatedStatements.put(pEdge.getPredecessor(), externCallStatement);
+        if (statementEdge.getStatement() instanceof CFunctionCall functionCall) {
+          if (functionCall instanceof CFunctionCallAssignmentStatement callAssignmentStatement
+              && callAssignmentStatement.getLeftHandSide() instanceof CArraySubscriptExpression) {
+            SvLibSequenceStatement sequenceStatement =
+                handleReturnValueAssignmentToHeap(
+                    statementEdge, callAssignmentStatement, pEdgeToPointerTargetSet);
+            pCreatedStatements.put(pEdge.getPredecessor(), sequenceStatement);
+
+          } else {
+            SvLibStatement externCallStatement =
+                transformExternFunctionCall(statementEdge, pEdgeToPointerTargetSet);
+            pCreatedStatements.put(pEdge.getPredecessor(), externCallStatement);
+          }
         } else {
-          SvLibTerm transformedTerm = transformToSvLibTerm(pEdge, pEdgeToPointerTargetSet);
+          SvLibTerm transformedTerm = transformEdgeToSvLibTerm(pEdge, pEdgeToPointerTargetSet);
           SvLibStatement assignmentStatement = handleAssignment(pEdge, transformedTerm);
           pCreatedStatements.put(pEdge.getPredecessor(), assignmentStatement);
         }
         pCreatedStatements.put(pEdge.getPredecessor(), createGotoStatement(pEdge.getSuccessor()));
       }
       case DeclarationEdge -> {
-        SvLibTerm transformedTerm = transformToSvLibTerm(pEdge, pEdgeToPointerTargetSet);
+        SvLibTerm transformedTerm = transformEdgeToSvLibTerm(pEdge, pEdgeToPointerTargetSet);
         SvLibStatement assignmentStatement = handleAssignment(pEdge, transformedTerm);
         pCreatedStatements.put(pEdge.getPredecessor(), assignmentStatement);
         pCreatedStatements.put(pEdge.getPredecessor(), createGotoStatement(pEdge.getSuccessor()));
       }
       case ReturnStatementEdge -> {
-        SvLibTerm transformedTerm = transformToSvLibTerm(pEdge, pEdgeToPointerTargetSet);
+        SvLibTerm transformedTerm = transformEdgeToSvLibTerm(pEdge, pEdgeToPointerTargetSet);
         SvLibStatement assignmentStatement = handleAssignment(pEdge, transformedTerm);
         pCreatedStatements.put(pEdge.getPredecessor(), assignmentStatement);
         SvLibReturnStatement returnStatement =
@@ -313,15 +332,22 @@ class CToSvLibTransformation {
       case CallToReturnEdge -> {
         // CFunctionSummaryEdge for function calls
         CFunctionSummaryEdge callEdge = (CFunctionSummaryEdge) pEdge;
-        SvLibProcedureCallStatement callStatement =
-            handleFunctionCall(callEdge, pEdgeToPointerTargetSet);
-        pCreatedStatements.put(pEdge.getPredecessor(), callStatement);
-        pCreatedStatements.put(pEdge.getPredecessor(), createGotoStatement(pEdge.getSuccessor()));
+        if (callEdge.getExpression() instanceof CFunctionCallAssignmentStatement assignment
+            && assignment.getLeftHandSide() instanceof CArraySubscriptExpression) {
+          SvLibSequenceStatement sequenceStatement =
+              handleReturnValueAssignmentToHeap(callEdge, assignment, pEdgeToPointerTargetSet);
+          pCreatedStatements.put(pEdge.getPredecessor(), sequenceStatement);
+          pCreatedStatements.put(pEdge.getPredecessor(), createGotoStatement(pEdge.getSuccessor()));
+        } else {
+          SvLibStatement callStatement = transformFunctionCall(callEdge, pEdgeToPointerTargetSet);
+          pCreatedStatements.put(pEdge.getPredecessor(), callStatement);
+          pCreatedStatements.put(pEdge.getPredecessor(), createGotoStatement(pEdge.getSuccessor()));
+        }
       }
     }
   }
 
-  private @NonNull SvLibTerm transformToSvLibTerm(
+  private @NonNull SvLibTerm transformEdgeToSvLibTerm(
       CFAEdge pEdge, ImmutableMap.Builder<CFAEdge, PointerTargetSet> pEdgeToPointerTargetSet)
       throws CPATransferException, InterruptedException {
     PointerTargetSet pointerTargetSet = getPtsForEdge(pEdge, pEdgeToPointerTargetSet);
@@ -373,34 +399,33 @@ class CToSvLibTransformation {
     pEdgeToPointerTargetSet.put(pEdge, edgeFormula.getPointerTargetSet());
   }
 
-  private SvLibStatement handleExternFunctionCall(
+  private SvLibStatement transformExternFunctionCall(
       CStatementEdge pStatementEdge,
       ImmutableMap.Builder<CFAEdge, PointerTargetSet> pEdgeToPointerTargetSet)
       throws CPATransferException, InterruptedException {
     if (pStatementEdge.getStatement()
         instanceof CFunctionCallAssignmentStatement functionCallAssignmentStatement) {
       storePtsForFunctionCall(pStatementEdge, pEdgeToPointerTargetSet);
-      CIdExpression leftHandSide =
-          (CIdExpression) functionCallAssignmentStatement.getLeftHandSide();
-      SvLibProcedureDeclaration calledProcedure =
-          scope.getProcedureDeclaration(
-              functionCallAssignmentStatement
-                  .getRightHandSide()
-                  .getFunctionNameExpression()
-                  .toASTString());
 
-      return new SvLibProcedureCallStatement(
-          FileLocation.DUMMY,
-          ImmutableList.of(),
-          ImmutableList.of(),
-          calledProcedure,
-          transformInputParameters(
-              functionCallAssignmentStatement.getRightHandSide().getParameterExpressions(),
-              pStatementEdge,
-              calledProcedure,
-              pEdgeToPointerTargetSet),
-          ImmutableList.of(
-              scope.getVariableForQualifiedName(leftHandSide.getDeclaration().getQualifiedName())));
+      CIdExpression lhsIdExpression =
+          (CIdExpression) functionCallAssignmentStatement.getLeftHandSide();
+      PointerTargetSet pointerTargetSet =
+          pEdgeToPointerTargetSet.buildOrThrow().get(pStatementEdge);
+
+      NavigableSet<PointerBase> pointerBases = pointerTargetSet.getBases().keySet();
+      for (PointerBase base : pointerBases) {
+        if (base.name().equals(lhsIdExpression.getDeclaration().getQualifiedName())) {
+          return handleReturnValueAssignmentToHeap(
+              pStatementEdge, functionCallAssignmentStatement, pEdgeToPointerTargetSet);
+        }
+      }
+
+      return createProcedureCallStatement(
+          pStatementEdge,
+          functionCallAssignmentStatement,
+          lhsIdExpression,
+          pEdgeToPointerTargetSet);
+
     } else if (pStatementEdge.getStatement()
         instanceof CFunctionCallStatement functionCallStatement) {
       storePtsForFunctionCall(pStatementEdge, pEdgeToPointerTargetSet);
@@ -423,85 +448,42 @@ class CToSvLibTransformation {
             ImmutableList.of());
       }
 
-      ImmutableList.Builder<SvLibSimpleParsingDeclaration> returnVariableDummies =
-          ImmutableList.builder();
-      for (SvLibParsingParameterDeclaration parsingParameterDeclaration :
-          calledProcedure.getReturnValues()) {
-        SvLibType returnType = parsingParameterDeclaration.getType();
-        SvLibSimpleParsingDeclaration returnDummyVariable =
-            scope.getVariable(RETURN_VAR_DUMMY_PREFIX + returnType);
-        returnVariableDummies.add(returnDummyVariable);
-      }
-
-      return new SvLibProcedureCallStatement(
-          FileLocation.DUMMY,
-          ImmutableList.of(),
-          ImmutableList.of(),
-          calledProcedure,
-          transformInputParameters(
-              functionCallStatement.getFunctionCallExpression().getParameterExpressions(),
-              pStatementEdge,
-              calledProcedure,
-              pEdgeToPointerTargetSet),
-          returnVariableDummies.build());
+      return createProcedureCallStatementWithDummyReturn(
+          pStatementEdge, functionCallStatement, calledProcedure, pEdgeToPointerTargetSet);
     }
     throw new UnsupportedOperationException(
         "Failed to transform call to extern C function to SvLib based on Edge " + pStatementEdge);
   }
 
-  private SvLibProcedureCallStatement handleFunctionCall(
+  private SvLibStatement transformFunctionCall(
       CFunctionSummaryEdge pCallEdge,
       ImmutableMap.Builder<CFAEdge, PointerTargetSet> pEdgeToPointerTargetSet)
       throws CPATransferException, InterruptedException {
     CFunctionCall functionCall = pCallEdge.getExpression();
 
-    if (functionCall instanceof CFunctionCallAssignmentStatement assignment) {
+    if (functionCall instanceof CFunctionCallAssignmentStatement functionCallAssignment) {
       storePtsForFunctionCall(pCallEdge, pEdgeToPointerTargetSet);
-      CIdExpression lhs = (CIdExpression) assignment.getLeftHandSide();
-      SvLibProcedureDeclaration calledProcedure =
-          scope.getProcedureDeclaration(
-              assignment.getRightHandSide().getFunctionNameExpression().toASTString());
 
-      return new SvLibProcedureCallStatement(
-          FileLocation.DUMMY,
-          ImmutableList.of(),
-          ImmutableList.of(),
-          calledProcedure,
-          transformInputParameters(
-              assignment.getRightHandSide().getParameterExpressions(),
-              pCallEdge,
-              calledProcedure,
-              pEdgeToPointerTargetSet),
-          ImmutableList.of(
-              scope.getVariableForQualifiedName(lhs.getDeclaration().getQualifiedName())));
+      CIdExpression lhsIdExpression = (CIdExpression) functionCallAssignment.getLeftHandSide();
+      PointerTargetSet pointerTargetSet = pEdgeToPointerTargetSet.buildOrThrow().get(pCallEdge);
+      NavigableSet<PointerBase> pointerBases = pointerTargetSet.getBases().keySet();
+      for (PointerBase base : pointerBases) {
+        if (base.name().equals(lhsIdExpression.getDeclaration().getQualifiedName())) {
+          return handleReturnValueAssignmentToHeap(
+              pCallEdge, functionCallAssignment, pEdgeToPointerTargetSet);
+        }
+      }
+
+      return createProcedureCallStatement(
+          pCallEdge, functionCallAssignment, lhsIdExpression, pEdgeToPointerTargetSet);
 
     } else if (functionCall instanceof CFunctionCallStatement callStatement) {
       storePtsForFunctionCall(pCallEdge, pEdgeToPointerTargetSet);
 
       SvLibProcedureDeclaration calledProcedure =
           scope.getProcedureDeclaration(pCallEdge.getFunctionEntry().getFunctionName());
-
-      ImmutableList.Builder<SvLibSimpleParsingDeclaration> returnVariableDummies =
-          ImmutableList.builder();
-      for (SvLibParsingParameterDeclaration parsingParameterDeclaration :
-          calledProcedure.getReturnValues()) {
-        SvLibType returnType = parsingParameterDeclaration.getType();
-        SvLibSimpleParsingDeclaration returnDummyVariable =
-            scope.getVariable(RETURN_VAR_DUMMY_PREFIX + returnType);
-        returnVariableDummies.add(returnDummyVariable);
-      }
-
-      return new SvLibProcedureCallStatement(
-          FileLocation.DUMMY,
-          ImmutableList.of(),
-          ImmutableList.of(),
-          calledProcedure,
-          transformInputParameters(
-              callStatement.getFunctionCallExpression().getParameterExpressions(),
-              pCallEdge,
-              calledProcedure,
-              pEdgeToPointerTargetSet),
-          returnVariableDummies.build());
+      return createProcedureCallStatementWithDummyReturn(
+          pCallEdge, callStatement, calledProcedure, pEdgeToPointerTargetSet);
 
     } else {
       throw new UnsupportedOperationException(
@@ -509,6 +491,164 @@ class CToSvLibTransformation {
               + " CFunctionSummaryEdge "
               + pCallEdge);
     }
+  }
+
+  private SvLibProcedureCallStatement createProcedureCallStatement(
+      CFAEdge pCallEdge,
+      CFunctionCallAssignmentStatement pFunctionCallAssignmentStatement,
+      CIdExpression pLhsIdExpression,
+      ImmutableMap.Builder<CFAEdge, PointerTargetSet> pEdgeToPointerTargetSet)
+      throws CPATransferException, InterruptedException {
+    SvLibProcedureDeclaration calledProcedure =
+        scope.getProcedureDeclaration(
+            pFunctionCallAssignmentStatement
+                .getRightHandSide()
+                .getFunctionNameExpression()
+                .toASTString());
+
+    return new SvLibProcedureCallStatement(
+        FileLocation.DUMMY,
+        ImmutableList.of(),
+        ImmutableList.of(),
+        calledProcedure,
+        transformInputParameters(
+            pFunctionCallAssignmentStatement.getRightHandSide().getParameterExpressions(),
+            pCallEdge,
+            calledProcedure,
+            pEdgeToPointerTargetSet),
+        ImmutableList.of(
+            scope.getVariableForQualifiedName(
+                pLhsIdExpression.getDeclaration().getQualifiedName())));
+  }
+
+  private SvLibProcedureCallStatement createProcedureCallStatementWithDummyReturn(
+      CFAEdge pCallEdge,
+      CFunctionCallStatement pFunctionCallStatement,
+      SvLibProcedureDeclaration pCalledProcedure,
+      ImmutableMap.Builder<CFAEdge, PointerTargetSet> pEdgeToPointerTargetSet)
+      throws CPATransferException, InterruptedException {
+
+    ImmutableList.Builder<SvLibSimpleParsingDeclaration> returnVariableDummies =
+        ImmutableList.builder();
+    for (SvLibParsingParameterDeclaration parsingParameterDeclaration :
+        pCalledProcedure.getReturnValues()) {
+      SvLibType returnType = parsingParameterDeclaration.getType();
+      SvLibSimpleParsingDeclaration returnDummyVariable =
+          scope.getVariable(RETURN_VAR_DUMMY_PREFIX + returnType);
+      returnVariableDummies.add(returnDummyVariable);
+    }
+
+    return new SvLibProcedureCallStatement(
+        FileLocation.DUMMY,
+        ImmutableList.of(),
+        ImmutableList.of(),
+        pCalledProcedure,
+        transformInputParameters(
+            pFunctionCallStatement.getFunctionCallExpression().getParameterExpressions(),
+            pCallEdge,
+            pCalledProcedure,
+            pEdgeToPointerTargetSet),
+        returnVariableDummies.build());
+  }
+
+  private SvLibSequenceStatement handleReturnValueAssignmentToHeap(
+      CFAEdge pCallEdge,
+      CFunctionCallAssignmentStatement pAssignmentStatement,
+      ImmutableMap.Builder<CFAEdge, PointerTargetSet> pEdgeToPointerTargetSet)
+      throws CPATransferException, InterruptedException {
+
+    String calledFunctionName =
+        pAssignmentStatement.getRightHandSide().getFunctionNameExpression().toASTString();
+    SvLibProcedureDeclaration calledProcedure = scope.getProcedureDeclaration(calledFunctionName);
+
+    String tmpVariableQualifiedName = constructTmpVariableName(calledProcedure, pCallEdge);
+    SvLibSimpleParsingDeclaration variable =
+        scope.getVariableForQualifiedName(tmpVariableQualifiedName);
+
+    SvLibProcedureCallStatement callStatement =
+        new SvLibProcedureCallStatement(
+            FileLocation.DUMMY,
+            ImmutableList.of(),
+            ImmutableList.of(),
+            calledProcedure,
+            transformInputParameters(
+                pAssignmentStatement.getRightHandSide().getParameterExpressions(),
+                pCallEdge,
+                calledProcedure,
+                pEdgeToPointerTargetSet),
+            ImmutableList.of(variable));
+
+    SvLibSymbolApplicationTerm symbolApplicationTerm =
+        getTmpTerm(
+            tmpVariableQualifiedName,
+            pAssignmentStatement.getLeftHandSide(),
+            pCallEdge,
+            pEdgeToPointerTargetSet);
+    String functionName = pCallEdge.getPredecessor().getFunctionName();
+    // TODO
+    SvLibAssignmentStatement assignmentStatement =
+        createAssignmentStatement(
+            (SvLibIdTerm) symbolApplicationTerm.getTerms().getFirst(),
+            symbolApplicationTerm.getTerms().get(1),
+            functionName);
+
+    return new SvLibSequenceStatement(
+        ImmutableList.of(callStatement, assignmentStatement),
+        FileLocation.DUMMY,
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  private String constructTmpVariableName(
+      SvLibProcedureDeclaration pCalledProcedure, CFAEdge pCallEdge) {
+
+    ImmutableList<@NonNull SvLibParsingParameterDeclaration> returnValues =
+        pCalledProcedure.getReturnValues();
+    SvLibType returnValueType;
+    Verify.verify(returnValues.size() == 1, "Failed to get name of TMP variable.");
+
+    returnValueType = returnValues.getFirst().getType();
+    return pCallEdge.getPredecessor().getFunctionName()
+        + "::"
+        + TMP_VAR_ASSIGNMENT
+        + returnValueType;
+  }
+
+  private SvLibSymbolApplicationTerm getTmpTerm(
+      String tmpVariableQualifiedName,
+      CLeftHandSide pCLeftHandSide,
+      CFAEdge pEdge,
+      ImmutableMap.Builder<CFAEdge, PointerTargetSet> pEdgeToPointerTargetSet)
+      throws CPATransferException, InterruptedException {
+
+    CVariableDeclaration tmpVariableDeclaration =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            false,
+            CStorageClass.AUTO,
+            pCLeftHandSide.getExpressionType(),
+            tmpVariableQualifiedName,
+            tmpVariableQualifiedName,
+            tmpVariableQualifiedName,
+            null);
+
+    CIdExpression variableExpression =
+        new CIdExpression(
+            FileLocation.DUMMY,
+            pCLeftHandSide.getExpressionType(),
+            tmpVariableQualifiedName,
+            tmpVariableDeclaration);
+
+    CExpressionAssignmentStatement tmpCAssignment =
+        new CExpressionAssignmentStatement(FileLocation.DUMMY, pCLeftHandSide, variableExpression);
+
+    CStatementEdge transformationDummyEdge_tmpAssignmentStatement =
+        new CStatementEdge(
+            "", tmpCAssignment, FileLocation.DUMMY, pEdge.getPredecessor(), pEdge.getPredecessor());
+    SvLibTerm svLibTerm =
+        transformEdgeToSvLibTerm(
+            transformationDummyEdge_tmpAssignmentStatement, pEdgeToPointerTargetSet);
+    return (SvLibSymbolApplicationTerm) svLibTerm;
   }
 
   private ImmutableList<SvLibTerm> transformInputParameters(
@@ -525,10 +665,10 @@ class CToSvLibTransformation {
               inputParameter.toASTString(),
               FileLocation.DUMMY,
               pCallEdge.getPredecessor(),
-              pCallEdge.getSuccessor(),
+              pCallEdge.getPredecessor(),
               inputParameter,
               true);
-      SvLibTerm term = transformToSvLibTerm(transformationDummyEdge, pEdgeToPointerTargetSet);
+      SvLibTerm term = transformEdgeToSvLibTerm(transformationDummyEdge, pEdgeToPointerTargetSet);
 
       if (inputParameter instanceof CIdExpression
           && term instanceof SvLibSymbolApplicationTerm symbolApplicationTerm
@@ -593,11 +733,11 @@ class CToSvLibTransformation {
             "1",
             FileLocation.DUMMY,
             pEdge.getPredecessor(),
-            pEdge.getSuccessor(),
+            pEdge.getPredecessor(),
             new CIntegerLiteralExpression(FileLocation.DUMMY, pCType, BigInteger.ONE),
             false);
     SvLibTerm transformedTerm =
-        transformToSvLibTerm(transformationDummyEdge, pEdgeToPointerTargetSet);
+        transformEdgeToSvLibTerm(transformationDummyEdge, pEdgeToPointerTargetSet);
     if (transformedTerm instanceof SvLibSymbolApplicationTerm symbolApplicationTerm
         && symbolApplicationTerm.getTerms().size() == 2) {
       return symbolApplicationTerm;
