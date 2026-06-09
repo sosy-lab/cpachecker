@@ -15,6 +15,21 @@ import java.util.Set;
 import java.util.function.BinaryOperator;
 import org.sosy_lab.cpachecker.cpa.interval.Interval;
 
+/**
+ * Aligns two {@link FunArray} instances so their segment bounds coincide, enabling pointwise
+ * operations on corresponding segments. The unification algorithm processes the bound lists
+ * left-to-right, resolving six possible cases at each index position (Section 11.4 in Cousot,
+ * Cousot, and Logozzo (2011)).
+ *
+ * <p>The class is instantiated with two arrays and mutates internal bound, value, and emptiness
+ * lists during {@link #unify}. The result is a {@link UnifyResult} holding two new {@link
+ * FunArray}s with identical bound structure, ready for a pointwise operation.
+ *
+ * <p>See: Patrick Cousot, Radhia Cousot, and Francesco Logozzo. 2011. A parametric segmentation
+ * functor for fully automatic and scalable array content analysis. SIGPLAN Not. 46, 1 (January
+ * 2011), 105–118. <a href="https://doi.org/10.1145/1925844.1926399">
+ * https://doi.org/10.1145/1925844.1926399</a>
+ */
 public class FunArrayUnification {
 
   List<Bound> boundsA;
@@ -26,6 +41,13 @@ public class FunArrayUnification {
 
   int currentIndex;
 
+  /**
+   * Initializes the unification state by copying the bounds, values, and emptiness flags of both
+   * arrays into mutable lists that will be updated during {@link #unify}.
+   *
+   * @param arrayA the first FunArray to unify.
+   * @param arrayB the second FunArray to unify.
+   */
   public FunArrayUnification(FunArray arrayA, FunArray arrayB) {
     this.boundsA = new ArrayList<>(arrayA.bounds());
     this.boundsB = new ArrayList<>(arrayB.bounds());
@@ -35,8 +57,20 @@ public class FunArrayUnification {
     this.emptinessB = new ArrayList<>(arrayB.emptiness());
   }
 
+  /** Holds the two structurally aligned FunArrays produced by a successful unification. */
   public record UnifyResult(FunArray resultA, FunArray resultB) {}
 
+  /**
+   * Runs the unification algorithm to produce two {@link FunArray}s with identical bound
+   * structure. The algorithm steps through the bound lists left-to-right, applying one of the six
+   * cases from Section 11.4 of Cousot, Cousot, and Logozzo (2011) at each position until both lists
+   * are exhausted. The resulting arrays are cleaned up with {@link FunArray#removeEmptyBounds()}
+   * before being returned.
+   *
+   * @param neutralElementA the interval inserted into newly created segments in array A.
+   * @param neutralElementB the interval inserted into newly created segments in array B.
+   * @return a {@link UnifyResult} containing two structurally aligned FunArrays.
+   */
   public UnifyResult unify(Interval neutralElementA, Interval neutralElementB) {
     while (currentIndex < boundsA.size() - 1 || currentIndex < boundsB.size() - 1) {
 
@@ -107,22 +141,54 @@ public class FunArrayUnification {
         new FunArray(boundsB, valuesB, emptinessB).removeEmptyBounds());
   }
 
-  // Corresponds to case 1: The bounds are equal.
+  /**
+   * Handles Case 1 of the unification algorithm: the current bounds of A and B are equal. Advances
+   * the index without modifying either array.
+   */
   private void handleEqual() {
     currentIndex++;
   }
 
-  // Corresponds to case 2: Current bound A is a superset of current bound B.
+  /**
+   * Handles Case 2 of the unification algorithm: the current bound of A is a strict superset of the
+   * current bound of B. Delegates to {@link #handleSuperset} with A as the superset array.
+   *
+   * @param uniqueToA the expressions present in A's bound but not B's.
+   * @param intersection the expressions common to both bounds.
+   * @param neutralElementA the neutral interval for newly inserted A segments.
+   */
   private void handleAIsSuperset(Bound uniqueToA, Bound intersection, Interval neutralElementA) {
     handleSuperset(uniqueToA, intersection, boundsA, valuesA, emptinessA, boundsB, neutralElementA);
   }
 
-  // Corresponds to case 3: Current bound B is a superset of current bound A.
+  /**
+   * Handles Case 3 of the unification algorithm: the current bound of B is a strict superset of the
+   * current bound of A. Delegates to {@link #handleSuperset} with B as the superset array.
+   *
+   * @param uniqueToB the expressions present in B's bound but not A's.
+   * @param intersection the expressions common to both bounds.
+   * @param neutralElementB the neutral interval for newly inserted B segments.
+   */
   private void handleBIsSuperset(Bound uniqueToB, Bound intersection, Interval neutralElementB) {
     handleSuperset(uniqueToB, intersection, boundsB, valuesB, emptinessB, boundsA, neutralElementB);
   }
 
-  // The general case for either case 2 or 3
+  /**
+   * Generalizes the superset handling for Cases 2 and 3. If none of the unique expressions of the
+   * superset bound appear later in the opposite array's bounds (case 2.1 / 3.1), the superset bound
+   * is shrunk to the intersection. Otherwise (case 2.2 / 3.2), the superset bound is split: the
+   * intersection becomes the lower bound at the current index, and a new possibly-empty segment
+   * with value {@code neutralElement} is inserted between the intersection and the unique
+   * expressions, which are placed as the upper bound of that new segment.
+   *
+   * @param uniqueToSuperset the expressions unique to the superset bound.
+   * @param intersection the expressions shared by both bounds.
+   * @param bounds the mutable bound list of the superset array.
+   * @param values the mutable value list of the superset array.
+   * @param emptiness the mutable emptiness list of the superset array.
+   * @param oppositeBounds the mutable bound list of the other array.
+   * @param neutralElement the interval inserted for the new segment.
+   */
   // TODO Hofstetter: This is propably just a special case of case 4. Replace it.
   private void handleSuperset(
       Bound uniqueToSuperset,
@@ -146,6 +212,15 @@ public class FunArrayUnification {
     }
   }
 
+  /**
+   * Returns the subset of expressions in {@code bound} that also appear in {@code oppositeBounds}
+   * at or after the current index position. These are the expressions that will eventually be
+   * encountered in the other array, and should therefore be preserved by anticipating them earlier.
+   *
+   * @param bound the bound whose expressions are tested.
+   * @param oppositeBounds the other array's bound list.
+   * @return the expressions from {@code bound} anticipated in {@code oppositeBounds}.
+   */
   private Set<NormalFormExpression> filterAnticipatedInOppositeBounds(
       Bound bound, List<Bound> oppositeBounds) {
     Set<NormalFormExpression> anticipatedInOppositeBounds =
@@ -159,7 +234,18 @@ public class FunArrayUnification {
         .collect(ImmutableSet.toImmutableSet());
   }
 
-  // Corresponds to case 4: The bounds are partially overlapping.
+  /**
+   * Handles Case 4 of the unification algorithm: the current bounds of A and B partially overlap.
+   * For each array's unique expressions that are anticipated in the opposite array, new segments
+   * are inserted at the current position. If all unique expressions on both sides are fully
+   * anticipated, the case degenerates to Case 5 ({@link #handleDisjoint}).
+   *
+   * @param uniqueToA expressions exclusive to A's bound.
+   * @param uniqueToB expressions exclusive to B's bound.
+   * @param intersection expressions shared by both bounds.
+   * @param neutralElementA the neutral interval inserted for new segments in A.
+   * @param neutralElementB the neutral interval inserted for new segments in B.
+   */
   private void handlePartiallyOverlapping(
       Bound uniqueToA,
       Bound uniqueToB,
@@ -193,7 +279,11 @@ public class FunArrayUnification {
     }
   }
 
-  // Corresponds to case 5: The bounds are entirely disjoint.
+  /**
+   * Handles Case 5 of the unification algorithm: the current bounds of A and B are
+   * entirely disjoint. Both bounds at the current index are dropped, and their segment values are
+   * joined into the preceding segment in each array.
+   */
   private void handleDisjoint() {
     // A prerequisite for array unification is that the two arrays must have the same extremal
     // bounds. Therefore, if the current bounds are entirely disjoint, this cannot be the first
@@ -204,6 +294,15 @@ public class FunArrayUnification {
     dropBound(boundsB, valuesB, emptinessB, currentIndex);
   }
 
+  /**
+   * Removes the bound at {@code index} from a bound list and merges its associated segment value
+   * and emptiness flag into the preceding segment via a union operation.
+   *
+   * @param bounds the mutable bound list to modify.
+   * @param values the mutable value list to modify.
+   * @param emptiness the mutable emptiness list to modify.
+   * @param index the index of the bound to drop.
+   */
   private void dropBound(
       List<Bound> bounds, List<Interval> values, List<Boolean> emptiness, int index) {
     bounds.remove(index);
@@ -211,6 +310,15 @@ public class FunArrayUnification {
     joinElementWithPredecessor(emptiness, index, FunArrayUnification::joinEmptiness);
   }
 
+  /**
+   * Joins the element at {@code index} with its predecessor in {@code list} using {@code join},
+   * then removes the element at {@code index}, leaving the combined result at {@code index - 1}.
+   *
+   * @param <T> the element type.
+   * @param list the mutable list to modify.
+   * @param index the index of the element to join with its predecessor.
+   * @param join the binary operator used to combine the two elements.
+   */
   private static <T> void joinElementWithPredecessor(
       List<T> list, int index, BinaryOperator<T> join) {
     assert index < list.size();
@@ -221,20 +329,41 @@ public class FunArrayUnification {
     list.remove(index - 1);
   }
 
-  // Emptiness forms a lattice. Union of two emptinesses corresponds to the logical OR operation, as
-  // specified in Cousot, Cousot and Logozzo (2011) in chapter 11.2.
+  /**
+   * Joins two emptiness flags. The union of two emptiness values corresponds to logical OR, as
+   * implied in Section 11.2 of Cousot, Cousot, and Logozzo (2011): a merged segment may be empty
+   * if either of its constituent segments may be empty.
+   *
+   * @param a the first emptiness flag.
+   * @param b the second emptiness flag.
+   * @return {@code true} if either segment may be empty.
+   */
   private static boolean joinEmptiness(boolean a, boolean b) {
     return a || b;
   }
 
+  /** Delegates to {@link #handleLast} when array A is exhausted (Case 6). */
   private void handleLastInA() {
     handleLast(boundsA, boundsB, valuesB, emptinessB, currentIndex);
   }
 
+  /** Delegates to {@link #handleLast} when array B is exhausted (Case 6). */
   private void handleLastInB() {
     handleLast(boundsB, boundsA, valuesA, emptinessA, currentIndex);
   }
 
+  /**
+   * Handles Case 6 of the unification algorithm: one array has reached its last
+   * bound while the other still has remaining bounds. The current bound of the exhausted array is
+   * merged with the current and next bound of the ongoing array into a single joint bound, and the
+   * now-redundant segment in the ongoing array is removed.
+   *
+   * @param exhaustedBounds the mutable bound list of the array that has reached its last bound.
+   * @param ongoingBounds the mutable bound list of the array that still has remaining bounds.
+   * @param ongoingValues the mutable value list of the ongoing array.
+   * @param ongoingEmptiness the mutable emptiness list of the ongoing array.
+   * @param currentIndex the current index position in both bound lists.
+   */
   private static void handleLast(
       List<Bound> exhaustedBounds,
       List<Bound> ongoingBounds,
