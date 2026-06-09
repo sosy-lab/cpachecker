@@ -361,9 +361,10 @@ analysis.algorithm.MPOR.executeSingleActiveThreadFirst = true
 analysis.algorithm.MPOR.executeThreadsUntilConflict = false
 
 # Include original function declarations from the input program? Including
-# them may result in unsound analysis (e.g. false alarms for CBMC, or ignored
-# function calls through function pointers for CPAchecker).
-analysis.algorithm.MPOR.inputFunctionDeclarations = false
+# them may result in an unsound analysis (e.g. false alarms for CBMC). Not
+# including them may  result in the output program producing errors when
+# compiled e.g. by clang.
+analysis.algorithm.MPOR.inputFunctionDeclarations = true
 
 # Include original type declarations from the input file? Disabling may
 # result in parse errors for the output program.

@@ -21,10 +21,7 @@ import java.util.Map;
 import org.junit.rules.TemporaryFolder;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -46,21 +43,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
-public class TestDataTools {
-
-  /**
-   * Create a configuration suitable for unit tests (writing output files is disabled).
-   *
-   * @return A {@link ConfigurationBuilder} which can be further modified and then can be used to
-   *     {@link ConfigurationBuilder#build()} a {@link Configuration} object.
-   */
-  public static ConfigurationBuilder configurationForTest() throws InvalidConfigurationException {
-    Configuration typeConverterConfig =
-        Configuration.builder().setOption("output.disable", "true").build();
-    FileTypeConverter fileTypeConverter = FileTypeConverter.create(typeConverterConfig);
-    Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
-    return Configuration.builder().addConverter(FileOption.class, fileTypeConverter);
-  }
+/** Various utilities for creating a CFA or parts of it for tests. */
+public class TestCfaUtils {
 
   public static CIdExpression makeVariable(String varName, CSimpleType varType) {
     FileLocation loc = FileLocation.DUMMY;
@@ -73,7 +57,7 @@ public class TestDataTools {
 
   public static ImmutableCFA makeCFA(String program) throws ParserException, InterruptedException {
     try {
-      return makeCFA(configurationForTest().build(), program);
+      return makeCFA(TestUtils.configurationForTest().build(), program);
     } catch (InvalidConfigurationException e) {
       throw new AssertionError("Default configuration is invalid?");
     }

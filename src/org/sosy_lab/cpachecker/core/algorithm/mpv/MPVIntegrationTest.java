@@ -27,10 +27,10 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.property.AbstractSingleProperty;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.property.AutomataSingleProperty;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
-import org.sosy_lab.cpachecker.util.test.TestResults;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 
-public class MPVTest {
+public class MPVIntegrationTest {
 
   private static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
   private static final int DEFAULT_TIME_LIMIT_PER_PROPERTY = 5; // seconds
@@ -258,9 +258,9 @@ public class MPVTest {
   }
 
   private void checkResults(
-      TestResults actualResults, String[][] idealResults, Result overallExpectedResult) {
+      IntegrationTestResult actualResults, String[][] idealResults, Result overallExpectedResult) {
     actualResults.assertIs(overallExpectedResult);
-    List<AbstractSingleProperty> propertiesResults = parseResult(actualResults.getCheckerResult());
+    List<AbstractSingleProperty> propertiesResults = parseResult(actualResults.cpaCheckerResult());
     if (overallExpectedResult.equals(Result.NOT_YET_STARTED)) {
       assertThat(propertiesResults).isEmpty();
     } else {
@@ -270,8 +270,8 @@ public class MPVTest {
 
   @Test
   public void simpleTest() throws Exception {
-    TestResults results =
-        CPATestRunner.run(
+    IntegrationTestResult results =
+        IntegrationTestRunner.run(
             createConfig(AUTOMATA_FILES, "AUTOMATON", "NoPartitioningOperator", false),
             SIMPLE_TEST);
     checkResults(results, BASIC_IDEAL_RESULTS, Result.FALSE);
@@ -279,16 +279,16 @@ public class MPVTest {
 
   @Test
   public void filePropertySeparator() throws Exception {
-    TestResults results =
-        CPATestRunner.run(
+    IntegrationTestResult results =
+        IntegrationTestRunner.run(
             createConfig(AUTOMATA_FILES, "FILE", "NoPartitioningOperator", false), SIMPLE_TEST);
     checkResults(results, BASIC_FILE_IDEAL_RESULTS, Result.FALSE);
   }
 
   @Test
   public void separatePartitioning() throws Exception {
-    TestResults results =
-        CPATestRunner.run(
+    IntegrationTestResult results =
+        IntegrationTestRunner.run(
             createConfig(AUTOMATA_FILES, "AUTOMATON", "SeparatePartitioningOperator", false),
             SIMPLE_TEST);
     checkResults(results, BASIC_IDEAL_RESULTS, Result.FALSE);
@@ -296,8 +296,8 @@ public class MPVTest {
 
   @Test
   public void relevancePartitioning() throws Exception {
-    TestResults results =
-        CPATestRunner.run(
+    IntegrationTestResult results =
+        IntegrationTestRunner.run(
             createConfig(AUTOMATA_FILES, "AUTOMATON", "RelevancePartitioningOperator", false),
             SIMPLE_TEST);
     checkResults(results, BASIC_IDEAL_RESULTS, Result.FALSE);
@@ -305,8 +305,8 @@ public class MPVTest {
 
   @Test
   public void jointPartitioning() throws Exception {
-    TestResults results =
-        CPATestRunner.run(
+    IntegrationTestResult results =
+        IntegrationTestRunner.run(
             createConfig(AUTOMATA_FILES, "AUTOMATON", "JointPartitioningOperator", false),
             SIMPLE_TEST);
     checkResults(results, BASIC_IDEAL_RESULTS, Result.FALSE);
@@ -314,8 +314,8 @@ public class MPVTest {
 
   @Test
   public void meaAllViolations() throws Exception {
-    TestResults results =
-        CPATestRunner.run(
+    IntegrationTestResult results =
+        IntegrationTestRunner.run(
             createConfig(AUTOMATA_FILES, "AUTOMATON", "NoPartitioningOperator", true), SIMPLE_TEST);
     checkResults(results, BASIC_IDEAL_RESULTS, Result.FALSE);
   }
@@ -324,8 +324,8 @@ public class MPVTest {
   public void onlySafeVerdicts() throws Exception {
     String[] safeAutomata =
         Arrays.stream(AUTOMATA_FILES).filter(s -> !s.contains("spin")).toArray(String[]::new);
-    TestResults results =
-        CPATestRunner.run(
+    IntegrationTestResult results =
+        IntegrationTestRunner.run(
             createConfig(safeAutomata, "AUTOMATON", "NoPartitioningOperator", true), SIMPLE_TEST);
     String[][] idealResults =
         Arrays.stream(BASIC_IDEAL_RESULTS)
@@ -336,8 +336,8 @@ public class MPVTest {
 
   @Test
   public void meaPartialResult() throws Exception {
-    TestResults results =
-        CPATestRunner.run(
+    IntegrationTestResult results =
+        IntegrationTestRunner.run(
             createConfig(AUTOMATA_FILES, "AUTOMATON", "SeparatePartitioningOperator", true),
             MEA_TEST);
     checkResults(results, MEA_IDEAL_RESULTS, Result.FALSE);
@@ -345,8 +345,8 @@ public class MPVTest {
 
   @Test
   public void innerTimeLimit() throws Exception {
-    TestResults results =
-        CPATestRunner.run(
+    IntegrationTestResult results =
+        IntegrationTestRunner.run(
             createConfig(AUTOMATA_FILES, "AUTOMATON", "SeparatePartitioningOperator", false),
             ITL_TEST);
     checkResults(results, ITL_IDEAL_RESULTS, Result.FALSE);
@@ -356,8 +356,8 @@ public class MPVTest {
   public void overallUnknown() throws Exception {
     String[] safeOrUnknownAutomata =
         Arrays.stream(AUTOMATA_FILES).filter(s -> !s.contains("spin")).toArray(String[]::new);
-    TestResults results =
-        CPATestRunner.run(
+    IntegrationTestResult results =
+        IntegrationTestRunner.run(
             createConfig(safeOrUnknownAutomata, "AUTOMATON", "SeparatePartitioningOperator", true),
             ITL_TEST);
     String[][] idealResults =
@@ -369,23 +369,24 @@ public class MPVTest {
 
   @Test
   public void badSeparator() throws Exception {
-    TestResults results =
-        CPATestRunner.run(
+    IntegrationTestResult results =
+        IntegrationTestRunner.run(
             createConfig(AUTOMATA_FILES, BAD_NAME, "NoPartitioningOperator", true), SIMPLE_TEST);
     checkResults(results, null, Result.NOT_YET_STARTED);
   }
 
   @Test
   public void badPartitioning() throws Exception {
-    TestResults results =
-        CPATestRunner.run(createConfig(AUTOMATA_FILES, "AUTOMATON", BAD_NAME, true), SIMPLE_TEST);
+    IntegrationTestResult results =
+        IntegrationTestRunner.run(
+            createConfig(AUTOMATA_FILES, "AUTOMATON", BAD_NAME, true), SIMPLE_TEST);
     checkResults(results, null, Result.NOT_YET_STARTED);
   }
 
   @Test
   public void badFileName() throws Exception {
-    TestResults results =
-        CPATestRunner.run(
+    IntegrationTestResult results =
+        IntegrationTestRunner.run(
             createConfig(AUTOMATA_FILES, "AUTOMATON", "NoPartitioningOperator", true), BAD_NAME);
     checkResults(results, null, Result.NOT_YET_STARTED);
   }

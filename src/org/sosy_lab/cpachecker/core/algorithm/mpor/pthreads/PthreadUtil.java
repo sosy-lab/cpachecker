@@ -221,6 +221,23 @@ public class PthreadUtil {
   // boolean helpers ===============================================================================
 
   /**
+   * Returns {@code true} if {@code pCfaEdge} is a call to {@code pFunctionType} and {@code false}
+   * otherwise.
+   */
+  public static boolean isCallToPthreadFunction(
+      CFAEdge pCfaEdge, PthreadFunctionType pFunctionType) {
+
+    Optional<CFunctionCall> functionCall = tryGetFunctionCallFromCfaEdge(pCfaEdge);
+    return functionCall.isPresent()
+        && functionCall
+            .orElseThrow()
+            .getFunctionCallExpression()
+            .getFunctionNameExpression()
+            .toASTString()
+            .equals(pFunctionType.name);
+  }
+
+  /**
    * Returns {@code true} if {@code pFunctionCall} is a call to {@code pFunctionType} and {@code
    * false} otherwise.
    */

@@ -10,11 +10,18 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
+import org.junit.BeforeClass;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
-import org.sosy_lab.cpachecker.util.test.TestResults;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 
-public class ValueAnalysisTest {
+public class ValueAnalysisIntegrationTest {
+
+  @BeforeClass
+  public static void skipUnlessExtendedTestsEnabled() {
+    IntegrationTestRunner.skipUnlessExtendedTestsEnabled();
+  }
+
   // Specification Tests
   @Test
   public void ignoreVariablesTest1() throws Exception {
@@ -29,8 +36,9 @@ public class ValueAnalysisTest {
             "ValueAnalysisCPA.precision.variableBlacklist", "__SELECTED_FEATURE_(\\w)*",
             "cpa.composite.precAdjust", "COMPONENT");
 
-    TestResults results =
-        CPATestRunner.run(prop, "test/programs/simple/explicit/explicitIgnoreFeatureVars.c");
+    IntegrationTestResult results =
+        IntegrationTestRunner.run(
+            prop, "test/programs/simple/explicit/explicitIgnoreFeatureVars.c");
     results.assertIsUnsafe();
   }
 
@@ -45,8 +53,9 @@ public class ValueAnalysisTest {
             "specification", "config/specification/default.spc",
             "ValueAnalysisCPA.precision.variableBlacklist", "somethingElse");
 
-    TestResults results =
-        CPATestRunner.run(prop, "test/programs/simple/explicit/explicitIgnoreFeatureVars.c");
+    IntegrationTestResult results =
+        IntegrationTestRunner.run(
+            prop, "test/programs/simple/explicit/explicitIgnoreFeatureVars.c");
     results.assertIsSafe();
   }
 }

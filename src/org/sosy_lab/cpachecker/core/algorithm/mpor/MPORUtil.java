@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /** Contains static methods that can be reused outside the MPOR context. */
 public final class MPORUtil {
@@ -300,14 +300,14 @@ public final class MPORUtil {
   public static CFACreator buildTestCfaCreator(
       LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
 
-    return new CFACreator(TestDataTools.configurationForTest().build(), pLogger, pShutdownNotifier);
+    return new CFACreator(TestUtils.configurationForTest().build(), pLogger, pShutdownNotifier);
   }
 
   public static CFACreator buildTestCfaCreatorWithPreprocessor(
       LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
 
     return new CFACreator(
-        TestDataTools.configurationForTest().setOption("parser.usePreprocessor", "true").build(),
+        TestUtils.configurationForTest().setOption("parser.usePreprocessor", "true").build(),
         pLogger,
         pShutdownNotifier);
   }

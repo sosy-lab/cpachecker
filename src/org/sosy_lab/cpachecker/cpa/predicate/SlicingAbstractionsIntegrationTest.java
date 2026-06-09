@@ -21,19 +21,25 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
-import org.sosy_lab.cpachecker.util.test.TestResults;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /** Integration testing for Slicing Abstractions. */
 @RunWith(Parameterized.class)
-public class SlicingAbstractionsTest {
+public class SlicingAbstractionsIntegrationTest {
+
+  @BeforeClass
+  public static void skipUnlessExtendedTestsEnabled() {
+    IntegrationTestRunner.skipUnlessExtendedTestsEnabled();
+  }
 
   private static final String TEST_DIR_PATH = "test/programs/slicingabstractions/";
   private static final String CONFIG_DIR_PATH = "config/";
@@ -87,17 +93,19 @@ public class SlicingAbstractionsTest {
 
     File configfolder = new File(CONFIG_DIR_PATH);
     List<Object> configs =
-        FluentIterable.from(configfolder.listFiles(SlicingAbstractionsTest::isConfig))
+        FluentIterable.from(configfolder.listFiles(SlicingAbstractionsIntegrationTest::isConfig))
             .<Object>transform(File::getName)
             .toList();
 
     List<Object> slabConfigs =
-        FluentIterable.from(configfolder.listFiles(SlicingAbstractionsTest::isSlabConfig))
+        FluentIterable.from(
+                configfolder.listFiles(SlicingAbstractionsIntegrationTest::isSlabConfig))
             .<Object>transform(File::getName)
             .toList();
 
     List<Object> overflowConfigs =
-        FluentIterable.from(configfolder.listFiles(SlicingAbstractionsTest::isOverflowConfig))
+        FluentIterable.from(
+                configfolder.listFiles(SlicingAbstractionsIntegrationTest::isOverflowConfig))
             .<Object>transform(File::getName)
             .toList();
 
@@ -110,8 +118,8 @@ public class SlicingAbstractionsTest {
     FluentIterable<Object[]> firstIterable =
         FluentIterable.from(
                 Lists.cartesianProduct(files, configs, solverModes, optimizeModes, minimalModes))
-            .transform(SlicingAbstractionsTest::repack)
-            .filter(SlicingAbstractionsTest::filter);
+            .transform(SlicingAbstractionsIntegrationTest::repack)
+            .filter(SlicingAbstractionsIntegrationTest::filter);
 
     FluentIterable<Object[]> secondIterable =
         FluentIterable.from(Lists.cartesianProduct(files, slabConfigs))
@@ -183,7 +191,7 @@ public class SlicingAbstractionsTest {
     return true;
   }
 
-  public SlicingAbstractionsTest(
+  public SlicingAbstractionsIntegrationTest(
       String filename,
       String configname,
       Map<String, String> extraOptions,
@@ -205,7 +213,7 @@ public class SlicingAbstractionsTest {
   private void check(String pFilename, Configuration config) throws Exception {
     String fullPath = Path.of(TEST_DIR_PATH, filename).toString();
 
-    TestResults results = CPATestRunner.run(config, fullPath);
+    IntegrationTestResult results = IntegrationTestRunner.run(config, fullPath);
     if (!configname.contains("overflow")) {
       if (pFilename.contains("_true-assert") || pFilename.contains("_true-unreach")) {
         results.assertIsSafe();
@@ -227,7 +235,7 @@ public class SlicingAbstractionsTest {
 
   private Configuration getProperties(String configFile, Map<String, String> extra)
       throws InvalidConfigurationException, IOException {
-    return TestDataTools.configurationForTest()
+    return TestUtils.configurationForTest()
         .loadFromFile(CONFIG_DIR_PATH + configFile)
         .setOptions(extra)
         .build();

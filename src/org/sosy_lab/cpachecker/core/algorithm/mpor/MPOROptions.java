@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_eleme
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PartialOrderReductionMode;
 import org.sosy_lab.cpachecker.util.cwriter.ClangFormatStyle;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /** Contains all {@link Option} fields used to adjust {@link MporPreprocessingAlgorithm}. */
 @Options(prefix = "analysis.algorithm.MPOR")
@@ -110,9 +110,9 @@ public class MPOROptions {
       secure = true,
       description =
           "Include original function declarations from the input program? Including them may result"
-              + " in unsound analysis (e.g. false alarms for CBMC, or ignored function calls"
-              + " through function pointers for CPAchecker).")
-  private boolean inputFunctionDeclarations = false;
+              + " in an unsound analysis (e.g. false alarms for CBMC). Not including them may "
+              + " result in the output program producing errors when compiled e.g. by clang.")
+  private boolean inputFunctionDeclarations = true;
 
   @Option(
       secure = true,
@@ -278,7 +278,7 @@ public class MPOROptions {
 
   /** Returns an instance of {@link MPOROptions} with all standard {@link Option}s. */
   public static MPOROptions getDefaultTestInstance() throws InvalidConfigurationException {
-    return new MPOROptions(TestDataTools.configurationForTest().build());
+    return new MPOROptions(TestUtils.configurationForTest().build());
   }
 
   // Rejection =====================================================================================

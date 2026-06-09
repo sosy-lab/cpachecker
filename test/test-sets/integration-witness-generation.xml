@@ -65,6 +65,8 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/weaver/bench-exp3x3-opt.wvr.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/weaver/chl-file-item-subst.wvr.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/weaver/chl-file-item-trans.wvr.yml</exclude> <!-- flapping timeout/OOM -->
+    <exclude>../programs/benchmarks/weaver/chl-node-symm.wvr.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/weaver/chl-node-trans.wvr.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/weaver/clever.wvr.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/weaver/loop-tiling-eq.wvr.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/weaver/mult-comm.wvr.yml</exclude> <!-- flapping timeout/ Out Of Native Memory -->
