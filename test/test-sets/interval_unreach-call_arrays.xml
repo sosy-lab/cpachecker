@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<benchmark tool="cpachecker" timelimit="15 min" hardtimelimit="16 min" memlimit="15 GB" cpuCores="2">
+ 
+
+  <option name="--interval"/>
+  <option name="--heap">10000M</option>
+  <option name="--benchmark"/>
+  <option name="--timelimit">900 s</option>
+
+  <tasks name="C.unreach-call.Arrays">
+      <includesfile>../programs/benchmarks/Arrays.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    </tasks>
+
+  <rundefinition name="SV-COMP26_C.unreach-call.Arrays">
+    <tasks name="C.unreach-call.Arrays">
+      <includesfile>../programs/benchmarks/Arrays.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+</benchmark>
