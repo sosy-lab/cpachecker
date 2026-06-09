@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.transformation;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -129,6 +130,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
       }
     }
     // add parameter edges
+    ImmutableList.Builder<CFANode> parameterNodes = new ImmutableList.Builder<>();
     CFANode nodeBeforeParams = nodeMap.get(transformationData.tmpVarDeclarationEdge.getPredecessor());
     ImmutableList<CExpression> parameterExpressions;
     if (isSuperGraph) {
@@ -154,6 +156,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
       edges.add(newEdge);
       preNode.addLeavingEdge(newEdge);
       succNode.addEnteringEdge(newEdge);
+      parameterNodes.add(preNode);
       if (i < parameters.size() - 1) {
         preNode = nodesList.get(nodeMap.size() + i);
       }
@@ -173,8 +176,10 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
                 ImmutableSet.copyOf(nodesList),
                 ImmutableSet.copyOf(edgesList)),
             new TailRecursionEliminationRecovery(
-                nodeMap,
+                ImmutableBiMap.copyOf(nodeMap).inverse(),
                 parameters.size(),
+                nodeMap.get(transformationData.nodeBeforeExitCondition),
+                parameterNodes.build(),
                 transformationData.tmpVarDeclarationEdge,
                 transformationData.tmpVarAssignmentEdge,
                 transformationData.tmpVarReturnEdge)));

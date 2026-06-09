@@ -63,12 +63,7 @@ public class ProgramTransformationARGRecoveryAlgorithm implements Algorithm {
       logger = pLogger;
       nodesToProgramTransformations = pCFA.getMetadata().getNodesToProgramTransformations().orElse(
           ImmutableListMultimap.of());
-      ARGCPA argCPA = (ARGCPA) pCPA;
-      for (ConfigurableProgramAnalysis cpa : argCPA.getWrappedCPAs()) {
-        if (cpa instanceof LocationCPA locCPA) {
-          locFac = locCPA.getStateFactory();
-        }
-      }
+      locFac = ((ARGCPA) pCPA).retrieveWrappedCpa(LocationCPA.class).getStateFactory();
     }
 
     @Override
@@ -194,9 +189,9 @@ public class ProgramTransformationARGRecoveryAlgorithm implements Algorithm {
         childProgramTransformation.programTransformationRecovery().revertProgramTransformation(
             parentARGState,
             childARGState,
-            childProgramTransformation.subCFA(),
             // TODO use Optional
             parentProgramTransformation == null ? null : parentProgramTransformation.subCFA(),
+            childProgramTransformation.subCFA(),
             reached,
             locationStateFactory
         );
@@ -205,26 +200,4 @@ public class ProgramTransformationARGRecoveryAlgorithm implements Algorithm {
         break;
     }
   }
-
-//  private void revertTailRecursionElimination(
-//      AbstractState pBeforeState,
-//      AbstractState pInitialState,
-//      SubCFA pBeforeProgramTransformation,
-//      SubCFA pAfterProgramTransformation,
-//      ReachedSet reached
-//  ) {
-//    LocationStateFactory locFac;
-//    CompositeState newCompositeState;
-//    CompositeState compositeState = (CompositeState) ((ARGState) pInitialState).getWrappedState();
-//    for (AbstractState state : compositeState.getWrappedStates()) {
-//      if (state instanceof LocationState locState) {
-//
-//        newCompositeState = (CompositeState) compositeState.forkWithReplacements(new ArrayList<>());
-//      }
-//    }
-//
-//    //ARGState testState = new ARGState(newCompositeState, (ARGState) pBeforeState);
-//    //((ARGState) pInitialState).replaceInARGWith(testState);
-//
-//  }
 }
