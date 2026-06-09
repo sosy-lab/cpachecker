@@ -28,9 +28,9 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
-import org.sosy_lab.cpachecker.util.test.TestResults;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class CToSvLibAlgorithmTest {
 
@@ -47,7 +47,7 @@ public class CToSvLibAlgorithmTest {
     LogManager logger = LogManager.createTestLogManager();
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
     Configuration config =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .setOptions(
                 ImmutableMap.of(
                     "cpa.predicate.encodeBitvectorAs",
@@ -74,11 +74,11 @@ public class CToSvLibAlgorithmTest {
   // *********************************** Test for config file ***********************************
   private void transformationConfigFileTest(Path pInputFilePath) throws Exception {
     Configuration config =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .loadFromFile(Path.of("config/transformToSvLib.properties"))
             .build();
 
-    CPATestRunner.run(config, pInputFilePath.toString());
+    IntegrationTestRunner.run(config, pInputFilePath.toString());
   }
 
   @Test
@@ -174,11 +174,11 @@ public class CToSvLibAlgorithmTest {
 
   private void testAndVerifyError(Path pInputFilePath, Result pExpectedVerdict) throws Exception {
     Configuration config =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .loadFromFile(Path.of("config/transformToSvLib.properties"))
             .build();
 
-    TestResults results = CPATestRunner.run(config, pInputFilePath.toString());
+    IntegrationTestResult results = IntegrationTestRunner.run(config, pInputFilePath.toString());
     results.assertIs(pExpectedVerdict);
     @SuppressWarnings("unused")
     String resultString = results.toString();
