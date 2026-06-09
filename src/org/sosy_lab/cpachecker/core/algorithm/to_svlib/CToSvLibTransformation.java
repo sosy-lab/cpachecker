@@ -82,7 +82,8 @@ class CToSvLibTransformation {
 
   private final SvLibCurrentScope scope;
 
-  private final String INPUT_DUMMY_VAR_PREFIX;
+  private final String INPUT_VAR_DUMMY_PREFIX;
+  private final String RETURN_VAR_DUMMY_PREFIX;
   private final ImmutableSet<String> NAMES_OF_ASSERT_FUNCTIONS;
 
   CToSvLibTransformation(
@@ -91,14 +92,16 @@ class CToSvLibTransformation {
       PathFormulaManager pPathFormulaManager,
       FormulaToSvLibVisitor pFormulaToSvLibVisitor,
       SvLibCurrentScope pCurrentScope,
-      String pINPUT_DUMMY_VAR_PREFIX,
+      String pINPUT_VAR_DUMMY_PREFIX,
+      String pRETURN_VAR_DUMMY_PREFIX,
       ImmutableSet<String> pNAMES_OF_ASSERT_FUNCTIONS) {
     cfa = pCFA;
     formulaManager = pFormulaManager;
     pathFormulaManager = pPathFormulaManager;
     formulaToSvLibVisitor = pFormulaToSvLibVisitor;
     scope = pCurrentScope;
-    INPUT_DUMMY_VAR_PREFIX = pINPUT_DUMMY_VAR_PREFIX;
+    INPUT_VAR_DUMMY_PREFIX = pINPUT_VAR_DUMMY_PREFIX;
+    RETURN_VAR_DUMMY_PREFIX = pRETURN_VAR_DUMMY_PREFIX;
     NAMES_OF_ASSERT_FUNCTIONS = pNAMES_OF_ASSERT_FUNCTIONS;
   }
 
@@ -426,7 +429,7 @@ class CToSvLibTransformation {
           calledProcedure.getReturnValues()) {
         SvLibType returnType = parsingParameterDeclaration.getType();
         SvLibSimpleParsingDeclaration returnDummyVariable =
-            scope.getVariable("transformationDummyReturn_" + returnType);
+            scope.getVariable(RETURN_VAR_DUMMY_PREFIX + returnType);
         returnVariableDummies.add(returnDummyVariable);
       }
 
@@ -484,7 +487,7 @@ class CToSvLibTransformation {
           calledProcedure.getReturnValues()) {
         SvLibType returnType = parsingParameterDeclaration.getType();
         SvLibSimpleParsingDeclaration returnDummyVariable =
-            scope.getVariable("transformationDummyReturn_" + returnType);
+            scope.getVariable(RETURN_VAR_DUMMY_PREFIX + returnType);
         returnVariableDummies.add(returnDummyVariable);
       }
 
@@ -757,11 +760,11 @@ class CToSvLibTransformation {
   }
 
   private String getOriginalNameOfInputParameterDummy(String pDummyName) {
-    if (pDummyName.startsWith(INPUT_DUMMY_VAR_PREFIX)) {
+    if (pDummyName.startsWith(INPUT_VAR_DUMMY_PREFIX)) {
       // return the name without the prefix
-      return pDummyName.substring(INPUT_DUMMY_VAR_PREFIX.length());
+      return pDummyName.substring(INPUT_VAR_DUMMY_PREFIX.length());
     }
     throw new IllegalArgumentException(
-        "Cannot remove prefix " + INPUT_DUMMY_VAR_PREFIX + " from name " + pDummyName);
+        "Cannot remove prefix " + INPUT_VAR_DUMMY_PREFIX + " from name " + pDummyName);
   }
 }

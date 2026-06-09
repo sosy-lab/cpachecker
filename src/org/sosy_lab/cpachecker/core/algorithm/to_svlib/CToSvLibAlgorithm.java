@@ -110,7 +110,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
 
   private final TransformationStatistics transformationStatistics;
 
-  private final String INPUT_DUMMY_VAR_PREFIX = "__originalInput_";
+  private final String INPUT_VAR_DUMMY_PREFIX = "__originalInput_";
+  private final String RETURN_VAR_DUMMY_PREFIX = "__transformationDummyReturn_";
   private final ImmutableSet<String> NAMES_OF_ASSERT_FUNCTIONS =
       ImmutableSet.of("__assert_fail", "__assert_perror_fail", "__assert");
 
@@ -196,7 +197,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
               formulaManager,
               pathFormulaManager,
               converter,
-              INPUT_DUMMY_VAR_PREFIX,
+              INPUT_VAR_DUMMY_PREFIX,
+              RETURN_VAR_DUMMY_PREFIX,
               NAMES_OF_ASSERT_FUNCTIONS);
       initializer.initialize(commandsCollector);
     } finally {
@@ -216,7 +218,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
             pathFormulaManager,
             formulaToSvLibVisitor,
             scope,
-            INPUT_DUMMY_VAR_PREFIX,
+            INPUT_VAR_DUMMY_PREFIX,
+            RETURN_VAR_DUMMY_PREFIX,
             NAMES_OF_ASSERT_FUNCTIONS);
 
     try {

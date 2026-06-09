@@ -100,7 +100,8 @@ class CToSvLibInitializer {
   private final PathFormulaManager pathFormulaManager;
   private final CtoFormulaConverter converter;
 
-  private final String INPUT_DUMMY_VAR_PREFIX;
+  private final String INPUT_VAR_DUMMY_PREFIX;
+  private final String RETURN_VAR_DUMMY_PREFIX;
   private final ImmutableSet<String> NAMES_OF_ASSERT_FUNCTIONS;
 
   CToSvLibInitializer(
@@ -110,7 +111,8 @@ class CToSvLibInitializer {
       FormulaManagerView pFormulaManager,
       PathFormulaManager pPathFormulaManager,
       CtoFormulaConverter pConverter,
-      String pINPUT_DUMMY_VAR_PREFIX,
+      String pINPUT_VAR_DUMMY_PREFIX,
+      String pRETURN_VAR_DUMMY_PREFIX,
       ImmutableSet<String> pNAMES_OF_ASSERT_FUNCTIONS) {
     logger = pLogger;
     cfa = pCFA;
@@ -118,7 +120,8 @@ class CToSvLibInitializer {
     formulaManager = pFormulaManager;
     pathFormulaManager = pPathFormulaManager;
     converter = pConverter;
-    INPUT_DUMMY_VAR_PREFIX = pINPUT_DUMMY_VAR_PREFIX;
+    INPUT_VAR_DUMMY_PREFIX = pINPUT_VAR_DUMMY_PREFIX;
+    RETURN_VAR_DUMMY_PREFIX = pRETURN_VAR_DUMMY_PREFIX;
     NAMES_OF_ASSERT_FUNCTIONS = pNAMES_OF_ASSERT_FUNCTIONS;
   }
 
@@ -323,7 +326,7 @@ class CToSvLibInitializer {
     CType functionReturnType = pFunctionCall.getFunctionCallExpression().getExpressionType();
     SvLibSmtLibType returnType = convertToSvLibSmtLibType(functionReturnType);
     return new SvLibParsingParameterDeclaration(
-        FileLocation.DUMMY, returnType, "transformationDummyReturn_" + returnType, pProcedureName);
+        FileLocation.DUMMY, returnType, RETURN_VAR_DUMMY_PREFIX + returnType, pProcedureName);
   }
 
   private SvLibSmtLibType convertToSvLibSmtLibType(CType pCType) {
@@ -406,16 +409,16 @@ class CToSvLibInitializer {
   }
 
   private String getNameForInputParameterDummy(String pOriginalName) {
-    return INPUT_DUMMY_VAR_PREFIX + pOriginalName;
+    return INPUT_VAR_DUMMY_PREFIX + pOriginalName;
   }
 
   private String getOriginalNameOfInputParameterDummy(String pDummyName) {
-    if (pDummyName.startsWith(INPUT_DUMMY_VAR_PREFIX)) {
+    if (pDummyName.startsWith(INPUT_VAR_DUMMY_PREFIX)) {
       // return the name without the prefix
-      return pDummyName.substring(INPUT_DUMMY_VAR_PREFIX.length());
+      return pDummyName.substring(INPUT_VAR_DUMMY_PREFIX.length());
     }
     throw new IllegalArgumentException(
-        "Cannot remove prefix " + INPUT_DUMMY_VAR_PREFIX + " from name " + pDummyName);
+        "Cannot remove prefix " + INPUT_VAR_DUMMY_PREFIX + " from name " + pDummyName);
   }
 
   private ImmutableList<CFAEdge> getAllRelevantEdges(FunctionEntryNode pEntryNode) {
