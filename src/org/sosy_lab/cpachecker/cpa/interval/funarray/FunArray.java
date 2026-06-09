@@ -96,14 +96,12 @@ public record FunArray(
   }
 
   /**
-   * @deprecated work with immutable collections from the start.
    * Convenience constructor that copies mutable lists into their immutable equivalents.
    *
    * @param pBounds the segment bounds.
    * @param pValues the segment values.
    * @param pEmptiness the emptiness flags.
    */
-  @Deprecated
   public FunArray(List<Bound> pBounds, List<Interval> pValues, List<Boolean> pEmptiness) {
     this(
         ImmutableList.copyOf(pBounds),
