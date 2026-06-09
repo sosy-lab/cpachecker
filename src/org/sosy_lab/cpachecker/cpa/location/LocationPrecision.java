@@ -22,19 +22,21 @@ public class LocationPrecision implements AdjustablePrecision {
   private ImmutableSet<SubCFA> allowedProgramTransformations;
   private final ImmutableMultimap<CFANode, SubCFA> nodesToSubCFA;
   private final boolean hasProgramTransformations;
-  //private Comparator<SubCFA> precisionOrder = (a,b) -> 1;
+
+  // private Comparator<SubCFA> precisionOrder = (a,b) -> 1;
 
   public LocationPrecision(Set<SubCFA> pPrecisions) {
     hasProgramTransformations = !pPrecisions.isEmpty();
     allowedProgramTransformations = ImmutableSet.copyOf(pPrecisions);
-    ImmutableMultimap.Builder<CFANode, SubCFA> nodesToStrategiesBuilder = new ImmutableMultimap.Builder<>();
+    ImmutableMultimap.Builder<CFANode, SubCFA> nodesToStrategiesBuilder =
+        new ImmutableMultimap.Builder<>();
     for (SubCFA subCFA : allowedProgramTransformations) {
       nodesToStrategiesBuilder.put(subCFA.originalCFAEntryNode(), subCFA);
     }
     nodesToSubCFA = nodesToStrategiesBuilder.build();
   }
 
-  public ImmutableSet<SubCFA> getStrategiesForNode(CFANode pNode){
+  public ImmutableSet<SubCFA> getStrategiesForNode(CFANode pNode) {
     return ImmutableSet.copyOf(nodesToSubCFA.get(pNode));
   }
 
@@ -46,7 +48,6 @@ public class LocationPrecision implements AdjustablePrecision {
    * Function for selecting the most abstract strategy from a set of strategies.
    *
    * @param strategies the given set of allowed strategies
-   *
    * @return The most abstract strategy in the precision set or empty for the basic strategy.
    */
   public static Optional<SubCFA> select(ImmutableSet<SubCFA> strategies) {
@@ -68,10 +69,10 @@ public class LocationPrecision implements AdjustablePrecision {
 
   @Override
   public AdjustablePrecision add(AdjustablePrecision otherPrecision) {
-    if (otherPrecision instanceof LocationPrecision locPrec){
+    if (otherPrecision instanceof LocationPrecision locPrec) {
       ImmutableSet.Builder<SubCFA> complement = new ImmutableSet.Builder<>();
       for (SubCFA subCFA : allowedProgramTransformations) {
-        if (!locPrec.allowedProgramTransformations.contains(subCFA)){
+        if (!locPrec.allowedProgramTransformations.contains(subCFA)) {
           complement.add(subCFA);
         }
       }
@@ -82,7 +83,7 @@ public class LocationPrecision implements AdjustablePrecision {
 
   @Override
   public AdjustablePrecision subtract(AdjustablePrecision otherPrecision) {
-    if (otherPrecision instanceof LocationPrecision locPrec){
+    if (otherPrecision instanceof LocationPrecision locPrec) {
       ImmutableSet.Builder<SubCFA> intersection = new ImmutableSet.Builder<>();
       intersection.addAll(allowedProgramTransformations);
       intersection.addAll(locPrec.getAllowedProgramTransformations());

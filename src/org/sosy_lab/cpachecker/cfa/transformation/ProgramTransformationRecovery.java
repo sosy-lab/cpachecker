@@ -13,13 +13,14 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
 
 /**
- * Class for reverting a program transformation after a ProgramTransformationCEGARAlgorithm.
- * The needed information is set when inserting program transformations during the creation of the CFA.
+ * Class for reverting a program transformation after a ProgramTransformationCEGARAlgorithm. The
+ * needed information is set when inserting program transformations during the creation of the CFA.
  */
 public interface ProgramTransformationRecovery {
 
   /**
-   * Change all states in the reached set, so that no LocationState belonging to pAfterProgramTransformation remains.
+   * Change all states in the reached set, so that no LocationState belonging to
+   * pAfterProgramTransformation remains.
    *
    * @param pBeforeState the state before entering the program transformation
    * @param pInitialState the first state in the program transformation

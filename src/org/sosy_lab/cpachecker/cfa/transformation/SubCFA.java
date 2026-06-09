@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.transformation;
 
-import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -17,9 +15,7 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-/**
- * Representation of the result of a successful program transformation.
- */
+/** Representation of the result of a successful program transformation. */
 public record SubCFA(
     CFANode originalCFAEntryNode,
     CFANode originalCFAExitNode,
@@ -28,8 +24,7 @@ public record SubCFA(
     ProgramTransformationEnum programTransformationEnum,
     ProgramTransformationBehaviour programTransformationBehaviour,
     ImmutableSet<CFANode> allNodes,
-    ImmutableSet<CFAEdge> allEdges
-  ) {
+    ImmutableSet<CFAEdge> allEdges) {
 
   /**
    * Inserts the CFANodes and CFAEdges into the given MutableCFA.
@@ -51,7 +46,13 @@ public record SubCFA(
             "enter program transformation: " + programTransformationEnum.name());
     originalCFAEntryNode.addLeavingEdge(entryEdge);
     subCFAEntryNode.addEnteringEdge(entryEdge);
-    BlankEdge exitEdge = new BlankEdge("exit program transformation: " + programTransformationEnum.name(), FileLocation.DUMMY, subCFAExitNode, originalCFAExitNode, "exit program transformation: " + programTransformationEnum.name());
+    BlankEdge exitEdge =
+        new BlankEdge(
+            "exit program transformation: " + programTransformationEnum.name(),
+            FileLocation.DUMMY,
+            subCFAExitNode,
+            originalCFAExitNode,
+            "exit program transformation: " + programTransformationEnum.name());
     originalCFAExitNode.addEnteringEdge(exitEdge);
     subCFAExitNode.addLeavingEdge(exitEdge);
   }

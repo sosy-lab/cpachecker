@@ -26,7 +26,8 @@ public class LocationPrecisionAdjustment implements PrecisionAdjustment {
       Precision precision,
       UnmodifiableReachedSet states,
       Function<AbstractState, AbstractState> stateProjection,
-      AbstractState fullState) throws CPAException, InterruptedException {
+      AbstractState fullState)
+      throws CPAException, InterruptedException {
     return Optional.of(new PrecisionAdjustmentResult(state, precision, Action.CONTINUE));
   }
 }

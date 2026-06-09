@@ -21,9 +21,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 
-/**
- * Class for static functions that create or copy CFAEdges for program transformations.
- */
+/** Class for static functions that create or copy CFAEdges for program transformations. */
 public class ProgramTransformationCFAEdgeCreator {
 
   /**
@@ -34,7 +32,8 @@ public class ProgramTransformationCFAEdgeCreator {
    * @param pNewSuccessor the new successor CFANode
    * @return CFAEdge
    */
-  public static CFAEdge copyCFAEdge(CFAEdge pCFAEdge, CFANode pNewPredecessor, CFANode pNewSuccessor) {
+  public static CFAEdge copyCFAEdge(
+      CFAEdge pCFAEdge, CFANode pNewPredecessor, CFANode pNewSuccessor) {
     if (!(pCFAEdge instanceof CCfaEdge)) {
       return null;
     }
@@ -69,7 +68,7 @@ public class ProgramTransformationCFAEdgeCreator {
               edge.getSuccessor(),
               edge.getFunctionCall(),
               edge.getSummaryEdge());
-      //case CFunctionReturnEdge edge -> null;
+      // case CFunctionReturnEdge edge -> null;
       case CFunctionSummaryEdge edge ->
           new CFunctionSummaryEdge(
               edge.getRawStatement(),

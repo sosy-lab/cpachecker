@@ -32,24 +32,22 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
- * Algorithm for reversing the ARG to match the original source code after a ProgramTransformationCEGARAlgorithm.
+ * Algorithm for reversing the ARG to match the original source code after a
+ * ProgramTransformationCEGARAlgorithm.
  */
 @SuppressWarnings("unused")
 public class ProgramTransformationARGRecoveryAlgorithm implements Algorithm {
 
-  public static class ProgramTransformationARGRecoveryAlgorithmFactory
-      implements AlgorithmFactory {
+  public static class ProgramTransformationARGRecoveryAlgorithmFactory implements AlgorithmFactory {
 
     private final AlgorithmFactory algorithmFactory;
     private final LogManager logger;
-    private final ImmutableMultimap<CFANode, ProgramTransformationInformation> nodesToProgramTransformations;
+    private final ImmutableMultimap<CFANode, ProgramTransformationInformation>
+        nodesToProgramTransformations;
     LocationStateFactory locFac;
 
     public ProgramTransformationARGRecoveryAlgorithmFactory(
-        Algorithm pAlgorithm,
-        ConfigurableProgramAnalysis cpa,
-        LogManager pLogger,
-        CFA pCFA)
+        Algorithm pAlgorithm, ConfigurableProgramAnalysis cpa, LogManager pLogger, CFA pCFA)
         throws InvalidConfigurationException {
       this(() -> pAlgorithm, cpa, pLogger, pCFA);
     }
@@ -61,14 +59,15 @@ public class ProgramTransformationARGRecoveryAlgorithm implements Algorithm {
         CFA pCFA) {
       algorithmFactory = pAlgorithmFactory;
       logger = pLogger;
-      nodesToProgramTransformations = pCFA.getMetadata().getNodesToProgramTransformations().orElse(
-          ImmutableListMultimap.of());
+      nodesToProgramTransformations =
+          pCFA.getMetadata().getNodesToProgramTransformations().orElse(ImmutableListMultimap.of());
       locFac = ((ARGCPA) pCPA).retrieveWrappedCpa(LocationCPA.class).getStateFactory();
     }
 
     @Override
     public Algorithm newInstance() {
-      return new ProgramTransformationARGRecoveryAlgorithm(logger, locFac, algorithmFactory.newInstance(), nodesToProgramTransformations);
+      return new ProgramTransformationARGRecoveryAlgorithm(
+          logger, locFac, algorithmFactory.newInstance(), nodesToProgramTransformations);
     }
   }
 
@@ -88,7 +87,8 @@ public class ProgramTransformationARGRecoveryAlgorithm implements Algorithm {
     locationStateFactory = pLocationStateFactory;
     algorithm = pAlgorithm;
     nodesToProgramTransformations = pNodesToProgramTransformations;
-    ImmutableMap.Builder<CFANode, ProgramTransformationInformation> nodeMapBuilder = new ImmutableMap.Builder<>();
+    ImmutableMap.Builder<CFANode, ProgramTransformationInformation> nodeMapBuilder =
+        new ImmutableMap.Builder<>();
     for (ProgramTransformationInformation programTransformation :
         nodesToProgramTransformations.values()) {
       for (CFANode node : programTransformation.subCFA().allNodes()) {
@@ -108,7 +108,9 @@ public class ProgramTransformationARGRecoveryAlgorithm implements Algorithm {
 
     // does the ARG need to be adjusted?
     if (algorithm instanceof ProgramTransformationCEGARAlgorithm ptCEGARAlgorithm) {
-      logger.log(Level.FINE, "Reversing the ARG after possibly using program transformations for verification");
+      logger.log(
+          Level.FINE,
+          "Reversing the ARG after possibly using program transformations for verification");
       assert ARGUtils.checkARG(reached) : "ARG and reached set do not match before ARG reversal";
 
       boolean changed = true;
@@ -116,11 +118,12 @@ public class ProgramTransformationARGRecoveryAlgorithm implements Algorithm {
         changed = false;
 
         // TODO revert a single program transformation
-        Optional<AbstractState> stateBeforeEntering = detectNextProgramTransformation(reached.getFirstState());
-        if(stateBeforeEntering.isPresent()) {
+        Optional<AbstractState> stateBeforeEntering =
+            detectNextProgramTransformation(reached.getFirstState());
+        if (stateBeforeEntering.isPresent()) {
           revertProgramTransformation(stateBeforeEntering.orElseThrow(), reached);
           // TODO Comment out for now
-          //changed = true;
+          // changed = true;
         }
       }
 
@@ -132,7 +135,8 @@ public class ProgramTransformationARGRecoveryAlgorithm implements Algorithm {
   }
 
   /**
-   * Iterating depth-first through an ARG and returns the first State before entering a Program transformation or Optional.empty if none is found.
+   * Iterating depth-first through an ARG and returns the first State before entering a Program
+   * transformation or Optional.empty if none is found.
    *
    * @param pState the current state of the ARG
    * @return AbstractState before the next program transformation or Optional.empty
@@ -140,15 +144,18 @@ public class ProgramTransformationARGRecoveryAlgorithm implements Algorithm {
   private Optional<AbstractState> detectNextProgramTransformation(AbstractState pState) {
     ARGState argState = (ARGState) pState;
     Collection<ARGState> children = argState.getChildren();
-    // only nodes in nodesToProgramTransformations can have child states in a different program transformation
+    // only nodes in nodesToProgramTransformations can have child states in a different program
+    // transformation
     if (nodesToProgramTransformations.containsKey(AbstractStates.extractLocation(pState))) {
       if (children.isEmpty()) {
         // if no children exist return Optional.empty for this branch
         return Optional.empty();
       } else {
-        ProgramTransformationInformation parentProgramTransformation = nodeMap.getOrDefault(AbstractStates.extractLocation(pState), null);
+        ProgramTransformationInformation parentProgramTransformation =
+            nodeMap.getOrDefault(AbstractStates.extractLocation(pState), null);
         for (ARGState child : children) {
-          ProgramTransformationInformation childProgramTransformation = nodeMap.getOrDefault(AbstractStates.extractLocation(child), null);
+          ProgramTransformationInformation childProgramTransformation =
+              nodeMap.getOrDefault(AbstractStates.extractLocation(child), null);
           if (parentProgramTransformation != childProgramTransformation) {
             // entering different program transformation
             return Optional.of(pState);
@@ -158,23 +165,27 @@ public class ProgramTransformationARGRecoveryAlgorithm implements Algorithm {
     }
     // this state does not enter a program transformation, check child states depth-first
     for (ARGState child : children) {
-      Optional<AbstractState> maybeStateBeforeProgramTransformation = detectNextProgramTransformation(child);
+      Optional<AbstractState> maybeStateBeforeProgramTransformation =
+          detectNextProgramTransformation(child);
       if (maybeStateBeforeProgramTransformation.isPresent()) {
         return maybeStateBeforeProgramTransformation;
       }
     }
-    // If all branches return Optional.empty, then there are no program transformation states left in the arg
+    // If all branches return Optional.empty, then there are no program transformation states left
+    // in the arg
     return Optional.empty();
   }
 
   private void revertProgramTransformation(AbstractState pState, ReachedSet reached) {
     ARGState parentARGState = (ARGState) pState;
-    ProgramTransformationInformation parentProgramTransformation = nodeMap.getOrDefault(AbstractStates.extractLocation(pState), null);
+    ProgramTransformationInformation parentProgramTransformation =
+        nodeMap.getOrDefault(AbstractStates.extractLocation(pState), null);
     ARGState childARGState = null;
     ProgramTransformationInformation childProgramTransformation = null;
 
     for (ARGState child : parentARGState.getChildren()) {
-      childProgramTransformation = nodeMap.getOrDefault(AbstractStates.extractLocation(child), null);
+      childProgramTransformation =
+          nodeMap.getOrDefault(AbstractStates.extractLocation(child), null);
       if (parentProgramTransformation != childProgramTransformation) {
         childARGState = child;
         break;
@@ -182,19 +193,21 @@ public class ProgramTransformationARGRecoveryAlgorithm implements Algorithm {
     }
     assert (childARGState != null && childProgramTransformation != null);
     assert (nodesToProgramTransformations.containsKey(AbstractStates.extractLocation(pState)));
-    assert (nodeMap.get(AbstractStates.extractLocation(childARGState)) == childProgramTransformation);
+    assert (nodeMap.get(AbstractStates.extractLocation(childARGState))
+        == childProgramTransformation);
 
     switch (childProgramTransformation.subCFA().programTransformationEnum()) {
       case TAIL_RECURSION_ELIMINATION:
-        childProgramTransformation.programTransformationRecovery().revertProgramTransformation(
-            parentARGState,
-            childARGState,
-            // TODO use Optional
-            parentProgramTransformation == null ? null : parentProgramTransformation.subCFA(),
-            childProgramTransformation.subCFA(),
-            reached,
-            locationStateFactory
-        );
+        childProgramTransformation
+            .programTransformationRecovery()
+            .revertProgramTransformation(
+                parentARGState,
+                childARGState,
+                // TODO use Optional
+                parentProgramTransformation == null ? null : parentProgramTransformation.subCFA(),
+                childProgramTransformation.subCFA(),
+                reached,
+                locationStateFactory);
         break;
       default:
         break;

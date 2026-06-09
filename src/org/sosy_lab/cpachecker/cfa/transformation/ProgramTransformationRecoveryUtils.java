@@ -17,9 +17,11 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 
 public class ProgramTransformationRecoveryUtils {
 
-  public static ARGState argStateWithLocation(ARGState pARGState, LocationState pLocationState, ARGState pParentState) {
+  public static ARGState argStateWithLocation(
+      ARGState pARGState, LocationState pLocationState, ARGState pParentState) {
     CompositeState currentCompositeState = ((CompositeState) pARGState.getWrappedState());
-    List<AbstractState> newWrappedStates = new ArrayList<>(currentCompositeState.getWrappedStates().size());
+    List<AbstractState> newWrappedStates =
+        new ArrayList<>(currentCompositeState.getWrappedStates().size());
     for (AbstractState wrappedState : currentCompositeState.getWrappedStates()) {
       if (wrappedState instanceof LocationState) {
         newWrappedStates.add(pLocationState);

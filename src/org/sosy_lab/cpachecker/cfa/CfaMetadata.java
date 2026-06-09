@@ -53,7 +53,8 @@ public final class CfaMetadata {
   private final @Nullable SvLibCfaMetadata svLibCfaMetadata;
 
   private final @Nullable CfaTransformationMetadata transformationMetadata;
-  private final @Nullable ImmutableMultimap<CFANode, ProgramTransformationInformation> nodesToProgramTransformations;
+  private final @Nullable ImmutableMultimap<CFANode, ProgramTransformationInformation>
+      nodesToProgramTransformations;
 
   private CfaMetadata(
       MachineModel pMachineModel,
@@ -69,7 +70,8 @@ public final class CfaMetadata {
       @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> pEdgesToAnnotations,
       @Nullable SvLibCfaMetadata pSvLibCfaMetadata,
       @Nullable CfaTransformationMetadata pCfaTransformationMetadata,
-      @Nullable ImmutableMultimap<CFANode, ProgramTransformationInformation> pNodesToProgramTransformations) {
+      @Nullable ImmutableMultimap<CFANode, ProgramTransformationInformation>
+          pNodesToProgramTransformations) {
     machineModel = checkNotNull(pMachineModel);
     cfaLanguage = checkNotNull(pCFALanguage);
     inputLanguage = checkNotNull(pInputLanguage);
@@ -513,7 +515,8 @@ public final class CfaMetadata {
    *     information for the CFA, an optional containing the map is returned. Otherwise, if this
    *     metadata instance doesn't contain the map for the CFA, an empty optional is returned.
    */
-  public Optional<ImmutableMultimap<CFANode, ProgramTransformationInformation>> getNodesToProgramTransformations() {
+  public Optional<ImmutableMultimap<CFANode, ProgramTransformationInformation>>
+      getNodesToProgramTransformations() {
     return Optional.ofNullable(nodesToProgramTransformations);
   }
 
@@ -527,7 +530,8 @@ public final class CfaMetadata {
    *     transformation informations
    */
   public CfaMetadata withNodesToProgramTransformations(
-      @Nullable ImmutableMultimap<CFANode, ProgramTransformationInformation> pNodesToProgramTransformations) {
+      @Nullable ImmutableMultimap<CFANode, ProgramTransformationInformation>
+          pNodesToProgramTransformations) {
     return new CfaMetadata(
         machineModel,
         cfaLanguage,

@@ -69,7 +69,6 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.ConfigReadingProofCheckAlgorit
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAndExtractCIRequirementsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.programtransformation.ProgramTransformationARGRecoveryAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.programtransformation.ProgramTransformationARGRecoveryAlgorithm.ProgramTransformationARGRecoveryAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.programtransformation.ProgramTransformationCEGARAlgorithm.ProgramTransformationCEGARAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ConditionalVerifierAlgorithm;
@@ -469,8 +468,7 @@ public class CoreComponentsFactory {
   @Option(
       secure = true,
       name = "algorithm.useProgramTransformationCGAR",
-      description =
-          "Use the CEGAR algorithm with program transformations.")
+      description = "Use the CEGAR algorithm with program transformations.")
   private boolean useProgramTransformationCEGAR = false;
 
   private final Configuration config;
@@ -800,11 +798,10 @@ public class CoreComponentsFactory {
       if (useProgramTransformationCEGAR) {
         algorithm =
             new ProgramTransformationCEGARAlgorithmFactory(
-                algorithm, cpa, logger, config, shutdownNotifier, cfa)
+                    algorithm, cpa, logger, config, shutdownNotifier, cfa)
                 .newInstance();
         algorithm =
-            new ProgramTransformationARGRecoveryAlgorithmFactory(
-                    algorithm, cpa, logger, cfa)
+            new ProgramTransformationARGRecoveryAlgorithmFactory(algorithm, cpa, logger, cfa)
                 .newInstance();
       }
 

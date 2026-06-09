@@ -39,33 +39,37 @@ public class ProgramTransformationRefiner implements Refiner {
   private final LogManager logger;
   private int refinementNumber;
   protected final ARGCPA argCpa;
-  private final ImmutableMultimap<CFANode, ProgramTransformationInformation> nodesToProgramTransformations;
+  private final ImmutableMultimap<CFANode, ProgramTransformationInformation>
+      nodesToProgramTransformations;
 
-
-  private ProgramTransformationRefiner(LogManager pLogger, final ConfigurableProgramAnalysis pCpa, ImmutableMultimap<CFANode, ProgramTransformationInformation> pNodesToProgramTransformations) throws
-                                                                                                             InvalidConfigurationException {
+  private ProgramTransformationRefiner(
+      LogManager pLogger,
+      final ConfigurableProgramAnalysis pCpa,
+      ImmutableMultimap<CFANode, ProgramTransformationInformation> pNodesToProgramTransformations)
+      throws InvalidConfigurationException {
     logger = pLogger;
     argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, Refiner.class);
     nodesToProgramTransformations = pNodesToProgramTransformations;
   }
 
-  public static ProgramTransformationRefiner create(ConfigurableProgramAnalysis pCpa, ImmutableMultimap<CFANode, ProgramTransformationInformation> pNodesToProgramTransformation)
+  public static ProgramTransformationRefiner create(
+      ConfigurableProgramAnalysis pCpa,
+      ImmutableMultimap<CFANode, ProgramTransformationInformation> pNodesToProgramTransformation)
       throws InvalidConfigurationException, InterruptedException {
-    ARGCPA argCpa =
-        CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, ProgramTransformationRefiner.class);
+    ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, ProgramTransformationRefiner.class);
     LogManager logger = argCpa.getLogger();
 
     return new ProgramTransformationRefiner(logger, pCpa, pNodesToProgramTransformation);
   }
 
-
-    @Override
+  @Override
   public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
     logger.log(Level.FINE, "Refining allowed program transformations");
     assert ARGUtils.checkARG(pReached) : "ARG and reached set do not match before refinement";
 
     final ARGState lastElement = (ARGState) pReached.getLastState();
-    assert lastElement.isTarget() : "Last element in reached is not a target state before refinement";
+    assert lastElement.isTarget()
+        : "Last element in reached is not a target state before refinement";
     ARGReachedSet reached = new ARGReachedSet(pReached, argCpa, refinementNumber++);
 
     Collection<ARGState> waitlist = new ArrayList<>();
@@ -81,9 +85,9 @@ public class ProgramTransformationRefiner implements Refiner {
         LocationPrecision locationPrecision =
             ((WrapperPrecision) pReached.getPrecision(currentElement))
                 .retrieveWrappedPrecision(LocationPrecision.class);
-        assert locationPrecision != null
-            : "No LocationPrecision present";
-        ImmutableSet<SubCFA> viableStrategies = locationPrecision.getStrategiesForNode(AbstractStates.extractLocation(currentElement));
+        assert locationPrecision != null : "No LocationPrecision present";
+        ImmutableSet<SubCFA> viableStrategies =
+            locationPrecision.getStrategiesForNode(AbstractStates.extractLocation(currentElement));
         // TODO handle over/underapproximations
         if (!viableStrategies.isEmpty()) {
           optionalRefinementState = Optional.of(currentElement);
@@ -108,9 +112,14 @@ public class ProgramTransformationRefiner implements Refiner {
       LocationPrecision locationPrecision =
           ((WrapperPrecision) pReached.getPrecision(refinementState))
               .retrieveWrappedPrecision(LocationPrecision.class);
-      locationPrecision = (LocationPrecision) locationPrecision.add(new LocationPrecision(ImmutableSet.of(optionalStrategy.orElseThrow())));
-      Precision newPrecision = ((WrapperPrecision) pReached.getPrecision(refinementState)).replaceWrappedPrecision(locationPrecision,
-          Predicates.instanceOf(LocationPrecision.class));
+      locationPrecision =
+          (LocationPrecision)
+              locationPrecision.add(
+                  new LocationPrecision(ImmutableSet.of(optionalStrategy.orElseThrow())));
+      Precision newPrecision =
+          ((WrapperPrecision) pReached.getPrecision(refinementState))
+              .replaceWrappedPrecision(
+                  locationPrecision, Predicates.instanceOf(LocationPrecision.class));
       // set new precision
       assert newPrecision != null : "Failed to update precision";
       pReached.updatePrecision(refinementState, newPrecision);
@@ -124,5 +133,4 @@ public class ProgramTransformationRefiner implements Refiner {
       return true;
     }
   }
-
 }

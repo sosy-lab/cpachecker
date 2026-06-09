@@ -17,16 +17,18 @@ import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
-/**
- * Algorithm for performing all program transformations and adding them to the CFA.
- */
+/** Algorithm for performing all program transformations and adding them to the CFA. */
 public class CFAProgramTransformer {
 
   public static MutableCFA applyTransformations(MutableCFA pCFA) {
-    //boolean finished = false;
-    ImmutableList<ProgramTransformationEnum> selectedProgramTransformations = new ImmutableList.Builder<ProgramTransformationEnum>().add(ProgramTransformationEnum.TAIL_RECURSION_ELIMINATION).build();
+    // boolean finished = false;
+    ImmutableList<ProgramTransformationEnum> selectedProgramTransformations =
+        new ImmutableList.Builder<ProgramTransformationEnum>()
+            .add(ProgramTransformationEnum.TAIL_RECURSION_ELIMINATION)
+            .build();
 
-    ImmutableList.Builder<ProgramTransformationInformation> newProgramTransformations = new ImmutableList.Builder<>();
+    ImmutableList.Builder<ProgramTransformationInformation> newProgramTransformations =
+        new ImmutableList.Builder<>();
 
     for (FunctionEntryNode functionEntryNode : pCFA.entryNodes()) {
       Traverser<CFANode> cfaNetworkTraverser = Traverser.forGraph(pCFA.asGraph());
@@ -34,13 +36,16 @@ public class CFAProgramTransformer {
 
       for (CFANode currentNode : cfaNodeIterable) {
         if (selectedProgramTransformations.contains(ProgramTransformationEnum.JUMP_THREADING)) {
-          Optional<ProgramTransformationInformation> transformationResult = new JumpThreadingProgramTransformation().transform(pCFA, currentNode);
+          Optional<ProgramTransformationInformation> transformationResult =
+              new JumpThreadingProgramTransformation().transform(pCFA, currentNode);
           if (transformationResult.isPresent()) {
             newProgramTransformations.add(transformationResult.orElseThrow());
           }
         }
-        if (selectedProgramTransformations.contains(ProgramTransformationEnum.TAIL_RECURSION_ELIMINATION)) {
-          Optional<ProgramTransformationInformation> transformationResult = new TailRecursionEliminationProgramTransformation().transform(pCFA, currentNode);
+        if (selectedProgramTransformations.contains(
+            ProgramTransformationEnum.TAIL_RECURSION_ELIMINATION)) {
+          Optional<ProgramTransformationInformation> transformationResult =
+              new TailRecursionEliminationProgramTransformation().transform(pCFA, currentNode);
           if (transformationResult.isPresent()) {
             newProgramTransformations.add(transformationResult.orElseThrow());
           }
@@ -48,14 +53,20 @@ public class CFAProgramTransformer {
       }
     }
 
-    for (ProgramTransformationInformation programTransformation : newProgramTransformations.build()) {
+    for (ProgramTransformationInformation programTransformation :
+        newProgramTransformations.build()) {
       // insert new nodes and edges
       programTransformation.subCFA().insertSubCFA(pCFA);
       // add new information to metadata
-      ImmutableMultimap<CFANode, ProgramTransformationInformation> nodeToProgramTransformation = pCFA.getMetadata().getNodesToProgramTransformations().isEmpty() ? ImmutableListMultimap.of() : pCFA.getMetadata().getNodesToProgramTransformations().orElseThrow();
-      ImmutableListMultimap.Builder<CFANode, ProgramTransformationInformation> newMapBuilder = ImmutableListMultimap.builder();
+      ImmutableMultimap<CFANode, ProgramTransformationInformation> nodeToProgramTransformation =
+          pCFA.getMetadata().getNodesToProgramTransformations().isEmpty()
+              ? ImmutableListMultimap.of()
+              : pCFA.getMetadata().getNodesToProgramTransformations().orElseThrow();
+      ImmutableListMultimap.Builder<CFANode, ProgramTransformationInformation> newMapBuilder =
+          ImmutableListMultimap.builder();
       newMapBuilder.putAll(nodeToProgramTransformation);
-      newMapBuilder.put(programTransformation.subCFA().originalCFAEntryNode(), programTransformation);
+      newMapBuilder.put(
+          programTransformation.subCFA().originalCFAEntryNode(), programTransformation);
       pCFA.setMetadata(pCFA.getMetadata().withNodesToProgramTransformations(newMapBuilder.build()));
     }
 

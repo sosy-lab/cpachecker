@@ -338,8 +338,7 @@ public class CFACreator {
   @Option(
       secure = true,
       name = "cfa.useProgramTransformations",
-      description =
-          "Use Program Transformations to add simplified paths to the CFA.")
+      description = "Use Program Transformations to add simplified paths to the CFA.")
   private boolean useProgramTransformations = false;
 
   @Option(

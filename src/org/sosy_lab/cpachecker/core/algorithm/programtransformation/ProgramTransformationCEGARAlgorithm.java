@@ -51,9 +51,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.CPAs;
 
-
 @SuppressWarnings("unused")
-public class ProgramTransformationCEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSetUpdater, AutoCloseable {
+public class ProgramTransformationCEGARAlgorithm
+    implements Algorithm, StatisticsProvider, ReachedSetUpdater, AutoCloseable {
 
   private static class ProgramTransformationCEGARStatistics implements Statistics {
 
@@ -140,7 +140,8 @@ public class ProgramTransformationCEGARAlgorithm implements Algorithm, Statistic
     private final AlgorithmFactory algorithmFactory;
     private final LogManager logger;
     private final Refiner refiner;
-    private final ImmutableMultimap<CFANode, ProgramTransformationInformation> nodesToProgramTransformations;
+    private final ImmutableMultimap<CFANode, ProgramTransformationInformation>
+        nodesToProgramTransformations;
     private final ConfigurableProgramAnalysis cpa;
 
     public ProgramTransformationCEGARAlgorithmFactory(
@@ -165,8 +166,8 @@ public class ProgramTransformationCEGARAlgorithm implements Algorithm, Statistic
       pConfig.inject(this);
       algorithmFactory = pAlgorithmFactory;
       logger = pLogger;
-      nodesToProgramTransformations = pCFA.getMetadata().getNodesToProgramTransformations().orElse(
-          ImmutableListMultimap.of());
+      nodesToProgramTransformations =
+          pCFA.getMetadata().getNodesToProgramTransformations().orElse(ImmutableListMultimap.of());
       cpa = pCpa;
       try {
         refiner = ProgramTransformationRefiner.create(pCpa, nodesToProgramTransformations);
@@ -178,11 +179,17 @@ public class ProgramTransformationCEGARAlgorithm implements Algorithm, Statistic
     @Override
     public ProgramTransformationCEGARAlgorithm newInstance() {
       return new ProgramTransformationCEGARAlgorithm(
-          algorithmFactory.newInstance(), refiner, logger, maxRefinementNum, cpa, nodesToProgramTransformations);
+          algorithmFactory.newInstance(),
+          refiner,
+          logger,
+          maxRefinementNum,
+          cpa,
+          nodesToProgramTransformations);
     }
   }
 
-  private final ProgramTransformationCEGARStatistics stats = new ProgramTransformationCEGARStatistics();
+  private final ProgramTransformationCEGARStatistics stats =
+      new ProgramTransformationCEGARStatistics();
   private final List<ReachedSetUpdateListener> reachedSetUpdateListeners =
       new CopyOnWriteArrayList<>();
   private volatile int sizeOfReachedSetBeforeRefinement = 0;
@@ -275,7 +282,7 @@ public class ProgramTransformationCEGARAlgorithm implements Algorithm, Statistic
   @SuppressFBWarnings(
       value = "VO_VOLATILE_INCREMENT",
       justification = "only one thread writes countRefinements, others read")
-  private boolean refine(ReachedSet reached) throws CPAException, InterruptedException{
+  private boolean refine(ReachedSet reached) throws CPAException, InterruptedException {
     logger.log(Level.FINE, "Error found, performing CEGAR");
     stats.countRefinements++;
     stats.totalReachedSizeBeforeRefinement += reached.size();

@@ -39,9 +39,11 @@ public class LocationCPA extends AbstractCPA
     super("sep", "sep", new LocationTransferRelation(pStateFactory));
     stateFactory = pStateFactory;
     ImmutableSet.Builder<SubCFA> programTransformations = ImmutableSet.builder();
-    if (pCFA.getMetadata().getNodesToProgramTransformations().isPresent()){
-      Collection<ProgramTransformationInformation> programTransformationInformations = pCFA.getMetadata().getNodesToProgramTransformations().orElseThrow().values();
-      for (ProgramTransformationInformation programTransformation : programTransformationInformations){
+    if (pCFA.getMetadata().getNodesToProgramTransformations().isPresent()) {
+      Collection<ProgramTransformationInformation> programTransformationInformations =
+          pCFA.getMetadata().getNodesToProgramTransformations().orElseThrow().values();
+      for (ProgramTransformationInformation programTransformation :
+          programTransformationInformations) {
         programTransformations.add(programTransformation.subCFA());
       }
     }
@@ -54,7 +56,8 @@ public class LocationCPA extends AbstractCPA
 
   public static LocationCPA create(CFA pCFA, Configuration pConfig)
       throws InvalidConfigurationException {
-    return new LocationCPA(new LocationStateFactory(pCFA, AnalysisDirection.FORWARD, pConfig), pCFA);
+    return new LocationCPA(
+        new LocationStateFactory(pCFA, AnalysisDirection.FORWARD, pConfig), pCFA);
   }
 
   @Override
@@ -81,7 +84,7 @@ public class LocationCPA extends AbstractCPA
   }
 
   @Override
-  public  Precision getInitialPrecision(CFANode node, StateSpacePartition partition)
+  public Precision getInitialPrecision(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
     return initialPrecision;
   }

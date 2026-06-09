@@ -134,7 +134,8 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
     }
     // add parameter edges
     ImmutableList.Builder<CFANode> parameterNodes = new ImmutableList.Builder<>();
-    CFANode nodeBeforeParams = nodeMap.get(transformationData.tmpVarDeclarationEdge.getPredecessor());
+    CFANode nodeBeforeParams =
+        nodeMap.get(transformationData.tmpVarDeclarationEdge.getPredecessor());
     ImmutableList<CExpression> parameterExpressions;
     if (isSuperGraph) {
       parameterExpressions =

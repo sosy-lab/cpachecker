@@ -31,8 +31,8 @@ public record TailRecursionEliminationRecovery(
     List<CFANode> parameterNodes,
     CFAEdge varDeclarationEdge,
     CFAEdge varAssignmentEdge,
-    CFAEdge varReturnEdge
-) implements ProgramTransformationRecovery {
+    CFAEdge varReturnEdge)
+    implements ProgramTransformationRecovery {
 
   @Override
   public void revertProgramTransformation(
@@ -47,13 +47,22 @@ public record TailRecursionEliminationRecovery(
     ARGState currentARGState = (ARGState) pCurrentARGState;
     TailRecursionState initialFunctionState = TailRecursionState.FUNCTION_START;
 
-    // first state in program transformation gets removed + children get connected to the parent state
-    if (pAfterProgramTransformation.subCFAEntryNode() == AbstractStates.extractLocation(pCurrentARGState)) {
+    // first state in program transformation gets removed + children get connected to the parent
+    // state
+    if (pAfterProgramTransformation.subCFAEntryNode()
+        == AbstractStates.extractLocation(pCurrentARGState)) {
       // handle child state with previousARGState as parent
       SequencedCollection<ARGState> childStates = currentARGState.getChildren();
-      assert(childStates.size() == 1);
+      assert (childStates.size() == 1);
       ARGState childARGState = childStates.getFirst();
-      recoverARG(previousARGState, childARGState, initialFunctionState, pAfterProgramTransformation.allNodes(), pAfterProgramTransformation.subCFAExitNode(), reached, pLocationStateFactory);
+      recoverARG(
+          previousARGState,
+          childARGState,
+          initialFunctionState,
+          pAfterProgramTransformation.allNodes(),
+          pAfterProgramTransformation.subCFAExitNode(),
+          reached,
+          pLocationStateFactory);
       // remove entry state after all child states have been handled
       ((ARGState) pCurrentARGState).removeFromARG();
     } else {
@@ -71,7 +80,14 @@ public record TailRecursionEliminationRecovery(
    * @param reached the reached set
    * @param pLocationStateFactory for access to LocationStates
    */
-  private void recoverARG(ARGState pPreviousARGState, ARGState pCurrentARGState, TailRecursionState pCurrentFunctionState, ImmutableSet<CFANode> pNodes, CFANode pExitNode, ReachedSet reached, LocationStateFactory pLocationStateFactory) {
+  private void recoverARG(
+      ARGState pPreviousARGState,
+      ARGState pCurrentARGState,
+      TailRecursionState pCurrentFunctionState,
+      ImmutableSet<CFANode> pNodes,
+      CFANode pExitNode,
+      ReachedSet reached,
+      LocationStateFactory pLocationStateFactory) {
     // check for the exit node
     if (AbstractStates.extractLocation(pCurrentARGState) == pExitNode) {
       ARGState childState = pCurrentARGState.getChildren().getFirst();
@@ -80,14 +96,18 @@ public record TailRecursionEliminationRecovery(
       return;
     }
     // handle the current state depending on position in the program transformation
-    ARGState newARGState = switch (pCurrentFunctionState) {
-      case PARAMETER_ASSIGNMENT ->
-        // map parameter assignment and the following jump to function start to a recursive function call
-        recoverParameterAssignments(pPreviousARGState, pCurrentARGState, pLocationStateFactory);
-      default ->
-        // handle current state normally
-          revertSingleState(pPreviousARGState, pCurrentARGState, reached, pLocationStateFactory);
-    };
+    ARGState newARGState =
+        switch (pCurrentFunctionState) {
+          case PARAMETER_ASSIGNMENT ->
+              // map parameter assignment and the following jump to function start to a recursive
+              // function call
+              recoverParameterAssignments(
+                  pPreviousARGState, pCurrentARGState, pLocationStateFactory);
+          default ->
+              // handle current state normally
+              revertSingleState(
+                  pPreviousARGState, pCurrentARGState, reached, pLocationStateFactory);
+        };
     // handle child states; not in a loop for concurrency’s sake
     SequencedCollection<ARGState> children = newARGState.getChildren();
     switch (children.size()) {
@@ -134,11 +154,18 @@ public record TailRecursionEliminationRecovery(
     }
   }
 
-  private ARGState revertSingleState(ARGState pPreviousARGState, ARGState pCurrentARGState, ReachedSet reached, LocationStateFactory pLocationStateFactory) {
-    LocationState newLocationState = pLocationStateFactory.getState(nodeMap.get(AbstractStates.extractLocation(pCurrentARGState)));
+  private ARGState revertSingleState(
+      ARGState pPreviousARGState,
+      ARGState pCurrentARGState,
+      ReachedSet reached,
+      LocationStateFactory pLocationStateFactory) {
+    LocationState newLocationState =
+        pLocationStateFactory.getState(
+            nodeMap.get(AbstractStates.extractLocation(pCurrentARGState)));
 
     CompositeState currentCompositeState = ((CompositeState) pCurrentARGState.getWrappedState());
-    List<AbstractState> newWrappedStates = new ArrayList<>(currentCompositeState.getWrappedStates().size());
+    List<AbstractState> newWrappedStates =
+        new ArrayList<>(currentCompositeState.getWrappedStates().size());
     for (AbstractState wrappedState : currentCompositeState.getWrappedStates()) {
       if (wrappedState instanceof LocationState) {
         newWrappedStates.add(newLocationState);
@@ -152,15 +179,19 @@ public record TailRecursionEliminationRecovery(
   }
 
   /**
-   * Helper for dealing with the states before the function parameters get assigned their new values.
-   * Replaces all ARGStates before parameter assignments with ARGStates from the recursive function call with new LocationStates.
+   * Helper for dealing with the states before the function parameters get assigned their new
+   * values. Replaces all ARGStates before parameter assignments with ARGStates from the recursive
+   * function call with new LocationStates.
    *
    * @param pStateBeforeExitCondition the previous ARGState at the exit condition check
    * @param pStateBeforeFirstParameter the current ARGState before the first parameter gets assigned
    * @param pLocationStateFactory Factory for access to LocationStates
    * @return ARGState before the exit condition check
    */
-  private ARGState recoverParameterAssignments(ARGState pStateBeforeExitCondition, ARGState pStateBeforeFirstParameter, LocationStateFactory pLocationStateFactory) {
+  private ARGState recoverParameterAssignments(
+      ARGState pStateBeforeExitCondition,
+      ARGState pStateBeforeFirstParameter,
+      LocationStateFactory pLocationStateFactory) {
     ARGState currentARGState = pStateBeforeFirstParameter;
     ImmutableList.Builder<ARGState> statesToBeRemoved = new ImmutableList.Builder<>();
     while (AbstractStates.extractLocation(currentARGState) != exitConditionCheckNode) {
@@ -170,20 +201,41 @@ public record TailRecursionEliminationRecovery(
       currentARGState = currentARGState.getChildren().getFirst();
     }
     // new ARGStates
-    ARGState argStateBeforeTMPVarDeclaration = ProgramTransformationRecoveryUtils.argStateWithLocation(pStateBeforeFirstParameter, pLocationStateFactory.getState(varDeclarationEdge.getPredecessor()), pStateBeforeExitCondition);
-    ARGState argStateAfterTMPVarDeclaration = ProgramTransformationRecoveryUtils.argStateWithLocation(pStateBeforeFirstParameter, pLocationStateFactory.getState(varDeclarationEdge.getSuccessor()), argStateBeforeTMPVarDeclaration);
-    ARGState argStateAfterRecursiveFunctionCall = ProgramTransformationRecoveryUtils.argStateWithLocation(currentARGState, pLocationStateFactory.getState(varDeclarationEdge.getSuccessor().getLeavingEdge(0).getSuccessor()), argStateAfterTMPVarDeclaration);
-    ARGState argStateAfterFSDummyEdge = ProgramTransformationRecoveryUtils.argStateWithLocation(argStateAfterRecursiveFunctionCall, pLocationStateFactory.getState(varDeclarationEdge.getPredecessor().getEnteringEdges().first().get().getPredecessor()), argStateAfterRecursiveFunctionCall);
-    //currentARGState.removeParent(currentARGState.getParents().getFirst());
-    //currentARGState.addParent(argStateAfterRecursiveFunctionCall);
+    ARGState argStateBeforeTMPVarDeclaration =
+        ProgramTransformationRecoveryUtils.argStateWithLocation(
+            pStateBeforeFirstParameter,
+            pLocationStateFactory.getState(varDeclarationEdge.getPredecessor()),
+            pStateBeforeExitCondition);
+    ARGState argStateAfterTMPVarDeclaration =
+        ProgramTransformationRecoveryUtils.argStateWithLocation(
+            pStateBeforeFirstParameter,
+            pLocationStateFactory.getState(varDeclarationEdge.getSuccessor()),
+            argStateBeforeTMPVarDeclaration);
+    ARGState argStateAfterRecursiveFunctionCall =
+        ProgramTransformationRecoveryUtils.argStateWithLocation(
+            currentARGState,
+            pLocationStateFactory.getState(
+                varDeclarationEdge.getSuccessor().getLeavingEdge(0).getSuccessor()),
+            argStateAfterTMPVarDeclaration);
+    ARGState argStateAfterFSDummyEdge =
+        ProgramTransformationRecoveryUtils.argStateWithLocation(
+            argStateAfterRecursiveFunctionCall,
+            pLocationStateFactory.getState(
+                varDeclarationEdge
+                    .getPredecessor()
+                    .getEnteringEdges()
+                    .first()
+                    .get()
+                    .getPredecessor()),
+            argStateAfterRecursiveFunctionCall);
+    // currentARGState.removeParent(currentARGState.getParents().getFirst());
+    // currentARGState.addParent(argStateAfterRecursiveFunctionCall);
     pStateBeforeFirstParameter.removeFromARG();
     currentARGState.replaceInARGWith(argStateAfterFSDummyEdge);
     return argStateAfterRecursiveFunctionCall;
   }
 
-  /**
-   * Enum for tracking the current position in a transformed function when traversing the ARG.
-   */
+  /** Enum for tracking the current position in a transformed function when traversing the ARG. */
   private enum TailRecursionState {
     FUNCTION_START,
     EXIT_CONDITION,
@@ -191,12 +243,16 @@ public record TailRecursionEliminationRecovery(
     PARAMETER_ASSIGNMENT
   }
 
-  private TailRecursionState setNewFunctionState(ARGState pCurrentARGState, ARGState pChildARGState, TailRecursionState pCurrentFunctionState) {
+  private TailRecursionState setNewFunctionState(
+      ARGState pCurrentARGState,
+      ARGState pChildARGState,
+      TailRecursionState pCurrentFunctionState) {
     if (AbstractStates.extractLocation(pChildARGState) == exitConditionCheckNode) {
       return TailRecursionState.EXIT_CONDITION;
-    } else if(parameterNodes.contains(AbstractStates.extractLocation(pChildARGState))){
+    } else if (parameterNodes.contains(AbstractStates.extractLocation(pChildARGState))) {
       return TailRecursionState.PARAMETER_ASSIGNMENT;
-    } else if(AbstractStates.extractLocation(pCurrentARGState) == exitConditionCheckNode && !parameterNodes.contains(AbstractStates.extractLocation(pChildARGState))){
+    } else if (AbstractStates.extractLocation(pCurrentARGState) == exitConditionCheckNode
+        && !parameterNodes.contains(AbstractStates.extractLocation(pChildARGState))) {
       return TailRecursionState.EXIT_BRANCH;
     }
     return pCurrentFunctionState;

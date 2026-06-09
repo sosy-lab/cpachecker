@@ -32,8 +32,8 @@ public class TailRecursionEliminationTest {
   private ImmutableCFA nonTailRecursiveCFA;
 
   @Before
-  public void init() throws IOException, ParserException, InterruptedException,
-                            InvalidConfigurationException {
+  public void init()
+      throws IOException, ParserException, InterruptedException, InvalidConfigurationException {
     ConfigurationBuilder testConfig = TestDataTools.configurationForTest();
     testConfig.setOption("cfa.useProgramTransformations", "true");
     testConfig.setOption("analysis.interprocedural", "false");
@@ -53,14 +53,18 @@ public class TailRecursionEliminationTest {
   }
 
   @Test
-  public void testSuccessfulTransformation(){
-    Optional<ProgramTransformationInformation> successfulTransformation = new TailRecursionEliminationProgramTransformation().transform(tailRecursiveCFA, tailRecursiveCFA.getAllFunctions().get("add"));
+  public void testSuccessfulTransformation() {
+    Optional<ProgramTransformationInformation> successfulTransformation =
+        new TailRecursionEliminationProgramTransformation()
+            .transform(tailRecursiveCFA, tailRecursiveCFA.getAllFunctions().get("add"));
     assertThat(successfulTransformation.isEmpty()).isFalse();
   }
 
   @Test
-  public void testUnsuccessfulTransformation(){
-    Optional<ProgramTransformationInformation> successfulTransformation = new TailRecursionEliminationProgramTransformation().transform(nonTailRecursiveCFA, nonTailRecursiveCFA.getAllFunctions().get("add"));
+  public void testUnsuccessfulTransformation() {
+    Optional<ProgramTransformationInformation> successfulTransformation =
+        new TailRecursionEliminationProgramTransformation()
+            .transform(nonTailRecursiveCFA, nonTailRecursiveCFA.getAllFunctions().get("add"));
     assertThat(successfulTransformation.isEmpty()).isTrue();
   }
 }

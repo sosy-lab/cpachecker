@@ -8,13 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.transformation;
 
-import java.util.Map;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-/**
- * Record for holding the information of a program transformation.
- */
+/** Record for holding the information of a program transformation. */
 public record ProgramTransformationInformation(
-    SubCFA subCFA,
-    ProgramTransformationRecovery programTransformationRecovery
-) {}
+    SubCFA subCFA, ProgramTransformationRecovery programTransformationRecovery) {}

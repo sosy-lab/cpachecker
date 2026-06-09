@@ -37,7 +37,7 @@ public class LocationTransferRelation implements TransferRelation {
     CFANode node = ((LocationState) element).getLocationNode();
 
     // TMP-Bugfix ThreadingTransferRelation calls this with SingletonPrecision
-    if (prec instanceof SingletonPrecision){
+    if (prec instanceof SingletonPrecision) {
       if (node.getAllLeavingEdges().contains(cfaEdge)) {
         return Collections.singleton(factory.getState(cfaEdge.getSuccessor()));
       }
@@ -49,14 +49,14 @@ public class LocationTransferRelation implements TransferRelation {
       LocationPrecision locPrec = (LocationPrecision) prec;
       ImmutableSet<SubCFA> allowedStrategiesForNode = locPrec.getStrategiesForNode(node);
       Optional<SubCFA> currentStrategy = LocationPrecision.select(allowedStrategiesForNode);
-      if (currentStrategy.isEmpty()){
+      if (currentStrategy.isEmpty()) {
         // follow base strategy
-        if (cfaEdge.getRawStatement().startsWith("enter program transformation: ")){
+        if (cfaEdge.getRawStatement().startsWith("enter program transformation: ")) {
           return ImmutableSet.of();
         }
         return Collections.singleton(factory.getState(cfaEdge.getSuccessor()));
       } else {
-        if (successor == currentStrategy.orElseThrow().subCFAEntryNode()){
+        if (successor == currentStrategy.orElseThrow().subCFAEntryNode()) {
           return Collections.singleton(factory.getState(successor));
         }
       }
@@ -69,9 +69,9 @@ public class LocationTransferRelation implements TransferRelation {
       throws CPATransferException {
     // TODO find out if this needs to be implemented for LocationCPA
     CFANode node = ((LocationState) element).getLocationNode();
-    ImmutableList<LocationState>
-        successors = CFAUtils.successorsOf(node).transform(n -> factory.getState(n)).toList();
-    //LocationPrecision locPrec = (LocationPrecision) prec;
+    ImmutableList<LocationState> successors =
+        CFAUtils.successorsOf(node).transform(n -> factory.getState(n)).toList();
+    // LocationPrecision locPrec = (LocationPrecision) prec;
     return successors;
   }
 }
