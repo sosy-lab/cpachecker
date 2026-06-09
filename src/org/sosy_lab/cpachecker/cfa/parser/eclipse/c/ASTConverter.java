@@ -928,17 +928,10 @@ class ASTConverter {
         // a += b, a *= b etc.
         CExpression rightHandSide = convertExpressionWithoutSideEffects(e.getOperand2());
 
-        if (isLocalVariable(lhs)) {
-          // If `a` is a local variable, we can directly do a = a + b without worrying about
-          // interleaved accesses from other threads, because local variables are thread-local.
-          CBinaryExpression exp = buildBinaryExpression(leftHandSide, rightHandSide, op);
-          return new CExpressionAssignmentStatement(fileLoc, lhs, exp);
-        }
-
         // C11 _Atomic compound assignments (+=, -=, etc.) must appear inside an atomic
         // section so that concurrent analyses treat the read-modify-write as indivisible.
         // see https://en.cppreference.com/w/c/language/atomic.html
-        if (lhs.getExpressionType().isAtomic()) {
+        if (lhs.getExpressionType().isAtomic() && !isLocalVariable(lhs)) {
           // If a has an atomic type, a += b is transformed to
           // atomic_begin(); a = a + b; atomic_end();
           CBinaryExpression exp = buildBinaryExpression(lhs, rightHandSide, op);
@@ -954,8 +947,7 @@ class ASTConverter {
           return lhs;
         }
 
-        CExpression tmp = createTemporaryVariableWithInitializer(fileLoc, lhs);
-        CBinaryExpression exp = buildBinaryExpression(tmp, rightHandSide, op);
+        CBinaryExpression exp = buildBinaryExpression(lhs, rightHandSide, op);
         return new CExpressionAssignmentStatement(fileLoc, lhs, exp);
       }
 
