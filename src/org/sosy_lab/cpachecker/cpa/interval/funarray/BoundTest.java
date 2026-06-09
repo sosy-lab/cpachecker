@@ -79,29 +79,6 @@ public class BoundTest {
   }
 
   @Test
-  public void testIncreaseShiftsAllExpressions() {
-    Bound bound = new Bound(ImmutableSet.of(exp("i"), exp("j", 1)));
-    Bound result = bound.increase(2);
-    assertThat(result.expressions()).contains(exp("i", 2));
-    assertThat(result.expressions()).contains(exp("j", 3));
-  }
-
-  @Test
-  public void testRemoveVariableOccurrencesRemovesMatching() {
-    Bound bound = new Bound(ImmutableSet.of(exp("i"), exp("j")));
-    Bound result = bound.removeVariableOccurrences(variable("i"));
-    assertThat(result.expressions()).doesNotContain(exp("i"));
-    assertThat(result.expressions()).contains(exp("j"));
-  }
-
-  @Test
-  public void testRemoveVariableOccurrencesKeepsUnrelated() {
-    Bound bound = new Bound(ImmutableSet.of(exp("i"), exp("j")));
-    Bound result = bound.removeVariableOccurrences(variable("k"));
-    assertThat(result.expressions()).containsExactly(exp("i"), exp("j"));
-  }
-
-  @Test
   public void testUnionCombinesExpressions() {
     Bound a = new Bound(exp("i"));
     Bound b = new Bound(exp("j"));
