@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib.specification;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
 
 public final class SvLibCheckTrueTag implements SvLibTagProperty {
 
@@ -21,6 +22,11 @@ public final class SvLibCheckTrueTag implements SvLibTagProperty {
   public SvLibCheckTrueTag(SvLibRelationalTerm pTerm, FileLocation pFileLocation) {
     term = pTerm;
     fileLocation = pFileLocation;
+  }
+
+  public static SvLibCheckTrueTag checkFalse() {
+    return new SvLibCheckTrueTag(
+        new SvLibBooleanConstantTerm(false, FileLocation.DUMMY), FileLocation.DUMMY);
   }
 
   @Override

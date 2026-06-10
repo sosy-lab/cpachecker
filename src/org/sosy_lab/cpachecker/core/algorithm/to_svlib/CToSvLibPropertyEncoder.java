@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
@@ -177,9 +176,7 @@ class CToSvLibPropertyEncoder {
 
     return new SvLibAnnotateTagCommand(
         pSvLibTagReference.getTagName(),
-        ImmutableList.of(
-            new SvLibCheckTrueTag(
-                new SvLibBooleanConstantTerm(false, FileLocation.DUMMY), FileLocation.DUMMY)),
+        ImmutableList.of(SvLibCheckTrueTag.checkFalse()),
         FileLocation.DUMMY);
   }
 
