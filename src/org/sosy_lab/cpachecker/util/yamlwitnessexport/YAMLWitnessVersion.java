@@ -12,13 +12,15 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 public enum YAMLWitnessVersion {
   V2,
-  V2d1;
+  V2d1,
+  V2d2;
 
   @Override
   public String toString() {
     return switch (this) {
       case V2 -> "2.0";
       case V2d1 -> "2.1";
+      case V2d2 -> "2.2";
     };
   }
 
@@ -27,6 +29,7 @@ public enum YAMLWitnessVersion {
     return switch (pVersion) {
       case "2.0" -> V2;
       case "2.1" -> V2d1;
+      case "2.2" -> V2d2;
       default -> throw new InvalidConfigurationException("The version is not recognized.");
     };
   }

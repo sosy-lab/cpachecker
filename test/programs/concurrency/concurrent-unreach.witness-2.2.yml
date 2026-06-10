@@ -1,0 +1,75 @@
+# This file is part of the SV-Witnesses repository as regression test:
+# https://gitlab.com/sosy-lab/benchmarking/sv-witnesses
+#
+# SPDX-FileCopyrightText: 2025 The SV-Witnesses Community
+#
+# SPDX-License-Identifier: Apache-2.0
+
+- entry_type: violation_sequence
+  metadata:
+    format_version: "2.2"
+    uuid: "b1c2d3e4-f5a6-4789-abcd-ef0123456789"
+    creation_time: "2025-10-01T12:00:00Z"
+    producer:
+      name: "Handcrafted"
+      version: "1.0"
+    task:
+      input_files:
+        - "./concurrent-unreach.c"
+      input_file_hashes:
+        "./concurrent-unreach.c": "f6792035e640347210200f22d6a3ca138a266ed2a75533c205571380572c4dca"
+      specification: "G ! call(reach_error())"
+      data_model: "ILP32"
+      language: "C"
+  content:
+    - segment:
+        - waypoint:
+            # registers writer as thread 1 (1st function_enter'd pthread_create)
+            type: function_enter
+            action: follow
+            thread_id: 0
+            location:
+              file_name: "./concurrent-unreach.c"
+              line: 25
+              column: 5
+              function: "main"
+    - segment:
+        - waypoint:
+            # thread 1 has performed its write: at its `return NULL;` (s.p. before
+            # it, i.e. after `x = 1;`) x is 1. Placing this in an earlier segment
+            # than main's read fixes the happens-before from the write to the read.
+            type: assumption
+            action: follow
+            thread_id: 1
+            constraint:
+              value: "x == 1"
+              format: c_expression
+            location:
+              file_name: "./concurrent-unreach.c"
+              line: 20
+              column: 5
+              function: "writer"
+    - segment:
+        - waypoint:
+            # main observes x == 1, so the branch `if (x == 1)` is taken
+            type: assumption
+            action: follow
+            thread_id: 0
+            constraint:
+              value: "x == 1"
+              format: c_expression
+            location:
+              file_name: "./concurrent-unreach.c"
+              line: 26
+              column: 5
+              function: "main"
+    - segment:
+        - waypoint:
+            type: target
+            action: follow
+            thread_id: 0
+            location:
+              file_name: "./concurrent-unreach.c"
+              line: 26
+              column: 17
+              function: "main"
