@@ -123,7 +123,7 @@ public class DssDecompositionOptions {
               largestHorizontalMerge,
               Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
               allowSingleBlockDecompositionWhenMerging,
-              false);
+              true);
       case NO_DECOMPOSITION -> new SingleBlockDecomposition();
     };
   }

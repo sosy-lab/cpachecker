@@ -746,7 +746,9 @@ public class DssBlockAnalysis {
         }
         if (!result.getAllViolations().isEmpty()) {
           // pack all violations
-          vcs.addAll(computeViolationConditionStates(result.getViolationConditionViolations()));
+          if (!checkOnlyRelevant || startStates.build().size() == 1 || !isTrivial) {
+            vcs.addAll(computeViolationConditionStates(result.getViolationConditionViolations()));
+          }
           if (containsViolationInsideBlock) {
             vcs.addAll(computeViolationConditionStatesFromOrigin(result.getTargetStates()));
           }
