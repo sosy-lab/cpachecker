@@ -715,7 +715,8 @@ public class DssBlockAnalysis {
     ImmutableSet.Builder<ArgPathAndCondition> vcs = ImmutableSet.builder();
 
     boolean analyzedTrivial = false;
-    for (StateAndPrecision stateAndPrecision : startStates.build()) {
+    ImmutableSet<StateAndPrecision> finalStartStates = startStates.build();
+    for (StateAndPrecision stateAndPrecision : finalStartStates) {
       boolean isTrivial = dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state());
       if (isTrivial && analyzedTrivial) {
         continue;
@@ -746,7 +747,10 @@ public class DssBlockAnalysis {
         }
         if (!result.getAllViolations().isEmpty()) {
           // pack all violations
-          if (!checkOnlyRelevant || startStates.build().size() == 1 || !isTrivial) {
+          if (!checkOnlyRelevant || finalStartStates.size() == 1 || !isTrivial) {
+            // this is true if we are in a backward analysis, or we only have one state to consider
+            // or the state is non-trivial.
+            // For trivial states, the same vc must have been sent already.
             vcs.addAll(computeViolationConditionStates(result.getViolationConditionViolations()));
           }
           if (containsViolationInsideBlock) {
