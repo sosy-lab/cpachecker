@@ -2038,6 +2038,9 @@ cpa.bdd.useBlockAbstraction = false
 # Dump tracked variables to a file.
 cpa.bdd.variablesFile = "BDDCPA_ordered_variables.txt"
 
+# whether to travel over the ghost edge
+cpa.block.transfer.standardVcs = true
+
 # depth of recursion bound
 cpa.callstack.depth = 0
 
@@ -4646,7 +4649,8 @@ distributedSummaries.decomposition.blockCFAFile = "block_analysis/blocks.json"
 # The final number of blocks should converge to the number of functions in
 # the program. NO_DECOMPOSITION creates one block around the CFA.
 distributedSummaries.decomposition.decompositionType = MERGE_DECOMPOSITION
-  enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, NO_DECOMPOSITION]
+  enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, INLINING_DECOMPOSITION,
+             NO_DECOMPOSITION]
 
 # Whether to stop after exporting the blockgraph
 distributedSummaries.decomposition.generateBlockGraphOnly = false

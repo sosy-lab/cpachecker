@@ -57,6 +57,10 @@ public class BlockGraph {
     return nodes;
   }
 
+  public FluentIterable<@NonNull BlockNode> getSuccessorsOf(BlockNode node) {
+    return FluentIterable.from(nodes).filter(n -> node.getSuccessorIds().contains(n.getId()));
+  }
+
   public void checkConsistency(ShutdownNotifier pShutdownNotifier) throws InterruptedException {
     for (BlockNode blockNode : nodes) {
       Preconditions.checkState(

@@ -94,12 +94,21 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     } finally {
       SerializationInfoStorage.clear();
     }
-    return ContentBuilder.builder()
-        .pushLevel(PredicateAbstractState.class.getName())
-        .put(STATE_KEY, serializedFormula)
-        .put(SSA_KEY, serializedSSAMap.toString())
-        .put(PTS_KEY, pts)
-        .putIf(writeReadableFormulas, READABLE_KEY, booleanFormula.toString())
-        .build();
+
+    ContentBuilder content =
+        ContentBuilder.builder()
+            .pushLevel(PredicateAbstractState.class.getName())
+            .put(STATE_KEY, serializedFormula)
+            .put(SSA_KEY, serializedSSAMap.toString())
+            .put(PTS_KEY, pts);
+
+    // currently, the toString() crashes in some circumstances
+    // like this, toString is called lazily and the crashes do not occur in testing
+    // TODO find permanent solution
+    if (writeReadableFormulas) {
+      content.put(READABLE_KEY, booleanFormula.toString());
+    }
+
+    return content.build();
   }
 }
