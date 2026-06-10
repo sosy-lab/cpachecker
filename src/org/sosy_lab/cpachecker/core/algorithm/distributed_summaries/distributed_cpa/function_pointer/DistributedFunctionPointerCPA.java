@@ -60,7 +60,7 @@ public class DistributedFunctionPointerCPA
         new EqualityCombinePreconditionsOperator(coverageOperator, getAbstractStateClass());
     combinePrecisionOperator = new CombineSingletonPrecisionOperator();
     combineViolationConditionsOperator =
-        (origin, states) -> {
+        states -> {
           FunctionPointerState prev = null;
           for (AbstractState state : states) {
             if (prev == null) {

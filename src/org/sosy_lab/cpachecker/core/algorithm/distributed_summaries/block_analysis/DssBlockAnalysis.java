@@ -251,8 +251,7 @@ public class DssBlockAnalysis {
   private Collection<DssMessage> reportViolationConditions(
       Collection<ArgPathAndCondition> relevantViolations)
       throws InterruptedException, CPAException, SolverException {
-    record HashAndOrigin(int hash, AbstractState origin) {}
-    ImmutableListMultimap.Builder<HashAndOrigin, AbstractState> statePerProgramCounterBuilder =
+    ImmutableListMultimap.Builder<Integer, AbstractState> statePerProgramCounterBuilder =
         ImmutableListMultimap.builder();
     for (ArgPathAndCondition pathAndCondition : relevantViolations) {
       Optional<AbstractState> violationCondition =
@@ -261,23 +260,21 @@ public class DssBlockAnalysis {
                   pathAndCondition.path(), Optional.ofNullable(pathAndCondition.condition()));
       if (violationCondition.isPresent()) {
         statePerProgramCounterBuilder.put(
-            new HashAndOrigin(
-                dcpa.computeProgramPointHash(violationCondition.orElseThrow()),
-                pathAndCondition.condition()),
+            Objects.hash(
+                pathAndCondition.condition(),
+                dcpa.computeProgramPointHash(violationCondition.orElseThrow())),
             violationCondition.orElseThrow());
       }
     }
-    ImmutableListMultimap<HashAndOrigin, AbstractState> statePerProgramCounter =
+    ImmutableListMultimap<Integer, AbstractState> statePerProgramCounter =
         statePerProgramCounterBuilder.build();
     ImmutableList.Builder<StateAndPrecision> vcs = ImmutableList.builder();
     if (combineByHash) {
-      for (HashAndOrigin hashAndOrigin : statePerProgramCounter.keySet()) {
+      for (Integer i : statePerProgramCounter.keySet()) {
         vcs.add(
             new StateAndPrecision(
                 dcpa.getCombineViolationConditionsOperator()
-                    .combineViolationConditionsAtSameProgramHash(
-                        Optional.ofNullable(hashAndOrigin.origin()),
-                        statePerProgramCounter.get(hashAndOrigin)),
+                    .combineViolationConditionsAtSameProgramHash(statePerProgramCounter.get(i)),
                 makeStartPrecision()));
       }
     } else {
