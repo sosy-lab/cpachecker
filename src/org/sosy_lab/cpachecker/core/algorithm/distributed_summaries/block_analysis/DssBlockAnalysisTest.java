@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification.Modification;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -69,7 +70,8 @@ public class DssBlockAnalysisTest {
   @Test
   public void test() throws Exception {
 
-    Responses rs = getAnalysisResponse(program, folder, blockID, lastMessage);
+    ReplayResult result = getAnalysisResult(program, folder, blockID, lastMessage);
+    Responses rs = result.responses;
 
     if(expected.postAnalysis != null) {
       expected.postAnalysis.forEach(
@@ -77,7 +79,7 @@ public class DssBlockAnalysisTest {
               Truth.assertWithMessage(
                       "Expected postcondition analysis to cover message %s, but got %s",
                       exp, rs.postAnalysis)
-                  .that(rs.postAnalysis.stream().anyMatch(act -> covers(exp, act)))
+                  .that(rs.postAnalysis.stream().anyMatch(act -> covers(exp, act, result.dcpa)))
                   .isTrue());
     }
 
@@ -87,14 +89,14 @@ public class DssBlockAnalysisTest {
               Truth.assertWithMessage(
                       "Expected violation analysis to cover message %s, but got %s",
                       exp, rs.violationAnalysis)
-                  .that(rs.violationAnalysis.stream().anyMatch(act -> covers(exp, act)))
+                  .that(rs.violationAnalysis.stream().anyMatch(act -> covers(exp, act, result.dcpa)))
                   .isTrue());
     }
 
     fail("Not yet implemented");
   }
 
-  private boolean covers(DssMessage pExp, DssMessage pAct) {
+  private boolean covers(DssMessage pExp, DssMessage pAct, DistributedConfigurableProgramAnalysis dcpa) {
     // TODO how to do this?? I do not want to enforce everything to be the same!
     return true;
   }
@@ -102,6 +104,8 @@ public class DssBlockAnalysisTest {
   public record Responses(
       Collection<DssMessage> postAnalysis, Collection<DssMessage> violationAnalysis) {}
 
+  public record ReplayResult(
+      Responses responses, DistributedConfigurableProgramAnalysis dcpa) {}
   /**
    * repeats the analysis for a given block with given received messages
    *
@@ -122,7 +126,7 @@ public class DssBlockAnalysisTest {
    * @return the responses to the last postCondition and the last violation condition message in the
    *     folder
    */
-  public static Responses getAnalysisResponse(
+  public static ReplayResult getAnalysisResult(
       String program, String blockAnalysisFolder, String blockID, int lastMessageNumber)
       throws Exception {
     CFA cfa = TestUtil.buildTestCFA(program);
@@ -173,7 +177,8 @@ public class DssBlockAnalysisTest {
       violationAnalysis = analysis.analyzeViolationCondition(lastViolation.getSenderId());
     }
 
-    return new Responses(postAnalysis, violationAnalysis);
+    Responses responses = new Responses(postAnalysis, violationAnalysis);
+    return new ReplayResult(responses, analysis.getDcpa());
   }
 
   private static DssBlockAnalysis createAnalysis(CFA pCfa, BlockNode pNode) throws Exception {
