@@ -13,14 +13,18 @@ import static org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.getTh
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -75,20 +79,23 @@ class AutomatonWitnessViolationV2d2Parser extends AutomatonWitnessViolationV2d0P
       boolean containsCycle = false;
       boolean containsFollowOrCycle = false;
       ImmutableList.Builder<WaypointRecord> avoids = new ImmutableList.Builder<>();
+      ImmutableList.Builder<WaypointRecord> follows = new ImmutableList.Builder<>();
       for (WaypointRecord waypoint : segmentRecord.getSegment()) {
         if (waypoint.getAction().equals(WaypointAction.AVOID)) {
           avoids.add(waypoint);
         } else {
           if (containsCycle) {
             throw new InvalidYAMLWitnessException(
-                "Witnesses in version 2.1 can contain at most one follow or cycle waypoint per"
+                "Witnesses in version 2.2 can contain at most one follow or cycle waypoint per"
                     + " segment!");
           }
           containsFollowOrCycle = true;
           if (waypoint.getAction().equals(WaypointAction.FOLLOW)) {
-            segments.add(new PartitionedWaypoints(waypoint, avoids.build()));
+            follows.add(waypoint);
           } else if (waypoint.getAction().equals(WaypointAction.CYCLE)) {
             containsCycle = true;
+            // TODO: It is a bug to build it here, since there may be avoid
+            //  waypoints which are not collected
             segments.add(new PartitionedWaypoints(avoids.build(), waypoint));
           }
         }
@@ -97,6 +104,7 @@ class AutomatonWitnessViolationV2d2Parser extends AutomatonWitnessViolationV2d0P
         throw new InvalidYAMLWitnessException(
             "Every segment in witness version 2.1 must contain follow or cycle waypoint!");
       }
+      segments.add(new PartitionedWaypoints(follows.build(), avoids.build()));
     }
     return segments.build();
   }
@@ -114,6 +122,95 @@ class AutomatonWitnessViolationV2d2Parser extends AutomatonWitnessViolationV2d0P
     ImmutableList<PartitionedWaypoints> segmentizedEntries = segmentize(violationEntry);
     checkCycleOrTargetAtEnd(violationEntry);
     return segmentizedEntries;
+  }
+
+  protected void handleMultiTargetWaypoints(
+      List<WaypointRecord> pWaypointRecords,
+      String nextStateId,
+      String currentStateId,
+      Integer pDistanceToViolation,
+      ImmutableList.Builder<AutomatonInternalState> automatonStates)
+      throws WitnessParseException, InterruptedException {
+    ImmutableListMultimap<Integer, @NonNull CFAEdge> startLineToCFAEdge =
+        FluentIterable.from(cfa.edges())
+            .index(edge -> edge.getFileLocation().getStartingLineInOrigin());
+
+    // Formally there is no ordering between the waypoints at the same segment.
+    // However, since CPAchecker is an interleaving based tool, all the interleavings
+    // are explicitly set in the ARG. Therefore, we can just check the multi-follow
+    // target waypoints, by first checking one, and then the other, so we need
+    // to branch in the automaton for this.
+
+    WaypointRecord firstWaypoint = pWaypointRecords.get(0);
+    WaypointRecord secondWaypoint = pWaypointRecords.get(1);
+
+    ImmutableList.Builder<AutomatonTransition> currentStateTransitions =
+        new ImmutableList.Builder<>();
+
+    // First do waypoint1 then waypoint2
+    followFirstWaypointWithSecondAsTarget(
+        currentStateId,
+        nextStateId,
+        pDistanceToViolation,
+        automatonStates,
+        "SI1-" + nextStateId,
+        firstWaypoint,
+        secondWaypoint,
+        currentStateTransitions);
+
+    // then do waypoint2 then waypoint1
+    followFirstWaypointWithSecondAsTarget(
+        currentStateId,
+        nextStateId,
+        pDistanceToViolation,
+        automatonStates,
+        "SI2-" + nextStateId,
+        secondWaypoint,
+        firstWaypoint,
+        currentStateTransitions);
+
+    automatonStates.add(
+        new AutomatonInternalState(
+            currentStateId,
+            currentStateTransitions.build(),
+            /* pIsTarget= */ false,
+            /* pAllTransitions= */ false,
+            /* pIsCycleStart= */ false));
+  }
+
+  private void followFirstWaypointWithSecondAsTarget(
+      String pCurrentStateId,
+      String pNextStateId,
+      Integer pDistanceToViolation,
+      Builder<AutomatonInternalState> automatonStates,
+      String pIntermediateState,
+      WaypointRecord firstWaypoint,
+      WaypointRecord secondWaypoint,
+      ImmutableList.Builder<AutomatonTransition> currentStateTransitions)
+      throws InterruptedException, WitnessParseException {
+
+    handleAssumption(
+        pIntermediateState,
+        cfa.getAstCfaRelation()
+            .getTightestStatementForStarting(
+                firstWaypoint.getLocation().getLine(), firstWaypoint.getLocation().getColumn())
+            .orElseThrow(),
+        firstWaypoint.getLocation().getLine(),
+        firstWaypoint.getThread(),
+        firstWaypoint.getLocation().getFunction(),
+        pDistanceToViolation,
+        "1",
+        currentStateTransitions);
+
+    handleTarget(
+        pNextStateId,
+        secondWaypoint.getLocation().getLine(),
+        secondWaypoint.getLocation().getColumn(),
+        secondWaypoint.getThread(),
+        pDistanceToViolation - 1,
+        pIntermediateState,
+        new Builder<>(),
+        automatonStates);
   }
 
   protected Integer handleFunctionEnter(
@@ -204,43 +301,61 @@ class AutomatonWitnessViolationV2d2Parser extends AutomatonWitnessViolationV2d0P
     for (PartitionedWaypoints entry : segments) {
       ImmutableList.Builder<AutomatonTransition> transitions = new ImmutableList.Builder<>();
       // We call flow waypoint either cycle or follow waypoint as they ensure flow in the execution
-      WaypointRecord followWaypoint =
-          entry.follow().isPresent() ? entry.follow().orElseThrow() : entry.cycle().orElseThrow();
+      List<WaypointRecord> followWaypoints =
+          entry.follow().isPresent()
+              ? entry.follow().orElseThrow()
+              : ImmutableList.of(entry.cycle().orElseThrow());
       String nextStateId = getStateName(stateCounter++);
 
-      if (followWaypoint.getThread().isPresent()) {
-        automatonVariablesBuilder.put(
-            THREAD_ID_VAR_NAME,
-            AutomatonVariable.createAutomatonVariable(
-                "int",
-                THREAD_ID_VAR_NAME,
-                // The initial thread always gets the identifier `0`
-                Integer.toString(0)));
-      }
-
-      pthreadFunctionEnterWaypoint =
-          handleWaypointsV2d0(
-              entry,
-              followWaypoint,
-              transitions,
-              automatonStates,
-              distance,
-              pthreadFunctionEnterWaypoint,
-              nextStateId,
-              currentStateId);
-
-      if (followWaypoint.getType().equals(WaypointType.TARGET)) {
-        if (stateCounter != segments.size() + 1) {
-          logger.log(
-              Level.INFO,
-              "Target waypoint is not the last waypoint, following waypoints will be ignored!");
+      if (followWaypoints.size() > 1) {
+        if (!FluentIterable.from(followWaypoints)
+            .transform(WaypointRecord::getType)
+            .allMatch(type -> type.equals(WaypointType.TARGET))) {
+          throw new WitnessParseException(
+              "Currently we cannot handle multiple non-target follow waypoints in the same"
+                  + " segment.");
         }
+
+        handleMultiTargetWaypoints(followWaypoints, "X", currentStateId, distance, automatonStates);
+
         currentStateId = "X";
         break;
-      }
+      } else {
+        WaypointRecord followWaypoint = Iterables.getOnlyElement(followWaypoints);
+        if (followWaypoint.getThread().isPresent()) {
+          automatonVariablesBuilder.put(
+              THREAD_ID_VAR_NAME,
+              AutomatonVariable.createAutomatonVariable(
+                  "int",
+                  THREAD_ID_VAR_NAME,
+                  // The initial thread always gets the identifier `0`
+                  Integer.toString(0)));
+        }
 
-      if (followWaypoint.getAction().equals(WaypointAction.CYCLE) && cycleHeadName.isEmpty()) {
-        cycleHeadName = Optional.of(currentStateId);
+        pthreadFunctionEnterWaypoint =
+            handleWaypointsV2d0(
+                entry,
+                followWaypoint,
+                transitions,
+                automatonStates,
+                distance,
+                pthreadFunctionEnterWaypoint,
+                nextStateId,
+                currentStateId);
+
+        if (followWaypoint.getType().equals(WaypointType.TARGET)) {
+          if (stateCounter != segments.size() + 1) {
+            logger.log(
+                Level.INFO,
+                "Target waypoint is not the last waypoint, following waypoints will be ignored!");
+          }
+          currentStateId = "X";
+          break;
+        }
+
+        if (followWaypoint.getAction().equals(WaypointAction.CYCLE) && cycleHeadName.isEmpty()) {
+          cycleHeadName = Optional.of(currentStateId);
+        }
       }
 
       automatonStates.add(

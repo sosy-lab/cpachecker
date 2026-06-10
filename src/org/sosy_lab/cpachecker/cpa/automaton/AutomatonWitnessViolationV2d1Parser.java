@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -71,7 +72,9 @@ class AutomatonWitnessViolationV2d1Parser extends AutomatonWitnessViolationV2d0P
       ImmutableList.Builder<AutomatonTransition> transitions = new ImmutableList.Builder<>();
       // We call flow waypoint either cycle or follow waypoint as they ensure flow in the execution
       WaypointRecord flowWaypoint =
-          entry.follow().isPresent() ? entry.follow().orElseThrow() : entry.cycle().orElseThrow();
+          entry.follow().isPresent()
+              ? Iterables.getOnlyElement(entry.follow().orElseThrow())
+              : entry.cycle().orElseThrow();
       String nextStateId = getStateName(stateCounter++);
 
       pthreadFunctionEnterWaypoint =

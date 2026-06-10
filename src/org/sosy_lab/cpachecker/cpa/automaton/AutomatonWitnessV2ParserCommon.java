@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -104,7 +105,7 @@ class AutomatonWitnessV2ParserCommon {
   }
 
   record PartitionedWaypoints(
-      Optional<WaypointRecord> follow,
+      Optional<List<WaypointRecord>> follow,
       Optional<WaypointRecord> cycle,
       ImmutableList<WaypointRecord> avoids) {
     // Canonical constructor ensures non-null cycle, follow and avoids
@@ -117,7 +118,7 @@ class AutomatonWitnessV2ParserCommon {
     }
 
     // Constructor that only sets 'follow'
-    PartitionedWaypoints(WaypointRecord pFollow, ImmutableList<WaypointRecord> pAvoids) {
+    PartitionedWaypoints(List<WaypointRecord> pFollow, ImmutableList<WaypointRecord> pAvoids) {
       this(Optional.ofNullable(pFollow), Optional.empty(), pAvoids);
     }
 
@@ -151,7 +152,7 @@ class AutomatonWitnessV2ParserCommon {
           }
           containsFollowOrCycle = true;
           if (waypoint.getAction().equals(WaypointAction.FOLLOW)) {
-            segments.add(new PartitionedWaypoints(waypoint, avoids.build()));
+            segments.add(new PartitionedWaypoints(ImmutableList.of(waypoint), avoids.build()));
           } else if (waypoint.getAction().equals(WaypointAction.CYCLE)) {
             segments.add(new PartitionedWaypoints(avoids.build(), waypoint));
           }
