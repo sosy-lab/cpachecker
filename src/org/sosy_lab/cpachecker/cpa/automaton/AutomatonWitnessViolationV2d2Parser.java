@@ -13,7 +13,6 @@ import static org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.getTh
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -141,7 +140,7 @@ class AutomatonWitnessViolationV2d2Parser extends AutomatonWitnessViolationV2d0P
     // target waypoints, by first checking one, and then the other, so we need
     // to branch in the automaton for this.
 
-    WaypointRecord firstWaypoint = pWaypointRecords.get(0);
+    WaypointRecord firstWaypoint = pWaypointRecords.getFirst();
     WaypointRecord secondWaypoint = pWaypointRecords.get(1);
 
     ImmutableList.Builder<AutomatonTransition> currentStateTransitions =
@@ -182,7 +181,7 @@ class AutomatonWitnessViolationV2d2Parser extends AutomatonWitnessViolationV2d0P
       String pCurrentStateId,
       String pNextStateId,
       Integer pDistanceToViolation,
-      Builder<AutomatonInternalState> automatonStates,
+      ImmutableList.Builder<AutomatonInternalState> automatonStates,
       String pIntermediateState,
       WaypointRecord firstWaypoint,
       WaypointRecord secondWaypoint,
@@ -209,7 +208,7 @@ class AutomatonWitnessViolationV2d2Parser extends AutomatonWitnessViolationV2d0P
         secondWaypoint.getThread(),
         pDistanceToViolation - 1,
         pIntermediateState,
-        new Builder<>(),
+        new ImmutableList.Builder<>(),
         automatonStates);
   }
 
@@ -290,7 +289,7 @@ class AutomatonWitnessViolationV2d2Parser extends AutomatonWitnessViolationV2d0P
     Integer pthreadFunctionEnterWaypoint = 1;
 
     ImmutableMap.Builder<String, AutomatonVariable> automatonVariablesBuilder =
-        new ImmutableMap.Builder();
+        new ImmutableMap.Builder<>();
     automatonVariablesBuilder.put(
         AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
         AutomatonVariable.createAutomatonVariable(
