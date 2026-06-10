@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
@@ -585,9 +586,9 @@ public class DssBlockAnalysis {
     // merge all states into the reached set
     ImmutableList<StateAndPrecision> deserializedStates = deserialize(pNewViolationCondition);
     Set<@NonNull String> oldVcs =
-        FluentIterable.from(violationConditions.removeAll(pNewViolationCondition.getSenderId()))
-            .transform(sap -> extractWitnessFromState(sap.state()))
-            .toSet();
+        transformedImmutableSetCopy(
+            violationConditions.removeAll(pNewViolationCondition.getSenderId()),
+            sap -> extractWitnessFromState(sap.state()));
     int equal = 0;
     for (StateAndPrecision stateAndPrecision : deserializedStates) {
       if (oldVcs.contains(extractWitnessFromState(stateAndPrecision.state()))) {
