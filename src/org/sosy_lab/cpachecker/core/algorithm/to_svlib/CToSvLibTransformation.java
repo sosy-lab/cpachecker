@@ -718,6 +718,12 @@ class CToSvLibTransformation {
                 pCallEdge,
                 pProcedureDeclaration,
                 pEdgeToPointerTargetSet);
+      } else {
+        throw new UnsupportedOperationException(
+            "Failed to transform input "
+                + inputParameter
+                + " for procedure "
+                + pProcedureDeclaration.getProcedureName());
       }
       callInputParameterCollector.add(term);
     }
