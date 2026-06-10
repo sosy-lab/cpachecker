@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -19,6 +18,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
+import org.sosy_lab.cpachecker.cpa.block.ViolationWitness;
 
 public class DeserializeBlockStateOperator implements DeserializeOperator {
 
@@ -42,21 +42,8 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
     String serializedBlockState = idAndWitnessAndMaybeHistory.getFirst();
     List<String> witnessAndMaybeHistory =
         Splitter.on(" H:").limit(2).splitToList(idAndWitnessAndMaybeHistory.getLast());
-    List<String> witness = Splitter.on("], ").splitToList(witnessAndMaybeHistory.getFirst());
-    ImmutableList<ImmutableList<String>> finalWitness =
-        FluentIterable.from(witness)
-            .transform(
-                w -> {
-                  if (w == null || w.isBlank()) {
-                    return ImmutableList.<String>of();
-                  }
-                  if (w.endsWith("]")) {
-                    w = w.substring(0, w.length() - 1);
-                  }
-                  Preconditions.checkState(w.charAt(0) == '[');
-                  return ImmutableList.copyOf(Splitter.on(", ").split(w.substring(1)));
-                })
-            .toList();
+
+    ViolationWitness finalWitness = ViolationWitness.deserialize(witnessAndMaybeHistory.getFirst());
     List<String> history =
         witnessAndMaybeHistory.size() == 2
             ? Splitter.on(",").splitToList(witnessAndMaybeHistory.getLast())

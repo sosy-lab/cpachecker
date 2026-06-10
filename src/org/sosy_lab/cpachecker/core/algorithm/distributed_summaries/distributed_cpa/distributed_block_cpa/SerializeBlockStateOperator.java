@@ -23,7 +23,8 @@ public class SerializeBlockStateOperator implements SerializeOperator {
       throw new IllegalArgumentException(
           String.format("Expected state of type %s, got %s", BlockState.class, pState.getClass()));
     }
-    String suffix = " W:" + Joiner.on(", ").join(b.getWitness());
+
+    String suffix = " W:" + b.getWitness().serialize();
     suffix = suffix + (b.getHistory().isEmpty() ? "" : " H:" + Joiner.on(",").join(b.getHistory()));
     return ContentBuilder.builder()
         .pushLevel(BlockState.class.getName())

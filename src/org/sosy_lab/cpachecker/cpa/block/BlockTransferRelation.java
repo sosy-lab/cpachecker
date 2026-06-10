@@ -8,13 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.block;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Set;
-import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -37,10 +35,6 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
 
   public BlockTransferRelation(Configuration pConfiguration) throws InvalidConfigurationException {
     pConfiguration.inject(this);
-  }
-
-  public static String edgeToString(CFAEdge edge) {
-    return "N" + edge.getPredecessor().getNodeNumber() + "N" + edge.getSuccessor().getNodeNumber();
   }
 
   @Override
@@ -94,9 +88,7 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
                   getBlockStateTypeOfLocation(blockState.getBlockNode(), cfaEdge.getSuccessor()),
                   ImmutableList.of(vc),
                   blockState.getHistory(),
-                  FluentIterable.from(blockState.getWitness())
-                      .transform(list -> Collections3.listAndElement(list, edgeToString(cfaEdge)))
-                      .toList(),
+                  blockState.getWitness(),
                   blockState.hasNonTrivialSummaryForEachPredecessor()));
         }
         return successors.build();
@@ -108,9 +100,7 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
               getBlockStateTypeOfLocation(blockState.getBlockNode(), cfaEdge.getSuccessor()),
               blockState.getViolationConditions(),
               blockState.getHistory(),
-              FluentIterable.from(blockState.getWitness())
-                  .transform(list -> Collections3.listAndElement(list, edgeToString(cfaEdge)))
-                  .toList(),
+              blockState.getWitness(),
               blockState.hasNonTrivialSummaryForEachPredecessor()));
     }
     return ImmutableList.of();

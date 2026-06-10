@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa;
 
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -20,7 +19,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
-import org.sosy_lab.cpachecker.cpa.block.BlockTransferRelation;
+import org.sosy_lab.cpachecker.cpa.block.ViolationWitness;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class BlockViolationConditionOperator implements ViolationConditionOperator {
@@ -37,23 +36,16 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
     BlockState topMost =
         Objects.requireNonNull(
             AbstractStates.extractStateByType(pARGPath.getFirstState(), BlockState.class));
-    ImmutableList<ImmutableList<String>> previousWitness =
+    ViolationWitness previousWitness =
         pPreviousCondition
             .map(
                 state ->
                     Objects.requireNonNull(
                             AbstractStates.extractStateByType(state, BlockState.class))
                         .getWitness())
-            .orElse(ImmutableList.of());
-    ImmutableList<ImmutableList<String>> currentWitness =
-        ImmutableList.<ImmutableList<String>>builder()
-            .addAll(previousWitness)
-            .addAll(
-                ImmutableList.of(
-                    transformedImmutableListCopy(
-                            pARGPath.getFullPath(), BlockTransferRelation::edgeToString)
-                        .reverse()))
-            .build();
+            .orElse(ViolationWitness.EMPTY);
+    ViolationWitness currentWitness = previousWitness.addEdges(pARGPath.getFullPath());
+
     if (!trackHistory) {
       return Optional.of(
           new BlockState(

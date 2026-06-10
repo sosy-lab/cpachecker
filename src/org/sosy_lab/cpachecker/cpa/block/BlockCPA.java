@@ -49,7 +49,7 @@ public class BlockCPA extends AbstractCPA {
         BlockStateType.INITIAL,
         ImmutableList.of(),
         ImmutableList.of(),
-        ImmutableList.of(),
+        ViolationWitness.EMPTY,
         false);
   }
 

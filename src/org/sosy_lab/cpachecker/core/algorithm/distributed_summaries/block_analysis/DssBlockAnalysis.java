@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.block.ViolationWitness;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -566,11 +567,9 @@ public class DssBlockAnalysis {
     return processing;
   }
 
-  private String extractWitnessFromState(AbstractState state) {
-    return Joiner.on("")
-        .join(
-            Objects.requireNonNull(AbstractStates.extractStateByType(state, BlockState.class))
-                .getWitness());
+  private ViolationWitness extractWitnessFromState(AbstractState state) {
+    return Objects.requireNonNull(AbstractStates.extractStateByType(state, BlockState.class))
+        .getWitness();
   }
 
   /**
@@ -587,7 +586,7 @@ public class DssBlockAnalysis {
     logger.log(Level.INFO, "Running forward analysis with respect to error condition");
     // merge all states into the reached set
     ImmutableList<StateAndPrecision> deserializedStates = deserialize(pNewViolationCondition);
-    Set<@NonNull String> oldVcs =
+    Set<ViolationWitness> oldVcs =
         transformedImmutableSetCopy(
             violationConditions.removeAll(pNewViolationCondition.getSenderId()),
             sap -> extractWitnessFromState(sap.state()));
