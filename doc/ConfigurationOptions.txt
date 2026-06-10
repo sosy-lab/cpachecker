@@ -2037,6 +2037,9 @@ cpa.bdd.useBlockAbstraction = false
 # Dump tracked variables to a file.
 cpa.bdd.variablesFile = "BDDCPA_ordered_variables.txt"
 
+# whether to travel over the ghost edge
+cpa.block.transfer.standardVcs = true
+
 # depth of recursion bound
 cpa.callstack.depth = 0
 
@@ -4702,10 +4705,6 @@ distributedSummaries.worker.forwardConfiguration = "config/distributed-summary-s
 # the same name as the ID of the worker.
 distributedSummaries.worker.logDirectory = "block_analysis/logfiles"
 
-# Whether to run symbolic execution to compute the violation condition for
-# value analysis.
-dss.cpa.value.runSymExec = no default value
-
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
 enabledanalysis.allowLazyRefinement = false
@@ -5652,9 +5651,6 @@ stop = "SEP"
 # When checking SV-LIB programs use this configuration file instead of the
 # current one.
 svlib.config = no default value
-
-# Where to find the symbolic execution config without cegar.
-symbolicExecution.symbolicExecutionProperties = no default value
 
 # compress the produced violation-witness automata using GZIP compression.
 termination.compressWitness = true
