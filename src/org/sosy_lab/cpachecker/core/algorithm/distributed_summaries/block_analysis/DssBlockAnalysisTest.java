@@ -8,13 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
-import static org.junit.Assert.fail;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.truth.Truth;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
+import java.util.OptionalInt;
+import org.jspecify.annotations.NonNull;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -36,8 +36,13 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification.Modification;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 @RunWith(Parameterized.class)
@@ -73,31 +78,60 @@ public class DssBlockAnalysisTest {
     ReplayResult result = getAnalysisResult(program, folder, blockID, lastMessage);
     Responses rs = result.responses;
 
-    if(expected.postAnalysis != null) {
-      expected.postAnalysis.forEach(
-          exp ->
-              Truth.assertWithMessage(
-                      "Expected postcondition analysis to cover message %s, but got %s",
-                      exp, rs.postAnalysis)
-                  .that(rs.postAnalysis.stream().anyMatch(act -> covers(exp, act, result.dcpa)))
-                  .isTrue());
-    }
-
-    if (expected.violationAnalysis != null) {
-      expected.violationAnalysis.forEach(
-          exp ->
-              Truth.assertWithMessage(
-                      "Expected violation analysis to cover message %s, but got %s",
-                      exp, rs.violationAnalysis)
-                  .that(rs.violationAnalysis.stream().anyMatch(act -> covers(exp, act, result.dcpa)))
-                  .isTrue());
-    }
-
-    fail("Not yet implemented");
+    assertCovered(expected.postAnalysis, rs.postAnalysis, result.dcpa);
+    assertCovered(expected.violationAnalysis, rs.violationAnalysis, result.dcpa);
   }
 
-  private boolean covers(DssMessage pExp, DssMessage pAct, DistributedConfigurableProgramAnalysis dcpa) {
-    // TODO how to do this?? I do not want to enforce everything to be the same!
+  private static void assertCovered(
+      Collection<DssMessage> expectedMessages,
+      Collection<DssMessage> actualMessages,
+      DistributedConfigurableProgramAnalysis dcpa)
+      throws Exception {
+    if (expectedMessages == null) {
+      return;
+    }
+
+    for (DssMessage expectedMessage : expectedMessages) {
+      boolean covered = false;
+
+      for (DssMessage actualMessage : actualMessages) {
+        if (covers(expectedMessage, actualMessage, dcpa)) {
+          covered = true;
+          break;
+        }
+      }
+
+      Truth.assertWithMessage(
+          "Expected message %s to be covered by one of %s", expectedMessage, actualMessages)
+        .that(covered)
+        .isTrue();
+    }
+  }
+
+  private static boolean covers(DssMessage pExp, DssMessage pAct, DistributedConfigurableProgramAnalysis dcpa)
+      throws InterruptedException, CPAException {
+    if (pExp.getType() != pAct.getType()) {
+      return false;
+    }
+    if (!pExp.getSenderId().equals(pAct.getSenderId())){
+      return false;
+    }
+
+    ImmutableList<StateAndPrecision> expectedStates = deserialize(pExp, dcpa);
+    ImmutableList<StateAndPrecision> actualStates = deserialize(pAct, dcpa);
+
+    for (StateAndPrecision expectedState : expectedStates) {
+      boolean stateCovered = false;
+      for (StateAndPrecision actualState : actualStates) {
+        if (dcpa.getCoverageOperator().isSubsumed(expectedState.state(), actualState.state())){
+          stateCovered = true;
+          break;
+        }
+      }
+      if (!stateCovered) {
+        return false;
+      }
+    }
     return true;
   }
 
@@ -221,5 +255,22 @@ public class DssBlockAnalysisTest {
     return mod;
   }
 
-
+  private static ImmutableList<@NonNull StateAndPrecision> deserialize(
+      final DssMessage pMessage, DistributedConfigurableProgramAnalysis dcpa) throws InterruptedException {
+    OptionalInt optionalNumberOfStates = pMessage.getNumberOfContainedStates();
+    if (optionalNumberOfStates.isEmpty()) {
+      return ImmutableList.of();
+    }
+    int numStates = optionalNumberOfStates.orElseThrow();
+    ImmutableList.Builder<StateAndPrecision> statesAndPrecisions =
+        ImmutableList.builderWithExpectedSize(numStates);
+    for (int i = 0; i < numStates; i++) {
+      DssMessage advancedMessage = pMessage.advance(DeserializeOperator.STATE_KEY + i);
+      AbstractState state = dcpa.getDeserializeOperator().deserialize(advancedMessage);
+      Precision precision =
+          dcpa.getDeserializePrecisionOperator().deserializePrecision(advancedMessage);
+      statesAndPrecisions.add(new StateAndPrecision(state, precision));
+    }
+    return statesAndPrecisions.build();
+  }
 }
