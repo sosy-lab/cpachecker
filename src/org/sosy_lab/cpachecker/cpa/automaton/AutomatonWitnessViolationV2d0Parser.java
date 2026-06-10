@@ -13,6 +13,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.HashSet;
 import java.util.List;
@@ -500,7 +501,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
 
     for (PartitionedWaypoints entry : segments) {
       ImmutableList.Builder<AutomatonTransition> transitions = new ImmutableList.Builder<>();
-      WaypointRecord follow = entry.follow().orElseThrow();
+      WaypointRecord follow = Iterables.getOnlyElement(entry.follow().orElseThrow());
       String nextStateId = getStateName(stateCounter++);
 
       handleWaypointsV2d0(
