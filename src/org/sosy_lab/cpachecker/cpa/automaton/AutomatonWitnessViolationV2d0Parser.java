@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.And;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckClosestFullExpressionMatchesColumnAndLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversColumnAndLine;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckEntersElement;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckMatchesColumnAndLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckPassesThroughNodes;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckReachesElement;
@@ -87,13 +88,15 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
     parserTools = ParserTools.create(ExpressionTrees.newFactory(), pCFA.getMachineModel(), pLogger);
   }
 
-  private AutomatonTransition.Builder distanceToViolation(
+  protected AutomatonAction distanceToViolationAction(int pDistanceToViolation) {
+    return new AutomatonAction.Assignment(
+        AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
+        new AutomatonIntExpr.Constant(pDistanceToViolation));
+  }
+
+  protected AutomatonTransition.Builder distanceToViolation(
       AutomatonTransition.Builder pBuilder, int pDistance) {
-    return pBuilder.withActions(
-        ImmutableList.of(
-            new AutomatonAction.Assignment(
-                AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
-                new AutomatonIntExpr.Constant(pDistance))));
+    return pBuilder.withActions(ImmutableList.of(distanceToViolationAction(pDistance)));
   }
 
   /**
@@ -110,6 +113,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
       String nextStateId,
       Integer followLine,
       OptionalInt followColumn,
+      OptionalInt threadId,
       Integer pDistanceToViolation,
       String currentStateId,
       ImmutableList.Builder<AutomatonTransition> transitions,
@@ -125,11 +129,14 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
     AutomatonBoolExpr expr =
         new Or(
             new CheckMatchesColumnAndLine(
-                tightestStatementForStarting.location().getStartColumnInLine(), followLine),
+                tightestStatementForStarting.location().getStartColumnInLine(),
+                followLine,
+                threadId),
             new CheckClosestFullExpressionMatchesColumnAndLine(
                 tightestStatementForStarting.location().getStartColumnInLine(),
                 followLine,
-                cfa.getAstCfaRelation()));
+                cfa.getAstCfaRelation(),
+                threadId));
 
     AutomatonTransition.Builder transitionBuilder =
         new AutomatonTransition.Builder(expr, nextStateId);
@@ -172,6 +179,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
       String nextStateId,
       ASTElement enterElement,
       int followLine,
+      OptionalInt threadId,
       String function,
       Integer pDistanceToViolation,
       String constraint,
@@ -183,7 +191,18 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
     // "An assumption waypoint is evaluated at the sequence point immediately before the
     // waypoint location. The waypoint is passed if the given constraint evaluates to true."
     // Therefore, we need the Reaches Offset guard.
-    AutomatonBoolExpr expr = new CheckReachesElement(enterElement);
+    //
+    // Since it can happen that an assumption is directly after a function return
+    // like for the witness `test/programs/concurrency/concurrent-unreach.witness-2.2.yml`
+    // it can happen that reaches is not evaluated correctly and is never passed.
+    // For such a case we have the enters as a backup which puts the assumption after the edge.
+    //
+    // Note that this will be problematic if there is an assumption and a branching
+    // waypoint at the same location directly after a function call.
+    AutomatonBoolExpr expr =
+        new AutomatonBoolExpr.Or(
+            new CheckReachesElement(enterElement, threadId),
+            new CheckEntersElement(enterElement, threadId));
 
     AutomatonTransition.Builder transitionBuilder =
         new AutomatonTransition.Builder(expr, nextStateId);
@@ -211,6 +230,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
       String nextStateId,
       OptionalInt followColumn,
       Integer followLine,
+      OptionalInt threadId,
       Integer pDistanceToViolation,
       Boolean pBranchToFollow,
       ImmutableList.Builder<AutomatonTransition> transitions)
@@ -303,7 +323,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
 
     AutomatonBoolExpr condition =
         new CheckPassesThroughNodes(
-            adaptedNodesCondition, pBranchToFollow ? nodesThenBranch : nodesElseBranch);
+            adaptedNodesCondition, pBranchToFollow ? nodesThenBranch : nodesElseBranch, threadId);
     AutomatonTransition followBranchTransition =
         distanceToViolation(
                 new AutomatonTransition.Builder(condition, nextStateId), pDistanceToViolation)
@@ -312,7 +332,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
     // Add break state for the other branch, since we don't want to explore it
     CheckPassesThroughNodes negatedCondition =
         new CheckPassesThroughNodes(
-            adaptedNodesCondition, !pBranchToFollow ? nodesThenBranch : nodesElseBranch);
+            adaptedNodesCondition, !pBranchToFollow ? nodesThenBranch : nodesElseBranch, threadId);
     AutomatonTransition avoidBranchTransition =
         new AutomatonTransition.Builder(negatedCondition, AutomatonInternalState.BOTTOM).build();
 
@@ -322,6 +342,29 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
       return;
     }
     transitions.addAll(newTransitions.orElseThrow());
+  }
+
+  /**
+   * Transform a function enter into automata transitions
+   *
+   * @param nextStateId the id of the next state in the automaton being constructed
+   * @param followLine the line at which the target is
+   * @param followColumn the column at which the target is
+   * @param pDistanceToViolation the distance to the violation
+   * @param startLineToCFAEdge a mapping from the start line to the CFA edge
+   * @throws WitnessParseException if this waypoint is not supported
+   */
+  protected Integer handleFunctionEnter(
+      String nextStateId,
+      Integer followLine,
+      OptionalInt followColumn,
+      OptionalInt threadId,
+      Integer pPthreadFunctionEnterWaypoint,
+      Integer pDistanceToViolation,
+      Multimap<Integer, CFAEdge> startLineToCFAEdge,
+      ImmutableList.Builder<AutomatonTransition> transitions)
+      throws WitnessParseException {
+    throw new WitnessParseException("We currently do not support function enter waypoints.");
   }
 
   /**
@@ -340,6 +383,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
       String nextStateId,
       Integer followLine,
       OptionalInt followColumn,
+      OptionalInt threadId,
       Integer pDistanceToViolation,
       @Nullable String constraint,
       Multimap<Integer, CFAEdge> startLineToCFAEdge,
@@ -349,7 +393,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
     // TODO: Handle missing columns properly here
     AutomatonBoolExpr expr =
         new And(
-            new CheckCoversColumnAndLine(followColumn.orElseThrow(), followLine),
+            new CheckCoversColumnAndLine(followColumn.orElseThrow(), followLine, threadId),
             // Edges which correspond to blocks in the code, like function declaration edges and
             // iteration statement edges may fulfill the condition, but are not always desired.
             new IsStatementEdge());
@@ -460,7 +504,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
       String nextStateId = getStateName(stateCounter++);
 
       handleWaypointsV2d0(
-          entry, follow, transitions, automatonStates, distance, nextStateId, currentStateId);
+          entry, follow, transitions, automatonStates, distance, 0, nextStateId, currentStateId);
       ImmutableList<AutomatonTransition> transitionsList = transitions.build();
       if (transitionsList.isEmpty()) {
         continue;
@@ -525,12 +569,13 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
     return automaton;
   }
 
-  protected void handleWaypointsV2d0(
+  protected Integer handleWaypointsV2d0(
       PartitionedWaypoints pEntry,
       WaypointRecord follow,
       ImmutableList.Builder<AutomatonTransition> transitions,
       ImmutableList.Builder<AutomatonInternalState> automatonStates,
       int distance,
+      Integer pPthreadFunctionEnterWaypoint,
       String nextStateId,
       String currentStateId)
       throws InterruptedException, WitnessParseException {
@@ -553,6 +598,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
                     .getTightestStatementForStarting(followLine, followColumn)
                     .orElseThrow(),
                 avoid.getLocation().getLine(),
+                avoid.getThread(),
                 avoid.getLocation().getFunction(),
                 distance,
                 avoid.getConstraint().getValue(),
@@ -563,6 +609,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
                 currentStateId,
                 avoid.getLocation().getColumn(),
                 avoid.getLocation().getLine(),
+                avoid.getThread(),
                 distance,
                 // We negate to remain in the same state, the actual branch we want to avoid lands
                 // in the bottom state automatically due to how we handle branching waypoints
@@ -573,14 +620,24 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
               currentStateId,
               avoid.getLocation().getLine(),
               avoid.getLocation().getColumn(),
+              avoid.getThread(),
               distance,
               "!(" + avoid.getConstraint().getValue() + ")",
               startLineToCFAEdge,
               transitions);
         }
-        case FUNCTION_ENTER ->
-            throw new WitnessParseException(
-                "We currently do not support function enter waypoints.");
+        case FUNCTION_ENTER -> {
+          pPthreadFunctionEnterWaypoint =
+              handleFunctionEnter(
+                  nextStateId,
+                  followLine,
+                  followColumn,
+                  avoid.getThread(),
+                  distance,
+                  pPthreadFunctionEnterWaypoint,
+                  startLineToCFAEdge,
+                  transitions);
+        }
         case TARGET ->
             throw new WitnessParseException("Avoid waypoints of type target are invalid.");
       }
@@ -592,6 +649,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
               "X",
               followLine,
               followColumn,
+              follow.getThread(),
               distance,
               currentStateId,
               transitions,
@@ -603,6 +661,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
                   .getTightestStatementForStarting(followLine, followColumn)
                   .orElseThrow(),
               followLine,
+              follow.getThread(),
               follow.getLocation().getFunction(),
               distance,
               follow.getConstraint().getValue(),
@@ -613,20 +672,33 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
               nextStateId,
               followColumn,
               followLine,
+              follow.getThread(),
               distance,
               Boolean.parseBoolean(follow.getConstraint().getValue()),
               transitions);
-      case FUNCTION_ENTER ->
-          throw new WitnessParseException("We currently do not support function enter waypoints.");
+      case FUNCTION_ENTER -> {
+        pPthreadFunctionEnterWaypoint =
+            handleFunctionEnter(
+                nextStateId,
+                followLine,
+                followColumn,
+                follow.getThread(),
+                pPthreadFunctionEnterWaypoint,
+                distance,
+                startLineToCFAEdge,
+                transitions);
+      }
       case WaypointType.FUNCTION_RETURN ->
           handleFunctionReturn(
               nextStateId,
               followLine,
               followColumn,
+              follow.getThread(),
               distance,
               follow.getConstraint().getValue(),
               startLineToCFAEdge,
               transitions);
     }
+    return pPthreadFunctionEnterWaypoint;
   }
 }

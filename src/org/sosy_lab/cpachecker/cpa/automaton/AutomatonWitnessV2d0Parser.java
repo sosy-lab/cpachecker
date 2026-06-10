@@ -72,6 +72,9 @@ public class AutomatonWitnessV2d0Parser {
                 new AutomatonWitnessV2d0ParserCorrectness(config, logger, shutdownNotifier, cfa);
             case V2d1 ->
                 new AutomatonWitnessV2d1ParserCorrectness(config, logger, shutdownNotifier, cfa);
+            // Currently no change vs version 2.1 of the witness format for correctness witnesses
+            case V2d2 ->
+                new AutomatonWitnessV2d1ParserCorrectness(config, logger, shutdownNotifier, cfa);
           };
       return parser.createCorrectnessAutomatonFromEntries(entries);
     } else {
@@ -81,6 +84,8 @@ public class AutomatonWitnessV2d0Parser {
                 new AutomatonWitnessViolationV2d0Parser(config, logger, shutdownNotifier, cfa);
             case V2d1 ->
                 new AutomatonWitnessViolationV2d1Parser(config, logger, shutdownNotifier, cfa);
+            case V2d2 ->
+                new AutomatonWitnessViolationV2d2Parser(config, logger, shutdownNotifier, cfa);
           };
       return parser.createViolationAutomatonFromEntries(entries);
     }

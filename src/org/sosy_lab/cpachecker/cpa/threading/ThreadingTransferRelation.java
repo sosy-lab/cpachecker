@@ -772,7 +772,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     Map<String, AutomatonVariable> vars = automatonState.getVars();
     AutomatonVariable witnessThreadId = vars.get(Ascii.toUpperCase(KeyDef.THREADID.toString()));
     String threadId = ts.getActiveThread();
-    if (witnessThreadId == null || threadId == null || witnessThreadId.getValue() == 0) {
+    if (witnessThreadId == null || threadId == null) {
       // values not available or default value zero -> ignore and return state unchanged
       return ts;
     }

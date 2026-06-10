@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
@@ -369,7 +370,10 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
               e.getMessage().contains("recursion"),
               e.getMessage().contains("pthread_create")
                   || e.getMessage()
-                      .contains("Concurrency analysis not supported in this configuration"));
+                      .contains("Concurrency analysis not supported in this configuration")
+                  || e.getMessage()
+                      .contains(
+                          AutomatonBoolExpr.CANNOT_EVALUATE_THREAD_MISSING.getFailureMessage()));
 
           if (e instanceof CounterexampleAnalysisFailed
               || e instanceof RefinementFailedException

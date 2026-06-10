@@ -431,7 +431,7 @@ public class ThreadingState
     return new ThreadingState(threads, locks, pActiveThread, entryFunction, threadIdsForWitness);
   }
 
-  String getActiveThread() {
+  public String getActiveThread() {
     return activeThread;
   }
 
@@ -446,7 +446,8 @@ public class ThreadingState
     return entryFunction;
   }
 
-  @Nullable Integer getThreadIdForWitness(String threadId) {
+  @Nullable
+  public Integer getThreadIdForWitness(String threadId) {
     Preconditions.checkNotNull(threadId);
     return threadIdsForWitness.get(threadId);
   }

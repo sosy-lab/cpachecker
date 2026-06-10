@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
@@ -797,6 +798,13 @@ public class CFAUtils {
       currentEdge = Iterables.getOnlyElement(currentEdge.getSuccessor().getLeavingEdges());
     }
     return rGlobalVariables.build();
+  }
+
+  public static boolean equalityModuloNodes(CFAEdge pFirst, CFAEdge pOther) {
+    // Is just an approximation for now. This would need to be
+    return Objects.equals(pFirst.getFileLocation(), pOther.getFileLocation())
+        && Objects.equals(pFirst.getClass(), pOther.getClass())
+        && Objects.equals(pFirst.getRawStatement(), pOther.getRawStatement());
   }
 
   /**
