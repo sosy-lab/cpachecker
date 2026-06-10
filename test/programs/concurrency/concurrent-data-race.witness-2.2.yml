@@ -31,7 +31,7 @@
             location:
               file_name: "./concurrent-data-race.c"
               line: 27
-              column: 19
+              column: 5
               function: "main"
     - segment:
         - waypoint:
@@ -42,7 +42,7 @@
             location:
               file_name: "./concurrent-data-race.c"
               line: 28
-              column: 19
+              column: 5
               function: "main"
     - segment:
         # multi-follow final segment: the two conflicting accesses (both targets)

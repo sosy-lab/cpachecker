@@ -210,7 +210,7 @@ class AutomatonWitnessV2ParserCommon {
     checkTargetIsAtEnd(latest, numTargetWaypoints);
   }
 
-  private void checkTargetIsAtEnd(WaypointRecord pLatest, int pNumTargetWaypoints)
+  protected void checkTargetIsAtEnd(WaypointRecord pLatest, int pNumTargetWaypoints)
       throws InvalidYAMLWitnessException {
     switch (pNumTargetWaypoints) {
       case 0 -> throw new InvalidYAMLWitnessException("No target waypoint in witness V2!");
