@@ -792,8 +792,7 @@ class CToSvLibTransformation {
     // SvLibAssignmentStatement should be returned.
     if (pTransformedTerm instanceof SvLibBooleanConstantTerm booleanConstant
         && booleanConstant.getValue()) {
-      return new SvLibSequenceStatement(
-          ImmutableList.of(), FileLocation.DUMMY, ImmutableList.of(), ImmutableList.of());
+      return SvLibSequenceStatement.emptySequence();
 
     } else if (pTransformedTerm instanceof SvLibSymbolApplicationTerm symbolApplicationTerm
         && symbolApplicationTerm.getSymbol().getName().equals("=")

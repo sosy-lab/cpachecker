@@ -33,6 +33,11 @@ public final class SvLibSequenceStatement extends SvLibControlFlowStatement {
     fileLocation = pFileLocation;
   }
 
+  public static SvLibSequenceStatement emptySequence() {
+    return new SvLibSequenceStatement(
+        ImmutableList.of(), FileLocation.DUMMY, ImmutableList.of(), ImmutableList.of());
+  }
+
   public ImmutableList<SvLibStatement> getStatements() {
     return statements;
   }
