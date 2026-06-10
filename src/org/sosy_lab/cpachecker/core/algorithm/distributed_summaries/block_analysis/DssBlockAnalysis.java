@@ -250,7 +250,8 @@ public class DssBlockAnalysis {
   private Collection<DssMessage> reportViolationConditions(
       Collection<ArgPathAndCondition> relevantViolations)
       throws InterruptedException, CPAException, SolverException {
-    ImmutableListMultimap.Builder<Integer, AbstractState> statePerProgramCounterBuilder =
+    record HashAndOrigin(int hash, AbstractState origin) {}
+    ImmutableListMultimap.Builder<HashAndOrigin, AbstractState> statePerProgramCounterBuilder =
         ImmutableListMultimap.builder();
     for (ArgPathAndCondition pathAndCondition : relevantViolations) {
       Optional<AbstractState> violationCondition =
@@ -259,21 +260,23 @@ public class DssBlockAnalysis {
                   pathAndCondition.path(), Optional.ofNullable(pathAndCondition.condition()));
       if (violationCondition.isPresent()) {
         statePerProgramCounterBuilder.put(
-            Objects.hash(
-                pathAndCondition.condition(),
-                dcpa.computeProgramPointHash(violationCondition.orElseThrow())),
+            new HashAndOrigin(
+                dcpa.computeProgramPointHash(violationCondition.orElseThrow()),
+                pathAndCondition.condition()),
             violationCondition.orElseThrow());
       }
     }
-    ImmutableListMultimap<Integer, AbstractState> statePerProgramCounter =
+    ImmutableListMultimap<HashAndOrigin, AbstractState> statePerProgramCounter =
         statePerProgramCounterBuilder.build();
     ImmutableList.Builder<StateAndPrecision> vcs = ImmutableList.builder();
     if (combineByHash) {
-      for (Integer i : statePerProgramCounter.keySet()) {
+      for (HashAndOrigin hashAndOrigin : statePerProgramCounter.keySet()) {
         vcs.add(
             new StateAndPrecision(
                 dcpa.getCombineViolationConditionsOperator()
-                    .combineViolationConditionsAtSameProgramHash(statePerProgramCounter.get(i)),
+                    .combineViolationConditionsAtSameProgramHash(
+                        Optional.ofNullable(hashAndOrigin.origin()),
+                        statePerProgramCounter.get(hashAndOrigin)),
                 makeStartPrecision()));
       }
     } else {
