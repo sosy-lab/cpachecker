@@ -256,10 +256,12 @@ public class DssBlockAnalysis {
       Optional<AbstractState> violationCondition =
           dcpa.getViolationConditionOperator()
               .computeViolationCondition(
-                  pathAndCondition.path(), Optional.ofNullable(pathAndCondition.condition));
+                  pathAndCondition.path(), Optional.ofNullable(pathAndCondition.condition()));
       if (violationCondition.isPresent()) {
         statePerProgramCounterBuilder.put(
-            dcpa.computeProgramPointHash(violationCondition.orElseThrow()),
+            Objects.hash(
+                pathAndCondition.condition(),
+                dcpa.computeProgramPointHash(violationCondition.orElseThrow())),
             violationCondition.orElseThrow());
       }
     }
