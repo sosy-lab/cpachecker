@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckPassesThroug
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.SegmentRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointAction;
@@ -45,6 +46,61 @@ class AutomatonWitnessViolationV2d2Parser extends AutomatonWitnessViolationV2d0P
     super(pConfig, pLogger, pShutdownNotifier, pCFA);
   }
 
+  @Override
+  protected void checkTargetIsAtEnd(WaypointRecord pLatest, int pNumTargetWaypoints)
+      throws InvalidYAMLWitnessException {
+    switch (pNumTargetWaypoints) {
+      case 0 -> throw new InvalidYAMLWitnessException("No target waypoint in witness V2!");
+      case 1, 2 -> {
+        if (pLatest != null && !pLatest.getType().equals(WaypointType.TARGET)) {
+          throw new InvalidYAMLWitnessException("Target waypoint is not at the end in witness V2!");
+        }
+      }
+      default ->
+          throw new InvalidYAMLWitnessException("More than one target waypoint in witness V2!");
+    }
+  }
+
+  /**
+   * Separate the entries into segments whose waypoints should be passed one after the other
+   *
+   * @param pViolationEntry the violation entry to segmentize
+   * @return the segmentized entries
+   */
+  ImmutableList<PartitionedWaypoints> segmentize(ViolationSequenceEntry pViolationEntry)
+      throws InvalidYAMLWitnessException {
+    ImmutableList.Builder<PartitionedWaypoints> segments = new ImmutableList.Builder<>();
+
+    for (SegmentRecord segmentRecord : pViolationEntry.getContent()) {
+      boolean containsCycle = false;
+      boolean containsFollowOrCycle = false;
+      ImmutableList.Builder<WaypointRecord> avoids = new ImmutableList.Builder<>();
+      for (WaypointRecord waypoint : segmentRecord.getSegment()) {
+        if (waypoint.getAction().equals(WaypointAction.AVOID)) {
+          avoids.add(waypoint);
+        } else {
+          if (containsCycle) {
+            throw new InvalidYAMLWitnessException(
+                "Witnesses in version 2.1 can contain at most one follow or cycle waypoint per"
+                    + " segment!");
+          }
+          containsFollowOrCycle = true;
+          if (waypoint.getAction().equals(WaypointAction.FOLLOW)) {
+            segments.add(new PartitionedWaypoints(waypoint, avoids.build()));
+          } else if (waypoint.getAction().equals(WaypointAction.CYCLE)) {
+            containsCycle = true;
+            segments.add(new PartitionedWaypoints(avoids.build(), waypoint));
+          }
+        }
+      }
+      if (!containsFollowOrCycle) {
+        throw new InvalidYAMLWitnessException(
+            "Every segment in witness version 2.1 must contain follow or cycle waypoint!");
+      }
+    }
+    return segments.build();
+  }
+
   /**
    * Separate the entries into segments and check whether the witness is valid witness v2.1
    *
@@ -52,7 +108,7 @@ class AutomatonWitnessViolationV2d2Parser extends AutomatonWitnessViolationV2d0P
    * @return the segmentized entries
    * @throws InvalidYAMLWitnessException if the YAML witness is not valid
    */
-  protected ImmutableList<PartitionedWaypoints> segmentizeAndCheckV2d1(List<AbstractEntry> pEntries)
+  protected ImmutableList<PartitionedWaypoints> segmentizeAndCheckV2d2(List<AbstractEntry> pEntries)
       throws InvalidYAMLWitnessException {
     ViolationSequenceEntry violationEntry = getViolationSequence(pEntries);
     ImmutableList<PartitionedWaypoints> segmentizedEntries = segmentize(violationEntry);
@@ -120,7 +176,7 @@ class AutomatonWitnessViolationV2d2Parser extends AutomatonWitnessViolationV2d0P
   @Override
   Automaton createViolationAutomatonFromEntries(List<AbstractEntry> pEntries)
       throws InterruptedException, InvalidYAMLWitnessException, WitnessParseException {
-    List<PartitionedWaypoints> segments = segmentizeAndCheckV2d1(pEntries);
+    List<PartitionedWaypoints> segments = segmentizeAndCheckV2d2(pEntries);
     // this needs to be called exactly WitnessAutomaton for the option
     // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work
     final String automatonName = AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME;
