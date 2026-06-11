@@ -3558,23 +3558,20 @@ class ASTConverter {
     private Pair<List<Integer>, CType> resolveIndicesOfDesignator(
         ICASTDesignator designator, CType parentType) {
       CType currentType = parentType.getCanonicalType();
-      switch (designator) {
+      return switch (designator) {
         case ICASTFieldDesignator fieldDesignator -> {
           String targetFieldName = fieldDesignator.getName().toString();
-          return resolveIndicesOfFieldDesignator(targetFieldName, currentType);
+          yield resolveIndicesOfFieldDesignator(targetFieldName, currentType);
         }
 
-        case ICASTArrayDesignator arrayDesignator -> {
-          return resolveIndicesOfArraySubscript(
-              arrayDesignator.getSubscriptExpression(), currentType);
-        }
+        case ICASTArrayDesignator arrayDesignator ->
+            resolveIndicesOfArraySubscript(arrayDesignator.getSubscriptExpression(), currentType);
 
-        case IGCCASTArrayRangeDesignator rangeDesignator -> {
-          return resolveIndicesOfArraySubscript(rangeDesignator.getRangeCeiling(), currentType);
-        }
+        case IGCCASTArrayRangeDesignator rangeDesignator ->
+            resolveIndicesOfArraySubscript(rangeDesignator.getRangeCeiling(), currentType);
         case null, default ->
             throw new AssertionError("Unexpected designator in sequence: " + designator);
-      }
+      };
     }
 
     private Pair<List<Integer>, CType> resolveIndicesOfFieldDesignator(
