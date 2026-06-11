@@ -444,7 +444,7 @@ public class TerminationWitnessValidator implements Algorithm {
                 fmgr,
                 scope,
                 pMapPrevToCurrVars),
-            MapsDifference.collectMapsDifferenceTo(new ArrayList<>()));
+            MapsDifference.ignoreMapsDifference());
     SSAMap oneStepSSAMap =
         TransitionInvariantUtils.setIndicesToDifferentValues(
             pCandidateInvariant,
@@ -536,7 +536,7 @@ public class TerminationWitnessValidator implements Algorithm {
                     fmgr,
                     scope,
                     pMapPrevToCurrVars),
-                MapsDifference.collectMapsDifferenceTo(new ArrayList<>())));
+                MapsDifference.ignoreMapsDifference()));
     boolean isTransitionInvariant;
     try {
       isTransitionInvariant =
