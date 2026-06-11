@@ -2080,7 +2080,7 @@ public class FormulaManagerView {
           public @Nullable BigInteger visitFunction(
               Formula pF, List<Formula> args, FunctionDeclaration<?> decl) {
             assert !args.isEmpty();
-            switch (decl.getKind()) {
+            return switch (decl.getKind()) {
               case AND, OR, NOT -> {
                 BigInteger count = BigInteger.valueOf(args.size());
                 for (Formula arg : args) {
@@ -2089,17 +2089,15 @@ public class FormulaManagerView {
                     // pF will be visited again later, non-recursive implementation of DFS
                     waitlist.push(pF);
                     waitlist.push(arg);
-                    return null;
+                    yield null;
                   } else {
                     count = count.add(subCount);
                   }
                 }
-                return count;
+                yield count;
               }
-              default -> {
-                return visitDefault(pF);
-              }
-            }
+              default -> visitDefault(pF);
+            };
           }
         };
 
