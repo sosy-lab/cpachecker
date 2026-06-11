@@ -13,7 +13,6 @@ import static org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.getTh
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -23,7 +22,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.logging.Level;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -70,6 +68,7 @@ class AutomatonWitnessViolationV2d2Parser extends AutomatonWitnessViolationV2d0P
    * @param pViolationEntry the violation entry to segmentize
    * @return the segmentized entries
    */
+  @Override
   ImmutableList<PartitionedWaypoints> segmentize(ViolationSequenceEntry pViolationEntry)
       throws InvalidYAMLWitnessException {
     ImmutableList.Builder<PartitionedWaypoints> segments = new ImmutableList.Builder<>();
@@ -130,10 +129,6 @@ class AutomatonWitnessViolationV2d2Parser extends AutomatonWitnessViolationV2d0P
       Integer pDistanceToViolation,
       ImmutableList.Builder<AutomatonInternalState> automatonStates)
       throws WitnessParseException, InterruptedException {
-    ImmutableListMultimap<Integer, @NonNull CFAEdge> startLineToCFAEdge =
-        FluentIterable.from(cfa.edges())
-            .index(edge -> edge.getFileLocation().getStartingLineInOrigin());
-
     // Formally there is no ordering between the waypoints at the same segment.
     // However, since CPAchecker is an interleaving based tool, all the interleavings
     // are explicitly set in the ARG. Therefore, we can just check the multi-follow
@@ -148,7 +143,6 @@ class AutomatonWitnessViolationV2d2Parser extends AutomatonWitnessViolationV2d0P
 
     // First do waypoint1 then waypoint2
     followFirstWaypointWithSecondAsTarget(
-        currentStateId,
         nextStateId,
         pDistanceToViolation,
         automatonStates,
@@ -159,7 +153,6 @@ class AutomatonWitnessViolationV2d2Parser extends AutomatonWitnessViolationV2d0P
 
     // then do waypoint2 then waypoint1
     followFirstWaypointWithSecondAsTarget(
-        currentStateId,
         nextStateId,
         pDistanceToViolation,
         automatonStates,
@@ -178,7 +171,6 @@ class AutomatonWitnessViolationV2d2Parser extends AutomatonWitnessViolationV2d0P
   }
 
   private void followFirstWaypointWithSecondAsTarget(
-      String pCurrentStateId,
       String pNextStateId,
       Integer pDistanceToViolation,
       ImmutableList.Builder<AutomatonInternalState> automatonStates,
@@ -212,6 +204,7 @@ class AutomatonWitnessViolationV2d2Parser extends AutomatonWitnessViolationV2d0P
         automatonStates);
   }
 
+  @Override
   protected Integer handleFunctionEnter(
       String nextStateId,
       Integer followLine,
