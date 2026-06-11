@@ -355,6 +355,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
    * @param startLineToCFAEdge a mapping from the start line to the CFA edge
    * @throws WitnessParseException if this waypoint is not supported
    */
+  @SuppressWarnings("unused")
   protected Integer handleFunctionEnter(
       String nextStateId,
       Integer followLine,
