@@ -84,54 +84,55 @@ public record ViolationWitness(ImmutableList<ImmutableSet<ImmutableList<String>>
   }
 
   private static final Joiner JOIN_LIST = Joiner.on(','); // join elements in inner list
-  private static final Joiner JOIN_SET  = Joiner.on('|'); // join inner-list tokens inside a set (sorted)
-  private static final Joiner JOIN_TOP  = Joiner.on(';'); // join set tokens for the top-level list
+  private static final Joiner JOIN_SET =
+      Joiner.on('|'); // join inner-list tokens inside a set (sorted)
+  private static final Joiner JOIN_TOP = Joiner.on(';'); // join set tokens for the top-level list
 
   private static final Splitter SPLIT_TOP = Splitter.on(';');
-  private static final Splitter SPLIT_SET  = Splitter.on('|');
+  private static final Splitter SPLIT_SET = Splitter.on('|');
   private static final Splitter SPLIT_LIST = Splitter.on(',');
 
   public String serialize() {
     List<String> setTokens = new ArrayList<>(witness.size());
     for (ImmutableSet<ImmutableList<String>> set : witness) {
-          if (set.isEmpty()) {
-              setTokens.add(""); // represent empty set as empty token
-              continue;
-          }
-          List<String> innerTokens = new ArrayList<>(set.size());
-          for (ImmutableList<String> innerList : set) {
-              if (innerList.isEmpty()) {
-                  innerTokens.add(""); // empty inner list -> empty token
-                  continue;
-              }
-              innerTokens.add(JOIN_LIST.join(innerList));
-          }
-          Collections.sort(innerTokens); // stable order for set based on content
-          setTokens.add(JOIN_SET.join(innerTokens));
+      if (set.isEmpty()) {
+        setTokens.add(""); // represent empty set as empty token
+        continue;
       }
-      return JOIN_TOP.join(setTokens);
+      List<String> innerTokens = new ArrayList<>(set.size());
+      for (ImmutableList<String> innerList : set) {
+        if (innerList.isEmpty()) {
+          innerTokens.add(""); // empty inner list -> empty token
+          continue;
+        }
+        innerTokens.add(JOIN_LIST.join(innerList));
+      }
+      Collections.sort(innerTokens); // stable order for set based on content
+      setTokens.add(JOIN_SET.join(innerTokens));
+    }
+    return JOIN_TOP.join(setTokens);
   }
 
   public static ViolationWitness deserialize(String input) {
-      if (input == null || input.isEmpty()) {
+    if (input == null || input.isEmpty()) {
       return new ViolationWitness(ImmutableList.of());
+    }
+    List<ImmutableSet<ImmutableList<String>>> top = new ArrayList<>();
+    for (String setToken : SPLIT_TOP.splitToList(input)) {
+      if (setToken.isEmpty()) {
+        top.add(ImmutableSet.of());
+        continue;
       }
-      List<ImmutableSet<ImmutableList<String>>> top = new ArrayList<>();
-      for (String setToken : SPLIT_TOP.splitToList(input)) {
-          if (setToken.isEmpty()) {
-              top.add(ImmutableSet.of());
-              continue;
-          }
-          List<ImmutableList<String>> innerLists = new ArrayList<>();
-          for (String innerToken : SPLIT_SET.splitToList(setToken)) {
-              if (innerToken.isEmpty()) {
-                  innerLists.add(ImmutableList.of());
-                  continue;
-              }
-              innerLists.add(ImmutableList.copyOf(SPLIT_LIST.splitToList(innerToken)));
-          }
-          top.add(ImmutableSet.copyOf(innerLists));
+      List<ImmutableList<String>> innerLists = new ArrayList<>();
+      for (String innerToken : SPLIT_SET.splitToList(setToken)) {
+        if (innerToken.isEmpty()) {
+          innerLists.add(ImmutableList.of());
+          continue;
+        }
+        innerLists.add(ImmutableList.copyOf(SPLIT_LIST.splitToList(innerToken)));
       }
+      top.add(ImmutableSet.copyOf(innerLists));
+    }
     return new ViolationWitness(ImmutableList.copyOf(top));
   }
 }

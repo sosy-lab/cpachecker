@@ -4709,6 +4709,9 @@ distributedSummaries.worker.forwardConfiguration = "config/distributed-summary-s
 # the same name as the ID of the worker.
 distributedSummaries.worker.logDirectory = "block_analysis/logfiles"
 
+# Whether to query the SMT solver before proceeding backwards.
+dss.cpa.predicate.doSatChecksBeforeBackwardAnalysis = true
+
 # Whether to run symbolic execution to compute the violation condition for
 # value analysis.
 dss.cpa.value.runSymExec = true

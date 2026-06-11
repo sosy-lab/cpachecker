@@ -122,6 +122,7 @@ public class DssBlockAnalysis {
   private final LogManager logger;
 
   private AlgorithmStatus status;
+  private Precision unifiedPrecision;
   private boolean containsViolationInsideBlock;
 
   private final boolean resetPrecisionsForEveryRun;
@@ -170,6 +171,7 @@ public class DssBlockAnalysis {
 
     containsViolationInsideBlock = false;
     combineByHash = pOptions.combineByHash();
+    unifiedPrecision = makeStartPrecision();
   }
 
   /**
@@ -290,17 +292,6 @@ public class DssBlockAnalysis {
     ImmutableMap<String, String> serialized = serialize(allVcs);
     return ImmutableSet.of(
         messageFactory.createViolationConditionMessage(block.getId(), status, serialized));
-  }
-
-  private Optional<Precision> combinePrecisionIfPossible() throws InterruptedException {
-    if (preconditions.isEmpty()) {
-      return Optional.empty();
-    }
-    return Optional.of(
-        dcpa.getCombinePrecisionOperator()
-            .combine(
-                transformedImmutableListCopy(
-                    preconditions.values(), StateAndPrecision::precision)));
   }
 
   /**
@@ -465,9 +456,14 @@ public class DssBlockAnalysis {
         return DssMessageProcessing.stop();
       }
       ImmutableList.Builder<StateAndPrecision> summariesWithPrecision = ImmutableList.builder();
-      for (AbstractState finalState : result.getFinalLocationStates()) {
+      if (block.getPredecessorIds().isEmpty()) {
+        for (AbstractState finalState : result.getFinalLocationStates()) {
+          summariesWithPrecision.add(
+              new StateAndPrecision(finalState, reachedSet.getPrecision(finalState)));
+        }
+      } else {
         summariesWithPrecision.add(
-            new StateAndPrecision(finalState, reachedSet.getPrecision(finalState)));
+            new StateAndPrecision(makeTopState(block.getFinalLocation()), makeStartPrecision()));
       }
       return reportPostconditions(summariesWithPrecision.build());
     }
@@ -532,6 +528,16 @@ public class DssBlockAnalysis {
       return processing;
     }
 
+    unifiedPrecision =
+        dcpa.getCombinePrecisionOperator()
+            .combine(
+                ImmutableSet.<Precision>builder()
+                    .addAll(
+                        transformedImmutableSetCopy(
+                            deserializedStatesAndPrecisions, StateAndPrecision::precision))
+                    .add(unifiedPrecision)
+                    .build());
+
     if (preconditions.get(pReceived.getSenderId()).isEmpty()) {
       preconditions.putAll(pReceived.getSenderId(), deserializedStatesAndPrecisions);
       relevant.addAll(deserializedStatesAndPrecisions);
@@ -562,7 +568,6 @@ public class DssBlockAnalysis {
     if (relevant.isEmpty()) {
       return DssMessageProcessing.stop();
     }
-
     appendTopToRelevantIfNecessary(pReceived.getSenderId());
     return processing;
   }
@@ -680,34 +685,16 @@ public class DssBlockAnalysis {
       return new AnalysisResult(ImmutableList.of(), ImmutableSet.of());
     }
 
-    boolean hasNonTrivialSummariesForEachPredecessor =
-        !preconditions.isEmpty()
-            && preconditions.keySet().stream()
-                .allMatch(
-                    k ->
-                        preconditions.get(k).stream()
-                            .anyMatch(sap -> !dcpa.isMostGeneralBlockEntryState(sap.state())));
-
     // unreachable block ends might be caused by underapproximating summaries
     // therefore, a new violation condition cannot ignore them.
     // create start states for the forward analysis.
     ImmutableSet.Builder<StateAndPrecision> startStates = ImmutableSet.builder();
     if (checkOnlyRelevant) {
       startStates.addAll(relevant);
+    } else if (!preconditions.values().isEmpty()) {
+      startStates.addAll(preconditions.values());
     } else {
-      if (!preconditions.values().isEmpty()) {
-        for (StateAndPrecision sap : preconditions.values()) {
-          if (hasNonTrivialSummariesForEachPredecessor
-              && AbstractStates.extractStateByType(sap.state(), BlockState.class)
-                  .hasNonTrivialSummaryForEachPredecessor()
-              && dcpa.isMostGeneralBlockEntryState(sap.state())) {
-            continue;
-          }
-          startStates.add(sap);
-        }
-      } else {
-        startStates.add(new StateAndPrecision(makeStartState(), makeStartPrecision()));
-      }
+      startStates.add(new StateAndPrecision(makeStartState(), makeStartPrecision()));
     }
 
     ImmutableList.Builder<StateAndPrecision> summaries = ImmutableList.builder();
@@ -725,9 +712,7 @@ public class DssBlockAnalysis {
       reachedSet.clear();
       reachedSet.add(
           stateAndPrecision.state(),
-          resetPrecisionsForEveryRun || isTrivial
-              ? makeStartPrecision()
-              : combinePrecisionIfPossible().orElse(stateAndPrecision.precision()));
+          resetPrecisionsForEveryRun || isTrivial ? makeStartPrecision() : unifiedPrecision);
       Objects.requireNonNull(
               AbstractStates.extractStateByType(stateAndPrecision.state(), BlockState.class))
           .setViolationConditions(violations);
@@ -736,31 +721,26 @@ public class DssBlockAnalysis {
 
       status = status.update(result.getStatus());
 
-      if (block.isAbstractionPossible()) {
-        if (!result.getFinalLocationStates().isEmpty()) {
-          for (AbstractState summary : result.getFinalLocationStates()) {
-            AbstractStates.extractStateByType(summary, BlockState.class)
-                .setTopSummaryFromNonTrivialState(hasNonTrivialSummariesForEachPredecessor);
-            summaries.add(new StateAndPrecision(summary, reachedSet.getPrecision(summary)));
-          }
+      if (!violationConditions.isEmpty() || !isTrivial) {
+        result
+            .getSummaries()
+            .forEach(
+                summary ->
+                    summaries.add(
+                        new StateAndPrecision(summary, reachedSet.getPrecision(summary))));
+      }
+
+      if (!result.getAllViolations().isEmpty()) {
+        // pack all violations
+        if (!checkOnlyRelevant || finalStartStates.size() == 1 || !isTrivial) {
+          // this is true if we are in a backward analysis, or we only have one state to consider
+          // or the state is non-trivial.
+          // For trivial states, the same vc must have been sent already.
+          vcs.addAll(computeViolationConditionStates(result.getViolationConditionViolations()));
         }
-        if (!result.getAllViolations().isEmpty()) {
-          // pack all violations
-          if (!checkOnlyRelevant || finalStartStates.size() == 1 || !isTrivial) {
-            // this is true if we are in a backward analysis, or we only have one state to consider
-            // or the state is non-trivial.
-            // For trivial states, the same vc must have been sent already.
-            vcs.addAll(computeViolationConditionStates(result.getViolationConditionViolations()));
-          }
-          if (containsViolationInsideBlock) {
-            vcs.addAll(computeViolationConditionStatesFromOrigin(result.getTargetStates()));
-          }
+        if (containsViolationInsideBlock) {
+          vcs.addAll(computeViolationConditionStatesFromOrigin(result.getTargetStates()));
         }
-      } else {
-        // forward vcs
-        vcs.addAll(
-            computeViolationConditionStatesFromBlockEnd(
-                result.getFinalLocationStates(), violations));
       }
     }
     return new AnalysisResult(summaries.build(), vcs.build());
