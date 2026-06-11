@@ -475,7 +475,7 @@ public class TerminationWitnessValidator implements Algorithm {
     try {
       isTransitionInvariant = solver.implies(booleanLoopFormula, pCandidateInvariant);
     } catch (SolverException e) {
-      logger.log(Level.WARNING, "Transition invariant check failed !");
+      logger.logUserException(Level.WARNING, e, "Transition invariant check failed!");
       return false;
     }
     return isTransitionInvariant;
@@ -542,7 +542,7 @@ public class TerminationWitnessValidator implements Algorithm {
       isTransitionInvariant =
           solver.implies(bfmgr.and(firstStep, loopFormula.getFormula()), secondStep);
     } catch (SolverException e) {
-      logger.log(Level.WARNING, "Transition invariant check failed !");
+      logger.logUserException(Level.WARNING, e, "Transition invariant check failed!");
       return false;
     }
     return isTransitionInvariant;
