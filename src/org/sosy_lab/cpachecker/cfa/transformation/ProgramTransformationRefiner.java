@@ -11,9 +11,11 @@ package org.sosy_lab.cpachecker.cfa.transformation;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -126,9 +128,11 @@ public class ProgramTransformationRefiner implements Refiner {
 
       // Using reached.removeSubtree does not remove only the children elements, but also the
       // element itself. Which in turn also removes the updated precision
-      for (ARGState child : refinementState.getChildren()) {
-        reached.removeSubtree(child);
+      List<ARGState> children = Lists.newArrayList(refinementState.getChildren());
+      for (int i = 0; i < children.size(); i++) {
+        reached.removeSubtree(children.get(i));
       }
+
 
       return true;
     }
