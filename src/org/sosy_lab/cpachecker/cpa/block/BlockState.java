@@ -166,6 +166,8 @@ public class BlockState
 
   @Override
   public boolean isTarget() {
-    return !violationConditions.isEmpty() && node.equals(blockNode.getViolationConditionLocation());
+    return !violationConditions.isEmpty()
+        && node.equals(blockNode.getViolationConditionLocation())
+        && blockNode.getViolationConditionLocation() != blockNode.getFinalLocation();
   }
 }

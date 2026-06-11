@@ -14,6 +14,8 @@ import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -37,8 +39,12 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
+@Options(prefix = "dss.cpa.predicate")
 public class DistributedPredicateCPA
     implements ForwardingDistributedConfigurableProgramAnalysis, AutoCloseable {
+
+  @Option(description = "Whether to query the SMT solver before proceeding backwards.")
+  private boolean doSatChecksBeforeBackwardAnalysis = true;
 
   private final PredicateCPA predicateCPA;
 
@@ -66,6 +72,7 @@ public class DistributedPredicateCPA
       BiMap<Integer, CFANode> pIdToNodeMap,
       ImmutableMap<String, Type> pTypeMap)
       throws InvalidConfigurationException {
+    pConfiguration.inject(this);
     predicateCPA = pPredicateCPA;
     final boolean writeReadableFormulas = pOptions.isDebugModeEnabled();
     serialize =
@@ -77,7 +84,11 @@ public class DistributedPredicateCPA
     deserializePrecisionOperator =
         new DeserializePredicatePrecisionOperator(
             predicateCPA.getAbstractionManager(), pIdToNodeMap::get);
-    proceedOperator = new ProceedPredicateStateOperator(predicateCPA.getSolver());
+    if (doSatChecksBeforeBackwardAnalysis) {
+      proceedOperator = new ProceedPredicateStateOperator(predicateCPA.getSolver());
+    } else {
+      proceedOperator = ProceedOperator.always();
+    }
     stateCoverageOperator = new PredicateStateCoverageOperator(predicateCPA.getSolver());
     verificationConditionOperator =
         new PredicateViolationConditionOperator(
