@@ -12,10 +12,12 @@ void test(int cond) {
   }
 }
 
-int main() {
-  int x = 6;
-  int y = x / 2;
+int main(){
+  int x = 0;
 
-  test(y==3);
-  return 0;
+  while(1) {
+    test(x == 0);
+  }
+
+  test(x == 0);
 }
