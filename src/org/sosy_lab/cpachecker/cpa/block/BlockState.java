@@ -8,11 +8,13 @@
 
 package org.sosy_lab.cpachecker.cpa.block;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -25,6 +27,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.cpa.path.PathState;
+import org.sosy_lab.cpachecker.cpa.path.ViolationWitness;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -37,7 +41,8 @@ public class BlockState
     INITIAL,
     MID,
     FINAL,
-    ABSTRACTION
+    ABSTRACTION,
+    WITNESS
   }
 
   private final CFANode node;
@@ -47,6 +52,8 @@ public class BlockState
   private List<? extends AbstractState> violationConditions;
   private final ViolationWitness witness;
   private boolean topSummaryFromNonTrivialState;
+
+  private final Optional<PathState> witnessCheckPathState;
 
   public BlockState(
       CFANode pNode,
@@ -63,6 +70,28 @@ public class BlockState
     history = ImmutableList.copyOf(pHistory);
     witness = pWitness;
     topSummaryFromNonTrivialState = pTopSummaryFromNonTrivialState;
+    witnessCheckPathState = Optional.empty();
+  }
+
+  public BlockState(
+      CFANode pNode,
+      BlockNode pTargetNode,
+      BlockStateType pType,
+      List<? extends AbstractState> pViolationConditions,
+      List<String> pHistory,
+      ViolationWitness pWitness,
+      boolean pTopSummaryFromNonTrivialState,
+      PathState pWitnessCheckPathState) {
+    Preconditions.checkArgument(
+        pType == BlockStateType.WITNESS, "Added path state while not being in Witnes state");
+    node = pNode;
+    type = pType;
+    blockNode = pTargetNode;
+    violationConditions = pViolationConditions;
+    history = ImmutableList.copyOf(pHistory);
+    witness = pWitness;
+    topSummaryFromNonTrivialState = pTopSummaryFromNonTrivialState;
+    witnessCheckPathState = Optional.of(pWitnessCheckPathState);
   }
 
   public void setTopSummaryFromNonTrivialState(boolean pStemsFromTopState) {
@@ -97,6 +126,10 @@ public class BlockState
     return type;
   }
 
+  public PathState getWitnessCheckPathState() {
+    return witnessCheckPathState.orElseThrow();
+  }
+
   @Override
   public String getCPAName() {
     return BlockCPA.class.getSimpleName();
@@ -109,7 +142,12 @@ public class BlockState
 
   @Override
   public String toString() {
-    return "BlockState{" + "node=" + node + ", type=" + type + '}';
+    return "BlockState{ type="
+        + type
+        + (type == BlockStateType.WITNESS
+            ? (", pathState=" + witnessCheckPathState.orElseThrow())
+            : (", node=" + node))
+        + '}';
   }
 
   @Override
@@ -152,13 +190,14 @@ public class BlockState
   public boolean equals(Object pO) {
     return pO instanceof BlockState that
         && Objects.equals(node, that.node)
+        && Objects.equals(witnessCheckPathState, that.witnessCheckPathState)
         && type == that.type
         && blockNode == that.getBlockNode();
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(node, type);
+    return Objects.hash(node, type, witnessCheckPathState);
   }
 
   @Override

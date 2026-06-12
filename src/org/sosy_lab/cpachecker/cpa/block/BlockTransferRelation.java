@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.block;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -25,6 +26,8 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
+import org.sosy_lab.cpachecker.cpa.path.PathState;
+import org.sosy_lab.cpachecker.cpa.path.PathTransferRelation;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 @Options(prefix = "cpa.block.transfer")
@@ -32,6 +35,8 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
 
   @Option(description = "whether to travel over the ghost edge", secure = true)
   private boolean standardVcs = true;
+
+  private final PathTransferRelation pathTranferRelation = new PathTransferRelation();
 
   public BlockTransferRelation(Configuration pConfiguration) throws InvalidConfigurationException {
     pConfiguration.inject(this);
@@ -57,13 +62,16 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
           return ImmutableList.of();
         }
       } else {
-        for (AbstractState violationCondition : blockState.getViolationConditions()) {
-          BlockState violationBlockState =
-              AbstractStates.extractStateByType(violationCondition, BlockState.class);
-          assert violationBlockState != null;
-          throw new UnsupportedOperationException(
-              "Witness cannot yet be traversed: " + violationBlockState.getWitness());
-        }
+        return FluentIterable.from(blockState.getViolationConditions())
+            .transform(
+                violationCondition ->
+                    AbstractStates.extractStateByType(violationCondition, BlockState.class)
+                        .getWitness())
+            .transformAndConcat(w -> PathState.initialStates(w))
+            .transformAndConcat(
+                ps -> pathTranferRelation.getAbstractSuccessorsForEdge(ps, prec, cfaEdge))
+            .transform(pnew -> copyBlockStateWithPath(cfaEdge, blockState, pnew))
+            .toList();
       }
     }
 
@@ -75,6 +83,14 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
 
     if (blockState.getType() == BlockStateType.ABSTRACTION) {
       return ImmutableList.of();
+    }
+
+    if (blockState.getType() == BlockStateType.WITNESS) {
+      return FluentIterable.from(
+              pathTranferRelation.getAbstractSuccessorsForEdge(
+                  blockState.getWitnessCheckPathState(), prec, cfaEdge))
+          .transform(pnew -> copyBlockStateWithPath(cfaEdge, blockState, pnew))
+          .toList();
     }
 
     Set<CFAEdge> intersection =
@@ -110,6 +126,19 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
               blockState.hasNonTrivialSummaryForEachPredecessor()));
     }
     return ImmutableList.of();
+  }
+
+  private BlockState copyBlockStateWithPath(
+      CFAEdge cfaEdge, BlockState blockState, PathState pnew) {
+    return new BlockState(
+        cfaEdge.getSuccessor(),
+        blockState.getBlockNode(),
+        BlockStateType.WITNESS,
+        blockState.getViolationConditions(),
+        blockState.getHistory(),
+        blockState.getWitness(),
+        blockState.hasNonTrivialSummaryForEachPredecessor(),
+        pnew);
   }
 
   private static BlockStateType getBlockStateTypeOfLocation(BlockNode pBlockNode, CFANode pNode) {

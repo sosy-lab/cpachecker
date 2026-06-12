@@ -1,0 +1,48 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.cpa.path;
+
+import com.google.common.base.Preconditions;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
+import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+
+public class PathCPA extends AbstractCPA {
+
+  private ViolationWitness pathCollection;
+
+  public PathCPA() {
+    super("sep", "sep", new FlatLatticeDomain(), new PathTransferRelation());
+  }
+
+  public void init(ViolationWitness pPathCollection) {
+    Preconditions.checkNotNull(pPathCollection);
+    Preconditions.checkState(pathCollection == null);
+    pathCollection = pPathCollection;
+  }
+
+  public static CPAFactory factory() {
+    return new PathCPAFactory();
+  }
+
+  @Override
+  public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
+      throws InterruptedException {
+    // TODO we can choose a path, because we can only return a single initial state ->
+    // Special Init state that chooses after the first edge?
+    throw new UnsupportedOperationException("TODO");
+  }
+
+  public static PathCPA create() {
+    return new PathCPA();
+  }
+}

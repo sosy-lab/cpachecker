@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.block;
+package org.sosy_lab.cpachecker.cpa.path;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -35,19 +35,21 @@ public record ViolationWitness(ImmutableList<ImmutableSet<ImmutableList<String>>
                 .filter(ViolationWitness::isDecisionEdge)
                 .transform(ViolationWitness::edgeToString)
                 .toList());
-    return new ViolationWitness(Collections3.listAndElement(witness, newSegment));
+    return new ViolationWitness(Collections3.elementAndList(newSegment, witness));
   }
 
-  private static String edgeToString(CFAEdge edge) {
+  static String edgeToString(CFAEdge edge) {
     return "N" + edge.getPredecessor().getNodeNumber() + "N" + edge.getSuccessor().getNodeNumber();
   }
 
-  private static boolean isDecisionEdge(CFAEdge edge) {
-    return edge.getPredecessor()
-            .getAllLeavingEdges()
-            .filter(e -> !(e instanceof BlankEdge || e instanceof FunctionSummaryEdge))
-            .size()
-        > 1;
+  public static boolean isDecisionEdge(CFAEdge edge) {
+    return relevantEdge(edge)
+        && edge.getPredecessor().getAllLeavingEdges().filter(ViolationWitness::relevantEdge).size()
+            > 1;
+  }
+
+  private static boolean relevantEdge(CFAEdge e) {
+    return !(e instanceof BlankEdge || e instanceof FunctionSummaryEdge);
   }
 
   public static ViolationWitness merge(Collection<ViolationWitness> toMerge) {

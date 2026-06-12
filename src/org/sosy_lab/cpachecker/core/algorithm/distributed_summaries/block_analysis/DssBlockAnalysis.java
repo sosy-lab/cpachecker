@@ -67,7 +67,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
-import org.sosy_lab.cpachecker.cpa.block.ViolationWitness;
+import org.sosy_lab.cpachecker.cpa.path.ViolationWitness;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -368,19 +368,6 @@ public class DssBlockAnalysis {
     ImmutableSet.Builder<ArgPathAndCondition> relevantViolations = ImmutableSet.builder();
     for (ARGPath path : collectPaths(state)) {
       relevantViolations.add(new ArgPathAndCondition(path, null));
-    }
-    return relevantViolations.build();
-  }
-
-  private Set<ArgPathAndCondition> computeViolationConditionStatesFromBlockEnd(
-      Collection<@NonNull ARGState> violations, Collection<@NonNull ARGState> conditions) {
-    ImmutableSet.Builder<ArgPathAndCondition> relevantViolations = ImmutableSet.builder();
-    for (ARGState violation : violations) {
-      for (ARGPath path : collectPaths(ImmutableList.of(violation))) {
-        for (ARGState condition : conditions) {
-          relevantViolations.add(new ArgPathAndCondition(path, condition));
-        }
-      }
     }
     return relevantViolations.build();
   }
@@ -757,11 +744,10 @@ public class DssBlockAnalysis {
                 .forEach(summaries::add);
           }
         }
-        if (containsViolationInsideBlock) {
-          vcs.addAll(computeViolationConditionStatesFromOrigin(result.getTargetStates()));
-        }
+        vcs.addAll(computeViolationConditionStatesFromOrigin(result.getTargetStates()));
       }
     }
+
     return new AnalysisResult(summaries.build(), vcs.build());
   }
 
