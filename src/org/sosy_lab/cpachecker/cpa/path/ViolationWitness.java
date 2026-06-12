@@ -62,10 +62,6 @@ public record ViolationWitness(ImmutableList<ImmutableSet<ImmutableList<String>>
       return first;
     }
 
-    Preconditions.checkArgument(
-        toMerge.stream().allMatch(v -> first.equalExceptLast(v)),
-        "Merging witnesses whose path differs not only in the last segment");
-
     ImmutableSet<ImmutableList<String>> allLastSegmentsMerged =
         FluentIterable.from(toMerge).transformAndConcat(v -> v.witness.getLast()).toSet();
 
