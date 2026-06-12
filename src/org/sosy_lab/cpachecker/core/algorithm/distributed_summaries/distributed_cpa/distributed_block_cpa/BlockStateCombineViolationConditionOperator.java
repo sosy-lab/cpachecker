@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
-import org.sosy_lab.cpachecker.cpa.block.ViolationWitness;
+import org.sosy_lab.cpachecker.cpa.path.ViolationWitness;
 
 public class BlockStateCombineViolationConditionOperator
     implements CombineViolationConditionsOperator {

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.block;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -26,6 +27,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.cpa.path.PathState;
+import org.sosy_lab.cpachecker.cpa.path.ViolationWitness;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -38,34 +41,77 @@ public class BlockState
     INITIAL,
     MID,
     FINAL,
-    ABSTRACTION
+    ABSTRACTION,
+    WITNESS
   }
 
   private final CFANode node;
   private final BlockStateType type;
   private final BlockNode blockNode;
   private final ImmutableList<String> history;
-  private Optional<AbstractState> errorCondition;
+  private List<? extends AbstractState> violationConditions;
+  private final ViolationWitness witness;
+  private boolean topSummaryFromNonTrivialState;
+
+  private final Optional<PathState> witnessCheckPathState;
 
   public BlockState(
       CFANode pNode,
       BlockNode pTargetNode,
       BlockStateType pType,
-      Optional<AbstractState> pErrorCondition,
-      List<String> pHistory) {
+      List<? extends AbstractState> pViolationConditions,
+      List<String> pHistory,
+      ViolationWitness pWitness,
+      boolean pTopSummaryFromNonTrivialState) {
     node = pNode;
     type = pType;
     blockNode = pTargetNode;
-    errorCondition = pErrorCondition;
+    violationConditions = pViolationConditions;
     history = ImmutableList.copyOf(pHistory);
+    witness = pWitness;
+    topSummaryFromNonTrivialState = pTopSummaryFromNonTrivialState;
+    witnessCheckPathState = Optional.empty();
+  }
+
+  public BlockState(
+      CFANode pNode,
+      BlockNode pTargetNode,
+      BlockStateType pType,
+      List<? extends AbstractState> pViolationConditions,
+      List<String> pHistory,
+      ViolationWitness pWitness,
+      boolean pTopSummaryFromNonTrivialState,
+      PathState pWitnessCheckPathState) {
+    Preconditions.checkArgument(
+        pType == BlockStateType.WITNESS, "Added path state while not being in Witnes state");
+    node = pNode;
+    type = pType;
+    blockNode = pTargetNode;
+    violationConditions = pViolationConditions;
+    history = ImmutableList.copyOf(pHistory);
+    witness = pWitness;
+    topSummaryFromNonTrivialState = pTopSummaryFromNonTrivialState;
+    witnessCheckPathState = Optional.of(pWitnessCheckPathState);
+  }
+
+  public void setTopSummaryFromNonTrivialState(boolean pStemsFromTopState) {
+    topSummaryFromNonTrivialState = pStemsFromTopState;
+  }
+
+  public ViolationWitness getWitness() {
+    return witness;
+  }
+
+  public boolean hasNonTrivialSummaryForEachPredecessor() {
+    return topSummaryFromNonTrivialState;
   }
 
   public ImmutableList<String> getHistory() {
     return history;
   }
 
-  public void setViolationCondition(AbstractState pErrorCondition) {
-    errorCondition = Optional.of(pErrorCondition);
+  public void setViolationConditions(List<? extends AbstractState> pViolationConditions) {
+    violationConditions = pViolationConditions;
   }
 
   public BlockNode getBlockNode() {
@@ -80,6 +126,10 @@ public class BlockState
     return type;
   }
 
+  public PathState getWitnessCheckPathState() {
+    return witnessCheckPathState.orElseThrow();
+  }
+
   @Override
   public String getCPAName() {
     return BlockCPA.class.getSimpleName();
@@ -92,7 +142,12 @@ public class BlockState
 
   @Override
   public String toString() {
-    return "BlockState{" + "node=" + node + ", type=" + type + '}';
+    return "BlockState{ type="
+        + type
+        + (type == BlockStateType.WITNESS
+            ? (", pathState=" + witnessCheckPathState.orElseThrow())
+            : (", node=" + node))
+        + '}';
   }
 
   @Override
@@ -104,18 +159,22 @@ public class BlockState
         : ImmutableSet.of();
   }
 
-  public Optional<AbstractState> getErrorCondition() {
-    return errorCondition;
+  public List<? extends @NonNull AbstractState> getViolationConditions() {
+    return violationConditions;
   }
 
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
     if (isTarget()) {
-      FluentIterable<BooleanFormula> approximations =
-          AbstractStates.asIterable(errorCondition.orElseThrow())
-              .filter(ViolationConditionReportingState.class)
-              .transform(s -> s.getViolationCondition(manager));
-      return manager.getBooleanFormulaManager().and(approximations.toList());
+      ImmutableList.Builder<BooleanFormula> combined = ImmutableList.builder();
+      for (AbstractState violationCondition : violationConditions) {
+        FluentIterable<BooleanFormula> approximations =
+            AbstractStates.asIterable(violationCondition)
+                .filter(ViolationConditionReportingState.class)
+                .transform(s -> s.getViolationCondition(manager));
+        combined.add(manager.getBooleanFormulaManager().and(approximations.toList()));
+      }
+      return manager.getBooleanFormulaManager().or(combined.build());
     }
     return manager.getBooleanFormulaManager().makeTrue();
   }
@@ -131,17 +190,20 @@ public class BlockState
   public boolean equals(Object pO) {
     return pO instanceof BlockState that
         && Objects.equals(node, that.node)
+        && Objects.equals(witnessCheckPathState, that.witnessCheckPathState)
         && type == that.type
         && blockNode == that.getBlockNode();
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(node, type);
+    return Objects.hash(node, type, witnessCheckPathState);
   }
 
   @Override
   public boolean isTarget() {
-    return errorCondition.isPresent() && node.equals(blockNode.getViolationConditionLocation());
+    return !violationConditions.isEmpty()
+        && node.equals(blockNode.getViolationConditionLocation())
+        && blockNode.getViolationConditionLocation() != blockNode.getFinalLocation();
   }
 }

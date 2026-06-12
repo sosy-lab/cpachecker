@@ -9,10 +9,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa;
 
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -21,7 +19,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
-import org.sosy_lab.cpachecker.cpa.block.BlockTransferRelation;
+import org.sosy_lab.cpachecker.cpa.path.ViolationWitness;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class BlockViolationConditionOperator implements ViolationConditionOperator {
@@ -38,22 +36,16 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
     BlockState topMost =
         Objects.requireNonNull(
             AbstractStates.extractStateByType(pARGPath.getFirstState(), BlockState.class));
-    List<String> previousWitness =
+    ViolationWitness previousWitness =
         pPreviousCondition
             .map(
                 state ->
                     Objects.requireNonNull(
                             AbstractStates.extractStateByType(state, BlockState.class))
                         .getWitness())
-            .orElse(ImmutableList.of());
-    List<String> currentWitness =
-        ImmutableList.<String>builder()
-            .addAll(previousWitness)
-            .addAll(
-                Lists.reverse(
-                    transformedImmutableListCopy(
-                        pARGPath.getFullPath(), BlockTransferRelation::edgeToString)))
-            .build();
+            .orElse(ViolationWitness.EMPTY);
+    ViolationWitness currentWitness = previousWitness.addEdges(pARGPath.getFullPath());
+
     if (!trackHistory) {
       return Optional.of(
           new BlockState(
@@ -62,15 +54,12 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
               topMost.getType(),
               topMost.getViolationConditions(),
               topMost.getHistory(),
-              currentWitness));
+              currentWitness,
+              false));
     }
     List<String> previousHistory =
         pPreviousCondition
-            .map(
-                state ->
-                    Objects.requireNonNull(
-                            AbstractStates.extractStateByType(state, BlockState.class))
-                        .getHistory())
+            .map(state -> AbstractStates.extractStateByType(state, BlockState.class).getHistory())
             .orElse(ImmutableList.of());
     BlockState withHistory =
         new BlockState(
@@ -79,7 +68,8 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
             topMost.getType(),
             topMost.getViolationConditions(),
             listAndElement(previousHistory, topMost.getBlockNode().getId()),
-            currentWitness);
+            currentWitness,
+            false);
     return Optional.of(withHistory);
   }
 }
