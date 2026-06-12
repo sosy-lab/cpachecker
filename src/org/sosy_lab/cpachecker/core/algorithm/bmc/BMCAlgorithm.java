@@ -845,8 +845,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private ImmutableSet<CandidateInvariant> createModelEqualityStrengthenings(
       ReachedSet pReachedSet,
       CandidateInvariant pCandidateInvariant,
-      Iterable<ValueAssignment> pModelAssignments)
-      throws InterruptedException {
+      Iterable<ValueAssignment> pModelAssignments) {
     if (!(pCandidateInvariant instanceof StatewiseCandidateInvariantConjunction)) {
       return ImmutableSet.of();
     }
