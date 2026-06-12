@@ -725,38 +725,32 @@ public class DssBlockAnalysis {
 
       if (!result.getAllViolations().isEmpty()) {
         vcs.addAll(computeViolationConditionStates(result.getViolationConditionViolations()));
-        // if we analyze a new violation condition,
-        // or we only have one state to consider,
-        // or the state is non-trivial.
-        // the same vc must have been sent already.
-        if (!checkOnlyRelevant || finalStartStates.size() == 1 || !isTrivial) {
-          ImmutableSet<StateAndPrecision> finalStates = ImmutableSet.of();
-          if (!isTrivial) {
-            // all final non-trivial states originating from a non-trivial state
-            finalStates =
-                FluentIterable.from(result.getFinalLocationStates())
-                    .filter(
-                        state ->
-                            !result.getSummaries().contains(state)
-                                && !dcpa.isMostGeneralBlockEntryState(state))
-                    .transform(
-                        state -> new StateAndPrecision(state, reachedSet.getPrecision(state)))
-                    .toSet();
-          }
-          finalStates.forEach(summaries::add);
-        }
         vcs.addAll(computeViolationConditionStatesFromOrigin(result.getTargetStates()));
+        if (!isTrivial) {
+          // all final non-trivial states originating from a non-trivial state
+          FluentIterable.from(result.getFinalLocationStates())
+              .filter(
+                  state ->
+                      !result.getSummaries().contains(state)
+                          && !dcpa.isMostGeneralBlockEntryState(state))
+              .transform(state -> new StateAndPrecision(state, reachedSet.getPrecision(state)))
+              .forEach(summaries::add);
+        }
       }
     }
 
     if (allEmpty && !violations.isEmpty() && !analyzedTrivial) {
+      // traversal not possible but we do not know whether it a fixpoint is reached,
+      // therefore, send up
       relevant.clear();
       relevant.add(new StateAndPrecision(makeStartState(), makeStartPrecision()));
       AnalysisResult analysisResult = analyzeViolationCondition(violations, true);
-      if (!analysisResult.violationConditions().isEmpty()) {
-        vcs.addAll(analysisResult.violationConditions());
-        summaries.add(makeTopSummary());
-      }
+      summaries.addAll(analysisResult.summaries());
+      vcs.addAll(analysisResult.violationConditions());
+    }
+
+    if (analyzedTrivial && !violations.isEmpty() && finalStartStates.size() == 1) {
+      summaries.add(makeTopSummary());
     }
 
     return new AnalysisResult(summaries.build(), vcs.build());
