@@ -753,7 +753,10 @@ public class DssBlockAnalysis {
       relevant.clear();
       relevant.add(new StateAndPrecision(makeStartState(), makeStartPrecision()));
       AnalysisResult analysisResult = analyzeViolationCondition(violations, true);
-      vcs.addAll(analysisResult.violationConditions());
+      if (!analysisResult.violationConditions().isEmpty()) {
+        vcs.addAll(analysisResult.violationConditions());
+        summaries.add(makeTopSummary());
+      }
     }
 
     return new AnalysisResult(summaries.build(), vcs.build());
