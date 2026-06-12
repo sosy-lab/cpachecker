@@ -44,7 +44,7 @@ public class DistributedPredicateCPA
     implements ForwardingDistributedConfigurableProgramAnalysis, AutoCloseable {
 
   @Option(description = "Whether to query the SMT solver before proceeding backwards.")
-  private boolean doSatChecksBeforeBackwardAnalysis = true;
+  private boolean doSatChecksBeforeBackwardAnalysis = false;
 
   private final PredicateCPA predicateCPA;
 

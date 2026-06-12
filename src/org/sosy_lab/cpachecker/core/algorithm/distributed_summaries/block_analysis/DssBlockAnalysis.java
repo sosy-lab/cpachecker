@@ -721,7 +721,15 @@ public class DssBlockAnalysis {
 
       status = status.update(result.getStatus());
 
+      if (result.getFinalLocationStates().isEmpty()) {
+        // we do not know whether the summaries are underapproximating,
+        // therefore, it might still be possible to traverse here.
+        summaries.add(makeTopSummary());
+      }
+
       if (!violationConditions.isEmpty() || !isTrivial) {
+        // summaries are only meaningful with available violations or if the forward analysis
+        // advanced far enough (the start state is not trivial)
         result
             .getSummaries()
             .forEach(
@@ -731,12 +739,23 @@ public class DssBlockAnalysis {
       }
 
       if (!result.getAllViolations().isEmpty()) {
-        // pack all violations
+        // if we analyze a new violation condition,
+        // or we only have one state to consider,
+        // or the state is non-trivial.
+        // the same vc must have been sent already.
         if (!checkOnlyRelevant || finalStartStates.size() == 1 || !isTrivial) {
-          // this is true if we are in a backward analysis, or we only have one state to consider
-          // or the state is non-trivial.
-          // For trivial states, the same vc must have been sent already.
           vcs.addAll(computeViolationConditionStates(result.getViolationConditionViolations()));
+          if (isTrivial) {
+            summaries.add(makeTopSummary());
+          } else {
+            FluentIterable.from(result.getFinalLocationStates())
+                .filter(
+                    state ->
+                        !result.getSummaries().contains(state)
+                            && !dcpa.isMostGeneralBlockEntryState(state))
+                .transform(state -> new StateAndPrecision(state, reachedSet.getPrecision(state)))
+                .forEach(summaries::add);
+          }
         }
         if (containsViolationInsideBlock) {
           vcs.addAll(computeViolationConditionStatesFromOrigin(result.getTargetStates()));
@@ -744,6 +763,10 @@ public class DssBlockAnalysis {
       }
     }
     return new AnalysisResult(summaries.build(), vcs.build());
+  }
+
+  private StateAndPrecision makeTopSummary() throws InterruptedException {
+    return new StateAndPrecision(makeTopState(block.getFinalLocation()), makeStartPrecision());
   }
 
   private AbstractState makeTopState(CFANode pLocation) throws InterruptedException {
