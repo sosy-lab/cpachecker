@@ -709,7 +709,7 @@ public class DssBlockAnalysis {
       status = status.update(result.getStatus());
 
       if (!isTrivial) {
-        // summaries are only meaningful with available violations or if the forward analysis
+        // summaries are only meaningful if the forward analysis
         // advanced far enough (the start state is not trivial)
         result
             .getSummaries()
@@ -725,12 +725,11 @@ public class DssBlockAnalysis {
         if (!isTrivial) {
           // all final non-trivial states originating from a non-trivial state
           FluentIterable.from(result.getFinalLocationStates())
-              .filter(
-                  state ->
-                      !result.getSummaries().contains(state)
-                          && !dcpa.isMostGeneralBlockEntryState(state))
+              .filter(state -> !result.getSummaries().contains(state))
               .transform(state -> new StateAndPrecision(state, reachedSet.getPrecision(state)))
               .forEach(summaries::add);
+        } else {
+          summaries.add(makeTopSummary());
         }
       }
     }
