@@ -18,9 +18,12 @@ import java.util.Map.Entry;
 import java.util.Set;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
@@ -236,7 +239,7 @@ public class InliningDecomposition implements DssBlockDecomposition {
 
     assert callingBlock.getFinalLocation() instanceof FunctionEntryNode;
 
-    CFANode returnNode =
+    CFAEdge returnEdge =
         Iterables.getOnlyElement(
             callingBlock
                 .getFinalLocation()
@@ -245,23 +248,29 @@ public class InliningDecomposition implements DssBlockDecomposition {
                 .filter(e -> callingBlock.getEdges().contains(e))
                 .transformAndConcat(e -> e.getPredecessor().getAllLeavingEdges())
                 // the corresponding summary edges
-                .filter(e -> e instanceof CFunctionSummaryEdge)
-                .transform(e -> e.getSuccessor()));
+                .filter(e -> e instanceof FunctionSummaryEdge)
+                // the node after the return
+                .transform(e -> e.getSuccessor())
+                .transformAndConcat(n -> n.getAllEnteringEdges())
+                .filter(e -> e instanceof FunctionReturnEdge),
+            null);
 
-    FluentIterable<BlockNode> callBlock =
-        FluentIterable.from(callingScc.functions())
-            .transformAndConcat(f -> f.blockNodes())
-            .filter(
-                n ->
-                    n.getNodes().contains(returnNode)
-                        && !n.getInitialLocation().equals(returnNode));
-
-    assert callBlock.size() <= 1;
-    if (callBlock.isEmpty()) {
+    if (returnEdge == null) {
       return null;
     }
 
-    return callBlock.get(0).getId();
+    FluentIterable<BlockNode> returnBlock =
+        FluentIterable.from(callingScc.functions())
+            .transformAndConcat(f -> f.blockNodes())
+            .filter(n -> n.getEdges().contains(returnEdge));
+
+    assert returnBlock.size() <= 1;
+
+    if (returnBlock.isEmpty()) {
+      return null;
+    }
+
+    return returnBlock.get(0).getId();
   }
 
   private BlockNode copyWithMappedBlockIds(
