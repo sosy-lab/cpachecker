@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.block;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
+
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -114,7 +116,7 @@ public record ViolationWitness(ImmutableList<ImmutableSet<ImmutableList<String>>
   }
 
   public static ViolationWitness deserialize(String input) {
-    if (input == null || input.isEmpty()) {
+    if (isNullOrEmpty(input)) {
       return new ViolationWitness(ImmutableList.of());
     }
     List<ImmutableSet<ImmutableList<String>>> top = new ArrayList<>();
