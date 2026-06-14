@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DecompositionTestBase;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssBlockDecomposition;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
@@ -45,7 +44,7 @@ public class InliningDecompositionTest {
 
     DssBlockDecomposition decomposition = createDecomposition(cfa);
 
-    BlockGraph graph = decomposition.decompose(cfa);
+    decomposition.decompose(cfa);
 
     // TODO the assumptions for the normal decompositions no longer  hold -> find sensible checks?
   }

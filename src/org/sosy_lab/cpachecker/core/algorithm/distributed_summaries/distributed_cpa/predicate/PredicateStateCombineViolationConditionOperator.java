@@ -41,6 +41,7 @@ public class PredicateStateCombineViolationConditionOperator
       }
       previousState = (PredicateAbstractState) state;
     }
+    Preconditions.checkNotNull(prev);
     Preconditions.checkNotNull(previousState);
     return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(prev, previousState);
   }
