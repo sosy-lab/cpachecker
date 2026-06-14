@@ -510,10 +510,6 @@ public class DssBlockAnalysis {
       return processing;
     }
 
-    /*System.out.println(
-            DssDebugUtils.prettyPrintBlock(
-                block.getId(), preconditions, violationConditions, a -> ((Graphable) a).toDOTLabel()));
-    */
     unifiedPrecision =
         dcpa.getCombinePrecisionOperator()
             .combine(
@@ -685,13 +681,13 @@ public class DssBlockAnalysis {
     } else {
       startStates.add(new StateAndPrecision(makeStartState(), makeStartPrecision()));
     }
+    ImmutableSet<StateAndPrecision> finalStartStates = startStates.build();
 
     ImmutableList.Builder<StateAndPrecision> summaries = ImmutableList.builder();
     ImmutableSet.Builder<ArgPathAndCondition> vcs = ImmutableSet.builder();
 
     boolean analyzedTrivial = false;
     boolean allEmpty = true;
-    ImmutableSet<StateAndPrecision> finalStartStates = startStates.build();
     for (StateAndPrecision stateAndPrecision : finalStartStates) {
       boolean isTrivial = dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state());
       if (isTrivial && analyzedTrivial) {
@@ -712,7 +708,7 @@ public class DssBlockAnalysis {
 
       status = status.update(result.getStatus());
 
-      if (!violationConditions.isEmpty() || !isTrivial) {
+      if (!isTrivial) {
         // summaries are only meaningful with available violations or if the forward analysis
         // advanced far enough (the start state is not trivial)
         result
@@ -739,8 +735,10 @@ public class DssBlockAnalysis {
       }
     }
 
-    if (allEmpty && !violations.isEmpty() && !analyzedTrivial) {
-      // traversal not possible but we do not know whether it a fixpoint is reached,
+    boolean avoidPotentialUnderapproximation =
+        allEmpty && !violations.isEmpty() && !analyzedTrivial;
+    if (avoidPotentialUnderapproximation) {
+      // traversal not possible but we do not know whether a fixpoint is reached,
       // therefore, send up
       relevant.clear();
       relevant.add(new StateAndPrecision(makeStartState(), makeStartPrecision()));
@@ -749,7 +747,9 @@ public class DssBlockAnalysis {
       vcs.addAll(analysisResult.violationConditions());
     }
 
-    if (analyzedTrivial && !violations.isEmpty() && finalStartStates.size() == 1) {
+    boolean needsToPropagateTopState =
+        analyzedTrivial && !violations.isEmpty() && finalStartStates.size() == 1;
+    if (needsToPropagateTopState) {
       summaries.add(makeTopSummary());
     }
 
