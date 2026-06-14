@@ -64,6 +64,7 @@ public class PredicateStateCombineViolationConditionOperator
       }
       previousState = predicateState;
     }
+    Preconditions.checkNotNull(prev);
     Preconditions.checkNotNull(previousState);
     BooleanFormula originalPrefixFormula = bfmgr.and(originalPrefix);
     BooleanFormula wholeFormula = bfmgr.and(originalPrefixFormula, prev.getFormula());
