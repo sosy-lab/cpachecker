@@ -9,8 +9,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
 import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
@@ -21,6 +24,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -149,7 +153,7 @@ public class DssBlockAnalyses {
           }
         } else if (blockState.getLocationNode().equals(pBlockNode.getFinalLocation())
             && blockState.getType() == BlockStateType.FINAL
-            && argState.getChildren().isEmpty()) {
+            && (argState.getChildren().isEmpty() || !childReachesTargetState(argState))) {
           summariesBuilder.add(argState);
         }
       }
@@ -158,6 +162,28 @@ public class DssBlockAnalyses {
       finalLocationStates = finalLocationBuilder.build();
       vcViolations = vcViolationsBuilder.build();
       targetStates = targetStatesBuilder.build();
+    }
+
+    private boolean childReachesTargetState(ARGState finalState) {
+      Set<ARGState> covered = new HashSet<>();
+      List<ARGState> frontier = new ArrayList<>(2);
+      frontier.add(finalState);
+      while (!frontier.isEmpty()) {
+        ARGState targetState = frontier.removeFirst();
+        if (covered.contains(targetState)) {
+          continue;
+        }
+        covered.add(targetState);
+        for (ARGState child : targetState.getChildren()) {
+          if (child.isTarget()
+              || AbstractStates.extractStateByType(child, BlockState.class).getType()
+                  == BlockStateType.ABSTRACTION) {
+            return true;
+          }
+          frontier.add(child);
+        }
+      }
+      return false;
     }
 
     public AlgorithmStatus getStatus() {
