@@ -443,7 +443,7 @@ public class DssBlockAnalysis {
         return DssMessageProcessing.stop();
       }
       ImmutableList.Builder<StateAndPrecision> summariesWithPrecision = ImmutableList.builder();
-      if (block.getPredecessorIds().isEmpty()) {
+      if (block.isRoot()) {
         for (AbstractState finalState : result.getFinalLocationStates()) {
           summariesWithPrecision.add(
               new StateAndPrecision(finalState, reachedSet.getPrecision(finalState)));
@@ -711,12 +711,9 @@ public class DssBlockAnalysis {
       if (!isTrivial || !violations.isEmpty()) {
         // summaries are only meaningful if the forward analysis
         // advanced far enough (the start state is not trivial)
+        // or if there are violations that could be abstracted away
         for (ARGState summary : result.getSummaries()) {
-          if (isTrivial && !block.isRoot()) {
-            summaries.add(makeTopSummary());
-          } else {
-            summaries.add(new StateAndPrecision(summary, reachedSet.getPrecision(summary)));
-          }
+          summaries.add(new StateAndPrecision(summary, reachedSet.getPrecision(summary)));
         }
       }
 
@@ -749,7 +746,7 @@ public class DssBlockAnalysis {
     }
 
     boolean needsToPropagateTopState =
-        analyzedTrivial && !violations.isEmpty() && finalStartStates.size() == 1;
+        !block.isRoot() && analyzedTrivial && !violations.isEmpty() && finalStartStates.size() == 1;
     if (needsToPropagateTopState) {
       summaries.add(makeTopSummary());
     }
