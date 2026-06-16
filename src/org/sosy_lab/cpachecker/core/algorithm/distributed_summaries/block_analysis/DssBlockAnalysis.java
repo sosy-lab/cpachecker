@@ -230,6 +230,9 @@ public class DssBlockAnalysis {
   private Collection<DssMessage> reportPostconditions(
       Collection<@NonNull StateAndPrecision> summaries) throws CPAException, InterruptedException {
 
+    if (summaries.isEmpty()) {
+      return ImmutableList.of();
+    }
     // reset all summaries and run cpa algorithm on them to remove redundant ones
     ImmutableList<StateAndPrecision> uniqueSummaries = deduplicateStates(summaries);
 
@@ -448,8 +451,6 @@ public class DssBlockAnalysis {
           summariesWithPrecision.add(
               new StateAndPrecision(finalState, reachedSet.getPrecision(finalState)));
         }
-      } else {
-        summariesWithPrecision.add(makeTopSummary());
       }
       return reportPostconditions(summariesWithPrecision.build());
     }
@@ -666,9 +667,6 @@ public class DssBlockAnalysis {
   private AnalysisResult analyzeViolationCondition(
       List<ARGState> violations, boolean checkOnlyRelevant)
       throws CPAException, InterruptedException {
-    if (preconditions.isEmpty() && !block.isRoot()) {
-      return new AnalysisResult(ImmutableList.of(), ImmutableSet.of());
-    }
 
     // unreachable block ends might be caused by underapproximating summaries
     // therefore, a new violation condition cannot ignore them.

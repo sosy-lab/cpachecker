@@ -76,7 +76,8 @@ public class DistributedValueAnalysisCPA
     pConfiguration.inject(this);
     valueCPA = pValueCPA;
     cfa = pCFA;
-    serializeOperator = new SerializeValueAnalysisStateOperator(pValueCPA, pCFA, pBlockNode);
+    serializeOperator =
+        new SerializeValueAnalysisStateOperator(pValueCPA, pCFA, pBlockNode, runSymExec);
     deserializeOperator = new DeserializeValueAnalysisStateOperator(pBlockNode, pValueCPA, pCFA);
     violationConditionOperator =
         new ValueViolationConditionOperator(
