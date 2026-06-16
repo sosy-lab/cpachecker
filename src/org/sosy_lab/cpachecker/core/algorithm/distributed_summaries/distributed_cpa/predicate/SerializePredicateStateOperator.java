@@ -106,7 +106,7 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     // like this, toString is called lazily and the crashes do not occur in testing
     // TODO find permanent solution
     if (writeReadableFormulas) {
-      content.put(READABLE_KEY, booleanFormula.toString());
+      content.put(READABLE_KEY, formulaManagerView.dumpArbitraryFormula(booleanFormula));
     }
 
     return content.build();

@@ -536,12 +536,12 @@ public class DssBlockAnalysis {
                     dcpa.reset(deserializedStateAndPrecision.state()), stateAndPrecision.state())) {
           preconditions.remove(pReceived.getSenderId(), stateAndPrecision);
         }
-        if (isRelevant
-            && (dcpa.isMostGeneralBlockEntryState(deserializedStateAndPrecision.state())
-                || dcpa.getCoverageOperator()
-                    .isSubsumed(
-                        stateAndPrecision.state(),
-                        dcpa.reset(deserializedStateAndPrecision.state())))) {
+        if ((dcpa.isMostGeneralBlockEntryState(deserializedStateAndPrecision.state())
+            || dcpa.getCoverageOperator()
+                .isSubsumed(
+                    stateAndPrecision.state(),
+                    dcpa.reset(deserializedStateAndPrecision.state())))) {
+          preconditions.remove(pReceived.getSenderId(), stateAndPrecision);
           isRelevant = false;
         }
       }
