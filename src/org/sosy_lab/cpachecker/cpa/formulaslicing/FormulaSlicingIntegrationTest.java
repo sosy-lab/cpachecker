@@ -15,6 +15,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.util.Map;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,13 +28,18 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager.WeakingingStrategy;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner.ExpectedVerdict;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
-import org.sosy_lab.cpachecker.util.test.TestResults;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.ExpectedVerdict;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 @RunWith(Parameterized.class)
-public class FormulaSlicingTest {
+public class FormulaSlicingIntegrationTest {
+
+  @BeforeClass
+  public static void skipUnlessExtendedTestsEnabled() {
+    IntegrationTestRunner.skipUnlessExtendedTestsEnabled();
+  }
 
   @Parameters(name = "{0}")
   public static Object[] getWeakeningStrategies() {
@@ -133,7 +139,7 @@ public class FormulaSlicingTest {
       throw e;
     }
 
-    TestResults results = CPATestRunner.run(config, fullPath);
+    IntegrationTestResult results = IntegrationTestRunner.run(config, fullPath);
     if (pExpected == ExpectedVerdict.TRUE) {
       results.assertIsSafe();
     } else if (pExpected == ExpectedVerdict.FALSE) {
@@ -143,8 +149,8 @@ public class FormulaSlicingTest {
 
   private Configuration getProperties(Map<String, String> extra)
       throws InvalidConfigurationException {
-    return TestDataTools.configurationForTest()
-        .loadFromResource(FormulaSlicingTest.class, "formula-slicing.properties")
+    return TestUtils.configurationForTest()
+        .loadFromResource(FormulaSlicingIntegrationTest.class, "formula-slicing.properties")
         .setOption("cpa.slicing.weakeningStrategy", weakeningStrategy.toString())
         .setOptions(extra)
         .build();

@@ -365,9 +365,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
     // shift the interpolant to the correct time stamp
     SSAMap shift =
         SSAMap.merge(
-            maps.get(slicePosition),
-            maps.getFirst(),
-            MapsDifference.collectMapsDifferenceTo(new ArrayList<>()));
+            maps.get(slicePosition), maps.getFirst(), MapsDifference.ignoreMapsDifference());
     BooleanFormula shiftedInterpolant = fmgr.instantiate(plainInterpolant, shift);
 
     TraceInterpreter interpreter =

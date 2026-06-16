@@ -11,15 +11,21 @@ package org.sosy_lab.cpachecker.cpa.modificationsprop;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.Map;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
-import org.sosy_lab.cpachecker.util.test.TestResults;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
-public class ModificationsPropTest {
+public class ModificationsPropIntegrationTest {
+
+  @BeforeClass
+  public static void skipUnlessExtendedTestsEnabled() {
+    IntegrationTestRunner.skipUnlessExtendedTestsEnabled();
+  }
 
   private static final String CONFIG_FILE = "config/differencePropPredicateAnalysis.properties";
   private static final String OLD_SEC =
@@ -56,7 +62,8 @@ public class ModificationsPropTest {
             PROP_MERGE, FALSE,
             PROP_ENTRY, VAL_ENTRY);
 
-    TestResults results = CPATestRunner.run(getProperties(CONFIG_FILE, prop), OLD_SEC);
+    IntegrationTestResult results =
+        IntegrationTestRunner.run(getProperties(CONFIG_FILE, prop), OLD_SEC);
     results.assertIsSafe();
 
     prop =
@@ -69,7 +76,7 @@ public class ModificationsPropTest {
             PROP_DECLARATION_IGNORE, FALSE,
             PROP_ENTRY, VAL_ENTRY);
 
-    results = CPATestRunner.run(getProperties(CONFIG_FILE, prop), OLD_UNSEC);
+    results = IntegrationTestRunner.run(getProperties(CONFIG_FILE, prop), OLD_UNSEC);
     results.assertIsUnsafe();
 
     // Now, both once more looking into default.spc
@@ -83,7 +90,7 @@ public class ModificationsPropTest {
             PROP_SPEC, DEFAULT_PROPERTY,
             PROP_DECLARATION_IGNORE, FALSE);
 
-    results = CPATestRunner.run(getProperties(CONFIG_FILE, prop), OLD_SEC);
+    results = IntegrationTestRunner.run(getProperties(CONFIG_FILE, prop), OLD_SEC);
     results.assertIsSafe();
 
     prop =
@@ -95,7 +102,7 @@ public class ModificationsPropTest {
             PROP_MERGE, FALSE,
             PROP_DECLARATION_IGNORE, FALSE);
 
-    results = CPATestRunner.run(getProperties(CONFIG_FILE, prop), OLD_UNSEC);
+    results = IntegrationTestRunner.run(getProperties(CONFIG_FILE, prop), OLD_UNSEC);
     results.assertIsUnsafe();
   }
 
@@ -112,8 +119,8 @@ public class ModificationsPropTest {
             PROP_DECLARATION_IGNORE, FALSE,
             PROP_ENTRY, VAL_ENTRY);
 
-    final TestResults results =
-        CPATestRunner.run(getProperties(CONFIG_FILE, prop), PROGRAM_MODIFIED);
+    final IntegrationTestResult results =
+        IntegrationTestRunner.run(getProperties(CONFIG_FILE, prop), PROGRAM_MODIFIED);
     results.assertIsSafe();
   }
 
@@ -130,7 +137,8 @@ public class ModificationsPropTest {
             PROP_DECLARATION_IGNORE, TRUE,
             PROP_ENTRY, VAL_ENTRY);
 
-    TestResults results = CPATestRunner.run(getProperties(CONFIG_FILE, prop), FCTCALL_MODIFIED);
+    IntegrationTestResult results =
+        IntegrationTestRunner.run(getProperties(CONFIG_FILE, prop), FCTCALL_MODIFIED);
     results.assertIsSafe();
 
     prop =
@@ -143,7 +151,7 @@ public class ModificationsPropTest {
             PROP_DECLARATION_IGNORE, FALSE,
             PROP_ENTRY, VAL_ENTRY);
 
-    results = CPATestRunner.run(getProperties(CONFIG_FILE, prop), FCTCALL_MODIFIED);
+    results = IntegrationTestRunner.run(getProperties(CONFIG_FILE, prop), FCTCALL_MODIFIED);
     results.assertIsUnsafe();
   }
 
@@ -160,8 +168,8 @@ public class ModificationsPropTest {
             PROP_DECLARATION_IGNORE, FALSE,
             PROP_ENTRY, VAL_ENTRY);
 
-    final TestResults results =
-        CPATestRunner.run(getProperties(CONFIG_FILE, prop), PROGRAM_ORIGINAL);
+    final IntegrationTestResult results =
+        IntegrationTestRunner.run(getProperties(CONFIG_FILE, prop), PROGRAM_ORIGINAL);
     results.assertIsUnsafe();
   }
 
@@ -169,7 +177,7 @@ public class ModificationsPropTest {
       final String pConfigFile, final Map<String, String> pOverrideOptions)
       throws InvalidConfigurationException, IOException {
     final ConfigurationBuilder configBuilder =
-        TestDataTools.configurationForTest().loadFromFile(pConfigFile);
+        TestUtils.configurationForTest().loadFromFile(pConfigFile);
     return configBuilder.setOptions(pOverrideOptions).build();
   }
 }

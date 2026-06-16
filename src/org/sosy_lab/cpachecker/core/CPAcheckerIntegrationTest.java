@@ -31,11 +31,14 @@ import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
-import org.sosy_lab.cpachecker.util.test.TestResults;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 
-/** Integration tests for CPAchecker. */
-public class CPAcheckerTest {
+/**
+ * Integration tests for CPAchecker. Most integration tests are written as BenchExec tests for the
+ * BuildBot (cf. doc/Test.md), but here we want to have a very small set of smoke tests.
+ */
+public class CPAcheckerIntegrationTest {
 
   /** The configuration file to use for running CPAchecker. */
   private static final String CONFIGURATION_FILE_C = "config/valueAnalysis-NoCegar.properties";
@@ -86,9 +89,9 @@ public class CPAcheckerTest {
     // Code duplication in the later tests is on purpose; we don't want to hide the method calls
     // that are included in the test through indirection, as long as the tests stay as simple
     // as they currently are
-    TestResults result = CPATestRunner.run(config, SAFE_PROGRAM_C);
-    result.getCheckerResult().printStatistics(statisticsStream);
-    result.getCheckerResult().writeOutputFiles();
+    IntegrationTestResult result = IntegrationTestRunner.run(config, SAFE_PROGRAM_C);
+    result.cpaCheckerResult().printStatistics(statisticsStream);
+    result.cpaCheckerResult().writeOutputFiles();
 
     result.assertIsSafe();
   }
@@ -97,9 +100,9 @@ public class CPAcheckerTest {
   public void testRunForSafeSvLibProgram() throws Exception {
     Configuration config =
         getConfigWithOutputFiles(CONFIGURATION_FILE_SvLib, Language.SVLIB, SPECIFICATION_SvLib);
-    TestResults result = CPATestRunner.run(config, SAFE_PROGRAM_SvLib);
-    result.getCheckerResult().printStatistics(statisticsStream);
-    result.getCheckerResult().writeOutputFiles();
+    IntegrationTestResult result = IntegrationTestRunner.run(config, SAFE_PROGRAM_SvLib);
+    result.cpaCheckerResult().printStatistics(statisticsStream);
+    result.cpaCheckerResult().writeOutputFiles();
 
     result.assertIsSafe();
   }
@@ -116,14 +119,15 @@ public class CPAcheckerTest {
   }
 
   private String obtainSvLibWitnessContentCheckingOutputCorrectness(
-      TestResults pResult, Path pWitnessOutputPath, String pProgramPath) throws IOException {
+      IntegrationTestResult pResult, Path pWitnessOutputPath, String pProgramPath)
+      throws IOException {
 
     assertWithMessage("CFA should be present in the result")
-        .that(pResult.getCheckerResult().getCfa())
+        .that(pResult.cpaCheckerResult().getCfa())
         .isNotNull();
 
     Optional<SvLibCfaMetadata> svLibCfaMetadataOptional =
-        Objects.requireNonNull(pResult.getCheckerResult().getCfa())
+        Objects.requireNonNull(pResult.cpaCheckerResult().getCfa())
             .getMetadata()
             .getSvLibCfaMetadata();
 
@@ -147,9 +151,9 @@ public class CPAcheckerTest {
   public void testWitnessExportForSafeSvLibProgram() throws Exception {
     Path witnessOutputPath = Path.of(tempFolder.getRoot().getAbsolutePath(), "witness.svlib");
     Configuration config = svLibConfigWithWitnessOutput(witnessOutputPath);
-    TestResults result = CPATestRunner.run(config, SAFE_LOOP_PROGRAM_SvLib);
-    result.getCheckerResult().printStatistics(statisticsStream);
-    result.getCheckerResult().writeOutputFiles();
+    IntegrationTestResult result = IntegrationTestRunner.run(config, SAFE_LOOP_PROGRAM_SvLib);
+    result.cpaCheckerResult().printStatistics(statisticsStream);
+    result.cpaCheckerResult().writeOutputFiles();
 
     result.assertIsSafe();
 
@@ -169,9 +173,9 @@ public class CPAcheckerTest {
   public void testRunForUnsafeSvLibProgram() throws Exception {
     Configuration config =
         getConfigWithOutputFiles(CONFIGURATION_FILE_SvLib, Language.SVLIB, SPECIFICATION_SvLib);
-    TestResults result = CPATestRunner.run(config, UNSAFE_PROGRAM_SvLib);
-    result.getCheckerResult().printStatistics(statisticsStream);
-    result.getCheckerResult().writeOutputFiles();
+    IntegrationTestResult result = IntegrationTestRunner.run(config, UNSAFE_PROGRAM_SvLib);
+    result.cpaCheckerResult().printStatistics(statisticsStream);
+    result.cpaCheckerResult().writeOutputFiles();
 
     result.assertIsUnsafe();
   }
@@ -180,9 +184,9 @@ public class CPAcheckerTest {
   public void testWitnessExportForUnsafeSvLibProgram() throws Exception {
     Path witnessOutputPath = Path.of(tempFolder.getRoot().getAbsolutePath(), "witness.svlib");
     Configuration config = svLibConfigWithWitnessOutput(witnessOutputPath);
-    TestResults result = CPATestRunner.run(config, UNSAFE_LOOP_PROGRAM_SvLib);
-    result.getCheckerResult().printStatistics(statisticsStream);
-    result.getCheckerResult().writeOutputFiles();
+    IntegrationTestResult result = IntegrationTestRunner.run(config, UNSAFE_LOOP_PROGRAM_SvLib);
+    result.cpaCheckerResult().printStatistics(statisticsStream);
+    result.cpaCheckerResult().writeOutputFiles();
 
     result.assertIsUnsafe();
 
@@ -200,9 +204,9 @@ public class CPAcheckerTest {
     Configuration config =
         getConfigWithOutputFiles(CONFIGURATION_FILE_C, Language.C, SPECIFICATION_C);
 
-    TestResults result = CPATestRunner.run(config, UNSAFE_PROGRAM_C);
-    result.getCheckerResult().printStatistics(statisticsStream);
-    result.getCheckerResult().writeOutputFiles();
+    IntegrationTestResult result = IntegrationTestRunner.run(config, UNSAFE_PROGRAM_C);
+    result.cpaCheckerResult().printStatistics(statisticsStream);
+    result.cpaCheckerResult().writeOutputFiles();
 
     result.assertIsUnsafe();
   }
@@ -212,9 +216,9 @@ public class CPAcheckerTest {
     Configuration config =
         getConfigWithOutputFiles(CONFIGURATION_FILE_JAVA, Language.JAVA, SPECIFICATION_JAVA);
 
-    TestResults result = CPATestRunner.run(config, SAFE_PROGRAM_JAVA);
-    result.getCheckerResult().printStatistics(statisticsStream);
-    result.getCheckerResult().writeOutputFiles();
+    IntegrationTestResult result = IntegrationTestRunner.run(config, SAFE_PROGRAM_JAVA);
+    result.cpaCheckerResult().printStatistics(statisticsStream);
+    result.cpaCheckerResult().writeOutputFiles();
 
     result.assertIsSafe();
   }
@@ -224,48 +228,48 @@ public class CPAcheckerTest {
     Configuration config =
         getConfigWithOutputFiles(CONFIGURATION_FILE_JAVA, Language.JAVA, SPECIFICATION_JAVA);
 
-    TestResults result = CPATestRunner.run(config, UNSAFE_PROGRAM_JAVA);
-    result.getCheckerResult().printStatistics(statisticsStream);
-    result.getCheckerResult().writeOutputFiles();
+    IntegrationTestResult result = IntegrationTestRunner.run(config, UNSAFE_PROGRAM_JAVA);
+    result.cpaCheckerResult().printStatistics(statisticsStream);
+    result.cpaCheckerResult().writeOutputFiles();
 
     result.assertIsUnsafe();
   }
 
   @Test
-  @Deprecated // cf. https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356
-  @Ignore
+  @Deprecated
+  @Ignore("cf. issue #1356")
   public void testRunForSafeLlvmProgram() throws Exception {
     Configuration config =
         getConfigWithOutputFiles(CONFIGURATION_FILE_LLVM, Language.LLVM, SPECIFICATION_LLVM);
 
-    TestResults result;
+    IntegrationTestResult result;
     try {
-      result = CPATestRunner.run(config, SAFE_PROGRAM_LLVM);
+      result = IntegrationTestRunner.run(config, SAFE_PROGRAM_LLVM);
     } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
       throw new AssumptionViolatedException("LLVM library could not be loaded, aborting test", e);
     }
-    result.getCheckerResult().printStatistics(statisticsStream);
-    result.getCheckerResult().writeOutputFiles();
+    result.cpaCheckerResult().printStatistics(statisticsStream);
+    result.cpaCheckerResult().writeOutputFiles();
 
     result.assertIsSafe();
   }
 
   @Test
-  @Deprecated // cf. https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356
-  @Ignore
+  @Deprecated
+  @Ignore("cf. issue #1356")
   public void testRunForUnsafeLlvmProgram() throws Exception {
     Configuration config =
         getConfigWithOutputFiles(CONFIGURATION_FILE_LLVM, Language.LLVM, SPECIFICATION_LLVM);
 
-    TestResults result;
+    IntegrationTestResult result;
     try {
-      result = CPATestRunner.run(config, UNSAFE_PROGRAM_LLVM);
+      result = IntegrationTestRunner.run(config, UNSAFE_PROGRAM_LLVM);
     } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
       throw new AssumptionViolatedException("LLVM library could not be loaded, aborting test", e);
     }
 
-    result.getCheckerResult().printStatistics(statisticsStream);
-    result.getCheckerResult().writeOutputFiles();
+    result.cpaCheckerResult().printStatistics(statisticsStream);
+    result.cpaCheckerResult().writeOutputFiles();
 
     result.assertIsUnsafe();
   }

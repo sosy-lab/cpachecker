@@ -3812,52 +3812,37 @@ public class SMGCPAValueVisitor
       }
     }
 
-    switch (op) {
-      case PLUS -> {
-        return left + right;
-      }
-      case MINUS -> {
-        return left - right;
-      }
+    return switch (op) {
+      case PLUS -> left + right;
+      case MINUS -> left - right;
       case DIVIDE -> {
         checkArgument(right != 0);
-        return left / right;
+        yield left / right;
       }
       case REMAINDER -> {
         checkArgument(right != 0);
-        return left % right;
+        yield left % right;
       }
-      case MULTIPLY -> {
-        return left * right;
-      }
-      case SHIFT_LEFT -> {
-        /* There is a difference in the SHIFT-operation in Java and C.
-         * In C a SHIFT is a normal SHIFT, in Java the rVal is used as (r%64).
-         *
-         * http://docs.oracle.com/javase/specs/jls/se7/html/jls-15.html#jls-15.19
-         *
-         * If the promoted type of the left-hand operand is long, then only the
-         * six lowest-order bits of the right-hand operand are used as the
-         * shift distance. It is as if the right-hand operand were subjected to
-         * a bitwise logical AND operator & (§15.22.1) with the mask value 0x3f.
-         * The shift distance actually used is therefore always in the range 0 to 63.
-         */
-        return (right >= SIZE_OF_JAVA_LONG) ? 0 : left << right;
-      }
-      case SHIFT_RIGHT -> {
-        return left >> right;
-      }
-      case BITWISE_AND -> {
-        return left & right;
-      }
-      case BITWISE_OR -> {
-        return left | right;
-      }
-      case BITWISE_XOR -> {
-        return left ^ right;
-      }
+      case MULTIPLY -> left * right;
+      case SHIFT_LEFT ->
+          /* There is a difference in the SHIFT-operation in Java and C.
+           * In C a SHIFT is a normal SHIFT, in Java the rVal is used as (r%64).
+           *
+           * http://docs.oracle.com/javase/specs/jls/se7/html/jls-15.html#jls-15.19
+           *
+           * If the promoted type of the left-hand operand is long, then only the
+           * six lowest-order bits of the right-hand operand are used as the
+           * shift distance. It is as if the right-hand operand were subjected to
+           * a bitwise logical AND operator & (§15.22.1) with the mask value 0x3f.
+           * The shift distance actually used is therefore always in the range 0 to 63.
+           */
+          (right >= SIZE_OF_JAVA_LONG) ? 0 : left << right;
+      case SHIFT_RIGHT -> left >> right;
+      case BITWISE_AND -> left & right;
+      case BITWISE_OR -> left | right;
+      case BITWISE_XOR -> left ^ right;
       default -> throw new AssertionError("unknown binary operation: " + op);
-    }
+    };
   }
 
   /**

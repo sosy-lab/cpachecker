@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SubstituteEdgeBuilder {
@@ -74,7 +75,7 @@ public class SubstituteEdgeBuilder {
       throws UnrecognizedCodeException {
 
     CFAEdge cfaEdge = pThreadEdge.cfaEdge;
-    Optional<CFAEdgeForThread> callContext =
+    SeqCallContext callContext =
         MPORThreadUtil.getCallContextOrStartRoutineCall(
             pThreadEdge.callContext, pSubstitution.getThread());
 

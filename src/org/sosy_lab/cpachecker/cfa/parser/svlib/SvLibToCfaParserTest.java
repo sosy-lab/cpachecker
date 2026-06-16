@@ -21,7 +21,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.SvLibParserException;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class SvLibToCfaParserTest {
   private Path examplesPath() {
@@ -32,7 +32,7 @@ public class SvLibToCfaParserTest {
       throws ParserException, IOException, InterruptedException, InvalidConfigurationException {
     CFACreator parser =
         new CFACreator(
-            TestDataTools.configurationForTest().setOption("language", "svlib").build(),
+            TestUtils.configurationForTest().setOption("language", "svlib").build(),
             LogManager.createTestLogManager(),
             ShutdownNotifier.createDummy());
 
