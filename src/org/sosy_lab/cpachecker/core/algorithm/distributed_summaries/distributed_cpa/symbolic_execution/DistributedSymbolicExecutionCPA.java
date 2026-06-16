@@ -11,9 +11,10 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value.DeserializeValueAnalysisStateOperator.havocVariables;
 
 import com.google.common.collect.Iterables;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -59,7 +60,8 @@ public class DistributedSymbolicExecutionCPA implements DistributedConfigurableP
   BlockNode blockNode;
   CFA cfa;
 
-  public static Map<String, ValueAnalysisState> initialValueStates = new HashMap<>();
+  public static ConcurrentMap<String, ValueAnalysisState> initialValueStates =
+      new ConcurrentHashMap<>();
 
   public DistributedSymbolicExecutionCPA(
       SymbolicExecutionCPA pCPA, CFA pCFA, BlockNode pBlockNode) {
