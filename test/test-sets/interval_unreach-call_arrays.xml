@@ -14,12 +14,12 @@ SPDX-License-Identifier: Apache-2.0
 <benchmark tool="cpachecker" timelimit="15 min" hardtimelimit="16 min" memlimit="15 GB" cpuCores="2">
  
 
-  <option name="--interval"/>
+  <option name="--intervalAnalysis"/>
   <option name="--heap">10000M</option>
   <option name="--benchmark"/>
   <option name="--timelimit">900 s</option>
 
-  <rundefinition name="SV-COMP26_C.unreach-call.Arrays">
+  <rundefinition name="FunArray">
     <tasks name="C.unreach-call.Arrays">
       <includesfile>../programs/benchmarks/Arrays.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
