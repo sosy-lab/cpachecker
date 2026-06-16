@@ -451,6 +451,8 @@ public class DssBlockAnalysis {
           summariesWithPrecision.add(
               new StateAndPrecision(finalState, reachedSet.getPrecision(finalState)));
         }
+      } else {
+        summariesWithPrecision.add(makeTopSummary());
       }
       return reportPostconditions(summariesWithPrecision.build());
     }
