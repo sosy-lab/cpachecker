@@ -285,9 +285,18 @@ public class IntervalAnalysisTransferRelation
       Interval staticComparee)
       throws UnrecognizedCodeException {
 
-    if (dynamicOperand instanceof CArraySubscriptExpression arraySubscript) {
-      if (operator == BinaryOperator.EQUALS
-          && arraySubscript.getArrayExpression() instanceof CIdExpression arrayId) {
+    if (dynamicOperand instanceof CArraySubscriptExpression arraySubscript
+        && arraySubscript.getArrayExpression() instanceof CIdExpression arrayId) {
+      Interval constraint =
+          switch (operator) {
+            case LESS_THAN -> Interval.UNBOUND.limitUpperBoundBy(staticComparee.minus(1L));
+            case LESS_EQUAL -> Interval.UNBOUND.limitUpperBoundBy(staticComparee);
+            case GREATER_THAN -> Interval.UNBOUND.limitLowerBoundBy(staticComparee.plus(1L));
+            case GREATER_EQUAL -> Interval.UNBOUND.limitLowerBoundBy(staticComparee);
+            case EQUALS -> staticComparee;
+            default -> null;
+          };
+      if (constraint != null) {
         String arrayName = arrayId.getDeclaration().getQualifiedName();
         CExpression indexExpr = arraySubscript.getSubscriptExpression();
         ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, cfaEdge);
@@ -296,7 +305,7 @@ public class IntervalAnalysisTransferRelation
           NormalFormExpression nfe = normalizations.iterator().next();
           return ImmutableSet.of(
               state.narrowArrayElement(
-                  arrayName, nfe, staticComparee, visitor, cfaEdge.getSuccessor()));
+                  arrayName, nfe, constraint, visitor, cfaEdge.getSuccessor()));
         }
       }
       return ImmutableSet.of(state);
