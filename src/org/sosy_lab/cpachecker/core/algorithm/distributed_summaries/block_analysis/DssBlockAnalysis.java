@@ -530,25 +530,32 @@ public class DssBlockAnalysis {
       return processing;
     }
     for (StateAndPrecision deserializedStateAndPrecision : deserializedStatesAndPrecisions) {
-      boolean isRelevant = true;
+      boolean existsEqual = false;
       for (StateAndPrecision stateAndPrecision :
           ImmutableSet.copyOf(preconditions.get(pReceived.getSenderId()))) {
-        if (dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state())
-            || dcpa.getCoverageOperator()
-                .isSubsumed(
-                    dcpa.reset(deserializedStateAndPrecision.state()), stateAndPrecision.state())) {
+        boolean newLeqOld =
+            dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state())
+                || dcpa.getCoverageOperator()
+                    .isSubsumed(
+                        dcpa.reset(deserializedStateAndPrecision.state()),
+                        stateAndPrecision.state());
+        boolean oldLeqNew;
+        if (dcpa.getCoverageOperator().isBasedOnEquality()) {
+          oldLeqNew = newLeqOld;
+        } else {
+          oldLeqNew =
+              dcpa.isMostGeneralBlockEntryState(deserializedStateAndPrecision.state())
+                  || dcpa.getCoverageOperator()
+                      .isSubsumed(
+                          stateAndPrecision.state(),
+                          dcpa.reset(deserializedStateAndPrecision.state()));
+        }
+        if (newLeqOld || oldLeqNew) {
           preconditions.remove(pReceived.getSenderId(), stateAndPrecision);
         }
-        if ((dcpa.isMostGeneralBlockEntryState(deserializedStateAndPrecision.state())
-            || dcpa.getCoverageOperator()
-                .isSubsumed(
-                    stateAndPrecision.state(),
-                    dcpa.reset(deserializedStateAndPrecision.state())))) {
-          preconditions.remove(pReceived.getSenderId(), stateAndPrecision);
-          isRelevant = false;
-        }
+        existsEqual |= newLeqOld && oldLeqNew;
       }
-      if (isRelevant) {
+      if (!existsEqual) {
         relevant.add(deserializedStateAndPrecision);
       }
       preconditions.put(pReceived.getSenderId(), deserializedStateAndPrecision);
@@ -681,6 +688,7 @@ public class DssBlockAnalysis {
     } else {
       startStates.add(new StateAndPrecision(makeStartState(), makeStartPrecision()));
     }
+
     ImmutableSet<StateAndPrecision> finalStartStates = startStates.build();
 
     ImmutableList.Builder<StateAndPrecision> summaries = ImmutableList.builder();
@@ -734,7 +742,7 @@ public class DssBlockAnalysis {
     }
 
     boolean avoidPotentialUnderapproximation =
-        allEmpty && !violations.isEmpty() && !analyzedTrivial;
+        allEmpty && !violations.isEmpty() && !analyzedTrivial && !checkOnlyRelevant;
     if (avoidPotentialUnderapproximation) {
       // traversal not possible but we do not know whether a fixpoint is reached,
       // therefore, send up
