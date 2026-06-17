@@ -529,36 +529,36 @@ public class DssBlockAnalysis {
       appendTopToRelevantIfNecessary(pReceived.getSenderId());
       return processing;
     }
-    for (StateAndPrecision deserializedStateAndPrecision : deserializedStatesAndPrecisions) {
-      boolean existsEqual = false;
-      for (StateAndPrecision stateAndPrecision :
+    for (StateAndPrecision newStateAndPrecision : deserializedStatesAndPrecisions) {
+      boolean isCovered = false;
+      for (StateAndPrecision oldStateAndPrecision :
           ImmutableSet.copyOf(preconditions.get(pReceived.getSenderId()))) {
+        boolean oldIsTop = dcpa.isMostGeneralBlockEntryState(oldStateAndPrecision.state());
+        boolean newIsTop = dcpa.isMostGeneralBlockEntryState(newStateAndPrecision.state());
         boolean newLeqOld =
-            dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state())
+            oldIsTop
                 || dcpa.getCoverageOperator()
                     .isSubsumed(
-                        dcpa.reset(deserializedStateAndPrecision.state()),
-                        stateAndPrecision.state());
+                        dcpa.reset(newStateAndPrecision.state()), oldStateAndPrecision.state());
         boolean oldLeqNew;
         if (dcpa.getCoverageOperator().isBasedOnEquality()) {
           oldLeqNew = newLeqOld;
         } else {
           oldLeqNew =
-              dcpa.isMostGeneralBlockEntryState(deserializedStateAndPrecision.state())
+              newIsTop
                   || dcpa.getCoverageOperator()
                       .isSubsumed(
-                          stateAndPrecision.state(),
-                          dcpa.reset(deserializedStateAndPrecision.state()));
+                          oldStateAndPrecision.state(), dcpa.reset(newStateAndPrecision.state()));
         }
         if (newLeqOld || oldLeqNew) {
-          preconditions.remove(pReceived.getSenderId(), stateAndPrecision);
+          preconditions.remove(pReceived.getSenderId(), oldStateAndPrecision);
         }
-        existsEqual |= newLeqOld && oldLeqNew;
+        isCovered |= oldLeqNew;
       }
-      if (!existsEqual) {
-        relevant.add(deserializedStateAndPrecision);
+      if (!isCovered) {
+        relevant.add(newStateAndPrecision);
       }
-      preconditions.put(pReceived.getSenderId(), deserializedStateAndPrecision);
+      preconditions.put(pReceived.getSenderId(), newStateAndPrecision);
     }
     if (relevant.isEmpty()) {
       return DssMessageProcessing.stop();
