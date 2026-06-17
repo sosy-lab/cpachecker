@@ -219,10 +219,7 @@ public class AcslPredicateToFormulaVisitor
     BooleanFormula ifTrueFormula = pAcslTernaryPredicate.getResultIfTrue().accept(this);
     BooleanFormula ifFalseFormula = pAcslTernaryPredicate.getResultIfFalse().accept(this);
 
-    // (condition AND trueFormula) OR ((NOT condition) AND falseFormula)
-    return bfmgr.or(
-        bfmgr.and(conditionFormula, ifTrueFormula),
-        bfmgr.and(bfmgr.not(conditionFormula), ifFalseFormula));
+    return bfmgr.ifThenElse(conditionFormula, ifTrueFormula, ifFalseFormula);
   }
 
   @Override
