@@ -783,6 +783,16 @@ public class CoreComponentsFactory {
                 specification);
       }
 
+      if (useProgramTransformationCEGAR) {
+        algorithm =
+            new ProgramTransformationCEGARAlgorithmFactory(
+                algorithm, cpa, logger, config, shutdownNotifier, cfa)
+                .newInstance();
+        algorithm =
+            new ProgramTransformationARGRecoveryAlgorithmFactory(algorithm, cpa, logger, cfa)
+                .newInstance();
+      }
+
       if (checkCounterexamples) {
         if (cpa instanceof BAMCPA) {
           algorithm =
@@ -793,16 +803,6 @@ public class CoreComponentsFactory {
               new CounterexampleCheckAlgorithm(
                   algorithm, cpa, config, specification, logger, shutdownNotifier, cfa);
         }
-      }
-
-      if (useProgramTransformationCEGAR) {
-        algorithm =
-            new ProgramTransformationCEGARAlgorithmFactory(
-                    algorithm, cpa, logger, config, shutdownNotifier, cfa)
-                .newInstance();
-        algorithm =
-            new ProgramTransformationARGRecoveryAlgorithmFactory(algorithm, cpa, logger, cfa)
-                .newInstance();
       }
 
       algorithm =
