@@ -703,6 +703,31 @@ public record FunArray(
   }
 
   /**
+   * Narrows the abstract value of the single element at {@code pIndex} by intersecting the
+   * containing segment's value with {@code pNarrowedTo}. Equivalent to asserting {@code
+   * array[pIndex] ∈ pNarrowedTo}: reads the current value at {@code pIndex} via {@link #get},
+   * intersects it with {@code pNarrowedTo}, then writes the result back via {@link #insert}, which
+   * splits the segment at {@code pIndex} so only that element is affected.
+   *
+   * <p>If the intersection is empty (contradiction), {@link #BOTTOM} is returned.
+   *
+   * @param pIndex the index expression of the array element being constrained.
+   * @param pNarrowedTo the interval the element is asserted to lie within.
+   * @param pVisitor the expression value visitor for the current abstract state.
+   * @return a FunArray with the element at {@code pIndex} narrowed, or {@link #BOTTOM} on
+   *     contradiction.
+   */
+  public FunArray narrowElement(
+      NormalFormExpression pIndex, Interval pNarrowedTo, ExpressionValueVisitor pVisitor) {
+    Interval current = get(pIndex, pVisitor);
+    Interval narrowed = current.intersect(pNarrowedTo);
+    if (narrowed.isEmpty()) {
+      return BOTTOM;
+    }
+    return insert(pIndex, narrowed, pVisitor);
+  }
+
+  /**
    * Narrows this FunArray to reflect the constraint {@code lesser < greater}. The method compares
    * the positions of the two expressions in the bound list:
    *

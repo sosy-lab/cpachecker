@@ -285,7 +285,20 @@ public class IntervalAnalysisTransferRelation
       Interval staticComparee)
       throws UnrecognizedCodeException {
 
-    if (dynamicOperand instanceof CArraySubscriptExpression) {
+    if (dynamicOperand instanceof CArraySubscriptExpression arraySubscript) {
+      if (operator == BinaryOperator.EQUALS
+          && arraySubscript.getArrayExpression() instanceof CIdExpression arrayId) {
+        String arrayName = arrayId.getDeclaration().getQualifiedName();
+        CExpression indexExpr = arraySubscript.getSubscriptExpression();
+        ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, cfaEdge);
+        Set<NormalFormExpression> normalizations = normalizeExpression(indexExpr, visitor);
+        if (!normalizations.isEmpty()) {
+          NormalFormExpression nfe = normalizations.iterator().next();
+          return ImmutableSet.of(
+              state.narrowArrayElement(
+                  arrayName, nfe, staticComparee, visitor, cfaEdge.getSuccessor()));
+        }
+      }
       return ImmutableSet.of(state);
     }
 

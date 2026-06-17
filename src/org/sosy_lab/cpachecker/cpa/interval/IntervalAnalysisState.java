@@ -214,6 +214,31 @@ public final class IntervalAnalysisState
     return this;
   }
 
+  /**
+   * Narrows the abstract value of the segment at {@code pIndex} in array {@code pArrayName} by
+   * intersecting the current segment value with {@code pNarrowedTo}. If the array is not tracked
+   * returns this state unchanged.
+   *
+   * @param pArrayName the qualified name of the array variable.
+   * @param pIndex the normal-form expression representing the index being constrained.
+   * @param pNarrowedTo the interval the element at {@code pIndex} is asserted to lie within.
+   * @param pVisitor the expression value visitor for the current abstract state.
+   * @param pLocation the successor CFA node.
+   * @return a new state with the array segment narrowed, or this state if the array is untracked.
+   */
+  public IntervalAnalysisState narrowArrayElement(
+      String pArrayName,
+      NormalFormExpression pIndex,
+      Interval pNarrowedTo,
+      ExpressionValueVisitor pVisitor,
+      CFANode pLocation) {
+    if (arrays.containsKey(pArrayName)) {
+      FunArray narrowed = arrays.get(pArrayName).narrowElement(pIndex, pNarrowedTo, pVisitor);
+      return this.withArrays(arrays.putAndCopy(pArrayName, narrowed)).withLocation(pLocation);
+    }
+    return this;
+  }
+
   public IntervalAnalysisState assignArrayElementUnknownIndex(
       String pArrayName, Interval pValue, CFANode pLocation) {
     if (arrays.containsKey(pArrayName)) {

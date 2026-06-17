@@ -14,7 +14,9 @@ import static org.sosy_lab.cpachecker.cpa.interval.funarray.FunArrayBuilder.exp;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.cpa.interval.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.interval.Interval;
+import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
 import org.sosy_lab.cpachecker.cpa.interval.funarray.FunArrayBuilder.FunArrayBuilderException;
 
 public class FunArraySatisfyTest {
@@ -152,6 +154,64 @@ public class FunArraySatisfyTest {
             .build();
 
     FunArray result = initial.satisfyLessEqual(exp("n"), exp(0));
+
+    assertThat(result).isEqualTo(FunArray.BOTTOM);
+  }
+
+  @Test
+  public void testNarrowElementNarrowsWideSegment() throws FunArrayBuilderException {
+    // {0} ⊤ {5}   (single unbounded segment)
+    FunArray initial =
+        FunArrayBuilder.firstBound(exp(0)).value(Interval.UNBOUND).bound(exp(5)).build();
+
+    ExpressionValueVisitor visitor =
+        new ExpressionValueVisitor(new IntervalAnalysisState(null), null);
+
+    // narrow at index 2 to [0,0]:  [−∞,+∞] ∩ [0,0] = [0,0]
+    FunArray result = initial.narrowElement(exp(2), new Interval(0L, 0L), visitor);
+
+    // narrowElement delegates to insert(), which marks overhangs as mayBeEmpty
+    // because insert does not evaluate whether the index equals the adjacent bound
+    // expected: {0} ⊤ {2}? [0,0] {3} ⊤ {5}?
+    FunArray expected =
+        FunArrayBuilder.firstBound(exp(0))
+            .value(Interval.UNBOUND)
+            .bound(exp(2))
+            .mayBeEmpty()
+            .value(0L, 0L)
+            .bound(exp(3))
+            .value(Interval.UNBOUND)
+            .mayBeEmpty()
+            .bound(exp(5))
+            .build();
+
+    assertThat(result).isEqualTo(expected);
+  }
+
+  @Test
+  public void testNarrowElementValueAlreadyContained() throws FunArrayBuilderException {
+    FunArray initial =
+        FunArrayBuilder.firstBound(exp(0)).value(0L, 0L).bound(exp(5)).build();
+
+    ExpressionValueVisitor visitor =
+        new ExpressionValueVisitor(new IntervalAnalysisState(null), null);
+
+    FunArray result = initial.narrowElement(exp(2), new Interval(0L, 0L), visitor);
+
+    assertThat(result).isNotEqualTo(FunArray.BOTTOM);
+    assertThat(result.get(exp(2), visitor)).isEqualTo(new Interval(0L, 0L));
+  }
+
+  @Test
+  public void testNarrowElementEmptyIntersectionReturnsBottom()
+      throws FunArrayBuilderException {
+    FunArray initial =
+        FunArrayBuilder.firstBound(exp(0)).value(5L, 10L).bound(exp(20)).build();
+
+    ExpressionValueVisitor visitor =
+        new ExpressionValueVisitor(new IntervalAnalysisState(null), null);
+
+    FunArray result = initial.narrowElement(exp(3), new Interval(0L, 0L), visitor);
 
     assertThat(result).isEqualTo(FunArray.BOTTOM);
   }
