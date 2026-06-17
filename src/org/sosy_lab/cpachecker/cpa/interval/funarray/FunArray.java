@@ -737,8 +737,7 @@ public record FunArray(
    *       element exists between the two bounds.
    *   <li>If there is more than one segment between them, no change is made (it cannot be
    *       determined which segment is non-empty).
-   *   <li>If {@code lesser} follows {@code greater} (contradiction), both expressions are removed
-   *       from all bounds and {@link #removeEmptyBounds()} is called.
+   *   <li>If {@code lesser} follows {@code greater} (contradiction), {@link #BOTTOM} is returned.
    * </ul>
    *
    * @param lesser the expression asserted to be strictly less than {@code greater}.
@@ -767,13 +766,10 @@ public record FunArray(
       // is not empty.
       return this;
     } else {
-      // Bound order states that left expression is greater than right expression
+      // Bound order states that left expression is greater than or equal to right expression
       // Condition states that left expression is less than right expression
-      // --> Condition cannot be satisfied --> Remove expressions in question
-
-      List<Bound> newBounds =
-          this.bounds().stream().map(b -> b.difference(ImmutableSet.of(lesser, greater))).toList();
-      return new FunArray(newBounds, this.values(), this.emptiness()).removeEmptyBounds();
+      // --> Condition cannot be satisfied --> constraint is contradictory
+      return BOTTOM;
     }
   }
 
@@ -788,8 +784,7 @@ public record FunArray(
    *       empty (the expressions may be equal), the bounds between them are squashed into a single
    *       bound containing both expressions.
    *   <li>If {@code lesser} follows {@code greater} and any intermediate segment is non-empty
-   *       (contradiction), both expressions are removed from all bounds and {@link
-   *       #removeEmptyBounds()} is called.
+   *       (contradiction), {@link #BOTTOM} is returned.
    * </ul>
    *
    * @param lesser the expression asserted to be less than or equal to {@code greater}.
@@ -817,10 +812,8 @@ public record FunArray(
     } else if (modifiedEmptiness.subList(rightIndex, leftIndex).stream().anyMatch(e -> !e)) {
       // Bound order states that left expression is greater than right expression
       // Condition states that left expression is less equal than right expression
-      // --> Condition cannot be satisfied --> Remove expressions in question
-      List<Bound> newBounds =
-          modifiedBounds.stream().map(b -> b.difference(ImmutableSet.of(lesser, greater))).toList();
-      return new FunArray(newBounds, this.values(), this.emptiness()).removeEmptyBounds();
+      // --> Condition cannot be satisfied --> constraint is contradictory
+      return BOTTOM;
     } else {
       // Bound order states that left expression is greater equal than right expression
       // Condition states that left expression is less equal than right expression
@@ -840,7 +833,63 @@ public record FunArray(
     }
   }
 
-  // TODO: Satisfy equal and not equal
+  /**
+   * Narrows this FunArray to reflect the constraint {@code pExpr1 == pExpr2}. The equality is
+   * decomposed into {@code pExpr1 <= pExpr2} AND {@code pExpr2 <= pExpr1} and each half is
+   * delegated to {@link #satisfyLessEqual}.
+   *
+   * <ul>
+   *   <li>If the two expressions are already in the same bound, no change is made.
+   *   <li>If all segments between them are possibly-empty, those segments are squashed into a single
+   *       bound containing both expressions.
+   *   <li>If any segment between them is non-empty (contradiction), {@link #BOTTOM} is returned.
+   * </ul>
+   *
+   * @param pExpr1 the first expression asserted to be equal to {@code pExpr2}.
+   * @param pExpr2 the second expression asserted to be equal to {@code pExpr1}.
+   * @return a narrowed FunArray satisfying the equality constraint, or the unchanged FunArray if
+   *     either expression is absent from all bounds.
+   */
+  public FunArray satisfyEquals(NormalFormExpression pExpr1, NormalFormExpression pExpr2) {
+    return satisfyLessEqual(pExpr1, pExpr2).satisfyLessEqual(pExpr2, pExpr1);
+  }
+
+  /**
+   * Narrows this FunArray to reflect the constraint {@code pExpr1 != pExpr2}. The relative
+   * position of the two expressions in the bound list determines the outcome:
+   *
+   * <ul>
+   *   <li>If either expression is absent from all bounds, no change is made.
+   *   <li>If the two expressions are in the same bound (considered equal), their equality
+   *       contradicts the constraint and {@link #BOTTOM} is returned.
+   *   <li>If the expressions are in different bounds, the not-equal constraint is equivalent to a
+   *       strict inequality in the direction already implied by bound order. The method delegates to
+   *       {@link #satisfyStrictLessThan} with the left-of expression as {@code lesser}.
+   * </ul>
+   *
+   * @param pExpr1 the first expression asserted to be not equal to {@code pExpr2}.
+   * @param pExpr2 the second expression asserted to be not equal to {@code pExpr1}.
+   * @return a narrowed FunArray satisfying the constraint, or the unchanged FunArray if either
+   *     expression is absent from all bounds.
+   */
+  public FunArray satisfyNotEquals(NormalFormExpression pExpr1, NormalFormExpression pExpr2) {
+    int index1;
+    int index2;
+    try {
+      index1 = findIndex(pExpr1);
+      index2 = findIndex(pExpr2);
+    } catch (IndexOutOfBoundsException e) {
+      return this;
+    }
+
+    if (index1 == index2) {
+      return BOTTOM;
+    } else if (index1 < index2) {
+      return satisfyStrictLessThan(pExpr1, pExpr2);
+    } else {
+      return satisfyStrictLessThan(pExpr2, pExpr1);
+    }
+  }
 
   /**
    * Returns {@code true} if this FunArray is below {@code other} in the abstract domain partial

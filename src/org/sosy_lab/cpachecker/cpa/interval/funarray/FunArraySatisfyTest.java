@@ -11,8 +11,6 @@ package org.sosy_lab.cpachecker.cpa.interval.funarray;
 import static com.google.common.truth.Truth.assertThat;
 import static org.sosy_lab.cpachecker.cpa.interval.funarray.FunArrayBuilder.exp;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cpa.interval.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.interval.Interval;
@@ -48,10 +46,10 @@ public class FunArraySatisfyTest {
   }
 
   @Test
-  public void testSatisfyStrictLessThanContradictionRemovesBounds()
+  public void testSatisfyStrictLessThanContradictionReturnsBottom()
       throws FunArrayBuilderException {
     // {0} ⊤ {1} ⊤ {n}
-    // assert 1 < 0: contradiction
+    // assert 1 < 0: contradiction → BOTTOM
     FunArray initial =
         FunArrayBuilder.firstBound(exp(0))
             .value(Interval.UNBOUND)
@@ -62,13 +60,7 @@ public class FunArraySatisfyTest {
 
     FunArray result = initial.satisfyStrictLessThan(exp(1), exp(0));
 
-    FunArray expected =
-        new FunArray(
-            ImmutableList.of(new Bound(ImmutableSet.of()), new Bound(exp("n"))),
-            ImmutableList.of(Interval.UNBOUND),
-            ImmutableList.of(false));
-
-    assertThat(result).isEqualTo(expected);
+    assertThat(result).isEqualTo(FunArray.BOTTOM);
   }
 
   @Test
@@ -217,9 +209,9 @@ public class FunArraySatisfyTest {
   }
 
   @Test
-  public void testSatisfyLessEqualContradictionRemovesBounds() throws FunArrayBuilderException {
+  public void testSatisfyLessEqualContradictionReturnsBottom() throws FunArrayBuilderException {
     // {0} ⊤ {1} ⊤ {n}
-    // assert 1 <= 0: non-empty segment, contradiction
+    // assert 1 <= 0: non-empty segment, contradiction → BOTTOM
     FunArray initial =
         FunArrayBuilder.firstBound(exp(0))
             .value(Interval.UNBOUND)
@@ -230,12 +222,210 @@ public class FunArraySatisfyTest {
 
     FunArray result = initial.satisfyLessEqual(exp(1), exp(0));
 
+    assertThat(result).isEqualTo(FunArray.BOTTOM);
+  }
+
+  @Test
+  public void testSatisfyEqualsSquashesMaybeEmptySegment() throws FunArrayBuilderException {
+    FunArray initial =
+        FunArrayBuilder.firstBound(exp(0))
+            .value(Interval.UNBOUND)
+            .bound(exp("i"))
+            .value(Interval.UNBOUND)
+            .mayBeEmpty()
+            .bound(exp("j"))
+            .build();
+
+    FunArray result = initial.satisfyEquals(exp("i"), exp("j"));
+
     FunArray expected =
-        new FunArray(
-            ImmutableList.of(new Bound(ImmutableSet.of()), new Bound(exp("n"))),
-            ImmutableList.of(Interval.UNBOUND),
-            ImmutableList.of(false));
+        FunArrayBuilder.firstBound(exp(0))
+            .value(Interval.UNBOUND)
+            .bound(exp("i"), exp("j"))
+            .build();
 
     assertThat(result).isEqualTo(expected);
+  }
+
+  @Test
+  public void testSatisfyEqualsNonEmptySegmentReturnsBottom() throws FunArrayBuilderException {
+    FunArray initial =
+        FunArrayBuilder.firstBound(exp(0))
+            .value(Interval.UNBOUND)
+            .bound(exp("i"))
+            .value(Interval.UNBOUND)
+            .bound(exp("j"))
+            .build();
+
+    FunArray result = initial.satisfyEquals(exp("i"), exp("j"));
+
+    assertThat(result).isEqualTo(FunArray.BOTTOM);
+  }
+
+  @Test
+  public void testSatisfyEqualsNonEmptySegmentFiveBoundsReturnsBottom()
+      throws FunArrayBuilderException {
+    FunArray initial =
+        FunArrayBuilder.firstBound(exp(0))
+            .value(Interval.UNBOUND)
+            .bound(exp("a"))
+            .value(Interval.UNBOUND)
+            .bound(exp("i"))
+            .value(Interval.UNBOUND)
+            .bound(exp("j"))
+            .value(Interval.UNBOUND)
+            .bound(exp("n"))
+            .build();
+
+    FunArray result = initial.satisfyEquals(exp("i"), exp("j"));
+
+    assertThat(result).isEqualTo(FunArray.BOTTOM);
+  }
+
+  @Test
+  public void testSatisfyLessEqualContradictionFiveBoundsReturnsBottom()
+      throws FunArrayBuilderException {
+    FunArray initial =
+        FunArrayBuilder.firstBound(exp(0))
+            .value(Interval.UNBOUND)
+            .bound(exp("a"))
+            .value(Interval.UNBOUND)
+            .bound(exp("i"))
+            .value(Interval.UNBOUND)
+            .bound(exp("j"))
+            .value(Interval.UNBOUND)
+            .bound(exp("n"))
+            .build();
+
+    FunArray result = initial.satisfyLessEqual(exp("j"), exp("i"));
+
+    assertThat(result).isEqualTo(FunArray.BOTTOM);
+  }
+
+  @Test
+  public void testSatisfyStrictLessThanContradictionFiveBoundsReturnsBottom()
+      throws FunArrayBuilderException {
+    // {0} ⊤ {a} ⊤ {i} ⊤ {j} ⊤ {n}
+    FunArray initial =
+        FunArrayBuilder.firstBound(exp(0))
+            .value(Interval.UNBOUND)
+            .bound(exp("a"))
+            .value(Interval.UNBOUND)
+            .bound(exp("i"))
+            .value(Interval.UNBOUND)
+            .bound(exp("j"))
+            .value(Interval.UNBOUND)
+            .bound(exp("n"))
+            .build();
+
+    // assert j < i: contradiction (j is right of i) → BOTTOM
+    FunArray result = initial.satisfyStrictLessThan(exp("j"), exp("i"));
+
+    assertThat(result).isEqualTo(FunArray.BOTTOM);
+  }
+
+  // --- satisfyNotEquals ---
+
+  @Test
+  public void testSatisfyNotEqualsSameBoundReturnsBottom() throws FunArrayBuilderException {
+    // {0} ⊤ {i,j} ⊤ {n}  - i and j are in the same bound
+    FunArray initial =
+        FunArrayBuilder.firstBound(exp(0))
+            .value(Interval.UNBOUND)
+            .bound(exp("i"), exp("j"))
+            .value(Interval.UNBOUND)
+            .bound(exp("n"))
+            .build();
+
+    FunArray result = initial.satisfyNotEquals(exp("i"), exp("j"));
+
+    assertThat(result).isEqualTo(FunArray.BOTTOM);
+  }
+
+  @Test
+  public void testSatisfyNotEqualsExprLeftMarksSegmentNonEmpty() throws FunArrayBuilderException {
+    // {0} ⊤ {i} ⊤? {j} ⊤ {n}
+    FunArray initial =
+        FunArrayBuilder.firstBound(exp(0))
+            .value(Interval.UNBOUND)
+            .bound(exp("i"))
+            .value(Interval.UNBOUND)
+            .mayBeEmpty()
+            .bound(exp("j"))
+            .value(Interval.UNBOUND)
+            .bound(exp("n"))
+            .build();
+
+    FunArray result = initial.satisfyNotEquals(exp("i"), exp("j"));
+
+    FunArray expected =
+        FunArrayBuilder.firstBound(exp(0))
+            .value(Interval.UNBOUND)
+            .bound(exp("i"))
+            .value(Interval.UNBOUND)
+            .bound(exp("j"))
+            .value(Interval.UNBOUND)
+            .bound(exp("n"))
+            .build();
+
+    assertThat(result).isEqualTo(expected);
+  }
+
+  @Test
+  public void testSatisfyNotEqualsExprRightMarksSegmentNonEmpty() throws FunArrayBuilderException {
+    // {0} ⊤ {j} ⊤? {i} ⊤ {n}
+    FunArray initial =
+        FunArrayBuilder.firstBound(exp(0))
+            .value(Interval.UNBOUND)
+            .bound(exp("j"))
+            .value(Interval.UNBOUND)
+            .mayBeEmpty()
+            .bound(exp("i"))
+            .value(Interval.UNBOUND)
+            .bound(exp("n"))
+            .build();
+
+    FunArray result = initial.satisfyNotEquals(exp("i"), exp("j"));
+
+    FunArray expected =
+        FunArrayBuilder.firstBound(exp(0))
+            .value(Interval.UNBOUND)
+            .bound(exp("j"))
+            .value(Interval.UNBOUND)
+            .bound(exp("i"))
+            .value(Interval.UNBOUND)
+            .bound(exp("n"))
+            .build();
+
+    assertThat(result).isEqualTo(expected);
+  }
+
+  @Test
+  public void testSatisfyNotEqualsAlreadyNonEmptyNoChange() throws FunArrayBuilderException {
+    // {0} ⊤ {i} ⊤ {j} ⊤ {n}
+    FunArray initial =
+        FunArrayBuilder.firstBound(exp(0))
+            .value(Interval.UNBOUND)
+            .bound(exp("i"))
+            .value(Interval.UNBOUND)
+            .bound(exp("j"))
+            .value(Interval.UNBOUND)
+            .bound(exp("n"))
+            .build();
+
+    FunArray result = initial.satisfyNotEquals(exp("i"), exp("j"));
+
+    assertThat(result).isEqualTo(initial);
+  }
+
+  @Test
+  public void testSatisfyNotEqualsAbsentExprNoChange() throws FunArrayBuilderException {
+    // {0} ⊤ {n}
+    FunArray initial =
+        FunArrayBuilder.firstBound(exp(0)).value(Interval.UNBOUND).bound(exp("n")).build();
+
+    FunArray result = initial.satisfyNotEquals(exp("i"), exp("j"));
+
+    assertThat(result).isEqualTo(initial);
   }
 }

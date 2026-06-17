@@ -717,6 +717,34 @@ public final class IntervalAnalysisState
     return modifiedState;
   }
 
+  public IntervalAnalysisState satisfyEquals(
+      Set<NormalFormExpression> pSet1, Set<NormalFormExpression> pSet2, CFANode pLocation) {
+    IntervalAnalysisState modifiedState = this;
+
+    for (NormalFormExpression expr1 : pSet1) {
+      for (NormalFormExpression expr2 : pSet2) {
+        modifiedState =
+            modifiedState.forAllArrays(e -> e.satisfyEquals(expr1, expr2), pLocation);
+      }
+    }
+
+    return modifiedState;
+  }
+
+  public IntervalAnalysisState satisfyNotEquals(
+      Set<NormalFormExpression> pSet1, Set<NormalFormExpression> pSet2, CFANode pLocation) {
+    IntervalAnalysisState modifiedState = this;
+
+    for (NormalFormExpression expr1 : pSet1) {
+      for (NormalFormExpression expr2 : pSet2) {
+        modifiedState =
+            modifiedState.forAllArrays(e -> e.satisfyNotEquals(expr1, expr2), pLocation);
+      }
+    }
+
+    return modifiedState;
+  }
+
   public IntervalAnalysisState forAllArrays(
       Function<FunArray, FunArray> function, CFANode pLocation) {
     PersistentMap<String, FunArray> modifiedArrays = arrays.empty();

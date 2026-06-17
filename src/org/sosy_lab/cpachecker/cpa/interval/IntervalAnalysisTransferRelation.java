@@ -271,6 +271,12 @@ public class IntervalAnalysisTransferRelation
                 case GREATER_EQUAL ->
                     e.satisfyLessEqual(
                         operand2Normalization, operand1Normalization, cfaEdge.getSuccessor());
+                case EQUALS ->
+                    e.satisfyEquals(
+                        operand1Normalization, operand2Normalization, cfaEdge.getSuccessor());
+                case NOT_EQUALS ->
+                    e.satisfyNotEquals(
+                        operand1Normalization, operand2Normalization, cfaEdge.getSuccessor());
                 default -> e;
               };
             })
