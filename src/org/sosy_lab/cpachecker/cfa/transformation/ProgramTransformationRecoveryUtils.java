@@ -9,11 +9,14 @@
 package org.sosy_lab.cpachecker.cfa.transformation;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 
@@ -77,5 +80,16 @@ public class ProgramTransformationRecoveryUtils {
     childState.addParent(pPreviousARGState);
     reached.remove(pCurrentARGState);
     pCurrentARGState.removeFromARG();
+  }
+
+  public static ARGState addFunctionCall(ARGState pARGState, CFANode pCallNode) {
+    CompositeState currentCompositeState = ((CompositeState) pARGState.getWrappedState());
+    CallstackState newCallStackState = null;
+    for (AbstractState wrappedState : currentCompositeState.getWrappedStates()) {
+      if (wrappedState instanceof CallstackState callStackState) {
+        newCallStackState = new CallstackState(callStackState, callStackState.getCurrentFunction(), pCallNode);
+      }
+    }
+    return pARGState.forkWithReplacements(Collections.singleton(newCallStackState));
   }
 }

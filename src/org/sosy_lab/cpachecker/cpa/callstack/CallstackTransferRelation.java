@@ -103,7 +103,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
         final String calledFunction = succ.getFunctionName();
         final CFANode callerNode = pred;
 
-        if (hasRecursion(e, calledFunction)) {
+        if (/*hasRecursion(e, calledFunction)*/false) {
           if (skipRecursiveFunctionCall(e, (FunctionCallEdge) pEdge)) {
             // skip recursion, don't enter function
             logger.logOnce(

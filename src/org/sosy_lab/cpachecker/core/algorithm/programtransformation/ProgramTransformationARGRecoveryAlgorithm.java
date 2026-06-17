@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import java.util.Collection;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -130,7 +131,8 @@ public class ProgramTransformationARGRecoveryAlgorithm implements Algorithm {
     } else {
       logger.log(Level.INFO, "Not directly called after PT-CEGAR; doing nothing");
     }
-
+    reached.clearWaitlist();
+    assert ARGUtils.checkARG(reached) : "ARG and reached set do not match after ARG reversal";
     return status;
   }
 
@@ -212,5 +214,8 @@ public class ProgramTransformationARGRecoveryAlgorithm implements Algorithm {
       default:
         break;
     }
+    ProgramTransformationInformation finalChildProgramTransformation = childProgramTransformation;
+    Predicate<AbstractState> validARGState = state -> finalChildProgramTransformation.subCFA().allNodes().contains(AbstractStates.extractLocation(state));
+    assert (reached.stream().noneMatch(validARGState)) : "revertProgramTransformation failed to remove all states from the reached set!";
   }
 }
