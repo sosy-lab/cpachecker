@@ -1028,6 +1028,10 @@ bmc.kinduction.reuse.pred.strategy = GLOBAL
 # check and its refinement are bypassed.
 bmc.kinduction.useSymbolicNonTerminationStepCase = true
 
+# Collect all base-case witness candidates by enumerating selector models
+# instead of using only one SAT model.
+bmc.nonTerminationCollectAllBaseCaseWitnesses = false
+
 # Switch BMC to a strong non-termination mode that uses a SAT base case and
 # safety-style k-induction over loop-continuation conditions.
 bmc.nonTerminationMode = false
