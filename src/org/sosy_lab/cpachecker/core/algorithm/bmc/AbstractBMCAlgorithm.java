@@ -176,6 +176,15 @@ abstract class AbstractBMCAlgorithm
               + " bmc.nonTerminationProveTerminationFallback=true to report termination.")
   private boolean nonTerminationSkipProofForTerminationFallback = false;
 
+  @Option(
+      secure = true,
+      name = "terminationSkipBoundingAssertionsAfterCandidateViolation",
+      description =
+          "In termination mode, if a loop-continuation candidate is violated for the current"
+              + " unrolling depth, skip the expensive unwinding-assertion check and immediately"
+              + " continue with the next depth.")
+  private boolean terminationSkipBoundingAssertionsAfterCandidateViolation = false;
+
   protected static boolean isStopState(AbstractState state) {
     AssumptionStorageState assumptionState =
         AbstractStates.extractStateByType(state, AssumptionStorageState.class);
@@ -557,6 +566,7 @@ abstract class AbstractBMCAlgorithm
 
         Set<CandidateInvariant> candidatesWithSuccessfulBaseCase = new LinkedHashSet<>();
         Set<CandidateInvariant> candidatesSuggestedAfterBaseCase = new LinkedHashSet<>();
+        boolean terminationCandidateViolated = false;
         boolean skipNonTerminationProof =
             isNonTerminationMode() && nonTerminationSkipProofForTerminationFallback;
 
@@ -601,6 +611,7 @@ abstract class AbstractBMCAlgorithm
                 return AlgorithmStatus.UNSOUND_AND_PRECISE;
               }
               if (isTerminationMode()) {
+                terminationCandidateViolated = true;
                 break;
               } else if (!isNonTerminationMode()) {
                 candidateInvariantIterator.remove();
@@ -628,6 +639,14 @@ abstract class AbstractBMCAlgorithm
             // This mode is a one-sided prover for non-termination. Failing to prove
             // non-termination must not be interpreted as a termination proof unless the
             // opt-in fallback below proves that all unwinding-assertion states are unreachable.
+            sound = false;
+          } else if (isTerminationMode()
+              && terminationSkipBoundingAssertionsAfterCandidateViolation
+              && terminationCandidateViolated) {
+            logger.log(
+                Level.INFO,
+                "Termination mode: candidate violation shows that the current bound is not"
+                    + " sufficient; skipping unwinding-assertion check.");
             sound = false;
           } else {
             sound =

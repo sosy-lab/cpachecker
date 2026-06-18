@@ -141,6 +141,14 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
               + " using only one SAT model.")
   private boolean nonTerminationCollectAllBaseCaseWitnesses = false;
 
+  @Option(
+      name = "bmc.terminationDisableCandidates",
+      secure = true,
+      description =
+          "Disable loop-continuation candidates in termination mode and rely only on unwinding"
+              + " assertions. This is intended as an experimental baseline.")
+  private boolean terminationDisableCandidates = false;
+
   // Option copied from PathChecker, keep in sync (and hopefully remove at some point)
   @Option(
       name = "counterexample.export.allowImpreciseCounterexamples",
@@ -252,6 +260,14 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Override
   protected CandidateGenerator getCandidateInvariants() {
     if (terminationMode) {
+      if (terminationDisableCandidates) {
+        terminationCandidatesIncomplete = false;
+        loopsWithoutTerminationCandidates = 0;
+        logger.log(
+            Level.INFO,
+            "Termination mode is enabled, but loop-continuation candidates are disabled.");
+        return CandidateGenerator.EMPTY_GENERATOR;
+      }
       return createLoopContinuationCandidateGenerator(true);
     }
     if (nonTerminationMode) {
