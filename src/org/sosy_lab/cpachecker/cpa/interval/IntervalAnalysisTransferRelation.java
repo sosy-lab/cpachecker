@@ -15,13 +15,13 @@ import static org.sosy_lab.cpachecker.cpa.interval.funarray.ExpressionUtility.no
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Stream;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -237,51 +237,61 @@ public class IntervalAnalysisTransferRelation
 
     ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, cfaEdge);
 
-    return Stream.concat(
-            oneSidedAssume(cfaEdge, operand1, operator, operand2.accept(visitor)).stream(),
-            oneSidedAssume(
-                cfaEdge,
-                operand2,
-                operator.getSwitchOperandsSidesLogicalOperator(),
-                operand1.accept(visitor))
-                .stream())
-        .map(
-            e -> {
-              Set<NormalFormExpression> operand1Normalization;
-              Set<NormalFormExpression> operand2Normalization;
-              try {
-                operand1Normalization =
-                    normalizeExpression(operand1, new ExpressionValueVisitor(state, cfaEdge));
-                operand2Normalization =
-                    normalizeExpression(operand2, new ExpressionValueVisitor(state, cfaEdge));
-              } catch (UnrecognizedCodeException ignored) {
-                return e;
-              }
+    List<IntervalAnalysisState> candidates = new ArrayList<>();
+    candidates.addAll(oneSidedAssume(cfaEdge, operand1, operator, operand2.accept(visitor)));
+    candidates.addAll(
+        oneSidedAssume(
+            cfaEdge,
+            operand2,
+            operator.getSwitchOperandsSidesLogicalOperator(),
+            operand1.accept(visitor)));
 
-              return switch (operator) {
-                case LESS_THAN ->
-                    e.satisfyStrictLessThan(
-                        operand1Normalization, operand2Normalization, cfaEdge.getSuccessor());
-                case LESS_EQUAL ->
-                    e.satisfyLessEqual(
-                        operand1Normalization, operand2Normalization, cfaEdge.getSuccessor());
-                case GREATER_THAN ->
-                    e.satisfyStrictLessThan(
-                        operand2Normalization, operand1Normalization, cfaEdge.getSuccessor());
-                case GREATER_EQUAL ->
-                    e.satisfyLessEqual(
-                        operand2Normalization, operand1Normalization, cfaEdge.getSuccessor());
-                case EQUALS ->
-                    e.satisfyEquals(
-                        operand1Normalization, operand2Normalization, cfaEdge.getSuccessor());
-                case NOT_EQUALS ->
-                    e.satisfyNotEquals(
-                        operand1Normalization, operand2Normalization, cfaEdge.getSuccessor());
-                default -> e;
-              };
-            })
-        .filter(IntervalAnalysisState::isReachable)
-        .collect(ImmutableList.toImmutableList());
+    Set<NormalFormExpression> operand1Normalization;
+    Set<NormalFormExpression> operand2Normalization;
+    try {
+      operand1Normalization =
+          normalizeExpression(operand1, new ExpressionValueVisitor(state, cfaEdge));
+      operand2Normalization =
+          normalizeExpression(operand2, new ExpressionValueVisitor(state, cfaEdge));
+    } catch (UnrecognizedCodeException ignored) {
+      ImmutableList.Builder<IntervalAnalysisState> result = ImmutableList.builder();
+      for (IntervalAnalysisState e : candidates) {
+        if (e.isReachable()) {
+          result.add(e);
+        }
+      }
+      return result.build();
+    }
+
+    ImmutableList.Builder<IntervalAnalysisState> result = ImmutableList.builder();
+    for (IntervalAnalysisState e : candidates) {
+      IntervalAnalysisState refined =
+          switch (operator) {
+            case LESS_THAN ->
+                e.satisfyStrictLessThan(
+                    operand1Normalization, operand2Normalization, cfaEdge.getSuccessor());
+            case LESS_EQUAL ->
+                e.satisfyLessEqual(
+                    operand1Normalization, operand2Normalization, cfaEdge.getSuccessor());
+            case GREATER_THAN ->
+                e.satisfyStrictLessThan(
+                    operand2Normalization, operand1Normalization, cfaEdge.getSuccessor());
+            case GREATER_EQUAL ->
+                e.satisfyLessEqual(
+                    operand2Normalization, operand1Normalization, cfaEdge.getSuccessor());
+            case EQUALS ->
+                e.satisfyEquals(
+                    operand1Normalization, operand2Normalization, cfaEdge.getSuccessor());
+            case NOT_EQUALS ->
+                e.satisfyNotEquals(
+                    operand1Normalization, operand2Normalization, cfaEdge.getSuccessor());
+            default -> e;
+          };
+      if (refined.isReachable()) {
+        result.add(refined);
+      }
+    }
+    return result.build();
   }
 
   private Collection<IntervalAnalysisState> oneSidedAssume(
