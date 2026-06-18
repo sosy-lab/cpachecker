@@ -246,22 +246,10 @@ public class IntervalAnalysisTransferRelation
             operator.getSwitchOperandsSidesLogicalOperator(),
             operand1.accept(visitor)));
 
-    Set<NormalFormExpression> operand1Normalization;
-    Set<NormalFormExpression> operand2Normalization;
-    try {
-      operand1Normalization =
-          normalizeExpression(operand1, new ExpressionValueVisitor(state, cfaEdge));
-      operand2Normalization =
-          normalizeExpression(operand2, new ExpressionValueVisitor(state, cfaEdge));
-    } catch (UnrecognizedCodeException ignored) {
-      ImmutableList.Builder<IntervalAnalysisState> result = ImmutableList.builder();
-      for (IntervalAnalysisState e : candidates) {
-        if (e.isReachable()) {
-          result.add(e);
-        }
-      }
-      return result.build();
-    }
+    Set<NormalFormExpression> operand1Normalization =
+        normalizeExpression(operand1, new ExpressionValueVisitor(state, cfaEdge));
+    Set<NormalFormExpression> operand2Normalization =
+        normalizeExpression(operand2, new ExpressionValueVisitor(state, cfaEdge));
 
     ImmutableList.Builder<IntervalAnalysisState> result = ImmutableList.builder();
     for (IntervalAnalysisState e : candidates) {
