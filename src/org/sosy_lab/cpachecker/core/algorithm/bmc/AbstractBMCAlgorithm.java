@@ -166,6 +166,16 @@ abstract class AbstractBMCAlgorithm
               + " states are unreachable, report a sound termination proof instead of UNKNOWN.")
   private boolean nonTerminationProveTerminationFallback = false;
 
+  @Option(
+      secure = true,
+      name = "nonTerminationSkipProofForTerminationFallback",
+      description =
+          "In non-termination mode, skip the base and step checks for proving non-termination and"
+              + " only run the termination fallback via unwinding assertions. This is intended for"
+              + " evaluating the fallback in isolation and requires"
+              + " bmc.nonTerminationProveTerminationFallback=true to report termination.")
+  private boolean nonTerminationSkipProofForTerminationFallback = false;
+
   protected static boolean isStopState(AbstractState state) {
     AssumptionStorageState assumptionState =
         AbstractStates.extractStateByType(state, AssumptionStorageState.class);
@@ -547,51 +557,60 @@ abstract class AbstractBMCAlgorithm
 
         Set<CandidateInvariant> candidatesWithSuccessfulBaseCase = new LinkedHashSet<>();
         Set<CandidateInvariant> candidatesSuggestedAfterBaseCase = new LinkedHashSet<>();
+        boolean skipNonTerminationProof =
+            isNonTerminationMode() && nonTerminationSkipProofForTerminationFallback;
 
-        // Perform a bounded model check on each candidate invariant
-        Iterator<CandidateInvariant> candidateInvariantIterator = candidateGenerator.iterator();
-        while (candidateInvariantIterator.hasNext()) {
-          shutdownNotifier.shutdownIfNecessary();
-          CandidateInvariant candidateInvariant = candidateInvariantIterator.next();
-          // first check safety in k iterations
+        if (skipNonTerminationProof) {
+          logger.log(
+              Level.INFO,
+              "Non-termination mode: skipping non-termination base/step proof and only checking"
+                  + " termination fallback via unwinding assertions.");
+        } else {
+          // Perform a bounded model check on each candidate invariant
+          Iterator<CandidateInvariant> candidateInvariantIterator = candidateGenerator.iterator();
+          while (candidateInvariantIterator.hasNext()) {
+            shutdownNotifier.shutdownIfNecessary();
+            CandidateInvariant candidateInvariant = candidateInvariantIterator.next();
+            // first check safety in k iterations
 
-          boolean safe = boundedModelCheck(reachedSet, prover, candidateInvariant);
-          if (isTerminationMode()) {
-            logger.log(
-                Level.INFO,
-                safe
-                    ? "Termination mode: current candidate holds for the current k."
-                    : "Termination mode: current candidate is violated for the current k.");
-          }
-          if (safe && isNonTerminationMode()) {
-            if (isDirectlyConfirmedNonTerminationCandidate(candidateInvariant)) {
-              nonTerminationConfirmed = true;
-              reportConfirmedNonTermination(reachedSet, candidateInvariant);
-              return AlgorithmStatus.UNSOUND_AND_PRECISE;
-            }
-            Iterables.addAll(
-                candidatesWithSuccessfulBaseCase,
-                getCandidatesForStepCaseAfterSuccessfulBaseCase(reachedSet, candidateInvariant));
-            Iterables.addAll(
-                candidatesSuggestedAfterBaseCase,
-                getAdditionalCandidatesAfterSuccessfulBaseCase(reachedSet, candidateInvariant));
-          }
-          if (!safe) {
-            if (!isTerminationMode()
-                && !isNonTerminationMode()
-                && candidateInvariant == TargetLocationCandidateInvariant.INSTANCE) {
-              return AlgorithmStatus.UNSOUND_AND_PRECISE;
-            }
+            boolean safe = boundedModelCheck(reachedSet, prover, candidateInvariant);
             if (isTerminationMode()) {
-              break;
-            } else if (!isNonTerminationMode()) {
-              candidateInvariantIterator.remove();
+              logger.log(
+                  Level.INFO,
+                  safe
+                      ? "Termination mode: current candidate holds for the current k."
+                      : "Termination mode: current candidate is violated for the current k.");
             }
-          }
+            if (safe && isNonTerminationMode()) {
+              if (isDirectlyConfirmedNonTerminationCandidate(candidateInvariant)) {
+                nonTerminationConfirmed = true;
+                reportConfirmedNonTermination(reachedSet, candidateInvariant);
+                return AlgorithmStatus.UNSOUND_AND_PRECISE;
+              }
+              Iterables.addAll(
+                  candidatesWithSuccessfulBaseCase,
+                  getCandidatesForStepCaseAfterSuccessfulBaseCase(reachedSet, candidateInvariant));
+              Iterables.addAll(
+                  candidatesSuggestedAfterBaseCase,
+                  getAdditionalCandidatesAfterSuccessfulBaseCase(reachedSet, candidateInvariant));
+            }
+            if (!safe) {
+              if (!isTerminationMode()
+                  && !isNonTerminationMode()
+                  && candidateInvariant == TargetLocationCandidateInvariant.INSTANCE) {
+                return AlgorithmStatus.UNSOUND_AND_PRECISE;
+              }
+              if (isTerminationMode()) {
+                break;
+              } else if (!isNonTerminationMode()) {
+                candidateInvariantIterator.remove();
+              }
+            }
 
-          if (!isNonTerminationMode() && invariantGenerator.isProgramSafe()) {
-            TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
-            return AlgorithmStatus.SOUND_AND_PRECISE;
+            if (!isNonTerminationMode() && invariantGenerator.isProgramSafe()) {
+              TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
+              return AlgorithmStatus.SOUND_AND_PRECISE;
+            }
           }
         }
         if (!candidatesSuggestedAfterBaseCase.isEmpty()) {
