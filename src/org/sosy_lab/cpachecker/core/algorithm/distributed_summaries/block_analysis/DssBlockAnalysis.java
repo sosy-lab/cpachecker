@@ -586,10 +586,14 @@ public class DssBlockAnalysis {
     logger.log(Level.INFO, "Running forward analysis with respect to error condition");
     // merge all states into the reached set
     ImmutableList<StateAndPrecision> deserializedStates = deserialize(pNewViolationCondition);
+    Collection<@NonNull StateAndPrecision> vcs;
+    if (combineByHash) {
+      vcs = violationConditions.get(pNewViolationCondition.getSenderId());
+    } else {
+      vcs = violationConditions.removeAll(pNewViolationCondition.getSenderId());
+    }
     Set<ViolationWitness> oldVcs =
-        transformedImmutableSetCopy(
-            violationConditions.removeAll(pNewViolationCondition.getSenderId()),
-            sap -> extractWitnessFromState(sap.state()));
+        transformedImmutableSetCopy(vcs, sap -> extractWitnessFromState(sap.state()));
     int equal = 0;
     for (StateAndPrecision stateAndPrecision : deserializedStates) {
       if (oldVcs.contains(extractWitnessFromState(stateAndPrecision.state()))) {
