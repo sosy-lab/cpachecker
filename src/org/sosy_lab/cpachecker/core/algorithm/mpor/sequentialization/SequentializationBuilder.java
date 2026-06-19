@@ -11,77 +11,97 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import java.util.StringJoiner;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqFunctionDeclarations;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqVariableDeclarations;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.thread_statements.SeqParameterAssignmentStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqMainFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqThreadSimulationFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.VerifierNondetFunctionType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.BitVectorDataType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.declaration.SeqBitVectorDeclarationBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqMainFunctionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.VerifierNondetFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorDeclarationBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
 
 public class SequentializationBuilder {
 
-  public static String buildBitVectorTypeDeclarations() {
-    StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
-    for (BitVectorDataType bitVectorType : BitVectorDataType.values()) {
-      CTypeDeclaration bitVectorTypeDeclaration = bitVectorType.buildDeclaration();
-      rDeclarations.add(bitVectorTypeDeclaration.toASTString());
-    }
-    return rDeclarations.toString();
-  }
-
   public static String buildInputFunctionAndTypeDeclarations(
-      MPOROptions pOptions, ImmutableList<MPORThread> pThreads) {
+      MPOROptions pOptions,
+      CFunctionDeclaration pInputMainFunctionDeclaration,
+      ImmutableList<MPORThread> pThreads)
+      throws UnrecognizedCodeException {
 
-    StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
+    StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
     if (pOptions.comments()) {
-      rDeclarations.add(SeqComment.UNCHANGED_DECLARATIONS);
+      rDeclarations.add(SeqComment.INPUT_PROGRAM_DECLARATIONS.toASTString());
     }
     // add all original program declarations that are not substituted
     for (MPORThread thread : pThreads) {
       ImmutableList<CDeclaration> nonVariableDeclarations =
           MPORThreadUtil.extractNonVariableDeclarations(thread);
       for (CDeclaration declaration : nonVariableDeclarations) {
-        // add function and type declaration only if enabled in options
-        if (!(declaration instanceof CFunctionDeclaration)
-            || pOptions.inputFunctionDeclarations()) {
-          if (!(declaration instanceof CTypeDeclaration) || pOptions.inputTypeDeclarations()) {
+        if (isIncludedDeclaration(pOptions, declaration, pInputMainFunctionDeclaration)) {
+          if (declaration instanceof CTypeDeclaration typeDeclaration) {
+            // For CTypeDeclaration, substitute pthread types such as pthread_mutex_t so that they
+            // can be simulated.
+            switch (typeDeclaration) {
+              case CComplexTypeDeclaration complexTypeDeclaration -> {
+                CType typeSubstitute =
+                    PthreadObjectSubstitution.substitutePthreadObjectTypes(
+                        complexTypeDeclaration.getType(), ImmutableSet.of(CCompositeType.class));
+                CComplexTypeDeclaration newComplexTypeDeclaration =
+                    new CComplexTypeDeclaration(
+                        complexTypeDeclaration.getFileLocation(),
+                        complexTypeDeclaration.isGlobal(),
+                        (CComplexType) typeSubstitute);
+                rDeclarations.add(newComplexTypeDeclaration.toASTString());
+              }
+              case CTypeDefDeclaration typeDefDeclaration -> {
+                CType typeSubstitute =
+                    PthreadObjectSubstitution.substitutePthreadObjectTypes(
+                        typeDefDeclaration.getType(), ImmutableSet.of(CElaboratedType.class));
+                CTypeDefDeclaration newTypeDefDeclaration =
+                    new CTypeDefDeclaration(
+                        typeDefDeclaration.getFileLocation(),
+                        typeDefDeclaration.isGlobal(),
+                        typeSubstitute,
+                        typeDefDeclaration.getName(),
+                        typeDefDeclaration.getOrigName());
+                rDeclarations.add(newTypeDefDeclaration.toASTString());
+              }
+              default -> throw new AssertionError("Unhandled CTypeDeclaration: " + typeDeclaration);
+            }
+          } else {
             rDeclarations.add(declaration.toASTString());
           }
         }
@@ -90,118 +110,117 @@ public class SequentializationBuilder {
     return rDeclarations.toString();
   }
 
+  private static boolean isIncludedDeclaration(
+      MPOROptions pOptions,
+      CDeclaration pDeclaration,
+      CFunctionDeclaration pInputMainFunctionDeclaration) {
+
+    if (pDeclaration instanceof CFunctionDeclaration functionDeclaration) {
+      if (!pOptions.inputFunctionDeclarations()
+          // The main function declaration from the input is not included, we declare it ourselves.
+          || functionDeclaration.equals(pInputMainFunctionDeclaration)) {
+        return false;
+      }
+    }
+    if (pDeclaration instanceof CTypeDeclaration) {
+      if (!pOptions.inputTypeDeclarations()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   // Input Variable Declarations ===================================================================
 
   public static String buildInputGlobalVariableDeclarations(
-      MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution) {
+      MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution)
+      throws UnrecognizedCodeException {
 
-    StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
+    StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
     if (pOptions.comments()) {
-      rDeclarations.add(SeqComment.GLOBAL_VAR_DECLARATIONS);
+      rDeclarations.add(SeqComment.GLOBAL_VAR_DECLARATIONS.toASTString());
     }
     ImmutableList<CVariableDeclaration> globalDeclarations =
         pMainThreadSubstitution.getGlobalVariableDeclarationSubstitutes();
     for (CVariableDeclaration globalDeclaration : globalDeclarations) {
-      if (!PthreadUtil.isAnyPthreadObjectType(globalDeclaration.getType())) {
-        rDeclarations.add(globalDeclaration.toASTString());
-      }
+      CVariableDeclaration variableDeclarationSubstitute =
+          buildVariableDeclarationWithSubstituteType(globalDeclaration);
+      rDeclarations.add(variableDeclarationSubstitute.toASTString());
     }
     return rDeclarations.toString();
   }
 
   public static String buildInputLocalVariableDeclarations(
-      MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions) {
+      MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions)
+      throws UnrecognizedCodeException {
 
-    StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
+    StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
     if (pOptions.comments()) {
-      rDeclarations.add(SeqComment.LOCAL_VAR_DECLARATIONS);
+      rDeclarations.add(SeqComment.LOCAL_VAR_DECLARATIONS.toASTString());
     }
     for (MPORSubstitution substitution : pSubstitutions) {
       ImmutableList<CVariableDeclaration> localDeclarations =
           substitution.getLocalVariableDeclarationSubstitutes();
       for (CVariableDeclaration localDeclaration : localDeclarations) {
-        Optional<String> line = tryBuildInputLocalVariableDeclaration(pOptions, localDeclaration);
-        if (line.isPresent()) {
-          rDeclarations.add(line.orElseThrow());
-        }
+        CVariableDeclaration variableDeclarationSubstitute =
+            buildVariableDeclarationWithSubstituteType(localDeclaration);
+        rDeclarations.add(
+            buildInputLocalVariableDeclaration(variableDeclarationSubstitute).toASTString());
       }
     }
     return rDeclarations.toString();
   }
 
-  private static Optional<String> tryBuildInputLocalVariableDeclaration(
-      MPOROptions pOptions, CVariableDeclaration pLocalVariableDeclaration) {
+  private static CVariableDeclaration buildInputLocalVariableDeclaration(
+      CVariableDeclaration pVariableDeclaration) {
 
-    checkArgument(!pLocalVariableDeclaration.isGlobal(), "pLocalVariableDeclaration must be local");
+    checkArgument(!pVariableDeclaration.isGlobal(), "pVariableDeclaration must be local");
+
     // try remove const qualifier from variable
-    if (pLocalVariableDeclaration.getType().getQualifiers().containsConst()) {
-      // const CPAchecker_TMP variables are declared and initialized in the statement
-      if (MPORUtil.isConstCpaCheckerTmp(pLocalVariableDeclaration)) {
-        return Optional.empty();
-      } else {
-        return tryBuildInputConstLocalVariableDeclaration(pOptions, pLocalVariableDeclaration);
-      }
+    if (pVariableDeclaration.getType().getQualifiers().containsConst()) {
+      // create an identical copy of pVariableDeclaration, but remove const qualifier
+      CType type = pVariableDeclaration.getType();
+      CType typeWithoutConst = type.withQualifiersSetTo(type.getQualifiers().withoutConst());
+      CVariableDeclaration variableDeclarationWithoutConst =
+          new CVariableDeclaration(
+              pVariableDeclaration.getFileLocation(),
+              pVariableDeclaration.isGlobal(),
+              pVariableDeclaration.getCStorageClass(),
+              typeWithoutConst,
+              pVariableDeclaration.getName(),
+              pVariableDeclaration.getOrigName(),
+              pVariableDeclaration.getQualifiedName(),
+              pVariableDeclaration.getInitializer());
+      return buildInputLocalVariableDeclaration(variableDeclarationWithoutConst);
     }
     // otherwise, for non-const variables
-    if (!PthreadUtil.isAnyPthreadObjectType(pLocalVariableDeclaration.getType())) {
-      CInitializer initializer = pLocalVariableDeclaration.getInitializer();
-      if (initializer == null) {
-        // no initializer -> add declaration as is
-        return Optional.of(pLocalVariableDeclaration.toASTString());
-      }
-      if (MPORUtil.isFunctionPointer(pLocalVariableDeclaration.getInitializer())) {
-        // function pointer initializer -> add declaration as is
-        return Optional.of(pLocalVariableDeclaration.toASTString());
-      }
-      // everything else: add declaration without initializer (and assign later in statements)
-      return Optional.of(
-          SeqStringUtil.getVariableDeclarationASTStringWithoutInitializer(
-              pLocalVariableDeclaration, AAstNodeRepresentation.DEFAULT));
+    if (pVariableDeclaration.getInitializer() == null
+        || MPORUtil.isFunctionPointer(pVariableDeclaration.getInitializer())) {
+      // no initializer or function pointer initializer are returned without modification
+      return pVariableDeclaration;
     }
-    return Optional.empty();
-  }
-
-  private static Optional<String> tryBuildInputConstLocalVariableDeclaration(
-      MPOROptions pOptions, CVariableDeclaration pLocalVariableDeclaration) {
-
-    checkArgument(!pLocalVariableDeclaration.isGlobal(), "pLocalVariableDeclaration must be local");
-    checkArgument(
-        pLocalVariableDeclaration.getType().getQualifiers().containsConst(),
-        "pLocalVariableDeclaration must be const");
-
-    // create an identical copy of pLocalVariableDeclaration, but remove const qualifier
-    CType type = pLocalVariableDeclaration.getType();
-    CType typeWithoutConst = type.withQualifiersSetTo(type.getQualifiers().withoutConst());
-    CVariableDeclaration variableDeclarationWithoutConst =
-        new CVariableDeclaration(
-            pLocalVariableDeclaration.getFileLocation(),
-            pLocalVariableDeclaration.isGlobal(),
-            pLocalVariableDeclaration.getCStorageClass(),
-            typeWithoutConst,
-            pLocalVariableDeclaration.getName(),
-            pLocalVariableDeclaration.getOrigName(),
-            pLocalVariableDeclaration.getQualifiedName(),
-            pLocalVariableDeclaration.getInitializer());
-    return tryBuildInputLocalVariableDeclaration(pOptions, variableDeclarationWithoutConst);
+    // everything else: add declaration without initializer (and assign later in statements)
+    return MPORUtil.withInitializer(pVariableDeclaration, null);
   }
 
   // Input Parameter Declarations ==================================================================
 
   public static String buildInputParameterDeclarations(
-      MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions) {
+      MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions)
+      throws UnrecognizedCodeException {
 
-    StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
+    StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
     if (pOptions.comments()) {
-      rDeclarations.add(SeqComment.PARAMETER_VAR_SUBSTITUTES);
+      rDeclarations.add(SeqComment.PARAMETER_VAR_SUBSTITUTES.toASTString());
     }
     for (MPORSubstitution substitution : pSubstitutions) {
-      ImmutableList<CParameterDeclaration> parameterDeclarations =
+      ImmutableList<CVariableDeclaration> parameterDeclarations =
           substitution.getParameterDeclarationSubstitutes();
-      for (CParameterDeclaration parameterDeclaration : parameterDeclarations) {
-        if (!PthreadUtil.isAnyPthreadObjectType(parameterDeclaration.getType())) {
-          // CParameterDeclarations require addition semicolon
-          rDeclarations.add(parameterDeclaration.toASTString() + SeqSyntax.SEMICOLON);
-        }
+      for (CVariableDeclaration parameterDeclaration : parameterDeclarations) {
+        CVariableDeclaration variableDeclarationSubstitute =
+            buildVariableDeclarationWithSubstituteType(parameterDeclaration);
+        rDeclarations.add(
+            MPORUtil.withInitializer(variableDeclarationSubstitute, null).toASTString());
       }
     }
     return rDeclarations.toString();
@@ -212,85 +231,123 @@ public class SequentializationBuilder {
    * non-deterministically initialized in {@code main()} later in the sequentialization.
    */
   public static String buildMainFunctionArgDeclarations(
-      MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution) {
+      MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution)
+      throws UnrecognizedCodeException {
 
-    StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
+    StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
     if (pOptions.comments()) {
-      rDeclarations.add(SeqComment.MAIN_FUNCTION_ARG_SUBSTITUTES);
+      rDeclarations.add(SeqComment.MAIN_FUNCTION_ARG_SUBSTITUTES.toASTString());
     }
-    for (CIdExpression mainArg : pMainThreadSubstitution.mainFunctionArgSubstitutes.values()) {
-      rDeclarations.add(mainArg.getDeclaration().toASTString());
+    for (CIdExpression mainArg : pMainThreadSubstitution.getMainFunctionArgSubstitutes().values()) {
+      CVariableDeclaration variableDeclarationSubstitute =
+          buildVariableDeclarationWithSubstituteType(
+              (CVariableDeclaration) mainArg.getDeclaration());
+      rDeclarations.add(variableDeclarationSubstitute.toASTString());
     }
     return rDeclarations.toString();
   }
 
   public static String buildStartRoutineArgDeclarations(
-      MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution) {
+      MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution)
+      throws UnrecognizedCodeException {
 
-    StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
+    StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
     if (pOptions.comments()) {
-      rDeclarations.add(SeqComment.START_ROUTINE_ARG_SUBSTITUTES);
+      rDeclarations.add(SeqComment.START_ROUTINE_ARG_SUBSTITUTES.toASTString());
     }
-    ImmutableList<CParameterDeclaration> startRoutineArgDeclarations =
+    ImmutableList<CVariableDeclaration> startRoutineArgDeclarations =
         pMainThreadSubstitution.getStartRoutineArgDeclarationSubstitutes();
-    for (CParameterDeclaration startRoutineArgDeclaration : startRoutineArgDeclarations) {
-      // TODO why exclude pthread objects here? add explaining comment
-      if (!PthreadUtil.isAnyPthreadObjectType(startRoutineArgDeclaration.getType())) {
-        // add trailing ; as CParameterDeclaration is without semicolons
-        rDeclarations.add(startRoutineArgDeclaration.toASTString() + SeqSyntax.SEMICOLON);
-      }
+    for (CVariableDeclaration startRoutineArgDeclaration : startRoutineArgDeclarations) {
+      CVariableDeclaration variableDeclarationSubstitute =
+          buildVariableDeclarationWithSubstituteType(startRoutineArgDeclaration);
+      rDeclarations.add(
+          MPORUtil.withInitializer(variableDeclarationSubstitute, null).toASTString());
     }
     return rDeclarations.toString();
   }
 
   public static String buildStartRoutineExitDeclarations(
-      MPOROptions pOptions, ImmutableList<MPORThread> pThreads) {
+      MPOROptions pOptions, ImmutableList<MPORThread> pThreads) throws UnrecognizedCodeException {
 
-    StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
+    StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
     if (pOptions.comments()) {
-      rDeclarations.add(SeqComment.START_ROUTINE_EXIT_VARIABLES);
+      rDeclarations.add(SeqComment.START_ROUTINE_EXIT_VARIABLES.toASTString());
     }
     for (MPORThread thread : pThreads) {
       Optional<CIdExpression> exitVariable = thread.startRoutineExitVariable();
       if (exitVariable.isPresent()) {
-        rDeclarations.add(exitVariable.orElseThrow().getDeclaration().toASTString());
+        CVariableDeclaration variableDeclarationSubstitute =
+            buildVariableDeclarationWithSubstituteType(
+                (CVariableDeclaration) exitVariable.orElseThrow().getDeclaration());
+        rDeclarations.add(variableDeclarationSubstitute.toASTString());
       }
     }
     return rDeclarations.toString();
   }
 
+  // CVariableDeclaration helper
+
+  private static CVariableDeclaration buildVariableDeclarationWithSubstituteType(
+      CVariableDeclaration pVariableDeclaration) {
+
+    CType typeSubstitute =
+        PthreadObjectSubstitution.substitutePthreadObjectTypes(
+            pVariableDeclaration.getType(),
+            ImmutableSet.of(CElaboratedType.class, CTypedefType.class));
+
+    return new CVariableDeclaration(
+        pVariableDeclaration.getFileLocation(),
+        pVariableDeclaration.isGlobal(),
+        pVariableDeclaration.getCStorageClass(),
+        typeSubstitute,
+        pVariableDeclaration.getName(),
+        pVariableDeclaration.getOrigName(),
+        pVariableDeclaration.getQualifiedName(),
+        pVariableDeclaration.getInitializer());
+  }
+
   // Function Declarations and Definitions =========================================================
 
   public static String buildFunctionDeclarations(
-      MPOROptions pOptions, SequentializationFields pFields) {
+      MPOROptions pOptions, SequentializationFields pFields) throws UnrecognizedCodeException {
 
-    StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
+    StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
     if (pOptions.comments()) {
-      rDeclarations.add(SeqComment.CUSTOM_FUNCTION_DECLARATIONS);
+      rDeclarations.add(SeqComment.CUSTOM_FUNCTION_DECLARATIONS.toASTString());
     }
 
-    // reach_error, abort, assert, nondet_int may be duplicate depending on the input program
-    if (pOptions.nondeterminismSigned()) {
-      rDeclarations.add(VerifierNondetFunctionType.INT.getFunctionDeclaration().toASTString());
-    } else {
-      rDeclarations.add(VerifierNondetFunctionType.UINT.getFunctionDeclaration().toASTString());
+    // nondet_..., reach_error and abort may be duplicate depending on the input program
+    for (VerifierNondetFunctionType nondetFunctionType : VerifierNondetFunctionType.values()) {
+      rDeclarations.add(nondetFunctionType.getFunctionDeclaration().toASTString());
     }
-    rDeclarations.add(
-        SeqParameterAssignmentStatement.REACH_ERROR_FUNCTION_DECLARATION.toASTString());
-    rDeclarations.add(SeqAssumeFunction.ASSUME_FUNCTION_DECLARATION.toASTString());
-    rDeclarations.add(SeqAssumeFunction.ABORT_FUNCTION_DECLARATION.toASTString());
+    rDeclarations.add(SeqThreadStatementBuilder.REACH_ERROR_FUNCTION_DECLARATION.toASTString());
+    rDeclarations.add(SeqAssumeFunctionBuilder.ASSUME_FUNCTION_DECLARATION.toASTString());
+    rDeclarations.add(SeqAssumeFunctionBuilder.ABORT_FUNCTION_DECLARATION.toASTString());
 
-    // malloc is required for valid-memsafety tasks
-    rDeclarations.add(SeqFunctionDeclarations.MALLOC.toASTString());
-
-    // thread simulation functions, only enabled with loop is unrolled
-    if (pOptions.loopUnrolling()) {
-      for (SeqThreadSimulationFunction threadFunction : pFields.threadSimulationFunctions) {
-        rDeclarations.add(threadFunction.declaration.toASTString());
-      }
+    // malloc is required for valid-memsafety tasks for CBMC, but only if the input programs
+    // function declarations are excluded (which should be done for CBMC). This is because if the
+    // input program contains a call to malloc, then its declaration is included in the input
+    // program. But since we exclude these for CBMC, and because CBMC still needs a function
+    // declaration (it produces incorrect results otherwise), we add it here.
+    if (!pOptions.inputFunctionDeclarations()) {
+      rDeclarations.add(SeqFunctionDeclarations.MALLOC.toASTString());
     }
-    // main should always be duplicate
-    rDeclarations.add(SeqMainFunction.MAIN_FUNCTION_DECLARATION.toASTString());
+
+    // thread simulation functions, only enabled when loop is unrolled
+    if (pOptions.threadSimulationUnrolling()) {
+      pFields
+          .threadSimulationFunctions
+          .orElseThrow()
+          .values()
+          .forEach(f -> rDeclarations.add(f.getDeclaration().toASTString()));
+    }
+
+    // The main function declaration should always be included, regardless of whether the input
+    // programs function declarations are included, because the main function declaration from the
+    // input is never included to prevent type mismatches of duplicate declarations such as:
+    // 'int main();' as declared by the sequentialization and 'int main(int arg);' from the input.
+    rDeclarations.add(pFields.outputMainFunctionDeclaration.toASTString());
+
     return rDeclarations.toString();
   }
 
@@ -298,29 +355,24 @@ public class SequentializationBuilder {
       MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
-    StringJoiner rDefinitions = new StringJoiner(SeqSyntax.NEWLINE);
+    StringJoiner rDefinitions = new StringJoiner(System.lineSeparator());
     if (pOptions.comments()) {
-      rDefinitions.add(SeqComment.CUSTOM_FUNCTION_DEFINITIONS);
+      rDefinitions.add(SeqComment.CUSTOM_FUNCTION_DEFINITIONS.toASTString());
     }
     // custom function definitions: assume(), main()
-    CBinaryExpression condEqualsZeroExpression =
-        pUtils
-            .binaryExpressionBuilder()
-            .buildBinaryExpression(
-                SeqAssumeFunction.COND_ID_EXPRESSION,
-                SeqIntegerLiteralExpressions.INT_0,
-                BinaryOperator.EQUALS);
-    SeqAssumeFunction assume = new SeqAssumeFunction(condEqualsZeroExpression);
-    rDefinitions.add(assume.buildDefinition());
+    rDefinitions.add(
+        SeqAssumeFunctionBuilder.buildFunctionDefinition(pUtils.binaryExpressionBuilder())
+            .toASTString());
     // create separate thread simulation function definitions, if enabled
-    if (pOptions.loopUnrolling()) {
-      for (SeqThreadSimulationFunction threadSimulation : pFields.threadSimulationFunctions) {
-        rDefinitions.add(threadSimulation.buildDefinition());
+    if (pOptions.threadSimulationUnrolling()) {
+      for (CExportFunctionDefinition functionDefinition :
+          pFields.threadSimulationFunctions.orElseThrow().values()) {
+        rDefinitions.add(functionDefinition.toASTString());
       }
     }
     // create clauses in main method
-    SeqMainFunction mainFunction = new SeqMainFunction(pOptions, pFields, pUtils);
-    rDefinitions.add(mainFunction.buildDefinition());
+    rDefinitions.add(
+        SeqMainFunctionBuilder.buildFunctionDefinition(pOptions, pFields, pUtils).toASTString());
     return rDefinitions.toString();
   }
 
@@ -334,22 +386,30 @@ public class SequentializationBuilder {
   static String buildThreadSimulationVariableDeclarations(
       MPOROptions pOptions, SequentializationFields pFields) throws UnrecognizedCodeException {
 
-    StringJoiner rDeclarations = new StringJoiner(SeqSyntax.NEWLINE);
+    StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
 
-    // last_thread is always unsigned, we assign NUM_THREADS if the current thread terminates
-    if (pOptions.reduceLastThreadOrder()) {
+    // if the loop is finite, i.e., threadSimulationIterations is not 0, and
+    // threadSimulationUnrolling is disabled,
+    // then add the variable that is incremented with each iteration
+    if (pOptions.threadSimulationIterations() != 0 && !pOptions.threadSimulationUnrolling()) {
+      rDeclarations.add(SeqVariableDeclarations.ITERATION.toASTString());
+    }
+
+    if (pOptions.isPrevThreadVariableRequired()) {
+      // prev_thread ghost variable
       CIntegerLiteralExpression numThreadsExpression =
           SeqExpressionBuilder.buildIntegerLiteralExpression(pFields.numThreads);
-      CInitializer lastThreadInitializer =
+      // the initializer of prev_thread is dependent on the number of threads
+      CInitializer prevThreadInitializer =
           new CInitializerExpression(FileLocation.DUMMY, numThreadsExpression);
-      CVariableDeclaration lastThreadDeclaration =
+      CVariableDeclaration prevThreadDeclaration =
           SeqDeclarationBuilder.buildVariableDeclaration(
               true,
+              // prev_thread is always unsigned, NUM_THREADS is assigned if a thread terminates
               CNumericTypes.UNSIGNED_INT,
-              SeqIdExpressions.LAST_THREAD.getName(),
-              // the initializer of last_thread is dependent on the number of threads
-              lastThreadInitializer);
-      rDeclarations.add(lastThreadDeclaration.toASTString());
+              SeqIdExpressions.PREV_THREAD.getName(),
+              prevThreadInitializer);
+      rDeclarations.add(prevThreadDeclaration.toASTString());
     }
 
     // next_thread
@@ -365,10 +425,10 @@ public class SequentializationBuilder {
 
     // pc variable(s)
     if (pOptions.comments()) {
-      rDeclarations.add(SeqComment.PC_DECLARATION);
+      rDeclarations.add(SeqComment.PC_DECLARATION.toASTString());
     }
     ImmutableList<CVariableDeclaration> pcDeclarations =
-        pFields.ghostElements.getPcVariables().pcDeclarations();
+        pFields.ghostElements.programCounterVariables().pcDeclarations();
     for (CVariableDeclaration pcDeclaration : pcDeclarations) {
       rDeclarations.add(pcDeclaration.toASTString());
     }
@@ -377,21 +437,20 @@ public class SequentializationBuilder {
     if (pOptions.isAnyBitVectorReductionEnabled()) {
       SeqBitVectorDeclarationBuilder bitVectorDeclarationBuilder =
           new SeqBitVectorDeclarationBuilder(
-              pOptions.bitVectorEncoding(),
-              pOptions.reduceIgnoreSleep(),
-              pOptions.reductionMode(),
+              pOptions,
               pFields.ghostElements.bitVectorVariables().orElseThrow(),
               pFields.clauses,
-              pFields.memoryModel.orElseThrow());
-      ImmutableList<SeqBitVectorDeclaration> bitVectorDeclarations =
+              pFields.machineModel,
+              pFields.pointerAliasingMap);
+      ImmutableList<CVariableDeclaration> bitVectorDeclarations =
           bitVectorDeclarationBuilder.buildBitVectorDeclarationsByEncoding();
-      for (SeqBitVectorDeclaration bitVectorDeclaration : bitVectorDeclarations) {
+      for (CVariableDeclaration bitVectorDeclaration : bitVectorDeclarations) {
         rDeclarations.add(bitVectorDeclaration.toASTString());
       }
     }
 
-    // active_thread_count / cnt
-    if (pOptions.isThreadCountRequired()) {
+    // track active thread number via thread_count
+    if (pOptions.executeSingleActiveThreadFirst()) {
       rDeclarations.add(SeqVariableDeclarations.THREAD_COUNT.toASTString());
     }
 
@@ -409,7 +468,7 @@ public class SequentializationBuilder {
 
     // thread synchronization variables (e.g. mutex_locked)
     if (pOptions.comments()) {
-      rDeclarations.add(SeqComment.THREAD_SIMULATION_VARIABLES);
+      rDeclarations.add(SeqComment.THREAD_SIMULATION_VARIABLES.toASTString());
     }
     for (CSimpleDeclaration declaration :
         pFields.ghostElements.threadSyncFlags().getDeclarations(pOptions)) {

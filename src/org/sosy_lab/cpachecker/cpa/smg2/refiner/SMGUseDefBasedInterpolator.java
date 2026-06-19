@@ -96,7 +96,7 @@ public class SMGUseDefBasedInterpolator {
     useDefRelation = pUseDefRelation;
     machineModel = pMachineModel;
     try {
-      options = new SMGOptions(pConfig);
+      options = new SMGOptions(pConfig, pCfa);
     } catch (InvalidConfigurationException e) {
       // This is never supposed to happen as the config is used before
       throw new RuntimeException(e);

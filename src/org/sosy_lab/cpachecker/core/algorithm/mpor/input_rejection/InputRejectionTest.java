@@ -12,30 +12,31 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MporPreprocessingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection.InputRejectionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class InputRejectionTest {
 
   /**
-   * Tests if {@link MporPreprocessingAlgorithm} throws a {@link UnsupportedCodeException} when
-   * invoked with the program in {@code pInputFilePath}.
+   * Tests if {@link InputRejection#handleRejections(CFA)} throws a {@link UnsupportedCodeException}
+   * when invoked with the program in {@code pInputFilePath}.
    */
   private void testExpectedRejection(Path pInputFilePath, InputRejectionMessage pExpected)
       throws Exception {
@@ -53,6 +54,34 @@ public class InputRejectionTest {
     assertThat(unsupportedCodeException.getMessage()).contains(pExpected.message);
   }
 
+  /**
+   * Tests if {@link Sequentialization#tryBuildProgramString(MPOROptions, CFA,
+   * SequentializationUtils)} throws a {@link UnsupportedCodeException} when invoked with the
+   * program in {@code pInputFilePath}.
+   */
+  private void testExpectedRejectionWhenBuildingProgram(
+      MPOROptions pOptions,
+      Configuration pConfig,
+      Path pInputFilePath,
+      InputRejectionMessage pExpected)
+      throws InvalidConfigurationException, ParserException, IOException, InterruptedException {
+
+    // create cfa for test program pFileName
+    ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
+    LogManager logger = LogManager.createTestLogManager();
+    CFACreator cfaCreator = MPORUtil.buildTestCfaCreatorWithPreprocessor(logger, shutdownNotifier);
+    CFA cfa = cfaCreator.parseFileAndCreateCFA(ImmutableList.of(pInputFilePath.toString()));
+
+    SequentializationUtils utils =
+        SequentializationUtils.of(cfa, pConfig, logger, shutdownNotifier);
+    // test if MPORAlgorithm rejects program with correct error message
+    UnsupportedCodeException throwable =
+        assertThrows(
+            UnsupportedCodeException.class,
+            () -> Sequentialization.tryBuildProgramString(pOptions, cfa, utils));
+    assertThat(throwable.getMessage()).contains(pExpected.message);
+  }
+
   @Test
   public void testRejectLanguageNotC() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/HelloJava.java");
@@ -63,6 +92,13 @@ public class InputRejectionTest {
     CParserException exception =
         assertThrows(CParserException.class, () -> cfaCreator.parseSourceAndCreateCFA(program));
     assertThat(exception).isNotNull();
+  }
+
+  @Test
+  public void testRejectDuplicateStructMemberNames() throws Exception {
+    Path inputFilePath =
+        Path.of("./test/programs/mpor/input_rejections/duplicate-struct-member-names.c");
+    testExpectedRejection(inputFilePath, InputRejectionMessage.DUPLICATE_STRUCT_MEMBER_NAMES);
   }
 
   @Test
@@ -82,15 +118,14 @@ public class InputRejectionTest {
   @Test
   public void testRejectPthreadArrayIdentifiers() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/pthread_t-array.c");
-    testExpectedRejection(inputFilePath, InputRejectionMessage.NO_PTHREAD_OBJECT_ARRAYS);
+    testExpectedRejection(inputFilePath, InputRejectionMessage.PTHREAD_OBJECT_ARRAY);
   }
 
-  @Ignore
   @Test
   public void testRejectPthreadReturnValue() throws Exception {
     Path inputFilePath =
         Path.of("./test/programs/mpor/input_rejections/pthread-function-return-value.c");
-    testExpectedRejection(inputFilePath, InputRejectionMessage.PTHREAD_RETURN_VALUE);
+    testExpectedRejection(inputFilePath, InputRejectionMessage.PTHREAD_FUNCTION_RETURN_VALUE);
   }
 
   @Test
@@ -112,29 +147,48 @@ public class InputRejectionTest {
   }
 
   @Test
+  public void testRejectFunctionPointerAssignment() throws Exception {
+    Path inputFilePath =
+        Path.of("./test/programs/mpor/input_rejections/function-pointer-assignment.c");
+    testExpectedRejectionWhenBuildingProgram(
+        MPOROptions.getDefaultTestInstance(),
+        TestUtils.configurationForTest().build(),
+        inputFilePath,
+        InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT);
+  }
+
+  @Test
+  public void testRejectFunctionPointerParameter() throws Exception {
+    Path inputFilePath =
+        Path.of("./test/programs/mpor/input_rejections/function-pointer-parameter.c");
+    testExpectedRejectionWhenBuildingProgram(
+        MPOROptions.getDefaultTestInstance(),
+        TestUtils.configurationForTest().build(),
+        inputFilePath,
+        InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT);
+  }
+
+  @Test
   public void testRejectPointerWrite() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/pointer-write.c");
-
     // create test config and MPOROptions instance
     Configuration config =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .setOption("analysis.algorithm.MPOR.allowPointerWrites", "false")
             .build();
     MPOROptions customOptions = new MPOROptions(config);
+    testExpectedRejectionWhenBuildingProgram(
+        customOptions, config, inputFilePath, InputRejectionMessage.POINTER_WRITE);
+  }
 
-    // create cfa for test program pFileName
-    ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
-    LogManager logger = LogManager.createTestLogManager();
-    CFACreator cfaCreator = MPORUtil.buildTestCfaCreatorWithPreprocessor(logger, shutdownNotifier);
-    CFA cfa = cfaCreator.parseFileAndCreateCFA(ImmutableList.of(inputFilePath.toString()));
-
-    SequentializationUtils utils = SequentializationUtils.of(cfa, config, logger, shutdownNotifier);
-    // test if MPORAlgorithm rejects program with correct error message
-    UnsupportedCodeException throwable =
-        assertThrows(
-            UnsupportedCodeException.class,
-            () -> Sequentialization.tryBuildProgramString(customOptions, cfa, utils));
-    String expectedMessage = InputRejectionMessage.POINTER_WRITE.message;
-    assertThat(throwable.getMessage()).contains(expectedMessage);
+  @Test
+  public void testRejectPointerWriteBinaryExpression() throws Exception {
+    Path inputFilePath =
+        Path.of("./test/programs/mpor/input_rejections/pointer-write-binary-expression.c");
+    testExpectedRejectionWhenBuildingProgram(
+        MPOROptions.getDefaultTestInstance(),
+        TestUtils.configurationForTest().build(),
+        inputFilePath,
+        InputRejectionMessage.POINTER_WRITE_BINARY_EXPRESSION);
   }
 }

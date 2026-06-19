@@ -165,7 +165,6 @@ public enum PthreadFunctionType {
   }
 
   private static boolean arePthreadObjectTypesUnique(PthreadParameterInfo... pParameterInfo) {
-
     return Arrays.stream(pParameterInfo).map(PthreadParameterInfo::getObjectType).distinct().count()
         == pParameterInfo.length;
   }

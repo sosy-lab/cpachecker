@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVaria
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonSetVariable;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CParserUtils;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 
 /** This class contains Tests for the AutomatonAnalysis */
 public class AutomatonInternalTest {
@@ -223,8 +223,8 @@ public class AutomatonInternalTest {
     LogManager mockLogger = mock(LogManager.class);
     AutomatonExpressionArguments args =
         new AutomatonExpressionArguments(null, null, null, null, mockLogger);
-    args.putTransitionVariable(1, TestDataTools.makeVariable("hi", CNumericTypes.INT));
-    args.putTransitionVariable(2, TestDataTools.makeVariable("hello", CNumericTypes.INT));
+    args.putTransitionVariable(1, TestCfaUtils.makeVariable("hi", CNumericTypes.INT));
+    args.putTransitionVariable(2, TestCfaUtils.makeVariable("hello", CNumericTypes.INT));
     // actual test
     String result = args.replaceVariables("$1 == $2");
     assertThat(result).isEqualTo("hi == hello");
@@ -261,7 +261,7 @@ public class AutomatonInternalTest {
 
     AutomatonExpressionArguments args =
         new AutomatonExpressionArguments(null, automatonVariables, null, null, mockLogger);
-    args.putTransitionVariable(1, TestDataTools.makeVariable("programVar", CNumericTypes.INT));
+    args.putTransitionVariable(1, TestCfaUtils.makeVariable("programVar", CNumericTypes.INT));
 
     // actual test
     String result = args.replaceVariables("$1 == $$intVar1");

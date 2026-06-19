@@ -50,7 +50,7 @@ public class ToCExpressionVisitor
           builder.buildBinaryExpression(
               expr, CIntegerLiteralExpression.ZERO, BinaryOperator.NOT_EQUALS);
 
-      result = builder.buildBinaryExpression(result, boolExpr, BinaryOperator.BINARY_AND);
+      result = builder.buildBinaryExpression(result, boolExpr, BinaryOperator.BITWISE_AND);
     }
 
     return result;
@@ -72,7 +72,7 @@ public class ToCExpressionVisitor
           builder.buildBinaryExpression(
               expr, CIntegerLiteralExpression.ZERO, BinaryOperator.NOT_EQUALS);
 
-      result = builder.buildBinaryExpression(result, boolExpr, BinaryOperator.BINARY_OR);
+      result = builder.buildBinaryExpression(result, boolExpr, BinaryOperator.BITWISE_OR);
     }
 
     return result;

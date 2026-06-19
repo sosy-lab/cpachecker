@@ -8,44 +8,54 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import java.util.AbstractMap;
 import java.util.List;
-import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /** Contains static methods that can be reused outside the MPOR context. */
 public final class MPORUtil {
+
+  public static boolean isFunctionDefined(
+      CFunctionCallExpression pFunctionCallExpression,
+      NavigableMap<String, FunctionEntryNode> pAllFunctions) {
+
+    // do not use the CFunctionDeclaration since it may be null if the function is not declared
+    return pAllFunctions.entrySet().stream()
+        .anyMatch(
+            f ->
+                f.getKey()
+                    .equals(pFunctionCallExpression.getFunctionNameExpression().toASTString()));
+  }
 
   /**
    * Returns {@code true} if pOrigin can be reached through its successor {@link CFANode}. <br>
@@ -116,6 +126,29 @@ public final class MPORUtil {
     return foundPath;
   }
 
+  // Functions =====================================================================================
+
+  /**
+   * Returns the {@link CParameterDeclaration} at {@code pIndex}, or the last {@link
+   * CParameterDeclaration} if the index is out of bounds. Then {@code pFunctionDeclaration} must be
+   * a variadic function, where the last {@link CParameterDeclaration} is always the variadic one.
+   */
+  public static CParameterDeclaration getParameterDeclarationByIndex(
+      int pIndex, CFunctionDeclaration pFunctionDeclaration) {
+
+    checkArgument(pIndex >= 0, "pIndex must be at least 0");
+    List<CParameterDeclaration> parameterDeclarations = pFunctionDeclaration.getParameters();
+    if (pIndex < parameterDeclarations.size()) {
+      return parameterDeclarations.get(pIndex);
+    } else {
+      // handle variadic function (more arguments than parameter declarations)
+      checkArgument(
+          pFunctionDeclaration.getType().takesVarArgs(),
+          "If pIndex >= parameters.size(), then pFunctionDeclaration must be variadic.");
+      return parameterDeclarations.getLast();
+    }
+  }
+
   // const CPAchecker_TMP ==========================================================================
 
   public static boolean isConstCpaCheckerTmp(CVariableDeclaration pVariableDeclaration) {
@@ -126,6 +159,14 @@ public final class MPORUtil {
         && pVariableDeclaration.getInitializer() != null;
   }
 
+  public static boolean isCpaCheckerTmpWithoutInitializer(
+      CVariableDeclaration pVariableDeclaration) {
+    return !pVariableDeclaration.getType().isConst()
+        && !pVariableDeclaration.isGlobal()
+        && pVariableDeclaration.getName().contains("__CPAchecker_TMP_")
+        && pVariableDeclaration.getInitializer() == null;
+  }
+
   public static boolean isConstCpaCheckerTmpDeclaration(CFAEdge pCfaEdge) {
     if (pCfaEdge instanceof CDeclarationEdge declarationEdge) {
       if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
@@ -133,6 +174,31 @@ public final class MPORUtil {
       }
     }
     return false;
+  }
+
+  public static boolean isCpaCheckerTmpDeclarationWithoutInitializer(CFAEdge pCfaEdge) {
+    if (pCfaEdge instanceof CDeclarationEdge declarationEdge) {
+      if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
+        return isCpaCheckerTmpWithoutInitializer(variableDeclaration);
+      }
+    }
+    return false;
+  }
+
+  // CVariableDeclaration
+
+  public static CVariableDeclaration withInitializer(
+      CVariableDeclaration pVariableDeclaration, @Nullable CInitializer pInitializer) {
+
+    return new CVariableDeclaration(
+        pVariableDeclaration.getFileLocation(),
+        pVariableDeclaration.isGlobal(),
+        pVariableDeclaration.getCStorageClass(),
+        pVariableDeclaration.getType(),
+        pVariableDeclaration.getName(),
+        pVariableDeclaration.getOrigName(),
+        pVariableDeclaration.getQualifiedName(),
+        pInitializer);
   }
 
   // Pointers ======================================================================================
@@ -164,122 +230,36 @@ public final class MPORUtil {
     return false;
   }
 
-  /**
-   * Extracts the {@link CSimpleDeclaration} of {@code pExpression}, if it is a pointer, or returns
-   * {@link Optional#empty()} otherwise.
-   */
-  public static Optional<CSimpleDeclaration> tryGetPointerDeclaration(CExpression pExpression) {
-    // unary expression i.e. 'ptr = &var;'
-    if (pExpression instanceof CUnaryExpression unaryExpression) {
-      if (unaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
-        if (unaryExpression.getOperand() instanceof CIdExpression idExpression) {
-          return Optional.of(idExpression.getDeclaration());
-        }
-      }
-      // id expression i.e. another pointer assigned to the pointer 'ptr_a = ptr_b;'
-    } else if (pExpression instanceof CIdExpression idExpression) {
-      if (idExpression.getDeclaration().getType() instanceof CPointerType) {
-        return Optional.of(idExpression.getDeclaration());
-      }
-      // cast expression e.g. 'ptr = (int *) arg;'
-    } else if (pExpression instanceof CCastExpression castExpression) {
-      if (castExpression.getCastType() instanceof CPointerType) {
-        if (castExpression.getOperand() instanceof CIdExpression idExpression) {
-          return Optional.of(idExpression.getDeclaration());
-        }
-      }
-    }
-    return Optional.empty();
-  }
-
-  /**
-   * Returns an {@link Entry} that maps the {@link CSimpleDeclaration} of the outermost field owner
-   * to the {@link CCompositeTypeMemberDeclaration} of the innermost field member accessed in {@code
-   * pExpression} and {@link Optional#empty()} if it can't be found.
-   */
-  public static Optional<Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration>>
-      tryGetFieldMemberPointer(CExpression pExpression) {
-
-    // e.g. 'ptr = &field.member;'
-    if (pExpression instanceof CUnaryExpression unaryExpression) {
-      if (unaryExpression.getOperand() instanceof CFieldReference fieldReference) {
-        return Optional.of(getFieldMemberPointer(fieldReference));
-      }
-
-      // e.g. 'ptr = field.member;' where member is a pointer
-    } else if (pExpression instanceof CFieldReference fieldReference) {
-      return Optional.of(getFieldMemberPointer(fieldReference));
-    }
-    return Optional.empty();
-  }
-
-  private static Entry<CSimpleDeclaration, CCompositeTypeMemberDeclaration> getFieldMemberPointer(
-      CFieldReference pFieldReference) {
-
-    CIdExpression idExpression = recursivelyFindFieldOwner(pFieldReference);
-    CType type = getTypeByIdExpression(idExpression);
-    return new AbstractMap.SimpleEntry<>(
-        idExpression.getDeclaration(),
-        recursivelyFindFieldMemberByFieldOwner(pFieldReference, type));
-  }
-
-  /**
-   * Recursively tries to find the field owner of {@code pFieldReference}, e.g. {@code outer} in
-   * {@code outer.intermediary.inner}.
-   */
-  public static CIdExpression recursivelyFindFieldOwner(CFieldReference pFieldReference) {
-    if (pFieldReference.getFieldOwner() instanceof CIdExpression idExpression) {
-      return idExpression;
-    }
-    if (pFieldReference.getFieldOwner()
-        instanceof CArraySubscriptExpression arraySubscriptExpression) {
-      if (arraySubscriptExpression.getArrayExpression() instanceof CIdExpression idExpression) {
-        return idExpression;
-      }
-    }
-    if (pFieldReference.getFieldOwner() instanceof CFieldReference fieldReference) {
-      return recursivelyFindFieldOwner(fieldReference);
-    }
-    throw new IllegalArgumentException("could not find CIdExpression field owner");
-  }
-
-  private static CType getTypeByIdExpression(CIdExpression pIdExpression) {
-    if (pIdExpression.getExpressionType() instanceof CPointerType pointerType) {
-      return pointerType.getType();
-    }
-    return pIdExpression.getExpressionType();
-  }
-
-  /**
-   * Extracts the {@link CCompositeTypeMemberDeclaration} of the field member accessed in {@code
-   * pFieldReference}, e.g. {@code member} in {@code owner->member}.
-   */
-  public static CCompositeTypeMemberDeclaration recursivelyFindFieldMemberByFieldOwner(
-      final CFieldReference pFieldReference, CType pType) {
-
-    if (pType instanceof CPointerType pointerType) {
-      return recursivelyFindFieldMemberByFieldOwner(pFieldReference, pointerType.getType());
-    }
-    if (pType instanceof CElaboratedType elaboratedType) {
-      // composite type contains the composite type members, e.g. 'amount'
-      if (elaboratedType.getRealType() instanceof CCompositeType compositeType) {
-        for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-          if (memberDeclaration.getName().equals(pFieldReference.getFieldName())) {
-            return memberDeclaration;
+  public static boolean isVoidPointer(CExpression pExpression) {
+    if (pExpression instanceof CCastExpression castExpression) {
+      if (castExpression.getCastType().equals(CPointerType.POINTER_TO_VOID)) {
+        if (castExpression.getOperand()
+            instanceof CIntegerLiteralExpression integerLiteralExpression) {
+          if (integerLiteralExpression.equals(CIntegerLiteralExpression.ZERO)) {
+            return true;
           }
         }
       }
     }
-    if (pType instanceof CTypedefType typedefType) {
-      // elaborated type is e.g. struct __anon_type_QType
-      if (typedefType.getRealType() instanceof CElaboratedType elaboratedType) {
-        return recursivelyFindFieldMemberByFieldOwner(pFieldReference, elaboratedType);
-      }
-      if (typedefType.getRealType() instanceof CTypedefType innerTypedefType) {
-        return recursivelyFindFieldMemberByFieldOwner(pFieldReference, innerTypedefType);
-      }
-    }
-    throw new IllegalArgumentException("field owner type must be CTypedefType");
+    return false;
+  }
+
+  /**
+   * Converts the given {@link CSimpleDeclaration} to a {@link CVariableDeclaration}.
+   *
+   * @throws IllegalArgumentException if {@link CSimpleDeclaration} is not a {@link
+   *     CVariableDeclaration} or {@link CParameterDeclaration} because only those can be converted.
+   */
+  public static CVariableDeclaration convertToVariableDeclaration(
+      CSimpleDeclaration pSimpleDeclaration) {
+
+    checkArgument(
+        pSimpleDeclaration instanceof CVariableDeclaration
+            || pSimpleDeclaration instanceof CParameterDeclaration,
+        "pSimpleDeclaration must be CVariableDeclaration or CParameterDeclaration");
+    return pSimpleDeclaration instanceof CVariableDeclaration variableDeclaration
+        ? variableDeclaration
+        : ((CParameterDeclaration) pSimpleDeclaration).asVariableDeclaration();
   }
 
   // Collections ===================================================================================
@@ -320,14 +300,14 @@ public final class MPORUtil {
   public static CFACreator buildTestCfaCreator(
       LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
 
-    return new CFACreator(TestDataTools.configurationForTest().build(), pLogger, pShutdownNotifier);
+    return new CFACreator(TestUtils.configurationForTest().build(), pLogger, pShutdownNotifier);
   }
 
   public static CFACreator buildTestCfaCreatorWithPreprocessor(
       LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
 
     return new CFACreator(
-        TestDataTools.configurationForTest().setOption("parser.usePreprocessor", "true").build(),
+        TestUtils.configurationForTest().setOption("parser.usePreprocessor", "true").build(),
         pLogger,
         pShutdownNotifier);
   }

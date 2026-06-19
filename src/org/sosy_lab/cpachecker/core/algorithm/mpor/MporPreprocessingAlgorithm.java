@@ -13,6 +13,7 @@ import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingSt
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
@@ -135,7 +136,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     sequentializationStatistics = new SequentializationStatistics(programPath, logger);
   }
 
-  public static boolean isAlreadySequentialized(CFA pCFA) {
+  private static boolean isAlreadySequentialized(CFA pCFA) {
     CfaTransformationMetadata transformationMetadata =
         pCFA.getMetadata().getTransformationMetadata();
     if (transformationMetadata == null) {
@@ -211,34 +212,31 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     // Only sequentialize if not already done and requested.
     // We replace the CFA for its sequentialized version.
     CFA newCfa = cfa;
-    if (isAlreadySequentialized(cfa)) {
-      logger.log(
-          Level.INFO,
-          "The CFA is already sequentialized. "
-              + "The sequentialization will be ignored. "
-              + "If this is part of a parallel algorithm, this may be expected.");
-    } else {
-      try {
-        newCfa = preprocessCfaUsingSequentialization(cfa);
-      } catch (UnrecognizedCodeException | ParserException e) {
-        logger.logUserException(
-            Level.WARNING,
-            e,
-            "Sequentialization of the input program failed, falling back to using the original"
-                + " program.");
-        CfaMetadata newMetadata =
-            getNewMetadata(cfa, newCfa, ProgramTransformation.SEQUENTIALIZATION_ATTEMPTED);
-        // Mark the CFA as having failed sequentialization
-        // TODO: Simplify with sealed classes
-        if (cfa instanceof ImmutableCFA immutableCfa) {
-          newCfa = immutableCfa.copyWithMetadata(newMetadata);
-        } else {
-          throw new AssertionError("Expected ImmutableCFA here.");
-        }
-      } catch (InvalidConfigurationException e) {
-        throw new CPAException(
-            "The configuration used to build the CFA from the sequentialized program is wrong.", e);
+
+    Verify.verify(
+        !isAlreadySequentialized(cfa),
+        "The given CFA is already sequentialized, cannot perform sequentialization.");
+
+    try {
+      newCfa = preprocessCfaUsingSequentialization(cfa);
+    } catch (UnrecognizedCodeException | ParserException e) {
+      logger.logUserException(
+          Level.WARNING,
+          e,
+          "Sequentialization of the input program failed, falling back to using the original"
+              + " program.");
+      CfaMetadata newMetadata =
+          getNewMetadata(cfa, newCfa, ProgramTransformation.SEQUENTIALIZATION_ATTEMPTED);
+      // Mark the CFA as having failed sequentialization
+      // TODO: Simplify with sealed classes
+      if (cfa instanceof ImmutableCFA immutableCfa) {
+        newCfa = immutableCfa.copyWithMetadata(newMetadata);
+      } else {
+        throw new AssertionError("Expected ImmutableCFA here.");
       }
+    } catch (InvalidConfigurationException e) {
+      throw new CPAException(
+          "The configuration used to build the CFA from the sequentialized program is wrong.", e);
     }
 
     final CoreComponentsFactory coreComponents;
@@ -246,9 +244,15 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
     Algorithm innerAlgorithm;
 
     try {
+      // set useMporPreprocessing=false so that CoreComponentsFactory does not sequentialize again
+      Configuration newConfig =
+          Configuration.builder()
+              .copyFrom(config)
+              .setOption("analysis.preprocessing.MPOR", "false")
+              .build();
       coreComponents =
           new CoreComponentsFactory(
-              config, logger, shutdownNotifier, AggregatedReachedSets.empty(), newCfa);
+              newConfig, logger, shutdownNotifier, AggregatedReachedSets.empty(), newCfa);
       cpa = coreComponents.createCPA(specification);
       if (cpa instanceof StatisticsProvider statisticsProvider) {
         statisticsProvider.collectStatistics(sequentializationStatistics.innerStatistics);

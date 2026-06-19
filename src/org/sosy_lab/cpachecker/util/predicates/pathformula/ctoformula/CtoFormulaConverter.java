@@ -314,7 +314,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
               // https://en.wikipedia.org/wiki/Long_double#Implementations
               // The x87 extended precision has 15+63 bits:
               // https://en.wikipedia.org/wiki/Extended_precision#x86_extended_precision_format
-              return FormulaType.getFloatingPointType(15, 63);
+              return FormulaType.getFloatingPointTypeFromSizesWithoutHiddenBit(15, 63);
             } else {
               throw new AssertionError(
                   "Missing implementation of long double for machine model " + machineModel);
@@ -323,7 +323,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
           return FormulaType.getDoublePrecisionFloatingPointType();
         }
         case FLOAT128 -> {
-          return FormulaType.getFloatingPointType(15, 112);
+          return FormulaType.getFloatingPointTypeFromSizesWithoutHiddenBit(15, 112);
         }
         default -> {}
       }
@@ -996,13 +996,14 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
       }
       Value floatValue =
           AbstractExpressionValueVisitor.castCValue(intValue, targetType, machineModel, logger);
+
       return new CFloatLiteralExpression(
           e.getFileLocation(),
           machineModel,
           targetType,
           FloatValue.fromInteger(
               FloatValue.Format.fromCType(machineModel, targetType),
-              floatValue.asNumericValue().bigIntegerValue()));
+              ((NumericValue) floatValue).bigIntegerValue()));
     }
 
     return pExp;

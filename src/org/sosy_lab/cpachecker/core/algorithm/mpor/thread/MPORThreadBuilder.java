@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
@@ -17,6 +15,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
@@ -38,7 +37,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
@@ -46,7 +44,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
@@ -61,10 +59,10 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
   }
 
   /** Track the currentPc, static so that it is consistent across recursive function calls. */
-  private static int currentPc = ProgramCounterVariables.INIT_PC;
+  private static int currentPc = SeqProgramCounterVariables.INIT_PC;
 
   public static void resetPc() {
-    currentPc = ProgramCounterVariables.INIT_PC;
+    currentPc = SeqProgramCounterVariables.INIT_PC;
   }
 
   /**
@@ -74,11 +72,11 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
    * <p>This functions needs to be called after functionCallMap was initialized so that we can track
    * the calling context of each thread.
    */
-  public ImmutableList<MPORThread> createThreads() throws UnsupportedCodeException {
+  public ImmutableList<MPORThread> extractThreadsFromCfa() throws UnsupportedCodeException {
     ImmutableList.Builder<MPORThread> rThreads = ImmutableList.builder();
     // add the main thread
     FunctionEntryNode mainEntryNode = cfa.getMainFunction();
-    MPORThread mainThread = createThread(Optional.empty(), Optional.empty(), mainEntryNode);
+    MPORThread mainThread = extractThreadFromCfa(Optional.empty(), Optional.empty(), mainEntryNode);
     rThreads.add(mainThread);
     // recursively search the thread CFAs for pthread_create calls, and store in rThreads
     List<MPORThread> createdThreads = new ArrayList<>();
@@ -109,7 +107,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
           FunctionEntryNode entryNode =
               getStartRoutineFunctionEntryNode(startRoutineDeclaration, cfaEdge);
           MPORThread newThread =
-              createThread(Optional.of(pthreadT), Optional.of(threadEdge), entryNode);
+              extractThreadFromCfa(Optional.of(pthreadT), Optional.of(threadEdge), entryNode);
           recursivelyFindThreadCreations(newThread, pFoundThreads);
           pFoundThreads.add(newThread);
         }
@@ -120,20 +118,16 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
   /**
    * Initializes a MPORThread object with the corresponding CFANodes and CFAEdges and returns it.
    */
-  private MPORThread createThread(
+  private MPORThread extractThreadFromCfa(
       Optional<CIdExpression> pThreadObject,
       Optional<CFAEdgeForThread> pStartRoutineCall,
       FunctionEntryNode pEntryNode) {
 
-    // ensure so that we can cast to CFunctionType
-    checkArgument(
-        pEntryNode.getFunction().getType() instanceof CFunctionType,
-        "pEntryNode function must be CFunctionType");
     resetPc(); // reset pc for every thread created
     int newThreadId = currentThreadId++;
     CFAForThread threadCfa = buildThreadCfa(newThreadId, pEntryNode, pStartRoutineCall);
     Optional<CIdExpression> startRoutineExitVariable = tryCreateStartRoutineExitVariable(threadCfa);
-    ImmutableListMultimap<CVariableDeclaration, Optional<CFAEdgeForThread>> localVariables =
+    ImmutableListMultimap<CVariableDeclaration, SeqCallContext> localVariables =
         getLocalVariableDeclarations(threadCfa.threadEdges);
     return new MPORThread(
         newThreadId,
@@ -149,7 +143,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
       int pThreadId, FunctionEntryNode pEntryNode, Optional<CFAEdgeForThread> pStartRoutineCall) {
 
     // check if node was visited already in a specific calling context
-    Multimap<CFANode, Optional<CFAEdgeForThread>> visitedNodes = ArrayListMultimap.create();
+    Multimap<CFANode, SeqCallContext> visitedNodes = ArrayListMultimap.create();
     ImmutableList.Builder<CFANodeForThread> threadNodes = ImmutableList.builder();
     // we use an immutable map to preserve ordering (important when declaring types)
     ImmutableMap.Builder<CFAEdgeForThread, CFAEdge> threadEdges = ImmutableMap.builder();
@@ -161,14 +155,25 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
         threadNodes,
         threadEdges,
         pEntryNode,
-        false, // at start, no atomic block
-        Optional.empty(),
+        // at start, there is never an atomic block
+        false,
+        // at start, use an empty call context
+        SeqCallContext.EMPTY,
         pStartRoutineCall);
+
+    ImmutableList<CFANodeForThread> finalThreadNodes = threadNodes.build();
+
+    ImmutableSet<CFANode> allLoopHeads = cfa.getLoopStructure().orElseThrow().getAllLoopHeads();
+    ImmutableSet<CFANodeForThread> loopHeads =
+        finalThreadNodes.stream()
+            .filter(n -> allLoopHeads.contains(n.getCfaNode()))
+            .collect(ImmutableSet.toImmutableSet());
 
     return new CFAForThread(
         pThreadId,
         pEntryNode,
-        threadNodes.build(),
+        finalThreadNodes,
+        loopHeads,
         ImmutableList.copyOf(threadEdges.buildOrThrow().keySet()));
   }
 
@@ -178,15 +183,15 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
    */
   private void buildThreadCfaVariables(
       final int pThreadId,
-      Multimap<CFANode, Optional<CFAEdgeForThread>> pVisitedCfaNodes,
+      Multimap<CFANode, SeqCallContext> pVisitedCfaNodes,
       ImmutableList.Builder<CFANodeForThread> pThreadNodes,
       ImmutableMap.Builder<CFAEdgeForThread, CFAEdge> pThreadEdges,
       CFANode pCurrentNode,
       boolean pIsInAtomicBlock,
-      Optional<CFAEdgeForThread> pCallContext,
+      SeqCallContext pCallContext,
       final Optional<CFAEdgeForThread> pStartRoutineCall) {
 
-    Optional<CFAEdgeForThread> callContext =
+    SeqCallContext callContext =
         MPORThreadUtil.getCallContextOrStartRoutineCall(pCallContext, pStartRoutineCall);
     // if node was visited in this context already, return
     if (pVisitedCfaNodes.containsKey(pCurrentNode)) {
@@ -210,7 +215,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
               // thread exits are never in atomic blocks
               pThreadId,
               pCurrentNode,
-              ProgramCounterVariables.EXIT_PC,
+              SeqProgramCounterVariables.EXIT_PC,
               callContext,
               edgeList,
               false));
@@ -224,13 +229,14 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
         if (!(cfaEdge instanceof CFunctionReturnEdge)) {
           // update the calling context, if a function call is encountered
           if (cfaEdge instanceof CFunctionCallEdge) {
-            callContext =
+            Optional<CFAEdgeForThread> callContextEdge =
                 Optional.ofNullable(
                     Iterables.getOnlyElement(
                         threadEdges.entries().stream()
                             .filter(entry -> entry.getValue().equals(cfaEdge))
                             .map(Map.Entry::getKey)
                             .toList()));
+            callContext = new SeqCallContext(callContextEdge);
           }
           buildThreadCfaVariables(
               pThreadId,
@@ -271,8 +277,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
       Optional<CFunctionCall> functionCall =
           PthreadUtil.tryGetFunctionCallFromCfaEdge(threadEdge.cfaEdge);
       if (functionCall.isPresent()) {
-        if (PthreadUtil.isCallToPthreadFunction(
-            functionCall.orElseThrow(), PthreadFunctionType.PTHREAD_EXIT)) {
+        if (PthreadUtil.isCallToPthreadExitWithReturnValue(functionCall.orElseThrow())) {
           String name = SeqNameUtil.buildStartRoutineExitVariableName(options, pThreadCFA.threadId);
           CVariableDeclaration declaration =
               SeqDeclarationBuilder.buildVariableDeclaration(
@@ -287,10 +292,10 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
   }
 
   /** Extracts all local variable declarations from pThreadEdges. */
-  private ImmutableListMultimap<CVariableDeclaration, Optional<CFAEdgeForThread>>
-      getLocalVariableDeclarations(ImmutableList<CFAEdgeForThread> pThreadEdges) {
+  private ImmutableListMultimap<CVariableDeclaration, SeqCallContext> getLocalVariableDeclarations(
+      ImmutableList<CFAEdgeForThread> pThreadEdges) {
 
-    ImmutableListMultimap.Builder<CVariableDeclaration, Optional<CFAEdgeForThread>> rLocalVars =
+    ImmutableListMultimap.Builder<CVariableDeclaration, SeqCallContext> rLocalVars =
         ImmutableListMultimap.builder();
     for (CFAEdgeForThread threadEdge : pThreadEdges) {
       CFAEdge edge = threadEdge.cfaEdge;
@@ -310,7 +315,7 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
   // (Private) Helpers =============================================================================
 
   private ImmutableListMultimap<CFAEdgeForThread, CFAEdge> buildThreadEdgesFromCfaEdges(
-      int pThreadId, Iterable<CFAEdge> pCfaEdges, Optional<CFAEdgeForThread> pCallContext) {
+      int pThreadId, Iterable<CFAEdge> pCfaEdges, SeqCallContext pCallContext) {
 
     // use ImmutableMap to retain insertion order
     ImmutableListMultimap.Builder<CFAEdgeForThread, CFAEdge> rThreadEdges =

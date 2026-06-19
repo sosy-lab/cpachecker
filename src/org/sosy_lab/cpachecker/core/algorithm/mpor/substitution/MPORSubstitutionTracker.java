@@ -10,24 +10,19 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.ImmutableTable;
-import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Table;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAssignment;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
 
 /**
  * A class to track certain expressions, statements, ... (such as pointer dereferences and variable
@@ -40,19 +35,11 @@ public class MPORSubstitutionTracker {
    * non-deterministically. The nondet assignment may be expensive for some verifiers and should
    * only be done if needed.
    */
-  private final Set<CParameterDeclaration> accessedMainFunctionArgs;
+  private final Set<CVariableDeclaration> accessedMainFunctionArgs;
 
   // POINTER ASSIGNMENTS ===========================================================================
 
-  /** Pointer assignments updates to the address. */
-  private final Map<CSimpleDeclaration, CSimpleDeclaration> pointerAssignments;
-
-  /**
-   * e.g. {@code ptr = &outer.inner}. {@link CCompositeTypeMemberDeclaration} is always the
-   * innermost member, {@link CSimpleDeclaration} the declaration of the outer struct.
-   */
-  private final Table<CSimpleDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-      pointerFieldMemberAssignments;
+  private final Set<SeqPointerAssignment> pointerAssignments;
 
   // POINTER DEREFERENCES ==========================================================================
 
@@ -60,16 +47,14 @@ public class MPORSubstitutionTracker {
    * Accessed pointer dereferences e.g. of the form {@code x = *ptr;}. Contains both reads and
    * writes.
    */
-  private final Set<CSimpleDeclaration> accessedPointerDereferences;
+  private final Set<SeqMemoryLocation> accessedPointerDereferences;
 
   /** Written pointer dereferences e.g. of the form {@code *ptr = x;}. */
-  private final Set<CSimpleDeclaration> writtenPointerDereferences;
+  private final Set<SeqMemoryLocation> writtenPointerDereferences;
 
-  private final SetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-      accessedFieldReferencePointerDereferences;
+  private final Set<SeqMemoryLocation> accessedFieldReferencePointerDereferences;
 
-  private final SetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-      writtenFieldReferencePointerDereferences;
+  private final Set<SeqMemoryLocation> writtenFieldReferencePointerDereferences;
 
   // GLOBAL VARIABLES ==============================================================================
 
@@ -77,10 +62,10 @@ public class MPORSubstitutionTracker {
    * Accessed variables e.g. of the form {@code if (x == 0);} where {@code x} is a variable.
    * Contains both reads and writes.
    */
-  private final Set<CSimpleDeclaration> accessedDeclarations;
+  private final Set<SeqMemoryLocation> accessedDeclarations;
 
   /** Written variables e.g. of the form {@code x = 42;}. */
-  private final Set<CSimpleDeclaration> writtenDeclarations;
+  private final Set<SeqMemoryLocation> writtenDeclarations;
 
   // FIELD MEMBERS =================================================================================
 
@@ -90,118 +75,138 @@ public class MPORSubstitutionTracker {
    * are not unique to the instance of a struct, forcing us to use the {@link CSimpleDeclaration} of
    * the owner too. Contains both reads and writes.
    */
-  private final SetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-      accessedFieldMembers;
+  private final Set<SeqMemoryLocation> accessedFieldMembers;
 
   /**
    * Maps written field members to the declaration of their owner, e.g. of the form {@code
    * field->member = 42;}.
    */
-  private final SetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-      writtenFieldMembers;
+  private final Set<SeqMemoryLocation> writtenFieldMembers;
 
   public MPORSubstitutionTracker() {
     accessedMainFunctionArgs = new HashSet<>();
 
-    pointerAssignments = new HashMap<>();
-    pointerFieldMemberAssignments = HashBasedTable.create();
+    pointerAssignments = new HashSet<>();
 
     accessedPointerDereferences = new HashSet<>();
     writtenPointerDereferences = new HashSet<>();
 
-    accessedFieldReferencePointerDereferences = HashMultimap.create();
-    writtenFieldReferencePointerDereferences = HashMultimap.create();
+    accessedFieldReferencePointerDereferences = new HashSet<>();
+    writtenFieldReferencePointerDereferences = new HashSet<>();
 
     accessedDeclarations = new HashSet<>();
     writtenDeclarations = new HashSet<>();
 
-    accessedFieldMembers = HashMultimap.create();
-    writtenFieldMembers = HashMultimap.create();
+    accessedFieldMembers = new HashSet<>();
+    writtenFieldMembers = new HashSet<>();
   }
 
   // add methods ===================================================================================
 
-  public void addAccessedMainFunctionArg(CParameterDeclaration pParameterDeclaration) {
-    accessedMainFunctionArgs.add(pParameterDeclaration);
+  void addAccessedMainFunctionArg(CSimpleDeclaration pMainFunctionArg) {
+    accessedMainFunctionArgs.add(MPORUtil.convertToVariableDeclaration(pMainFunctionArg));
   }
 
-  public void addPointerAssignment(
-      CSimpleDeclaration pLeftHandSide, CSimpleDeclaration pRightHandSide) {
-
+  void addPointerAssignment(SeqPointerAssignment pPointerAssignment) {
     checkArgument(
-        !(pRightHandSide instanceof CFunctionDeclaration),
-        "pRightHandSide cannot be CFunctionDeclaration");
-    pointerAssignments.put(pLeftHandSide, pRightHandSide);
+        pPointerAssignment.leftHandSideMemoryLocation().declaration()
+            instanceof CVariableDeclaration,
+        "pLeftHandSideMemoryLocation.declaration() must be CVariableDeclaration.");
+    // pointer assignments in substitutions are always explicit
+    pointerAssignments.add(pPointerAssignment);
   }
 
-  public void addPointerFieldMemberAssignment(
-      CSimpleDeclaration pLeftHandSide,
+  void addAccessedPointerDereference(
+      SeqCallContext pCallContext, CSimpleDeclaration pAccessedPointerDereference) {
+
+    accessedPointerDereferences.add(
+        SeqMemoryLocation.of(
+            pCallContext, MPORUtil.convertToVariableDeclaration(pAccessedPointerDereference)));
+  }
+
+  void addWrittenPointerDereference(
+      SeqCallContext pCallContext, CSimpleDeclaration pWrittenPointerDereference) {
+
+    writtenPointerDereferences.add(
+        SeqMemoryLocation.of(
+            pCallContext, MPORUtil.convertToVariableDeclaration(pWrittenPointerDereference)));
+  }
+
+  void addAccessedFieldReferencePointerDereference(
+      SeqCallContext pCallContext,
       CSimpleDeclaration pFieldOwner,
-      CCompositeTypeMemberDeclaration pMemberDeclaration) {
+      CCompositeTypeMemberDeclaration pFieldMember) {
 
-    pointerFieldMemberAssignments.put(pLeftHandSide, pFieldOwner, pMemberDeclaration);
+    accessedFieldReferencePointerDereferences.add(
+        SeqMemoryLocation.of(
+            pCallContext,
+            MPORUtil.convertToVariableDeclaration(pFieldOwner),
+            Optional.of(pFieldMember)));
   }
 
-  public void addAccessedPointerDereference(CSimpleDeclaration pAccessedPointerDereference) {
-    accessedPointerDereferences.add(pAccessedPointerDereference);
+  void addWrittenFieldReferencePointerDereference(
+      SeqCallContext pCallContext,
+      CSimpleDeclaration pFieldOwner,
+      CCompositeTypeMemberDeclaration pFieldMember) {
+
+    writtenFieldReferencePointerDereferences.add(
+        SeqMemoryLocation.of(
+            pCallContext,
+            MPORUtil.convertToVariableDeclaration(pFieldOwner),
+            Optional.of(pFieldMember)));
   }
 
-  public void addWrittenPointerDereference(CSimpleDeclaration pWrittenPointerDereference) {
-    writtenPointerDereferences.add(pWrittenPointerDereference);
+  void addAccessedDeclaration(
+      SeqCallContext pCallContext, CSimpleDeclaration pAccessedDeclaration) {
+    accessedDeclarations.add(
+        SeqMemoryLocation.of(
+            pCallContext, MPORUtil.convertToVariableDeclaration(pAccessedDeclaration)));
   }
 
-  public void addAccessedFieldReferencePointerDereference(
-      CSimpleDeclaration pFieldOwner, CCompositeTypeMemberDeclaration pFieldMember) {
-
-    accessedFieldReferencePointerDereferences.put(pFieldOwner, pFieldMember);
+  void addWrittenDeclaration(SeqCallContext pCallContext, CSimpleDeclaration pWrittenDeclaration) {
+    writtenDeclarations.add(
+        SeqMemoryLocation.of(
+            pCallContext, MPORUtil.convertToVariableDeclaration(pWrittenDeclaration)));
   }
 
-  public void addWrittenFieldReferencePointerDereference(
-      CSimpleDeclaration pFieldOwner, CCompositeTypeMemberDeclaration pFieldMember) {
+  void addAccessedFieldMember(
+      SeqCallContext pCallContext,
+      CSimpleDeclaration pOwnerDeclaration,
+      CCompositeTypeMemberDeclaration pAccessedFieldMember) {
 
-    writtenFieldReferencePointerDereferences.put(pFieldOwner, pFieldMember);
+    accessedFieldMembers.add(
+        SeqMemoryLocation.of(
+            pCallContext,
+            MPORUtil.convertToVariableDeclaration(pOwnerDeclaration),
+            Optional.of(pAccessedFieldMember)));
   }
 
-  public void addAccessedDeclaration(CSimpleDeclaration pAccessedDeclaration) {
-    accessedDeclarations.add(pAccessedDeclaration);
-  }
+  void addWrittenFieldMember(
+      SeqCallContext pCallContext,
+      CSimpleDeclaration pOwnerDeclaration,
+      CCompositeTypeMemberDeclaration pWrittenFieldMember) {
 
-  public void addWrittenDeclaration(CSimpleDeclaration pWrittenDeclaration) {
-    writtenDeclarations.add(pWrittenDeclaration);
-  }
-
-  public void addAccessedFieldMember(
-      CSimpleDeclaration pOwnerDeclaration, CCompositeTypeMemberDeclaration pAccessedFieldMember) {
-
-    accessedFieldMembers.put(pOwnerDeclaration, pAccessedFieldMember);
-  }
-
-  public void addWrittenFieldMember(
-      CSimpleDeclaration pOwnerDeclaration, CCompositeTypeMemberDeclaration pWrittenFieldMember) {
-
-    writtenFieldMembers.put(pOwnerDeclaration, pWrittenFieldMember);
+    writtenFieldMembers.add(
+        SeqMemoryLocation.of(
+            pCallContext,
+            MPORUtil.convertToVariableDeclaration(pOwnerDeclaration),
+            Optional.of(pWrittenFieldMember)));
   }
 
   // getters =======================================================================================
 
-  public ImmutableSet<CParameterDeclaration> getAccessedMainFunctionArgs() {
+  ImmutableSet<CVariableDeclaration> getAccessedMainFunctionArgs() {
     return ImmutableSet.copyOf(accessedMainFunctionArgs);
   }
 
-  public ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> getPointerAssignments() {
-    return ImmutableMap.copyOf(pointerAssignments);
-  }
-
-  public ImmutableTable<CSimpleDeclaration, CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-      getPointerFieldMemberAssignments() {
-
-    return ImmutableTable.copyOf(pointerFieldMemberAssignments);
+  ImmutableSet<SeqPointerAssignment> getPointerAssignments() {
+    return ImmutableSet.copyOf(pointerAssignments);
   }
 
   // pointer dereferences
 
-  public ImmutableSet<CSimpleDeclaration> getPointerDereferencesByAccessType(
-      MemoryAccessType pAccessType) {
+  ImmutableSet<SeqMemoryLocation> getPointerDereferencesByAccessType(
+      SeqMemoryAccessType pAccessType) {
 
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE access type variables");
@@ -211,16 +216,16 @@ public class MPORSubstitutionTracker {
     };
   }
 
-  public ImmutableSet<CSimpleDeclaration> getAccessedPointerDereferences() {
+  ImmutableSet<SeqMemoryLocation> getAccessedPointerDereferences() {
     return ImmutableSet.copyOf(accessedPointerDereferences);
   }
 
-  public ImmutableSet<CSimpleDeclaration> getWrittenPointerDereferences() {
+  ImmutableSet<SeqMemoryLocation> getWrittenPointerDereferences() {
     return ImmutableSet.copyOf(writtenPointerDereferences);
   }
 
-  public ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-      getFieldReferencePointerDereferencesByAccessType(MemoryAccessType pAccessType) {
+  ImmutableSet<SeqMemoryLocation> getFieldReferencePointerDereferencesByAccessType(
+      SeqMemoryAccessType pAccessType) {
 
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE access type variables");
@@ -230,22 +235,17 @@ public class MPORSubstitutionTracker {
     };
   }
 
-  public ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-      getAccessedFieldReferencePointerDereferences() {
-
-    return ImmutableSetMultimap.copyOf(accessedFieldReferencePointerDereferences);
+  ImmutableSet<SeqMemoryLocation> getAccessedFieldReferencePointerDereferences() {
+    return ImmutableSet.copyOf(accessedFieldReferencePointerDereferences);
   }
 
-  public ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-      getWrittenFieldReferencePointerDereferences() {
-
-    return ImmutableSetMultimap.copyOf(writtenFieldReferencePointerDereferences);
+  ImmutableSet<SeqMemoryLocation> getWrittenFieldReferencePointerDereferences() {
+    return ImmutableSet.copyOf(writtenFieldReferencePointerDereferences);
   }
 
   // variables
 
-  public ImmutableSet<CSimpleDeclaration> getDeclarationsByAccessType(
-      MemoryAccessType pAccessType) {
+  ImmutableSet<SeqMemoryLocation> getDeclarationsByAccessType(SeqMemoryAccessType pAccessType) {
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE access type variables");
       case ACCESS -> getAccessedDeclarations();
@@ -254,18 +254,17 @@ public class MPORSubstitutionTracker {
     };
   }
 
-  public ImmutableSet<CSimpleDeclaration> getAccessedDeclarations() {
+  ImmutableSet<SeqMemoryLocation> getAccessedDeclarations() {
     return ImmutableSet.copyOf(accessedDeclarations);
   }
 
-  public ImmutableSet<CSimpleDeclaration> getWrittenDeclarations() {
+  ImmutableSet<SeqMemoryLocation> getWrittenDeclarations() {
     return ImmutableSet.copyOf(writtenDeclarations);
   }
 
   // field members
 
-  public ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-      getFieldMembersByAccessType(MemoryAccessType pAccessType) {
+  ImmutableSet<SeqMemoryLocation> getFieldMembersByAccessType(SeqMemoryAccessType pAccessType) {
 
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE access type field members");
@@ -275,16 +274,12 @@ public class MPORSubstitutionTracker {
     };
   }
 
-  public ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-      getAccessedFieldMembers() {
-
-    return ImmutableSetMultimap.copyOf(accessedFieldMembers);
+  ImmutableSet<SeqMemoryLocation> getAccessedFieldMembers() {
+    return ImmutableSet.copyOf(accessedFieldMembers);
   }
 
-  public ImmutableSetMultimap<CSimpleDeclaration, CCompositeTypeMemberDeclaration>
-      getWrittenFieldMembers() {
-
-    return ImmutableSetMultimap.copyOf(writtenFieldMembers);
+  ImmutableSet<SeqMemoryLocation> getWrittenFieldMembers() {
+    return ImmutableSet.copyOf(writtenFieldMembers);
   }
 
   @Override
@@ -292,7 +287,6 @@ public class MPORSubstitutionTracker {
     return Objects.hash(
         accessedMainFunctionArgs,
         pointerAssignments,
-        pointerFieldMemberAssignments,
         accessedPointerDereferences,
         writtenPointerDereferences,
         accessedFieldReferencePointerDereferences,
@@ -311,7 +305,6 @@ public class MPORSubstitutionTracker {
     return pOther instanceof MPORSubstitutionTracker other
         && accessedMainFunctionArgs.equals(other.accessedMainFunctionArgs)
         && pointerAssignments.equals(other.pointerAssignments)
-        && pointerFieldMemberAssignments.equals(other.pointerFieldMemberAssignments)
         && accessedPointerDereferences.equals(other.accessedPointerDereferences)
         && writtenPointerDereferences.equals(other.writtenPointerDereferences)
         && accessedFieldReferencePointerDereferences.equals(

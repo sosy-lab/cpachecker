@@ -740,11 +740,11 @@ public class AssumptionToEdgeAllocator {
         throw new IllegalArgumentException(e1);
       }
 
-      if (addressV.isUnknown() && !addressV.isNumericValue()) {
+      if (!(addressV instanceof NumericValue numAddressV)) {
         return null;
       }
 
-      return addressV.asNumericValue().getNumber();
+      return numAddressV.getNumber();
     }
 
     private Address evaluateNumericalValueAsAddress(CExpression exp) {
@@ -1121,7 +1121,7 @@ public class AssumptionToEdgeAllocator {
                 }
                 yield Value.UnknownValue.getInstance();
               }
-              case DIVIDE, MODULO -> {
+              case DIVIDE, REMAINDER -> {
                 // Division and modulo with constants are sometimes supported
                 if (allowDivisionAndModuloByConstants
                     && rVarInBinaryExp instanceof ALiteralExpression) {
@@ -1129,7 +1129,7 @@ public class AssumptionToEdgeAllocator {
                 }
                 yield Value.UnknownValue.getInstance();
               }
-              case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_LEFT, SHIFT_RIGHT ->
+              case BITWISE_AND, BITWISE_OR, BITWISE_XOR, SHIFT_LEFT, SHIFT_RIGHT ->
                   Value.UnknownValue.getInstance();
               default -> super.visit(binaryExp);
             };
@@ -1153,17 +1153,15 @@ public class AssumptionToEdgeAllocator {
 
             Value offsetValueV = pointerOffset.accept(this);
 
-            if (addressValueV.isUnknown()
-                || offsetValueV.isUnknown()
-                || !addressValueV.isNumericValue()
-                || !offsetValueV.isNumericValue()) {
+            if (!(addressValueV instanceof NumericValue numAddressValueV)
+                || !(offsetValueV instanceof NumericValue numOffsetValueV)) {
               yield Value.UnknownValue.getInstance();
             }
 
-            Number addressValueNumber = addressValueV.asNumericValue().getNumber();
+            Number addressValueNumber = numAddressValueV.getNumber();
             BigDecimal addressValue = new BigDecimal(addressValueNumber.toString());
             // Because address and offset value may be interchanged, use BigDecimal for both
-            Number offsetValueNumber = offsetValueV.asNumericValue().getNumber();
+            Number offsetValueNumber = numOffsetValueV.getNumber();
             BigDecimal offsetValue = new BigDecimal(offsetValueNumber.toString());
             BigDecimal typeSize = new BigDecimal(machineModel.getSizeof(elementType));
             BigDecimal pointerOffsetValue = offsetValue.multiply(typeSize);
@@ -1429,14 +1427,14 @@ public class AssumptionToEdgeAllocator {
       }
       if (pValue instanceof Number pNumber) {
         NumericValue numericValue = new NumericValue(pNumber);
-        switch (basicType) {
+        return switch (basicType) {
           case BOOL, CHAR, INT, INT128 -> {
             Preconditions.checkArgument(
                 numericValue.hasIntegerType(),
                 "Expecting an integer value, but `%s` has type `%s`.",
                 pNumber,
                 pNumber.getClass().getSimpleName());
-            return handleIntegerNumbers(pNumber, pSimpleType);
+            yield handleIntegerNumbers(pNumber, pSimpleType);
           }
           case FLOAT, DOUBLE, FLOAT128 -> {
             // The value may have any type that implements the Number interface. We accept integers,
@@ -1454,11 +1452,11 @@ public class AssumptionToEdgeAllocator {
             if (numericValue.hasIntegerType()) {
               pNumber = convertToFloat(pNumber, pSimpleType);
             }
-            return handleFloatingPointNumbers(pNumber, pSimpleType);
+            yield handleFloatingPointNumbers(pNumber, pSimpleType);
           }
           default ->
               throw new AssertionError(String.format("Value has unknown type `%s`", basicType));
-        }
+        };
       }
       throw new AssertionError("Values must implement the Number interface.");
     }
@@ -1534,11 +1532,11 @@ public class AssumptionToEdgeAllocator {
         Value castValue =
             AbstractExpressionValueVisitor.castCValue(
                 new NumericValue(pIntegerValue), pType, machineModel, logManager);
-        if (castValue.isUnknown()) {
+        if (!(castValue instanceof NumericValue numericCastValue)) {
           return UnknownValueLiteral.getInstance();
         }
 
-        Number number = castValue.asNumericValue().getNumber();
+        Number number = numericCastValue.getNumber();
         final BigInteger valueAsBigInt;
         if (number instanceof BigInteger bigInteger) {
           valueAsBigInt = bigInteger;

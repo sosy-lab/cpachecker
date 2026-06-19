@@ -35,7 +35,6 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
@@ -96,6 +95,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
@@ -310,10 +310,10 @@ public class ValueAnalysisTransferRelation
 
   // Functions that we know are safe to ignore
   private static final Set<String> IGNORED_UNSUPPORTED_FUNCTIONS =
-      ImmutableSet.of("printf", "srand", "abort", "exit", "__builtin_unreachable");
+      ImmutableSet.of("printf", "srand", "abort", "exit", "__builtin_unreachable", "__assert_fail");
 
   public ValueAnalysisTransferRelation(
-      LogManager pLogger,
+      LogManagerWithoutDuplicates pLogger,
       CFA pCfa,
       ValueTransferOptions pOptions,
       MemoryLocationValueHandler pUnknownValueHandler,
@@ -321,7 +321,8 @@ public class ValueAnalysisTransferRelation
       @Nullable ValueAnalysisCPAStatistics pStats) {
     options = pOptions;
     machineModel = pCfa.getMachineModel();
-    logger = new LogManagerWithoutDuplicates(pLogger);
+    logger = pLogger;
+
     stats = pStats;
 
     if (pCfa.getVarClassification().isPresent()) {
@@ -1852,7 +1853,11 @@ public class ValueAnalysisTransferRelation
 
     if (isUnsupportedFunction(calledFunctionName)) {
       if (options.ignoreCallsToUnknownFunctions) {
-        String additionalMsg = "";
+        // CVoidType -> No return value
+        boolean hasReturnValue =
+            !(funcCallExpr.getExpressionType().getCanonicalType() instanceof CVoidType);
+        String sideEffectsMsg = "";
+
         if (functionCall.getFunctionCallExpression().getParameterExpressions().stream()
             .anyMatch(
                 p ->
@@ -1860,16 +1865,28 @@ public class ValueAnalysisTransferRelation
                         || p.getExpressionType().getCanonicalType() instanceof CArrayType)) {
           // It is UNSOUND to ignore these (in case of side effects)!!!!
           // It might be that the variable of the side effect is already overapproximated though.
-          additionalMsg =
-              " Side-effects of the function call are ignored! The analysis may no longer be"
+          sideEffectsMsg =
+              " Side-effects of function call "
+                  + functionCall
+                  + " are ignored! The analysis may no longer be"
                   + " sound!";
         }
-        logger.logOnce(
-            Level.WARNING,
-            "Return value for unknown and unhandled function call "
-                + functionCall
-                + " is overapproximated."
-                + additionalMsg);
+
+        if (hasReturnValue) {
+          logger.logOnce(
+              Level.WARNING,
+              "Return value for unknown and unhandled function call "
+                  + functionCall
+                  + " is overapproximated."
+                  + sideEffectsMsg);
+
+        } else if (!sideEffectsMsg.isEmpty()) {
+          // No return value, but possible side effects
+          logger.logOnce(
+              Level.WARNING,
+              "Found unhandled function call " + functionCall + "." + sideEffectsMsg);
+        }
+
       } else {
         throw new UnsupportedCodeException(
             "Unhandled call to function " + functionCall, cfaEdge, fn);

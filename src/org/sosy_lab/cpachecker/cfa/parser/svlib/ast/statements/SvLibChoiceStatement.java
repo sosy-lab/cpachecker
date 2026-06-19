@@ -41,7 +41,7 @@ public final class SvLibChoiceStatement extends SvLibControlFlowStatement {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTStringWithoutTags() {
     return "(choice"
         + Joiner.on(" ").join(choices.stream().map(SvLibStatement::toASTString).toList())
         + ")";

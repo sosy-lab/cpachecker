@@ -28,9 +28,12 @@ public class MergeBlockNodesDecomposition implements DssBlockDecomposition {
   public MergeBlockNodesDecomposition(
       DssBlockDecomposition pDecomposition,
       long pTargetNumber,
+      int pHorizontalMergeLimit,
       Comparator<BlockNodeWithoutGraphInformation> pSort,
       boolean pAllowSingleBlockDecomposition) {
-    horizontalMerger = new HorizontalMergeDecomposition(pDecomposition, pTargetNumber, pSort);
+    horizontalMerger =
+        new HorizontalMergeDecomposition(
+            pDecomposition, pTargetNumber, pHorizontalMergeLimit, pSort);
     verticalMerger = new VerticalMergeDecomposition(pDecomposition, pTargetNumber, pSort);
     decomposer = pDecomposition;
     targetNumber = pTargetNumber;
@@ -57,7 +60,7 @@ public class MergeBlockNodesDecomposition implements DssBlockDecomposition {
         break;
       }
     }
-    return BlockGraph.fromBlockNodesWithoutGraphInformation(cfa, nodes);
+    return BlockGraph.fromBlockNodesWithoutGraphInformation(nodes);
   }
 
   private Collection<BlockNodeWithoutGraphInformation> sorted(
