@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLBinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -32,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ModuloExpression;
 
 /**
  * Class for patterns defined on the transitions of instrumentation automaton. Should not be used
@@ -107,7 +109,7 @@ public class InstrumentationPattern {
       case NEG -> getTheOperandsFromUnaryOperation(pCFAEdge, UnaryOperator.MINUS, pDecomposedMap);
       case MUL -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.MULTIPLY, pDecomposedMap);
       case DIV -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.DIVIDE, pDecomposedMap);
-      case MOD -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.MODULO, pDecomposedMap);
+      case MOD -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.REMAINDER, pDecomposedMap);
       case SHIFT ->
           getTheOperandsFromOperation(pCFAEdge, BinaryOperator.SHIFT_LEFT, pDecomposedMap);
       case EQ -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.EQUALS, pDecomposedMap);
@@ -119,9 +121,9 @@ public class InstrumentationPattern {
       case NEQ -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.NOT_EQUALS, pDecomposedMap);
       case RSHIFT ->
           getTheOperandsFromOperation(pCFAEdge, BinaryOperator.SHIFT_RIGHT, pDecomposedMap);
-      case OR -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.BINARY_OR, pDecomposedMap);
-      case AND -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.BINARY_AND, pDecomposedMap);
-      case XOR -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.BINARY_XOR, pDecomposedMap);
+      case OR -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.BITWISE_OR, pDecomposedMap);
+      case AND -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.BITWISE_AND, pDecomposedMap);
+      case XOR -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.BITWISE_XOR, pDecomposedMap);
       default -> null;
     };
   }
