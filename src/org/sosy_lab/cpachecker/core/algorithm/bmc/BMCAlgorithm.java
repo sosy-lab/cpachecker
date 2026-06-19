@@ -61,7 +61,6 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateI
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariantCombination;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.EdgeFormula;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.FrontierEdgeFormulaNegation;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.LoopHeadPathFormulaNegation;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.LoopScopedFrontierEdgeFormulaNegation;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SingleLocationFormulaInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.StatewiseCandidateInvariantConjunction;
@@ -159,14 +158,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
               + " head can still continue through any represented continuation path.")
   private boolean terminationUseConjunctiveContinuationCandidates = false;
 
-  @Option(
-      name = "bmc.terminationUseLoopHeadPathCandidates",
-      secure = true,
-      description =
-          "In termination mode, add candidates at loop heads that encode simple paths from the"
-              + " loop head to internal branches that stay in the loop.")
-  private boolean terminationUseLoopHeadPathCandidates = false;
-
   // Option copied from PathChecker, keep in sync (and hopefully remove at some point)
   @Option(
       name = "counterexample.export.allowImpreciseCounterexamples",
@@ -200,7 +191,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private ImmutableSet<CandidateInvariant> lastBranchConditionStrengthenings = ImmutableSet.of();
   private static final int MAX_MODEL_EQUALITY_STRENGTHENINGS = 8;
   private static final int MAX_BRANCH_CONDITION_STRENGTHENINGS = 8;
-  private static final int MAX_LOOP_HEAD_PATH_CANDIDATE_EDGES = 16;
   private static final String NON_TERMINATION_BASE_CASE_SELECTOR_PREFIX =
       "__CPAchecker_nontermination_base_selector_";
 
@@ -416,9 +406,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         !pNegated && isDirectlyNonTerminatingNoExitLoop(pLoop);
     Set<CFANode> loopHeadsWithContinuationCandidate = new HashSet<>();
     addLoopHeadCandidates(pLoop, candidates, pNegated, loopHeadsWithContinuationCandidate);
-    if (pNegated && terminationUseLoopHeadPathCandidates) {
-      addLoopHeadPathCandidates(pLoop, candidates);
-    } else {
+    if (!pNegated) {
       addInternalExitGuardCandidates(pLoop, candidates, pNegated);
     }
     if (!pNegated) {
@@ -451,52 +439,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       addSingleLocationContinuationCandidatesAtNode(
           pLoop, loopHead, pCandidates, pNegated, pNodesWithContinuationCandidate);
     }
-  }
-
-  private void addLoopHeadPathCandidates(
-      Loop pLoop, ImmutableSet.Builder<CandidateInvariant> pCandidates) {
-    for (CFANode loopHead : pLoop.getLoopHeads()) {
-      addLoopHeadPathCandidatesFrom(
-          pLoop, loopHead, loopHead, new ArrayList<>(), new HashSet<>(), pCandidates);
-    }
-  }
-
-  private void addLoopHeadPathCandidatesFrom(
-      Loop pLoop,
-      CFANode pLoopHead,
-      CFANode pCurrentNode,
-      List<CFAEdge> pPrefixEdges,
-      Set<CFANode> pVisitedNodes,
-      ImmutableSet.Builder<CandidateInvariant> pCandidates) {
-    if (pPrefixEdges.size() >= MAX_LOOP_HEAD_PATH_CANDIDATE_EDGES
-        || !pLoop.getLoopNodes().contains(pCurrentNode)
-        || !pVisitedNodes.add(pCurrentNode)) {
-      return;
-    }
-
-    if (!pCurrentNode.equals(pLoopHead) && hasInternalExitAlternative(pLoop, pCurrentNode)) {
-      for (CFAEdge leavingEdge : pCurrentNode.getLeavingEdges()) {
-        if (leavingEdge instanceof AssumeEdge assumeEdge
-            && pLoop.getLoopNodes().contains(assumeEdge.getSuccessor())
-            && !branchLeavesLoop(pLoop, assumeEdge)) {
-          pCandidates.add(
-              new LoopHeadPathFormulaNegation(pLoopHead, pPrefixEdges, assumeEdge));
-        }
-      }
-    }
-
-    for (CFAEdge leavingEdge : pCurrentNode.getLeavingEdges()) {
-      CFANode successor = leavingEdge.getSuccessor();
-      if (!pLoop.getLoopNodes().contains(successor) || successor.equals(pLoopHead)) {
-        continue;
-      }
-      pPrefixEdges.add(leavingEdge);
-      addLoopHeadPathCandidatesFrom(
-          pLoop, pLoopHead, successor, pPrefixEdges, pVisitedNodes, pCandidates);
-      pPrefixEdges.remove(pPrefixEdges.size() - 1);
-    }
-
-    pVisitedNodes.remove(pCurrentNode);
   }
 
   private void addInternalExitGuardCandidates(

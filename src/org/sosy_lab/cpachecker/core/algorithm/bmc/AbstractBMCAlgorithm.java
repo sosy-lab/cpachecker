@@ -185,15 +185,6 @@ abstract class AbstractBMCAlgorithm
               + " continue with the next depth.")
   private boolean terminationSkipBoundingAssertionsAfterCandidateViolation = false;
 
-  @Option(
-      secure = true,
-      name = "terminationFilterCandidateProvenStopStates",
-      description =
-          "In termination mode, after no-continuation candidates hold for the current depth,"
-              + " omit stop states covered by those candidates from the unwinding-assertion"
-              + " check.")
-  private boolean terminationFilterCandidateProvenStopStates = false;
-
   protected static boolean isStopState(AbstractState state) {
     AssumptionStorageState assumptionState =
         AbstractStates.extractStateByType(state, AssumptionStorageState.class);
@@ -575,7 +566,6 @@ abstract class AbstractBMCAlgorithm
 
         Set<CandidateInvariant> candidatesWithSuccessfulBaseCase = new LinkedHashSet<>();
         Set<CandidateInvariant> candidatesSuggestedAfterBaseCase = new LinkedHashSet<>();
-        Set<CandidateInvariant> terminationCandidatesProvenForCurrentK = new LinkedHashSet<>();
         boolean terminationCandidateViolated = false;
         boolean skipNonTerminationProof =
             isNonTerminationMode() && nonTerminationSkipProofForTerminationFallback;
@@ -600,9 +590,6 @@ abstract class AbstractBMCAlgorithm
                   safe
                       ? "Termination mode: current candidate holds for the current k."
                       : "Termination mode: current candidate is violated for the current k.");
-              if (safe) {
-                terminationCandidatesProvenForCurrentK.add(candidateInvariant);
-              }
             }
             if (safe && isNonTerminationMode()) {
               if (isDirectlyConfirmedNonTerminationCandidate(candidateInvariant)) {
@@ -664,8 +651,7 @@ abstract class AbstractBMCAlgorithm
           } else {
             sound =
                 (isTerminationMode() || candidateGenerator.hasCandidatesAvailable())
-                    ? checkBoundingAssertions(
-                        reachedSet, prover, terminationCandidatesProvenForCurrentK)
+                    ? checkBoundingAssertions(reachedSet, prover)
                     : true;
           }
 
@@ -1365,26 +1351,10 @@ abstract class AbstractBMCAlgorithm
   private boolean checkBoundingAssertions(
       final ReachedSet pReachedSet, final BasicProverEnvironment<?> prover)
       throws SolverException, InterruptedException {
-    return checkBoundingAssertions(pReachedSet, prover, ImmutableList.of());
-  }
-
-  private boolean checkBoundingAssertions(
-      final ReachedSet pReachedSet,
-      final BasicProverEnvironment<?> prover,
-      final Iterable<CandidateInvariant> pCandidateProvenStopStates)
-      throws SolverException, InterruptedException {
     FluentIterable<AbstractState> stopStates =
         from(pReachedSet)
             .filter(AbstractBMCAlgorithm::isStopState)
             .filter(AbstractBMCAlgorithm::isRelevantForReachability);
-    if (terminationFilterCandidateProvenStopStates) {
-      ImmutableList<CandidateInvariant> provenCandidates =
-          ImmutableList.copyOf(pCandidateProvenStopStates);
-      if (!provenCandidates.isEmpty()) {
-        stopStates =
-            stopStates.filter(state -> !isCoveredByCandidate(provenCandidates, state));
-      }
-    }
 
     if (boundingAssertions) {
       logger.log(Level.INFO, "Starting assertions check...");
@@ -1434,17 +1404,6 @@ abstract class AbstractBMCAlgorithm
       // fast check for trivial cases
       return stopStates.isEmpty();
     }
-  }
-
-  private boolean isCoveredByCandidate(
-      Iterable<CandidateInvariant> pCandidates, AbstractState pState) {
-    ImmutableList<AbstractState> state = ImmutableList.of(pState);
-    for (CandidateInvariant candidate : pCandidates) {
-      if (!Iterables.isEmpty(candidate.filterApplicable(state))) {
-        return true;
-      }
-    }
-    return false;
   }
 
   @Override
