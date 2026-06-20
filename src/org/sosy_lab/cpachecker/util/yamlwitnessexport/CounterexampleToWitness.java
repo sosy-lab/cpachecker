@@ -412,7 +412,8 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         return ImmutableList.of(
             assumptionWaypoint
                 .orElseThrow()
-                .withThreadId(getThreadIdIfExists(pState, pEdge, pThreadNameToIdBuilder.buildOrThrow())));
+                .withThreadId(
+                    getThreadIdIfExists(pState, pEdge, pThreadNameToIdBuilder.buildOrThrow())));
       } else {
         return ImmutableList.of(assumptionWaypoint.orElseThrow());
       }
@@ -593,13 +594,44 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     WaypointRecord waypointRecord = targetWaypoint(lastEdge, astCFARelation);
 
     if (pWitnessVersion.equals(YAMLWitnessVersion.V2d2)) {
-      segments.add(
-          SegmentRecord.ofOnlyElement(
-              waypointRecord.withThreadId(
-                  getThreadIdIfExists(
-                      pCex.getTargetPath().getStateSet().asList().get(edges.size()),
-                      lastEdge,
-                      threadNameToIdBuilder.buildOrThrow()))));
+      if (getSpecification().getProperties().stream()
+          .anyMatch(pProperty -> pProperty.equals(CommonVerificationProperty.DATA_RACE))) {
+        // For data races we need to export a multi target segment which points to the last two
+        // edges producing the violation
+        //
+        // For this we assume that the data race violation was found immediately such that
+        // the data-race occured between the execution of the last and second to last thread. This
+        // simplifies the witness, since we do not need to figure out which of the last ARGStates
+        // actually contains the data race. However, for this we need to ignore blank edges, since
+        // they are actually not part of the possible data-race.
+        ImmutableList<CFAEdge> edgesWithoutBlankEdges =
+            FluentIterable.from(edges).filter(edge -> !(edge instanceof BlankEdge)).toList();
+        CFAEdge secondToLastEdge = edgesWithoutBlankEdges.get(edgesWithoutBlankEdges.size() - 2);
+        CFAEdge thirdToLastEdge = edgesWithoutBlankEdges.get(edgesWithoutBlankEdges.size() - 3);
+        segments.add(
+            new SegmentRecord(
+                ImmutableList.of(
+                    targetWaypoint(thirdToLastEdge, astCFARelation)
+                        .withThreadId(
+                            getThreadIdIfExists(
+                                pCex.getTargetPath().getStateSet().asList().get(edges.size() - 2),
+                                thirdToLastEdge,
+                                threadNameToIdBuilder.buildOrThrow())),
+                    targetWaypoint(secondToLastEdge, astCFARelation)
+                        .withThreadId(
+                            getThreadIdIfExists(
+                                pCex.getTargetPath().getStateSet().asList().get(edges.size() - 1),
+                                secondToLastEdge,
+                                threadNameToIdBuilder.buildOrThrow())))));
+      } else {
+        segments.add(
+            SegmentRecord.ofOnlyElement(
+                waypointRecord.withThreadId(
+                    getThreadIdIfExists(
+                        pCex.getTargetPath().getStateSet().asList().get(edges.size()),
+                        lastEdge,
+                        threadNameToIdBuilder.buildOrThrow()))));
+      }
     } else {
       segments.add(SegmentRecord.ofOnlyElement(waypointRecord));
     }
