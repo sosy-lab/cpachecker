@@ -102,6 +102,10 @@ public class WaypointRecord {
     return thread;
   }
 
+  public WaypointRecord withThreadId(OptionalInt pThreadId) {
+    return new WaypointRecord(type, action, constraint, location, pThreadId);
+  }
+
   @Override
   @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object pOther) {
@@ -251,7 +255,7 @@ public class WaypointRecord {
       serializers.defaultSerializeValue(value.getAction(), gen);
 
       if (value.getThread().isPresent()) {
-        gen.writeFieldName("thread");
+        gen.writeFieldName("thread_id");
         serializers.defaultSerializeValue(value.getThread().orElseThrow(), gen);
       }
 

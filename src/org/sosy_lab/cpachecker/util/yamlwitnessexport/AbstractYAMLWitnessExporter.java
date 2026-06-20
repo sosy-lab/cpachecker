@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.TaskRecord;
 abstract class AbstractYAMLWitnessExporter {
 
   @Option(secure = true, description = "The version for which to export the witness.")
-  protected List<YAMLWitnessVersion> witnessVersions = ImmutableList.of(YAMLWitnessVersion.V2);
+  protected List<YAMLWitnessVersion> witnessVersions = ImmutableList.of(YAMLWitnessVersion.V2d2);
 
   @Option(
       secure = true,
