@@ -266,7 +266,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       if (pWitnessVersion.equals(YAMLWitnessVersion.V2d2)) {
         return ImmutableList.of(
             assumption.withThreadId(
-                getThreadIdIfExists(pState, pEdge, pThreadNameToIdBuilder.build())));
+                getThreadIdIfExists(pState, pEdge, pThreadNameToIdBuilder.buildOrThrow())));
       } else {
         return ImmutableList.of(assumption);
       }
@@ -358,7 +358,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       if (pWitnessVersion.equals(YAMLWitnessVersion.V2d2)) {
         return ImmutableList.of(
             waypointRecord.withThreadId(
-                getThreadIdIfExists(pState, pEdge, pThreadNameToIdBuilder.build())));
+                getThreadIdIfExists(pState, pEdge, pThreadNameToIdBuilder.buildOrThrow())));
       } else {
         return ImmutableList.of(waypointRecord);
       }
@@ -379,7 +379,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       Optional<String> currentThreadNameIfExists = getNewThreadNameIfExists(pState, pPreviousState);
 
       pThreadNameToIdBuilder.put(
-          currentThreadNameIfExists.orElseThrow(), pThreadNameToIdBuilder.build().size());
+          currentThreadNameIfExists.orElseThrow(), pThreadNameToIdBuilder.buildOrThrow().size());
 
       WaypointRecord waypointRecord =
           new WaypointRecord(
@@ -396,7 +396,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
 
       return ImmutableList.of(
           waypointRecord.withThreadId(
-              getThreadIdIfExists(pState, pEdge, pThreadNameToIdBuilder.build())));
+              getThreadIdIfExists(pState, pEdge, pThreadNameToIdBuilder.buildOrThrow())));
 
     } else if (exportCompleteCounterexample) {
       // Export all other edges which are not absolutely relevant for the counterexample
@@ -412,7 +412,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         return ImmutableList.of(
             assumptionWaypoint
                 .orElseThrow()
-                .withThreadId(getThreadIdIfExists(pState, pEdge, pThreadNameToIdBuilder.build())));
+                .withThreadId(getThreadIdIfExists(pState, pEdge, pThreadNameToIdBuilder.buildOrThrow())));
       } else {
         return ImmutableList.of(assumptionWaypoint.orElseThrow());
       }
@@ -599,7 +599,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
                   getThreadIdIfExists(
                       pCex.getTargetPath().getStateSet().asList().get(edges.size()),
                       lastEdge,
-                      threadNameToIdBuilder.build()))));
+                      threadNameToIdBuilder.buildOrThrow()))));
     } else {
       segments.add(SegmentRecord.ofOnlyElement(waypointRecord));
     }
