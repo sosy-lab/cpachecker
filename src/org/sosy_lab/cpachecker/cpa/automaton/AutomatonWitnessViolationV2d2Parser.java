@@ -231,7 +231,8 @@ class AutomatonWitnessViolationV2d2Parser extends AutomatonWitnessViolationV2d0P
 
       // If the column does not match we continue by not matching this edge
       if (followColumn.isPresent()
-          && followColumn.orElseThrow() != edge.getFileLocation().getStartColumnInLine()) {
+          && followColumn.orElseThrow()
+              != edge.getFileLocation().getStartColumnInLine() + edge.getCode().indexOf("(")) {
         continue;
       }
 
