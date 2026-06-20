@@ -12,7 +12,9 @@ import static com.google.common.truth.Truth.assertThat;
 
 import java.nio.file.Path;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cmdline.CPAMain;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -28,6 +30,35 @@ public class AutomatonWitnessV2d0ValidationIntegrationTest {
 
   private String TEST_DIR_PATH = "test/programs/witness-v2-validation";
   private String SPECIFICATION_PATH = "config/properties/";
+
+  @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
+
+  protected void verificationPlusValidationTest(
+      Path pFilePath, Result pExpectedVerdict, Path pSpecificationFilePath) throws Exception {
+    Configuration witnessGenerationConfig =
+        CPAMain.createConfiguration(
+                new String[] {
+                  "--spec",
+                  pSpecificationFilePath.toString(),
+                  "--config",
+                  "config/svcomp27.properties",
+                  "--output-path",
+                  tempFolder.getRoot().getAbsolutePath(),
+                  pFilePath.toString(),
+                })
+            .configuration();
+    ;
+
+    IntegrationTestResult generationResult =
+        IntegrationTestRunner.run(witnessGenerationConfig, pFilePath.toString());
+    // Trigger statistics so that the witness is written to the file
+    generationResult.cpaCheckerResult().writeOutputFiles();
+
+    assertThat(generationResult.cpaCheckerResult().getResult()).isEqualTo(pExpectedVerdict);
+
+    Path witnessFile = Path.of(tempFolder.getRoot().getAbsolutePath(), "witness.yml");
+    performValidationTest(pFilePath, pExpectedVerdict, pSpecificationFilePath, witnessFile);
+  }
 
   /**
    * Tests if CPAchecker can validate a given c software with given 2.0 witnesses

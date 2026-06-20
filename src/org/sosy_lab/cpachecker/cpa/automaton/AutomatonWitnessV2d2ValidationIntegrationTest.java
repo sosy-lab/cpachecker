@@ -33,12 +33,19 @@ public class AutomatonWitnessV2d2ValidationIntegrationTest
     performValidationTest(inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
   }
 
-  @Test(timeout = 300000000)
+  @Test(timeout = 3000)
   public void validate_data_race_concurrency() throws Exception {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-data-race.prp");
     Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-data-race.c");
     Path witnessFilePath =
         Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-data-race.witness-2.2.yml");
     performValidationTest(inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
+  @Test(timeout = 30000000)
+  public void validate_unreach_call_concurrency_roundtrip() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-unreach.c");
+    verificationPlusValidationTest(inputFilePath, Result.FALSE, specificationFilePath);
   }
 }
