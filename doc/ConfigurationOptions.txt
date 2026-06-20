@@ -6049,4 +6049,4 @@ witness.yamlexporter.analyseWitnessQuality = false
 witness.yamlexporter.exportCompleteCounterexample = false
 
 # The version for which to export the witness.
-witness.yamlexporter.witnessVersions = [YAMLWitnessVersion.V2]
+witness.yamlexporter.witnessVersions = [YAMLWitnessVersion.V2d2]
