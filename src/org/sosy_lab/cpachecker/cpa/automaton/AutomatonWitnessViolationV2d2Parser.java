@@ -222,7 +222,7 @@ class AutomatonWitnessViolationV2d2Parser extends AutomatonWitnessViolationV2d0P
     for (CFAEdge edge :
         FluentIterable.from(startLineToCFAEdge.get(followLine))
             .toSortedSet(
-                Comparator.comparing(
+                Comparator.comparingInt(
                     pCFAEdge -> pCFAEdge.getFileLocation().getStartColumnInLine()))) {
       // Not a function call so we skip it
       if (!(edge instanceof AStatementEdge || edge instanceof FunctionCallEdge)) {
