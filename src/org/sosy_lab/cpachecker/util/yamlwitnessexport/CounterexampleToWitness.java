@@ -542,7 +542,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     ImmutableListMultimap<CFAEdge, String> edgeToAssumptions = edgeToAssumptionsBuilder.build();
 
     ImmutableList.Builder<SegmentRecord> segments = ImmutableList.builder();
-    List<CFAEdge> edges = pCex.getTargetPath().getFullPath();
+    List<CFAEdge> edges = pCex.getTargetPath().getInnerEdges();
 
     // This builder keeps track of the mapping between thread IDs and the order in which they were
     // created such that we can refer to them in the witness. Main always has the thread ID 0.
