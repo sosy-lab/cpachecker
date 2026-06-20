@@ -47,7 +47,6 @@ public class AutomatonWitnessV2d0ValidationIntegrationTest {
                   pFilePath.toString(),
                 })
             .configuration();
-    ;
 
     IntegrationTestResult generationResult =
         IntegrationTestRunner.run(witnessGenerationConfig, pFilePath.toString());
