@@ -257,8 +257,8 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
   public Formula visit(AcslCExpression pAcslCExpression) {
     try {
       return cExpressionToFormula(pAcslCExpression.getCExpression());
-    } catch (UnrecognizedCodeException pE) {
-      throw new RuntimeException(pE);
+    } catch (UnrecognizedCodeException ex) {
+      throw new RuntimeException(ex);
     }
   }
 
