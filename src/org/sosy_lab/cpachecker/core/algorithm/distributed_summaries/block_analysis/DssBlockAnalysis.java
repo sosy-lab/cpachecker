@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssDebugUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -230,6 +231,9 @@ public class DssBlockAnalysis {
   private Collection<DssMessage> reportPostconditions(
       Collection<@NonNull StateAndPrecision> summaries) throws CPAException, InterruptedException {
 
+    if (summaries.isEmpty()) {
+      return ImmutableList.of();
+    }
     // reset all summaries and run cpa algorithm on them to remove redundant ones
     ImmutableList<StateAndPrecision> uniqueSummaries = deduplicateStates(summaries);
 
@@ -677,7 +681,7 @@ public class DssBlockAnalysis {
   private AnalysisResult analyzeViolationCondition(
       List<ARGState> violations, boolean checkOnlyRelevant)
       throws CPAException, InterruptedException {
-    if (preconditions.isEmpty() && !block.isRoot()) {
+    if (violations.isEmpty()) {
       return new AnalysisResult(ImmutableList.of(), ImmutableSet.of());
     }
 
@@ -733,14 +737,18 @@ public class DssBlockAnalysis {
         vcs.addAll(computeViolationConditionStates(result.getViolationConditionViolations()));
         vcs.addAll(computeViolationConditionStatesFromOrigin(result.getTargetStates()));
         if (!isTrivial) {
-          // all final non-trivial states originating from a non-trivial state
-          FluentIterable.from(result.getFinalLocationStates())
-              .filter(
-                  state ->
-                      !result.getSummaries().contains(state)
-                          && !dcpa.isMostGeneralBlockEntryState(state))
-              .transform(state -> new StateAndPrecision(state, reachedSet.getPrecision(state)))
-              .forEach(summaries::add);
+          if (combineByHash) {
+            summaries.add(makeTopSummary());
+          } else {
+            // all final non-trivial states originating from a non-trivial state
+            FluentIterable.from(result.getFinalLocationStates())
+                .filter(
+                    state ->
+                        !result.getSummaries().contains(state)
+                            && !dcpa.isMostGeneralBlockEntryState(state))
+                .transform(state -> new StateAndPrecision(state, reachedSet.getPrecision(state)))
+                .forEach(summaries::add);
+          }
         }
       }
     }
