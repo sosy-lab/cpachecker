@@ -1831,7 +1831,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
    * @param constraints the constraints needed during visiting
    * @param errorConditions the error conditions
    */
-  protected CRightHandSideVisitor<Formula, UnrecognizedCodeException> createCRightHandSideVisitor(
+  public CRightHandSideVisitor<Formula, UnrecognizedCodeException> createCRightHandSideVisitor(
       CFAEdge pEdge,
       String pFunction,
       SSAMapBuilder ssa,

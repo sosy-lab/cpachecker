@@ -722,7 +722,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @return A visitor for right hand side expressions.
    */
   @Override
-  protected CRightHandSideVisitor<Formula, UnrecognizedCodeException> createCRightHandSideVisitor(
+  public CRightHandSideVisitor<Formula, UnrecognizedCodeException> createCRightHandSideVisitor(
       CFAEdge pEdge,
       String pFunction,
       SSAMapBuilder pSsa,
