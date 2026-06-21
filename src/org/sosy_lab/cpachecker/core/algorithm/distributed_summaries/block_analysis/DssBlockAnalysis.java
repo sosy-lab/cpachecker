@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssDebugUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -680,6 +681,9 @@ public class DssBlockAnalysis {
   private AnalysisResult analyzeViolationCondition(
       List<ARGState> violations, boolean checkOnlyRelevant)
       throws CPAException, InterruptedException {
+    if (violations.isEmpty()) {
+      return new AnalysisResult(ImmutableList.of(), ImmutableSet.of());
+    }
 
     // unreachable block ends might be caused by underapproximating summaries
     // therefore, a new violation condition cannot ignore them.
@@ -733,14 +737,18 @@ public class DssBlockAnalysis {
         vcs.addAll(computeViolationConditionStates(result.getViolationConditionViolations()));
         vcs.addAll(computeViolationConditionStatesFromOrigin(result.getTargetStates()));
         if (!isTrivial) {
-          // all final non-trivial states originating from a non-trivial state
-          FluentIterable.from(result.getFinalLocationStates())
-              .filter(
-                  state ->
-                      !result.getSummaries().contains(state)
-                          && !dcpa.isMostGeneralBlockEntryState(state))
-              .transform(state -> new StateAndPrecision(state, reachedSet.getPrecision(state)))
-              .forEach(summaries::add);
+          if (combineByHash) {
+            summaries.add(makeTopSummary());
+          } else {
+            // all final non-trivial states originating from a non-trivial state
+            FluentIterable.from(result.getFinalLocationStates())
+                .filter(
+                    state ->
+                        !result.getSummaries().contains(state)
+                            && !dcpa.isMostGeneralBlockEntryState(state))
+                .transform(state -> new StateAndPrecision(state, reachedSet.getPrecision(state)))
+                .forEach(summaries::add);
+          }
         }
       }
     }
