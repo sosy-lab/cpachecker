@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAtTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
@@ -32,11 +33,15 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTermVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.exceptions.NoException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -94,6 +99,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
   @Override
   public Formula visit(AcslUnaryTerm pAcslUnaryTerm) throws NoException {
     // TODO handle pointer and address operators
+    // TODO check negation vs bitwise complementation according to ACSL standard
     Formula operandFormula = pAcslUnaryTerm.getOperand().accept(this);
 
     return switch (pAcslUnaryTerm.getOperator()) {
@@ -247,6 +253,15 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     throw new UnsupportedOperationException("Not yet implemented");
   }
 
+  @Override
+  public Formula visit(AcslCExpression pAcslCExpression) {
+    try {
+      return cExpressionToFormula(pAcslCExpression.getCExpression());
+    } catch (UnrecognizedCodeException pE) {
+      throw new RuntimeException(pE);
+    }
+  }
+
   /**
    * Returns the index of a variable in the ssa map, or creates one with value 1 for new variables
    * (A bit ugly because of code duplication, might remove later if there is another way)
@@ -271,5 +286,26 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
       currentSsa.setIndex(name, type, idx);
     }
     return idx;
+  }
+
+  // this is just a rough sketch, so for now no warnings so the rest can build
+  @SuppressWarnings({"unchecked", "rawtypes", "unused"})
+  private Formula cExpressionToFormula(CExpression cExpr) throws UnrecognizedCodeException {
+    // TODO where can I pass dummies and where do I actually need the parameters?
+    // TODO which option is correct if one is correct at all?
+
+    // Option 1:
+    CRightHandSideVisitor<Formula, UnrecognizedCodeException> exprVisitor =
+        ctoFormulaConverter.createCRightHandSideVisitor(null, null, currentSsa, null, null, null);
+    Formula f = cExpr.accept(exprVisitor);
+
+    // Option 2:
+    // or maybe just skip the expression step in between
+    CRightHandSideVisitor formVisitor =
+        new ExpressionToFormulaVisitor(
+            ctoFormulaConverter, fmgr, null, null, currentSsa, null, null, null);
+    f = (Formula) cExpr.accept(formVisitor);
+
+    return f;
   }
 }
