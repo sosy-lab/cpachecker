@@ -54,7 +54,7 @@ public record TailRecursionEliminationRecovery(
       // remove the initial ARGState in the program transformation
       currentARGState = ProgramTransformationRecoveryUtils.handleEntry(previousARGState, currentARGState, reached);
       // in tail recursion elimination we must have only one child state, i.e. a Function start dummy edge
-      assert(currentARGState.getChildren().size() == 1);
+      assert (currentARGState.getChildren().size() == 1) : "More than one child ARG state at the start of the function!";
       ARGState childARGState = currentARGState.getChildren().getFirst();
       // recover all ARGStates belonging to this program transformation
       recoverARG(
@@ -189,6 +189,14 @@ public record TailRecursionEliminationRecovery(
     }
   }
 
+  /**
+   * Recover a single state that can simply be mapped back to another location.
+   * @param pPreviousARGState previous ARGState
+   * @param pCurrentARGState current ARGState
+   * @param reached reached set
+   * @param pLocationStateFactory access to LocationStates
+   * @return the new ARGState with updated LocationState
+   */
   private ARGState revertSingleState(
       ARGState pPreviousARGState,
       ARGState pCurrentARGState,
@@ -224,6 +232,7 @@ public record TailRecursionEliminationRecovery(
    *
    * @param pStateBeforeExitCondition  the previous ARGState at the exit condition check
    * @param pStateBeforeFirstParameter the current ARGState before the first parameter gets assigned
+   * @param reached reached set
    * @param pLocationStateFactory      Factory for access to LocationStates
    * @return ARGState before the new exit condition check
    */
@@ -290,7 +299,7 @@ public record TailRecursionEliminationRecovery(
     return argStateAfterFSDummyEdge;
   }
 
-  /** Enum for tracking the current position in a transformed function when traversing the ARG. */
+  /** Enum for tracking the current position in a transformed recursive function when traversing the ARG. */
   private enum TailRecursionState {
     FUNCTION_START,
     EXIT_CONDITION,
