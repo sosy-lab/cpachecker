@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
@@ -234,5 +235,10 @@ public class AcslRenamingVisitor
         pAcslArraySubscriptTerm.getExpressionType(),
         pAcslArraySubscriptTerm.getArrayExpression().accept(this),
         pAcslArraySubscriptTerm.getSubscriptExpression().accept(this));
+  }
+
+  @Override
+  public AcslTerm visit(AcslCExpression pAcslCExpression) {
+    throw new UnsupportedOperationException("Renaming in C expressions is not supported for now");
   }
 }
