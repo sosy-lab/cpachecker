@@ -184,7 +184,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
         new SvLibSetLogicCommand(SmtLibLogic.ALL, FileLocation.DUMMY),
         new SvLibSetInfoCommand(":format-version", "1.0", FileLocation.DUMMY),
         new SvLibSetInfoCommand(
-            ":source", cfa.getFileNames().getFirst().getFileName().toString(), FileLocation.DUMMY));
+            ":source", cfa.getFileNames().getFirst().getFileName().toString(), FileLocation.DUMMY),
+        new SvLibSetInfoCommand(":producer", "CPAchecker", FileLocation.DUMMY));
 
     // 1. Step: Initialize CurrentScope with declarations of procedures and global variables,
     // global variables are added to scope +  declaration commands are added to commandsCollector
