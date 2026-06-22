@@ -185,6 +185,15 @@ abstract class AbstractBMCAlgorithm
               + " continue with the next depth.")
   private boolean terminationSkipBoundingAssertionsAfterCandidateViolation = false;
 
+  @Option(
+      secure = true,
+      name = "terminationUseCandidateCoverageForSoundness",
+      description =
+          "In termination mode, after all loop-continuation candidates hold for the current"
+              + " unrolling depth, prove soundness from covered loop-bound frontier states instead"
+              + " of checking unwinding assertions.")
+  private boolean terminationUseCandidateCoverageForSoundness = false;
+
   protected static boolean isStopState(AbstractState state) {
     AssumptionStorageState assumptionState =
         AbstractStates.extractStateByType(state, AssumptionStorageState.class);
@@ -648,6 +657,8 @@ abstract class AbstractBMCAlgorithm
                 "Termination mode: candidate violation shows that the current bound is not"
                     + " sufficient; skipping unwinding-assertion check.");
             sound = false;
+          } else if (isTerminationMode() && terminationUseCandidateCoverageForSoundness) {
+            sound = checkTerminationCandidateCoverage(reachedSet);
           } else {
             sound =
                 (isTerminationMode() || candidateGenerator.hasCandidatesAvailable())
@@ -1045,6 +1056,11 @@ abstract class AbstractBMCAlgorithm
   }
 
   protected boolean isTerminationMode() {
+    return false;
+  }
+
+  protected boolean checkTerminationCandidateCoverage(ReachedSet pReachedSet) {
+    checkNotNull(pReachedSet);
     return false;
   }
 

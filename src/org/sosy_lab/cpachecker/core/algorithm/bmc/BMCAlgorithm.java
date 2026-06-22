@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateI
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariantCombination;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.EdgeFormula;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.FrontierEdgeFormulaNegation;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.LoopIterationFormulaNegation;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.LoopScopedFrontierEdgeFormulaNegation;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SingleLocationFormulaInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.StatewiseCandidateInvariantConjunction;
@@ -85,6 +86,7 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.InvariantProvider;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
+import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -183,6 +185,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private boolean terminationCandidatesIncomplete = false;
   private int loopsWithoutTerminationCandidates = 0;
+  private final Set<Loop> terminationLoopsWithContinuationCandidates = new HashSet<>();
+  private final Set<CFANode> terminationLoopHeadsWithContinuationCandidates = new HashSet<>();
   private final Set<CandidateInvariant> directlyConfirmedNonTerminationCandidates = new HashSet<>();
   private final Map<CandidateInvariant, NonTerminationLoopScope> nonTerminationLoopScopes =
       new HashMap<>();
@@ -267,11 +271,90 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   @Override
+  protected boolean checkTerminationCandidateCoverage(ReachedSet pReachedSet) {
+    if (!terminationMode) {
+      return false;
+    }
+    if (terminationCandidatesIncomplete) {
+      logger.log(
+          Level.INFO,
+          "Termination mode: candidate-coverage proof is unavailable because loop-continuation"
+              + " candidate generation was incomplete.");
+      return false;
+    }
+
+    boolean sawFrontier = false;
+    for (AbstractState state : pReachedSet) {
+      if (!isStopState(state) || !isRelevantForReachability(state)) {
+        continue;
+      }
+      sawFrontier = true;
+      LoopBoundState loopBoundState =
+          AbstractStates.extractStateByType(state, LoopBoundState.class);
+      if (loopBoundState == null) {
+        logger.log(
+            Level.INFO,
+            "Termination mode: candidate-coverage proof found a stop state without loop-bound"
+                + " information.");
+        return false;
+      }
+      Set<Loop> frontierLoops = loopBoundState.getDeepestIterationLoops();
+      if (frontierLoops.isEmpty()) {
+        logger.log(
+            Level.INFO,
+            "Termination mode: candidate-coverage proof found a stop state without a frontier"
+                + " loop.");
+        return false;
+      }
+      for (Loop frontierLoop : frontierLoops) {
+        if (!terminationLoopsWithContinuationCandidates.contains(frontierLoop)) {
+          logger.logf(
+              Level.INFO,
+              "Termination mode: loop-bound frontier for loop heads %s is not covered by a"
+                  + " loop-continuation candidate.",
+              frontierLoop.getLoopHeads());
+          return false;
+        }
+      }
+      boolean sawLocation = false;
+      for (CFANode location : AbstractStates.extractLocations(state)) {
+        sawLocation = true;
+        if (!terminationLoopHeadsWithContinuationCandidates.contains(location)) {
+          logger.logf(
+              Level.INFO,
+              "Termination mode: loop-bound frontier at %s is not covered by a loop-head"
+                  + " continuation candidate.",
+              location);
+          return false;
+        }
+      }
+      if (!sawLocation) {
+        logger.log(
+            Level.INFO,
+            "Termination mode: candidate-coverage proof found a stop state without location"
+                + " information.");
+        return false;
+      }
+    }
+
+    logger.log(
+        Level.INFO,
+        sawFrontier
+            ? "Termination mode: all loop-bound frontier states are covered by loop-continuation"
+                + " candidates that hold for the current bound."
+            : "Termination mode: no relevant loop-bound frontier states remain for the current"
+                + " bound.");
+    return true;
+  }
+
+  @Override
   protected CandidateGenerator getCandidateInvariants() {
     if (terminationMode) {
       if (terminationDisableCandidates) {
         terminationCandidatesIncomplete = false;
         loopsWithoutTerminationCandidates = 0;
+        terminationLoopsWithContinuationCandidates.clear();
+        terminationLoopHeadsWithContinuationCandidates.clear();
         logger.log(
             Level.INFO,
             "Termination mode is enabled, but loop-continuation candidates are disabled.");
@@ -284,6 +367,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
     terminationCandidatesIncomplete = false;
     loopsWithoutTerminationCandidates = 0;
+    terminationLoopsWithContinuationCandidates.clear();
+    terminationLoopHeadsWithContinuationCandidates.clear();
     if (getTargetLocations().isEmpty() || !cfa.getAllLoopHeads().isPresent()) {
       return CandidateGenerator.EMPTY_GENERATOR;
     } else {
@@ -330,6 +415,10 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private CandidateGenerator createLoopContinuationCandidateGenerator(boolean pNegated) {
     terminationCandidatesIncomplete = false;
     loopsWithoutTerminationCandidates = 0;
+    if (pNegated) {
+      terminationLoopsWithContinuationCandidates.clear();
+      terminationLoopHeadsWithContinuationCandidates.clear();
+    }
     directlyConfirmedNonTerminationCandidates.clear();
     nonTerminationLoopScopes.clear();
     if (!cfa.getLoopStructure().isPresent()) {
@@ -356,6 +445,9 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                     + " heads %s.",
             loop.getLoopHeads());
       } else {
+        if (pNegated) {
+          terminationLoopsWithContinuationCandidates.add(loop);
+        }
         candidates.addAll(loopCandidates);
       }
     }
@@ -405,17 +497,22 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     boolean directlyNonTerminatingNoExitLoop =
         !pNegated && isDirectlyNonTerminatingNoExitLoop(pLoop);
     Set<CFANode> loopHeadsWithContinuationCandidate = new HashSet<>();
-    addLoopHeadCandidates(pLoop, candidates, pNegated, loopHeadsWithContinuationCandidate);
-    if (!pNegated) {
-      addInternalExitGuardCandidates(pLoop, candidates, pNegated);
+    if (pNegated) {
+      addTerminationLoopHeadCandidates(pLoop, candidates, loopHeadsWithContinuationCandidate);
+    } else {
+      addLoopHeadCandidates(pLoop, candidates, pNegated, loopHeadsWithContinuationCandidate);
     }
     if (!pNegated) {
+      addInternalExitGuardCandidates(pLoop, candidates, pNegated);
       addNoExitLoopHeadCandidates(pLoop, candidates);
       addLoopExitViolationCandidates(pLoop, candidates, loopHeadsWithContinuationCandidate);
     }
     ImmutableSet<CandidateInvariant> loopCandidates = candidates.build();
     if (loopCandidates.isEmpty()) {
       return loopCandidates;
+    }
+    if (pNegated) {
+      terminationLoopHeadsWithContinuationCandidates.addAll(loopHeadsWithContinuationCandidate);
     }
     CandidateInvariant loopCandidate =
         pNegated && !terminationUseConjunctiveContinuationCandidates
@@ -439,6 +536,96 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       addSingleLocationContinuationCandidatesAtNode(
           pLoop, loopHead, pCandidates, pNegated, pNodesWithContinuationCandidate);
     }
+  }
+
+  private void addTerminationLoopHeadCandidates(
+      Loop pLoop,
+      ImmutableSet.Builder<CandidateInvariant> pCandidates,
+      Set<CFANode> pLoopHeadsWithContinuationCandidate) {
+    for (CFANode loopHead : pLoop.getLoopHeads()) {
+      Optional<CandidateInvariant> loopIterationCandidate =
+          getSinglePathLoopIterationCandidate(pLoop, loopHead);
+      if (loopIterationCandidate.isPresent()) {
+        pCandidates.add(loopIterationCandidate.orElseThrow());
+        pLoopHeadsWithContinuationCandidate.add(loopHead);
+        continue;
+      }
+      addSingleLocationContinuationCandidatesAtNode(
+          pLoop, loopHead, pCandidates, true, pLoopHeadsWithContinuationCandidate);
+    }
+  }
+
+  private Optional<CandidateInvariant> getSinglePathLoopIterationCandidate(
+      Loop pLoop, CFANode pLoopHead) {
+    List<CFAEdge> prefixEdges = new ArrayList<>();
+    Set<CFANode> visited = new HashSet<>();
+    CFANode current = pLoopHead;
+
+    while (pLoop.getLoopNodes().contains(current) && visited.add(current)) {
+      if (current.equals(pLoopHead)) {
+        Optional<AssumeEdge> headContinuationEdge =
+            getSingleLoopHeadContinuationEdge(pLoop, current);
+        if (headContinuationEdge.isPresent()) {
+          AssumeEdge headEdge = headContinuationEdge.orElseThrow();
+          prefixEdges.add(headEdge);
+          current = headEdge.getSuccessor();
+          continue;
+        }
+      }
+      Optional<AssumeEdge> continuationEdge = getSingleInternalContinuationEdge(pLoop, current);
+      if (continuationEdge.isPresent()) {
+        return Optional.of(
+            new LoopIterationFormulaNegation(
+                pLoopHead, prefixEdges, continuationEdge.orElseThrow()));
+      }
+
+      if (current.getNumLeavingEdges() != 1) {
+        return Optional.empty();
+      }
+      CFAEdge edge = current.getLeavingEdge(0);
+      if (!pLoop.getLoopNodes().contains(edge.getSuccessor()) || branchLeavesLoop(pLoop, edge)) {
+        return Optional.empty();
+      }
+      prefixEdges.add(edge);
+      current = edge.getSuccessor();
+    }
+    return Optional.empty();
+  }
+
+  private Optional<AssumeEdge> getSingleLoopHeadContinuationEdge(Loop pLoop, CFANode pLoopHead) {
+    AssumeEdge continuationEdge = null;
+    for (CFAEdge leavingEdge : pLoopHead.getLeavingEdges()) {
+      if (!(leavingEdge instanceof AssumeEdge assumeEdge)
+          || !pLoop.getLoopNodes().contains(assumeEdge.getSuccessor())
+          || branchLeavesLoop(pLoop, assumeEdge)) {
+        continue;
+      }
+      if (continuationEdge != null) {
+        return Optional.empty();
+      }
+      continuationEdge = assumeEdge;
+    }
+    return Optional.ofNullable(continuationEdge);
+  }
+
+  private Optional<AssumeEdge> getSingleInternalContinuationEdge(Loop pLoop, CFANode pNode) {
+    if (!hasInternalExitAlternative(pLoop, pNode)) {
+      return Optional.empty();
+    }
+
+    AssumeEdge continuationEdge = null;
+    for (CFAEdge leavingEdge : pNode.getLeavingEdges()) {
+      if (!(leavingEdge instanceof AssumeEdge assumeEdge)
+          || !pLoop.getLoopNodes().contains(assumeEdge.getSuccessor())
+          || branchLeavesLoop(pLoop, assumeEdge)) {
+        continue;
+      }
+      if (continuationEdge != null) {
+        return Optional.empty();
+      }
+      continuationEdge = assumeEdge;
+    }
+    return Optional.ofNullable(continuationEdge);
   }
 
   private void addInternalExitGuardCandidates(
