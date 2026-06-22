@@ -59,8 +59,8 @@ public class InstrumentationPattern {
         switch (pPattern) {
           case "true" -> patternType.TRUE;
           case "false" -> patternType.FALSE;
-          case "[cond]" -> patternType.COND;
-          case "[!cond]" -> patternType.NOT_COND;
+          case "cond" -> patternType.COND;
+          case "!cond" -> patternType.NOT_COND;
           case "ptr_deref" -> patternType.PTR_DEREF;
           case "ptr_declar" -> patternType.PTR_DECLAR;
           case "declar" -> patternType.DECLAR;

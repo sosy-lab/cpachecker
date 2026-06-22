@@ -69,10 +69,16 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       description =
           """
           toggle the strategy to determine the hardcoded instrumentation automaton to be used
-              TERMINATION: transform termination to reachability
-              NOOVERFLOW: transform no-overflow to reachability
           """)
   private InstrumentationProperty instrumentationProperty = InstrumentationProperty.TERMINATION;
+
+  @Option(
+      secure = true,
+      description =
+          """
+          parsed instrumentation automaton from yaml file provided by TransVer's UI part
+          """)
+  private String parsedInstrumentationAutomaton = "";
 
   @Option(secure = true, description = "Where to write machine readable new edges.")
   @FileOption(Type.OUTPUT_FILE)
@@ -115,13 +121,25 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
               .sorted((info1, info2) -> Integer.compare(info1.loopLocation(), info2.loopLocation()))
               .collect(ImmutableSet.toImmutableSet())) {
         try {
-          mapAutomataToLocations.put(
-              info.loopLocation(),
-              new InstrumentationAutomaton(
-                  instrumentationProperty,
-                  info.liveVariablesAndTypes(),
-                  substractDeclaredVariables(info.liveVariablesAndTypes(), alreadyDefinedVariables),
-                  index));
+          if (!parsedInstrumentationAutomaton.isBlank()) {
+            mapAutomataToLocations.put(
+                info.loopLocation(),
+                new InstrumentationAutomaton(
+                    parsedInstrumentationAutomaton,
+                    info.liveVariablesAndTypes(),
+                    substractDeclaredVariables(
+                        info.liveVariablesAndTypes(), alreadyDefinedVariables),
+                    index));
+          } else {
+            mapAutomataToLocations.put(
+                info.loopLocation(),
+                new InstrumentationAutomaton(
+                    instrumentationProperty,
+                    info.liveVariablesAndTypes(),
+                    substractDeclaredVariables(
+                        info.liveVariablesAndTypes(), alreadyDefinedVariables),
+                    index));
+          }
         } catch (IllegalArgumentException e) {
           logger.log(Level.SEVERE, "Unrecognized property to instrument.");
         }

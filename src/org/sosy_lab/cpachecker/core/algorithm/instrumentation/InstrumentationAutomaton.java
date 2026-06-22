@@ -8,11 +8,16 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Data structure that defines the required transformation of CFA. It is used in
@@ -87,6 +92,145 @@ public class InstrumentationAutomaton {
       case MEMTRACK -> constructMemTrack();
       case MEMSAFETY -> constructMemSafety();
     }
+  }
+
+  /**
+   * @param pParsedInstrumentationAutomaton parsed automaton from YAML file in TransVer
+   * @param pLiveVariablesAndTypes the mapping from variable names used, but not declared, in a loop
+   *     to their types
+   */
+  public InstrumentationAutomaton(
+      String pParsedInstrumentationAutomaton,
+      ImmutableMap<String, String> pLiveVariablesAndTypes,
+      ImmutableMap<String, String> pUndeclaredVariables,
+      int pIndex)
+      throws CPAException {
+    this.liveVariablesAndTypes = pLiveVariablesAndTypes;
+    this.undeclaredVariables = pUndeclaredVariables;
+    ImmutableList<InstrumentationState> states =
+        parseStates(Iterables.get(Splitter.on("||||").split(pParsedInstrumentationAutomaton), 0));
+    this.initialState = states.getFirst();
+    this.instrumentationTransitions =
+        parseTransitions(
+            Iterables.get(Splitter.on("||||").split(pParsedInstrumentationAutomaton), 1),
+            states,
+            pIndex);
+  }
+
+  /**
+   * Parses the list of states from a string with the following form: [q0,loop_head|||,
+   * q1,loop_head|||, q2,ff|||] Every state is divided by the splitter |||, and it contains first
+   * the name and then the annotation.
+   */
+  private ImmutableList<InstrumentationState> parseStates(String parsedStatesFromYAML) {
+    return Arrays.stream(
+            parsedStatesFromYAML.replace("[", "").replace("|||]", "").split(Pattern.quote("|||, ")))
+        .map(
+            q ->
+                new InstrumentationState(
+                    Iterables.get(Splitter.on(',').split(q), 0),
+                    StateAnnotation.valueOf(Iterables.get(Splitter.on(',').split(q), 1)),
+                    this))
+        .collect(ImmutableList.toImmutableList());
+  }
+
+  /**
+   * Parses the list of transitions from a string with the following form: [q0,cond,op,A,q1,...|||]
+   * Every transition is divided by the splitter |||, and it contains the source state, pattern,
+   * operation, order and the destination state.
+   */
+  private ImmutableList<InstrumentationTransition> parseTransitions(
+      String parsedTransitionsFromYAML, ImmutableList<InstrumentationState> states, int pIndex)
+      throws CPAException {
+    ImmutableList.Builder<InstrumentationTransition> transitionBuilder = ImmutableList.builder();
+    for (String transition :
+        Arrays.stream(
+                parsedTransitionsFromYAML
+                    .replace("[", "")
+                    .replace("|||]", "")
+                    .split(Pattern.quote("|||, ")))
+            .toList()) {
+      Iterable<String> transitionComponents = Splitter.on(',').split(transition);
+      InstrumentationState source =
+          findStateWithNameOrThrow(states, Iterables.get(transitionComponents, 0));
+      InstrumentationState destination =
+          findStateWithNameOrThrow(states, Iterables.get(transitionComponents, 4));
+      transitionBuilder.add(
+          new InstrumentationTransition(
+              source,
+              new InstrumentationPattern(Iterables.get(transitionComponents, 1)),
+              parseOperation(Iterables.get(transitionComponents, 2), pIndex),
+              InstrumentationOrder.valueOf(Iterables.get(transitionComponents, 3)),
+              destination));
+    }
+
+    return transitionBuilder.build();
+  }
+
+  private InstrumentationOperation parseOperation(String operation, int pIndex) {
+    operation = operation.replace("INSTR_INDEX", Integer.toString(pIndex));
+    operation =
+        operation.replace(
+            "__INSTR_init_in_scope();",
+            liveVariablesAndTypes.entrySet().stream()
+                    .map(
+                        (entry) ->
+                            entry.getValue()
+                                + " __INSTR_"
+                                + entry.getKey()
+                                + "_"
+                                + pIndex
+                                + (entry.getKey().charAt(0) == '*'
+                                    ? " = alloca(sizeof("
+                                        + getAllocationForPointer(entry.getValue())
+                                        + "))"
+                                    : ""))
+                    .collect(Collectors.joining("; "))
+                + (!liveVariablesAndTypes.isEmpty() ? ";" : ""));
+    operation =
+        operation.replace(
+            "__INSTR_assign_in_scope();",
+            liveVariablesAndTypes.entrySet().stream()
+                    .map(
+                        (entry) ->
+                            getDereferencesForPointer(entry.getValue())
+                                + " __INSTR_"
+                                + entry.getKey()
+                                + "_"
+                                + pIndex
+                                + " = "
+                                + getDereferencesForPointer(entry.getValue())
+                                + entry.getKey())
+                    .collect(Collectors.joining("; "))
+                + (!liveVariablesAndTypes.isEmpty() ? "; " : ""));
+    operation =
+        operation.replace(
+            "__INSTR_assume_in_scope();",
+            liveVariablesAndTypes.entrySet().stream()
+                    .map(
+                        (entry) ->
+                            "("
+                                + getDereferencesForPointer(entry.getValue())
+                                + entry.getKey()
+                                + " != __INSTR_"
+                                + getDereferencesForPointer(entry.getValue())
+                                + entry.getKey()
+                                + "_"
+                                + pIndex
+                                + ")")
+                    .collect(Collectors.joining("||"))
+                + ";");
+    return new InstrumentationOperation(operation);
+  }
+
+  private InstrumentationState findStateWithNameOrThrow(
+      ImmutableList<InstrumentationState> states, String name) throws CPAException {
+    for (InstrumentationState state : states) {
+      if (state.toString().equals(name)) {
+        return state;
+      }
+    }
+    throw new CPAException("Non-existing state was used in transition!");
   }
 
   public InstrumentationState getInitialState() {
@@ -800,7 +944,7 @@ public class InstrumentationAutomaton {
     InstrumentationTransition t2 =
         new InstrumentationTransition(
             q2,
-            new InstrumentationPattern("[cond]"),
+            new InstrumentationPattern("cond"),
             new InstrumentationOperation(
                 "if(__VERIFIER_nondet_int() && __INSTR_saved_"
                     + pIndex
@@ -884,7 +1028,7 @@ public class InstrumentationAutomaton {
     InstrumentationTransition t2 =
         new InstrumentationTransition(
             q2,
-            new InstrumentationPattern("[cond]"),
+            new InstrumentationPattern("cond"),
             new InstrumentationOperation(
                 "if(__VERIFIER_nondet_int() && __INSTR_saved_"
                     + pIndex
@@ -966,7 +1110,7 @@ public class InstrumentationAutomaton {
     InstrumentationTransition t2 =
         new InstrumentationTransition(
             q2,
-            new InstrumentationPattern("[cond]"),
+            new InstrumentationPattern("cond"),
             new InstrumentationOperation(
                 "if (__INSTR_saved == 0) {__INSTR_pc = "
                     + pIndex
@@ -1044,7 +1188,7 @@ public class InstrumentationAutomaton {
     InstrumentationTransition t2 =
         new InstrumentationTransition(
             q2,
-            new InstrumentationPattern("[cond]"),
+            new InstrumentationPattern("cond"),
             new InstrumentationOperation("__INSTR_first_" + pIndex + " = 1;"),
             InstrumentationOrder.AFTER,
             q3);

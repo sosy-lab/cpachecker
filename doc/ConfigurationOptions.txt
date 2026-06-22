@@ -4884,8 +4884,6 @@ impact.useForcedCovering = true
 
 # toggle the strategy to determine the hardcoded instrumentation automaton to
 # be used
-#     TERMINATION: transform termination to reachability
-#     NOOVERFLOW: transform no-overflow to reachability
 instrumentation.instrumentationProperty = TERMINATION
   enum:     [TERMINATION, TERMINATIONWITHCOUNTERS, TERMINATIONWITHABORTS,
              ONESTEPREACHABILITY, NOOVERFLOW, DATA_RACE, MEMCLEANUP, VALID_DEREF,
@@ -4893,6 +4891,10 @@ instrumentation.instrumentationProperty = TERMINATION
 
 # Where to write machine readable new edges.
 instrumentation.newEdgesFile = "newEdgesInfo.txt"
+
+# parsed instrumentation automaton from yaml file provided by TransVer's UI
+# part
+instrumentation.parsedInstrumentationAutomaton = ""
 
 # Configuration file for the K-Induction algorithm for checking candidates on
 # invariance.
