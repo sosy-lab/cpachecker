@@ -387,8 +387,12 @@ class CToSvLibInitializer {
       CFunctionCallStatement pFunctionCall, String pProcedureName) {
     CType functionReturnType = pFunctionCall.getFunctionCallExpression().getExpressionType();
     SvLibSmtLibType returnType = convertToSvLibSmtLibType(functionReturnType);
+    String returnDummyName =
+        (returnType instanceof SvLibSmtLibBitVectorType bitVectorType)
+        ? RETURN_VAR_DUMMY_PREFIX + "bv" + bitVectorType.getSize()
+        : RETURN_VAR_DUMMY_PREFIX + returnType;
     return new SvLibParsingParameterDeclaration(
-        FileLocation.DUMMY, returnType, RETURN_VAR_DUMMY_PREFIX + returnType, pProcedureName);
+        FileLocation.DUMMY, returnType, returnDummyName, pProcedureName);
   }
 
   private SvLibSmtLibType convertToSvLibSmtLibType(CType pCType) {

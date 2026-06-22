@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibSequenceStat
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -548,8 +549,11 @@ class CToSvLibTransformation {
     for (SvLibParsingParameterDeclaration parsingParameterDeclaration :
         pCalledProcedure.getReturnValues()) {
       SvLibType returnType = parsingParameterDeclaration.getType();
-      SvLibSimpleParsingDeclaration returnDummyVariable =
-          scope.getVariable(RETURN_VAR_DUMMY_PREFIX + returnType);
+      String returnDummyName =
+          (returnType instanceof SvLibSmtLibBitVectorType bitVectorType)
+              ? RETURN_VAR_DUMMY_PREFIX + "bv" + bitVectorType.getSize()
+              : RETURN_VAR_DUMMY_PREFIX + returnType;
+      SvLibSimpleParsingDeclaration returnDummyVariable = scope.getVariable(returnDummyName);
       returnVariableDummies.add(returnDummyVariable);
     }
 
@@ -752,7 +756,8 @@ class CToSvLibTransformation {
     SvLibType argumentType = pTerm.getExpressionType();
     if (!argumentType.equals(pParameterType)
         && argumentType.equals(SvLibSmtLibPredefinedType.BOOL)
-        && pParameterType.equals(SvLibSmtLibPredefinedType.INT)) {
+        && (pParameterType.equals(SvLibSmtLibPredefinedType.INT)
+            || pParameterType instanceof SvLibSmtLibBitVectorType)) {
 
       SvLibSymbolApplicationTerm transformedTerm =
           createIntegerTermsViaTransformationDummyEdge(
