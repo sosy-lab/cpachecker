@@ -165,27 +165,24 @@ public class InstrumentationAutomaton {
 
   private InstrumentationOperation parseOperation(String operation, int pIndex) {
     operation = operation.replace("INSTR_INDEX", Integer.toString(pIndex));
+    operation = initializeGhostVariables(operation, pIndex);
+    operation = assignGhostVariables(operation, pIndex);
+    operation = assumeGhostVariables(operation, pIndex);
+    return new InstrumentationOperation(operation);
+  }
+
+  private String initializeGhostVariables(String operation, int pIndex) {
+    String index;
+    if (operation.contains("__INSTR_init_in_scope(INSTR_INDEX_init)")) {
+      operation =
+          operation.replace("__INSTR_init_in_scope(INSTR_INDEX_init)", "__INSTR_init_in_scope()");
+      index = Integer.toString(pIndex);
+    } else {
+      index = "";
+    }
     operation =
         operation.replace(
             "__INSTR_init_in_scope();",
-            liveVariablesAndTypes.entrySet().stream()
-                    .map(
-                        (entry) ->
-                            entry.getValue()
-                                + " __INSTR_"
-                                + entry.getKey()
-                                + "_"
-                                + pIndex
-                                + (entry.getKey().charAt(0) == '*'
-                                    ? " = alloca(sizeof("
-                                        + getAllocationForPointer(entry.getValue())
-                                        + "))"
-                                    : ""))
-                    .collect(Collectors.joining("; "))
-                + (!liveVariablesAndTypes.isEmpty() ? ";" : ""));
-    operation =
-        operation.replace(
-            "__INSTR_assign_in_scope();",
             liveVariablesAndTypes.entrySet().stream()
                     .map(
                         (entry) ->
@@ -193,12 +190,25 @@ public class InstrumentationAutomaton {
                                 + " __INSTR_"
                                 + entry.getKey()
                                 + "_"
-                                + pIndex
+                                + index
                                 + " = "
                                 + getDereferencesForPointer(entry.getValue())
                                 + entry.getKey())
                     .collect(Collectors.joining("; "))
                 + (!liveVariablesAndTypes.isEmpty() ? "; " : ""));
+    return operation;
+  }
+
+  private String assumeGhostVariables(String operation, int pIndex) {
+    String index;
+    if (operation.contains("__INSTR_assume_in_scope(INSTR_INDEX_init)")) {
+      operation =
+          operation.replace(
+              "__INSTR_assume_in_scope(INSTR_INDEX_init)", "__INSTR_assume_in_scope()");
+      index = Integer.toString(pIndex);
+    } else {
+      index = "";
+    }
     operation =
         operation.replace(
             "__INSTR_assume_in_scope()",
@@ -212,10 +222,41 @@ public class InstrumentationAutomaton {
                             + getDereferencesForPointer(entry.getValue())
                             + entry.getKey()
                             + "_"
-                            + pIndex
+                            + index
                             + ")")
                 .collect(Collectors.joining("||")));
-    return new InstrumentationOperation(operation);
+    return operation;
+  }
+
+  private String assignGhostVariables(String operation, int pIndex) {
+    String index;
+    if (operation.contains("__INSTR_assign_in_scope(INSTR_INDEX_init)")) {
+      operation =
+          operation.replace(
+              "__INSTR_assign_in_scope(INSTR_INDEX_init)", "__INSTR_assign_in_scope()");
+      index = Integer.toString(pIndex);
+    } else {
+      index = "";
+    }
+    operation =
+        operation.replace(
+            "__INSTR_assign_in_scope();",
+            liveVariablesAndTypes.entrySet().stream()
+                    .map(
+                        (entry) ->
+                            entry.getValue()
+                                + " __INSTR_"
+                                + entry.getKey()
+                                + "_"
+                                + index
+                                + (entry.getKey().charAt(0) == '*'
+                                    ? " = alloca(sizeof("
+                                        + getAllocationForPointer(entry.getValue())
+                                        + "))"
+                                    : ""))
+                    .collect(Collectors.joining("; "))
+                + (!liveVariablesAndTypes.isEmpty() ? ";" : ""));
+    return operation;
   }
 
   private InstrumentationState findStateWithNameOrThrow(
