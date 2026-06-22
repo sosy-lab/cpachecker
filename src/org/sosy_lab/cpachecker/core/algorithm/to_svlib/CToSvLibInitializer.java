@@ -268,14 +268,23 @@ class CToSvLibInitializer {
       scope.addProcedureDeclaration(procedureDeclaration);
     }
 
+    for (CType type : typesOfHeapArraysToBuild.build()) {
+      // for arrays with dimensionality = 2
+      if (type instanceof CArrayType arrayType) {
+        typesOfHeapArraysToBuild.add(arrayType.getCanonicalType().getType());
+      }
+    }
+
     for (CType heapArrayType : typesOfHeapArraysToBuild.build()) {
-      SvLibParsingVariableDeclaration heapArrayParsingVariableDeclaration =
-          createArrayDeclarationForHeap(heapArrayType);
-      SvLibVariableDeclarationCommand heapArrayVariableDeclarationCommand =
-          new SvLibVariableDeclarationCommand(
-              heapArrayParsingVariableDeclaration, FileLocation.DUMMY);
-      pCommandsCollector.add(heapArrayVariableDeclarationCommand);
-      scope.addVariable(heapArrayParsingVariableDeclaration);
+      if (!(heapArrayType instanceof CArrayType)) {
+        SvLibParsingVariableDeclaration heapArrayParsingVariableDeclaration =
+            createArrayDeclarationForHeap(heapArrayType);
+        SvLibVariableDeclarationCommand heapArrayVariableDeclarationCommand =
+            new SvLibVariableDeclarationCommand(
+                heapArrayParsingVariableDeclaration, FileLocation.DUMMY);
+        pCommandsCollector.add(heapArrayVariableDeclarationCommand);
+        scope.addVariable(heapArrayParsingVariableDeclaration);
+      }
     }
   }
 
@@ -377,6 +386,16 @@ class CToSvLibInitializer {
   }
 
   private SvLibSmtLibType convertToSvLibSmtLibType(CType pCType) {
+    if (pCType instanceof CArrayType arrayType && !arrayType.hasKnownConstantSize()) {
+      // TODO probably better recursively but works for 2d
+      if (arrayType.getCanonicalType().getType() instanceof CArrayType nestedArrayType) {
+        CType innerType = nestedArrayType.getCanonicalType().getType();
+        pCType = innerType;
+      } else {
+        pCType = arrayType.getCanonicalType().getType();
+      }
+    }
+
     FormulaType<?> formulaType = converter.getFormulaTypeFromType(pCType);
     FormulaType<Formula> encodedFormulaType = formulaManager.getEncodedFormulaType(formulaType);
 

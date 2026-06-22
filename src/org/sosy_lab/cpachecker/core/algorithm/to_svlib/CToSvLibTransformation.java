@@ -854,6 +854,11 @@ class CToSvLibTransformation {
         && term.getTerms().size() == 3) {
       return new SvLibAssumeStatement(
           FileLocation.DUMMY, term, ImmutableList.of(), ImmutableList.of());
+    } else if (pTransformedTerm instanceof SvLibSymbolApplicationTerm term
+        && term.getSymbol().getName().equals("and")
+        && (term.getTerms().size() == 4 || term.getTerms().size() == 5)) {
+      return new SvLibAssumeStatement(
+          FileLocation.DUMMY, term, ImmutableList.of(), ImmutableList.of());
     }
     throw new UnsupportedOperationException(
         "Failed to handle assignment for edge "
