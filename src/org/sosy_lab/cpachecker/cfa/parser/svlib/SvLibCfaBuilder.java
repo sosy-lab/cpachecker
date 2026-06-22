@@ -270,6 +270,10 @@ class SvLibCfaBuilder {
           leavingEdge.getSuccessor().removeEnteringEdge(leavingEdge);
         }
       }
+      if (unreachableNode instanceof FunctionExitNode) {
+        logger.log(Level.WARNING, "Removing unreachable function exit node " + unreachableNode);
+        functionEntryNode.removeExitNode();
+      }
     }
 
     return Pair.of(functionEntryNode, nodeCollectingCFAVisitor.getVisitedNodes());
