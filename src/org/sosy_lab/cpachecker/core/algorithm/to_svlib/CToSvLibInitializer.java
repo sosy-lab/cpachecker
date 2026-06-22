@@ -57,12 +57,14 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibHavocStateme
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibSequenceStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
@@ -364,6 +366,16 @@ class CToSvLibInitializer {
   }
 
   private SvLibParsingVariableDeclaration createArrayDeclarationForHeap(CType pElementType) {
+    SvLibSmtLibType indexType = getConvertedIntType();
+    SvLibSmtLibArrayType arrayType =
+        new SvLibSmtLibArrayType(indexType, convertToSvLibSmtLibType(pElementType));
+
+    String heapTypeName = getHeapArrayName(pElementType);
+    return new SvLibParsingVariableDeclaration(
+        FileLocation.DUMMY, true, false, arrayType, heapTypeName, heapTypeName, null);
+  }
+
+  private @NonNull String getHeapArrayName(CType pElementType) {
     String heapTypeName = "";
     if (pElementType instanceof CSimpleType simpleType) {
       heapTypeName = simpleType.getType().toASTString();
@@ -376,11 +388,14 @@ class CToSvLibInitializer {
           "Failed to create array to model heap for CType " + pElementType);
     }
     heapTypeName = "*" + heapTypeName;
-    SvLibSmtLibArrayType arrayType =
-        new SvLibSmtLibArrayType(
-            SvLibSmtLibPredefinedType.INT, convertToSvLibSmtLibType(pElementType));
-    return new SvLibParsingVariableDeclaration(
-        FileLocation.DUMMY, true, false, arrayType, heapTypeName, heapTypeName, null);
+    return heapTypeName;
+  }
+
+  private SvLibSmtLibType getConvertedIntType() {
+    CSimpleType indexTypeC =
+        new CSimpleType(
+            CTypeQualifiers.NONE, CBasicType.INT, false, false, false, true, false, false, false);
+    return convertToSvLibSmtLibType(indexTypeC);
   }
 
   private SvLibParsingParameterDeclaration createDummyReturnParameter(
@@ -389,8 +404,8 @@ class CToSvLibInitializer {
     SvLibSmtLibType returnType = convertToSvLibSmtLibType(functionReturnType);
     String returnDummyName =
         (returnType instanceof SvLibSmtLibBitVectorType bitVectorType)
-        ? RETURN_VAR_DUMMY_PREFIX + "bv" + bitVectorType.getSize()
-        : RETURN_VAR_DUMMY_PREFIX + returnType;
+            ? RETURN_VAR_DUMMY_PREFIX + "bv" + bitVectorType.getSize()
+            : RETURN_VAR_DUMMY_PREFIX + returnType;
     return new SvLibParsingParameterDeclaration(
         FileLocation.DUMMY, returnType, returnDummyName, pProcedureName);
   }
