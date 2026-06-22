@@ -164,10 +164,10 @@ public class InstrumentationAutomaton {
   }
 
   private InstrumentationOperation parseOperation(String operation, int pIndex) {
-    operation = operation.replace("INSTR_INDEX", Integer.toString(pIndex));
     operation = initializeGhostVariables(operation, pIndex);
     operation = assignGhostVariables(operation, pIndex);
     operation = assumeGhostVariables(operation, pIndex);
+    operation = operation.replace("INSTR_INDEX", Integer.toString(pIndex));
     return new InstrumentationOperation(operation);
   }
 
