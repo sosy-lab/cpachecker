@@ -284,6 +284,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
 
     boolean sawFrontier = false;
+    Set<Loop> loopsCoveredByFrontier = new HashSet<>();
     for (AbstractState state : pReachedSet) {
       if (!isStopState(state) || !isRelevantForReachability(state)) {
         continue;
@@ -315,6 +316,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
               frontierLoop.getLoopHeads());
           return false;
         }
+        loopsCoveredByFrontier.add(frontierLoop);
       }
       boolean sawLocation = false;
       for (CFANode location : AbstractStates.extractLocations(state)) {
@@ -344,6 +346,23 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                 + " candidates that hold for the current bound."
             : "Termination mode: no relevant loop-bound frontier states remain for the current"
                 + " bound.");
+    if (sawFrontier && loopsWithoutTerminationCandidates > 0) {
+      logger.logf(
+          Level.INFO,
+          "Termination mode: refusing candidate-coverage proof because %d loop(s) have no"
+              + " loop-continuation candidate and may still be reachable after the current"
+              + " frontier.",
+          loopsWithoutTerminationCandidates);
+      return false;
+    }
+    if (sawFrontier
+        && !loopsCoveredByFrontier.containsAll(terminationLoopsWithContinuationCandidates)) {
+      logger.log(
+          Level.INFO,
+          "Termination mode: refusing candidate-coverage proof because the current loop-bound"
+              + " frontier has not covered all loops with loop-continuation candidates yet.");
+      return false;
+    }
     return true;
   }
 
@@ -542,6 +561,10 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       Loop pLoop,
       ImmutableSet.Builder<CandidateInvariant> pCandidates,
       Set<CFANode> pLoopHeadsWithContinuationCandidate) {
+    if (addNoExitTerminationLoopHeadCandidates(
+        pLoop, pCandidates, pLoopHeadsWithContinuationCandidate)) {
+      return;
+    }
     for (CFANode loopHead : pLoop.getLoopHeads()) {
       Optional<CandidateInvariant> loopIterationCandidate =
           getSinglePathLoopIterationCandidate(pLoop, loopHead);
@@ -553,6 +576,20 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       addSingleLocationContinuationCandidatesAtNode(
           pLoop, loopHead, pCandidates, true, pLoopHeadsWithContinuationCandidate);
     }
+  }
+
+  private boolean addNoExitTerminationLoopHeadCandidates(
+      Loop pLoop,
+      ImmutableSet.Builder<CandidateInvariant> pCandidates,
+      Set<CFANode> pLoopHeadsWithContinuationCandidate) {
+    if (!pLoop.getOutgoingEdges().isEmpty()) {
+      return false;
+    }
+    for (CFANode loopHead : pLoop.getLoopHeads()) {
+      pCandidates.add(SingleLocationFormulaInvariant.makeBooleanInvariant(loopHead, false));
+      pLoopHeadsWithContinuationCandidate.add(loopHead);
+    }
+    return true;
   }
 
   private Optional<CandidateInvariant> getSinglePathLoopIterationCandidate(
