@@ -598,7 +598,9 @@ public class DssBlockAnalysis {
     for (StateAndPrecision stateAndPrecision : deserializedStates) {
       if (oldVcs.contains(extractWitnessFromState(stateAndPrecision.state()))) {
         equal++;
-        continue;
+        if (combineByHash) {
+          continue;
+        }
       }
       DssMessageProcessing current =
           dcpa.getProceedOperator().processBackward(stateAndPrecision.state());
