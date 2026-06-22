@@ -173,12 +173,15 @@ public class InstrumentationAutomaton {
 
   private String initializeGhostVariables(String operation, int pIndex) {
     String index;
+    boolean initializeGhostVars;
     if (operation.contains("__INSTR_init_in_scope(INSTR_INDEX_init)")) {
       operation =
           operation.replace("__INSTR_init_in_scope(INSTR_INDEX_init)", "__INSTR_init_in_scope()");
       index = Integer.toString(pIndex);
+      initializeGhostVars = false;
     } else {
       index = "";
+      initializeGhostVars = true;
     }
     operation =
         operation.replace(
@@ -191,9 +194,11 @@ public class InstrumentationAutomaton {
                                 + entry.getKey()
                                 + "_"
                                 + index
-                                + " = "
-                                + getDereferencesForPointer(entry.getValue())
-                                + entry.getKey())
+                                + (initializeGhostVars
+                                    ? (" = "
+                                        + getDereferencesForPointer(entry.getValue())
+                                        + entry.getKey())
+                                    : ""))
                     .collect(Collectors.joining("; "))
                 + (!liveVariablesAndTypes.isEmpty() ? "; " : ""));
     return operation;
