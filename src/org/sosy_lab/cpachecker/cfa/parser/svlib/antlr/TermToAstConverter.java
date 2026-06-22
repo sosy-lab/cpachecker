@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.Spec
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibAnyType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
@@ -115,7 +116,9 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
       String pSymbol, Set<SmtLibLogic> pLogics, List<SvLibTerm> pArguments) {
 
     // Match Integer Arithmetic logic
-    if (FluentIterable.from(pLogics).anyMatch(SmtLibLogic::containsIntegerArithmetic)) {
+    if (FluentIterable.from(pLogics).anyMatch(SmtLibLogic::containsIntegerArithmetic)
+        && FluentIterable.from(pArguments)
+            .allMatch(term -> term.getExpressionType().equals(SvLibSmtLibPredefinedType.INT))) {
       switch (pSymbol) {
         case "=" -> {
           Verify.verify(pArguments.size() == 2);
