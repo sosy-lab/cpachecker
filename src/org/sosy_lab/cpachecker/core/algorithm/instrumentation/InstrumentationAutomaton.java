@@ -12,10 +12,8 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -123,15 +121,17 @@ public class InstrumentationAutomaton {
    * the name and then the annotation.
    */
   private ImmutableList<InstrumentationState> parseStates(String parsedStatesFromYAML) {
-    return Arrays.stream(
-            parsedStatesFromYAML.replace("[", "").replace("|||]", "").split(Pattern.quote("|||, ")))
-        .map(
-            q ->
-                new InstrumentationState(
-                    Iterables.get(Splitter.on(',').split(q), 0),
-                    StateAnnotation.valueOf(Iterables.get(Splitter.on(',').split(q), 1)),
-                    this))
-        .collect(ImmutableList.toImmutableList());
+    ImmutableList.Builder<InstrumentationState> stateBuilder = ImmutableList.builder();
+
+    for (String state :
+        Splitter.on("|||, ").split(parsedStatesFromYAML.replace("[", "").replace("|||]", ""))) {
+      stateBuilder.add(
+          new InstrumentationState(
+              Iterables.get(Splitter.on(',').split(state), 0),
+              StateAnnotation.valueOf(Iterables.get(Splitter.on(',').split(state), 1)),
+              this));
+    }
+    return stateBuilder.build();
   }
 
   /**
@@ -144,12 +144,8 @@ public class InstrumentationAutomaton {
       throws CPAException {
     ImmutableList.Builder<InstrumentationTransition> transitionBuilder = ImmutableList.builder();
     for (String transition :
-        Arrays.stream(
-                parsedTransitionsFromYAML
-                    .replace("[", "")
-                    .replace("|||]", "")
-                    .split(Pattern.quote("|||, ")))
-            .toList()) {
+        Splitter.on("|||, ")
+            .split(parsedTransitionsFromYAML.replace("[", "").replace("|||]", ""))) {
       Iterable<String> transitionComponents = Splitter.on(',').split(transition);
       InstrumentationState source =
           findStateWithNameOrThrow(states, Iterables.get(transitionComponents, 0));
@@ -205,21 +201,20 @@ public class InstrumentationAutomaton {
                 + (!liveVariablesAndTypes.isEmpty() ? "; " : ""));
     operation =
         operation.replace(
-            "__INSTR_assume_in_scope();",
+            "__INSTR_assume_in_scope()",
             liveVariablesAndTypes.entrySet().stream()
-                    .map(
-                        (entry) ->
-                            "("
-                                + getDereferencesForPointer(entry.getValue())
-                                + entry.getKey()
-                                + " != __INSTR_"
-                                + getDereferencesForPointer(entry.getValue())
-                                + entry.getKey()
-                                + "_"
-                                + pIndex
-                                + ")")
-                    .collect(Collectors.joining("||"))
-                + ";");
+                .map(
+                    (entry) ->
+                        "("
+                            + getDereferencesForPointer(entry.getValue())
+                            + entry.getKey()
+                            + " != __INSTR_"
+                            + getDereferencesForPointer(entry.getValue())
+                            + entry.getKey()
+                            + "_"
+                            + pIndex
+                            + ")")
+                .collect(Collectors.joining("||")));
     return new InstrumentationOperation(operation);
   }
 
