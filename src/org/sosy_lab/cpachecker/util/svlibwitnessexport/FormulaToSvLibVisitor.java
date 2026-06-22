@@ -186,29 +186,60 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
       return switch (actualName) {
         case "=" ->
             new SvLibIdTerm(SmtLibTheoryDeclarations.bitVectorEquality(size), FileLocation.DUMMY);
+        case "bvule" ->
+            new SvLibIdTerm(
+                SmtLibTheoryDeclarations.bitVectorUnsignedLessEqual(size), FileLocation.DUMMY);
         case "bvult" ->
             new SvLibIdTerm(
                 SmtLibTheoryDeclarations.bitVectorUnsignedLessThan(size), FileLocation.DUMMY);
-        case "bvslt" ->
+        case "bvuge" ->
             new SvLibIdTerm(
-                SmtLibTheoryDeclarations.bitVectorSignedLessThan(size), FileLocation.DUMMY);
+                SmtLibTheoryDeclarations.bitVectorUnsignedGreaterEqual(size), FileLocation.DUMMY);
+        case "bvugt" ->
+            new SvLibIdTerm(
+                SmtLibTheoryDeclarations.bitVectorUnsignedGreaterThan(size), FileLocation.DUMMY);
         case "bvsle" ->
             new SvLibIdTerm(
                 SmtLibTheoryDeclarations.bitVectorSignedLessEqual(size), FileLocation.DUMMY);
+        case "bvslt" ->
+            new SvLibIdTerm(
+                SmtLibTheoryDeclarations.bitVectorSignedLessThan(size), FileLocation.DUMMY);
+        case "bvsge" ->
+            new SvLibIdTerm(
+                SmtLibTheoryDeclarations.bitVectorSignedGreaterEqual(size), FileLocation.DUMMY);
+        case "bvsgt" ->
+            new SvLibIdTerm(
+                SmtLibTheoryDeclarations.bitVectorSignedGreaterThan(size), FileLocation.DUMMY);
         default -> throw new UnsupportedOperationException("Unknown formula type: " + pName);
       };
-    } else if (pReturnType instanceof SvLibSmtLibBitVectorType bitVector
+    } else if (pReturnType instanceof SvLibSmtLibBitVectorType returnBitVectorType
         && pArgTypes.size() == 1
+        && pArgTypes.getFirst() instanceof SvLibSmtLibBitVectorType argBitVectorType
         && FluentIterable.from(pArgTypes)
             .allMatch(type -> type instanceof SvLibSmtLibBitVectorType)) {
-      int size = bitVector.getSize();
+      int returnTypeSize = returnBitVectorType.getSize();
+      int argTypeSize = argBitVectorType.getSize();
       return switch (actualName) {
+        case "extract" ->
+            new SvLibIdTerm(
+                SmtLibTheoryDeclarations.bitVectorExtract(argTypeSize, returnTypeSize),
+                FileLocation.DUMMY);
         case "bvneg" ->
             new SvLibIdTerm(
-                SmtLibTheoryDeclarations.bitVectorComplementNegation(size), FileLocation.DUMMY);
+                SmtLibTheoryDeclarations.bitVectorComplementNegation(returnTypeSize),
+                FileLocation.DUMMY);
         case "bvnot" ->
             new SvLibIdTerm(
-                SmtLibTheoryDeclarations.bitVectorBitwiseNegation(size), FileLocation.DUMMY);
+                SmtLibTheoryDeclarations.bitVectorBitwiseNegation(returnTypeSize),
+                FileLocation.DUMMY);
+        case "zero_extend" ->
+            new SvLibIdTerm(
+                SmtLibTheoryDeclarations.bitVectorZeroExtend(argTypeSize, returnTypeSize),
+                FileLocation.DUMMY);
+        case "sign_extend" ->
+            new SvLibIdTerm(
+                SmtLibTheoryDeclarations.bitVectorSignExtend(argTypeSize, returnTypeSize),
+                FileLocation.DUMMY);
         default -> throw new UnsupportedOperationException("Unknown formula type: " + pName);
       };
     } else if (pReturnType instanceof SvLibSmtLibBitVectorType bitVector
@@ -217,6 +248,7 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
             .allMatch(type -> type instanceof SvLibSmtLibBitVectorType)) {
       int size = bitVector.getSize();
       return switch (actualName) {
+        // TODO case "concat" -> new SvLibIdTerm(SmtLibTheoryDeclarations.bitVectorConcat());
         case "bvand" ->
             new SvLibIdTerm(SmtLibTheoryDeclarations.bitVectorAnd(size), FileLocation.DUMMY);
         case "bvor" ->
@@ -239,6 +271,12 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
         case "bvsdiv" ->
             new SvLibIdTerm(
                 SmtLibTheoryDeclarations.bitVectorSignedDivision(size), FileLocation.DUMMY);
+        case "bvsrem" ->
+            new SvLibIdTerm(
+                SmtLibTheoryDeclarations.bitVectorSignedRemainder(size), FileLocation.DUMMY);
+        case "bvsub" ->
+            new SvLibIdTerm(
+                SmtLibTheoryDeclarations.bitVectorSubstraction(size), FileLocation.DUMMY);
         default -> throw new UnsupportedOperationException("Unknown formula type: " + pName);
       };
     }

@@ -220,6 +220,16 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
       List<SvLibType> argumentTypes =
           transformedImmutableListCopy(pArguments, SvLibTerm::getExpressionType);
       switch (pSymbol) {
+        case "concat" -> {
+          throw new IllegalArgumentException("concat not yet implemented");
+        }
+        case "extract" -> {
+          Verify.verify(pArguments.size() == 1);
+          // FIXME replace constant
+          /*return SmtLibTheoryDeclarations.bitVectorExtract(
+          ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize(), 8);*/
+          // throw new IllegalArgumentException("extract not yet implemented");
+        }
         case "bvnot" -> {
           Verify.verify(pArguments.size() == 1);
           return SmtLibTheoryDeclarations.bitVectorBitwiseNegation(
@@ -230,11 +240,100 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
           return SmtLibTheoryDeclarations.bitVectorComplementNegation(
               ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
         }
+        case "bvand" -> {
+          Verify.verify(pArguments.size() == 2);
+          return SmtLibTheoryDeclarations.bitVectorAnd(
+              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
+        }
+        case "bvor" -> {
+          Verify.verify(pArguments.size() == 2);
+          return SmtLibTheoryDeclarations.bitVectorOr(
+              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
+        }
+        case "bvadd" -> {
+          Verify.verify(pArguments.size() == 2);
+          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
+          Verify.verify(argumentTypes.getFirst().equals(argumentTypes.getLast()));
+          return SmtLibTheoryDeclarations.bitVectorAddition(
+              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
+        }
+        case "bvmul" -> {
+          Verify.verify(pArguments.size() == 2);
+          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
+          Verify.verify(argumentTypes.getFirst().equals(argumentTypes.getLast()));
+          return SmtLibTheoryDeclarations.bitVectorMul(
+              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
+        }
+        case "bvudiv" -> {
+          Verify.verify(pArguments.size() == 2);
+          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
+          Verify.verify(argumentTypes.getFirst().equals(argumentTypes.getLast()));
+          return SmtLibTheoryDeclarations.bitVectorUnsignedDivision(
+              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
+        }
+        case "bvurem" -> {
+          Verify.verify(pArguments.size() == 2);
+          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
+          Verify.verify(argumentTypes.getFirst().equals(argumentTypes.getLast()));
+          return SmtLibTheoryDeclarations.bitVectorUnsignedRemainder(
+              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
+        }
+        case "bvshl" -> {
+          Verify.verify(pArguments.size() == 2);
+          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
+          Verify.verify(argumentTypes.getFirst().equals(argumentTypes.getLast()));
+          return SmtLibTheoryDeclarations.bitVectorShiftLeft(
+              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
+        }
+        case "bvlshr" -> {
+          Verify.verify(pArguments.size() == 2);
+          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
+          Verify.verify(argumentTypes.getFirst().equals(argumentTypes.getLast()));
+          return SmtLibTheoryDeclarations.bitVectorLogicalShiftRight(
+              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
+        }
+
+        /* not in SMT-LIB FixedSizeBitVectors but used by solvers Z3 & MathSAT */
+        case "=" -> {
+          Verify.verify(pArguments.size() == 2);
+          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
+          Verify.verify(argumentTypes.getFirst().equals(argumentTypes.getLast()));
+          return SmtLibTheoryDeclarations.bitVectorEquality(
+              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
+        }
+        case "bvule" -> {
+          Verify.verify(pArguments.size() == 2);
+          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
+          Verify.verify(argumentTypes.getFirst().equals(argumentTypes.getLast()));
+          return SmtLibTheoryDeclarations.bitVectorUnsignedLessEqual(
+              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
+        }
         case "bvult" -> {
           Verify.verify(pArguments.size() == 2);
           Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
           Verify.verify(argumentTypes.getFirst().equals(argumentTypes.getLast()));
           return SmtLibTheoryDeclarations.bitVectorUnsignedLessThan(
+              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
+        }
+        case "bvuge" -> {
+          Verify.verify(pArguments.size() == 2);
+          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
+          Verify.verify(argumentTypes.getFirst().equals(argumentTypes.getLast()));
+          return SmtLibTheoryDeclarations.bitVectorUnsignedGreaterEqual(
+              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
+        }
+        case "bvugt" -> {
+          Verify.verify(pArguments.size() == 2);
+          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
+          Verify.verify(argumentTypes.getFirst().equals(argumentTypes.getLast()));
+          return SmtLibTheoryDeclarations.bitVectorUnsignedGreaterThan(
+              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
+        }
+        case "bvsle" -> {
+          Verify.verify(pArguments.size() == 2);
+          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
+          Verify.verify(argumentTypes.getFirst().equals(argumentTypes.getLast()));
+          return SmtLibTheoryDeclarations.bitVectorSignedLessEqual(
               ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
         }
         case "bvslt" -> {
@@ -244,12 +343,54 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
           return SmtLibTheoryDeclarations.bitVectorSignedLessThan(
               ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
         }
-        case "bvadd" -> {
+        case "bvsge" -> {
           Verify.verify(pArguments.size() == 2);
           Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
           Verify.verify(argumentTypes.getFirst().equals(argumentTypes.getLast()));
-          return SmtLibTheoryDeclarations.bitVectorAddition(
+          return SmtLibTheoryDeclarations.bitVectorSignedGreaterEqual(
               ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
+        }
+        case "bvsgt" -> {
+          Verify.verify(pArguments.size() == 2);
+          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
+          Verify.verify(argumentTypes.getFirst().equals(argumentTypes.getLast()));
+          return SmtLibTheoryDeclarations.bitVectorSignedGreaterThan(
+              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
+        }
+        case "bvsdiv" -> {
+          Verify.verify(pArguments.size() == 2);
+          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
+          Verify.verify(argumentTypes.getFirst().equals(argumentTypes.getLast()));
+          return SmtLibTheoryDeclarations.bitVectorSignedDivision(
+              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
+        }
+        case "bvsrem" -> {
+          Verify.verify(pArguments.size() == 2);
+          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
+          Verify.verify(argumentTypes.getFirst().equals(argumentTypes.getLast()));
+          return SmtLibTheoryDeclarations.bitVectorSignedRemainder(
+              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
+        }
+        case "bvsub" -> {
+          Verify.verify(pArguments.size() == 2);
+          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
+          Verify.verify(argumentTypes.getFirst().equals(argumentTypes.getLast()));
+          return SmtLibTheoryDeclarations.bitVectorSubstraction(
+              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
+        }
+        case "zero_extend" -> {
+          Verify.verify(pArguments.size() == 1);
+          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
+          // FIXME remove constant, use size of returned bit vector instead
+          return SmtLibTheoryDeclarations.bitVectorZeroExtend(
+              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize(), 32);
+        }
+        case "sign_extend" -> {
+          Verify.verify(pArguments.size() == 1);
+          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
+          // FIXME remove constant, use size of returned bit vector instead
+          return SmtLibTheoryDeclarations.bitVectorSignExtend(
+              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize(), 32);
         }
       }
     }

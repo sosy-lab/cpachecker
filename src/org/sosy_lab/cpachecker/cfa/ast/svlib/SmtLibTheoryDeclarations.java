@@ -272,6 +272,19 @@ public class SmtLibTheoryDeclarations {
   }
 
   /** Bit Vector stuff */
+  // TODO concat
+
+  public static SvLibFunctionDeclaration bitVectorExtract(int pSourceSize, int pTargetSize) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(new SvLibSmtLibBitVectorType(pSourceSize)),
+            new SvLibSmtLibBitVectorType(pTargetSize)),
+        "extract",
+        "extract",
+        ImmutableList.of());
+  }
+
   public static SvLibFunctionDeclaration bitVectorBitwiseNegation(int pSize) {
     return new SvLibFunctionDeclaration(
         FileLocation.DUMMY,
@@ -303,18 +316,6 @@ public class SmtLibTheoryDeclarations {
             SvLibSmtLibPredefinedType.BOOL),
         "=",
         "=",
-        ImmutableList.of());
-  }
-
-  public static SvLibFunctionDeclaration bitVectorUnsignedLessThan(int pSize) {
-    return new SvLibFunctionDeclaration(
-        FileLocation.DUMMY,
-        new SvLibFunctionType(
-            ImmutableList.of(
-                new SvLibSmtLibBitVectorType(pSize), new SvLibSmtLibBitVectorType(pSize)),
-            SvLibSmtLibPredefinedType.BOOL),
-        "bvult",
-        "bvult",
         ImmutableList.of());
   }
 
@@ -416,6 +417,78 @@ public class SmtLibTheoryDeclarations {
 
   /* Bit Vector stuff not in the SMT-LIB FixedSizeBitVector theory but used by Z3 */
 
+  public static SvLibFunctionDeclaration bitVectorUnsignedLessEqual(int pSize) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(
+                new SvLibSmtLibBitVectorType(pSize), new SvLibSmtLibBitVectorType(pSize)),
+            SvLibSmtLibPredefinedType.BOOL),
+        "bvule",
+        "bvule",
+        ImmutableList.of());
+  }
+
+  public static SvLibFunctionDeclaration bitVectorUnsignedLessThan(int pSize) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(
+                new SvLibSmtLibBitVectorType(pSize), new SvLibSmtLibBitVectorType(pSize)),
+            SvLibSmtLibPredefinedType.BOOL),
+        "bvult",
+        "bvult",
+        ImmutableList.of());
+  }
+
+  public static SvLibFunctionDeclaration bitVectorUnsignedGreaterEqual(int pSize) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(
+                new SvLibSmtLibBitVectorType(pSize), new SvLibSmtLibBitVectorType(pSize)),
+            SvLibSmtLibPredefinedType.BOOL),
+        "bvuge",
+        "bvuge",
+        ImmutableList.of());
+  }
+
+  public static SvLibFunctionDeclaration bitVectorUnsignedGreaterThan(int pSize) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(
+                new SvLibSmtLibBitVectorType(pSize), new SvLibSmtLibBitVectorType(pSize)),
+            SvLibSmtLibPredefinedType.BOOL),
+        "bvugt",
+        "bvugt",
+        ImmutableList.of());
+  }
+
+  public static SvLibFunctionDeclaration bitVectorSignedGreaterEqual(int pSize) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(
+                new SvLibSmtLibBitVectorType(pSize), new SvLibSmtLibBitVectorType(pSize)),
+            SvLibSmtLibPredefinedType.BOOL),
+        "bvsge",
+        "bvsge",
+        ImmutableList.of());
+  }
+
+  public static SvLibFunctionDeclaration bitVectorSignedGreaterThan(int pSize) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(
+                new SvLibSmtLibBitVectorType(pSize), new SvLibSmtLibBitVectorType(pSize)),
+            SvLibSmtLibPredefinedType.BOOL),
+        "bvsgt",
+        "bvsgt",
+        ImmutableList.of());
+  }
+
   /** Used by Z3 */
   public static SvLibFunctionDeclaration bitVectorSignedLessEqual(int pSize) {
     return new SvLibFunctionDeclaration(
@@ -452,6 +525,54 @@ public class SmtLibTheoryDeclarations {
             new SvLibSmtLibBitVectorType(pSize)),
         "bvsdiv",
         "bvsdiv",
+        ImmutableList.of());
+  }
+
+  /** Used by Z3 */
+  public static SvLibFunctionDeclaration bitVectorSignedRemainder(int pSize) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(
+                new SvLibSmtLibBitVectorType(pSize), new SvLibSmtLibBitVectorType(pSize)),
+            new SvLibSmtLibBitVectorType(pSize)),
+        "bvsrem",
+        "bvsrem",
+        ImmutableList.of());
+  }
+
+  /** Used by Z3 */
+  public static SvLibFunctionDeclaration bitVectorSubstraction(int pSize) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(
+                new SvLibSmtLibBitVectorType(pSize), new SvLibSmtLibBitVectorType(pSize)),
+            new SvLibSmtLibBitVectorType(pSize)),
+        "bvsub",
+        "bvsub",
+        ImmutableList.of());
+  }
+
+  public static SvLibFunctionDeclaration bitVectorZeroExtend(int pSourceSize, int pTargetSize) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(new SvLibSmtLibBitVectorType(pSourceSize)),
+            new SvLibSmtLibBitVectorType(pTargetSize)),
+        "zero_extend",
+        "zero_extend",
+        ImmutableList.of());
+  }
+
+  public static SvLibFunctionDeclaration bitVectorSignExtend(int pSourceSize, int pTargetSize) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(new SvLibSmtLibBitVectorType(pSourceSize)),
+            new SvLibSmtLibBitVectorType(pTargetSize)),
+        "sign_extend",
+        "sign_extend",
         ImmutableList.of());
   }
 }

@@ -28,14 +28,17 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibAtTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 import org.sosy_lab.java_smt.api.ArrayFormula;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
@@ -125,6 +128,10 @@ public class SvLibTermToFormulaConverter {
         .transform(SvLibRelationalTerm::getExpressionType)
         .allMatch(type -> SvLibType.canBeCastTo(type, SvLibSmtLibPredefinedType.BOOL))) {
       return convertBooleanApplication(pSvLibGeneralSymbolApplicationTerm, ssa, fmgr, pConverter);
+    } else if (FluentIterable.from(pSvLibGeneralSymbolApplicationTerm.getTerms())
+        .transform(SvLibRelationalTerm::getExpressionType)
+        .allMatch(type -> type instanceof SvLibSmtLibBitVectorType)) {
+      return convertBitvectorApplication(pSvLibGeneralSymbolApplicationTerm, ssa, fmgr, pConverter);
     }
 
     throw new UnsupportedOperationException(
@@ -244,6 +251,137 @@ public class SvLibTermToFormulaConverter {
               "Unexpected value: '"
                   + functionName
                   + "' when converting from a boolean term into a formula.");
+    }
+  }
+
+  private static @NonNull Formula convertBitvectorApplication(
+      SvLibGeneralSymbolApplicationTerm pSvLibGeneralSymbolApplicationTerm,
+      SSAMapBuilder ssa,
+      FormulaManagerView fmgr,
+      SvLibToFormulaConverter pConverter) {
+    String functionName =
+        cleanVariableNameForJavaSMT(
+            pSvLibGeneralSymbolApplicationTerm.getSymbol().getDeclaration().getQualifiedName());
+    List<BitvectorFormula> args =
+        transformedImmutableListCopy(
+            pSvLibGeneralSymbolApplicationTerm.getTerms(),
+            term -> (BitvectorFormula) convertTerm(term, ssa, fmgr, pConverter));
+    BitvectorFormulaManagerView bvmgr = fmgr.getBitvectorFormulaManager();
+    switch (functionName) {
+      case "extract" -> {
+        Verify.verify(args.size() == 1);
+        // FIXME replace hardcoded values
+        // return bvmgr.extract(args.getFirst(), 7, 0);
+        throw new UnsupportedOperationException("'extract' is not yet supported");
+      }
+      case "bvnot" -> {
+        Verify.verify(args.size() == 1);
+        return bvmgr.not(args.getFirst());
+      }
+      case "bvneg" -> {
+        Verify.verify(args.size() == 1);
+        return bvmgr.negate(args.getFirst());
+      }
+      case "bvand" -> {
+        Verify.verify(args.size() == 2);
+        return bvmgr.and(args.getFirst(), args.get(1));
+      }
+      case "bvor" -> {
+        Verify.verify(args.size() == 2);
+        return bvmgr.or(args.getFirst(), args.get(1));
+      }
+      case "bvadd" -> {
+        Verify.verify(args.size() == 2);
+        return bvmgr.add(args.getFirst(), args.get(1));
+      }
+      case "bvmul" -> {
+        Verify.verify(args.size() == 2);
+        return bvmgr.multiply(args.getFirst(), args.get(1));
+      }
+      case "bvudiv" -> {
+        Verify.verify(args.size() == 2);
+        // TODO double check that args correct
+        return bvmgr.divide(args.getFirst(), args.get(1), false);
+      }
+      case "bvurem" -> {
+        // TODO double check that args correct
+        return bvmgr.remainder(args.getFirst(), args.get(1), false);
+      }
+      case "bvshl" -> {
+        // TODO make sure that order of args is correct!
+        throw new IllegalArgumentException("TermToFormula for bvshl not yet implemented");
+      }
+      case "bvlshr" -> {
+        // TODO make sure that order of args is correct!
+        throw new IllegalArgumentException("TermToFormula for bvlshr not yet implemented");
+      }
+
+      /* not in SMT-LIB FixedSizeBitVectors but used by solvers Z3 & MathSAT */
+      case "=" -> {
+        Verify.verify(args.size() == 2);
+        return bvmgr.equal(args.getFirst(), args.get(1));
+      }
+      case "bvule" -> {
+        Verify.verify(args.size() == 2);
+        return bvmgr.lessOrEquals(args.getFirst(), args.get(1), false);
+      }
+      case "bvult" -> {
+        Verify.verify(args.size() == 2);
+        return bvmgr.lessThan(args.getFirst(), args.get(1), false);
+      }
+      case "bvuge" -> {
+        Verify.verify(args.size() == 2);
+        return bvmgr.greaterOrEquals(args.getFirst(), args.get(1), false);
+      }
+      case "bvugt" -> {
+        Verify.verify(args.size() == 2);
+        return bvmgr.greaterThan(args.getFirst(), args.get(1), false);
+      }
+      case "bvsle" -> {
+        Verify.verify(args.size() == 2);
+        return bvmgr.lessOrEquals(args.getFirst(), args.get(1), true);
+      }
+      case "bvslt" -> {
+        Verify.verify(args.size() == 2);
+        return bvmgr.lessThan(args.getFirst(), args.get(1), true);
+      }
+      case "bvsge" -> {
+        Verify.verify(args.size() == 2);
+        return bvmgr.greaterOrEquals(args.getFirst(), args.get(1), true);
+      }
+      case "bvsgt" -> {
+        Verify.verify(args.size() == 2);
+        return bvmgr.greaterThan(args.getFirst(), args.get(1), true);
+      }
+
+      case "bvsdiv" -> {
+        Verify.verify(args.size() == 2);
+        return bvmgr.divide(args.getFirst(), args.get(1), true);
+      }
+      case "bvsrem" -> {
+        Verify.verify(args.size() == 2);
+        return bvmgr.remainder(args.getFirst(), args.get(1), true);
+      }
+      case "bvsub" -> {
+        Verify.verify(args.size() == 2);
+        return bvmgr.subtract(args.getFirst(), args.get(1));
+      }
+      case "zero_extend" -> {
+        Verify.verify(args.size() == 1);
+        // FIXME replace constant
+        return bvmgr.extend(args.getFirst(), 16, false);
+      }
+      case "sign_extend" -> {
+        Verify.verify(args.size() == 1);
+        // FIXME replace constant
+        return bvmgr.extend(args.getFirst(), 16, true);
+      }
+
+      default ->
+          throw new IllegalArgumentException(
+              "Unexpected value: '"
+                  + functionName
+                  + "' when converting from a bitvector term into a formula.");
     }
   }
 
