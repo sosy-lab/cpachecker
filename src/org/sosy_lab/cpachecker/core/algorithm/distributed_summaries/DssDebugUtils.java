@@ -77,8 +77,9 @@ public class DssDebugUtils {
         preconditions,
         violationConditions,
         a ->
-            AbstractStates.extractStateByType(a, PredicateAbstractState.class)
-                .getPathFormula()
+            AbstractStates.extractStateByType(a, BlockState.class)
+                .getWitness()
+                .witness()
                 .toString());
   }
 
