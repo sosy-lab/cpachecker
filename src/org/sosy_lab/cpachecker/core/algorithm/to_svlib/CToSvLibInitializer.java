@@ -428,6 +428,12 @@ class CToSvLibInitializer {
     ImmutableList.Builder<SvLibParsingParameterDeclaration> parameterCollector =
         ImmutableList.builder();
 
+    // TODO string "main" or cfa.getMainFunction()
+    if (pProcedureName.equals(cfa.getMainFunction().getFunctionName())) {
+      // Ignore input parameters of the main function
+      return parameterCollector.build();
+    }
+
     for (CParameterDeclaration parameter : pParameterDeclarations) {
       if (parameter.asVariableDeclaration().getType() instanceof CSimpleType asSimpleType) {
         parameterCollector.add(
