@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -299,6 +300,16 @@ class CToSvLibTransformation {
         if (statementEdge.getStatement() instanceof CFunctionCall functionCall) {
           if (functionCall instanceof CFunctionCallAssignmentStatement callAssignmentStatement
               && callAssignmentStatement.getLeftHandSide() instanceof CArraySubscriptExpression) {
+            SvLibSequenceStatement sequenceStatement =
+                handleReturnValueAssignmentToHeap(
+                    statementEdge, callAssignmentStatement, pEdgeToPointerTargetSet);
+            pCreatedStatements.put(pEdge.getPredecessor(), sequenceStatement);
+
+          } else if (functionCall
+                  instanceof CFunctionCallAssignmentStatement callAssignmentStatement
+              && callAssignmentStatement.getLeftHandSide() instanceof CFieldReference) {
+            // TODO check why storePTS is needed here for struct but not for array subscript
+            storePtsForFunctionCall(pEdge, pEdgeToPointerTargetSet);
             SvLibSequenceStatement sequenceStatement =
                 handleReturnValueAssignmentToHeap(
                     statementEdge, callAssignmentStatement, pEdgeToPointerTargetSet);
