@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssDebugUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -599,6 +598,7 @@ public class DssBlockAnalysis {
     for (StateAndPrecision stateAndPrecision : deserializedStates) {
       if (oldVcs.contains(extractWitnessFromState(stateAndPrecision.state()))) {
         equal++;
+        continue;
       }
       DssMessageProcessing current =
           dcpa.getProceedOperator().processBackward(stateAndPrecision.state());
@@ -766,7 +766,10 @@ public class DssBlockAnalysis {
     }
 
     boolean needsToPropagateTopState =
-        !block.isRoot() && analyzedTrivial && !violations.isEmpty() && finalStartStates.size() == 1;
+        analyzedTrivial
+            && !violations.isEmpty()
+            && finalStartStates.size() == 1
+            && !preconditions.isEmpty();
     if (needsToPropagateTopState) {
       summaries.add(makeTopSummary());
     }
