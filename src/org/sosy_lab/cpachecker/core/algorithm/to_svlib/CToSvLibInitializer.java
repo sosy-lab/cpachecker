@@ -57,6 +57,8 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibHavocStateme
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibSequenceStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -308,6 +310,10 @@ class CToSvLibInitializer {
         if (baseEntry.getValue() instanceof CArrayType arrayType) {
           CType arrayElementType = arrayType.getType();
           pTypesOfHeapArraysToCreate.add(arrayElementType);
+        } else if (baseEntry.getValue() instanceof CCompositeType compositeType) {
+          for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+            pTypesOfHeapArraysToCreate.add(memberDeclaration.getType());
+          }
         } else {
           pTypesOfHeapArraysToCreate.add(baseEntry.getValue());
         }
