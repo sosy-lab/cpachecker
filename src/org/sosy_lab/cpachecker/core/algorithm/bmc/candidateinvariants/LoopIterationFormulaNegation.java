@@ -52,9 +52,7 @@ public final class LoopIterationFormulaNegation extends SingleLocationFormulaInv
       pathFormula = pPFMGR.makeAnd(pathFormula, edge);
     }
     pathFormula = pPFMGR.makeAnd(pathFormula, continuationEdge);
-    return pFMGR
-        .getBooleanFormulaManager()
-        .not(pFMGR.uninstantiate(pathFormula.getFormula()));
+    return pFMGR.getBooleanFormulaManager().not(pFMGR.uninstantiate(pathFormula.getFormula()));
   }
 
   @Override
