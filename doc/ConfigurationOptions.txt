@@ -1042,6 +1042,13 @@ bmc.nonTerminationMode = false
 # instead of UNKNOWN.
 bmc.nonTerminationProveTerminationFallback = false
 
+# In non-termination mode, skip the base and step checks for proving
+# non-termination and only run the termination fallback via unwinding
+# assertions. This is intended for evaluating the fallback in isolation and
+# requires bmc.nonTerminationProveTerminationFallback=true to report
+# termination.
+bmc.nonTerminationSkipProofForTerminationFallback = false
+
 # Propagates the interrupts of the invariant generator.
 bmc.propagateInvGenInterrupts = false
 
@@ -1049,9 +1056,34 @@ bmc.propagateInvGenInterrupts = false
 # improvement depends on the underlying SMT solver.
 bmc.simplifyBooleanFormula = false
 
+# Disable loop-continuation candidates in termination mode and rely only on
+# unwinding assertions. This is intended as an experimental baseline.
+bmc.terminationDisableCandidates = false
+
 # Switch BMC from target-state reachability checking to an experimental
 # termination-oriented mode.
 bmc.terminationMode = false
+
+# In termination mode, if a loop-continuation candidate is violated for the
+# current unrolling depth, skip the expensive unwinding-assertion check and
+# immediately continue with the next depth.
+bmc.terminationSkipBoundingAssertionsAfterCandidateViolation = false
+
+# In termination mode, after all loop-continuation candidates hold for the
+# current unrolling depth, prove soundness from covered loop-bound frontier
+# states instead of checking unwinding assertions.
+bmc.terminationUseCandidateCoverageForSoundness = false
+
+# In termination mode, combine frontier no-continuation candidates with
+# conjunction instead of disjunction, so a violated candidate asks whether a
+# frontier loop head can still continue through any represented continuation
+# path.
+bmc.terminationUseConjunctiveContinuationCandidates = false
+
+# In termination mode, build only loop-head continuation candidates and use
+# them only as a fast insufficient-bound check together with unwinding
+# assertions.
+bmc.terminationUseLoopHeadOnlyCandidates = false
 
 # Use generalized counterexamples to induction as candidate invariants.
 bmc.usePropertyDirection = false

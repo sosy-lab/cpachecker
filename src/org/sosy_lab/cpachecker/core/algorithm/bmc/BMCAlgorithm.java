@@ -152,6 +152,14 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private boolean terminationDisableCandidates = false;
 
   @Option(
+      name = "bmc.terminationUseLoopHeadOnlyCandidates",
+      secure = true,
+      description =
+          "In termination mode, build only loop-head continuation candidates and use them only as"
+              + " a fast insufficient-bound check together with unwinding assertions.")
+  private boolean terminationUseLoopHeadOnlyCandidates = false;
+
+  @Option(
       name = "bmc.terminationUseConjunctiveContinuationCandidates",
       secure = true,
       description =
@@ -561,11 +569,17 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       Loop pLoop,
       ImmutableSet.Builder<CandidateInvariant> pCandidates,
       Set<CFANode> pLoopHeadsWithContinuationCandidate) {
-    if (addNoExitTerminationLoopHeadCandidates(
-        pLoop, pCandidates, pLoopHeadsWithContinuationCandidate)) {
+    if (!terminationUseLoopHeadOnlyCandidates
+        && addNoExitTerminationLoopHeadCandidates(
+            pLoop, pCandidates, pLoopHeadsWithContinuationCandidate)) {
       return;
     }
     for (CFANode loopHead : pLoop.getLoopHeads()) {
+      if (terminationUseLoopHeadOnlyCandidates) {
+        addSingleLocationContinuationCandidatesAtNode(
+            pLoop, loopHead, pCandidates, true, pLoopHeadsWithContinuationCandidate);
+        continue;
+      }
       Optional<CandidateInvariant> loopIterationCandidate =
           getSinglePathLoopIterationCandidate(pLoop, loopHead);
       if (loopIterationCandidate.isPresent()) {
