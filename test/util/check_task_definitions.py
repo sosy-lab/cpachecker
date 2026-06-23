@@ -93,20 +93,20 @@ def witness_tasks(content):
 
 
 def resolve_reference(base_dir, reference):
-    if not isinstance(reference, str):
-        return None
     return (base_dir / reference).resolve()
 
 
 def check_referenced_files(path, base_dir, key, values, error_count):
     for reference in normalize_to_list(values):
-        resolved = resolve_reference(base_dir, reference)
-        if resolved is None:
+        if not isinstance(reference, str):
             report_error(
                 error_count,
                 path, "{} contains non-string entry {!r}".format(key, reference)
             )
-        elif not resolved.exists():
+            continue
+
+        resolved = resolve_reference(base_dir, reference)
+        if not resolved.exists():
             report_error(
                 error_count,
                 path, "{} references missing file '{}'".format(key, reference)
@@ -198,13 +198,20 @@ def check_properties(
             )
             continue
         property_file = property_definition.get("property_file")
-        if not property_file:
+        if property_file is None or property_file == "":
             report_error(error_count, path, "property definition without property_file")
+            continue
+        if not isinstance(property_file, str):
+            report_error(
+                error_count,
+                path,
+                "property_file contains non-string entry {!r}".format(property_file),
+            )
             continue
         if not check_property_files:
             continue
         resolved = resolve_reference(path.parent, property_file)
-        if resolved is None or not resolved.exists():
+        if not resolved.exists():
             report_error(
                 error_count,
                 path, "property_file references missing file '{}'".format(property_file)
