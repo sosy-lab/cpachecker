@@ -53,12 +53,12 @@ SUPPORTED_DATA_MODELS = {
 ADDITIONAL_FILE_KEYS = frozenset({"required_files"})
 
 
-def _report_error(error_count, path, message):
+def report_error(error_count, path, message):
     print("ERROR: {}: {}".format(path, message))
     error_count[0] += 1
 
 
-def _normalize_to_list(value):
+def normalize_to_list(value):
     if value is None:
         return []
     if isinstance(value, list):
@@ -66,22 +66,22 @@ def _normalize_to_list(value):
     return [value]
 
 
-def _load_yaml(path, error_count):
+def load_yaml(path, error_count):
     try:
         with path.open(encoding="utf-8") as yml_file:
             return yaml.safe_load(yml_file)
     except yaml.YAMLError as exception:
-        _report_error(error_count, path, "invalid YAML: {}".format(exception))
+        report_error(error_count, path, "invalid YAML: {}".format(exception))
         return None
 
 
-def _is_witness_document(content):
+def is_witness_document(content):
     return isinstance(content, list) and any(
         isinstance(entry, dict) and "entry_type" in entry for entry in content
     )
 
 
-def _witness_tasks(content):
+def witness_tasks(content):
     for entry in content:
         if not isinstance(entry, dict):
             continue
@@ -92,30 +92,30 @@ def _witness_tasks(content):
                 yield task
 
 
-def _resolve_reference(base_dir, reference):
+def resolve_reference(base_dir, reference):
     if not isinstance(reference, str):
         return None
     return (base_dir / reference).resolve()
 
 
-def _check_referenced_files(path, base_dir, key, values, error_count):
-    for reference in _normalize_to_list(values):
-        resolved = _resolve_reference(base_dir, reference)
+def check_referenced_files(path, base_dir, key, values, error_count):
+    for reference in normalize_to_list(values):
+        resolved = resolve_reference(base_dir, reference)
         if resolved is None:
-            _report_error(
+            report_error(
                 error_count,
                 path, "{} contains non-string entry {!r}".format(key, reference)
             )
         elif not resolved.exists():
-            _report_error(
+            report_error(
                 error_count,
                 path, "{} references missing file '{}'".format(key, reference)
             )
 
 
-def _check_language(path, input_files, language, error_count):
+def check_language(path, input_files, language, error_count):
     if language and language not in LANGUAGE_FILE_ENDINGS:
-        _report_error(
+        report_error(
             error_count,
             path,
             "unsupported programming language '{}'".format(language),
@@ -132,7 +132,7 @@ def _check_language(path, input_files, language, error_count):
         if input_path.is_dir() and language in LANGUAGES_ALLOWING_DIRECTORY_INPUTS:
             continue
         if not input_file.endswith(allowed_endings):
-            _report_error(
+            report_error(
                 error_count,
                 path,
                 "input file '{}' does not match language '{}' with endings {}".format(
@@ -141,27 +141,27 @@ def _check_language(path, input_files, language, error_count):
             )
 
 
-def _check_required_language(path, language, error_count):
+def check_required_language(path, language, error_count):
     if not language:
-        _report_error(
+        report_error(
             error_count, path, "missing programming language in options.language"
         )
         return
     if language not in LANGUAGE_FILE_ENDINGS:
-        _report_error(
+        report_error(
             error_count,
             path,
             "unsupported programming language '{}'".format(language),
         )
 
 
-def _check_data_model(path, language, data_model, error_count):
+def check_data_model(path, language, data_model, error_count):
     if not data_model:
         return
 
     supported_models = SUPPORTED_DATA_MODELS.get(language)
     if supported_models is None:
-        _report_error(
+        report_error(
             error_count,
             path,
             "data_model is specified for language '{}' without configured models".format(
@@ -169,7 +169,7 @@ def _check_data_model(path, language, data_model, error_count):
             ),
         )
     elif data_model not in supported_models:
-        _report_error(
+        report_error(
             error_count,
             path,
             "unsupported data_model '{}' for language '{}'".format(
@@ -178,51 +178,51 @@ def _check_data_model(path, language, data_model, error_count):
         )
 
 
-def _check_properties(
+def check_properties(
     path, content, error_count, require_properties, check_property_files
 ):
     properties = content.get("properties")
     if not properties:
         if require_properties:
-            _report_error(error_count, path, "missing or empty properties")
+            report_error(error_count, path, "missing or empty properties")
         return
     if not isinstance(properties, list):
-        _report_error(error_count, path, "properties is not a list")
+        report_error(error_count, path, "properties is not a list")
         return
 
     for property_definition in properties:
         if not isinstance(property_definition, dict):
-            _report_error(
+            report_error(
                 error_count,
                 path, "invalid property definition {!r}".format(property_definition)
             )
             continue
         property_file = property_definition.get("property_file")
         if not property_file:
-            _report_error(error_count, path, "property definition without property_file")
+            report_error(error_count, path, "property definition without property_file")
             continue
         if not check_property_files:
             continue
-        resolved = _resolve_reference(path.parent, property_file)
+        resolved = resolve_reference(path.parent, property_file)
         if resolved is None or not resolved.exists():
-            _report_error(
+            report_error(
                 error_count,
                 path, "property_file references missing file '{}'".format(property_file)
             )
 
 
-def _check_task_definition(path, content, error_count, args):
+def check_task_definition(path, content, error_count, args):
     if not isinstance(content, dict):
-        _report_error(error_count, path, "expected mapping for task definition")
+        report_error(error_count, path, "expected mapping for task definition")
         return
 
-    input_files = _normalize_to_list(content.get("input_files"))
+    input_files = normalize_to_list(content.get("input_files"))
     if not input_files:
-        _report_error(error_count, path, "missing or empty input_files")
-    _check_referenced_files(path, path.parent, "input_files", input_files, error_count)
+        report_error(error_count, path, "missing or empty input_files")
+    check_referenced_files(path, path.parent, "input_files", input_files, error_count)
 
     for additional_file_key in ADDITIONAL_FILE_KEYS:
-        _check_referenced_files(
+        check_referenced_files(
             path,
             path.parent,
             additional_file_key,
@@ -234,80 +234,80 @@ def _check_task_definition(path, content, error_count, args):
     if options is None:
         options = {}
     if not isinstance(options, dict):
-        _report_error(error_count, path, "options is not a mapping")
+        report_error(error_count, path, "options is not a mapping")
         options = {}
 
     language = options.get("language")
     if args.require_language:
-        _check_required_language(path, language, error_count)
-    _check_language(path, input_files, language, error_count)
+        check_required_language(path, language, error_count)
+    check_language(path, input_files, language, error_count)
     if args.check_data_model:
-        _check_data_model(path, language, options.get("data_model"), error_count)
-    _check_properties(
+        check_data_model(path, language, options.get("data_model"), error_count)
+    check_properties(
         path, content, error_count, args.require_properties, args.check_property_files
     )
 
 
-def _check_witness(path, content, error_count, args):
+def check_witness(path, content, error_count, args):
     if not CHECK_WITNESS_TASKS:
         return
 
-    tasks = list(_witness_tasks(content))
+    tasks = list(witness_tasks(content))
     if not tasks:
-        _report_error(error_count, path, "witness has no metadata.task section")
+        report_error(error_count, path, "witness has no metadata.task section")
         return
 
     for task in tasks:
-        input_files = _normalize_to_list(task.get("input_files"))
+        input_files = normalize_to_list(task.get("input_files"))
         if not input_files:
-            _report_error(
+            report_error(
                 error_count, path, "witness task has missing or empty input_files"
             )
-        _check_referenced_files(
+        check_referenced_files(
             path, path.parent, "witness task input_files", input_files, error_count
         )
 
         language = task.get("language")
         if args.require_language:
-            _check_required_language(path, language, error_count)
-        _check_language(path, input_files, language, error_count)
+            check_required_language(path, language, error_count)
+        check_language(path, input_files, language, error_count)
         if args.check_data_model:
-            _check_data_model(path, language, task.get("data_model"), error_count)
+            check_data_model(path, language, task.get("data_model"), error_count)
 
         if not task.get("specification"):
-            _report_error(
+            report_error(
                 error_count, path, "witness task has missing or empty specification"
             )
 
 
-def _check_yaml_file(path, error_count, args):
-    content = _load_yaml(path, error_count)
+def check_yaml_file(path, error_count, args):
+    content = load_yaml(path, error_count)
     if content is None:
         return
 
-    if _is_witness_document(content):
-        _check_witness(path, content, error_count, args)
+    if is_witness_document(content):
+        check_witness(path, content, error_count, args)
     else:
-        _check_task_definition(path, content, error_count, args)
+        check_task_definition(path, content, error_count, args)
 
 
-def _read_set_file(path, error_count):
+def read_set_file(path, error_count):
     try:
         return path.read_text(encoding="utf-8").splitlines()
     except OSError as exception:
-        _report_error(error_count, path, "could not read set file: {}".format(exception))
+        report_error(error_count, path, "could not read set file: {}".format(exception))
         return []
 
 
-def _task_definition_files_from_set(path, error_count):
-    for line in _read_set_file(path, error_count):
+def task_definition_files_from_set(path, error_count):
+    for line in read_set_file(path, error_count):
         line = line.strip()
         if not line or line.startswith("#"):
             continue
 
         matches = sorted(path.parent.glob(line))
         if not matches:
-            _report_error(
+            report_error(
                 error_count,
                 path,
                 "set entry '{}' does not match any file".format(line),
@@ -319,14 +319,14 @@ def _task_definition_files_from_set(path, error_count):
                 yield match
 
 
-def _task_definition_files(root, error_count):
+def task_definition_files(root, error_count):
     if root.is_file():
         if root.suffix in (".yml", ".yaml"):
             yield root
         elif root.suffix == ".set":
-            yield from _task_definition_files_from_set(root, error_count)
+            yield from task_definition_files_from_set(root, error_count)
         else:
-            _report_error(error_count, root, "not a task-definition YAML or set file")
+            report_error(error_count, root, "not a task-definition YAML or set file")
         return
 
     for path in sorted(root.rglob("*.yml")):
@@ -335,7 +335,7 @@ def _task_definition_files(root, error_count):
         yield path
 
 
-def _resolve_root(root, error_count):
+def resolve_root(root, error_count):
     if root.is_absolute():
         return root
 
@@ -349,7 +349,7 @@ def _resolve_root(root, error_count):
     if len(existing_candidates) == 1:
         return existing_candidates[0]
     if len(existing_candidates) > 1:
-        _report_error(
+        report_error(
             error_count,
             CPACHECKER_DIR / root,
             "ambiguous root, matches {}".format(
@@ -364,7 +364,7 @@ def _resolve_root(root, error_count):
     return candidates[0]
 
 
-def _parse_args(argv):
+def parse_args(argv):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "roots",
@@ -407,17 +407,17 @@ def main(argv=None):
         )
         return 2
 
-    args = _parse_args(argv)
+    args = parse_args(argv)
     error_count = [0]
     checked_files = 0
 
-    for root in (_resolve_root(root, error_count) for root in args.roots):
+    for root in (resolve_root(root, error_count) for root in args.roots):
         if not root.exists():
-            _report_error(error_count, root, "does not exist")
+            report_error(error_count, root, "does not exist")
             continue
-        for task_definition in _task_definition_files(root, error_count):
+        for task_definition in task_definition_files(root, error_count):
             checked_files += 1
-            _check_yaml_file(task_definition, error_count, args)
+            check_yaml_file(task_definition, error_count, args)
 
     print(
         "Checked {} YAML file(s), found {} error(s).".format(
