@@ -28,11 +28,7 @@ for wheel in glob.glob(str(CPACHECKER_DIR / "lib" / "python-benchmark" / "*.whl"
 import yaml
 
 
-TASK_DEFINITION_ROOTS = (Path("test/programs"),)
-TASK_DEFINITION_SEARCH_ROOTS = (
-    Path("test/programs"),
-    Path("test/programs/simple"),
-)
+TASK_DEFINITION_ROOTS = (CPACHECKER_DIR / "test" / "programs",)
 
 LANGUAGE_FILE_ENDINGS = {
     "C": (".c", ".i"),
@@ -271,35 +267,6 @@ def task_definition_files(root, error_count):
         yield path
 
 
-def resolve_root(root, error_count):
-    if root.is_absolute():
-        return root
-
-    candidates = [CPACHECKER_DIR / root]
-    candidates.extend(
-        CPACHECKER_DIR / search_root / root
-        for search_root in TASK_DEFINITION_SEARCH_ROOTS
-    )
-
-    existing_candidates = [candidate for candidate in candidates if candidate.exists()]
-    if len(existing_candidates) == 1:
-        return existing_candidates[0]
-    if len(existing_candidates) > 1:
-        report_error(
-            error_count,
-            CPACHECKER_DIR / root,
-            "ambiguous root, matches {}".format(
-                ", ".join(
-                    str(candidate.relative_to(CPACHECKER_DIR))
-                    for candidate in existing_candidates
-                )
-            ),
-        )
-        return existing_candidates[0]
-
-    return candidates[0]
-
-
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -308,9 +275,8 @@ def parse_args():
         type=Path,
         default=TASK_DEFINITION_ROOTS,
         help=(
-            "Directories, task-definition YAML files, or .set files. "
-            "Relative names are also resolved below test/programs and "
-            "test/programs/simple."
+            "Directories, task-definition .yml files, or .set files. "
+            "Relative paths are resolved from the current working directory."
         ),
     )
     return parser.parse_args()
@@ -321,7 +287,7 @@ def main():
     error_count = [0]
     checked_files = 0
 
-    for root in (resolve_root(root, error_count) for root in args.roots):
+    for root in args.roots:
         if not root.exists():
             report_error(error_count, root, "does not exist")
             continue
