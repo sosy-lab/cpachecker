@@ -83,10 +83,6 @@ def witness_tasks(content):
                 yield task
 
 
-def resolve_reference(base_dir, reference):
-    return base_dir / reference
-
-
 def check_referenced_file_existence(
     path, base_dir, reference_key, references, error_count
 ):
@@ -100,7 +96,7 @@ def check_referenced_file_existence(
             )
             continue
 
-        resolved = resolve_reference(base_dir, reference)
+        resolved = base_dir / reference
         if not resolved.exists():
             report_error(
                 error_count,
@@ -206,7 +202,7 @@ def check_properties(
             continue
         if not check_property_files:
             continue
-        resolved = resolve_reference(path.parent, property_file)
+        resolved = path.parent / property_file
         if not resolved.exists():
             report_error(
                 error_count,
