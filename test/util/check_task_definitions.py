@@ -66,15 +66,6 @@ def normalize_to_list(value):
     return [value]
 
 
-def load_yaml(path, error_count):
-    try:
-        with path.open(encoding="utf-8") as yml_file:
-            return yaml.safe_load(yml_file)
-    except yaml.YAMLError as exception:
-        report_error(error_count, path, "invalid YAML: {}".format(exception))
-        return None
-
-
 def is_witness_document(content):
     return isinstance(content, list) and any(
         isinstance(entry, dict) and "entry_type" in entry for entry in content
@@ -295,8 +286,11 @@ def check_witness(path, content, error_count, args):
 
 
 def check_yaml_file(path, error_count, args):
-    content = load_yaml(path, error_count)
-    if content is None:
+    try:
+        with path.open(encoding="utf-8") as yml_file:
+            content = yaml.safe_load(yml_file)
+    except yaml.YAMLError as exception:
+        report_error(error_count, path, "invalid YAML: {}".format(exception))
         return
 
     if is_witness_document(content):
