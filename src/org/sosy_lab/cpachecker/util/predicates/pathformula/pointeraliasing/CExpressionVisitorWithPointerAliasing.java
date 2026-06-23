@@ -308,7 +308,7 @@ class CExpressionVisitorWithPointerAliasing
     final Variable variable = e.accept(baseVisitor);
     if (variable != null) {
       // return the unaliased location corresponding to variable
-      final String variableName = variable.getName();
+      final String variableName = variable.name();
       return UnaliasedLocation.ofVariableName(variableName);
     } else {
       // expressing as unaliased location failed, return a corresponding aliased location
@@ -506,24 +506,24 @@ class CExpressionVisitorWithPointerAliasing
         return Value.ofValue(dereference(operand, operand.accept(this)).getAddress());
       } else {
         final Variable base = baseVisitor.getLastBase();
-        final Formula baseAddress = conv.makeBaseAddress(base.asPointerBase(), base.getType());
+        final Formula baseAddress = conv.makeBaseAddress(base.asPointerBase(), base.type());
         conv.addValueImportConstraints(
             baseAddress,
             base.asPointerBase(),
-            base.getType(),
+            base.type(),
             initializedFields,
             ssa,
             constraints,
             null);
         if (pts.isPreparedBase(base.asPointerBase())) {
-          pts.shareBase(base.asPointerBase(), base.getType());
+          pts.shareBase(base.asPointerBase(), base.type());
         } else {
           Formula size =
               conv.fmgr.makeNumber(
-                  conv.voidPointerFormulaType, typeHandler.getExactSizeof(base.getType()));
+                  conv.voidPointerFormulaType, typeHandler.getExactSizeof(base.type()));
           pts.addNextBaseAddressConstraints(
-              base.asPointerBase(), base.getType(), size, false, constraints);
-          pts.addBase(base.asPointerBase(), base.getType());
+              base.asPointerBase(), base.type(), size, false, constraints);
+          pts.addBase(base.asPointerBase(), base.type());
         }
         return visit(e);
       }

@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -195,7 +196,8 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
       BlockGraph blockGraph;
       if (decompositionOptions.generateBlockGraphOnly()) {
         blockGraph = decompose(decompositionOptions.getConfiguredDecomposition());
-        blockGraph.export(decompositionOptions.getBlockCFAFile(), initialCFA);
+        JSON.writeJSONString(
+            blockGraph.getExportData(initialCFA), decompositionOptions.getBlockCFAFile());
         logger.logf(
             Level.INFO, "Block graph exported to %s.", decompositionOptions.getBlockCFAFile());
         return AlgorithmStatus.NO_PROPERTY_CHECKED;
