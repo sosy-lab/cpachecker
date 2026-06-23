@@ -96,12 +96,16 @@ def resolve_reference(base_dir, reference):
     return (base_dir / reference).resolve()
 
 
-def check_referenced_files(path, base_dir, key, values, error_count):
-    for reference in normalize_to_list(values):
+def check_referenced_file_existence(
+    path, base_dir, reference_key, references, error_count
+):
+    """Check that file references from a YAML key point to existing files."""
+    for reference in normalize_to_list(references):
         if not isinstance(reference, str):
             report_error(
                 error_count,
-                path, "{} contains non-string entry {!r}".format(key, reference)
+                path,
+                "{} contains non-string entry {!r}".format(reference_key, reference),
             )
             continue
 
@@ -109,7 +113,8 @@ def check_referenced_files(path, base_dir, key, values, error_count):
         if not resolved.exists():
             report_error(
                 error_count,
-                path, "{} references missing file '{}'".format(key, reference)
+                path,
+                "{} references missing file '{}'".format(reference_key, reference),
             )
 
 
@@ -226,10 +231,12 @@ def check_task_definition(path, content, error_count, args):
     input_files = normalize_to_list(content.get("input_files"))
     if not input_files:
         report_error(error_count, path, "missing or empty input_files")
-    check_referenced_files(path, path.parent, "input_files", input_files, error_count)
+    check_referenced_file_existence(
+        path, path.parent, "input_files", input_files, error_count
+    )
 
     for additional_file_key in ADDITIONAL_FILE_KEYS:
-        check_referenced_files(
+        check_referenced_file_existence(
             path,
             path.parent,
             additional_file_key,
@@ -270,7 +277,7 @@ def check_witness(path, content, error_count, args):
             report_error(
                 error_count, path, "witness task has missing or empty input_files"
             )
-        check_referenced_files(
+        check_referenced_file_existence(
             path, path.parent, "witness task input_files", input_files, error_count
         )
 
