@@ -14,7 +14,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -35,19 +34,20 @@ public class CombinePredicatePrecisionOperator implements CombinePrecisionOperat
     fmgr = pFmgr;
   }
 
-  private boolean isRequired(AbstractionPredicate p, Set<String> importantVariables) {
+  private boolean containsImportantVariable(
+      AbstractionPredicate p, Set<String> importantVariables) {
     if (fmgr.getBooleanFormulaManager().isTrue(p.getSymbolicAtom())
         || fmgr.getBooleanFormulaManager().isFalse(p.getSymbolicAtom())) {
       return true;
     }
     Set<String> containedVariables = fmgr.extractVariables(p.getSymbolicAtom()).keySet();
-    return !Sets.intersection(importantVariables, containedVariables).isEmpty();
+    return !Collections.disjoint(importantVariables, containedVariables);
   }
 
-  private <K> ImmutableListMultimap<K, AbstractionPredicate> toMultimap(
+  private <K> ImmutableListMultimap<K, AbstractionPredicate> toFilteredMultimap(
       Collection<Entry<K, AbstractionPredicate>> entries, Set<String> importantVariables) {
     return entries.stream()
-        .filter(entry -> isRequired(entry.getValue(), importantVariables))
+        .filter(entry -> containsImportantVariable(entry.getValue(), importantVariables))
         .collect(ImmutableListMultimap.toImmutableListMultimap(Entry::getKey, Entry::getValue));
   }
 
@@ -63,10 +63,12 @@ public class CombinePredicatePrecisionOperator implements CombinePrecisionOperat
     PredicatePrecision union = PredicatePrecision.unionOf(precisions);
 
     return new PredicatePrecision(
-        toMultimap(union.getLocationInstancePredicates().entries(), removeOthers),
-        toMultimap(union.getLocalPredicates().entries(), removeOthers),
-        toMultimap(union.getFunctionPredicates().entries(), removeOthers),
-        from(union.getGlobalPredicates()).filter(p -> isRequired(p, removeOthers)).toSet());
+        toFilteredMultimap(union.getLocationInstancePredicates().entries(), removeOthers),
+        toFilteredMultimap(union.getLocalPredicates().entries(), removeOthers),
+        toFilteredMultimap(union.getFunctionPredicates().entries(), removeOthers),
+        from(union.getGlobalPredicates())
+            .filter(p -> containsImportantVariable(p, removeOthers))
+            .toSet());
   }
 
   @Override

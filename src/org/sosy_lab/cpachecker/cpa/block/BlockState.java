@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -116,6 +117,8 @@ public class BlockState
 
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
+    final BooleanFormulaManagerView bfmgr = manager.getBooleanFormulaManager();
+
     if (isTarget()) {
       ImmutableList.Builder<BooleanFormula> combined = ImmutableList.builder();
       for (AbstractState violationCondition : violationConditions) {
@@ -123,11 +126,11 @@ public class BlockState
             AbstractStates.asIterable(violationCondition)
                 .filter(ViolationConditionReportingState.class)
                 .transform(s -> s.getViolationCondition(manager));
-        combined.add(manager.getBooleanFormulaManager().and(approximations.toList()));
+        combined.add(bfmgr.and(approximations.toList()));
       }
-      return manager.getBooleanFormulaManager().or(combined.build());
+      return bfmgr.or(combined.build());
     }
-    return manager.getBooleanFormulaManager().makeTrue();
+    return bfmgr.makeTrue();
   }
 
   @Override
