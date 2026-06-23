@@ -15,19 +15,19 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class EqualityCombineOperator implements CombineOperator {
+public class EqualityCombinePreconditionsOperator implements CombinePreconditionsOperator {
 
   private final CoverageOperator coverageOperator;
   private final Class<? extends AbstractState> stateClass;
 
-  public EqualityCombineOperator(
+  public EqualityCombinePreconditionsOperator(
       CoverageOperator pCoverageOperator, Class<? extends AbstractState> pStateClass) {
     coverageOperator = pCoverageOperator;
     stateClass = pStateClass;
   }
 
   @Override
-  public AbstractState combine(Collection<AbstractState> states)
+  public AbstractState combinePreconditions(Collection<AbstractState> states)
       throws CPAException, InterruptedException {
     Preconditions.checkArgument(!states.isEmpty(), "There must be at least one state to combine.");
     Preconditions.checkArgument(

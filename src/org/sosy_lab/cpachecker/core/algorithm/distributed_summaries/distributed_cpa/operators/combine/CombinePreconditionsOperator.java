@@ -18,7 +18,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  *
  * <p>The resulting state must follow the contract that it over-approximates all input states.
  */
-public interface CombineOperator {
+public interface CombinePreconditionsOperator {
 
-  AbstractState combine(Collection<AbstractState> states) throws CPAException, InterruptedException;
+  AbstractState combinePreconditions(Collection<AbstractState> states)
+      throws CPAException, InterruptedException;
 }
