@@ -32,6 +32,10 @@ except ImportError:
 
 
 TASK_DEFINITION_ROOTS = (Path("test/programs"),)
+TASK_DEFINITION_SEARCH_ROOTS = (
+    Path("test/programs"),
+    Path("test/programs/simple"),
+)
 
 CHECK_WITNESS_TASKS = True
 
@@ -282,11 +286,72 @@ def _check_yaml_file(path, reporter, args):
         _check_task_definition(path, content, reporter, args)
 
 
-def _task_definition_files(root):
+def _read_set_file(path, reporter):
+    try:
+        return path.read_text(encoding="utf-8").splitlines()
+    except OSError as exception:
+        reporter.error(path, "could not read set file: {}".format(exception))
+        return []
+
+
+def _task_definition_files_from_set(path, reporter):
+    for line in _read_set_file(path, reporter):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+
+        matches = sorted(path.parent.glob(line))
+        if not matches:
+            reporter.error(path, "set entry '{}' does not match any file".format(line))
+            continue
+
+        for match in matches:
+            if match.suffix in (".yml", ".yaml"):
+                yield match
+
+
+def _task_definition_files(root, reporter):
+    if root.is_file():
+        if root.suffix in (".yml", ".yaml"):
+            yield root
+        elif root.suffix == ".set":
+            yield from _task_definition_files_from_set(root, reporter)
+        else:
+            reporter.error(root, "not a task-definition YAML or set file")
+        return
+
     for path in sorted(root.rglob("*.yml")):
         yield path
     for path in sorted(root.rglob("*.yaml")):
         yield path
+
+
+def _resolve_root(root, reporter):
+    if root.is_absolute():
+        return root
+
+    candidates = [CPACHECKER_DIR / root]
+    candidates.extend(
+        CPACHECKER_DIR / search_root / root
+        for search_root in TASK_DEFINITION_SEARCH_ROOTS
+    )
+
+    existing_candidates = [candidate for candidate in candidates if candidate.exists()]
+    if len(existing_candidates) == 1:
+        return existing_candidates[0]
+    if len(existing_candidates) > 1:
+        reporter.error(
+            CPACHECKER_DIR / root,
+            "ambiguous root, matches {}".format(
+                ", ".join(
+                    str(candidate.relative_to(CPACHECKER_DIR))
+                    for candidate in existing_candidates
+                )
+            ),
+        )
+        return existing_candidates[0]
+
+    return candidates[0]
 
 
 def _parse_args(argv):
@@ -296,7 +361,11 @@ def _parse_args(argv):
         nargs="*",
         type=Path,
         default=TASK_DEFINITION_ROOTS,
-        help="Directories with task-definition YAML files.",
+        help=(
+            "Directories, task-definition YAML files, or .set files. "
+            "Relative names are also resolved below test/programs and "
+            "test/programs/simple."
+        ),
     )
     parser.add_argument(
         "--require-language",
@@ -332,13 +401,11 @@ def main(argv=None):
     reporter = Reporter()
     checked_files = 0
 
-    for root in args.roots:
-        if not root.is_absolute():
-            root = CPACHECKER_DIR / root
-        if not root.is_dir():
-            reporter.error(root, "not a directory")
+    for root in (_resolve_root(root, reporter) for root in args.roots):
+        if not root.exists():
+            reporter.error(root, "does not exist")
             continue
-        for task_definition in _task_definition_files(root):
+        for task_definition in _task_definition_files(root, reporter):
             checked_files += 1
             _check_yaml_file(task_definition, reporter, args)
 
