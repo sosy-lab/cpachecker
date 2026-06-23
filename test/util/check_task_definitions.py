@@ -151,13 +151,10 @@ def check_data_model(path, language, data_model, error_count):
         )
 
 
-def check_properties(
-    path, content, error_count, require_properties, check_property_files
-):
+def check_properties(path, content, error_count):
     properties = content.get("properties")
     if not properties:
-        if require_properties:
-            report_error(error_count, path, "missing or empty properties")
+        report_error(error_count, path, "missing or empty properties")
         return
     if not isinstance(properties, list):
         report_error(error_count, path, "properties is not a list")
@@ -181,8 +178,6 @@ def check_properties(
                 "property_file contains non-string entry {!r}".format(property_file),
             )
             continue
-        if not check_property_files:
-            continue
         resolved = path.parent / property_file
         if not resolved.exists():
             report_error(
@@ -191,7 +186,7 @@ def check_properties(
             )
 
 
-def check_task_definition(path, content, error_count, args):
+def check_task_definition(path, content, error_count):
     if not isinstance(content, dict):
         report_error(error_count, path, "expected mapping for task definition")
         return
@@ -220,17 +215,13 @@ def check_task_definition(path, content, error_count, args):
         options = {}
 
     language = options.get("language")
-    if args.require_language:
-        check_required_language(path, language, error_count)
+    check_required_language(path, language, error_count)
     check_language(path, input_files, language, error_count)
-    if args.check_data_model:
-        check_data_model(path, language, options.get("data_model"), error_count)
-    check_properties(
-        path, content, error_count, args.require_properties, args.check_property_files
-    )
+    check_data_model(path, language, options.get("data_model"), error_count)
+    check_properties(path, content, error_count)
 
 
-def check_yaml_file(path, error_count, args):
+def check_yaml_file(path, error_count):
     try:
         with path.open(encoding="utf-8") as yml_file:
             content = yaml.safe_load(yml_file)
@@ -238,7 +229,7 @@ def check_yaml_file(path, error_count, args):
         report_error(error_count, path, "invalid YAML: {}".format(exception))
         return
 
-    check_task_definition(path, content, error_count, args)
+    check_task_definition(path, content, error_count)
 
 
 def read_set_file(path, error_count):
@@ -325,26 +316,6 @@ def parse_args(argv):
             "test/programs/simple."
         ),
     )
-    parser.add_argument(
-        "--require-language",
-        action="store_true",
-        help="Require options.language for all task definitions.",
-    )
-    parser.add_argument(
-        "--require-properties",
-        action="store_true",
-        help="Require at least one property for all task definitions.",
-    )
-    parser.add_argument(
-        "--check-property-files",
-        action="store_true",
-        help="Check that referenced property files exist.",
-    )
-    parser.add_argument(
-        "--check-data-model",
-        action="store_true",
-        help="Check that specified data models are supported for the task language.",
-    )
     return parser.parse_args(argv)
 
 
@@ -365,7 +336,7 @@ def main(argv=None):
             continue
         for task_definition in task_definition_files(root, error_count):
             checked_files += 1
-            check_yaml_file(task_definition, error_count, args)
+            check_yaml_file(task_definition, error_count)
 
     print(
         "Checked {} YAML file(s), found {} error(s).".format(
