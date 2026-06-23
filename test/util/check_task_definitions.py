@@ -143,7 +143,8 @@ def check_properties(path, content, error_count):
         if not isinstance(property_definition, dict):
             report_error(
                 error_count,
-                path, "invalid property definition {!r}".format(property_definition)
+                path,
+                "invalid property definition {!r}".format(property_definition),
             )
             continue
         property_file = property_definition.get("property_file")
@@ -161,7 +162,8 @@ def check_properties(path, content, error_count):
         if not resolved.exists():
             report_error(
                 error_count,
-                path, "property_file references missing file '{}'".format(property_file)
+                path,
+                "property_file references missing file '{}'".format(property_file),
             )
 
 
