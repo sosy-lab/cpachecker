@@ -25,10 +25,7 @@ CPACHECKER_DIR = Path(__file__).resolve().parents[2]
 for wheel in glob.glob(str(CPACHECKER_DIR / "lib" / "python-benchmark" / "*.whl")):
     sys.path.insert(0, wheel)
 
-try:
-    import yaml
-except ImportError:
-    yaml = None
+import yaml
 
 
 TASK_DEFINITION_ROOTS = (Path("test/programs"),)
@@ -320,12 +317,6 @@ def parse_args():
 
 
 def main():
-    if yaml is None:
-        print(
-            "ERROR: PyYAML is required for checking task definitions.", file=sys.stderr
-        )
-        return 2
-
     args = parse_args()
     error_count = [0]
     checked_files = 0
