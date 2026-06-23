@@ -37,8 +37,6 @@ TASK_DEFINITION_SEARCH_ROOTS = (
     Path("test/programs/simple"),
 )
 
-CHECK_WITNESS_TASKS = True
-
 LANGUAGE_FILE_ENDINGS = {
     "C": (".c", ".i"),
     "Java": (".java",),
@@ -64,23 +62,6 @@ def normalize_to_list(value):
     if isinstance(value, list):
         return value
     return [value]
-
-
-def is_witness_document(content):
-    return isinstance(content, list) and any(
-        isinstance(entry, dict) and "entry_type" in entry for entry in content
-    )
-
-
-def witness_tasks(content):
-    for entry in content:
-        if not isinstance(entry, dict):
-            continue
-        metadata = entry.get("metadata")
-        if isinstance(metadata, dict):
-            task = metadata.get("task")
-            if isinstance(task, dict):
-                yield task
 
 
 def check_referenced_file_existence(
@@ -249,38 +230,6 @@ def check_task_definition(path, content, error_count, args):
     )
 
 
-def check_witness(path, content, error_count, args):
-    if not CHECK_WITNESS_TASKS:
-        return
-
-    tasks = list(witness_tasks(content))
-    if not tasks:
-        report_error(error_count, path, "witness has no metadata.task section")
-        return
-
-    for task in tasks:
-        input_files = normalize_to_list(task.get("input_files"))
-        if not input_files:
-            report_error(
-                error_count, path, "witness task has missing or empty input_files"
-            )
-        check_referenced_file_existence(
-            path, path.parent, "witness task input_files", input_files, error_count
-        )
-
-        language = task.get("language")
-        if args.require_language:
-            check_required_language(path, language, error_count)
-        check_language(path, input_files, language, error_count)
-        if args.check_data_model:
-            check_data_model(path, language, task.get("data_model"), error_count)
-
-        if not task.get("specification"):
-            report_error(
-                error_count, path, "witness task has missing or empty specification"
-            )
-
-
 def check_yaml_file(path, error_count, args):
     try:
         with path.open(encoding="utf-8") as yml_file:
@@ -289,10 +238,7 @@ def check_yaml_file(path, error_count, args):
         report_error(error_count, path, "invalid YAML: {}".format(exception))
         return
 
-    if is_witness_document(content):
-        check_witness(path, content, error_count, args)
-    else:
-        check_task_definition(path, content, error_count, args)
+    check_task_definition(path, content, error_count, args)
 
 
 def read_set_file(path, error_count):
@@ -389,7 +335,7 @@ def parse_args(argv):
     parser.add_argument(
         "--require-properties",
         action="store_true",
-        help="Require at least one property for all non-witness task definitions.",
+        help="Require at least one property for all task definitions.",
     )
     parser.add_argument(
         "--check-property-files",
