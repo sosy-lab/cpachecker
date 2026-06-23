@@ -74,18 +74,35 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public class DssBlockAnalysis {
 
-  private record ArgPathAndCondition(ARGPath path, @Nullable ARGState condition) {
+  private static final class ArgPathAndCondition {
 
-    private String getIdFromPath() {
-      return FluentIterable.from(path.getFullPath())
-          .transform(edge -> edge.getPredecessor() + "->" + edge.getSuccessor())
-          .join(Joiner.on(", "));
+    private final ARGPath path;
+    private final @Nullable ARGState condition;
+
+    // Precomputed once because ARGPath/ARGState are immutable and computing the id iterates the
+    // full path; caching avoids recomputation on every hashCode/equals call.
+    private final String id;
+
+    private ArgPathAndCondition(ARGPath pPath, @Nullable ARGState pCondition) {
+      path = pPath;
+      condition = pCondition;
+      id =
+          FluentIterable.from(pPath.getFullPath())
+              .transform(edge -> edge.getPredecessor() + "->" + edge.getSuccessor())
+              .join(Joiner.on(", "));
+    }
+
+    private ARGPath path() {
+      return path;
+    }
+
+    private @Nullable ARGState condition() {
+      return condition;
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(
-          getIdFromPath(), condition == null ? null : Objects.toIdentityString(condition));
+      return Objects.hash(id, condition == null ? null : Objects.toIdentityString(condition));
     }
 
     @Override
@@ -94,7 +111,7 @@ public class DssBlockAnalysis {
         return true;
       }
       return obj instanceof ArgPathAndCondition other
-          && Objects.equals(getIdFromPath(), other.getIdFromPath())
+          && Objects.equals(id, other.id)
           && Objects.equals(
               condition == null ? null : Objects.toIdentityString(condition),
               other.condition() == null ? null : Objects.toIdentityString(other.condition()));
@@ -256,7 +273,7 @@ public class DssBlockAnalysis {
       Optional<AbstractState> violationCondition =
           dcpa.getViolationConditionOperator()
               .computeViolationCondition(
-                  pathAndCondition.path(), Optional.ofNullable(pathAndCondition.condition));
+                  pathAndCondition.path(), Optional.ofNullable(pathAndCondition.condition()));
       if (violationCondition.isPresent()) {
         statePerProgramCounterBuilder.put(
             dcpa.computeProgramPointHash(violationCondition.orElseThrow()),
