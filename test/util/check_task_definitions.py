@@ -279,9 +279,9 @@ def task_definition_files(root, error_count):
             report_error(error_count, root, "not a task-definition YAML or set file")
         return
 
-    for path in sorted(root.rglob("*.yml")):
+    for path in root.rglob("*.yml"):
         yield path
-    for path in sorted(root.rglob("*.yaml")):
+    for path in root.rglob("*.yaml"):
         yield path
 
 
