@@ -58,7 +58,7 @@ public class BlockState
     node = pNode;
     type = pType;
     blockNode = pTargetNode;
-    violationConditions = pViolationConditions;
+    violationConditions = ImmutableList.copyOf(pViolationConditions);
     history = ImmutableList.copyOf(pHistory);
     witness = ImmutableList.copyOf(pWitness);
   }
@@ -72,7 +72,7 @@ public class BlockState
   }
 
   public void setViolationConditions(List<? extends AbstractState> pViolationConditions) {
-    violationConditions = pViolationConditions;
+    violationConditions = ImmutableList.copyOf(pViolationConditions);
   }
 
   public BlockNode getBlockNode() {
