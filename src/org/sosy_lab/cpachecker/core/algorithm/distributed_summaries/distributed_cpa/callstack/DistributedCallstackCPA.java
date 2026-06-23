@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -164,6 +165,14 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
 
   @Override
   public int computeProgramPointHash(AbstractState pAbstractState) {
-    return ((CallstackState) pAbstractState).proofCheckingHash();
+    return proofCheckingHash((CallstackState) pAbstractState);
+  }
+
+  private static int proofCheckingHash(CallstackState pState) {
+    return Objects.hash(
+        pState.getCallNode().getNodeNumber(),
+        pState.getDepth(),
+        pState.getCurrentFunction(),
+        pState.getPreviousState() == null ? 0 : pState.getPreviousState().hashCode());
   }
 }
