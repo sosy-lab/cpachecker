@@ -303,7 +303,7 @@ def resolve_root(root, error_count):
     return candidates[0]
 
 
-def parse_args(argv):
+def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "roots",
@@ -316,17 +316,17 @@ def parse_args(argv):
             "test/programs/simple."
         ),
     )
-    return parser.parse_args(argv)
+    return parser.parse_args()
 
 
-def main(argv=None):
+def main():
     if yaml is None:
         print(
             "ERROR: PyYAML is required for checking task definitions.", file=sys.stderr
         )
         return 2
 
-    args = parse_args(argv)
+    args = parse_args()
     error_count = [0]
     checked_files = 0
 
