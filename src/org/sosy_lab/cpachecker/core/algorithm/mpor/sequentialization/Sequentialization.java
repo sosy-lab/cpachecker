@@ -12,13 +12,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Optional;
 import java.util.StringJoiner;
-import java.util.logging.Level;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class Sequentialization {
@@ -28,6 +24,8 @@ public class Sequentialization {
           "// This sequentialization (transformation of a concurrent program into an"
               + " equivalent",
           "// sequential program) was created by the MPORAlgorithm implemented in CPAchecker.");
+
+  public static final String MPOR_PREFIX = "__MPOR__";
 
   @CanIgnoreReturnValue
   public static String tryBuildProgramString(
@@ -51,17 +49,9 @@ public class Sequentialization {
             ? pUtils.clangFormatter().tryFormat(initProgram, pOptions.clangFormatStyle())
             : initProgram;
 
-    // if enabled, check that program can be parsed by CPAchecker
-    if (pOptions.validateParse()) {
-      try {
-        SeqValidator.validateProgramParsing(rFormattedProgram, pUtils);
-      } catch (ParserException | InterruptedException | InvalidConfigurationException e) {
-        pUtils
-            .logger()
-            .logUserException(
-                Level.WARNING, e, "An exception occurred while parsing the sequentialization.");
-      }
-    }
+    // if enabled, check that the program can be parsed by CPAchecker
+    SequentializationValidator.tryValidateProgramParsing(pOptions, rFormattedProgram, pUtils);
+
     return rFormattedProgram;
   }
 
@@ -78,7 +68,8 @@ public class Sequentialization {
 
     // add bit vector type (before, otherwise parse error) and all input program type declarations
     rProgram.add(
-        SequentializationBuilder.buildInputFunctionAndTypeDeclarations(pOptions, pFields.threads));
+        SequentializationBuilder.buildInputFunctionAndTypeDeclarations(
+            pOptions, pFields.inputMainFunctionDeclaration, pFields.threads));
     // add all variable and parameter declarations, but only if there are any
     Optional.of(
             SequentializationBuilder.buildInputGlobalVariableDeclarations(

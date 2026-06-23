@@ -851,10 +851,10 @@ public final class InterpolationManager {
   }
 
   /** Helper method to dump a list of formulas to files. */
-  private void dumpInterpolationProblem(List<BooleanFormula> f) {
+  private void dumpInterpolationProblem(String name, List<BooleanFormula> f) {
     int k = 0;
     for (BooleanFormula formula : f) {
-      dumpFormulaToFile("formula", formula, k++);
+      dumpFormulaToFile(name, formula, k++);
     }
   }
 
@@ -963,7 +963,7 @@ public final class InterpolationManager {
         }
 
         if (dumpInterpolationProblems) {
-          dumpInterpolationProblem(formulas.getFormulas());
+          dumpInterpolationProblem("formula", formulas.getFormulas());
         }
 
         // compute permutation in which formulas should be added
@@ -1042,6 +1042,9 @@ public final class InterpolationManager {
           for (BooleanFormula itp : interpolants) {
             logger.log(Level.ALL, "For step", i++, "got:", "interpolant", itp);
           }
+        }
+        if (dumpInterpolationProblems) {
+          dumpInterpolationProblem("interpolant", interpolants);
         }
 
         info = CounterexampleTraceInfo.infeasible(interpolants);
