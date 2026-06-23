@@ -47,6 +47,14 @@ public class IntervalAnalysisCPA extends AbstractCPA
 
   @Option(
       secure = true,
+      name = "merge",
+      toUppercase = true,
+      values = {"SEP", "JOIN", "INTERVAL_MERGE"},
+      description = "which type of merge operator to use for IntervalAnalysisCPA")
+  private String mergeType = "INTERVAL_MERGE";
+
+  @Option(
+      secure = true,
       description =
           "decides whether one (false) or two (true) successors should be created "
               + "when an inequality-check is encountered")
@@ -77,7 +85,11 @@ public class IntervalAnalysisCPA extends AbstractCPA
 
   @Override
   public MergeOperator getMergeOperator() {
-    return new IntervalMergeOperator();
+    if (this.mergeType.equals("INTERVAL_MERGE")) {
+      return new IntervalMergeOperator();
+    } else {
+      return buildMergeOperator(mergeType);
+    }
   }
 
   @Override
