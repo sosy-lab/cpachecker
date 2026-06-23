@@ -85,11 +85,11 @@ public class IntervalAnalysisCPA extends AbstractCPA
 
   @Override
   public MergeOperator getMergeOperator() {
-    if (this.mergeType.equals("INTERVAL_MERGE")) {
-      return new IntervalMergeOperator();
-    } else {
-      return buildMergeOperator(mergeType);
-    }
+    return switch (this.mergeType) {
+      case "INTERVAL_MERGE" -> new IntervalMergeOperator();
+      case "SEP", "JOIN" -> buildMergeOperator(mergeType);
+      default -> throw new UnsupportedOperationException();
+    };
   }
 
   @Override
