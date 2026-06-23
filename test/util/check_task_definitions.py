@@ -50,7 +50,7 @@ SUPPORTED_DATA_MODELS = {
     "C": {"ILP32", "LP64"},
 }
 
-ADDITIONAL_FILE_KEYS = ("required_files",)
+ADDITIONAL_FILE_KEYS = frozenset({"required_files"})
 
 
 class Reporter:
@@ -58,11 +58,7 @@ class Reporter:
         self.errors = []
 
     def error(self, path, message):
-        relative_path = path
-        if path.is_absolute():
-            relative_path = path.relative_to(CPACHECKER_DIR)
-
-        self.errors.append("{}: {}".format(relative_path, message))
+        self.errors.append("{}: {}".format(path, message))
 
     def print_summary(self, checked_files):
         for error in self.errors:
