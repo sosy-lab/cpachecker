@@ -28,8 +28,6 @@ for wheel in glob.glob(str(CPACHECKER_DIR / "lib" / "python-benchmark" / "*.whl"
 import yaml
 
 
-TASK_DEFINITION_ROOTS = (CPACHECKER_DIR / "test" / "programs",)
-
 LANGUAGE_FILE_ENDINGS = {
     "C": (".c", ".i"),
     "Java": (".java",),
@@ -107,20 +105,6 @@ def check_language(path, input_files, language, error_count):
             )
 
 
-def check_required_language(path, language, error_count):
-    if not language:
-        report_error(
-            error_count, path, "missing programming language in options.language"
-        )
-        return
-    if language not in LANGUAGE_FILE_ENDINGS:
-        report_error(
-            error_count,
-            path,
-            "unsupported programming language '{}'".format(language),
-        )
-
-
 def check_data_model(path, language, data_model, error_count):
     if not data_model:
         return
@@ -146,8 +130,10 @@ def check_data_model(path, language, data_model, error_count):
 
 def check_properties(path, content, error_count):
     properties = content.get("properties")
+    if properties is None:
+        return
     if not properties:
-        report_error(error_count, path, "missing or empty properties")
+        report_error(error_count, path, "empty properties")
         return
     if not isinstance(properties, list):
         report_error(error_count, path, "properties is not a list")
@@ -208,7 +194,6 @@ def check_task_definition(path, content, error_count):
         options = {}
 
     language = options.get("language")
-    check_required_language(path, language, error_count)
     check_language(path, input_files, language, error_count)
     check_data_model(path, language, options.get("data_model"), error_count)
     check_properties(path, content, error_count)
@@ -271,9 +256,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "roots",
-        nargs="*",
+        nargs="+",
         type=Path,
-        default=TASK_DEFINITION_ROOTS,
         help=(
             "Directories, task-definition .yml files, or .set files. "
             "Relative paths are resolved from the current working directory."
