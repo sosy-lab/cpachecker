@@ -9,25 +9,19 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
 import com.google.common.collect.ImmutableList;
-import java.io.PrintStream;
+import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /**
  * Observer worker that detects termination conditions based on the received messages.
@@ -44,7 +38,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
  *
  * <p>The observer also collects statistics from all workers for analysis reporting.
  */
-public class DssObserverWorker extends DssWorker implements Statistics {
+public class DssObserverWorker extends DssWorker {
 
   private final DssConnection connection;
   private final StatusObserver statusObserver;
@@ -52,7 +46,7 @@ public class DssObserverWorker extends DssWorker implements Statistics {
   private Optional<Result> result;
   private Optional<String> errorMessage;
 
-  private final Map<String, Map<StatisticsKey, String>> stats = new HashMap<>();
+  private final Map<String, DssStatisticsMessage> stats = new HashMap<>();
 
   private final int numberOfBlocks;
 
@@ -86,7 +80,7 @@ public class DssObserverWorker extends DssWorker implements Statistics {
         shutdown = true;
       }
       case STATISTIC -> {
-        stats.put(pMessage.getSenderId(), pMessage.getStats());
+        stats.put(pMessage.getSenderId(), (DssStatisticsMessage) pMessage);
         shutdown = stats.size() == numberOfBlocks;
       }
     }
@@ -137,40 +131,7 @@ public class DssObserverWorker extends DssWorker implements Statistics {
     }
   }
 
-  private String convert(StatisticsKey pKey, String pNumber) {
-    if (pKey.isFormattedAsTime()) {
-      return TimeSpan.ofNanos(Long.parseLong(pNumber)).formatAs(TimeUnit.SECONDS);
-    }
-    return pNumber;
-  }
-
-  @Override
-  public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet reached) {
-    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
-    Map<StatisticsKey, String> overall = new HashMap<>();
-    for (Entry<String, Map<StatisticsKey, String>> statEntry : stats.entrySet()) {
-      String blockId = statEntry.getKey();
-      writer = writer.put("BlockID " + blockId, blockId).beginLevel();
-      for (Entry<StatisticsKey, String> entry : statEntry.getValue().entrySet()) {
-        writer = writer.put(entry.getKey().getKey(), convert(entry.getKey(), entry.getValue()));
-        overall.merge(
-            entry.getKey(),
-            entry.getValue(),
-            (v1, v2) -> Long.toString(Long.parseLong(v1) + Long.parseLong(v2)));
-      }
-      writer = writer.endLevel();
-    }
-    writer = writer.put("Overall", "Sum of all blocks").beginLevel();
-    for (Entry<StatisticsKey, String> overallEntry : overall.entrySet()) {
-      writer =
-          writer.put(
-              overallEntry.getKey() + " (overall)",
-              convert(overallEntry.getKey(), overallEntry.getValue()));
-    }
-  }
-
-  @Override
-  public String getName() {
-    return "ObserverWorker " + getId();
+  public ImmutableMap<String, DssStatisticsMessage> getCollectedStats() {
+    return ImmutableMap.copyOf(stats);
   }
 }

@@ -24,10 +24,10 @@ public class DssStatisticsMessage extends DssMessage {
     PROCEED_TIME("time spent processing states", true),
     MESSAGES_SENT("number of messages sent", false),
     MESSAGES_RECEIVED("number of messages received", false),
-    PRECONDITION_CALCULATION_TIME("time spent calculating preconditions", true),
-    PRECONDITION_CALCULATION_COUNT("number of preconditions calculated", false),
-    VIOLATION_CONDITION_CALCULATION_TIME("time spent calculating violation conditions", true),
-    VIOLATION_CONDITION_CALCULATION_COUNT("number of violation conditions calculated", false);
+    PRECONDITION_ANALYSIS_TIME("time spent analyzing preconditions", true),
+    PRECONDITION_ANALYSIS_COUNT("number of preconditions analyzed", false),
+    VIOLATION_CONDITION_ANALYSIS_TIME("time spent analyzing violation conditions", true),
+    VIOLATION_CONDITION_ANALYSIS_COUNT("number of violation conditions analyzed", false);
 
     private final String key;
     private final boolean formatAsTime;

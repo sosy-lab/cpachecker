@@ -8,66 +8,29 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
-import org.sosy_lab.common.time.Tickers;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 
 public class DssBlockAnalysisStatistics {
 
-  public static class ThreadCPUTimer {
-    private long sum;
-    private long lastStart;
-    private final String name;
-    private boolean running;
-
-    public ThreadCPUTimer(String pName) {
-      sum = 0;
-      lastStart = 0;
-      name = pName;
-      running = false;
-    }
-
-    public void start() {
-      checkState(!running, "Timer has already been started.");
-      lastStart = Tickers.getCurrentThreadCputime().read();
-      running = true;
-    }
-
-    public void stop() {
-      checkState(running, "Timer needs to be started first.");
-      sum += Tickers.getCurrentThreadCputime().read() - lastStart;
-      running = false;
-    }
-
-    public long nanos() {
-      return sum;
-    }
-
-    public String getName() {
-      return name;
-    }
-  }
-
   private final StatCounter serializationCount;
   private final StatCounter deserializationCount;
 
-  private final ThreadCPUTimer serializationTime;
-  private final ThreadCPUTimer deserializationTime;
+  private final DssThreadCPUTimer serializationTime;
+  private final DssThreadCPUTimer deserializationTime;
   private final StatCounter proceedCount;
-  private final ThreadCPUTimer proceedTime;
+  private final DssThreadCPUTimer proceedTime;
 
   public DssBlockAnalysisStatistics(String pId) {
     serializationCount = new StatCounter("Serialization Count " + pId);
     deserializationCount = new StatCounter("Deserialization Count " + pId);
     proceedCount = new StatCounter("Proceed Count " + pId);
 
-    serializationTime = new ThreadCPUTimer("Serialization Time " + pId);
-    deserializationTime = new ThreadCPUTimer("Deserialization Time " + pId);
-    proceedTime = new ThreadCPUTimer("Proceed Time " + pId);
+    serializationTime = new DssThreadCPUTimer("Serialization Time " + pId);
+    deserializationTime = new DssThreadCPUTimer("Deserialization Time " + pId);
+    proceedTime = new DssThreadCPUTimer("Proceed Time " + pId);
   }
 
   public StatCounter getDeserializationCount() {
@@ -78,15 +41,15 @@ public class DssBlockAnalysisStatistics {
     return serializationCount;
   }
 
-  public ThreadCPUTimer getDeserializationTime() {
+  public DssThreadCPUTimer getDeserializationTime() {
     return deserializationTime;
   }
 
-  public ThreadCPUTimer getProceedTime() {
+  public DssThreadCPUTimer getProceedTime() {
     return proceedTime;
   }
 
-  public ThreadCPUTimer getSerializationTime() {
+  public DssThreadCPUTimer getSerializationTime() {
     return serializationTime;
   }
 

@@ -29,6 +29,8 @@ public class DistributedSummarySynthesisStatistics implements Statistics {
   private final StatTimer decompositionTimer = new StatTimer("Decomposition time");
   private final StatTimer instrumentationTimer = new StatTimer("Instrumentation time");
 
+  private final DssWorkerStatistics workerStatistics = new DssWorkerStatistics();
+
   public StatInt getAverageNumberOfEdges() {
     return averageNumberOfEdges;
   }
@@ -49,6 +51,10 @@ public class DistributedSummarySynthesisStatistics implements Statistics {
     return instrumentationTimer;
   }
 
+  public DssWorkerStatistics getWorkerStatistics() {
+    return workerStatistics;
+  }
+
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
@@ -60,6 +66,7 @@ public class DistributedSummarySynthesisStatistics implements Statistics {
         .put(averageNumberOfEdges)
         .put(instrumentationTimer)
         .put(decompositionTimer);
+    workerStatistics.printStatistics(out, result, reached);
   }
 
   @Override

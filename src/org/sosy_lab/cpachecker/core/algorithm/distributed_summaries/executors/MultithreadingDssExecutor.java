@@ -13,11 +13,11 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssDefaultQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssOb
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusAndResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssThreadMonitor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssWorkerBuilder;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -58,14 +57,12 @@ public class MultithreadingDssExecutor implements DssExecutor {
   private final DssMessageFactory messageFactory;
   private final DssAnalysisOptions options;
   private final Specification specification;
-  private final List<Statistics> stats;
 
   public MultithreadingDssExecutor(Configuration pConfiguration, Specification pSpecification)
       throws InvalidConfigurationException {
     specification = pSpecification;
     options = new DssAnalysisOptions(pConfiguration);
     messageFactory = new DssMessageFactory(options);
-    stats = new ArrayList<>();
   }
 
   private DssActors createDssActors(CFA cfa, BlockGraph blockGraph)
@@ -84,10 +81,10 @@ public class MultithreadingDssExecutor implements DssExecutor {
   }
 
   @Override
-  public StatusAndResult execute(CFA cfa, BlockGraph blockGraph)
+  public StatusAndResult execute(
+      CFA cfa, BlockGraph blockGraph, DssWorkerStatistics workerStatistics)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     try (DssActors actors = createDssActors(cfa, blockGraph)) {
-      stats.addAll(actors.getWorkersWithStats());
       DssObserverWorker observer = Iterables.getOnlyElement(actors.getObservers());
       Preconditions.checkState(
           observer.getId().equals(OBSERVER_WORKER_ID),
@@ -111,12 +108,9 @@ public class MultithreadingDssExecutor implements DssExecutor {
       monitor.setDaemon(true);
       monitor.start();
       // blocks the thread until the result message is received
-      return observer.observe();
+      StatusAndResult result = observer.observe();
+      workerStatistics.addAllMessages(observer.getCollectedStats());
+      return result;
     }
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> statsCollection) {
-    statsCollection.addAll(stats);
   }
 }
