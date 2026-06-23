@@ -93,7 +93,7 @@ def witness_tasks(content):
 
 
 def resolve_reference(base_dir, reference):
-    return (base_dir / reference).resolve()
+    return base_dir / reference
 
 
 def check_referenced_file_existence(
