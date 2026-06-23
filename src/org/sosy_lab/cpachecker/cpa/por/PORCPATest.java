@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.por;
 
+import static org.sosy_lab.cpachecker.util.test.TestUtils.configurationForTest;
+
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.List;
@@ -20,9 +22,8 @@ import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
-import org.sosy_lab.cpachecker.util.test.TestResults;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 
 /**
  * Integration tests for the POR CPA using the {@code por.properties} configuration.
@@ -34,7 +35,7 @@ public class PORCPATest {
 
   private static Configuration getConfig(String config, Map<String, String> extra)
       throws InvalidConfigurationException, IOException {
-    return TestDataTools.configurationForTest()
+    return configurationForTest()
         .loadFromFile(config)
         .setOptions(extra)
         .build();
@@ -107,7 +108,7 @@ public class PORCPATest {
   @Test
   public void testPor() throws Exception {
     var config = getConfig(configuration);
-    TestResults results = CPATestRunner.run(config, TEST_DIR + fileName);
+    IntegrationTestResult results = IntegrationTestRunner.run(config, TEST_DIR + fileName);
     if (expectedSafe) {
       results.assertIsSafe();
     } else {
