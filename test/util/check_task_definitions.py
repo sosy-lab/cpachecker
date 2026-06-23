@@ -265,23 +265,21 @@ def task_definition_files_from_set(path, error_count):
             continue
 
         for match in matches:
-            if match.suffix in (".yml", ".yaml"):
+            if match.suffix == ".yml":
                 yield match
 
 
 def task_definition_files(root, error_count):
     if root.is_file():
-        if root.suffix in (".yml", ".yaml"):
+        if root.suffix == ".yml":
             yield root
         elif root.suffix == ".set":
             yield from task_definition_files_from_set(root, error_count)
         else:
-            report_error(error_count, root, "not a task-definition YAML or set file")
+            report_error(error_count, root, "not a task-definition .yml or set file")
         return
 
     for path in root.rglob("*.yml"):
-        yield path
-    for path in root.rglob("*.yaml"):
         yield path
 
 
