@@ -1,0 +1,51 @@
+- entry_type: "violation_sequence"
+  metadata:
+    format_version: "2.2"
+    uuid: "74b63572-9dfd-381e-a293-51ef2cc288bf"
+    creation_time: "2026-06-24T11:43:09+02:00"
+    producer:
+      name: "CPAchecker"
+      version: "4.2.2-2014-g544a1c4019+"
+      configuration: "predicateAnalysis-concurrency"
+    task:
+      input_files:
+      - "../sv-benchmarks/c/goblint-regression/36-apron_41-threadenter-no-locals_unknown_1_neg.c"
+      input_file_hashes:
+        "../sv-benchmarks/c/goblint-regression/36-apron_41-threadenter-no-locals_unknown_1_neg.c": "b9310ee879c8f9bbdc1b9b9f93be911071dc40bca1058db638f496ce8f119367"
+      specification: "CHECK( init(main()), LTL(G ! call(reach_error())) )"
+      data_model: "ILP32"
+      language: "C"
+  content:
+  - segment:
+    - waypoint:
+        type: "function_enter"
+        action: "follow"
+        thread_id: 0
+        location:
+          file_name: "../sv-benchmarks/c/goblint-regression/36-apron_41-threadenter-no-locals_unknown_1_neg.c"
+          line: 27
+          column: 17
+          function: "main"
+  - segment:
+    - waypoint:
+        type: "assumption"
+        action: "follow"
+        thread_id: 1
+        constraint:
+          value: "(x == 3)"
+          format: "c_expression"
+        location:
+          file_name: "../sv-benchmarks/c/goblint-regression/36-apron_41-threadenter-no-locals_unknown_1_neg.c"
+          line: 19
+          column: 3
+          function: "t_fun__cloned_function__1"
+  - segment:
+    - waypoint:
+        type: "target"
+        action: "follow"
+        thread_id: 1
+        location:
+          file_name: "../sv-benchmarks/c/goblint-regression/36-apron_41-threadenter-no-locals_unknown_1_neg.c"
+          line: 11
+          column: 58
+          function: "__VERIFIER_assert__cloned_function__1"
