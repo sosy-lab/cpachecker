@@ -71,4 +71,11 @@ public class AutomatonWitnessV2d2ValidationIntegrationTest
     Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-data-race.c");
     verificationPlusValidationTest(inputFilePath, Result.FALSE, specificationFilePath);
   }
+
+  @Test(timeout = 3000)
+  public void validate_data_race_concurrency_roundtrip_gcd() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-data-race.prp");
+    Path inputFilePath = Path.of(SV_BENCHMARKS_TEST_DIR_PATH, "pthread-atomic/gcd-2.i");
+    verificationPlusValidationTest(inputFilePath, Result.FALSE, specificationFilePath);
+  }
 }

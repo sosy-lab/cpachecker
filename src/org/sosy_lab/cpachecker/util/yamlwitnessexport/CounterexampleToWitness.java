@@ -42,6 +42,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -649,24 +651,55 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         // actually contains the data race. However, for this we need to ignore blank edges, since
         // they are actually not part of the possible data-race.
         ImmutableList<CFAEdge> edgesWithoutBlankEdges =
-            FluentIterable.from(edges).filter(edge -> !(edge instanceof BlankEdge)).toList();
-        CFAEdge secondToLastEdge = edgesWithoutBlankEdges.get(edgesWithoutBlankEdges.size() - 2);
-        CFAEdge thirdToLastEdge = edgesWithoutBlankEdges.get(edgesWithoutBlankEdges.size() - 3);
+            FluentIterable.from(edges)
+                .filter(
+                    edge ->
+                        !(edge instanceof BlankEdge
+                            || edge instanceof CFunctionCallEdge
+                            || edge instanceof CReturnStatementEdge))
+                .toList();
+        CFAEdge lastEdgeOnThread = edgesWithoutBlankEdges.get(edgesWithoutBlankEdges.size() - 1);
+        OptionalInt lastThreadId =
+            getThreadIdIfExists(
+                pCex.getTargetPath()
+                    .getStateSet()
+                    .asList()
+                    .get(edges.size() - edges.reversed().indexOf(lastEdgeOnThread)),
+                lastEdgeOnThread,
+                threadNameToIdBuilder.buildOrThrow());
+        Verify.verify(lastThreadId.isPresent(), "Last thread ID should be present for data races");
+
+        OptionalInt secondToLastThreadId = OptionalInt.empty();
+        CFAEdge lastEdgeOnDifferentThread = null;
+        for (CFAEdge edge :
+            edgesWithoutBlankEdges.reverse().subList(1, edgesWithoutBlankEdges.size())) {
+          secondToLastThreadId =
+              getThreadIdIfExists(
+                  pCex.getTargetPath()
+                      .getStateSet()
+                      .asList()
+                      .get(edges.size() - edges.reversed().indexOf(edge)),
+                  edge,
+                  threadNameToIdBuilder.buildOrThrow());
+
+          if (secondToLastThreadId.isPresent()
+              && secondToLastThreadId.orElseThrow() != lastThreadId.orElseThrow()) {
+            lastEdgeOnDifferentThread = edge;
+            break;
+          }
+        }
+
+        Verify.verify(
+            secondToLastThreadId.isPresent(),
+            "Second to last thread ID should be present for data races");
+
         segments.add(
             new SegmentRecord(
                 ImmutableList.of(
-                    targetWaypoint(thirdToLastEdge, astCFARelation)
-                        .withThreadId(
-                            getThreadIdIfExists(
-                                pCex.getTargetPath().getStateSet().asList().get(edges.size() - 2),
-                                thirdToLastEdge,
-                                threadNameToIdBuilder.buildOrThrow())),
-                    targetWaypoint(secondToLastEdge, astCFARelation)
-                        .withThreadId(
-                            getThreadIdIfExists(
-                                pCex.getTargetPath().getStateSet().asList().get(edges.size() - 1),
-                                secondToLastEdge,
-                                threadNameToIdBuilder.buildOrThrow())))));
+                    targetWaypoint(lastEdgeOnThread, astCFARelation).withThreadId(lastThreadId),
+                    targetWaypoint(
+                            Objects.requireNonNull(lastEdgeOnDifferentThread), astCFARelation)
+                        .withThreadId(secondToLastThreadId))));
       } else {
         segments.add(
             SegmentRecord.ofOnlyElement(
