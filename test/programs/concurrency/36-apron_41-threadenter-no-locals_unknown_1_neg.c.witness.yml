@@ -1,3 +1,11 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
 - entry_type: "violation_sequence"
   metadata:
     format_version: "2.2"
@@ -9,43 +17,43 @@
       configuration: "predicateAnalysis-concurrency"
     task:
       input_files:
-      - "../sv-benchmarks/c/goblint-regression/36-apron_41-threadenter-no-locals_unknown_1_neg.c"
+        - "../sv-benchmarks/c/goblint-regression/36-apron_41-threadenter-no-locals_unknown_1_neg.c"
       input_file_hashes:
         "../sv-benchmarks/c/goblint-regression/36-apron_41-threadenter-no-locals_unknown_1_neg.c": "b9310ee879c8f9bbdc1b9b9f93be911071dc40bca1058db638f496ce8f119367"
       specification: "CHECK( init(main()), LTL(G ! call(reach_error())) )"
       data_model: "ILP32"
       language: "C"
   content:
-  - segment:
-    - waypoint:
-        type: "function_enter"
-        action: "follow"
-        thread_id: 0
-        location:
-          file_name: "../sv-benchmarks/c/goblint-regression/36-apron_41-threadenter-no-locals_unknown_1_neg.c"
-          line: 27
-          column: 17
-          function: "main"
-  - segment:
-    - waypoint:
-        type: "assumption"
-        action: "follow"
-        thread_id: 1
-        constraint:
-          value: "(x == 3)"
-          format: "c_expression"
-        location:
-          file_name: "../sv-benchmarks/c/goblint-regression/36-apron_41-threadenter-no-locals_unknown_1_neg.c"
-          line: 19
-          column: 3
-          function: "t_fun__cloned_function__1"
-  - segment:
-    - waypoint:
-        type: "target"
-        action: "follow"
-        thread_id: 1
-        location:
-          file_name: "../sv-benchmarks/c/goblint-regression/36-apron_41-threadenter-no-locals_unknown_1_neg.c"
-          line: 11
-          column: 58
-          function: "__VERIFIER_assert__cloned_function__1"
+    - segment:
+        - waypoint:
+            type: "function_enter"
+            action: "follow"
+            thread_id: 0
+            location:
+              file_name: "../sv-benchmarks/c/goblint-regression/36-apron_41-threadenter-no-locals_unknown_1_neg.c"
+              line: 27
+              column: 17
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "assumption"
+            action: "follow"
+            thread_id: 1
+            constraint:
+              value: "(x == 3)"
+              format: "c_expression"
+            location:
+              file_name: "../sv-benchmarks/c/goblint-regression/36-apron_41-threadenter-no-locals_unknown_1_neg.c"
+              line: 19
+              column: 3
+              function: "t_fun__cloned_function__1"
+    - segment:
+        - waypoint:
+            type: "target"
+            action: "follow"
+            thread_id: 1
+            location:
+              file_name: "../sv-benchmarks/c/goblint-regression/36-apron_41-threadenter-no-locals_unknown_1_neg.c"
+              line: 11
+              column: 58
+              function: "__VERIFIER_assert__cloned_function__1"

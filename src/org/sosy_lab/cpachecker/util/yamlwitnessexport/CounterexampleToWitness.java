@@ -658,7 +658,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
                             || edge instanceof CFunctionCallEdge
                             || edge instanceof CReturnStatementEdge))
                 .toList();
-        CFAEdge lastEdgeOnThread = edgesWithoutBlankEdges.get(edgesWithoutBlankEdges.size() - 1);
+        CFAEdge lastEdgeOnThread = edgesWithoutBlankEdges.getLast();
         OptionalInt lastThreadId =
             getThreadIdIfExists(
                 pCex.getTargetPath()
