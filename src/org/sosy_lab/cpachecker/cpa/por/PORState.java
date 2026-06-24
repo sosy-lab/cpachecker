@@ -22,6 +22,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.OptionalInt;
 import java.util.Random;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -98,6 +99,16 @@ public class PORState
 
   public ImmutableMap<String, Integer> threadHandles() {
     return threadHandles;
+  }
+
+  /**
+   * Returns the thread ID (PID) the given node was cloned for, or empty if the node is not a cloned
+   * POR node. Since the CFA is cloned per thread, a cloned node uniquely identifies the thread it
+   * belongs to. The PID is assigned in creation order with the main thread having PID 0, which
+   * matches the thread IDs used in the witnesses.
+   */
+  public static OptionalInt getThreadIdForClonedNode(CFANode pNode) {
+    return PorEdgeCloner.getThreadIdForNode(pNode);
   }
 
   boolean canMerge(PORState other) {

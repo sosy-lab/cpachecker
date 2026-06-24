@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.por;
 
+import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -45,6 +46,14 @@ final class PorEdgeCloner {
    */
   static CFANode getOriginalNode(final CFANode pNode) {
     return PorCfaCloner.getOriginalNode(pNode);
+  }
+
+  /**
+   * Returns the thread ID (PID) the given node was cloned for, or empty if the node is not a cloned
+   * POR node.
+   */
+  static OptionalInt getThreadIdForNode(final CFANode pNode) {
+    return PorCfaCloner.getThreadIdForNode(pNode);
   }
 
   /**

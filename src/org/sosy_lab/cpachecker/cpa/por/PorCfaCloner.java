@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Queue;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -53,6 +54,13 @@ final class PorCfaCloner {
    * dependency analysis which needs to traverse the original CFA.
    */
   private static final IdentityHashMap<CFANode, CFANode> globalReverseNodeMap =
+      new IdentityHashMap<>();
+
+  /**
+   * Global map across all thread cloners: cloned node -> thread ID it was cloned for. Used by the
+   * witness export and validation to recover which thread a cloned edge belongs to.
+   */
+  private static final IdentityHashMap<CFANode, Integer> globalNodeThreadIdMap =
       new IdentityHashMap<>();
 
   /**
@@ -133,6 +141,15 @@ final class PorCfaCloner {
   }
 
   /**
+   * Returns the thread ID (PID) the given node was cloned for, or empty if the node is not a cloned
+   * POR node.
+   */
+  static OptionalInt getThreadIdForNode(CFANode pNode) {
+    Integer pid = globalNodeThreadIdMap.get(pNode);
+    return pid != null ? OptionalInt.of(pid) : OptionalInt.empty();
+  }
+
+  /**
    * Returns the original CFA edge corresponding to the given (potentially cloned) edge. If the
    * edge is not a cloned edge, it is returned as-is.
    */
@@ -157,9 +174,7 @@ final class PorCfaCloner {
     Queue<CFANode> worklist = new ArrayDeque<>();
     for (CFANode node : pCfa.nodes()) {
       if (!nodeMap.containsKey(node)) {
-        CFANode cloned = cloneNode(node);
-        nodeMap.put(node, cloned);
-        globalReverseNodeMap.put(cloned, node);
+        registerClonedNode(node);
         worklist.add(node);
       }
     }
@@ -169,22 +184,27 @@ final class PorCfaCloner {
       for (int i = 0; i < current.getNumLeavingEdges(); i++) {
         CFANode succ = current.getLeavingEdge(i).getSuccessor();
         if (!nodeMap.containsKey(succ)) {
-          CFANode cloned = cloneNode(succ);
-          nodeMap.put(succ, cloned);
-          globalReverseNodeMap.put(cloned, succ);
+          registerClonedNode(succ);
           worklist.add(succ);
         }
       }
       for (int i = 0; i < current.getNumEnteringEdges(); i++) {
         CFANode pred = current.getEnteringEdge(i).getPredecessor();
         if (!nodeMap.containsKey(pred)) {
-          CFANode cloned = cloneNode(pred);
-          nodeMap.put(pred, cloned);
-          globalReverseNodeMap.put(cloned, pred);
+          registerClonedNode(pred);
           worklist.add(pred);
         }
       }
     }
+  }
+
+  /** Clones the given original node and registers it in all node maps. */
+  private CFANode registerClonedNode(CFANode pOriginalNode) {
+    CFANode cloned = cloneNode(pOriginalNode);
+    nodeMap.put(pOriginalNode, cloned);
+    globalReverseNodeMap.put(cloned, pOriginalNode);
+    globalNodeThreadIdMap.put(cloned, threadId);
+    return cloned;
   }
 
   @SuppressWarnings("deprecation") // FunctionExitNode.getLeavingEdges is deprecated but we need it

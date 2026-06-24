@@ -4231,6 +4231,16 @@ cpa.value.abstraction.onlyAtNonLinearCFA = false
 # every time they are called. This can be unsound!
 cpa.value.allowedUnsupportedFunctions = {}
 
+# If this option is set to true, the value analysis will always use qualified
+# names for variables instead of assembling a qualified name on-the-fly with
+# the current function name and the variable name. This can lead to slightly
+# diminished performance (c.f., qualified name parsing), however, it is
+# necessary for some use cases, e.g., when using value analysis for
+# concurrent programs where multiple threads can execute the same function.
+# Then, the thread ID must also be included in the qualified name, which is
+# only possible if the qualified name is used.
+cpa.value.alwaysUseQualifiedNames = false
+
 # Use equality assumptions to assign values (e.g., (x == 0) => x = 0)
 cpa.value.assignEqualityAssumptions = true
 

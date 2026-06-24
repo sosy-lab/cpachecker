@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
+import org.sosy_lab.cpachecker.cpa.por.PORState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -100,24 +101,49 @@ public interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   }
 
   static Optional<ResultValue<Boolean>> matchesThreadIfPresent(
-      OptionalInt threadId, List<AbstractState> pAbstractStates) {
+      OptionalInt threadId, List<AbstractState> pAbstractStates, CFAEdge pEdge) {
     if (threadId.isPresent()) {
       FluentIterable<ThreadingState> threadingStates =
           FluentIterable.from(pAbstractStates).filter(ThreadingState.class);
-      if (threadingStates.isEmpty()) {
-        return Optional.of(CANNOT_EVALUATE_THREAD_MISSING);
+      if (!threadingStates.isEmpty()) {
+        // Assume that we only have a single threading state
+        ThreadingState threadingState = threadingStates.get(0);
+
+        if (!Objects.equals(
+            threadingState.getThreadIdForWitness(threadingState.getActiveThread()),
+            threadId.orElseThrow())) {
+          return Optional.of(CONST_FALSE);
+        }
+        return Optional.empty();
       }
 
-      // Assume that we only have a single threading state
-      ThreadingState threadingState = threadingStates.get(0);
-
-      if (!Objects.equals(
-          threadingState.getThreadIdForWitness(threadingState.getActiveThread()),
-          threadId.orElseThrow())) {
-        return Optional.of(CONST_FALSE);
+      // The POR analysis does not use a ThreadingCPA and its PORState is not a sibling of the
+      // witness automaton (it wraps the composite). However, POR clones the CFA per thread, so the
+      // successor node of the (cloned) edge uniquely identifies the thread that just moved. Its PID,
+      // assigned in creation order with the main thread having PID 0, matches the thread ID used in
+      // the witness.
+      OptionalInt porThreadId = PORState.getThreadIdForClonedNode(pEdge.getSuccessor());
+      if (porThreadId.isPresent()) {
+        if (porThreadId.getAsInt() != threadId.orElseThrow()) {
+          return Optional.of(CONST_FALSE);
+        }
+        return Optional.empty();
       }
+
+      return Optional.of(CANNOT_EVALUATE_THREAD_MISSING);
     }
     return Optional.empty();
+  }
+
+  /**
+   * Returns whether thread information is available for the current edge, either from a {@link
+   * ThreadingState} sibling or, for the POR analysis (which has none), from the per-thread cloned
+   * CFA. Used by the location matchers to decide whether a thread-annotated waypoint can be
+   * evaluated at all.
+   */
+  private static boolean threadInfoAvailable(List<AbstractState> pAbstractStates, CFAEdge pEdge) {
+    return !FluentIterable.from(pAbstractStates).filter(ThreadingState.class).isEmpty()
+        || PORState.getThreadIdForClonedNode(pEdge.getSuccessor()).isPresent();
   }
 
   public static class IsStatementEdge implements AutomatonBoolExpr {
@@ -286,7 +312,7 @@ public interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       CFAEdge edge = pArgs.getCfaEdge();
 
       Optional<ResultValue<Boolean>> matchesThread =
-          matchesThreadIfPresent(threadId, pArgs.getAbstractStates());
+          matchesThreadIfPresent(threadId, pArgs.getAbstractStates(), edge);
       if (matchesThread.isPresent()) {
         return matchesThread.orElseThrow();
       }
@@ -346,7 +372,7 @@ public interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       CFAEdge edge = pArgs.getCfaEdge();
 
       Optional<ResultValue<Boolean>> matchesThread =
-          matchesThreadIfPresent(threadId, pArgs.getAbstractStates());
+          matchesThreadIfPresent(threadId, pArgs.getAbstractStates(), edge);
       if (matchesThread.isPresent()) {
         return matchesThread.orElseThrow();
       }
@@ -404,10 +430,7 @@ public interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
 
-      if (threadId.isPresent()
-          && FluentIterable.from(pArgs.getAbstractStates())
-              .filter(ThreadingState.class)
-              .isEmpty()) {
+      if (threadId.isPresent() && !threadInfoAvailable(pArgs.getAbstractStates(), edge)) {
         return CANNOT_EVALUATE_THREAD_MISSING;
       }
 
@@ -471,7 +494,7 @@ public interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       CFAEdge edge = pArgs.getCfaEdge();
 
       Optional<ResultValue<Boolean>> matchesThread =
-          matchesThreadIfPresent(threadId, pArgs.getAbstractStates());
+          matchesThreadIfPresent(threadId, pArgs.getAbstractStates(), edge);
       if (matchesThread.isPresent()) {
         return matchesThread.orElseThrow();
       }
@@ -531,10 +554,7 @@ public interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
 
-      if (threadId.isPresent()
-          && FluentIterable.from(pArgs.getAbstractStates())
-              .filter(ThreadingState.class)
-              .isEmpty()) {
+      if (threadId.isPresent() && !threadInfoAvailable(pArgs.getAbstractStates(), edge)) {
         return CANNOT_EVALUATE_THREAD_MISSING;
       }
 
@@ -675,10 +695,7 @@ public interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         throws CPATransferException {
       CFAEdge edge = pArgs.getCfaEdge();
 
-      if (threadId.isPresent()
-          && FluentIterable.from(pArgs.getAbstractStates())
-              .filter(ThreadingState.class)
-              .isEmpty()) {
+      if (threadId.isPresent() && !threadInfoAvailable(pArgs.getAbstractStates(), edge)) {
         return CANNOT_EVALUATE_THREAD_MISSING;
       }
 
