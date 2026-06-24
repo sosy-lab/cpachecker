@@ -16,14 +16,11 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -52,6 +49,8 @@ import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.por.PORState;
+import org.sosy_lab.cpachecker.cpa.por.PORThreadState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
@@ -189,41 +188,76 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   private static Optional<String> getNewThreadNameIfExists(
       ARGState pState, ARGState pPreviousState) {
     ThreadingState threadingState = extractStateByType(pState, ThreadingState.class);
-    if (threadingState == null) {
-      return Optional.empty();
-    }
-
     ThreadingState previousThreadingState =
         extractStateByType(pPreviousState, ThreadingState.class);
-    if (previousThreadingState == null) {
+    if (threadingState != null && previousThreadingState != null) {
+      for (String threadId : threadingState.getThreadIds()) {
+        if (!previousThreadingState.getThreadIds().contains(threadId)) {
+          return Optional.of(threadId);
+        }
+      }
       return Optional.empty();
     }
 
-    for (String threadId : threadingState.getThreadIds()) {
-      if (!previousThreadingState.getThreadIds().contains(threadId)) {
-        return Optional.of(threadId);
+    // The POR analysis does not use a ThreadingCPA but tracks the active threads inside the
+    // PORState. The newly created thread is the one whose PID is present in the current state but
+    // not in the previous one.
+    PORState porState = extractStateByType(pState, PORState.class);
+    PORState previousPorState = extractStateByType(pPreviousState, PORState.class);
+    if (porState != null && previousPorState != null) {
+      for (Integer pid : porState.threads().keySet()) {
+        if (!previousPorState.threads().containsKey(pid)) {
+          return getPorThreadName(porState, pid);
+        }
       }
     }
 
-    Set<String> currentThreadIds = new HashSet<>(threadingState.getThreadIds());
-    currentThreadIds.removeAll(previousThreadingState.getThreadIds());
-
-    return Optional.of(Iterables.getOnlyElement(currentThreadIds));
+    return Optional.empty();
   }
 
   private static Optional<String> getCurrentThreadNameIfExists(ARGState pState, CFAEdge pEdge) {
     ThreadingState threadingState = extractStateByType(pState, ThreadingState.class);
-    if (threadingState == null) {
+    if (threadingState != null) {
+      for (String threadId : threadingState.getThreadIds()) {
+        if (threadingState
+            .getThreadLocation(threadId)
+            .getLocationNode()
+            .equals(pEdge.getSuccessor())) {
+
+          return Optional.of(threadId);
+        }
+      }
       return Optional.empty();
     }
 
-    for (String threadId : threadingState.getThreadIds()) {
-      if (threadingState
-          .getThreadLocation(threadId)
-          .getLocationNode()
-          .equals(pEdge.getSuccessor())) {
+    // The POR analysis does not use a ThreadingCPA but tracks the active threads inside the
+    // PORState. Since it clones the CFA per thread, the location nodes are thread-specific and thus
+    // uniquely identify the thread that just moved to the successor of the edge.
+    PORState porState = extractStateByType(pState, PORState.class);
+    if (porState != null) {
+      for (Map.Entry<Integer, PORThreadState> entry : porState.threads().entrySet()) {
+        if (entry.getValue().pLocationState().getLocationNode().equals(pEdge.getSuccessor())) {
+          return getPorThreadName(porState, entry.getKey());
+        }
+      }
+    }
 
-        return Optional.of(threadId);
+    return Optional.empty();
+  }
+
+  /**
+   * Returns the name used to refer to a thread of the POR analysis in the witness. The main thread
+   * always has PID 0 and is named "main" to match the thread IDs used during the export. Every other
+   * thread is identified by the handle (i.e. the pthread_t variable) it was created with.
+   */
+  private static Optional<String> getPorThreadName(PORState pState, int pPid) {
+    if (pPid == 0) {
+      return Optional.of("main");
+    }
+
+    for (Map.Entry<String, Integer> entry : pState.threadHandles().entrySet()) {
+      if (entry.getValue() == pPid) {
+        return Optional.of(entry.getKey());
       }
     }
 
@@ -234,7 +268,10 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       ARGState pState, CFAEdge pEdge, ImmutableMap<String, Integer> pThreadNameToId) {
     Optional<String> threadId = getCurrentThreadNameIfExists(pState, pEdge);
     if (threadId.isPresent()) {
-      return OptionalInt.of(Objects.requireNonNull(pThreadNameToId.get(threadId.orElseThrow())));
+      Integer id = pThreadNameToId.get(threadId.orElseThrow());
+      if (id != null) {
+        return OptionalInt.of(id);
+      }
     }
 
     return OptionalInt.empty();
@@ -376,10 +413,17 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
 
       FileLocation functionCallLocation = pFunctionCallStatement.getFileLocation();
 
+      // Register the newly created thread so that later waypoints can refer to it by its ID. If the
+      // analysis does not expose the new thread (e.g. it does not track threads at all), we still
+      // export the waypoint, just without a thread ID.
       Optional<String> currentThreadNameIfExists = getNewThreadNameIfExists(pState, pPreviousState);
-
-      pThreadNameToIdBuilder.put(
-          currentThreadNameIfExists.orElseThrow(), pThreadNameToIdBuilder.buildOrThrow().size());
+      if (currentThreadNameIfExists.isPresent()) {
+        ImmutableMap<String, Integer> threadNameToId = pThreadNameToIdBuilder.buildOrThrow();
+        String newThreadName = currentThreadNameIfExists.orElseThrow();
+        if (!threadNameToId.containsKey(newThreadName)) {
+          pThreadNameToIdBuilder.put(newThreadName, threadNameToId.size());
+        }
+      }
 
       WaypointRecord waypointRecord =
           new WaypointRecord(
