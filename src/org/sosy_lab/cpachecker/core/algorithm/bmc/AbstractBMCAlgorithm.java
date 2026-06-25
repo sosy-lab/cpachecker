@@ -1092,6 +1092,14 @@ abstract class AbstractBMCAlgorithm
       final BasicProverEnvironment<?> pProver,
       CandidateInvariant pCandidateInvariant)
       throws CPATransferException, InterruptedException, SolverException {
+    if (isTerminationMode()) {
+      // Termination candidates describe absence of loop continuation at the current bound frontier.
+      Iterable<AbstractState> frontierStates =
+          from(pReachedSet)
+              .filter(AbstractBMCAlgorithm::isStopState)
+              .filter(AbstractBMCAlgorithm::isRelevantForReachability);
+      return boundedModelCheck(frontierStates, pProver, pCandidateInvariant);
+    }
     return boundedModelCheck((Iterable<AbstractState>) pReachedSet, pProver, pCandidateInvariant);
   }
 
