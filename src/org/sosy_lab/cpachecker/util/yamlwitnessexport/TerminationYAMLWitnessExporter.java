@@ -93,7 +93,7 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
         LocationRecord.createLocationRecordAtStart(
             fileLocation,
             pLoopHead.getFunction().getFileLocation().getFileName().toString(),
-            pLoopHead.getFunctionName());
+            pLoopHead.getFunction().getOrigName());
     String invariant =
         wrapTheVariablesWithCastToLongLong(
             pSupportingInvariant.toString(), pSupportingInvariant.getVariables());
@@ -114,7 +114,7 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
         LocationRecord.createLocationRecordAtStart(
             fileLocation,
             pLoopHead.getFunction().getFileLocation().getFileName().toString(),
-            pLoopHead.getFunctionName());
+            pLoopHead.getFunction().getOrigName());
     for (TerminationArgument argument : pArguments) {
       RankingFunction rankingFunction = argument.getRankingFunction();
       if (rankingFunction instanceof NestedRankingFunction pNestedRankingFunction) {

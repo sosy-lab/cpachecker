@@ -92,7 +92,9 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         new InformationRecord(assumption, null, YAMLWitnessExpressionType.C);
     LocationRecord location =
         LocationRecord.createLocationRecordAfterLocation(
-            edge.getFileLocation(), edge.getPredecessor().getFunctionName(), pAstCfaRelation);
+            edge.getFileLocation(),
+            edge.getPredecessor().getFunction().getOrigName(),
+            pAstCfaRelation);
     return new WaypointRecord(
         WaypointType.ASSUMPTION, WaypointAction.FOLLOW, informationRecord, location);
   }
@@ -185,7 +187,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         LocationRecord.createLocationRecordAtStart(
             pAstElementLocation,
             assumeEdge.getFileLocation().getFileName().toString(),
-            assumeEdge.getPredecessor().getFunctionName()));
+            assumeEdge.getPredecessor().getFunction().getOrigName()));
   }
 
   private static Optional<String> getNewThreadNameIfExists(
@@ -431,7 +433,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         WaypointAction.FOLLOW,
         null,
         LocationRecord.createLocationRecordAtStart(
-            pEdge.getFileLocation(), pEdge.getPredecessor().getFunctionName()));
+            pEdge.getFileLocation(), pEdge.getPredecessor().getFunction().getOrigName()));
   }
 
   /**
@@ -468,7 +470,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
             WaypointAction.FOLLOW,
             null,
             LocationRecord.createLocationRecordAtStart(
-                fullExpressionLocation, pEdge.getPredecessor().getFunctionName()));
+                fullExpressionLocation, pEdge.getPredecessor().getFunction().getOrigName()));
       } else {
         // This is well-defined for the reeachability property, for all others violation witnesses
         // are not really well-defined
