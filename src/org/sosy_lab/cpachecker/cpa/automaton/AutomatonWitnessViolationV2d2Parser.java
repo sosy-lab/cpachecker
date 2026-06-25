@@ -193,6 +193,14 @@ class AutomatonWitnessViolationV2d2Parser extends AutomatonWitnessViolationV2d0P
         "1",
         currentStateTransitions);
 
+    handleIntermediateTarget(
+        pIntermediateState,
+        firstWaypoint.getLocation().getLine(),
+        firstWaypoint.getLocation().getColumn(),
+        firstWaypoint.getThread(),
+        pDistanceToViolation,
+        currentStateTransitions);
+
     handleTarget(
         pNextStateId,
         secondWaypoint.getLocation().getLine(),
