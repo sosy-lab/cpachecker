@@ -42,6 +42,8 @@ def init(config, benchmark):
     benchmark.executable = benchmark.tool.executable(tool_locator)
     benchmark.tool_version = benchmark.tool.version(benchmark.executable)
     environment = benchmark.environment()
+    if not benchmark.rlimits.cputime_hard:
+        sys.exit("A CPU-time limit is required when running on Cloud.")
     if environment.get("keepEnv", None) or environment.get("additionalEnv", None):
         sys.exit(
             "Unsupported environment configuration in tool-info module, "
@@ -217,7 +219,7 @@ def getBenchmarkDataForCloud(benchmark):
     ]
 
     # get limits and number of Runs
-    timeLimit = benchmark.rlimits.cputime_hard or DEFAULT_CLOUD_TIMELIMIT
+    timeLimit = benchmark.rlimits.cputime_hard
     memLimit = bytes_to_mb(benchmark.rlimits.memory) or memRequirement
     coreLimit = benchmark.rlimits.cpu_cores
     wallTimeLimit = benchmark.rlimits.walltime
