@@ -50,7 +50,7 @@ public class AutomatonWitnessV2d2ValidationIntegrationTest
     verificationPlusValidationTest(inputFilePath, Result.FALSE, specificationFilePath);
   }
 
-  @Test(timeout = 300000000)
+  @Test(timeout = 3000)
   public void validate_data_race_concurrency_roundtrip_goblint_regression() throws Exception {
     Path inputFilePath =
         Path.of(
