@@ -177,21 +177,7 @@ class AutomatonWitnessViolationV2d2Parser extends AutomatonWitnessViolationV2d0P
       String pIntermediateState,
       WaypointRecord firstWaypoint,
       WaypointRecord secondWaypoint,
-      ImmutableList.Builder<AutomatonTransition> currentStateTransitions)
-      throws InterruptedException, WitnessParseException {
-
-    handleAssumption(
-        pIntermediateState,
-        cfa.getAstCfaRelation()
-            .getTightestStatementForStarting(
-                firstWaypoint.getLocation().getLine(), firstWaypoint.getLocation().getColumn())
-            .orElseThrow(),
-        firstWaypoint.getLocation().getLine(),
-        firstWaypoint.getThread(),
-        firstWaypoint.getLocation().getFunction(),
-        pDistanceToViolation,
-        "1",
-        currentStateTransitions);
+      ImmutableList.Builder<AutomatonTransition> currentStateTransitions) {
 
     handleIntermediateTarget(
         pIntermediateState,
