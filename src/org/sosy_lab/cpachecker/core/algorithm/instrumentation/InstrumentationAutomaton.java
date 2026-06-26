@@ -249,7 +249,7 @@ public class InstrumentationAutomaton {
             liveVariablesAndTypes.entrySet().stream()
                     .map(
                         (entry) ->
-                                " __INSTR_"
+                            " __INSTR_"
                                 + entry.getKey()
                                 + "_"
                                 + index
