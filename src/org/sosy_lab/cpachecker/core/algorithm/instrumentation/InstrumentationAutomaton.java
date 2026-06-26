@@ -189,7 +189,7 @@ public class InstrumentationAutomaton {
             liveVariablesAndTypes.entrySet().stream()
                     .map(
                         (entry) ->
-                            getDereferencesForPointer(entry.getValue())
+                            entry.getValue()
                                 + " __INSTR_"
                                 + entry.getKey()
                                 + "_"
