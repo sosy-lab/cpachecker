@@ -249,16 +249,13 @@ public class InstrumentationAutomaton {
             liveVariablesAndTypes.entrySet().stream()
                     .map(
                         (entry) ->
-                            entry.getValue()
-                                + " __INSTR_"
+                                " __INSTR_"
                                 + entry.getKey()
                                 + "_"
                                 + index
-                                + (entry.getKey().charAt(0) == '*'
-                                    ? " = alloca(sizeof("
-                                        + getAllocationForPointer(entry.getValue())
-                                        + "))"
-                                    : ""))
+                                + " = "
+                                + getDereferencesForPointer(entry.getValue())
+                                + entry.getKey())
                     .collect(Collectors.joining("; "))
                 + (!liveVariablesAndTypes.isEmpty() ? ";" : ""));
     return operation;
