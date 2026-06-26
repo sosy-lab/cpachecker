@@ -178,10 +178,10 @@ public class InstrumentationAutomaton {
       operation =
           operation.replace("__INSTR_init_in_scope(INSTR_INDEX_init)", "__INSTR_init_in_scope()");
       index = Integer.toString(pIndex);
-      initializeGhostVars = false;
+      initializeGhostVars = true;
     } else {
       index = "";
-      initializeGhostVars = true;
+      initializeGhostVars = false;
     }
     operation =
         operation.replace(
@@ -206,10 +206,10 @@ public class InstrumentationAutomaton {
 
   private String assumeGhostVariables(String operation, int pIndex) {
     String index;
-    if (operation.contains("__INSTR_assume_in_scope(INSTR_INDEX_init)")) {
+    if (operation.contains("__INSTR_assume_in_scope(INSTR_INDEX_assume)")) {
       operation =
           operation.replace(
-              "__INSTR_assume_in_scope(INSTR_INDEX_init)", "__INSTR_assume_in_scope()");
+              "__INSTR_assume_in_scope(INSTR_INDEX_assume)", "__INSTR_assume_in_scope()");
       index = Integer.toString(pIndex);
     } else {
       index = "";
@@ -235,10 +235,10 @@ public class InstrumentationAutomaton {
 
   private String assignGhostVariables(String operation, int pIndex) {
     String index;
-    if (operation.contains("__INSTR_assign_in_scope(INSTR_INDEX_init)")) {
+    if (operation.contains("__INSTR_assign_in_scope(INSTR_INDEX_assign)")) {
       operation =
           operation.replace(
-              "__INSTR_assign_in_scope(INSTR_INDEX_init)", "__INSTR_assign_in_scope()");
+              "__INSTR_assign_in_scope(INSTR_INDEX_assign)", "__INSTR_assign_in_scope()");
       index = Integer.toString(pIndex);
     } else {
       index = "";
