@@ -52,6 +52,9 @@ def init(config, benchmark):
             "Otherwise the used machines and CPU models are undefined."
         )
 
+    if not benchmark.rlimits.cputime_hard:
+        sys.exit("A CPU-time limit is required when running on Cloud.")
+
     if not config.cloudMaster:
         logging.warning("No URL of a VerifierCloud instance is given.")
         return
