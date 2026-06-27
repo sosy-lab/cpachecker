@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula;
 
+import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAtTerm;
@@ -40,16 +41,30 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.exceptions.NoException;
+import scala.concurrent.impl.FutureConvertersImpl.CF;
 
 public class AcslRenamingVisitor
     implements AcslPredicateVisitor<AcslPredicate, NoException>,
         AcslTermVisitor<AcslTerm, NoException> {
 
   private final Map<AcslSimpleDeclaration, AcslSimpleDeclaration> renamingMap;
+  private Map<String, String> nameRenamingMap;
 
   public AcslRenamingVisitor(Map<AcslSimpleDeclaration, AcslSimpleDeclaration> pRenamingMap) {
     this.renamingMap = pRenamingMap;
+    this.nameRenamingMap = new HashMap<>();
+    for (Map.Entry<AcslSimpleDeclaration, AcslSimpleDeclaration> entry : pRenamingMap.entrySet()) {
+      this.nameRenamingMap.put(entry.getKey().getName(), entry.getValue().getName());
+    }
   }
 
   @Override
@@ -239,6 +254,64 @@ public class AcslRenamingVisitor
 
   @Override
   public AcslTerm visit(AcslCExpression pAcslCExpression) {
-    throw new UnsupportedOperationException("Renaming in C expressions is not supported for now");
+    SubstitutingCAstNodeVisitor cRenamingVisitor =
+        new SubstitutingCAstNodeVisitor(this::renameCExpression);
+
+    return new AcslCExpression(
+        pAcslCExpression.getFileLocation(),
+        (CExpression) pAcslCExpression.getCExpression().accept(cRenamingVisitor));
+  }
+
+  private CAstNode renameCExpression(CAstNode node) {
+    switch (node) {
+      case CIdExpression idExpr -> {
+        String newName = nameRenamingMap.get(idExpr.getName());
+        if (newName == null) {
+          return null;
+        }
+        return new CIdExpression(
+            idExpr.getFileLocation(),
+            idExpr.getExpressionType(),
+            newName,
+            (CSimpleDeclaration) renameCExpression(idExpr.getDeclaration()));
+      }
+      case CParameterDeclaration decl -> {
+        String newName = nameRenamingMap.get(decl.getName());
+        if (newName == null) {
+          return null;
+        }
+        return new CParameterDeclaration(decl.getFileLocation(), decl.getType(), newName);
+      }
+      case CVariableDeclaration decl -> {
+        String newName = nameRenamingMap.get(decl.getName());
+        if (newName == null) {
+          return null;
+        }
+        return new CVariableDeclaration(
+            decl.getFileLocation(),
+            decl.isGlobal(),
+            decl.getCStorageClass(),
+            decl.getType(),
+            newName,
+            newName,
+            newName,
+            decl.getInitializer());
+      }
+      case CFunctionDeclaration decl -> {
+        String newName = nameRenamingMap.get(decl.getName());
+        if (newName == null) {
+          return null;
+        }
+        return new CFunctionDeclaration(
+            decl.getFileLocation(),
+            decl.getType(),
+            newName,
+            decl.getParameters(),
+            decl.getAttributes());
+      }
+      case null, default -> {
+        return null;
+      }
+    }
   }
 }
