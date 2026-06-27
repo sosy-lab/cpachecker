@@ -1802,7 +1802,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
    *
    * @param pts the pointer target set to use initially
    */
-  protected PointerTargetSetBuilder createPointerTargetSetBuilder(PointerTargetSet pts) {
+  public PointerTargetSetBuilder createPointerTargetSetBuilder(PointerTargetSet pts) {
     return DummyPointerTargetSetBuilder.INSTANCE;
   }
 

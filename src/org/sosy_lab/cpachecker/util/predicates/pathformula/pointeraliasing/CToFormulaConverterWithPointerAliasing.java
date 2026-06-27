@@ -690,7 +690,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @return A builder for pointer target sets.
    */
   @Override
-  protected PointerTargetSetBuilder createPointerTargetSetBuilder(PointerTargetSet pts) {
+  public PointerTargetSetBuilder createPointerTargetSetBuilder(PointerTargetSet pts) {
     return new RealPointerTargetSetBuilder(pts, typeHandler, ptsMgr, options, regionMgr);
   }
 
