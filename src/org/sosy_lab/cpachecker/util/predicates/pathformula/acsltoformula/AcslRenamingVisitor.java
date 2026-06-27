@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.exceptions.NoException;
-import scala.concurrent.impl.FutureConvertersImpl.CF;
 
 public class AcslRenamingVisitor
     implements AcslPredicateVisitor<AcslPredicate, NoException>,
