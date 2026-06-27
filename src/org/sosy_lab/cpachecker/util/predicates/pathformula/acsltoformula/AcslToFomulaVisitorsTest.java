@@ -59,6 +59,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -102,8 +104,11 @@ public class AcslToFomulaVisitorsTest {
             typeHandler,
             AnalysisDirection.FORWARD);
 
+    PointerTargetSetBuilder ptsb =
+        converter.createPointerTargetSetBuilder(PointerTargetSet.emptyPointerTargetSet());
+
     AcslPredicateToFormulaVisitor visitorP =
-        new AcslPredicateToFormulaVisitor(fmgr, ssaMapBuilder, converter, machineModel);
+        new AcslPredicateToFormulaVisitor(fmgr, ssaMapBuilder, converter, machineModel, ptsb);
 
     return predicate.accept(visitorP);
   }

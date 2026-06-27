@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.QuantifiedFormulaManagerView;
@@ -59,6 +60,7 @@ public class AcslPredicateToFormulaVisitor
   private final SSAMapBuilder currentSsa;
 
   private final MachineModel machineModel;
+  private final PointerTargetSetBuilder ptsb;
   private final Optional<SSAMap>
       functionEntrySsa; // Optional SSA map for function-entry state (\old)
 
@@ -69,18 +71,21 @@ public class AcslPredicateToFormulaVisitor
       FormulaManagerView pFmgr,
       SSAMapBuilder pCurrentSsa,
       CToFormulaConverterWithPointerAliasing pCtoFormulaConverter,
-      MachineModel pMachineModel) {
+      MachineModel pMachineModel,
+      PointerTargetSetBuilder pPtsb) {
     checkNotNull(pFmgr);
     checkNotNull(pCurrentSsa);
     checkNotNull(pMachineModel);
     this.fmgr = pFmgr;
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.termVisitor =
-        new AcslTermToFormulaVisitor(pFmgr, pCurrentSsa, pCtoFormulaConverter, pMachineModel);
+        new AcslTermToFormulaVisitor(
+            pFmgr, pCurrentSsa, pCtoFormulaConverter, pMachineModel, pPtsb);
     this.currentSsa = pCurrentSsa;
     this.ctoFormulaConverter = pCtoFormulaConverter;
     this.functionEntrySsa = Optional.empty();
     this.machineModel = pMachineModel;
+    this.ptsb = pPtsb;
     this.typeHelper = new AcslTypeHelper(pMachineModel, pFmgr, pCtoFormulaConverter);
   }
 
@@ -89,7 +94,8 @@ public class AcslPredicateToFormulaVisitor
       SSAMapBuilder pCurrentSsa,
       SSAMap pFunctionEntrySsa,
       CToFormulaConverterWithPointerAliasing pCtoFormulaConverter,
-      MachineModel pMachineModel) {
+      MachineModel pMachineModel,
+      PointerTargetSetBuilder pPtsb) {
     checkNotNull(pFmgr);
     checkNotNull(pCurrentSsa);
     checkNotNull(pMachineModel);
@@ -97,11 +103,12 @@ public class AcslPredicateToFormulaVisitor
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.termVisitor =
         new AcslTermToFormulaVisitor(
-            pFmgr, pCurrentSsa, pFunctionEntrySsa, pCtoFormulaConverter, pMachineModel);
+            pFmgr, pCurrentSsa, pFunctionEntrySsa, pCtoFormulaConverter, pMachineModel, pPtsb);
     this.currentSsa = pCurrentSsa;
     this.ctoFormulaConverter = pCtoFormulaConverter;
     this.functionEntrySsa = Optional.ofNullable(pFunctionEntrySsa);
     this.machineModel = pMachineModel;
+    this.ptsb = pPtsb;
     this.typeHelper = new AcslTypeHelper(pMachineModel, pFmgr, pCtoFormulaConverter);
   }
 
@@ -113,7 +120,8 @@ public class AcslPredicateToFormulaVisitor
       SSAMapBuilder pCurrentSsa,
       Optional<SSAMap> oFunctionEntrySsa,
       CToFormulaConverterWithPointerAliasing pCtoFormulaConverter,
-      MachineModel pMachineModel) {
+      MachineModel pMachineModel,
+      PointerTargetSetBuilder pPtsb) {
     checkNotNull(pFmgr);
     checkNotNull(pTermVisitor);
     checkNotNull(pMachineModel);
@@ -124,6 +132,7 @@ public class AcslPredicateToFormulaVisitor
     this.ctoFormulaConverter = pCtoFormulaConverter;
     this.functionEntrySsa = oFunctionEntrySsa;
     this.machineModel = pMachineModel;
+    this.ptsb = pPtsb;
     this.typeHelper = new AcslTypeHelper(pMachineModel, pFmgr, pCtoFormulaConverter);
   }
 
@@ -202,7 +211,8 @@ public class AcslPredicateToFormulaVisitor
             functionEntrySsa.orElseThrow().builder(),
             functionEntrySsa.orElseThrow(),
             ctoFormulaConverter,
-            machineModel);
+            machineModel,
+            ptsb);
 
     return pAcslOldPredicate.getExpression().accept(oldVisitor);
   }
