@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAtTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
@@ -35,14 +36,20 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
@@ -60,12 +67,14 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
   private final CToFormulaConverterWithPointerAliasing ctoFormulaConverter;
   private final MachineModel machineModel;
   private final AcslTypeHelper typeHelper;
+  private final PointerTargetSetBuilder ptsb;
 
   public AcslTermToFormulaVisitor(
       FormulaManagerView pFmgr,
       SSAMapBuilder pCurrentSsa,
       CToFormulaConverterWithPointerAliasing pCtoFormulaConverter,
-      MachineModel pMachineModel) {
+      MachineModel pMachineModel,
+      PointerTargetSetBuilder pPtsb) {
     checkNotNull(pFmgr);
     checkNotNull(pCurrentSsa);
     checkNotNull(pMachineModel);
@@ -76,6 +85,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     this.ctoFormulaConverter = pCtoFormulaConverter;
     this.machineModel = pMachineModel;
     this.typeHelper = new AcslTypeHelper(pMachineModel, pFmgr, pCtoFormulaConverter);
+    this.ptsb = pPtsb;
   }
 
   public AcslTermToFormulaVisitor(
@@ -83,7 +93,8 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
       SSAMapBuilder pCurrentSsa,
       SSAMap pFunctionEntrySsa,
       CToFormulaConverterWithPointerAliasing pCtoFormulaConverter,
-      MachineModel pMachineModel) {
+      MachineModel pMachineModel,
+      PointerTargetSetBuilder pPPtsb) {
     checkNotNull(pFmgr);
     checkNotNull(pCurrentSsa);
     checkNotNull(pMachineModel);
@@ -94,6 +105,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     this.ctoFormulaConverter = pCtoFormulaConverter;
     this.machineModel = pMachineModel;
     this.typeHelper = new AcslTypeHelper(pMachineModel, pFmgr, pCtoFormulaConverter);
+    this.ptsb = pPPtsb;
   }
 
   @Override
@@ -203,7 +215,8 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
             functionEntrySsa.orElseThrow().builder(),
             functionEntrySsa.orElseThrow(),
             ctoFormulaConverter,
-            machineModel);
+            machineModel,
+            ptsb);
 
     return pAcslOldTerm.getTerm().accept(oldVisitor);
   }
@@ -222,7 +235,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
   public Formula visit(AcslTernaryTerm pAcslTernaryTerm) throws NoException {
     AcslPredicateToFormulaVisitor predicateVisitor =
         new AcslPredicateToFormulaVisitor(
-            fmgr, this, currentSsa, functionEntrySsa, ctoFormulaConverter, machineModel);
+            fmgr, this, currentSsa, functionEntrySsa, ctoFormulaConverter, machineModel, ptsb);
     BooleanFormula conditionFormula = pAcslTernaryTerm.getCondition().accept(predicateVisitor);
     Formula ifTrueFormula = pAcslTernaryTerm.getResultIfTrue().accept(this);
     Formula ifFalseFormula = pAcslTernaryTerm.getResultIfFalse().accept(this);
@@ -256,7 +269,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
   @Override
   public Formula visit(AcslCExpression pAcslCExpression) {
     try {
-      return cExpressionToFormula(pAcslCExpression.getCExpression());
+      return cExpressionToFormula(pAcslCExpression.getCExpression(), ptsb);
     } catch (UnrecognizedCodeException ex) {
       throw new RuntimeException(ex);
     }
@@ -289,23 +302,42 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
   }
 
   // this is just a rough sketch, so for now no warnings so the rest can build
-  @SuppressWarnings({"unchecked", "rawtypes", "unused"})
-  private Formula cExpressionToFormula(CExpression cExpr) throws UnrecognizedCodeException {
-    // TODO where can I pass dummies and where do I actually need the parameters?
+  @SuppressWarnings("unused")
+  public Formula cExpressionToFormula(CExpression cExpr, PointerTargetSetBuilder pPts)
+      throws UnrecognizedCodeException {
     // TODO which option is correct if one is correct at all?
+
+    CFAEdge dummyEdge =
+        new BlankEdge(
+            "",
+            FileLocation.DUMMY,
+            CFANode.newDummyCFANode("dummy-1"),
+            CFANode.newDummyCFANode("dummy-2"),
+            "Dummy Edge");
+
+    ErrorConditions errorConditions = new ErrorConditions(bfmgr);
+    Constraints constraints = new Constraints(bfmgr);
 
     // Option 1:
     CRightHandSideVisitor<Formula, UnrecognizedCodeException> exprVisitor =
-        ctoFormulaConverter.createCRightHandSideVisitor(null, null, currentSsa, null, null, null);
+        ctoFormulaConverter.createCRightHandSideVisitor(
+            dummyEdge, "dummy-function-name", currentSsa, pPts, constraints, errorConditions);
     Formula f = cExpr.accept(exprVisitor);
 
     // Option 2:
-    // or maybe just skip the expression step in between
-    CRightHandSideVisitor formVisitor =
+    CRightHandSideVisitor<Formula, UnrecognizedCodeException> formVisitor =
         new ExpressionToFormulaVisitor(
-            ctoFormulaConverter, fmgr, null, null, currentSsa, null, null, null);
-    f = (Formula) cExpr.accept(formVisitor);
+            ctoFormulaConverter,
+            fmgr,
+            dummyEdge,
+            "dummy-function-name",
+            currentSsa,
+            pPts,
+            constraints,
+            errorConditions);
+    f = cExpr.accept(formVisitor);
 
+    assert constraints.toString().equals("[]"); // make sure the constraints are still empty
     return f;
   }
 }
