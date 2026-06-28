@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -60,6 +61,7 @@ import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.ast.AstUtils.BoundaryNodesComputationFailed;
 import org.sosy_lab.cpachecker.util.ast.IfElement;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
+import org.sosy_lab.cpachecker.util.variableclassification.VariablesCollectingVisitor;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InformationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.SegmentRecord;
@@ -502,6 +504,12 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     return defaultTargetWaypoint(pEdge, pAstCfaRelation);
   }
 
+  private boolean hasNoVariables(CExpression pExpression, CFANode pNode) {
+    VariablesCollectingVisitor variablesCollectingVisitor = new VariablesCollectingVisitor(pNode);
+    Set<String> resultOfVisit = pExpression.accept(variablesCollectingVisitor);
+    return resultOfVisit == null || resultOfVisit.isEmpty();
+  }
+
   /**
    * Export the given counterexample to the path as a Witness version 2.0
    *
@@ -641,6 +649,13 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         edgesWithoutBlankEdges =
             FluentIterable.from(edgesWithoutBlankEdges)
                 .filter(edge -> !(edge instanceof CFunctionReturnEdge))
+                .filter(
+                    edge ->
+                        !(edge instanceof CReturnStatementEdge pStatementEdge
+                            && (pStatementEdge.getExpression().isEmpty()
+                                || (hasNoVariables(
+                                    pStatementEdge.getExpression().orElseThrow(),
+                                    pStatementEdge.getPredecessor())))))
                 .toList();
 
         CFAEdge lastEdgeOnThread = edgesWithoutBlankEdges.getLast();
