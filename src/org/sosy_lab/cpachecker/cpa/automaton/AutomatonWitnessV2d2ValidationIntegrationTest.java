@@ -65,7 +65,7 @@ public class AutomatonWitnessV2d2ValidationIntegrationTest
     performValidationTest(inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
   }
 
-  @Test(timeout = 30000000)
+  @Test(timeout = 3000)
   public void validate_unreac_call_concurrency_goblint_regression_2() throws Exception {
     Path inputFilePath =
         Path.of(
