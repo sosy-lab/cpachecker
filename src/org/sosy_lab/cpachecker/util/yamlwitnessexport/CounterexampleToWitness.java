@@ -45,8 +45,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -641,10 +640,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         // edges since the race should not be possible there
         edgesWithoutBlankEdges =
             FluentIterable.from(edgesWithoutBlankEdges)
-                .filter(
-                    edge ->
-                        !(edge instanceof CFunctionCallEdge
-                            || edge instanceof CReturnStatementEdge))
+                .filter(edge -> !(edge instanceof CFunctionReturnEdge))
                 .toList();
 
         CFAEdge lastEdgeOnThread = edgesWithoutBlankEdges.getLast();
