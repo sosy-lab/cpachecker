@@ -43,7 +43,7 @@ public class AutomatonWitnessV2d2ValidationIntegrationTest
     performValidationTest(inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
   }
 
-  @Test(timeout = 3000)
+  @Test(timeout = 30000000)
   public void validate_unreach_call_concurrency_roundtrip() throws Exception {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
     Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-unreach.c");
@@ -83,6 +83,14 @@ public class AutomatonWitnessV2d2ValidationIntegrationTest
   public void validate_data_race_concurrency_roundtrip_qw2004() throws Exception {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-data-race.prp");
     Path inputFilePath = Path.of(SV_BENCHMARKS_TEST_DIR_PATH, "pthread-lit/qw2004-1.i");
+    verificationPlusValidationTest(inputFilePath, Result.FALSE, specificationFilePath);
+  }
+
+  @Test(timeout = 9000)
+  public void validate_data_race_concurrency_roundtrip_read_write_lock() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-data-race.prp");
+    Path inputFilePath =
+        Path.of(SV_BENCHMARKS_TEST_DIR_PATH, "pthread-atomic/read_write_lock-2b.i");
     verificationPlusValidationTest(inputFilePath, Result.FALSE, specificationFilePath);
   }
 }

@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.ast.ASTElement;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.ast.AstUtils.BoundaryNodesComputationFailed;
 import org.sosy_lab.cpachecker.util.ast.IfElement;
@@ -427,13 +428,34 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     return ImmutableList.of();
   }
 
-  private static WaypointRecord defaultTargetWaypoint(CFAEdge pEdge) {
+  private static WaypointRecord defaultTargetWaypoint(
+      CFAEdge pEdge, AstCfaRelation pAstCfaRelation) {
+    // We need to process the file location to avoid exporting FileLocation.Dummy contents which are
+    // generated when the edge contains internal variables of CPAchecker, for example when verifying
+    // `sv-benchmarks/c/pthread-atomic/read_write_lock-2b.i` against data-races.
+    FileLocation location = pEdge.getFileLocation();
+    if (location.equals(FileLocation.DUMMY)) {
+      if (pEdge instanceof CStatementEdge pStatementEdge) {
+        // For the default target waypoint we want to point to the statement which contains this
+        // file location
+        FileLocation fileLocationStatement = pStatementEdge.getStatement().getFileLocation();
+        Optional<ASTElement> tightestStatementForStarting =
+            pAstCfaRelation.getTightestStatementForStarting(
+                fileLocationStatement.getStartingLineInOrigin(),
+                OptionalInt.of(fileLocationStatement.getStartColumnInLine()));
+        location = tightestStatementForStarting.orElseThrow().location();
+      } else {
+        throw new IllegalStateException(
+            "Cannot export a target waypoint for an edge with a dummy file location: " + pEdge);
+      }
+    }
+
     return new WaypointRecord(
         WaypointType.TARGET,
         WaypointAction.FOLLOW,
         null,
         LocationRecord.createLocationRecordAtStart(
-            pEdge.getFileLocation(), pEdge.getPredecessor().getFunction().getOrigName()));
+            location, pEdge.getPredecessor().getFunction().getOrigName()));
   }
 
   /**
@@ -450,7 +472,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     Set<Property> properties = specification.getProperties();
 
     if (properties.size() != 1) {
-      return defaultTargetWaypoint(pEdge);
+      return defaultTargetWaypoint(pEdge, pAstCfaRelation);
     }
 
     Property property = properties.iterator().next();
@@ -474,11 +496,11 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       } else {
         // This is well-defined for the reeachability property, for all others violation witnesses
         // are not really well-defined
-        return defaultTargetWaypoint(pEdge);
+        return defaultTargetWaypoint(pEdge, pAstCfaRelation);
       }
     }
 
-    return defaultTargetWaypoint(pEdge);
+    return defaultTargetWaypoint(pEdge, pAstCfaRelation);
   }
 
   /**
@@ -593,8 +615,11 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     // segment point. Therefore, instead of creating a location record the way as is for
     // assumptions,
     // this needs to be done using another function
-    CFAEdge lastEdge = edges.getLast();
+    // Ignore blank egdes, since the violation could not have happened there.
+    ImmutableList<CFAEdge> edgesWithoutBlankEdges =
+        FluentIterable.from(edges).filter(edge -> !(edge instanceof BlankEdge)).toList();
 
+    CFAEdge lastEdge = edgesWithoutBlankEdges.getLast();
     WaypointRecord waypointRecord = targetWaypoint(lastEdge, astCFARelation);
 
     if (pWitnessVersion.equals(YAMLWitnessVersion.V2d2)) {
@@ -606,16 +631,18 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         // For this we assume that the data race violation was found immediately such that
         // the data-race occured between the execution of the last and second to last thread. This
         // simplifies the witness, since we do not need to figure out which of the last ARGStates
-        // actually contains the data race. However, for this we need to ignore blank edges, since
-        // they are actually not part of the possible data-race.
-        ImmutableList<CFAEdge> edgesWithoutBlankEdges =
-            FluentIterable.from(edges)
+        // actually contains the data race.
+        //
+        // For data races we can further filter the edges to not consider function calls and return
+        // edges since the race should not be possible there
+        edgesWithoutBlankEdges =
+            FluentIterable.from(edgesWithoutBlankEdges)
                 .filter(
                     edge ->
-                        !(edge instanceof BlankEdge
-                            || edge instanceof CFunctionCallEdge
+                        !(edge instanceof CFunctionCallEdge
                             || edge instanceof CReturnStatementEdge))
                 .toList();
+
         CFAEdge lastEdgeOnThread = edgesWithoutBlankEdges.getLast();
         OptionalInt lastThreadId =
             getThreadIdIfExists(
