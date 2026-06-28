@@ -17,6 +17,7 @@ import java.math.BigInteger;
 import java.util.Objects;
 import java.util.Optional;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -33,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTe
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
@@ -46,11 +48,17 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
@@ -472,6 +480,37 @@ public class AcslToFomulaVisitorsTest {
     AcslPredicate forall = new AcslForallPredicate(FileLocation.DUMMY, ImmutableList.of(x), body);
 
     BooleanFormula f = translate(forall);
+    assertThat(smtSolver.isUnsat(f)).isTrue();
+  }
+
+  @Ignore // TODO: test fails because it adds constraints, is that bad?
+  @Test
+  public void testAcslCExpression()
+      throws SolverException, InterruptedException, InvalidConfigurationException {
+    // *(&x) != x should be unsatisfiable
+
+    CProgramScope cProgramScope = getCProgramScope();
+    CSimpleDeclaration cVarX = Objects.requireNonNull(cProgramScope.lookupVariable("x"));
+    CIdExpression x = new CIdExpression(FileLocation.DUMMY, cVarX);
+
+    CExpression cExpression =
+        new CPointerExpression(
+            FileLocation.DUMMY,
+            basicInt(),
+            new CUnaryExpression(
+                FileLocation.DUMMY,
+                new CPointerType(CTypeQualifiers.NONE, basicInt()),
+                x,
+                CUnaryExpression.UnaryOperator.AMPER));
+
+    AcslTerm termLeft = new AcslCExpression(FileLocation.DUMMY, cExpression);
+    AcslTerm termRight = new AcslCExpression(FileLocation.DUMMY, x);
+
+    AcslPredicate pred =
+        new AcslBinaryTermPredicate(
+            FileLocation.DUMMY, termLeft, termRight, AcslBinaryTermExpressionOperator.NOT_EQUALS);
+
+    BooleanFormula f = translate(pred);
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 }
