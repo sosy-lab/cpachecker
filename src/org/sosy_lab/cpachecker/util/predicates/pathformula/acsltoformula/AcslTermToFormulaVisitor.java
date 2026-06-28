@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -301,11 +300,8 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     return idx;
   }
 
-  // this is just a rough sketch, so for now no warnings so the rest can build
-  @SuppressWarnings("unused")
   public Formula cExpressionToFormula(CExpression cExpr, PointerTargetSetBuilder pPts)
       throws UnrecognizedCodeException {
-    // TODO which option is correct if one is correct at all?
 
     CFAEdge dummyEdge =
         new BlankEdge(
@@ -318,24 +314,10 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     ErrorConditions errorConditions = new ErrorConditions(bfmgr);
     Constraints constraints = new Constraints(bfmgr);
 
-    // Option 1:
     CRightHandSideVisitor<Formula, UnrecognizedCodeException> exprVisitor =
         ctoFormulaConverter.createCRightHandSideVisitor(
             dummyEdge, "dummy-function-name", currentSsa, pPts, constraints, errorConditions);
     Formula f = cExpr.accept(exprVisitor);
-
-    // Option 2:
-    CRightHandSideVisitor<Formula, UnrecognizedCodeException> formVisitor =
-        new ExpressionToFormulaVisitor(
-            ctoFormulaConverter,
-            fmgr,
-            dummyEdge,
-            "dummy-function-name",
-            currentSsa,
-            pPts,
-            constraints,
-            errorConditions);
-    f = cExpr.accept(formVisitor);
 
     assert constraints.toString().equals("[]"); // make sure the constraints are still empty
     return f;
