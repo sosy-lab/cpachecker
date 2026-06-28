@@ -514,13 +514,16 @@ public interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
    * CFAUtils#getClosestFullExpression(CCfaEdge,AstCfaRelation)}.
    */
   public static class CheckClosestFullExpressionMatchesColumnAndLine implements AutomatonBoolExpr {
-    private final int columnToReach;
+    private final OptionalInt columnToReach;
     private final int lineNumber;
     private final AstCfaRelation astCfaRelation;
     private final OptionalInt threadId;
 
     public CheckClosestFullExpressionMatchesColumnAndLine(
-        int pColumn, int pLineNumber, AstCfaRelation pAstCfaRelation, OptionalInt pThreadId) {
+        OptionalInt pColumn,
+        int pLineNumber,
+        AstCfaRelation pAstCfaRelation,
+        OptionalInt pThreadId) {
       columnToReach = pColumn;
       lineNumber = pLineNumber;
       astCfaRelation = pAstCfaRelation;
@@ -552,7 +555,7 @@ public interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       int edgeNodeStartingColumn = fullExpressionLocation.getStartColumnInLine();
 
       if (fullExpressionLocation.getStartingLineInOrigin() == lineNumber
-          && edgeNodeStartingColumn == columnToReach) {
+          && (columnToReach.isEmpty() || edgeNodeStartingColumn == columnToReach.orElseThrow())) {
         return CONST_TRUE;
       }
 
@@ -566,7 +569,7 @@ public interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public int hashCode() {
-      return columnToReach;
+      return lineNumber;
     }
 
     @Override

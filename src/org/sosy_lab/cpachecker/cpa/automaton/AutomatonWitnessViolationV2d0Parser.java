@@ -134,10 +134,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
                 followLine,
                 threadId),
             new CheckClosestFullExpressionMatchesColumnAndLine(
-                tightestStatementForStarting.location().getStartColumnInLine(),
-                followLine,
-                cfa.getAstCfaRelation(),
-                threadId));
+                followColumn, followLine, cfa.getAstCfaRelation(), threadId));
 
     AutomatonTransition.Builder transitionBuilder =
         new AutomatonTransition.Builder(expr, nextStateId);
@@ -160,55 +157,6 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
             /* pIsTarget= */ false,
             /* pAllTransitions= */ false,
             /* pIsCycleStart= */ false));
-  }
-
-  /**
-   * Handle a state which is not the last in the automaton the same way a target state is handled.
-   * This is useful when dealing with data-race witnesses which have multi-target segments.
-   *
-   * @param nextStateId the id of the next state in the automaton being constructed
-   * @param followLine the line at which the target is
-   * @param followColumn the column at which the target is
-   * @param pDistanceToViolation the distance to the violation
-   * @param transitions of the automaton that we extended by transition for given waypoint
-   */
-  protected void handleIntermediateTarget(
-      String nextStateId,
-      Integer followLine,
-      OptionalInt followColumn,
-      OptionalInt threadId,
-      Integer pDistanceToViolation,
-      ImmutableList.Builder<AutomatonTransition> transitions) {
-    // The violation points to the largest full expression which produces the error.
-    //
-    // TODO: Currently we only deal with statements as targets. In the future we may want to
-    //  consider the full expression more closely.
-    ASTElement tightestStatementForStarting =
-        cfa.getAstCfaRelation()
-            .getTightestStatementForStarting(followLine, followColumn)
-            .orElseThrow();
-    AutomatonBoolExpr expr =
-        new Or(
-            new CheckMatchesColumnAndLine(
-                tightestStatementForStarting.location().getStartColumnInLine(),
-                followLine,
-                threadId),
-            new CheckClosestFullExpressionMatchesColumnAndLine(
-                tightestStatementForStarting.location().getStartColumnInLine(),
-                followLine,
-                cfa.getAstCfaRelation(),
-                threadId));
-
-    AutomatonTransition.Builder transitionBuilder =
-        new AutomatonTransition.Builder(expr, nextStateId);
-    transitionBuilder = distanceToViolation(transitionBuilder, pDistanceToViolation);
-
-    // When we match the target state we want to enter the error location immediately
-    transitionBuilder = transitionBuilder.withAssertion(createViolationAssertion());
-
-    // We need to copy the target information such that CPAchecker returns the correct information
-    // for the violated property. If this is not set it will return "WitnessAutomaton"
-    transitions.add(transitionBuilder.build());
   }
 
   /**

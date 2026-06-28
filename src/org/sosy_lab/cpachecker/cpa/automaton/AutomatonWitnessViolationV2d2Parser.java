@@ -30,9 +30,13 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckClosestFullExpressionMatchesColumnAndLine;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckMatchesColumnAndLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckPassesThroughNodes;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.Or;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
+import org.sosy_lab.cpachecker.util.ast.ASTElement;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.SegmentRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
@@ -105,6 +109,50 @@ class AutomatonWitnessViolationV2d2Parser extends AutomatonWitnessViolationV2d0P
       segments.add(new PartitionedWaypoints(follows.build(), avoids.build()));
     }
     return segments.build();
+  }
+
+  /**
+   * Handle a state which is not the last in the automaton the same way a target state is handled.
+   * This is useful when dealing with data-race witnesses which have multi-target segments.
+   *
+   * @param nextStateId the id of the next state in the automaton being constructed
+   * @param followLine the line at which the target is
+   * @param followColumn the column at which the target is
+   * @param pDistanceToViolation the distance to the violation
+   * @param transitions of the automaton that we extended by transition for given waypoint
+   */
+  protected void handleIntermediateTarget(
+      String nextStateId,
+      Integer followLine,
+      OptionalInt followColumn,
+      OptionalInt threadId,
+      Integer pDistanceToViolation,
+      ImmutableList.Builder<AutomatonTransition> transitions) {
+    // The violation points to the largest full expression which produces the error.
+    //
+    // TODO: Currently we only deal with statements as targets. In the future we may want to
+    //  consider the full expression more closely.
+    ASTElement tightestStatementForStarting =
+        cfa.getAstCfaRelation()
+            .getTightestStatementForStarting(followLine, followColumn)
+            .orElseThrow();
+    AutomatonBoolExpr expr =
+        new Or(
+            new CheckMatchesColumnAndLine(
+                tightestStatementForStarting.location().getStartColumnInLine(),
+                followLine,
+                threadId),
+            new CheckClosestFullExpressionMatchesColumnAndLine(
+                // Check the full expression location
+                followColumn, followLine, cfa.getAstCfaRelation(), threadId));
+
+    AutomatonTransition.Builder transitionBuilder =
+        new AutomatonTransition.Builder(expr, nextStateId);
+    transitionBuilder = distanceToViolation(transitionBuilder, pDistanceToViolation);
+
+    // We need to copy the target information such that CPAchecker returns the correct information
+    // for the violated property. If this is not set it will return "WitnessAutomaton"
+    transitions.add(transitionBuilder.build());
   }
 
   /**
@@ -183,7 +231,7 @@ class AutomatonWitnessViolationV2d2Parser extends AutomatonWitnessViolationV2d0P
         firstWaypoint.getLocation().getLine(),
         firstWaypoint.getLocation().getColumn(),
         firstWaypoint.getThread(),
-        pDistanceToViolation,
+        pDistanceToViolation - 1,
         currentStateTransitions);
 
     handleTarget(
@@ -191,7 +239,7 @@ class AutomatonWitnessViolationV2d2Parser extends AutomatonWitnessViolationV2d0P
         secondWaypoint.getLocation().getLine(),
         secondWaypoint.getLocation().getColumn(),
         secondWaypoint.getThread(),
-        pDistanceToViolation - 1,
+        pDistanceToViolation - 2,
         pIntermediateState,
         new ImmutableList.Builder<>(),
         automatonStates);
