@@ -1,0 +1,71 @@
+- entry_type: 'violation_sequence'
+  metadata:
+    format_version: '2.2'
+    uuid: '2c1c72e4-3ab4-4a47-a4cd-107dff961c1b'
+    creation_time: '2026-06-27T15:59:31Z'
+    producer:
+      name: 'Theta-svcomp'
+      version: '7.2.4'
+    task:
+      input_files:
+        - '36-apron_41-threadenter-no-locals_unknown_1_neg.c'
+      input_file_hashes:
+        'sv-benchmarks/c/goblint-regression/36-apron_41-threadenter-no-locals_unknown_1_neg.c': 'b9310ee879c8f9bbdc1b9b9f93be911071dc40bca1058db638f496ce8f119367'
+      specification: 'CHECK( init(main()), LTL(G ! call(reach_error())) )'
+      data_model: 'ILP32'
+      language: 'C'
+  content:
+    - segment:
+        - waypoint:
+            type: 'function_enter'
+            location:
+              file_name: '36-apron_41-threadenter-no-locals_unknown_1_neg.c'
+              line: 27
+              column: 17
+            action: 'follow'
+            thread_id: 0
+    - segment:
+        - waypoint:
+            type: 'assumption'
+            constraint:
+              value: '1'
+              format: 'c_expression'
+            location:
+              file_name: '36-apron_41-threadenter-no-locals_unknown_1_neg.c'
+              line: 29
+              column: 3
+            action: 'follow'
+            thread_id: 0
+    - segment:
+        - waypoint:
+            type: 'assumption'
+            constraint:
+              value: '1'
+              format: 'c_expression'
+            location:
+              file_name: '36-apron_41-threadenter-no-locals_unknown_1_neg.c'
+              line: 18
+              column: 3
+            action: 'follow'
+            thread_id: 1
+    - segment:
+        - waypoint:
+            type: 'function_return'
+            constraint:
+              value: '\result == 3'
+              format: 'ext_c_expression'
+            location:
+              file_name: '36-apron_41-threadenter-no-locals_unknown_1_neg.c'
+              line: 18
+              column: 33
+            action: 'follow'
+            thread_id: 1
+    - segment:
+        - waypoint:
+            type: 'target'
+            location:
+              file_name: '36-apron_41-threadenter-no-locals_unknown_1_neg.c'
+              line: 11
+              column: 58
+            action: 'follow'
+            thread_id: 1
