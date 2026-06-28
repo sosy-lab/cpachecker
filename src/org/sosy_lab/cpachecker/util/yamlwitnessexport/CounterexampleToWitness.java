@@ -16,7 +16,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -257,7 +256,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       ImmutableListMultimap<CFAEdge, String> pEdgeToAssumptions,
       AstCfaRelation pAstCFARelation,
       Map<CFAEdge, Integer> pEdgeToCurrentExpressionIndex,
-      Builder<String, Integer> pThreadNameToIdBuilder,
+      ImmutableMap.Builder<String, Integer> pThreadNameToIdBuilder,
       ARGState pState,
       ARGState pPreviousState,
       YAMLWitnessVersion pWitnessVersion) {
@@ -596,7 +595,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
 
     // This builder keeps track of the mapping between thread IDs and the order in which they were
     // created such that we can refer to them in the witness. Main always has the thread ID 0.
-    Builder<String, Integer> threadNameToIdBuilder = new Builder<>();
+    ImmutableMap.Builder<String, Integer> threadNameToIdBuilder = new ImmutableMap.Builder<>();
     threadNameToIdBuilder.put("main", 0);
 
     // The semantics of the YAML witnesses imply that every assumption waypoint should be
@@ -757,7 +756,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
 
     ImmutableList<SegmentRecord> buildSegment = segments.build();
     if (removeSecondToLastSegment) {
-      ArrayList<SegmentRecord> arrayList =
+      List<SegmentRecord> arrayList =
           new ArrayList<>(buildSegment.subList(0, buildSegment.size() - 2));
       arrayList.add(buildSegment.getLast());
       buildSegment = ImmutableList.copyOf(arrayList);
