@@ -4061,6 +4061,13 @@ cpa.threading.allowMultipleLHS = false
 # 'cfa.cfaCloner.numberOfCopies' should be set to N.
 cpa.threading.maxNumberOfThreads = 5
 
+# stop state-space-exploration once main is left. Setting this option to true
+# is always possible for verification, since one can find an interleaving
+# where main is not yet exited. However for validation it should be set to
+# false, since the witness may require main to exit first and then before the
+# teardown of all threads to continue with some other thread.
+cpa.threading.stopStateSpaceExplorationOnMainExit = true
+
 # in case of witness validation we need to check all possible function calls
 # of cloned CFAs.
 cpa.threading.useAllPossibleClones = false

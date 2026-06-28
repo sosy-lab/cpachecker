@@ -115,6 +115,17 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       secure = true)
   private boolean useAllPossibleClones = false;
 
+  @Option(
+      description =
+          "stop state-space-exploration once main is left. "
+              + "Setting this option to true is always possible for verification, "
+              + "since one can find an interleaving where main is not yet exited. "
+              + "However for validation it should be set to false, since the witness may "
+              + "require main to exit first and then before the teardown of all "
+              + "threads to continue with some other thread.",
+      secure = true)
+  private boolean stopStateSpaceExplorationOnMainExit = true;
+
   public static final String THREAD_START = "pthread_create";
   public static final String THREAD_JOIN = "pthread_join";
   private static final String THREAD_EXIT = "pthread_exit";
@@ -195,8 +206,12 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     }
 
     // check, if we can abort the complete analysis of all other threads after this edge.
-    if (isEndOfMainFunction(cfaEdge) || isTerminatingEdge(cfaEdge)) {
+    if (isTerminatingEdge(cfaEdge)) {
       // VERIFIER_assume not only terminates the current thread, but the whole program
+      return ImmutableSet.of();
+    }
+
+    if (stopStateSpaceExplorationOnMainExit && isEndOfMainFunction(cfaEdge)) {
       return ImmutableSet.of();
     }
 
