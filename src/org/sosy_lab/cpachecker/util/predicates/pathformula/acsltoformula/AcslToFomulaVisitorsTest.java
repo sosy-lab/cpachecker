@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
@@ -42,15 +43,19 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -143,6 +148,18 @@ public class AcslToFomulaVisitorsTest {
               var,
               null /* No initializer, we only want it for testing */));
     }
+
+    scope.registerDeclaration(
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            true,
+            CStorageClass.AUTO,
+            new CPointerType(CTypeQualifiers.NONE, basicInt()),
+            "a",
+            "a",
+            "a",
+            null /* No initializer, we only want it for testing */));
+
     scope.registerDeclaration(
         new CFunctionDeclaration(
             FileLocation.DUMMY,
@@ -483,7 +500,7 @@ public class AcslToFomulaVisitorsTest {
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 
-  @Ignore // TODO: test fails because it adds constraints, is that bad?
+  @Ignore // TODO: how do i add x to the pointertargetset?
   @Test
   public void testAcslCExpression()
       throws SolverException, InterruptedException, InvalidConfigurationException {
@@ -512,5 +529,120 @@ public class AcslToFomulaVisitorsTest {
 
     BooleanFormula f = translate(pred);
     assertThat(smtSolver.isUnsat(f)).isTrue();
+  }
+
+  @Ignore
+  @Test
+  public void testAcslCExpressionWithArray()
+      throws InvalidConfigurationException, SolverException, InterruptedException {
+    // !((\forall integer i; 0 <= i && i < 3 ==> a[i] == 5) ==> a[1] == 5) should be unsat
+
+    // TODO register a with pts, find a way to express a[i] with the same i as \forall i
+    AcslParameterDeclaration i =
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i", "i");
+
+    CVariableDeclaration ci =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            true,
+            CStorageClass.AUTO,
+            new CPointerType(CTypeQualifiers.NONE, basicInt()),
+            "i",
+            "i",
+            "i",
+            null /* No initializer, we only want it for testing */);
+
+    AcslPredicate body =
+        new AcslBinaryPredicate(
+            FileLocation.DUMMY,
+            new AcslBinaryPredicate(
+                FileLocation.DUMMY,
+                new AcslBinaryTermPredicate(
+                    FileLocation.DUMMY,
+                    new AcslIntegerLiteralTerm(
+                        FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
+                    new AcslIdTerm(FileLocation.DUMMY, i),
+                    AcslBinaryTermExpressionOperator.LESS_EQUAL),
+                new AcslBinaryTermPredicate(
+                    FileLocation.DUMMY,
+                    new AcslIdTerm(FileLocation.DUMMY, i),
+                    new AcslIntegerLiteralTerm(
+                        FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.valueOf(3)),
+                    AcslBinaryTermExpressionOperator.LESS_THAN),
+                AcslBinaryPredicateOperator.AND),
+            new AcslBinaryTermPredicate(
+                FileLocation.DUMMY,
+                new AcslCExpression(
+                    FileLocation.DUMMY,
+                    new CArraySubscriptExpression(
+                        FileLocation.DUMMY,
+                        basicInt(),
+                        new CIdExpression(
+                            FileLocation.DUMMY,
+                            Objects.requireNonNull(getCProgramScope().lookupVariable("a"))),
+                        new CIdExpression(FileLocation.DUMMY, ci))),
+                new AcslIntegerLiteralTerm(
+                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.valueOf(5)),
+                AcslBinaryTermExpressionOperator.EQUALS),
+            AcslBinaryPredicateOperator.IMPLICATION);
+
+    AcslPredicate forall = new AcslForallPredicate(FileLocation.DUMMY, ImmutableList.of(i), body);
+    AcslPredicate rhs =
+        new AcslBinaryTermPredicate(
+            FileLocation.DUMMY,
+            new AcslCExpression(
+                FileLocation.DUMMY,
+                new CArraySubscriptExpression(
+                    FileLocation.DUMMY,
+                    basicInt(),
+                    new CIdExpression(
+                        FileLocation.DUMMY,
+                        Objects.requireNonNull(getCProgramScope().lookupVariable("a"))),
+                    new CIntegerLiteralExpression(FileLocation.DUMMY, basicInt(), BigInteger.ONE))),
+            new AcslIntegerLiteralTerm(
+                FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.valueOf(5)),
+            AcslBinaryTermExpressionOperator.EQUALS);
+
+    AcslPredicate unsatPred =
+        new AcslUnaryPredicate(
+            FileLocation.DUMMY,
+            new AcslBinaryPredicate(
+                FileLocation.DUMMY, forall, rhs, AcslBinaryPredicateOperator.IMPLICATION),
+            AcslUnaryExpressionOperator.NEGATION);
+
+    BooleanFormula f = translate(unsatPred);
+    assertThat(smtSolver.isUnsat(f)).isTrue();
+  }
+
+  @Ignore
+  @Test
+  public void testAcslPredicateOverArray() {
+    // predicate P(int *a, integer i) = (i == 0) ? (a[0] == 0) : (P(a, i-1) && a[i] == 0);
+    // !(P(a, 2) => a[0] == 0 && a[1] == 0 && a[2] == 0) should be unsat
+
+    AcslParameterDeclaration a =
+        new AcslParameterDeclaration(
+            FileLocation.DUMMY,
+            new AcslCType(new CPointerType(CTypeQualifiers.NONE, basicInt())),
+            "a",
+            "a");
+
+    AcslParameterDeclaration index =
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i", "P::i");
+
+    @SuppressWarnings("unused")
+    AcslPredicateDeclaration declP =
+        new AcslPredicateDeclaration(
+            FileLocation.DUMMY,
+            // Function type
+            new AcslPredicateType(ImmutableList.of(a.getType(), index.getType()), false),
+            "P",
+            "P",
+            // Polymorphic types
+            ImmutableList.of(),
+            // Parameters
+            ImmutableList.of(a, index));
+
+    // TODO define Predicate
   }
 }
