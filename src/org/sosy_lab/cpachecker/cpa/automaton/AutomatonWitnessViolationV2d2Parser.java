@@ -127,8 +127,7 @@ class AutomatonWitnessViolationV2d2Parser extends AutomatonWitnessViolationV2d0P
       String nextStateId,
       String currentStateId,
       Integer pDistanceToViolation,
-      ImmutableList.Builder<AutomatonInternalState> automatonStates)
-      throws WitnessParseException, InterruptedException {
+      ImmutableList.Builder<AutomatonInternalState> automatonStates) {
     // Formally there is no ordering between the waypoints at the same segment.
     // However, since CPAchecker is an interleaving based tool, all the interleavings
     // are explicitly set in the ARG. Therefore, we can just check the multi-follow
