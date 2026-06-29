@@ -398,7 +398,7 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
       throws CPAException, InterruptedException {
 
     return interpolationManager.buildCounterexampleTrace(
-        formulas, abstractionStatesTrace, Optional.of(allStatesTrace));
+        formulas, abstractionStatesTrace, allStatesTrace);
   }
 
   private CounterexampleTraceInfo performInvariantsRefinement(
@@ -408,8 +408,7 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
       throws CPAException, InterruptedException {
 
     CounterexampleTraceInfo counterexample =
-        interpolationManager.buildCounterexampleTraceWithoutInterpolation(
-            formulas, Optional.of(allStatesTrace));
+        interpolationManager.buildCounterexampleTraceWithoutInterpolation(formulas, allStatesTrace);
 
     // if error is spurious refine
     if (counterexample.isSpurious()) {

@@ -28,7 +28,6 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.logging.Level;
@@ -469,7 +468,7 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
                     BlockFormulas.createFromPathFormulas(stemAndLoopPathFormulaList),
                     transformedImmutableListCopy(
                         stemAndLoopStates, PredicateAbstractState::getPredicateState),
-                    Optional.of(stemAndLoopPath));
+                    stemAndLoopPath);
             CounterexampleInfo cexInfo =
                 pathChecker.handleFeasibleCounterexample(cexTraceInfo, stemAndLoopPath);
 
@@ -555,7 +554,7 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
                 BlockFormulas.createFromPathFormulas(pathFormulaList),
                 transformedImmutableListCopy(
                     path.asStatesList(), PredicateAbstractState::getPredicateState),
-                Optional.of(path));
+                path);
         CounterexampleInfo cexInfo = pathChecker.handleFeasibleCounterexample(cexTraceInfo, path);
 
         path.getLastState().addCounterexampleInformation(cexInfo);

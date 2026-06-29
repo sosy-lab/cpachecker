@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.FluentIterable.from;
@@ -314,18 +315,16 @@ public final class InterpolationManager {
    *     path. The first state (root) of the path is missing, because it is always TRUE. This is
    *     optionally used for heuristics for getting better interpolants by reordering formulas.
    * @param pImprecisePath A (potentially wrong) ARG path that ends in the target state and is used
-   *     as base for computing the precise path. If no path is passed, no attempt at computing a
-   *     precise path is made and one can likely call {@link #interpolate(List, List)} instead.
+   *     as base for computing the precise path.
    */
   public CounterexampleTraceInfo buildCounterexampleTrace(
       final BlockFormulas pFormulas,
       final List<? extends AbstractState> pAbstractionStates,
-      final Optional<ARGPath> pImprecisePath)
+      final ARGPath pImprecisePath)
       throws CPAException, InterruptedException {
-    assert pAbstractionStates.isEmpty() || pFormulas.getSize() == pAbstractionStates.size();
-
     return callWithTimelimit(
-        () -> buildCounterexampleTrace0(pFormulas, pAbstractionStates, pImprecisePath));
+        () ->
+            buildCounterexampleTrace0(pFormulas, pAbstractionStates, Optional.of(pImprecisePath)));
   }
 
   private CounterexampleTraceInfo callWithTimelimit(Callable<CounterexampleTraceInfo> callable)
@@ -369,10 +368,9 @@ public final class InterpolationManager {
    * Compute an inductive sequence of interpolants for a given list of formulas. The conjunction of
    * the formulas is first checked for satisfiability, it is not necessary to do this before calling
    * this method. Note that if the formulas represent a potential error path, calling {@link
-   * #buildCounterexampleTrace(BlockFormulas, List, Optional)} instead and passing an {@link
-   * ARGPath} instance would give additional information in case the path is feasible. If
-   * abstraction states are available, please call {@link #interpolate(List, List)} to enable more
-   * heuristics.
+   * #buildCounterexampleTrace(BlockFormulas, List, ARGPath)} instead with an {@link ARGPath}
+   * instance would give additional information in case the path is feasible. If abstraction states
+   * are available, please call {@link #interpolate(List, List)} to enable more heuristics.
    *
    * @return <code>Optional.empty()</code> if the conjunction of the given formulas is satisfiable,
    *     interpolants otherwise (as list with n-1 elements)
@@ -387,8 +385,8 @@ public final class InterpolationManager {
    * Compute an inductive sequence of interpolants for a given list of formulas. The conjunction of
    * the formulas is first checked for satisfiability, it is not necessary to do this before calling
    * this method. Note that if the formulas represent a potential error path, calling {@link
-   * #buildCounterexampleTrace(BlockFormulas, List, Optional)} instead and passing an {@link
-   * ARGPath} instance would give additional information in case the path is feasible.
+   * #buildCounterexampleTrace(BlockFormulas, List, ARGPath)} instead with an {@link ARGPath}
+   * instance would give additional information in case the path is feasible.
    *
    * @param pAbstractionStates the abstraction states between the formulas and the last state of the
    *     path. The first state (root) of the path is missing, because it is always TRUE. This is
@@ -401,8 +399,10 @@ public final class InterpolationManager {
       final List<BooleanFormula> pFormulas, final List<AbstractState> pAbstractionStates)
       throws CPAException, InterruptedException {
     CounterexampleTraceInfo cexInfo =
-        buildCounterexampleTrace(
-            new BlockFormulas(pFormulas), pAbstractionStates, Optional.empty());
+        callWithTimelimit(
+            () ->
+                buildCounterexampleTrace0(
+                    new BlockFormulas(pFormulas), pAbstractionStates, Optional.empty()));
     if (cexInfo.isSpurious()) {
       return Optional.of(cexInfo.getInterpolants());
     } else {
@@ -415,6 +415,7 @@ public final class InterpolationManager {
       final List<? extends AbstractState> pAbstractionStates,
       final Optional<ARGPath> imprecisePath)
       throws RefinementFailedException, InterruptedException {
+    checkArgument(pAbstractionStates.isEmpty() || pFormulas.getSize() == pAbstractionStates.size());
 
     if (pFormulas.getSize() == 1) {
       // If there is only one block, interpolation is meaningless because the list of expected
@@ -473,7 +474,7 @@ public final class InterpolationManager {
    * possible, but do not bother computing interpolants. This method exists even though it does not
    * really fit into a class named {@link InterpolationManager} because it is useful for refiners
    * that want the same kind of counterexample analysis as {@link
-   * #buildCounterexampleTrace(BlockFormulas, List, Optional)} provides, but do not need
+   * #buildCounterexampleTrace(BlockFormulas, List, ARGPath)} provides, but do not need
    * interpolants, and it is easy to reuse the code here because we need it anyway as fallback if
    * interpolation fails.
    *
@@ -486,11 +487,11 @@ public final class InterpolationManager {
    *     as base for computing the precise path.
    */
   public CounterexampleTraceInfo buildCounterexampleTraceWithoutInterpolation(
-      final BlockFormulas pFormulas, Optional<ARGPath> imprecisePath)
+      final BlockFormulas pFormulas, ARGPath imprecisePath)
       throws CPAException, InterruptedException {
 
     return callWithTimelimit(
-        () -> buildCounterexampleTraceWithoutInterpolation0(pFormulas, imprecisePath));
+        () -> buildCounterexampleTraceWithoutInterpolation0(pFormulas, Optional.of(imprecisePath)));
   }
 
   private CounterexampleTraceInfo buildCounterexampleTraceWithoutInterpolation0(
