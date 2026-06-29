@@ -586,8 +586,11 @@ public final class InterpolationManager {
       }
 
       if (isSat) {
+        if (imprecisePath.isEmpty()) {
+          return CounterexampleTraceInfo.feasibleImprecise(f.getFormulas());
+        }
         try {
-          return getErrorPath(f, prover, imprecisePath);
+          return getPreciseErrorPath(f, prover, imprecisePath.orElseThrow());
         } catch (SolverException modelException) {
           logger.logUserException(
               Level.WARNING, modelException, "Could not create model for error path!");
@@ -799,28 +802,22 @@ public final class InterpolationManager {
   }
 
   /**
-   * Get information about the error path from the solver after the formulas have been proved to be
-   * satisfiable.
+   * Get information about the error path from the solver's model after the formulas have been
+   * proved to be satisfiable and determine a precise feasible path through the ARG to the same
+   * target state.
    *
    * @param formulas The list of formulas on the path.
    * @param pProver The solver.
-   * @param pImprecisePath An optional (potentially infeasible) path to the target state. If given,
-   *     the model of the prover environment is used to determine a feasible path through the ARG to
-   *     the same target state.
+   * @param imprecisePath A (potentially infeasible) path to the target state.
    * @return Information about the error path, including a satisfying assignment.
    * @throws SolverException If the solver fails to produce a model.
    */
-  private CounterexampleTraceInfo getErrorPath(
-      BlockFormulas formulas, BasicProverEnvironment<?> pProver, Optional<ARGPath> pImprecisePath)
+  private CounterexampleTraceInfo getPreciseErrorPath(
+      BlockFormulas formulas, BasicProverEnvironment<?> pProver, ARGPath imprecisePath)
       throws SolverException, InterruptedException {
-
-    if (pImprecisePath.isEmpty()) {
-      return CounterexampleTraceInfo.feasibleImprecise(formulas.getFormulas());
-    }
 
     errorPathCreationTimer.start();
     try {
-      ARGPath imprecisePath = pImprecisePath.orElseThrow();
       Set<ARGState> pathElements = ARGUtils.getAllStatesOnPathsTo(imprecisePath.getLastState());
       try (Model model = pProver.getModel()) {
         ARGPath precisePath =
@@ -1051,7 +1048,11 @@ public final class InterpolationManager {
 
       } else {
         // this is a real bug
-        info = getErrorPath(formulas, itpProver, imprecisePath);
+        if (imprecisePath.isEmpty()) {
+          info = CounterexampleTraceInfo.feasibleImprecise(formulas.getFormulas());
+        } else {
+          info = getPreciseErrorPath(formulas, itpProver, imprecisePath.orElseThrow());
+        }
       }
 
       logger.log(Level.ALL, "Counterexample information:", info);
