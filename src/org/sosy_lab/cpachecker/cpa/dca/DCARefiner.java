@@ -232,7 +232,8 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
             cfa.getVarClassification(),
             pConfig,
             pNotifier,
-            pLogger);
+            pLogger,
+            /* pEnableCounterexampleAnalysis= */ true);
 
     SymbolicRegionManager regionManager = new SymbolicRegionManager(solver);
     AbstractionManager abstractionManager =

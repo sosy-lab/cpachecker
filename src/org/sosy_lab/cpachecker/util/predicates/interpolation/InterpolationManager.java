@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
@@ -247,12 +248,24 @@ public final class InterpolationManager {
               + " counterexample without interpolation")
   private boolean tryWithoutInterpolation = true;
 
+  private final boolean enableCounterexampleAnalysis;
   private final ITPStrategy itpStrategy;
 
   private final ExecutorService executor;
   private final LoopStructure loopStructure;
   private final VariableClassification variableClassification;
 
+  private final ProverOptions[] proverOptions;
+
+  /**
+   * Create an instance. This instance is reusable for several calls, and reusing it enables
+   * features such as reusing the solver's prover environment.
+   *
+   * @param pEnableCounterexampleAnalysis Whether to enable counterexample analysis (computing
+   *     precise error paths). Without this, only interpolation is allowed and the "build
+   *     counterexample trace" methods can not be called, but interpolation might be a little bit
+   *     more efficient.
+   */
   public InterpolationManager(
       PathFormulaManager pPmgr,
       Solver pSolver,
@@ -260,10 +273,12 @@ public final class InterpolationManager {
       Optional<VariableClassification> pVarClassification,
       Configuration config,
       ShutdownNotifier pShutdownNotifier,
-      LogManager pLogger)
+      LogManager pLogger,
+      boolean pEnableCounterexampleAnalysis)
       throws InvalidConfigurationException {
     config.inject(this, InterpolationManager.class);
 
+    enableCounterexampleAnalysis = pEnableCounterexampleAnalysis;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     fmgr = pSolver.getFormulaManager();
@@ -272,6 +287,11 @@ public final class InterpolationManager {
     solver = pSolver;
     loopStructure = pLoopStructure.orElse(null);
     variableClassification = pVarClassification.orElse(null);
+
+    proverOptions =
+        enableCounterexampleAnalysis
+            ? new ProverOptions[] {ProverOptions.GENERATE_MODELS}
+            : new ProverOptions[] {};
 
     if (itpTimeLimit.isEmpty()) {
       executor = null;
@@ -310,6 +330,9 @@ public final class InterpolationManager {
    * will be thrown, but if only computing a precise counterexample fails, an imprecise
    * counterexample is returned (no exception is thrown).
    *
+   * <p>Calling this method requires that {@code pEnableCounterexampleAnalysis} was set to {@code
+   * true} when this instance was created.
+   *
    * @param pFormulas the formulas for the path
    * @param pAbstractionStates the abstraction states between the formulas and the last state of the
    *     path. The first state (root) of the path is missing, because it is always TRUE. This is
@@ -322,6 +345,10 @@ public final class InterpolationManager {
       final List<? extends AbstractState> pAbstractionStates,
       final ARGPath pImprecisePath)
       throws CPAException, InterruptedException {
+    checkState(
+        enableCounterexampleAnalysis,
+        "Need to set pEnableCounterexampleAnalysis=true when creating InterpolationManager");
+
     return callWithTimelimit(
         () ->
             buildCounterexampleTrace0(pFormulas, pAbstractionStates, Optional.of(pImprecisePath)));
@@ -372,6 +399,10 @@ public final class InterpolationManager {
    * instance would give additional information in case the path is feasible. If abstraction states
    * are available, please call {@link #interpolate(List, List)} to enable more heuristics.
    *
+   * <p>This method can be called even if {@code pEnableCounterexampleAnalysis} was set to {@code
+   * false} when this instance was created. And it is recommended to do so if only the interpolate
+   * methods are called.
+   *
    * @return <code>Optional.empty()</code> if the conjunction of the given formulas is satisfiable,
    *     interpolants otherwise (as list with n-1 elements)
    * @throws CPAException If solving or computing interpolants fails.
@@ -387,6 +418,10 @@ public final class InterpolationManager {
    * this method. Note that if the formulas represent a potential error path, calling {@link
    * #buildCounterexampleTrace(BlockFormulas, List, ARGPath)} instead with an {@link ARGPath}
    * instance would give additional information in case the path is feasible.
+   *
+   * <p>This method can be called even if {@code pEnableCounterexampleAnalysis} was set to {@code
+   * false} when this instance was created. And it is recommended to do so if only the interpolate
+   * methods are called.
    *
    * @param pAbstractionStates the abstraction states between the formulas and the last state of the
    *     path. The first state (root) of the path is missing, because it is always TRUE. This is
@@ -482,6 +517,9 @@ public final class InterpolationManager {
    * a precise counterexample fails, an imprecise counterexample is returned (no exception is
    * thrown).
    *
+   * <p>Calling this method requires that {@code pEnableCounterexampleAnalysis} was set to {@code
+   * true} when this instance was created.
+   *
    * @param pFormulas the formulas for the path
    * @param imprecisePath A (potentially wrong) ARG path that ends in the target state and is used
    *     as base for computing the precise path.
@@ -489,6 +527,9 @@ public final class InterpolationManager {
   public CounterexampleTraceInfo buildCounterexampleTraceWithoutInterpolation(
       final BlockFormulas pFormulas, ARGPath imprecisePath)
       throws CPAException, InterruptedException {
+    checkState(
+        enableCounterexampleAnalysis,
+        "Need to set pEnableCounterexampleAnalysis=true when creating InterpolationManager");
 
     return callWithTimelimit(
         () -> buildCounterexampleTraceWithoutInterpolation0(pFormulas, Optional.of(imprecisePath)));
@@ -573,7 +614,7 @@ public final class InterpolationManager {
       BlockFormulas f, Optional<ARGPath> imprecisePath)
       throws SolverException, InterruptedException {
 
-    try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+    try (ProverEnvironment prover = solver.newProverEnvironment(proverOptions)) {
       final boolean isSat;
 
       satCheckTimer.start();
@@ -892,7 +933,7 @@ public final class InterpolationManager {
       // This is safe because we don't actually care about the value of T,
       // only the InterpolatingProverEnvironment itself cares about it.
       return (InterpolatingProverEnvironment<T>)
-          solver.newProverEnvironmentWithInterpolation(ProverOptions.GENERATE_MODELS);
+          solver.newProverEnvironmentWithInterpolation(proverOptions);
     }
 
     /**
