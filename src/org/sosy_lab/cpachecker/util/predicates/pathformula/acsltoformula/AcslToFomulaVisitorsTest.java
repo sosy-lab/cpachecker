@@ -70,8 +70,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerBase;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
@@ -117,8 +120,7 @@ public class AcslToFomulaVisitorsTest {
             typeHandler,
             AnalysisDirection.FORWARD);
 
-    PointerTargetSetBuilder ptsb =
-        converter.createPointerTargetSetBuilder(PointerTargetSet.emptyPointerTargetSet());
+    PointerTargetSetBuilder ptsb = createPointerTargetSetBuilder(converter);
 
     AcslPredicateToFormulaVisitor visitorP =
         new AcslPredicateToFormulaVisitor(fmgr, ssaMapBuilder, converter, machineModel, ptsb);
@@ -169,6 +171,20 @@ public class AcslToFomulaVisitorsTest {
             ImmutableSet.of()));
 
     return scope;
+  }
+
+  // add variables that will be used as pointers below to pointer target set builder
+  private PointerTargetSetBuilder createPointerTargetSetBuilder(CtoFormulaConverter converter) {
+    PointerTargetSetBuilder ptsb =
+        converter.createPointerTargetSetBuilder(PointerTargetSet.emptyPointerTargetSet());
+
+    PointerBase baseZ = new PointerBase("z");
+    ptsb.addNextBaseAddressConstraints(
+        baseZ, basicInt(), null, false, new Constraints(fmgr.getBooleanFormulaManager()));
+
+    ptsb.addBase(baseZ, basicInt());
+
+    return ptsb;
   }
 
   @Test
@@ -500,15 +516,14 @@ public class AcslToFomulaVisitorsTest {
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 
-  @Ignore // TODO: how do i add x to the pointertargetset?
   @Test
   public void testAcslCExpression()
       throws SolverException, InterruptedException, InvalidConfigurationException {
-    // *(&x) != x should be unsatisfiable
+    // *(&z) != z should be unsatisfiable
 
     CProgramScope cProgramScope = getCProgramScope();
-    CSimpleDeclaration cVarX = Objects.requireNonNull(cProgramScope.lookupVariable("x"));
-    CIdExpression x = new CIdExpression(FileLocation.DUMMY, cVarX);
+    CSimpleDeclaration cVarZ = Objects.requireNonNull(cProgramScope.lookupVariable("z"));
+    CIdExpression z = new CIdExpression(FileLocation.DUMMY, cVarZ);
 
     CExpression cExpression =
         new CPointerExpression(
@@ -517,11 +532,11 @@ public class AcslToFomulaVisitorsTest {
             new CUnaryExpression(
                 FileLocation.DUMMY,
                 new CPointerType(CTypeQualifiers.NONE, basicInt()),
-                x,
+                z,
                 CUnaryExpression.UnaryOperator.AMPER));
 
     AcslTerm termLeft = new AcslCExpression(FileLocation.DUMMY, cExpression);
-    AcslTerm termRight = new AcslCExpression(FileLocation.DUMMY, x);
+    AcslTerm termRight = new AcslCExpression(FileLocation.DUMMY, z);
 
     AcslPredicate pred =
         new AcslBinaryTermPredicate(
