@@ -319,7 +319,7 @@ public final class InterpolationManager {
    */
   public CounterexampleTraceInfo buildCounterexampleTrace(
       final BlockFormulas pFormulas,
-      final List<AbstractState> pAbstractionStates,
+      final List<? extends AbstractState> pAbstractionStates,
       final Optional<ARGPath> pImprecisePath)
       throws CPAException, InterruptedException {
     assert pAbstractionStates.isEmpty() || pFormulas.getSize() == pAbstractionStates.size();
@@ -412,7 +412,7 @@ public final class InterpolationManager {
 
   private CounterexampleTraceInfo buildCounterexampleTrace0(
       final BlockFormulas pFormulas,
-      final List<AbstractState> pAbstractionStates,
+      final List<? extends AbstractState> pAbstractionStates,
       final Optional<ARGPath> imprecisePath)
       throws RefinementFailedException, InterruptedException {
 
@@ -751,7 +751,8 @@ public final class InterpolationManager {
    *     original list as third element of the pair.
    */
   private ImmutableIntArray orderFormulas(
-      final List<BooleanFormula> traceFormulas, final List<AbstractState> pAbstractionStates) {
+      final List<BooleanFormula> traceFormulas,
+      final List<? extends AbstractState> pAbstractionStates) {
 
     // In this list are all formulas together with their position in the original list
     ImmutableIntArray result =
@@ -926,7 +927,7 @@ public final class InterpolationManager {
      */
     private CounterexampleTraceInfo buildCounterexampleTrace(
         BlockFormulas formulas,
-        List<AbstractState> pAbstractionStates,
+        List<? extends AbstractState> pAbstractionStates,
         Optional<ARGPath> imprecisePath)
         throws SolverException, InterruptedException {
 
@@ -1074,7 +1075,7 @@ public final class InterpolationManager {
      */
     private boolean checkInfeasabilityOfTrace(
         final List<BooleanFormula> traceFormulas,
-        final List<AbstractState> traceStates,
+        final List<? extends AbstractState> traceStates,
         final ImmutableIntArray formulaPermutation,
         final List<InterpolationGroup<T>> formulasWithStatesAndGroupdIds)
         throws InterruptedException, SolverException {
@@ -1114,7 +1115,7 @@ public final class InterpolationManager {
      */
     private int getIndexOfFirstNonReusableFormula(
         final List<BooleanFormula> traceFormulas,
-        final List<AbstractState> traceStates,
+        final List<? extends AbstractState> traceStates,
         final ListIterator<Integer> todoIterator,
         final List<InterpolationGroup<T>> formulasWithStatesAndGroupdIds) {
 
@@ -1192,7 +1193,7 @@ public final class InterpolationManager {
      */
     private void addNewFormulasToStack(
         final List<BooleanFormula> traceFormulas,
-        final List<AbstractState> traceStates,
+        final List<? extends AbstractState> traceStates,
         final ListIterator<Integer> todoIterator,
         final List<InterpolationGroup<T>> formulasWithStatesAndGroupdIds)
         throws SolverException, InterruptedException {
