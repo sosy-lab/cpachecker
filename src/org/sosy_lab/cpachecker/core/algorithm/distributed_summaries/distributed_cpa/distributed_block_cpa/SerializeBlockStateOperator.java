@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -23,14 +24,22 @@ public class SerializeBlockStateOperator implements SerializeOperator {
       throw new IllegalArgumentException(
           String.format("Expected state of type %s, got %s", BlockState.class, pState.getClass()));
     }
-
+    String replacements =
+        b.getPostConditionId()
+            + " ["
+            + Joiner.on(",").join(b.getReplace() == null ? new ArrayList<>() : b.getReplace())
+            + "]";
     String suffix = " W:" + b.getWitness().serialize();
     suffix = suffix + (b.getHistory().isEmpty() ? "" : " H:" + Joiner.on(",").join(b.getHistory()));
     return ContentBuilder.builder()
         .pushLevel(BlockState.class.getName())
         .put(
             STATE_KEY,
-            b.hasNonTrivialSummaryForEachPredecessor() + " " + b.getBlockNode().getId() + suffix)
+            replacements
+                + b.hasNonTrivialSummaryForEachPredecessor()
+                + " "
+                + b.getBlockNode().getId()
+                + suffix)
         .build();
   }
 }

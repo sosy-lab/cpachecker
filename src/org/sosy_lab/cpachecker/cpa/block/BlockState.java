@@ -12,6 +12,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -53,6 +54,8 @@ public class BlockState
   private List<? extends AbstractState> violationConditions;
   private final ViolationWitness witness;
   private boolean topSummaryFromNonTrivialState;
+  private String postConditionId = "-";
+  private List<String> replace = new ArrayList<>();
 
   private final Optional<PathState> witnessCheckPathState;
 
@@ -93,6 +96,22 @@ public class BlockState
     witness = pWitness;
     topSummaryFromNonTrivialState = pTopSummaryFromNonTrivialState;
     witnessCheckPathState = Optional.of(pWitnessCheckPathState);
+  }
+
+  public void setReplace(List<String> pReplace) {
+    replace = pReplace;
+  }
+
+  public List<String> getReplace() {
+    return replace;
+  }
+
+  public void setPostConditionId(String pPostConditionId) {
+    postConditionId = pPostConditionId;
+  }
+
+  public String getPostConditionId() {
+    return postConditionId;
   }
 
   public void setTopSummaryFromNonTrivialState(boolean pStemsFromTopState) {
