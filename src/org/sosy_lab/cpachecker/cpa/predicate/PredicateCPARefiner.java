@@ -370,7 +370,8 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
             logger.log(
                 Level.FINEST,
                 "Fallback from Newton-based refinement to interpolation-based refinement");
-            return performInterpolatingRefinement(allStatesTrace, abstractionStatesTrace, formulas);
+            return interpolationManager.buildCounterexampleTrace(
+                formulas, abstractionStatesTrace, allStatesTrace);
           } else {
             throw e;
           }
@@ -379,7 +380,8 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
         logger.log(
             Level.FINEST,
             "Fallback from Newton-based refinement to interpolation-based refinement");
-        return performInterpolatingRefinement(allStatesTrace, abstractionStatesTrace, formulas);
+        return interpolationManager.buildCounterexampleTrace(
+            formulas, abstractionStatesTrace, allStatesTrace);
       }
     } else if (useUCBRefinement) {
       logger.log(Level.FINEST, "Starting unsat-core-based refinement");
@@ -387,18 +389,9 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
 
     } else {
       logger.log(Level.FINEST, "Starting interpolation-based refinement.");
-      return performInterpolatingRefinement(allStatesTrace, abstractionStatesTrace, formulas);
+      return interpolationManager.buildCounterexampleTrace(
+          formulas, abstractionStatesTrace, allStatesTrace);
     }
-  }
-
-  private CounterexampleTraceInfo performInterpolatingRefinement(
-      final ARGPath allStatesTrace,
-      final ImmutableList<ARGState> abstractionStatesTrace,
-      final BlockFormulas formulas)
-      throws CPAException, InterruptedException {
-
-    return interpolationManager.buildCounterexampleTrace(
-        formulas, abstractionStatesTrace, allStatesTrace);
   }
 
   private CounterexampleTraceInfo performInvariantsRefinement(
@@ -431,7 +424,8 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
             Level.FINEST,
             "Starting interpolation-based refinement because invariant generation was not"
                 + " successful.");
-        return performInterpolatingRefinement(allStatesTrace, abstractionStatesTrace, formulas);
+        return interpolationManager.buildCounterexampleTrace(
+            formulas, abstractionStatesTrace, allStatesTrace);
 
       } else {
         wereInvariantsusedInCurrentRefinement = true;
