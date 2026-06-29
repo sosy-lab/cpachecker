@@ -1542,7 +1542,7 @@ public class SMG {
    * for an offset exists. Example: <0, 16> and <0, 24> would result in <0, 24>.
    *
    * @param smgObject The SMGObject one wants to check for covering NullObjects.
-   * @return TreeMap<offset, max size> of covering edges.
+   * @return {@code TreeMap<offset, max size>} of covering edges.
    */
   private ImmutableSortedMap<BigInteger, BigInteger> getZeroValueEdgesForObject(
       SMGObject smgObject, BigInteger offset, BigInteger sizeInBits) {
