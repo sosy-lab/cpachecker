@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.collect.ObjectArrays;
 import com.google.common.primitives.ImmutableIntArray;
 import com.google.common.primitives.Ints;
 import java.nio.file.Path;
@@ -621,9 +622,9 @@ public final class InterpolationManager {
       BlockFormulas f, Optional<ARGPath> imprecisePath, boolean findInfeasibleBlock)
       throws SolverException, InterruptedException {
 
-    // TODO should pass GENERATE_UNSAT_CORE_OVER_ASSUMPTIONS here, but creates problem for MathSAT
-    // cf. https://github.com/sosy-lab/java-smt/issues/596
-    try (ProverEnvironment prover = solver.newProverEnvironment(proverOptions)) {
+    ProverOptions[] localProverOptions =
+        ObjectArrays.concat(proverOptions, ProverOptions.GENERATE_UNSAT_CORE_OVER_ASSUMPTIONS);
+    try (ProverEnvironment prover = solver.newProverEnvironment(localProverOptions)) {
       final List<BooleanFormula> blockPredicates = new ArrayList<>(f.getSize());
       final boolean isSat;
       final Optional<List<BooleanFormula>> unsatBlocks;
