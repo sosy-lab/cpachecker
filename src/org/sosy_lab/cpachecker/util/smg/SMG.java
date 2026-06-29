@@ -1536,10 +1536,10 @@ public class SMG {
   }
 
   /**
-   * Returns the sorted Map<offset, max size> of SMGHasValueEdge of values equaling zero that cover
-   * the entered SMGObject somewhere. Only edges that do not exceed the boundries of the range
-   * offset to offset + size are used. It always defaults to the max size, such that no smaller size
-   * for an offset exists. Example: <0, 16> and <0, 24> would result in <0, 24>.
+   * Returns the sorted {@code Map<offset, max size>} of SMGHasValueEdge of values equaling zero
+   * that cover the entered SMGObject somewhere. Only edges that do not exceed the boundries of the
+   * range offset to offset + size are used. It always defaults to the max size, such that no
+   * smaller size for an offset exists. Example: <0, 16> and <0, 24> would result in <0, 24>.
    *
    * @param smgObject The SMGObject one wants to check for covering NullObjects.
    * @return {@code TreeMap<offset, max size>} of covering edges.
