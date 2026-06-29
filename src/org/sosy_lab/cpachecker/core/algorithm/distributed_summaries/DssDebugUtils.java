@@ -72,9 +72,9 @@ public class DssDebugUtils {
         preconditions,
         violationConditions,
         a ->
-            AbstractStates.extractStateByType(a, BlockState.class)
-                .getWitness()
-                .witness()
+            AbstractStates.extractStateByType(a, PredicateAbstractState.class)
+                .getAbstractionFormula()
+                .asFormula()
                 .toString());
   }
 }
