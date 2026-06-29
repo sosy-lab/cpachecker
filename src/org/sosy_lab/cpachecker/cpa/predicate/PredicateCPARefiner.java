@@ -256,7 +256,7 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
       refinements++;
       BlockFormulas formulas;
       final boolean repeatedCounterexample;
-      List<ARGState> abstractionStatesTrace;
+      ImmutableList<ARGState> abstractionStatesTrace;
       ImmutableList<CFANode> errorPath =
           allStatesTrace.asStatesList().stream()
               .map(AbstractStates::extractLocation)
@@ -335,7 +335,7 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
    */
   private CounterexampleTraceInfo checkCounterexample(
       final ARGPath allStatesTrace,
-      final List<ARGState> abstractionStatesTrace,
+      final ImmutableList<ARGState> abstractionStatesTrace,
       final BlockFormulas formulas,
       final boolean repeatedCounterexample)
       throws CPAException, InterruptedException {
@@ -393,17 +393,17 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
 
   private CounterexampleTraceInfo performInterpolatingRefinement(
       final ARGPath allStatesTrace,
-      final List<ARGState> abstractionStatesTrace,
+      final ImmutableList<ARGState> abstractionStatesTrace,
       final BlockFormulas formulas)
       throws CPAException, InterruptedException {
 
     return interpolationManager.buildCounterexampleTrace(
-        formulas, ImmutableList.copyOf(abstractionStatesTrace), Optional.of(allStatesTrace));
+        formulas, abstractionStatesTrace, Optional.of(allStatesTrace));
   }
 
   private CounterexampleTraceInfo performInvariantsRefinement(
       final ARGPath allStatesTrace,
-      final List<ARGState> abstractionStatesTrace,
+      final ImmutableList<ARGState> abstractionStatesTrace,
       final BlockFormulas formulas)
       throws CPAException, InterruptedException {
 
@@ -554,8 +554,8 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
     return !prefixPreference.equals(PrefixSelector.NO_SELECTION);
   }
 
-  static List<ARGState> filterAbstractionStates(ARGPath pPath) {
-    List<ARGState> result =
+  static ImmutableList<ARGState> filterAbstractionStates(ARGPath pPath) {
+    ImmutableList<ARGState> result =
         from(pPath.asStatesList())
             .skip(1)
             .filter(PredicateAbstractState::containsAbstractionState)
