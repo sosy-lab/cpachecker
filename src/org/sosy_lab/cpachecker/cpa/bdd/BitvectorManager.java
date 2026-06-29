@@ -196,17 +196,17 @@ public class BitvectorManager {
     return newRegions;
   }
 
-  /** A<B */
+  /** {@code A<B} */
   public Region makeLess(final Region[] A, final Region[] B, final boolean signed) {
     return makeLess(A, B, false, signed);
   }
 
-  /** A<=B */
+  /** {@code A<=B} */
   public Region makeLessOrEqual(final Region[] A, final Region[] B, final boolean signed) {
     return makeLess(A, B, true, signed);
   }
 
-  /** returns A<=B if equal is true else A<B */
+  /** returns {@code A<=B} if equal is true else {@code A<B} */
   private Region makeLess(
       final Region[] A, final Region[] B, final boolean equal, final boolean signed) {
     final int bitsize = getBitSize(A, B);
