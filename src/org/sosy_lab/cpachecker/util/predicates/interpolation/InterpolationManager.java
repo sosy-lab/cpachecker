@@ -676,8 +676,6 @@ public final class InterpolationManager {
         for (BooleanFormula block : f.getFormulas()) {
           // For each block, add "pred_i => block_i".
           // Then block_i is only relevant if pred_i is asserted.
-          // Without findInfeasibleBlock we would not need the predicate,
-          // but adding them should have negligible cost for the solver.
           BooleanFormula blockPredicate = bfmgr.makeVariable("__BLOCK__PREDICATE__" + i++);
           blockPredicates.add(blockPredicate);
           prover.push(bfmgr.implication(blockPredicate, block));
@@ -715,6 +713,8 @@ public final class InterpolationManager {
 
         } else {
           // Unsat cores might not be precise, try finding an unsat block.
+          // We could restrict the search to blocks that are in the unsat core,
+          // but in principle there could also be an unsat block outside of the unsat code.
           logger.log(
               Level.FINEST,
               "Infeasible counterexample but interpolation has failed. "
