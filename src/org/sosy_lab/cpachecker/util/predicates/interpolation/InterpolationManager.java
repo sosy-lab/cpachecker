@@ -21,6 +21,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.ObjectArrays;
@@ -619,6 +620,44 @@ public final class InterpolationManager {
       BlockFormulas f, Optional<ARGPath> imprecisePath)
       throws SolverException, InterruptedException {
 
+    if (f.getFormulas().size() == 1) {
+      // Optimized case for single-block path to make use of cache in solver.isUnsat().
+      // This cache can then be reused by the abstraction computation
+      // (which will attempt to solve exactly the same formula again if it is unsat).
+
+      CounterexampleTraceInfo[] feasibleResult = {
+        CounterexampleTraceInfo.feasibleImprecise(f.getFormulas()), // default value for sat result
+      };
+      Solver.ModelCallback callbackOnSat = null;
+      if (imprecisePath.isPresent()) {
+        callbackOnSat =
+            model -> {
+              satCheckTimer.stop(); // stop before calling getPreciseErrorPath
+              try {
+                feasibleResult[0] = getPreciseErrorPath(f, model, imprecisePath.orElseThrow());
+              } catch (SolverException modelException) {
+                logger.logUserException(
+                    Level.WARNING, modelException, "Could not create model for error path!");
+              }
+            };
+      }
+
+      final boolean isSat;
+
+      satCheckTimer.start();
+      try {
+        isSat = !solver.isUnsat(Iterables.getOnlyElement(f.getFormulas()), callbackOnSat);
+      } finally {
+        satCheckTimer.stopIfRunning(); // can already be stopped in callback
+      }
+
+      if (isSat) {
+        return feasibleResult[0]; // result from getPreciseErrorPath() or imprecise default
+      } else {
+        return CounterexampleTraceInfo.infeasible(ImmutableList.of());
+      }
+    }
+
     try (ProverEnvironment prover = solver.newProverEnvironment(proverOptions)) {
       final boolean isSat;
 
@@ -661,6 +700,7 @@ public final class InterpolationManager {
   private CounterexampleTraceInfo solveCounterexampleAndFindInfeasibleBlock(
       BlockFormulas f, Optional<ARGPath> imprecisePath)
       throws SolverException, InterruptedException {
+    assert f.getFormulas().size() > 1 : "Should have called solveCounterexample for single block";
 
     ProverOptions[] localProverOptions =
         ObjectArrays.concat(proverOptions, ProverOptions.GENERATE_UNSAT_CORE_OVER_ASSUMPTIONS);
