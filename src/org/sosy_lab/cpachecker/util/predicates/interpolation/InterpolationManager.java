@@ -663,6 +663,13 @@ public final class InterpolationManager {
         if (unsatBlocks.orElseThrow().size() == 1) {
           // Unsat core already tells us which block is infeasible. Use the free information.
           int index = blockPredicates.indexOf(unsatBlocks.orElseThrow().getFirst());
+          logger.log(
+              Level.FINEST,
+              "Infeasible counterexample, block",
+              index,
+              "out of",
+              f.getFormulas().size(),
+              "blocks is infeasible.");
           return createTrivialFalseInterpolant(index, f);
 
         } else if (findInfeasibleBlock) {
@@ -676,6 +683,10 @@ public final class InterpolationManager {
               return createTrivialFalseInterpolant(i, f);
             }
           }
+          logger.log(
+              Level.FINEST,
+              "Infeasible counterexample but interpolation has failed "
+                  + "and no block is infeasible in itself.");
         }
 
         return CounterexampleTraceInfo.infeasibleNoItp();
@@ -691,7 +702,7 @@ public final class InterpolationManager {
       int firstInfeasibleBlock, BlockFormulas f) {
     checkElementIndex(firstInfeasibleBlock, f.getSize());
     int itpLength = f.getSize() - 1;
-    logger.log(Level.FINEST, "Block", firstInfeasibleBlock, "is infeasible");
+    logger.log(Level.FINEST, "Block", firstInfeasibleBlock, "out of", f.getSize(), "is infeasible");
     List<BooleanFormula> itps =
         ImmutableList.<BooleanFormula>builderWithExpectedSize(itpLength)
             .addAll(Collections.nCopies(firstInfeasibleBlock, bfmgr.makeTrue()))
