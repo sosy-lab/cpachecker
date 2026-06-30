@@ -702,13 +702,6 @@ public final class InterpolationManager {
         if (unsatBlocks.orElseThrow().size() == 1) {
           // Unsat core already tells us which block is infeasible. Use the free information.
           int index = blockPredicates.indexOf(unsatBlocks.orElseThrow().getFirst());
-          logger.log(
-              Level.FINEST,
-              "Infeasible counterexample, block",
-              index,
-              "out of",
-              f.getFormulas().size(),
-              "blocks is infeasible.");
           return createTrivialFalseInterpolant(index, f);
 
         } else {
