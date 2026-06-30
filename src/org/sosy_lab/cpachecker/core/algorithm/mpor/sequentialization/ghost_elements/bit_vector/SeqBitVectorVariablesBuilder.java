@@ -41,10 +41,10 @@ public record SeqBitVectorVariablesBuilder(
     SeqPointerAliasingMap pointerAliasingMap) {
 
   public Optional<SeqBitVectorVariables> buildBitVectorVariables() {
-    return switch (options.partialOrderReductionMode()) {
+    return switch (options.partialOrderReductionPrecision()) {
       case NONE ->
           throw new IllegalArgumentException(
-              "partialOrderReductionMode is not set, cannot build bit vector variables");
+              "partialOrderReductionPrecision is not set, cannot build bit vector variables");
       case ACCESS_ONLY -> buildAccessOnlyBitVectorVariables();
       case READ_AND_WRITE -> buildReadWriteBitVectorVariables();
     };

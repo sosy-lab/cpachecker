@@ -159,9 +159,10 @@ public class SeqBitVectorUtil {
         && !pOptions.abortCommutingContextSwitches()) {
       return false;
     }
-    return switch (pOptions.partialOrderReductionMode()) {
+    return switch (pOptions.partialOrderReductionPrecision()) {
       case NONE ->
-          throw new IllegalArgumentException("cannot check for partialOrderReductionMode NONE");
+          throw new IllegalArgumentException(
+              "cannot check for partialOrderReductionPrecision NONE");
       case ACCESS_ONLY -> pAccessType.equals(SeqMemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
           switch (pReachType) {

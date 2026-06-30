@@ -15,7 +15,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.MultiSelectionStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterminismSource;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PartialOrderReductionMode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PartialOrderReductionPrecision;
 import org.sosy_lab.cpachecker.util.cwriter.ClangFormatStyle;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
@@ -173,11 +173,13 @@ public class MPOROptions {
   @Option(
       secure = true,
       description =
-          "How the partial order reduction defines whether threads commute based on their current"
-              + " locations and their reachable memory location accesses. READ_AND_WRITE reduces"
-              + " the state space more than ACCESS_ONLY, but introduces additional overhead (i.e.,"
-              + " number of variables, assignments, and expression evaluations).")
-  private PartialOrderReductionMode partialOrderReductionMode = PartialOrderReductionMode.NONE;
+          "The precision of the partial order reduction instrumentation, i.e., how close the"
+              + " reduction is to the state space of the input program. READ_AND_WRITE is more"
+              + " precise because it reduces the state space more than ACCESS_ONLY, but it adds"
+              + " more overhead (i.e., more variables, more assignments, and more expression"
+              + " evaluations).")
+  private PartialOrderReductionPrecision partialOrderReductionPrecision =
+      PartialOrderReductionPrecision.NONE;
 
   @Option(
       secure = true,
@@ -396,10 +398,10 @@ public class MPOROptions {
       }
     }
     if (isAnyBitVectorReductionEnabled()) {
-      if (!partialOrderReductionMode.isEnabled()) {
+      if (!partialOrderReductionPrecision.isEnabled()) {
         throw new InvalidConfigurationException(
             "a partial order reduction with bit vectors option is enabled, but"
-                + " partialOrderReductionMode is not set.");
+                + " partialOrderReductionPrecision is not set.");
       }
       if (!bitVectorEncoding.isEnabled()) {
         throw new InvalidConfigurationException(
@@ -408,9 +410,10 @@ public class MPOROptions {
       }
     }
     if (!isAnyBitVectorReductionEnabled()) {
-      if (partialOrderReductionMode.isEnabled()) {
+      if (partialOrderReductionPrecision.isEnabled()) {
         throw new InvalidConfigurationException(
-            "partialOrderReductionMode is set, but no partial order reduction option is enabled");
+            "partialOrderReductionPrecision is set, but no partial order reduction option is"
+                + " enabled");
       }
       if (bitVectorEncoding.isEnabled()) {
         throw new InvalidConfigurationException(
@@ -523,8 +526,8 @@ public class MPOROptions {
     return nondeterminismSource;
   }
 
-  public PartialOrderReductionMode partialOrderReductionMode() {
-    return partialOrderReductionMode;
+  public PartialOrderReductionPrecision partialOrderReductionPrecision() {
+    return partialOrderReductionPrecision;
   }
 
   public boolean pruneBitVectorEvaluations() {
