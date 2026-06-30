@@ -546,8 +546,8 @@ public final class InterpolationManager {
       final BlockFormulas f = prepareCounterexampleFormulas(pFormulas);
 
       try {
-        // TODO Maybe findInfeasibleBlock is worth it for some callers?
-        return solveCounterexample(f, imprecisePath, /* findInfeasibleBlock= */ false);
+        // TODO Maybe solveCounterexampleAndFindInfeasibleBlock is worth it for some callers?
+        return solveCounterexample(f, imprecisePath);
       } catch (SolverException e) {
         // TODO: Do we need to rebuild the interpolator here? i.e. is it ever used again?
         throw RefinementFailedException.forInterpolationFailureInSolver(e, solver);
@@ -597,7 +597,7 @@ public final class InterpolationManager {
       throws InterruptedException, RefinementFailedException {
     try {
       CounterexampleTraceInfo counterexample =
-          solveCounterexample(f, imprecisePath, /* findInfeasibleBlock= */ true);
+          solveCounterexampleAndFindInfeasibleBlock(f, imprecisePath);
       if (!counterexample.isSpurious() || counterexample.getInterpolants() != null) {
         return counterexample;
       }
@@ -611,15 +611,56 @@ public final class InterpolationManager {
 
   /**
    * Analyze a counterexample for feasibility without using solver interpolation. If the
-   * counterexample is feasible, a precise path in it is searched and returned. If the
-   * counterexample is infeasible, an optional check can be made that detects individual infeasible
-   * blocks and can provide a trivial but correct interpolant in this case.
+   * counterexample is feasible, a precise path in it is searched and returned.s
    *
    * @throws SolverException If the solver fails to solve the formulas. (If it solves successfully
    *     but fails to compute a model, an imprecise counterexample is returned instead.)
    */
   private CounterexampleTraceInfo solveCounterexample(
-      BlockFormulas f, Optional<ARGPath> imprecisePath, boolean findInfeasibleBlock)
+      BlockFormulas f, Optional<ARGPath> imprecisePath)
+      throws SolverException, InterruptedException {
+
+    try (ProverEnvironment prover = solver.newProverEnvironment(proverOptions)) {
+      final boolean isSat;
+
+      satCheckTimer.start();
+      try {
+        for (BooleanFormula block : f.getFormulas()) {
+          prover.push(block);
+        }
+        isSat = !prover.isUnsat();
+      } finally {
+        satCheckTimer.stop();
+      }
+
+      if (isSat) {
+        if (imprecisePath.isEmpty()) {
+          return CounterexampleTraceInfo.feasibleImprecise(f.getFormulas());
+        }
+        try {
+          return getPreciseErrorPath(f, prover, imprecisePath.orElseThrow());
+        } catch (SolverException modelException) {
+          logger.logUserException(
+              Level.WARNING, modelException, "Could not create model for error path!");
+          return CounterexampleTraceInfo.feasibleImprecise(f.getFormulas());
+        }
+      } else {
+        return CounterexampleTraceInfo.infeasibleNoItp();
+      }
+    }
+  }
+
+  /**
+   * Analyze a counterexample for feasibility without using solver interpolation. If the
+   * counterexample is feasible, a precise path in it is searched and returned. If the
+   * counterexample is infeasible the method attempts to find a block that is in itself infeasible
+   * and provides a trivial but correct interpolant in this case.
+   *
+   * @throws SolverException If the solver fails to solve the formulas. (If it solves successfully
+   *     but fails to compute a model, an imprecise counterexample is returned instead.)
+   */
+  private CounterexampleTraceInfo solveCounterexampleAndFindInfeasibleBlock(
+      BlockFormulas f, Optional<ARGPath> imprecisePath)
       throws SolverException, InterruptedException {
 
     ProverOptions[] localProverOptions =
@@ -672,7 +713,7 @@ public final class InterpolationManager {
               "blocks is infeasible.");
           return createTrivialFalseInterpolant(index, f);
 
-        } else if (findInfeasibleBlock) {
+        } else {
           // Unsat cores might not be precise, try finding an unsat block.
           logger.log(
               Level.FINEST,
