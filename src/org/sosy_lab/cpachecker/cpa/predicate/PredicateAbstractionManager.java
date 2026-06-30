@@ -913,7 +913,7 @@ public final class PredicateAbstractionManager {
       return rmgr.makeFalse();
     }
 
-    if (!warnedOfCartesianAbstraction && !fmgr.isPurelyConjunctive(f)) {
+    if (!warnedOfCartesianAbstraction && pPredicates.size() > 1 && !fmgr.isPurelyConjunctive(f)) {
       logger.log(
           Level.WARNING,
           "Using cartesian abstraction when formulas contain disjunctions may be imprecise. "
