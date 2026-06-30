@@ -405,12 +405,12 @@ analysis.algorithm.MPOR.nondeterminismSigned = false
 analysis.algorithm.MPOR.nondeterminismSource = NUM_STATEMENTS
   enum:     [NEXT_THREAD, NUM_STATEMENTS, NEXT_THREAD_AND_NUM_STATEMENTS]
 
-# How the partial order reduction defines whether threads commute based on
-# their current locations and their reachable memory location accesses.
-# READ_AND_WRITE reduces the state space more than ACCESS_ONLY, but
-# introduces additional overhead (i.e., number of variables, assignments, and
-# expression evaluations).
-analysis.algorithm.MPOR.partialOrderReductionMode = NONE
+# The precision of the partial order reduction instrumentation, i.e., how
+# close the reduction is to the state space of the input program.
+# READ_AND_WRITE is more precise because it reduces the state space more than
+# ACCESS_ONLY, but it adds more overhead (i.e., more variables, more
+# assignments, and more expression evaluations).
+analysis.algorithm.MPOR.partialOrderReductionPrecision = NONE
   enum:     [NONE, ACCESS_ONLY, READ_AND_WRITE]
 
 # Prune and simplify bit vector evaluation expressions based on perfect
