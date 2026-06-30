@@ -430,7 +430,10 @@ public final class PredicateAbstractionManager {
       }
 
       boolean unsatisfiable =
-          unsatisfiabilityCache.contains(symbFormula) || unsatisfiabilityCache.contains(f);
+          unsatisfiabilityCache.contains(symbFormula)
+              || unsatisfiabilityCache.contains(f)
+              || Boolean.TRUE.equals(solver.isUnsatCached(symbFormula))
+              || Boolean.TRUE.equals(solver.isUnsatCached(f));
       if (unsatisfiable) {
         // block is infeasible
         logger.log(
@@ -544,7 +547,7 @@ public final class PredicateAbstractionManager {
       return bfmgr.makeTrue();
     }
 
-    if (unsatisfiabilityCache.contains(pF)) {
+    if (unsatisfiabilityCache.contains(pF) || Boolean.TRUE.equals(solver.isUnsatCached(pF))) {
       stats.numCallsAbstractionCached.incrementAndGet();
       return bfmgr.makeFalse();
     }
