@@ -106,11 +106,11 @@ public class InstrumentationAutomaton {
     this.liveVariablesAndTypes = pLiveVariablesAndTypes;
     this.undeclaredVariables = pUndeclaredVariables;
     ImmutableList<InstrumentationState> states =
-        parseStates(Iterables.get(Splitter.on("||||").split(pParsedInstrumentationAutomaton), 0));
+        parseStates(Iterables.get(Splitter.on("|||||").split(pParsedInstrumentationAutomaton), 0));
     this.initialState = states.getFirst();
     this.instrumentationTransitions =
         parseTransitions(
-            Iterables.get(Splitter.on("||||").split(pParsedInstrumentationAutomaton), 1),
+            Iterables.get(Splitter.on("|||||").split(pParsedInstrumentationAutomaton), 1),
             states,
             pIndex);
   }
@@ -124,11 +124,11 @@ public class InstrumentationAutomaton {
     ImmutableList.Builder<InstrumentationState> stateBuilder = ImmutableList.builder();
 
     for (String state :
-        Splitter.on("|||, ").split(parsedStatesFromYAML.replace("[", "").replace("|||]", ""))) {
+        Splitter.on("||||, ").split(parsedStatesFromYAML.replace("[", "").replace("||||]", ""))) {
       stateBuilder.add(
           new InstrumentationState(
-              Iterables.get(Splitter.on(',').split(state), 0),
-              StateAnnotation.valueOf(Iterables.get(Splitter.on(',').split(state), 1)),
+              Iterables.get(Splitter.on("|||").split(state), 0),
+              StateAnnotation.valueOf(Iterables.get(Splitter.on("|||").split(state), 1)),
               this));
     }
     return stateBuilder.build();
@@ -144,9 +144,9 @@ public class InstrumentationAutomaton {
       throws CPAException {
     ImmutableList.Builder<InstrumentationTransition> transitionBuilder = ImmutableList.builder();
     for (String transition :
-        Splitter.on("|||, ")
-            .split(parsedTransitionsFromYAML.replace("[", "").replace("|||]", ""))) {
-      Iterable<String> transitionComponents = Splitter.on(',').split(transition);
+        Splitter.on("||||, ")
+            .split(parsedTransitionsFromYAML.replace("[", "").replace("||||]", ""))) {
+      Iterable<String> transitionComponents = Splitter.on("|||").split(transition);
       InstrumentationState source =
           findStateWithNameOrThrow(states, Iterables.get(transitionComponents, 0));
       InstrumentationState destination =
