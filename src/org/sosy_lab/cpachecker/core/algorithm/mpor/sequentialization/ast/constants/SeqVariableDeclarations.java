@@ -12,38 +12,49 @@ import static org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 
 public class SeqVariableDeclarations {
 
-  // LAST_THREAD
-
-  public static final CVariableDeclaration LAST_THREAD_DUMMY =
+  public static final CVariableDeclaration PREV_THREAD_DUMMY =
       buildVariableDeclaration(
-          true, CNumericTypes.UNSIGNED_INT, "LAST_THREAD", SeqInitializers.INT_0);
-
-  // next_thread
+          true,
+          CNumericTypes.UNSIGNED_INT,
+          Sequentialization.MPOR_PREFIX + "prev_thread",
+          SeqInitializers.INT_0);
 
   public static final CVariableDeclaration NEXT_THREAD_DUMMY =
-      buildVariableDeclaration(true, CNumericTypes.INT, "next_thread", SeqInitializers.INT_0);
-
-  // cnt (thread count)
+      buildVariableDeclaration(
+          true,
+          CNumericTypes.INT,
+          Sequentialization.MPOR_PREFIX + "next_thread",
+          SeqInitializers.INT_0);
 
   public static final CVariableDeclaration THREAD_COUNT =
       buildVariableDeclaration(
-          false, CNumericTypes.UNSIGNED_INT, "thread_count", SeqInitializers.INT_1);
-
-  // round_max
+          false,
+          CNumericTypes.UNSIGNED_INT,
+          Sequentialization.MPOR_PREFIX + "thread_count",
+          SeqInitializers.INT_1);
 
   public static final CVariableDeclaration ROUND_MAX_DUMMY =
-      buildVariableDeclaration(false, CNumericTypes.INT, "round_max", SeqInitializers.INT_0);
-
-  // round
+      buildVariableDeclaration(
+          false,
+          CNumericTypes.INT,
+          Sequentialization.MPOR_PREFIX + "round_max",
+          SeqInitializers.INT_0);
 
   public static final CVariableDeclaration ROUND =
-      buildVariableDeclaration(false, CNumericTypes.UNSIGNED_INT, "round", SeqInitializers.INT_0);
-
-  // iteration
+      buildVariableDeclaration(
+          false,
+          CNumericTypes.UNSIGNED_INT,
+          Sequentialization.MPOR_PREFIX + "round",
+          SeqInitializers.INT_0);
 
   public static final CVariableDeclaration ITERATION =
-      buildVariableDeclaration(false, CNumericTypes.INT, "iteration", SeqInitializers.INT_0);
+      buildVariableDeclaration(
+          false,
+          CNumericTypes.INT,
+          Sequentialization.MPOR_PREFIX + "iteration",
+          SeqInitializers.INT_0);
 }

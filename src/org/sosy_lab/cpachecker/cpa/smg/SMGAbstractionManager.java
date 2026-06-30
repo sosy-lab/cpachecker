@@ -67,7 +67,7 @@ public class SMGAbstractionManager {
   private SMGAbstractionCandidate getBestCandidate(
       List<SMGAbstractionCandidate> abstractionCandidates) {
     return Collections.max(
-        abstractionCandidates, Comparator.comparing(SMGAbstractionCandidate::getScore));
+        abstractionCandidates, Comparator.comparingInt(SMGAbstractionCandidate::getScore));
   }
 
   public boolean execute() throws SMGInconsistentException {

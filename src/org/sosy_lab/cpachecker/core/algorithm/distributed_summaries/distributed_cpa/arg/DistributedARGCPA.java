@@ -8,12 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg;
 
-import java.util.Collection;
+import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -21,15 +22,15 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
-public class DistributedARGCPA
+public class DistributedARGCPA extends AbstractSingleWrapperCPA
     implements ForwardingDistributedConfigurableProgramAnalysis, StatisticsProvider {
 
   private final ARGCPA argcpa;
@@ -41,9 +42,11 @@ public class DistributedARGCPA
   private final DeserializePrecisionOperator deserializePrecisionOperator;
   private final ViolationConditionOperator verificationConditionOperator;
   private final CoverageOperator coverageOperator;
-  private final CombineOperator combineOperator;
+  private final CombinePreconditionsOperator combinePreconditionsOperator;
+  private final CombineViolationConditionsOperator combineViolationConditionsOperator;
 
   public DistributedARGCPA(ARGCPA pARGCPA, DistributedConfigurableProgramAnalysis pWrapped) {
+    super(pWrapped);
     argcpa = pARGCPA;
     wrappedCPA = pWrapped;
     proceedOperator = new ProceedARGCPAOperator(wrappedCPA);
@@ -53,7 +56,8 @@ public class DistributedARGCPA
     deserializePrecisionOperator = new DeserializeARGPrecisionOperator(wrappedCPA);
     verificationConditionOperator = new ARGViolationConditionOperator(wrappedCPA);
     coverageOperator = new ARGStateCoverageOperator(wrappedCPA);
-    combineOperator = new ARGStateCombineOperator(wrappedCPA);
+    combinePreconditionsOperator = new ARGStateCombinePreconditionsOperator(wrappedCPA);
+    combineViolationConditionsOperator = new ARGStateCombineViolationConditionOperator(wrappedCPA);
   }
 
   @Override
@@ -128,8 +132,13 @@ public class DistributedARGCPA
   }
 
   @Override
-  public CombineOperator getCombineOperator() {
-    return combineOperator;
+  public CombinePreconditionsOperator getCombineOperator() {
+    return combinePreconditionsOperator;
+  }
+
+  @Override
+  public CombineViolationConditionsOperator getCombineViolationConditionsOperator() {
+    return combineViolationConditionsOperator;
   }
 
   public DistributedConfigurableProgramAnalysis getWrappedCPA() {
@@ -137,9 +146,8 @@ public class DistributedARGCPA
   }
 
   @Override
-  public void collectStatistics(Collection<Statistics> statsCollection) {
-    if (wrappedCPA instanceof StatisticsProvider statisticsProvider) {
-      statisticsProvider.collectStatistics(statsCollection);
-    }
+  public int computeProgramPointHash(AbstractState pAbstractState) {
+    Preconditions.checkArgument(pAbstractState instanceof ARGState);
+    return wrappedCPA.computeProgramPointHash(((ARGState) pAbstractState).getWrappedState());
   }
 }

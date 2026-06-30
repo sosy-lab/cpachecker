@@ -440,7 +440,8 @@ public class ExpressionToFormulaVisitor
         converted.getExponent(),
         converted.getMantissa(),
         converted.getMathSign(),
-        FormulaType.getFloatingPointType(value.getFormat().expBits(), value.getFormat().sigBits()));
+        FormulaType.getFloatingPointTypeFromSizesWithoutHiddenBit(
+            value.getFormat().expBits(), value.getFormat().sigBits()));
   }
 
   @Override

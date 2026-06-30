@@ -111,7 +111,8 @@ public class SMGStrongestPostOperator implements StrongestPostOperator<SMGState>
         obtainExceedingMemoryLocations(pErrorPath);
 
     if (performAbstraction) {
-      for (MemoryLocation memoryLocation : nextState.getVariablesWithConcreteValues().keySet()) {
+      for (MemoryLocation memoryLocation :
+          nextState.getVariablesWithConcreteValues(nextState.getModel()).keySet()) {
         CType trackedType = nextState.getMemoryModel().getTypeOfVariable(memoryLocation);
         if (!precision.isTracking(memoryLocation, trackedType, pCurrNode)) {
           nextState = nextState.copyAndForget(memoryLocation).getState();

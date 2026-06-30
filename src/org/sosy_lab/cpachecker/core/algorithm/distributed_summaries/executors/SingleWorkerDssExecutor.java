@@ -43,6 +43,13 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
+/**
+ * The single worker executor decomposed the CFA in multiple blocks and then only runs the block
+ * analysis on one given block. For this, all{@link SingleWorkerDssExecutor#knownConditions known
+ * conditions} need to be set in advance and all messages yet to be processed need to be set as
+ * {@link SingleWorkerDssExecutor#newConditions}. The results will be written to a given output
+ * directory.
+ */
 @Options(prefix = "distributedSummaries.singleWorker")
 public class SingleWorkerDssExecutor implements DssExecutor {
 
@@ -163,28 +170,30 @@ public class SingleWorkerDssExecutor implements DssExecutor {
                 () ->
                     new IllegalArgumentException(
                         "No block with id '" + spawnWorkerForId + "' found in the block graph."));
-    DssActors actors =
+    try (DssActors actors =
         new DssWorkerBuilder(cfa, specification, () -> new DssDefaultQueue(), messageFactory)
             .addAnalysisWorker(blockNode, options)
-            .build();
+            .build()) {
 
-    DssAnalysisWorker actor = (DssAnalysisWorker) Objects.requireNonNull(actors.getOnlyActor());
-    // use list instead of set. Each message has a unique timestamp,
-    // so there will be no duplicates that a set can remove.
-    // But the equality checks are unnecessarily expensive
-    List<DssMessage> response = new ArrayList<>();
-    if (knownConditions.isEmpty() && newConditions.isEmpty()) {
-      response.addAll(actor.runInitialAnalysis());
-    } else {
-      OldAndNewMessages preparedBatches = prepareOldAndNewMessages(knownConditions, newConditions);
-      for (DssMessage message : preparedBatches.oldMessages()) {
-        actor.storeMessage(message);
+      DssAnalysisWorker actor = (DssAnalysisWorker) Objects.requireNonNull(actors.getOnlyActor());
+      // use list instead of set. Each message has a unique timestamp,
+      // so there will be no duplicates that a set can remove.
+      // But the equality checks are unnecessarily expensive
+      List<DssMessage> response = new ArrayList<>();
+      if (knownConditions.isEmpty() && newConditions.isEmpty()) {
+        response.addAll(actor.runInitialAnalysis());
+      } else {
+        OldAndNewMessages preparedBatches =
+            prepareOldAndNewMessages(knownConditions, newConditions);
+        for (DssMessage message : preparedBatches.oldMessages()) {
+          actor.storeMessage(message);
+        }
+        for (DssMessage message : preparedBatches.newMessages()) {
+          response.addAll(actor.processMessage(message));
+        }
       }
-      for (DssMessage message : preparedBatches.newMessages()) {
-        response.addAll(actor.processMessage(message));
-      }
+      writeAllMessages(response);
     }
-    writeAllMessages(response);
     return new StatusAndResult(AlgorithmStatus.NO_PROPERTY_CHECKED, Result.UNKNOWN);
   }
 

@@ -52,9 +52,16 @@ public class SMGCPAStatistics extends ConstraintsStatistics implements Statistic
 
   private final StatCounter listAbstractions = new StatCounter("Number of list abstractions");
   private final StatTimer totalAbstractionTime = new StatTimer("Time spend on list abstraction");
+  private final StatCounter exceptionsIgnoredDuringListAbstractions =
+      new StatCounter("Number of exceptions during list abstractions that have been ignored");
 
   private final StatTimer totalListSearchTime =
       new StatTimer("Time spend on searching for lists to abstract");
+
+  private final StatCounter errorPathAllocations =
+      new StatCounter("Number of concrete error paths allocated");
+  private final StatTimer totalErrorPathsAllocationTime =
+      new StatTimer("Time spend on allocating concrete error paths");
 
   private final StatTimer totalMergeTime = new StatTimer("Time spend on merging states");
   private StatCounter successfulMerges = new StatCounter("Number of successful merges");
@@ -109,6 +116,9 @@ public class SMGCPAStatistics extends ConstraintsStatistics implements Statistic
     writer.put(
         "Max time spent on 0+ materialization: ", totalZeroPlusMaterializationTime.getMaxTime());
     writer.put("Number of lists abstracted in total: ", listAbstractions.getValue());
+    writer.put(
+        "Number of exceptions ignored during list abstraction in total: ",
+        exceptionsIgnoredDuringListAbstractions.getValue());
     writer.put("Total time spent on list abstraction: ", totalAbstractionTime.getConsumedTime());
     writer.put("Max time spent on list abstraction: ", totalAbstractionTime.getMaxTime());
     writer.put(
@@ -122,6 +132,16 @@ public class SMGCPAStatistics extends ConstraintsStatistics implements Statistic
     writer.put("Max time spent on merging two states: ", totalMergeTime.getMaxTime());
     writer.put("Number of merge attempts: ", mergeAttempts);
     writer.put("Number of successful merges: ", successfulMerges);
+
+    writer.put(
+        "Total time spent on allocating values in a concrete error-path: ",
+        totalErrorPathsAllocationTime.getConsumedTime());
+    writer.put(
+        "Max time spent on allocating values in a concrete error-path: ",
+        totalErrorPathsAllocationTime.getMaxTime());
+    writer.put(
+        "Number of concrete error-paths allocated with concrete values: ",
+        errorPathAllocations.getValue());
   }
 
   /**
@@ -166,6 +186,22 @@ public class SMGCPAStatistics extends ConstraintsStatistics implements Statistic
 
   public void incrementListAbstractions() {
     listAbstractions.inc();
+  }
+
+  public void incrementExceptionsIgnoredDuringListAbstractions() {
+    exceptionsIgnoredDuringListAbstractions.inc();
+  }
+
+  public void incrementConcreteErrorPathsAllocated() {
+    errorPathAllocations.inc();
+  }
+
+  public void startTotalConcreteErrorPathsAllocationTime() {
+    totalErrorPathsAllocationTime.start();
+  }
+
+  public void stopTotalConcreteErrorPathsAllocationTime() {
+    totalErrorPathsAllocationTime.stop();
   }
 
   public void startTotalAbstractionTime() {
