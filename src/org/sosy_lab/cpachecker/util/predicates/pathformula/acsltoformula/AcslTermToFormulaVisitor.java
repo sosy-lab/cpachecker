@@ -323,8 +323,6 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
             dummyEdge, "dummy-function-name", currentSsa, pPts, constraints, errorConditions);
     Formula f = cExpr.accept(exprVisitor);
 
-    System.out.println("Constraints: " + constraints);
-
     assert constraints.toString().equals("[]"); // make sure the constraints are still empty
     return f;
   }
