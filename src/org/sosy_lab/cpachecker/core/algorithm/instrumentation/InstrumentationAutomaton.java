@@ -162,11 +162,28 @@ public class InstrumentationAutomaton {
   }
 
   private InstrumentationOperation parseOperation(String operation, int pIndex) {
+    operation = initializeReadWriteVariables(operation);
     operation = initializeGhostVariables(operation, pIndex);
     operation = assignGhostVariables(operation, pIndex);
     operation = assumeGhostVariables(operation, pIndex);
     operation = operation.replace("INSTR_INDEX", Integer.toString(pIndex));
     return new InstrumentationOperation(operation);
+  }
+
+  private String initializeReadWriteVariables(String operation) {
+    return operation.replace(
+        "__INSTR_init_read_write_vars()",
+        liveVariablesAndTypes.entrySet().stream()
+                .map(
+                    (entry) ->
+                        "int read_INSTR_"
+                            + entry.getKey()
+                            + " = 0; "
+                            + "int write_INSTR_"
+                            + entry.getKey()
+                            + " = 0; ")
+                .collect(Collectors.joining("; "))
+            + (!liveVariablesAndTypes.isEmpty() ? ";" : ""));
   }
 
   private String initializeGhostVariables(String operation, int pIndex) {
