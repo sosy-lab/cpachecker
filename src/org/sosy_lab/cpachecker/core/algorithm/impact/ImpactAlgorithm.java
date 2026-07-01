@@ -142,7 +142,8 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
             cfa.getVarClassification(),
             config,
             pShutdownNotifier,
-            logger);
+            logger,
+            /* pEnableCounterexampleAnalysis= */ false);
   }
 
   public AbstractState getInitialState(CFANode location) throws InterruptedException {

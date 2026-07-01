@@ -198,25 +198,25 @@ public class SvLibTermToFormulaConverter {
             pSvLibGeneralSymbolApplicationTerm.getTerms(),
             term -> (BooleanFormula) convertTerm(term, ssa, fmgr, pConverter));
     BooleanFormulaManagerView bmgr = fmgr.getBooleanFormulaManager();
-    switch (functionName) {
+    return switch (functionName) {
       case "not" -> {
         Verify.verify(args.size() == 1);
-        return bmgr.not(args.getFirst());
+        yield bmgr.not(args.getFirst());
       }
       case "and" -> {
         Verify.verify(args.size() >= 2);
-        return bmgr.and(args);
+        yield bmgr.and(args);
       }
       case "or" -> {
         Verify.verify(args.size() >= 2);
-        return bmgr.or(args);
+        yield bmgr.or(args);
       }
       default ->
           throw new IllegalStateException(
               "Unexpected value: '"
                   + functionName
                   + "' when converting from a boolean term into a formula.");
-    }
+    };
   }
 
   // We can do the casts safely since all terms are well-typed, which guarantees that the types

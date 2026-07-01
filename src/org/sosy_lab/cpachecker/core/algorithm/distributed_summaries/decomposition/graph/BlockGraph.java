@@ -22,6 +22,7 @@ import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.SequencedSet;
@@ -97,7 +98,7 @@ public class BlockGraph {
     ArrayDeque<CFANode> waiting = new ArrayDeque<>();
     waiting.push(pStartNode);
     SequencedSet<CFANode> covered = new LinkedHashSet<>();
-    ImmutableSet.Builder<CFANode> withoutSuccessor = ImmutableSet.builder();
+    Set<CFANode> withoutSuccessor = new HashSet<>();
     while (!waiting.isEmpty()) {
       CFANode curr = waiting.pop();
       boolean hasSuccessor = false;
@@ -114,7 +115,7 @@ public class BlockGraph {
       }
       covered.add(curr);
     }
-    return withoutSuccessor.build().size() <= 1;
+    return withoutSuccessor.size() <= 1;
   }
 
   public static BlockGraph fromBlockNodesWithoutGraphInformation(

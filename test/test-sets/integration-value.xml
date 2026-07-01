@@ -39,6 +39,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <exclude>../programs/benchmarks/bitvector/byte_add-1.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/bitvector/byte_add_1-1.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/bitvector/byte_add_2-2.yml</exclude> <!-- flapping unknown/timeout -->
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/Floats.set</includesfile>

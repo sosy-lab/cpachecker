@@ -20,6 +20,11 @@ import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
 import org.sosy_lab.cpachecker.cpa.block.ViolationWitness;
 
+/**
+ * Reverses the serialization performed by {@link SerializeBlockStateOperator}; see there for the
+ * documentation of the wire format (the {@code W:} witness and {@code H:} history markers and the
+ * omission of the history suffix when empty).
+ */
 public class DeserializeBlockStateOperator implements DeserializeOperator {
 
   private final BlockNode blockNode;

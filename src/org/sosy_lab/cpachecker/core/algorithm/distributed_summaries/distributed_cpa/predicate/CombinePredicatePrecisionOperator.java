@@ -14,8 +14,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -25,34 +25,40 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class CombinePredicatePrecisionOperator implements CombinePrecisionOperator {
 
   private final FormulaManagerView fmgr;
+  private final BooleanFormulaManagerView bfmgr;
 
   public CombinePredicatePrecisionOperator(FormulaManagerView pFmgr) {
     fmgr = pFmgr;
+    bfmgr = pFmgr.getBooleanFormulaManager();
   }
 
-  private boolean isRequired(AbstractionPredicate p, Set<String> importantVariables) {
-    if (fmgr.getBooleanFormulaManager().isTrue(p.getSymbolicAtom())
-        || fmgr.getBooleanFormulaManager().isFalse(p.getSymbolicAtom())) {
+  private boolean containsImportantVariable(
+      AbstractionPredicate p, Set<String> importantVariables) {
+    BooleanFormula symbolicAtom = p.getSymbolicAtom();
+    if (bfmgr.isTrue(symbolicAtom) || bfmgr.isFalse(symbolicAtom)) {
       return true;
     }
-    Set<String> containedVariables = fmgr.extractVariables(p.getSymbolicAtom()).keySet();
-    return !Sets.intersection(importantVariables, containedVariables).isEmpty();
+    Set<String> containedVariables = fmgr.extractVariables(symbolicAtom).keySet();
+    return !Collections.disjoint(importantVariables, containedVariables);
   }
 
-  private <K> ImmutableListMultimap<K, AbstractionPredicate> toMultimap(
+  private <K> ImmutableListMultimap<K, AbstractionPredicate> toFilteredMultimap(
       Collection<Entry<K, AbstractionPredicate>> entries, Set<String> importantVariables) {
     return entries.stream()
-        .filter(entry -> isRequired(entry.getValue(), importantVariables))
+        .filter(entry -> containsImportantVariable(entry.getValue(), importantVariables))
         .collect(ImmutableListMultimap.toImmutableListMultimap(Entry::getKey, Entry::getValue));
   }
 
   /** Create a new precision that is the union of all given precisions. */
-  private Precision unionOf(Collection<Precision> precisions, Set<String> removeOthers) {
+  private Precision toFilteredUnion(
+      Collection<Precision> precisions, Set<String> importantVariables) {
     if (precisions.isEmpty()) {
       return PredicatePrecision.empty();
     }
@@ -63,10 +69,12 @@ public class CombinePredicatePrecisionOperator implements CombinePrecisionOperat
     PredicatePrecision union = PredicatePrecision.unionOf(precisions);
 
     return new PredicatePrecision(
-        toMultimap(union.getLocationInstancePredicates().entries(), removeOthers),
-        toMultimap(union.getLocalPredicates().entries(), removeOthers),
-        toMultimap(union.getFunctionPredicates().entries(), removeOthers),
-        from(union.getGlobalPredicates()).filter(p -> isRequired(p, removeOthers)).toSet());
+        toFilteredMultimap(union.getLocationInstancePredicates().entries(), importantVariables),
+        toFilteredMultimap(union.getLocalPredicates().entries(), importantVariables),
+        toFilteredMultimap(union.getFunctionPredicates().entries(), importantVariables),
+        from(union.getGlobalPredicates())
+            .filter(p -> containsImportantVariable(p, importantVariables))
+            .toSet());
   }
 
   @Override
@@ -82,13 +90,18 @@ public class CombinePredicatePrecisionOperator implements CombinePrecisionOperat
         count.merge(variable, 1, Integer::sum);
       }
     }
-    if (count.values().stream().mapToInt(Integer::intValue).max().orElse(0) == precisions.size()) {
-      for (Entry<String, Integer> stringIntegerEntry : ImmutableList.copyOf(count.entrySet())) {
-        if (stringIntegerEntry.getValue() < precisions.size()) {
-          count.remove(stringIntegerEntry.getKey());
+    boolean isAtLeastOneVariableInAllPrecisions =
+        count.values().stream().mapToInt(Integer::intValue).max().orElse(0) == precisions.size();
+    if (isAtLeastOneVariableInAllPrecisions) {
+      for (var entry : ImmutableList.copyOf(count.entrySet())) {
+        String variableName = entry.getKey();
+        int numberOfPrecisionsVariableOccursIn = entry.getValue();
+        if (numberOfPrecisionsVariableOccursIn < precisions.size()) {
+          count.remove(variableName);
         }
       }
     }
-    return unionOf(precisions, count.keySet());
+    Set<String> variablesInAllPrecisions = count.keySet();
+    return toFilteredUnion(precisions, variablesInAllPrecisions);
   }
 }

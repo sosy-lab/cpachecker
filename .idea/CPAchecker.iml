@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <module type="JAVA_MODULE" version="4">
   <component name="NewModuleRootManager">
     <output url="file://$MODULE_DIR$/classes" />
@@ -10,7 +9,6 @@
       <excludeFolder url="file://$MODULE_DIR$/test/programs/benchmarks" />
       <excludeFolder url="file://$MODULE_DIR$/test/programs/ldv-benchmarks" />
       <excludeFolder url="file://$MODULE_DIR$/test/results" />
-      <excludeFolder url="file://$MODULE_DIR$/output/block_analysis" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

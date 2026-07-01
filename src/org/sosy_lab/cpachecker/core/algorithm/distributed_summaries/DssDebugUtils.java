@@ -26,6 +26,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class DssDebugUtils {
 
+  private DssDebugUtils() {}
+
   public static String argToDot(ReachedSet pReachedSet) throws IOException {
     StringBuilder sb = new StringBuilder();
     ARGToDotWriter.write(
