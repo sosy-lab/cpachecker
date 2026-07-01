@@ -830,28 +830,26 @@ public final class PredicateAbstractionManager {
       final Collection<AbstractionPredicate> remainingPredicates,
       final Function<BooleanFormula, BooleanFormula> instantiator)
       throws SolverException, InterruptedException {
-    Region abs = rmgr.makeTrue();
 
-    try (ProverEnvironment thmProver =
-        solver.newProverEnvironment(ProverOptions.GENERATE_ALL_SAT)) {
-      thmProver.push(f);
+    if (remainingPredicates.isEmpty()) {
+      // Without predicates, we only need a SAT check (precision was just {false}).
+      // We can use the caching Solver.isUnsat() method.
+      stats.numSatCheckAbstractions.incrementAndGet();
 
-      if (remainingPredicates.isEmpty()) {
-        stats.numSatCheckAbstractions.incrementAndGet();
+      stats.abstractionSolveTime.start();
+      try {
+        return solver.isUnsat(f) ? rmgr.makeFalse() : rmgr.makeTrue();
+      } finally {
+        stats.abstractionSolveTime.stop();
+      }
 
-        stats.abstractionSolveTime.start();
-        boolean feasibility;
-        try {
-          feasibility = !thmProver.isUnsat();
-        } finally {
-          stats.abstractionSolveTime.stop();
-        }
+    } else {
+      Region abs = rmgr.makeTrue();
 
-        if (!feasibility) {
-          abs = rmgr.makeFalse();
-        }
+      try (ProverEnvironment thmProver =
+          solver.newProverEnvironment(ProverOptions.GENERATE_ALL_SAT)) {
+        thmProver.push(f);
 
-      } else {
         if (abstractionType != AbstractionType.BOOLEAN) {
           // First do cartesian abstraction if desired
           stats.cartesianAbstractionTime.start();
@@ -882,8 +880,8 @@ public final class PredicateAbstractionManager {
           // remainingPredicates is now empty.
         }
       }
+      return abs;
     }
-    return abs;
   }
 
   /**
