@@ -197,8 +197,11 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     String varName = variable.getName();
     int useIndex = getIndex(varName, variable.getType());
 
-    return fmgr.makeVariable(
-        typeHelper.acslTypeToFormulaType(pAcslIdTerm.getExpressionType()), varName, useIndex);
+    return (useIndex >= 0)
+        ? fmgr.makeVariable(
+            typeHelper.acslTypeToFormulaType(pAcslIdTerm.getExpressionType()), varName, useIndex)
+        : fmgr.makeVariableWithoutSSAIndex(
+            typeHelper.acslTypeToFormulaType(pAcslIdTerm.getExpressionType()), varName);
   }
 
   @Override
@@ -293,7 +296,8 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     }
 
     int idx = currentSsa.getIndex(name);
-    if (idx <= 0) {
+    if (idx <= 0
+        && !name.startsWith("ACSL#q")) { // Quantifier variables should not be added to SSA map
       idx = 1; // uninitialized variable
       currentSsa.setIndex(name, type, idx);
     }
@@ -318,6 +322,8 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
         ctoFormulaConverter.createCRightHandSideVisitor(
             dummyEdge, "dummy-function-name", currentSsa, pPts, constraints, errorConditions);
     Formula f = cExpr.accept(exprVisitor);
+
+    System.out.println("Constraints: " + constraints);
 
     assert constraints.toString().equals("[]"); // make sure the constraints are still empty
     return f;
