@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 public class DistributedPredicateCPATest {
 
   @Test
-  public void test() throws Exception {
+  public void testPredicateSerializationOnFile() throws Exception {
 
     // TODO find program which tests something interesting!!
     CFA cfa = TestUtil.buildTestCFA("doc/examples/example.c");

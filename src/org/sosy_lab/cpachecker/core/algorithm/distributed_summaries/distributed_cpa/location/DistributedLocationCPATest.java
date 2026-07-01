@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 public class DistributedLocationCPATest {
 
   @Test
-  public void test() throws Exception {
+  public void testLocationSerializationOnFile() throws Exception {
 
     // TODO find program which tests something interesting!!
     CFA cfa = TestUtil.buildTestCFA("test/programs/cfa-ast-relation/full-expression.c");

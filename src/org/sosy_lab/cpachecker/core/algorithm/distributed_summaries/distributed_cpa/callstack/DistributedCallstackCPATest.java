@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 public class DistributedCallstackCPATest {
 
   @Test
-  public void test() throws Exception {
+  public void testCallStackSerializationOnFile() throws Exception {
     Configuration config =
         TestDataTools.configurationForTest().loadFromFile(TestUtil.DSS_CONFIGURATION_FILE).build();
     ConfigurableProgramAnalysis cpa =

@@ -97,19 +97,19 @@ public class DistributedConfigurableProgramAnalysisTestBase {
       for (State currState : states) {
 
         for (CFAEdge edge : currState.node.getAllLeavingEdges()) {
-          for (AbstractState new_state :
+          for (AbstractState newState :
               tr.getAbstractSuccessorsForEdge(currState.absState, prec, edge)) {
 
-            DssMessage message = stateToDssMessage(new_state, serial, messageFactory);
+            DssMessage message = stateToDssMessage(newState, serial, messageFactory);
             AbstractState afterSerialization = deserial.deserialize(message);
 
             assertWithMessage(
                     "For state %s, the operators for dcpa %s are wrong: \n serialized to %s,"
                         + "\n but deserialization %s not reported as covering the original",
-                    new_state, dcpa.getClass(), message.asJson(), afterSerialization)
-                .that(coverage.isSubsumed(new_state, afterSerialization))
+                    newState, dcpa.getClass(), message.asJson(), afterSerialization)
+                .that(coverage.isSubsumed(newState, afterSerialization))
                 .isTrue();
-            newStates.add(new State(edge.getSuccessor(), new_state));
+            newStates.add(new State(edge.getSuccessor(), newState));
           }
         }
       }

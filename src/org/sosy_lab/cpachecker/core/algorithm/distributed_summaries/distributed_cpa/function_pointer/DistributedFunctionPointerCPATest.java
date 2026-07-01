@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 public class DistributedFunctionPointerCPATest {
 
   @Test
-  public void test() throws Exception {
+  public void testFunctionPoijnterSerializationOnFile() throws Exception {
 
     Configuration config =
         TestDataTools.configurationForTest().loadFromFile(TestUtil.DSS_CONFIGURATION_FILE).build();
