@@ -106,11 +106,11 @@ public class InstrumentationAutomaton {
     this.liveVariablesAndTypes = pLiveVariablesAndTypes;
     this.undeclaredVariables = pUndeclaredVariables;
     ImmutableList<InstrumentationState> states =
-        parseStates(Iterables.get(Splitter.on("|||||").split(pParsedInstrumentationAutomaton), 0));
+        parseStates(Iterables.get(Splitter.on(" |||||").split(pParsedInstrumentationAutomaton), 0));
     this.initialState = states.getFirst();
     this.instrumentationTransitions =
         parseTransitions(
-            Iterables.get(Splitter.on("|||||").split(pParsedInstrumentationAutomaton), 1),
+            Iterables.get(Splitter.on(" |||||").split(pParsedInstrumentationAutomaton), 1),
             states,
             pIndex);
   }
@@ -143,9 +143,7 @@ public class InstrumentationAutomaton {
       String parsedTransitionsFromYAML, ImmutableList<InstrumentationState> states, int pIndex)
       throws CPAException {
     ImmutableList.Builder<InstrumentationTransition> transitionBuilder = ImmutableList.builder();
-    for (String transition :
-        Splitter.on("||||, ")
-            .split(parsedTransitionsFromYAML.replace("[", "").replace("||||]", ""))) {
+    for (String transition : Splitter.on("||||, ").split(parsedTransitionsFromYAML)) {
       Iterable<String> transitionComponents = Splitter.on("|||").split(transition);
       InstrumentationState source =
           findStateWithNameOrThrow(states, Iterables.get(transitionComponents, 0));
@@ -268,7 +266,7 @@ public class InstrumentationAutomaton {
         return state;
       }
     }
-    throw new CPAException("Non-existing state was used in transition!");
+    throw new CPAException("Non-existing state" + name + "was used in transition!");
   }
 
   public InstrumentationState getInitialState() {
