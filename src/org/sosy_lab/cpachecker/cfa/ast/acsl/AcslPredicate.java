@@ -12,21 +12,22 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibExpressionVisitor;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public sealed interface AcslPredicate extends AExpression, AcslAstNode
     permits AcslBinaryPredicate,
         AcslBinaryTermPredicate,
+        AcslCanAccessPredicate,
+        AcslFunctionCallPredicate,
         AcslIdPredicate,
         AcslLiteralPredicate,
-        AcslFunctionCallPredicate,
         AcslOldPredicate,
-        AcslTernaryPredicate,
-        AcslUnaryPredicate,
-        AcslValidPredicate,
         AcslPredicateApplicationPredicate,
         AcslPredicateTerm,
-        AcslQuantifiedPredicate {
+        AcslQuantifiedPredicate,
+        AcslSeparateMemoryConjunctionPredicate,
+        AcslTernaryPredicate,
+        AcslUnaryPredicate,
+        AcslValidPredicate {
 
   <R, X extends Exception> R accept(AcslPredicateVisitor<R, X> v) throws X;
 
