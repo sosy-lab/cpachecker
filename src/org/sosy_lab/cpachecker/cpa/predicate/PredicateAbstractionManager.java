@@ -265,7 +265,7 @@ public final class PredicateAbstractionManager {
       unsatisfiabilityCache = null;
     }
 
-    if (useCache && (abstractionType != AbstractionType.BOOLEAN)) {
+    if (useCache) {
       cartesianAbstractionCache = new HashMap<>();
     } else {
       cartesianAbstractionCache = null;
@@ -846,16 +846,21 @@ public final class PredicateAbstractionManager {
     } else {
       Region abs = rmgr.makeTrue();
 
+      // If there is just one predicate, cartesian abstraction is the same as boolean,
+      // but can avoid GENERATE_ALL_SAT.
+      AbstractionType thisAbstraction =
+          remainingPredicates.size() == 1 ? AbstractionType.CARTESIAN : abstractionType;
+
       // If we only do cartesian abstraction, we do not need the prover option.
       ProverOptions[] proverOptions =
-          abstractionType == AbstractionType.CARTESIAN
+          thisAbstraction == AbstractionType.CARTESIAN
               ? new ProverOptions[] {}
               : new ProverOptions[] {ProverOptions.GENERATE_ALL_SAT};
 
       try (ProverEnvironment thmProver = solver.newProverEnvironment(proverOptions)) {
         thmProver.push(f);
 
-        if (abstractionType != AbstractionType.BOOLEAN) {
+        if (thisAbstraction != AbstractionType.BOOLEAN) {
           // First do cartesian abstraction if desired (CARTESIAN or COMBINED)
           stats.cartesianAbstractionTime.start();
           try {
@@ -868,7 +873,7 @@ public final class PredicateAbstractionManager {
           }
         }
 
-        if (abstractionType != AbstractionType.CARTESIAN && !remainingPredicates.isEmpty()) {
+        if (thisAbstraction != AbstractionType.CARTESIAN && !remainingPredicates.isEmpty()) {
           // Last do boolean abstraction if desired and necessary
           stats.numBooleanAbsPredicates.addAndGet(remainingPredicates.size());
           stats.booleanAbstractionTime.start();
