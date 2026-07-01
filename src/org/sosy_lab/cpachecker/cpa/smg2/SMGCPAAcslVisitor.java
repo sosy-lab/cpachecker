@@ -17,7 +17,7 @@ import static org.sosy_lab.cpachecker.cpa.smg2.SMGTransferRelation.representsBoo
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.UnmodifiableIterator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -54,21 +54,21 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTe
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLabel;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCExpressionTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCLeftHandSideTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCanAccessPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicFunctionDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicPredicateDefinition;
@@ -84,6 +84,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslProgramLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslResultTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSeparateMemoryConjunctionPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslStringLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
@@ -96,20 +97,16 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
@@ -146,12 +143,14 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibSymbolApplicationRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetOrSMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 
 /*
  * Abstraction predicate 'pred_sll' for a Singly-Linked-List (SLL) of type 'sll' defined as:
@@ -223,9 +222,18 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
   // Are we in a negated case or not
   private final boolean truthAssumption;
 
+  // Memory that is allowed to be accessed via canAccess(target) predicates
+  // This is mutable, but we use new sets in every new function call
+  private final Set<SMGObjectAndOffsetOrSMGState> canAccessMemory;
+
+  // Actually accessed memory (and offsets) that need to be validated
+  // This is mutable, but we use new sets in every new function call
+  private final Set<SMGObjectAndOffsetOrSMGState> accessedMemory;
+
   private final SMGState initialState;
 
-  // E.g. definitions of functions called
+  // For example definitions for functions/predicates that are called. These definitions (e.g.
+  // AcslLogicPredicateDefinition) have needed information like the function bodies.
   private final ImmutableSet<AcslLogicDefinition> logicDefinitions;
 
   private final SMGTransferRelation callingTransfer;
@@ -233,12 +241,16 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
   private final LogManagerWithoutDuplicates logger;
   private final SMGOptions options;
 
-  private final CFAEdge cfaEdge;
+  // TODO: we use this edge in all methods that require an edge for now. Is that a good idea? We
+  // sometimes build error info from the CFAEdge in SMG2.
+  private final CFAEdge originCfaEdge;
 
   private SMGCPAAcslVisitor(
       ImmutableSet<AcslLogicDefinition> pDefinitions,
       SMGState pInitialState,
       boolean pTruthAssumption,
+      Set<SMGObjectAndOffsetOrSMGState> pCanAccessMemory,
+      Set<SMGObjectAndOffsetOrSMGState> pAccessedMemory,
       SMGOptions pOptions,
       LogManagerWithoutDuplicates pLogger,
       SMGCPAExpressionEvaluator pEvaluator,
@@ -246,17 +258,63 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
       CFAEdge pCfaEdge) {
     logicDefinitions = checkNotNull(pDefinitions);
     initialState = checkNotNull(pInitialState);
+    canAccessMemory = checkNotNull(pCanAccessMemory);
+    accessedMemory = checkNotNull(pAccessedMemory);
     logger = checkNotNull(pLogger);
     options = checkNotNull(pOptions);
     truthAssumption = pTruthAssumption;
     evaluator = pEvaluator;
     callingTransfer = pCallingTransfer;
-    cfaEdge = pCfaEdge;
+    originCfaEdge = pCfaEdge;
+  }
+
+  private void addCanAccessMemory(SMGObject memory, Value offset, SMGState state) {
+    checkNotNull(memory);
+    checkNotNull(offset);
+    checkNotNull(state);
+    checkArgument(state.getMemoryModel().isObjectValid(memory));
+    canAccessMemory.add(SMGObjectAndOffsetOrSMGState.of(memory, offset));
+  }
+
+  private void addAccessedMemory(SMGObject memory, Value offset, SMGState state) {
+    checkNotNull(memory);
+    checkNotNull(offset);
+    checkNotNull(state);
+    checkArgument(state.getMemoryModel().isObjectValid(memory));
+    accessedMemory.add(SMGObjectAndOffsetOrSMGState.of(memory, offset));
+  }
+
+  /**
+   * Returns true if all accessed memory is fully validated to be allowed to be accessed via
+   * canAccess() statements.
+   */
+  private boolean validateCanAccessCoversAllAccessedMemory() {
+    // We allow more valid memory than used memory for now
+    if (!(canAccessMemory.size() >= accessedMemory.size())) {
+      logger.log(
+          Level.FINE,
+          "MemSafety witness validation failed due to memory access without matching canAccess()");
+      return false;
+    }
+
+    for (SMGObjectAndOffsetOrSMGState mem : accessedMemory) {
+      checkState(mem.hasSMGObjectAndOffset());
+      if (!canAccessMemory.contains(mem)) {
+        logger.log(
+            Level.FINE,
+            "MemSafety witness validation failed due to memory access without matching"
+                + " canAccess()");
+        return false;
+      }
+    }
+
+    return true;
   }
 
   /**
    * Constructor for a new {@link SMGCPAAcslVisitor}. Only to be used for initial visitation. If you
-   * need to modify the visitor, use e.g. {@link #copyWithNewState(SMGState)}.
+   * need to modify the visitor, use the copy methods of this class, e.g. {@link
+   * #copyWithNewState(SMGState)}.
    */
   SMGCPAAcslVisitor(
       ImmutableSet<AcslLogicDefinition> pDefinitions,
@@ -266,6 +324,8 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
       SMGCPAExpressionEvaluator pEvaluator,
       SMGTransferRelation pCallingTransfer,
       CFAEdge pCfaEdge) {
+    canAccessMemory = new HashSet<>();
+    accessedMemory = new HashSet<>();
     logicDefinitions = checkNotNull(pDefinitions);
     initialState = checkNotNull(pInitialState);
     logger = checkNotNull(pLogger);
@@ -273,7 +333,7 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
     truthAssumption = true;
     evaluator = pEvaluator;
     callingTransfer = pCallingTransfer;
-    cfaEdge = pCfaEdge;
+    originCfaEdge = pCfaEdge;
   }
 
   private SMGCPAAcslVisitor copyWithNewState(SMGState newInitialState) {
@@ -281,11 +341,32 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
         logicDefinitions,
         newInitialState,
         truthAssumption,
+        canAccessMemory,
+        accessedMemory,
         options,
         logger,
         evaluator,
         callingTransfer,
-        cfaEdge);
+        originCfaEdge);
+  }
+
+  /**
+   * Returns a new {@link SMGCPAAcslVisitor} with new, empty tracking for canAccess memory, as well
+   * as accessed memory. This is needed due to them both being mutable, but we want to separate
+   * tracking by function calls.
+   */
+  private SMGCPAAcslVisitor copyWithNewMemoryAccessTracking() {
+    return new SMGCPAAcslVisitor(
+        logicDefinitions,
+        initialState,
+        truthAssumption,
+        new HashSet<>(),
+        new HashSet<>(),
+        options,
+        logger,
+        evaluator,
+        callingTransfer,
+        originCfaEdge);
   }
 
   @Override
@@ -669,19 +750,21 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
   @Override
   public Set<SMGState> visit(AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate)
       throws CPATransferException {
-    // TODO: this is the call for AcslPredicateDeclaration and we need to implement this!
     /*
-     * Most likely a (recursive) function call, e.g.: pred_sll(start->next, end, size - 1)
-     * Or the entry point of a predicate defined in a witness,
-     * e.g. function-call pred_sll(sll, now, size) with sll and now being variables in the
-     * actual C program.
+     * Either entry point of a predicate defined in a witness,
+     * e.g. function-call: pred_sll(sll, now, size), with 'sll' and 'now' being variables in the
+     * actual C program, or, after that, a (recursive) function call,
+     * e.g. pred_sll(start->next, end, size - 1), with start and end being variables defined by the functions parameters (see below).
      *
-     * For example for a nested function-definition;
-     *  e.g. a recursive function 'pred_sll' used to describe a linked-list in a witness:
+     * The recursive function 'pred_sll' can for example be used to describe a linked-list in a
+     * witness:
      *
      * pred_sll(sll * start, sll * end, int size):
      *   size == 1 ? start->next == 0 && start == end
+     *               && canAccess(start) && canAccess(start->next) && canAccess(end)
      *   : start != 0 && start->next != start && start->next != 0
+     *     && canAccess(start) && canAccess(start->next) && canAccess(end)
+     *     && start @ start->next
      *     && pred_sll(start->next, end, size - 1)
      *
      * We need to update the non ACSL variables used,
@@ -691,76 +774,45 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
      * start = start->next; end = end; for function-call pred_sll(start->next, end, size - 1)
      */
 
-    // TODO: we need a AcslPredicateDeclaration here instead. Marian is currently unsure whether
-    // AcslFunctionCallPredicate.getDeclaration() returns the wrong type or whether
-    // AcslFunctionCallPredicate is the wrong function-call type to expect here. Decide after
-    // merging the changes!
-    AcslFunctionDeclaration funDecl = pAcslFunctionCallPredicate.getDeclaration();
+    AcslPredicateDeclaration funDecl = pAcslPredicateApplicationPredicate.getDeclaration();
 
-    // Resolve C arguments (not all ACSL arguments are needed C arguments)
-    ImmutableList.Builder<CExpression> cArgumentsBuilder = ImmutableList.builder();
-    for (AcslTerm param : pAcslFunctionCallPredicate.getParameterExpressions()) {
-      if (param instanceof AcslCExpressionTerm cParam) {
-        cArgumentsBuilder.add(cParam.getCExpression());
-      }
-    }
-    List<CExpression> cArguments = cArgumentsBuilder.build();
-    // It makes little sense to call a function without arguments that we can work with currently
-    verify(!cArguments.isEmpty());
-
-    // Resolve function definition
-    AcslLogicPredicateDefinition acslLogicPredicateDefinition = null;
-    for (AcslLogicDefinition def : logicDefinitions) {
-      if (def.getDeclaration().equals(funDecl)) {
-        verify(def instanceof AcslLogicFunctionDefinition);
-        acslLogicPredicateDefinition = def;
-      }
-    }
-
-    checkNotNull(arguments);
-    AcslPredicateDeclaration newFunCallDeclaration = pAcslLogicPredicateDefinition.getDeclaration();
-    checkNotNull(newFunCallDeclaration);
+    AcslTerm calledBody =
+        getBodyForAcslPredicateApplicationPredicate(pAcslPredicateApplicationPredicate);
+    checkNotNull(calledBody);
 
     // Add new stack-frame with the variables needed
     // We need to unpack the ACSLParameterDeclarations into usable C declarations first
-    ImmutableList.Builder<CParameterDeclaration> parameterDeclarationsBuilder =
-        ImmutableList.builder();
-    ImmutableList<? extends AParameterDeclaration> acslParameters =
-        newFunCallDeclaration.getParameters();
-    for (AParameterDeclaration acslParamDecl : checkNotNull(acslParameters)) {
-      if (acslParamDecl instanceof AcslCParameterDeclaration acslCParamDecl) {
-        CParameterDeclaration cParamDecl = acslCParamDecl.getDeclaration();
-        parameterDeclarationsBuilder.add(checkNotNull(cParamDecl));
-      }
-      // We simply ignore pure ACSL parameter declarations
-    }
-    List<CParameterDeclaration> parameterDeclarations = parameterDeclarationsBuilder.build();
-    if (parameterDeclarations.isEmpty()) {
-      throw new UnsupportedOperationException(
-          "Pure ACSL expressions (without C expression arguments) are currently not supported");
-    }
-    // TODO: extract ACSL args from arguments if this fails due to them being in there ;D
-    checkArgument(parameterDeclarations.size() == arguments.size());
+    List<CParameterDeclaration> cParameterDeclarations =
+        getCFunctionParametersFromDeclarationIn(pAcslPredicateApplicationPredicate);
+    checkArgument(
+        !cParameterDeclarations.isEmpty(),
+        "Pure ACSL expressions (without C expression parameters) are currently not supported");
 
-    // TODO: We need to reconstruct a CFunctionCallEdge from our ACSL function-call
-    // or extend the stack frame to support any
-    CFunctionDeclaration constructedCFunDecl = new CFunctionDeclaration();
-    // TODO: constructing the c fun decl is a problem, as it would not be available to check in the
-    // method calling this method
-    CFunctionCallEdge constructedCCallEdge = new CFunctionDeclaration();
+    // Resolve C arguments (not all ACSL arguments are needed C arguments)
+    // We ignore pure ACSL arguments for now, as we expect them to be things like the size,
+    // that are not limited)
+    List<CExpression> cArguments = getCArgumentsFrom(pAcslPredicateApplicationPredicate);
+    // It makes little sense to call a function without arguments that we can work with currently
+    checkArgument(
+        !cArguments.isEmpty(),
+        "Pure ACSL expressions (without C expression arguments) are currently not supported");
+    verify(cParameterDeclarations.size() == cArguments.size());
+
+    // TODO: do we check all arguments whether they are allowed to be used via canAccess() as well?
+
+    // Validate that all memory used in the current function call is valid
+    validateCanAccessCoversAllAccessedMemory();
 
     SMGState stateWithNewStackFrameAndVars =
-        callingTransfer.handleFunctionCall(
-            initialState, constructedCCallEdge, arguments, parameterDeclarations);
+        callingTransfer.handleAcslPredicateFunctionCall(
+            initialState, originCfaEdge, funDecl, cArguments, cParameterDeclarations);
 
     Set<SMGState> processedStates =
-        acslLogicPredicateDefinition
-            .getBody()
-            .accept(copyWithNewState(stateWithNewStackFrameAndVars));
+        calledBody.accept(copyWithNewState(stateWithNewStackFrameAndVars));
 
     ImmutableSet.Builder<SMGState> finalStates = ImmutableSet.builder();
     for (SMGState processedState : processedStates) {
-      verify(processedState.hasStackFrameForFunctionDef(funDecl));
+      verify(processedState.getStackFrameTopFunctionDefinition() == funDecl);
       finalStates.add(processedState.dropStackFrame());
     }
     return finalStates.build();
@@ -768,6 +820,7 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
     // TODO: we most likely don't need the code below, but lets keep it for now until i know more
 
     // The decl is really of type AcslPredicateDeclaration! This is fine for now
+    /*
     if (funDeclsToBodies.containsKey(funDecl)) {
       AcslTerm body = funDeclsToBodies.get(funDecl);
       ImmutableList<? extends AParameterDeclaration> declParams = funDecl.getParameters();
@@ -825,7 +878,7 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
         // - No list materialization: 1 state is returned, just keep on processing.
         // - list materialization: 2 states returned; the first is the "not extended list", while
         // the second is the extended (with possibly unlimited extensions following) list.
-        currentState = callingTransfer.handleStatement(cfaEdge, assignment);
+        currentState = callingTransfer.handleStatement(originCfaEdge, assignment);
       }
 
       // TODO: we get the ACSL function body from the CFAMetadata based on the definition
@@ -838,6 +891,95 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
           Level.WARNING, "Could not find ACSL function call body  " + pAcslFunctionCallPredicate);
       return ImmutableSet.of();
     }
+     */
+  }
+
+  /**
+   * Pulls out all C parameters of the declaration in the given {@link
+   * AcslPredicateApplicationPredicate} in the order used in the declaration. Ignores pure ACSL
+   * terms.
+   */
+  private static List<CParameterDeclaration> getCFunctionParametersFromDeclarationIn(
+      AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate) {
+    ImmutableList.Builder<CParameterDeclaration> declarationsCParametersBuilder =
+        ImmutableList.builder();
+    ImmutableList<? extends AParameterDeclaration> acslParameters =
+        pAcslPredicateApplicationPredicate.getDeclaration().getParameters();
+
+    for (AParameterDeclaration acslParamDecl : checkNotNull(acslParameters)) {
+      // TODO: a visitor would be better! We could reuse a visitor in other locations as well.
+      if (acslParamDecl instanceof AcslCParameterDeclaration acslCParamDecl) {
+        CParameterDeclaration cParamDecl = acslCParamDecl.getDeclaration();
+        declarationsCParametersBuilder.add(checkNotNull(cParamDecl));
+      }
+      // We simply ignore pure ACSL parameter declarations
+    }
+    return declarationsCParametersBuilder.build();
+  }
+
+  /**
+   * Returns all {@link CExpression} arguments from the arguments of the given {@link
+   * AcslPredicateApplicationPredicate}. Preserves the order of arguments present in the given term.
+   * Ignores pure ACSL terms.
+   */
+  private static List<CExpression> getCArgumentsFrom(
+      AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate) {
+    ImmutableList.Builder<CExpression> cArgumentsBuilder = ImmutableList.builder();
+    for (AcslTerm param : pAcslPredicateApplicationPredicate.getArguments()) {
+      // Explicit listing of all types so that we never miss a new type that supports C
+      // expressions.'
+      // TODO: a visitor would be better! We could reuse a visitor in other locations as well.
+      switch (param) {
+        case AcslCExpressionTerm cParam -> cArgumentsBuilder.add(cParam.getCExpression());
+        case AcslCIdExpression pAcslCIdExpression ->
+            cArgumentsBuilder.add(pAcslCIdExpression.getCIdExpression());
+        case AcslCLeftHandSideTerm pAcslCLeftHandSideTerm ->
+            cArgumentsBuilder.add(pAcslCLeftHandSideTerm.getCLeftHandSideExpression());
+        case AcslArraySubscriptTerm pAcslArraySubscriptTerm -> {}
+        case AcslAtTerm pAcslAtTerm -> {}
+        case AcslBinaryTerm pAcslBinaryTerm -> {}
+        case AcslFunctionCallTerm pAcslFunctionCallTerm -> {}
+        case AcslIdTerm pAcslIdTerm -> {}
+        case AcslLiteralTerm pAcslLiteralTerm -> {}
+        case AcslOldTerm pAcslOldTerm -> {}
+        case AcslResultTerm pAcslResultTerm -> {}
+        case AcslTernaryTerm pAcslTernaryTerm -> {}
+        case AcslUnaryTerm pAcslUnaryTerm -> {}
+      }
+    }
+    return cArgumentsBuilder.build();
+  }
+
+  /** Pulls the body for the given predicate application out of the known logic-definitions. */
+  private AcslTerm getBodyForAcslPredicateApplicationPredicate(
+      AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate) {
+    final AcslPredicateDeclaration calledPredicateDecl =
+        pAcslPredicateApplicationPredicate.getDeclaration();
+    AcslTerm bodyForCalledFunction = null;
+    for (AcslLogicDefinition logicDef : logicDefinitions) {
+      if (logicDef instanceof AcslLogicPredicateDefinition pAcslLogicPredicateDefinition) {
+        if (pAcslLogicPredicateDefinition.getDeclaration().equals(calledPredicateDecl)) {
+          if (bodyForCalledFunction != null) {
+            throw new IllegalArgumentException("Duplicate or conflicting ");
+          }
+          // TODO: return here and add a check that the logics and their defs never conflict in the
+          // constructor of the visitor. Currently not important since we expect very few logic
+          // defs.
+          bodyForCalledFunction = pAcslLogicPredicateDefinition.getBody();
+        }
+      } else {
+        throw new IllegalArgumentException(
+            "ACSL logic definition of type "
+                + logicDef.getClass()
+                + " can not be handled currently. Failed definition: "
+                + logicDef);
+      }
+    }
+
+    if (bodyForCalledFunction == null) {
+      throw new IllegalArgumentException("");
+    }
+    return bodyForCalledFunction;
   }
 
   @Override
@@ -851,6 +993,102 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
     // Terms wrapped as predicates (i.e. they return only boolean results)
     // For example AcslCExpressionTerm with a C expression like:  start->next != 0
     return pAcslPredicateTerm.getTerm().accept(this);
+  }
+
+  @Override
+  public Set<SMGState> visit(AcslCanAccessPredicate pAcslCanAccessPredicate)
+      throws CPATransferException {
+    // We somehow need to remember whether we checked all memory for valid access (i.e. this
+    // predicate) that is used by the witness.
+    // We save the object/offset pairs that we checked for valid access and that we accessed. Once
+    // the visitor returns, the sets need to be 1:1.
+    CExpression exprTargetingMemory = pAcslCanAccessPredicate.getCExpressionTargetingMemory();
+
+    // Theoretically this may materialize a list, returning 2 elements. We need to keep working with
+    // the new states, as otherwise our validity mapping does not match!
+    List<SMGStateAndOptionalSMGObjectAndOffset> targetMemories =
+        exprTargetingMemory.accept(
+            new SMGCPAAddressVisitor(evaluator, initialState, originCfaEdge, logger, options));
+
+    ImmutableSet.Builder<SMGState> resultStates = ImmutableSet.builder();
+    for (SMGStateAndOptionalSMGObjectAndOffset targetMemory : targetMemories) {
+      resultStates.add(targetMemory.getSMGState());
+      if (!targetMemory.hasSMGObjectAndOffset()) {
+        // Invalid witness
+        throw new IllegalArgumentException(
+            "MemSafety witness failed to find the target memory for: " + pAcslCanAccessPredicate);
+        // TODO: switch to the return. I only put the exception there to see whether this happens.
+        // return ImmutableSet.of();
+      }
+      addCanAccessMemory(
+          targetMemory.getSMGObject(),
+          targetMemory.getOffsetForObject(),
+          targetMemory.getSMGState());
+    }
+
+    return resultStates.build();
+  }
+
+  // Our separating conjunction, e.g. '(start) @ (start->next)', showing that the 2 memory regions
+  // are
+  // distinct.
+  @Override
+  public Set<SMGState> visit(
+      AcslSeparateMemoryConjunctionPredicate pAcslSeparateMemoryConjunctionPredicate)
+      throws CPATransferException {
+    CExpression leftExpr =
+        pAcslSeparateMemoryConjunctionPredicate.getLeftCExpressionTargetingMemory();
+    CExpression rightExpr =
+        pAcslSeparateMemoryConjunctionPredicate.getRightCExpressionTargetingMemory();
+
+    // Theoretically this may materialize a list, returning 2 elements. We need to keep working with
+    // the new states, as otherwise our validity mapping does not match!
+    List<SMGStateAndOptionalSMGObjectAndOffset> targetMemoriesLeft =
+        leftExpr.accept(
+            new SMGCPAAddressVisitor(evaluator, initialState, originCfaEdge, logger, options));
+
+    ImmutableSet.Builder<SMGState> resultStates = ImmutableSet.builder();
+    for (SMGStateAndOptionalSMGObjectAndOffset targetMemoryLeft : targetMemoriesLeft) {
+      if (!targetMemoryLeft.hasSMGObjectAndOffset()) {
+        // Invalid witness
+        throw new IllegalArgumentException(
+            "MemSafety witness failed to find the left target memory for: "
+                + pAcslSeparateMemoryConjunctionPredicate);
+        // TODO: switch to the return. I only put the exception there to see whether this happens.
+        // return ImmutableSet.of();
+      }
+
+      List<SMGStateAndOptionalSMGObjectAndOffset> targetMemoriesRight =
+          rightExpr.accept(
+              new SMGCPAAddressVisitor(
+                  evaluator, targetMemoryLeft.getSMGState(), originCfaEdge, logger, options));
+
+      for (SMGStateAndOptionalSMGObjectAndOffset targetMemoryRight : targetMemoriesRight) {
+        if (!targetMemoryRight.hasSMGObjectAndOffset()) {
+          // Invalid witness
+          throw new IllegalArgumentException(
+              "MemSafety witness failed to find the left target memory for: "
+                  + pAcslSeparateMemoryConjunctionPredicate);
+          // TODO: switch to the return. I only put the exception there to see whether this happens.
+          // return ImmutableSet.of();
+        }
+
+        if (!targetMemoryRight.getSMGObject().equals(targetMemoryLeft.getSMGObject())) {
+          resultStates.add(targetMemoryRight.getSMGState());
+
+        } else {
+          // Invalid witness
+          throw new IllegalArgumentException(
+              "MemSafety witness validation failed due to for: "
+                  + pAcslSeparateMemoryConjunctionPredicate);
+          // TODO: remove this branch. I just wanted to know whether this works correctly. The else
+          //  is not even correct in all cases, as a materialization might happen and fulfill it in
+          //  one, but not the other case!
+        }
+      }
+    }
+
+    return resultStates.build();
   }
 
   @Override
@@ -1265,7 +1503,8 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
     final boolean updatedTruthValue = simplifiedExpression.getSecond();
 
     ImmutableSet.Builder<SMGState> resultStateBuilder = ImmutableSet.builder();
-    SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger, options);
+    SMGCPAValueVisitor vv =
+        new SMGCPAValueVisitor(evaluator, state, originCfaEdge, logger, options);
     // Get the value of the expression (either true[1], false[0], or unknown)
     // Note: this might materialize an abstracted linked-list (more than 1 element in the
     //  resultStateBuilder)
