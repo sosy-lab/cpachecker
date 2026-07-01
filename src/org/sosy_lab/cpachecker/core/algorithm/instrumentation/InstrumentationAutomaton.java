@@ -135,9 +135,9 @@ public class InstrumentationAutomaton {
   }
 
   /**
-   * Parses the list of transitions from a string with the following form: [q0|||cond|||op|||A|||q1|||...||||]
-   * Every transition is divided by the splitter |||, and it contains the source state, pattern,
-   * operation, order and the destination state.
+   * Parses the list of transitions from a string with the following form:
+   * [q0|||cond|||op|||A|||q1|||...||||] Every transition is divided by the splitter |||, and it
+   * contains the source state, pattern, operation, order and the destination state.
    */
   private ImmutableList<InstrumentationTransition> parseTransitions(
       String parsedTransitionsFromYAML, ImmutableList<InstrumentationState> states, int pIndex)
