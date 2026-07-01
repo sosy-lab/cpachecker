@@ -16,7 +16,6 @@ import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public final class AcslFunctionCallPredicate extends AFunctionCallExpression
     implements AcslPredicate {
@@ -60,14 +59,12 @@ public final class AcslFunctionCallPredicate extends AFunctionCallExpression
   }
 
   @Override
-  public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v)
-      throws X {
+  public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 
   @Override
-  public <R, X extends Exception> R accept(AcslPredicateVisitor<R, X> v)
-      throws X {
+  public <R, X extends Exception> R accept(AcslPredicateVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 }
