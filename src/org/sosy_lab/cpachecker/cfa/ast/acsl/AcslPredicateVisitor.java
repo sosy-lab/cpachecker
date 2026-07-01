@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-
 public interface AcslPredicateVisitor<R, X extends Exception> {
 
   R visit(AcslBinaryPredicate pBinaryExpression) throws X;
@@ -37,4 +35,8 @@ public interface AcslPredicateVisitor<R, X extends Exception> {
   R visit(AcslFunctionCallPredicate pAcslFunctionCallPredicate) throws X;
 
   R visit(AcslPredicateTerm pAcslPredicateTerm) throws X;
+
+  R visit(AcslCanAccessPredicate pAcslCanAccessPredicate) throws X;
+
+  R visit(AcslSeparateMemoryConjunctionPredicate pAcslSeparateMemoryConjunctionPredicate) throws X;
 }

@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-
 public interface AcslTermVisitor<R, X extends Exception> {
   R visit(AcslUnaryTerm pAcslUnaryTerm) throws X;
 
