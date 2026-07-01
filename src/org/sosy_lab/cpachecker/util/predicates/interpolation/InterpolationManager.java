@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkElementIndex;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Verify.verify;
@@ -22,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.collect.ObjectArrays;
 import com.google.common.primitives.ImmutableIntArray;
 import com.google.common.primitives.Ints;
 import java.nio.file.Path;
@@ -544,6 +546,7 @@ public final class InterpolationManager {
       final BlockFormulas f = prepareCounterexampleFormulas(pFormulas);
 
       try {
+        // TODO Maybe solveCounterexampleAndFindInfeasibleBlock is worth it for some callers?
         return solveCounterexample(f, imprecisePath);
       } catch (SolverException e) {
         // TODO: Do we need to rebuild the interpolator here? i.e. is it ever used again?
@@ -593,19 +596,22 @@ public final class InterpolationManager {
       BlockFormulas f, Optional<ARGPath> imprecisePath, SolverException itpException)
       throws InterruptedException, RefinementFailedException {
     try {
-      CounterexampleTraceInfo counterexample = solveCounterexample(f, imprecisePath);
-      if (!counterexample.isSpurious()) {
+      CounterexampleTraceInfo counterexample =
+          solveCounterexampleAndFindInfeasibleBlock(f, imprecisePath);
+      if (!counterexample.isSpurious() || counterexample.getInterpolants() != null) {
         return counterexample;
       }
     } catch (SolverException solvingException) {
       // in case of exception throw original one below but do not forget e2
       itpException.addSuppressed(solvingException);
     }
+
     throw RefinementFailedException.forInterpolationFailureInSolver(itpException, solver);
   }
 
   /**
-   * Analyze a counterexample for feasibility without computing interpolants.
+   * Analyze a counterexample for feasibility without using solver interpolation. If the
+   * counterexample is feasible, a precise path in it is searched and returned.s
    *
    * @throws SolverException If the solver fails to solve the formulas. (If it solves successfully
    *     but fails to compute a model, an imprecise counterexample is returned instead.)
@@ -642,6 +648,102 @@ public final class InterpolationManager {
         return CounterexampleTraceInfo.infeasibleNoItp();
       }
     }
+  }
+
+  /**
+   * Analyze a counterexample for feasibility without using solver interpolation. If the
+   * counterexample is feasible, a precise path in it is searched and returned. If the
+   * counterexample is infeasible the method attempts to find a block that is in itself infeasible
+   * and provides a trivial but correct interpolant in this case.
+   *
+   * @throws SolverException If the solver fails to solve the formulas. (If it solves successfully
+   *     but fails to compute a model, an imprecise counterexample is returned instead.)
+   */
+  private CounterexampleTraceInfo solveCounterexampleAndFindInfeasibleBlock(
+      BlockFormulas f, Optional<ARGPath> imprecisePath)
+      throws SolverException, InterruptedException {
+
+    ProverOptions[] localProverOptions =
+        ObjectArrays.concat(proverOptions, ProverOptions.GENERATE_UNSAT_CORE_OVER_ASSUMPTIONS);
+    try (ProverEnvironment prover = solver.newProverEnvironment(localProverOptions)) {
+      final List<BooleanFormula> blockPredicates = new ArrayList<>(f.getSize());
+      final boolean isSat;
+      final Optional<List<BooleanFormula>> unsatBlocks;
+
+      satCheckTimer.start();
+      try {
+        int i = 0;
+        for (BooleanFormula block : f.getFormulas()) {
+          // For each block, add "pred_i => block_i".
+          // Then block_i is only relevant if pred_i is asserted.
+          BooleanFormula blockPredicate = bfmgr.makeVariable("__BLOCK__PREDICATE__" + i++);
+          blockPredicates.add(blockPredicate);
+          prover.push(bfmgr.implication(blockPredicate, block));
+        }
+        unsatBlocks = prover.unsatCoreOverAssumptions(blockPredicates);
+        isSat = unsatBlocks.isEmpty();
+      } finally {
+        satCheckTimer.stop();
+      }
+
+      if (isSat) {
+        if (imprecisePath.isEmpty()) {
+          return CounterexampleTraceInfo.feasibleImprecise(f.getFormulas());
+        }
+        try {
+          return getPreciseErrorPath(f, prover, imprecisePath.orElseThrow());
+        } catch (SolverException modelException) {
+          logger.logUserException(
+              Level.WARNING, modelException, "Could not create model for error path!");
+          return CounterexampleTraceInfo.feasibleImprecise(f.getFormulas());
+        }
+
+      } else {
+        if (unsatBlocks.orElseThrow().size() == 1) {
+          // Unsat core already tells us which block is infeasible. Use the free information.
+          int index = blockPredicates.indexOf(unsatBlocks.orElseThrow().getFirst());
+          return createTrivialFalseInterpolant(index, f);
+
+        } else {
+          // Unsat cores might not be precise, try finding an unsat block.
+          // We could restrict the search to blocks that are in the unsat core,
+          // but in principle there could also be an unsat block outside of the unsat code.
+          logger.log(
+              Level.FINEST,
+              "Infeasible counterexample but interpolation has failed. "
+                  + "Trying to find an infeasible block.");
+          for (int i = 0; i < f.getSize(); i++) {
+            if (prover.isUnsatWithAssumptions(ImmutableList.of(blockPredicates.get(i)))) {
+              return createTrivialFalseInterpolant(i, f);
+            }
+          }
+          logger.log(
+              Level.FINEST,
+              "Infeasible counterexample but interpolation has failed "
+                  + "and no block is infeasible in itself.");
+        }
+
+        return CounterexampleTraceInfo.infeasibleNoItp();
+      }
+    }
+  }
+
+  /**
+   * Create a sequence of interpolants for the given formulas, of which the first interpolants are
+   * "true" and from a given formula on the interpolants are "false".
+   */
+  private CounterexampleTraceInfo createTrivialFalseInterpolant(
+      int firstInfeasibleBlock, BlockFormulas f) {
+    checkElementIndex(firstInfeasibleBlock, f.getSize());
+    int itpLength = f.getSize() - 1;
+    logger.log(Level.FINEST, "Block", firstInfeasibleBlock, "out of", f.getSize(), "is infeasible");
+    List<BooleanFormula> itps =
+        ImmutableList.<BooleanFormula>builderWithExpectedSize(itpLength)
+            .addAll(Collections.nCopies(firstInfeasibleBlock, bfmgr.makeTrue()))
+            .addAll(Collections.nCopies(itpLength - firstInfeasibleBlock, bfmgr.makeFalse()))
+            .build();
+    verify(itps.size() == itpLength);
+    return CounterexampleTraceInfo.infeasible(itps);
   }
 
   /**
