@@ -15,7 +15,9 @@ import java.io.Serial;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -284,14 +286,14 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
               shutdownNotifier);
 
       cpa = coreComponents.createCPA(svLibSpecification);
-      /* if (cpa instanceof StatisticsProvider statisticsProvider) {
-        // statisticsProvider.collectStatistics(inner stats);
-      }*/
+      if (cpa instanceof StatisticsProvider statisticsProvider) {
+        statisticsProvider.collectStatistics(transformationStatistics.innerStatistics);
+      }
 
       innerAlgorithm = coreComponents.createAlgorithm(cpa, svLibSpecification);
-      /* if (innerAlgorithm instanceof StatisticsProvider statisticsProvider) {
-        // statisticsProvider.collectStatistics(inner stats);
-      }*/
+      if (innerAlgorithm instanceof StatisticsProvider statisticsProvider) {
+        statisticsProvider.collectStatistics(transformationStatistics.innerStatistics);
+      }
     } catch (InvalidConfigurationException e) {
       throw new UnsupportedTransformationException(
           "Building the algorithm which should be run on the transformed SV-LIB script failed.", e);
@@ -340,6 +342,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
 
   private static class TransformationStatistics implements Statistics {
 
+    private final List<Statistics> innerStatistics = new ArrayList<>();
+
     private final StatTimer totalTransformationTime = new StatTimer("Total Transformation Time");
     private final StatTimer initializationTime = new StatTimer("Time to initialize scope");
     private final StatTimer transformationTime = new StatTimer("Transformation Time");
@@ -358,6 +362,10 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
       out.println("Time for transformation:           " + transformationTime);
       out.println("Number of commands:                " + numberOfCommands);
       out.println("Number of labels created:          " + numberOfLabelsCreated);
+
+      for (Statistics statistics : innerStatistics) {
+        statistics.printStatistics(out, result, reached);
+      }
     }
 
     @Override
