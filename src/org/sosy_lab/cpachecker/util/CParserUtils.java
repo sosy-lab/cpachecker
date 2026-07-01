@@ -213,19 +213,16 @@ public class CParserUtils {
       Scope pScope,
       ParserTools pParserTools)
       throws InvalidAutomatonException, InterruptedException {
-    if (!pStatements.isEmpty()) {
 
-      Set<CStatement> result = new HashSet<>();
-      for (String assumeCode : pStatements) {
-        Collection<CStatement> statements =
-            parseAsCStatements(assumeCode, pResultFunction, pCParser, pScope, pParserTools);
-        result.addAll(
-            removeDuplicates(
-                from(statements).transform(CParserUtils::adjustCharAssignmentSignedness)));
-      }
-      return result;
+    Set<CStatement> result = new HashSet<>();
+    for (String assumeCode : pStatements) {
+      Collection<CStatement> statements =
+          parseAsCStatements(assumeCode, pResultFunction, pCParser, pScope, pParserTools);
+      result.addAll(
+          removeDuplicates(
+              from(statements).transform(CParserUtils::adjustCharAssignmentSignedness)));
     }
-    return ImmutableSet.of();
+    return result;
   }
 
   private static Collection<CStatement> parseAsCStatements(
