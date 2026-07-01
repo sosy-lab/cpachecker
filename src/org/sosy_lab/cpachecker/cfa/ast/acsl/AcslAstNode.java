@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNodeVisitor;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public sealed interface AcslAstNode extends AAstNode
     permits AcslBinaryPredicateOperator,
