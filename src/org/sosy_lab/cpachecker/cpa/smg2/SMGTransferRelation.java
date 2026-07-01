@@ -9,7 +9,9 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_EQUAL;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN;
@@ -37,7 +39,10 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDefinition;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -416,7 +421,7 @@ public class SMGTransferRelation
     CFunctionCall summaryExpr = functionReturnEdge.getFunctionCall();
 
     checkArgument(
-        state.getMemoryModel().getStackFrames().peek().getFunctionDefinition()
+        state.getMemoryModel().getStackFrames().peek().getCFunctionDefinition()
             == functionReturnEdge.getFunctionEntry().getFunctionDefinition());
 
     if (summaryExpr instanceof CFunctionCallAssignmentStatement funcCallExpr) {
@@ -577,11 +582,11 @@ public class SMGTransferRelation
       }
     }
 
-    return ImmutableList.of(handleFunctionCall(state, callEdge, arguments, paramDecl));
+    return ImmutableList.of(handleCFunctionCall(state, callEdge, arguments, paramDecl));
   }
 
   /**
-   * Creates a new stack frame for the function call, then creates the local variables for the
+   * Creates a new C stack frame for the C function call, then creates the local variables for the
    * parameters and fills them using the value visitor with the values given. This should only be
    * called if the number of arguments and paramDecls entered match. This function also checks for
    * variable arguments and saves them in an array in the order they appear.
@@ -594,9 +599,60 @@ public class SMGTransferRelation
    *     new local variables.
    * @throws CPATransferException in case of a critical error.
    */
-  protected SMGState handleFunctionCall(
+  protected SMGState handleCFunctionCall(
       SMGState initialState,
       CFunctionCallEdge callEdge,
+      List<CExpression> arguments,
+      List<CParameterDeclaration> paramDecl)
+      throws CPATransferException {
+    CFunctionDeclaration funcDecl = callEdge.getSuccessor().getFunctionDefinition();
+    return handleAFunctionCall(initialState, callEdge, funcDecl, arguments, paramDecl);
+  }
+
+  /**
+   * Creates a new C stack frame for the ACSL predicate (that can be seen as a function call), then
+   * creates the local variables for the parameters and fills them using the value visitor with the
+   * values given. This should only be called if the number of arguments and paramDecls entered
+   * match.
+   *
+   * @param initialState the current state.
+   * @param callEdge the edge of the function call.
+   * @param arguments the function call arguments {@link CExpression}s.
+   * @param paramDecl the {@link CParameterDeclaration} for the arguments.
+   * @return a state with a new stack frame and all parameters evaluated to values and assigned to
+   *     new local variables.
+   * @throws CPATransferException in case of a critical error.
+   */
+  protected SMGState handleAcslPredicateFunctionCall(
+      SMGState initialState,
+      CFAEdge callEdge,
+      AcslPredicateDeclaration funDecl,
+      List<CExpression> arguments,
+      List<CParameterDeclaration> paramDecl)
+      throws CPATransferException {
+    return handleAFunctionCall(initialState, callEdge, funDecl, arguments, paramDecl);
+  }
+
+  /**
+   * This is not meant to be called directly (like ever). Please use the 2 functions with input
+   * validation. Creates a new stack frame for function calls, then creates the local variables for
+   * the parameters and fills them using the value visitor with the values given. This should only
+   * be called if the number of arguments and paramDecls entered match. This function also checks
+   * for variable arguments and saves them in an array in the order they appear.
+   *
+   * @param initialState the current state.
+   * @param callEdge the edge of the function call.
+   * @param funDecl function declaration used to define the stack frame.
+   * @param arguments the function call arguments {@link CExpression}s.
+   * @param paramDecl the {@link CParameterDeclaration} for the arguments.
+   * @return a state with a new stack frame and all parameters evaluated to values and assigned to
+   *     new local variables.
+   * @throws CPATransferException in case of a critical error.
+   */
+  private SMGState handleAFunctionCall(
+      SMGState initialState,
+      CFAEdge callEdge,
+      AFunctionDeclaration funDecl,
       List<CExpression> arguments,
       List<CParameterDeclaration> paramDecl)
       throws CPATransferException {
@@ -670,16 +726,15 @@ public class SMGTransferRelation
     ImmutableList<Value> readValuesInOrder = readValuesInOrderBuilder.build();
     // Add the new stack frame based on the function def, but only after we read the values from the
     // old stack frame
-    CFunctionDeclaration funcDecl = callEdge.getSuccessor().getFunctionDefinition();
-    if (funcDecl.getType().takesVarArgs()) {
+    if (funDecl instanceof CFunctionDeclaration cFunDecl && cFunDecl.getType().takesVarArgs()) {
       // Get the var args and save them in the stack frame
       ImmutableList.Builder<Value> varArgsBuilder = ImmutableList.builder();
       for (int i = paramDecl.size(); i < arguments.size(); i++) {
         varArgsBuilder.add(readValuesInOrder.get(i));
       }
-      currentState = currentState.copyAndAddStackFrame(funcDecl, varArgsBuilder.build());
+      currentState = currentState.copyAndAddStackFrame(cFunDecl, varArgsBuilder.build());
     } else {
-      currentState = currentState.copyAndAddStackFrame(funcDecl);
+      currentState = currentState.copyAndAddStackFrame(funDecl);
     }
 
     for (int i = 0; i < paramDecl.size(); i++) {
@@ -1152,33 +1207,50 @@ public class SMGTransferRelation
 
         result.clear();
 
+        checkArgument(!automatonState.toString().equalsIgnoreCase("AutomatonState.BOTTOM"));
+
         ExpressionTree<AExpression> invariants = automatonState.getCandidateInvariants();
         // ACSL logic definitions give us e.g. the bodies for the ACSL functions
         // (or boolean predicates) that are called (e.g. AcslLogicPredicateDefinition)
         ImmutableSet<AcslLogicDefinition> definitions = automatonState.getLogicDefinitions();
         // We expect only 1 item in the ExpressionTree due to ACSL
-        Optional<AExpression> invariant = Optional.empty();
+        Optional<AExpression> maybeInvariant = Optional.empty();
         if (invariants instanceof LeafExpression<AExpression> leaf) {
-          invariant = Optional.of(leaf.getExpression());
+          maybeInvariant = Optional.of(leaf.getExpression());
         }
-        checkArgument(invariants.equals(ExpressionTrees.getTrue()) || invariant.isPresent());
+        checkArgument(invariants.equals(ExpressionTrees.getTrue()) || maybeInvariant.isPresent());
 
         List<AExpression> assumptions = automatonState.getAssumptions();
 
-        for (SMGState stateToStrengthen : toStrengthen) {
+        for (final SMGState stateToStrengthen : toStrengthen) {
           super.setInfo(element, pPrecision, cfaEdge);
 
           try {
-            @NonNull Collection<SMGState> strengthenedStates =
+            Collection<SMGState> strengthenedStates =
                 strengthenStateWithAssumptions(assumptions, stateToStrengthen, cfaEdge);
+            checkNotNull(strengthenedStates);
 
-            if (invariant.isPresent()) {
+            if (maybeInvariant.isPresent()
+                && maybeInvariant.orElseThrow() instanceof AcslPredicate acslInvariant) {
               for (SMGState strengthenedState : strengthenedStates) {
+                verify(
+                    strengthenedState.getStackFrameTopFunctionDefinition()
+                        == stateToStrengthen.getStackFrameTopFunctionDefinition());
                 SMGCPAAcslVisitor acslVisitor =
                     new SMGCPAAcslVisitor(
                         definitions, strengthenedState, options, logger, evaluator, this, cfaEdge);
 
-                result.addAll(invariant.orElseThrow().accept_(acslVisitor));
+                Set<SMGState> processedStates = acslInvariant.accept(acslVisitor);
+                checkNotNull(processedStates);
+                for (SMGState processedState : processedStates) {
+                  verify(
+                      processedState.getStackFrameTopFunctionDefinition()
+                          == stateToStrengthen.getStackFrameTopFunctionDefinition());
+                }
+                if (!processedStates.isEmpty()) {
+                  // Invariant holds for the states returned
+                  result.addAll(processedStates);
+                }
               }
             }
 
@@ -1188,10 +1260,12 @@ public class SMGTransferRelation
           }
         }
 
-        if (result.isEmpty() && invariant.isPresent()) {
+        if (result.isEmpty() && maybeInvariant.isPresent()) {
           // Rejected correctness witnesses get a pseudo target state
-          String errorMsg = "Invariant " + invariant.orElseThrow() + " rejected";
+          String errorMsg = "Invariant " + maybeInvariant.orElseThrow() + " rejected";
           result.add(initialSMGStateToStrengthen.withInvalidCorrectnessWitness(errorMsg));
+          throw new UnsupportedOperationException(
+              "implement me. The error added is not part of the automaton yet!");
         }
 
         toStrengthen.clear();

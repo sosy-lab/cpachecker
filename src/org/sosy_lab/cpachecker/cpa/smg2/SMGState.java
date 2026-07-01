@@ -50,6 +50,8 @@ import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -864,7 +866,7 @@ public class SMGState
         StackFrame thisFrame = existingFrames.next();
         CFunctionDeclarationAndOptionalValue otherFunDefAndReturnValue = shouldBeFrames.next();
         CFunctionDeclaration otherFunDef = otherFunDefAndReturnValue.getCFunctionDeclaration();
-        checkArgument(thisFrame.getFunctionDefinition().equals(otherFunDef));
+        checkArgument(thisFrame.getCFunctionDefinition().equals(otherFunDef));
       } else {
         // Start adding to the current
         CFunctionDeclarationAndOptionalValue otherFunDefAndReturnValue = shouldBeFrames.next();
@@ -1271,9 +1273,22 @@ public class SMGState
   }
 
   /**
-   * Copy SMGState and adds a new frame for the function.
+   * Copy SMGState and adds a new ACSL frame for the function.
    *
-   * <p>Keeps consistency: yes
+   * @param pFunctionDefinition A function for which to create a new stack frame
+   */
+  public SMGState copyAndAddStackFrame(AFunctionDeclaration pFunctionDefinition) {
+    if (pFunctionDefinition instanceof CFunctionDeclaration pCFunctionDeclaration) {
+      return copyAndAddStackFrame(pCFunctionDeclaration);
+    } else if (pFunctionDefinition instanceof AcslFunctionDeclaration acslFunDecl) {
+      return copyAndReplaceMemoryModel(memoryModel.copyAndAddStackFrame(acslFunDecl, machineModel));
+    }
+    throw new UnsupportedOperationException(
+        "Unsupported function definition: " + pFunctionDefinition);
+  }
+
+  /**
+   * Copy SMGState and adds a new C frame for the function.
    *
    * @param pFunctionDefinition A function for which to create a new stack frame
    */
@@ -1282,9 +1297,9 @@ public class SMGState
   }
 
   /**
-   * Copy SMGState and adds a new frame for the function. Also saves the variable arguments of this
-   * function. Null as argument means no variable arguments. The list of variable arguments may be
-   * empty if var args are possible but not used.
+   * Copy SMGState and adds a new C frame for the function. Also saves the variable arguments of
+   * this function. Null as argument means no variable arguments. The list of variable arguments may
+   * be empty if var args are possible but not used.
    *
    * @param pFunctionDefinition A function for which to create a new stack frame
    */
@@ -6813,7 +6828,7 @@ public class SMGState
   private SMGObject getReturnObjectForMemoryLocation(MemoryLocation memLoc) {
     String funcName = memLoc.getFunctionName();
     for (StackFrame stack : memoryModel.getStackFrames()) {
-      if (stack.getFunctionDefinition().getQualifiedName().equals(funcName)) {
+      if (stack.getCFunctionDefinition().getQualifiedName().equals(funcName)) {
         return stack.getReturnObject().orElseThrow();
       }
     }
@@ -6847,7 +6862,7 @@ public class SMGState
   public boolean hasStackFrameForFunctionDef(CFunctionDeclaration edgeToCheck) {
     for (StackFrame frame : memoryModel.getStackFrames()) {
       // Yes == !
-      if (frame.getFunctionDefinition() == edgeToCheck) {
+      if (frame.getCFunctionDefinition() == edgeToCheck) {
         return true;
       }
     }
@@ -8079,11 +8094,13 @@ public class SMGState
     return false;
   }
 
-  /*
-   * Get the name of the topmost stack frame function.
-   */
+  /** Get the (qualified) name of the topmost stack frame function. */
   public String getStackFrameTopFunctionName() {
-    return memoryModel.getStackFrames().peek().getFunctionDefinition().getQualifiedName();
+    return memoryModel.getStackFrames().peek().getAFunctionDefinition().getQualifiedName();
+  }
+
+  public AFunctionDeclaration getStackFrameTopFunctionDefinition() {
+    return memoryModel.getStackFrames().peek().getAFunctionDefinition();
   }
 
   /*
