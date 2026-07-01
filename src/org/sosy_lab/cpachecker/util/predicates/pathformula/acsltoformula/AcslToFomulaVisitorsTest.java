@@ -61,11 +61,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -133,6 +135,10 @@ public class AcslToFomulaVisitorsTest {
         CTypeQualifiers.NONE, CBasicType.INT, false, false, true, false, false, false, false);
   }
 
+  private CType basicIntArray() {
+    return new CArrayType(CTypeQualifiers.NONE, basicInt(), null);
+  }
+
   private CProgramScope getCProgramScope() {
     String currentFunctionName = "f";
 
@@ -156,7 +162,7 @@ public class AcslToFomulaVisitorsTest {
             FileLocation.DUMMY,
             true,
             CStorageClass.AUTO,
-            new CPointerType(CTypeQualifiers.NONE, basicInt()),
+            basicIntArray(),
             "a",
             "a",
             "a",
@@ -183,6 +189,12 @@ public class AcslToFomulaVisitorsTest {
         baseZ, basicInt(), null, false, new Constraints(fmgr.getBooleanFormulaManager()));
 
     ptsb.addBase(baseZ, basicInt());
+
+    PointerBase baseA = new PointerBase("a");
+    ptsb.addNextBaseAddressConstraints(
+        baseA, basicIntArray(), null, false, new Constraints(fmgr.getBooleanFormulaManager()));
+
+    ptsb.addBase(baseA, basicIntArray());
 
     return ptsb;
   }
@@ -546,13 +558,13 @@ public class AcslToFomulaVisitorsTest {
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 
+  // TODO Issue: I do not understand why this still creates constraints even though a is in the pts
   @Ignore
   @Test
   public void testAcslCExpressionWithArray()
       throws InvalidConfigurationException, SolverException, InterruptedException {
     // !((\forall integer i; 0 <= i && i < 3 ==> a[i] == 5) ==> a[1] == 5) should be unsat
 
-    // TODO register a with pts, find a way to express a[i] with the same i as \forall i
     AcslParameterDeclaration i =
         new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i", "i");
 
@@ -561,7 +573,7 @@ public class AcslToFomulaVisitorsTest {
             FileLocation.DUMMY,
             true,
             CStorageClass.AUTO,
-            new CPointerType(CTypeQualifiers.NONE, basicInt()),
+            basicInt(),
             "i",
             "i",
             "i",
@@ -658,6 +670,7 @@ public class AcslToFomulaVisitorsTest {
             // Parameters
             ImmutableList.of(a, index));
 
-    // TODO define Predicate
+    // TODO before I continue coding this: how can a test like this even work if my visitor for
+    // AcslPredicateApplicationPredicate just creates a UF?
   }
 }
