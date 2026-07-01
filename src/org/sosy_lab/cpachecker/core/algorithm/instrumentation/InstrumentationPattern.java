@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -23,7 +24,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -32,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
 /**
  * Class for patterns defined on the transitions of instrumentation automaton. Should not be used
@@ -63,6 +67,14 @@ public class InstrumentationPattern {
           case "!cond" -> patternType.NOT_COND;
           case "ptr_deref" -> patternType.PTR_DEREF;
           case "ptr_declar" -> patternType.PTR_DECLAR;
+          // Returns variables from binary operations, needed especially for data races
+          case "vars_bin_op" -> patternType.VARS_BIN_OP;
+          // Returns variables from unary operations, needed especially for data races
+          case "vars_un_op" -> patternType.VARS_UN_OP;
+          // Returns both variables from assignment, needed especially for data races
+          case "vars_bin_assign" -> patternType.VARS_BIN_ASSIGN;
+          // Returns left variable from assignment, needed especially for data races
+          case "vars_un_assign" -> patternType.VARS_UN_ASSIGN;
           case "declar" -> patternType.DECLAR;
           case "ADD" -> patternType.ADD;
           case "SUB" -> patternType.SUB;
@@ -101,6 +113,10 @@ public class InstrumentationPattern {
       case FUNC -> getTheOperandsFromFunctionCall(pCFAEdge, pDecomposedMap);
       case PTR_DEREF -> getTheOperandsFromPointerDereference(pCFAEdge);
       case PTR_DECLAR -> getTheOperandsFromPointerDeclaration(pCFAEdge);
+      case VARS_BIN_OP -> getTheVariablesFromBinaryOperation(pCFAEdge, pDecomposedMap);
+      case VARS_UN_OP -> getTheVariablesFromUnaryOperation(pCFAEdge, pDecomposedMap);
+      case VARS_BIN_ASSIGN -> getTwoVariablesFromAssignment(pCFAEdge);
+      case VARS_UN_ASSIGN -> getOneVariableFromAssignment(pCFAEdge);
       case DECLAR -> getTheOperandsFromDeclaration(pCFAEdge);
       case ADD -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.PLUS, pDecomposedMap);
       case SUB -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.MINUS, pDecomposedMap);
@@ -133,6 +149,134 @@ public class InstrumentationPattern {
 
   public String getFunctionName() {
     return functionName;
+  }
+
+  @Nullable
+  private ImmutableList<String> getTwoVariablesFromAssignment(CFAEdge pCFAEdge) {
+    if (pCFAEdge.getRawAST().isPresent()) {
+      AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
+      if (pCFAEdge.getSuccessor().isLoopStart()
+          && pCFAEdge.getFileLocation().toString().contains("lines")) {
+        return null;
+      }
+
+      if (astNode instanceof CAssignment pAssignment) {
+        CExpression operand1 = pAssignment.getLeftHandSide();
+        CRightHandSide operand2 = pAssignment.getRightHandSide();
+
+        if ((operand1 instanceof CIdExpression cIdExpression1
+                && cIdExpression1.getDeclaration().getType() instanceof CSimpleType)
+            && (operand2 instanceof CIdExpression cIdExpression2
+                && cIdExpression2.getDeclaration().getType() instanceof CSimpleType)) {
+          return ImmutableList.of(
+              removeIndicesOfVariablesWithSameName(cIdExpression1, pCFAEdge),
+              removeIndicesOfVariablesWithSameName(cIdExpression2, pCFAEdge));
+        } else {
+          return ImmutableList.of();
+        }
+      }
+    }
+    return null;
+  }
+
+  @Nullable
+  private ImmutableList<String> getOneVariableFromAssignment(CFAEdge pCFAEdge) {
+    if (pCFAEdge.getRawAST().isPresent()) {
+      AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
+      if (pCFAEdge.getSuccessor().isLoopStart()
+          && pCFAEdge.getFileLocation().toString().contains("lines")) {
+        return null;
+      }
+
+      if (astNode instanceof CAssignment pAssignment) {
+        CExpression operand1 = pAssignment.getLeftHandSide();
+        CRightHandSide operand2 = pAssignment.getRightHandSide();
+
+        if ((operand1 instanceof CIdExpression cIdExpression1
+                && cIdExpression1.getDeclaration().getType() instanceof CSimpleType)
+            && !(operand2 instanceof CIdExpression cIdExpression2
+                && cIdExpression2.getDeclaration().getType() instanceof CSimpleType)) {
+          return ImmutableList.of(removeIndicesOfVariablesWithSameName(cIdExpression1, pCFAEdge));
+        } else {
+          return ImmutableList.of();
+        }
+      }
+    }
+    return null;
+  }
+
+  @Nullable
+  private ImmutableList<String> getTheVariablesFromBinaryOperation(
+      CFAEdge pCFAEdge, Map<CFANode, String> pDecomposedMap) {
+    if (pCFAEdge.getRawAST().isPresent()) {
+      AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
+      CExpression expression = LoopInfoUtils.extractExpression(astNode);
+      String condition = collectConditionFromPreviousEdge(pCFAEdge);
+      if (pDecomposedMap.containsKey(pCFAEdge.getPredecessor())) {
+        condition = condition + " && " + pDecomposedMap.get(pCFAEdge.getPredecessor());
+      }
+      if (expression instanceof CBinaryExpression cBinaryExpression) {
+        CExpression operand1 = cBinaryExpression.getOperand1();
+        CExpression operand2 = cBinaryExpression.getOperand2();
+        if ((operand1 instanceof CIdExpression cIdExpression1
+                && cIdExpression1.getDeclaration().getType() instanceof CSimpleType)
+            && (operand2 instanceof CIdExpression cIdExpression2
+                && cIdExpression2.getDeclaration().getType() instanceof CSimpleType)) {
+          return ImmutableList.of(
+              removeIndicesOfVariablesWithSameName(cIdExpression1, pCFAEdge),
+              removeIndicesOfVariablesWithSameName(cIdExpression2, pCFAEdge),
+              condition);
+        } else {
+          return ImmutableList.of();
+        }
+      }
+    }
+    return null;
+  }
+
+  @Nullable
+  private ImmutableList<String> getTheVariablesFromUnaryOperation(
+      CFAEdge pCFAEdge, Map<CFANode, String> pDecomposedMap) {
+    if (pCFAEdge.getRawAST().isPresent()) {
+      AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
+      CExpression expression = LoopInfoUtils.extractExpression(astNode);
+      String condition = collectConditionFromPreviousEdge(pCFAEdge);
+      if (pDecomposedMap.containsKey(pCFAEdge.getPredecessor())) {
+        condition = condition + " && " + pDecomposedMap.get(pCFAEdge.getPredecessor());
+      }
+
+      if (expression instanceof CUnaryExpression cUnaryExpression) {
+        CExpression operand = cUnaryExpression.getOperand();
+
+        if (operand instanceof CIdExpression cIdExpression
+            && cIdExpression.getDeclaration().getType() instanceof CSimpleType) {
+          return ImmutableList.of(
+              removeIndicesOfVariablesWithSameName(cIdExpression, pCFAEdge), condition);
+        } else {
+          return ImmutableList.of();
+        }
+      }
+
+      if (expression instanceof CBinaryExpression cBinaryExpression) {
+        CExpression operand1 = cBinaryExpression.getOperand1();
+        CExpression operand2 = cBinaryExpression.getOperand2();
+
+        if (operand1 instanceof CIdExpression cIdExpression1
+            && cIdExpression1.getDeclaration().getType() instanceof CSimpleType
+            && !(operand2 instanceof CIdExpression)) {
+          return ImmutableList.of(
+              removeIndicesOfVariablesWithSameName(cIdExpression1, pCFAEdge), condition);
+        } else if (operand2 instanceof CIdExpression cIdExpression2
+            && cIdExpression2.getDeclaration().getType() instanceof CSimpleType
+            && !(operand1 instanceof CIdExpression)) {
+          return ImmutableList.of(
+              removeIndicesOfVariablesWithSameName(cIdExpression2, pCFAEdge), condition);
+        } else {
+          return ImmutableList.of();
+        }
+      }
+    }
+    return null;
   }
 
   @Nullable
@@ -366,6 +510,10 @@ public class InstrumentationPattern {
     NOT_COND,
     PTR_DEREF,
     PTR_DECLAR,
+    VARS_BIN_OP,
+    VARS_UN_OP,
+    VARS_BIN_ASSIGN,
+    VARS_UN_ASSIGN,
     DECLAR,
     ADD,
     SUB,
