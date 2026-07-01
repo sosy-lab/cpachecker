@@ -30,8 +30,8 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCLeftHandSideTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCanAccessPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionType;
@@ -43,10 +43,12 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPointerType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPolymorphicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSeparateMemoryConjunctionPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
@@ -60,14 +62,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 
 public class AcslParserLogicalDefinitionsTest {
@@ -687,30 +687,26 @@ public class AcslParserLogicalDefinitionsTest {
      *   return sll;
      * }
      *
-     * TODO: switch CIdExpressions to now and sll
+     * // Case 1 is the end of list case, i.e. end address reached and next pointer is 0
      * pred_sll(sll *start, sll *end, int size)
      *   match size:
-     *     case 1: start != 0 && start->next == 0 && start == end // End of list,
-     *                                             // i.e. end address reached and next pointer is 0
+     *     case 1: start != 0 && start->next == 0 && start == end && start != 0
      *     case n + 1: start != 0 && start->next != start && start->next != 0 &&
      *                 pred_sll(start->next, end, size - 1)
      *
      * Translates to:
      * pred_sll(sll * start, sll * end, int size):
-     *   size == 1 ? start != 0 && start->next == 0 && start == end
-     *   : start != 0 && start->next != start && start->next != 0
-     *     && pred_sll(start->next, end, size - 1)
+     *   size == 1 ? start != 0 && start->next == 0 && start == end &&
+     *     canAccess(start) && canAccess(start->next) && canAccess(end)
+     *   : start != 0 && start->next != start && start->next != 0 &&
+     *     canAccess(start) && canAccess(start->next) &&
+     *     canAccess(end) && start @ start->next &&
+     *     pred_sll(start->next, end, size - 1)
      *
      * Needs to be called in our example above like this:
      * pred_sll(now, sll, ?)
-     * // TODO: size?
      *
-     * TODO: add start != 0 in size == 1 case
-     *
-     * TODO: can't we replace the size (that is only used implicitly here) with:
-     *   start != 0 && start == end  (equal to size == 1)
-     *   or
-     *   start != 0 && start != end  (equal to size > 1)
+     * Note: canAccess(end) in the recursive case is only needed because of the recursive function call
      */
 
     CCompositeType sllCType =
@@ -719,30 +715,15 @@ public class AcslParserLogicalDefinitionsTest {
     sllCType.setMembers(
         ImmutableList.of(new CCompositeTypeMemberDeclaration(sllCPointerType, "next")));
 
-    // The C "variable" is the parameter 'start'
-    // TODO: is this (and end) a CParameterDeclaration instead?
-    CSimpleDeclaration startCVariable =
-        new CVariableDeclaration(
-            FileLocation.DUMMY,
-            false,
-            CStorageClass.AUTO,
-            sllCPointerType,
-            "start",
-            "start",
-            "start",
-            null);
-    CIdExpression startCIdExpr = new CIdExpression(FileLocation.DUMMY, startCVariable);
-    CSimpleDeclaration endCVariable =
-        new CVariableDeclaration(
-            FileLocation.DUMMY,
-            false,
-            CStorageClass.AUTO,
-            sllCPointerType,
-            "end",
-            "end",
-            "end",
-            null);
-    CIdExpression endCIdExpr = new CIdExpression(FileLocation.DUMMY, endCVariable);
+    // The 'start' and 'end' parameters can be seen as new variables in C, like in regular fun calls
+    CParameterDeclaration startCParamDecl =
+        new CParameterDeclaration(FileLocation.DUMMY, sllCPointerType, "start");
+    startCParamDecl.setQualifiedName("pred_sll::start");
+    CIdExpression startCIdExpr = new CIdExpression(FileLocation.DUMMY, startCParamDecl);
+    CParameterDeclaration endCParamDecl =
+        new CParameterDeclaration(FileLocation.DUMMY, sllCPointerType, "end");
+    endCParamDecl.setQualifiedName("pred_sll::end");
+    CIdExpression endCIdExpr = new CIdExpression(FileLocation.DUMMY, endCParamDecl);
 
     // start->next
     CFieldReference startCNextFieldDeref =
@@ -795,14 +776,13 @@ public class AcslParserLogicalDefinitionsTest {
 
     AcslCType sllPointerAcslType = new AcslCType(sllCPointerType);
 
-    // TODO: we need the actual CVariableDeclarations here instead of null, as there is info that we
-    // can not recover otherwise!
+    // TODO: getName() or .getQualifiedName() as name for the AcslCParameterDeclarations?
     AcslCParameterDeclaration startAcslCParamDecl =
         new AcslCParameterDeclaration(
-            FileLocation.DUMMY, sllPointerAcslType, startCIdExpr.getName(), null);
+            FileLocation.DUMMY, sllPointerAcslType, startCParamDecl.getName(), startCParamDecl);
     AcslCParameterDeclaration endAcslCParamDecl =
         new AcslCParameterDeclaration(
-            FileLocation.DUMMY, sllPointerAcslType, endCIdExpr.getName(), null);
+            FileLocation.DUMMY, sllPointerAcslType, startCParamDecl.getName(), endCParamDecl);
     AcslCIdExpression endAcslCIdExpr =
         new AcslCIdExpression(FileLocation.DUMMY, sllPointerAcslType, endCIdExpr);
 
@@ -855,6 +835,33 @@ public class AcslParserLogicalDefinitionsTest {
             // Parameters:
             ImmutableList.of(startAcslCParamDecl, endAcslCParamDecl, size));
 
+    AcslSeparateMemoryConjunctionPredicate startSepEndPredicate =
+        new AcslSeparateMemoryConjunctionPredicate(FileLocation.DUMMY, startCIdExpr, endCIdExpr);
+    AcslCanAccessPredicate canAccessStart =
+        new AcslCanAccessPredicate(FileLocation.DUMMY, startCIdExpr);
+    AcslCanAccessPredicate canAccessStartNext =
+        new AcslCanAccessPredicate(FileLocation.DUMMY, startCNextFieldDeref);
+    AcslCanAccessPredicate canAccessEnd =
+        new AcslCanAccessPredicate(FileLocation.DUMMY, endCIdExpr);
+
+    AcslPredicate canAccessPredicates =
+        new AcslBinaryPredicate(
+            FileLocation.DUMMY,
+            new AcslBinaryPredicate(
+                FileLocation.DUMMY,
+                canAccessStart,
+                canAccessStartNext,
+                AcslBinaryPredicateOperator.AND),
+            canAccessEnd,
+            AcslBinaryPredicateOperator.AND);
+
+    AcslPredicate canAccessPredicatesWithSepConj =
+        new AcslBinaryPredicate(
+            FileLocation.DUMMY,
+            canAccessPredicates,
+            startSepEndPredicate,
+            AcslBinaryPredicateOperator.AND);
+
     AcslAstNode expectedOutput =
         new AcslLogicPredicateDefinition(
             FileLocation.DUMMY,
@@ -870,13 +877,20 @@ public class AcslParserLogicalDefinitionsTest {
                     new AcslIntegerLiteralTerm(
                         FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE),
                     AcslBinaryTermExpressionOperator.EQUALS),
-                // If branch: start->next == 0 && start == end
+                // If branch: start->next == 0 && start == end && && start != 0 &&  canAccess(start)
+                //            && canAccess(end) && canAccess(start->next)
                 new AcslBinaryPredicate(
                     FileLocation.DUMMY,
                     new AcslPredicateTerm(sllNextEqualsZeroTerm),
-                    new AcslPredicateTerm(startEqualsEndTerm),
+                    new AcslBinaryPredicate(
+                        FileLocation.DUMMY,
+                        new AcslPredicateTerm(startEqualsEndTerm),
+                        canAccessPredicates,
+                        AcslBinaryPredicateOperator.AND),
                     AcslBinaryPredicateOperator.AND),
                 // Else branch: start != 0 && start->next != start && start->next != 0
+                //               && canAccess(start) && canAccess(start->next) && canAccess(end)
+                //               && start @ end && start != end && end != null
                 //               && pred_sll(start->next, end, size - 1)
                 new AcslBinaryPredicate(
                     FileLocation.DUMMY,
@@ -886,21 +900,23 @@ public class AcslParserLogicalDefinitionsTest {
                         new AcslPredicateTerm(sllNextNotEqualsStartTerm),
                         new AcslBinaryPredicate(
                             FileLocation.DUMMY, /* start->next != 0 */
-                            new AcslPredicateTerm(sllNextNotEqualsZeroTerm),
-                            /* pred_sll(start->next, end, size - 1) */
-                            new AcslFunctionCallPredicate(
+                            new AcslBinaryPredicate(
                                 FileLocation.DUMMY,
-                                new AcslIdTerm(FileLocation.DUMMY, sllPredicateDeclaration),
+                                new AcslPredicateTerm(sllNextNotEqualsZeroTerm),
+                                canAccessPredicatesWithSepConj,
+                                AcslBinaryPredicateOperator.AND),
+                            /* pred_sll(start->next, end, size - 1) */
+                            new AcslPredicateApplicationPredicate(
+                                FileLocation.DUMMY,
+                                sllPredicateDeclaration,
                                 ImmutableList.of(
                                     /*start->next*/ startCNextFieldDerefTerm,
                                     /* end */ endAcslCIdExpr,
-                                    sizeMinusOne),
-                                sllPredicateDeclaration),
+                                    sizeMinusOne)),
                             AcslBinaryPredicateOperator.AND),
                         AcslBinaryPredicateOperator.AND),
                     AcslBinaryPredicateOperator.AND)));
 
-    // TODO: @Marian: ITE form or pattern matching? Or both? Both would be kinda cool.
     String input = "TODO";
 
     testLogicalFunctionParsing(input, expectedOutput);
