@@ -846,12 +846,17 @@ public final class PredicateAbstractionManager {
     } else {
       Region abs = rmgr.makeTrue();
 
-      try (ProverEnvironment thmProver =
-          solver.newProverEnvironment(ProverOptions.GENERATE_ALL_SAT)) {
+      // If we only do cartesian abstraction, we do not need the prover option.
+      ProverOptions[] proverOptions =
+          abstractionType == AbstractionType.CARTESIAN
+              ? new ProverOptions[] {}
+              : new ProverOptions[] {ProverOptions.GENERATE_ALL_SAT};
+
+      try (ProverEnvironment thmProver = solver.newProverEnvironment(proverOptions)) {
         thmProver.push(f);
 
         if (abstractionType != AbstractionType.BOOLEAN) {
-          // First do cartesian abstraction if desired
+          // First do cartesian abstraction if desired (CARTESIAN or COMBINED)
           stats.cartesianAbstractionTime.start();
           try {
             abs =
