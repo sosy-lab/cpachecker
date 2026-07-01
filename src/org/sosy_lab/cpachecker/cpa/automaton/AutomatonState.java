@@ -533,4 +533,72 @@ public class AutomatonState
   public void setMatches(int pMatches) {
     matches = pMatches;
   }
+
+  /**
+   * Builds an {@link AutomatonState} for tests with the given invariants/assumptions/logic
+   * definitions. The automaton may be a dummy if not needed. All other {@link AutomatonState}
+   * arguments are set to false, 0, null, empty Map/Set/List etc. Error states are treated as
+   * targets.
+   */
+  public static AutomatonState buildTestAutomatonStateWith(
+      Automaton testAutomaton,
+      ImmutableList<AExpression> assumptionsToTest,
+      ImmutableSet<AcslLogicDefinition> logicDefinitionsToTest,
+      ExpressionTree<AExpression> invariantsToTest,
+      boolean isTreatingErrorsAsTargets) {
+    return automatonStateFactory(
+        ImmutableMap.of(),
+        null,
+        testAutomaton,
+        assumptionsToTest,
+        logicDefinitionsToTest,
+        invariantsToTest,
+        false,
+        0,
+        0,
+        null,
+        isTreatingErrorsAsTargets);
+  }
+
+  public static AutomatonState buildTestAutomatonStateWithTrueInvariantOnly(
+      Automaton testAutomaton, boolean isTreatingErrorsAsTargets) {
+    return automatonStateFactory(
+        ImmutableMap.of(),
+        null,
+        testAutomaton,
+        ImmutableList.of(),
+        ImmutableSet.of(),
+        ExpressionTrees.getTrue(),
+        false,
+        0,
+        0,
+        null,
+        isTreatingErrorsAsTargets);
+  }
+
+  public static AutomatonState buildTestAutomatonStateWithFalseInvariantOnly(
+      Automaton testAutomaton, boolean isTreatingErrorsAsTargets) {
+    return automatonStateFactory(
+        ImmutableMap.of(),
+        null,
+        testAutomaton,
+        ImmutableList.of(),
+        ImmutableSet.of(),
+        ExpressionTrees.getFalse(),
+        false,
+        0,
+        0,
+        null,
+        isTreatingErrorsAsTargets);
+  }
+
+  public static AutomatonState buildTestBottomAutomatonStateWith(
+      Automaton testAutomaton, boolean isTreatingErrorsAsTargets) {
+    return new AutomatonState.BOTTOM(testAutomaton, isTreatingErrorsAsTargets);
+  }
+
+  public static AutomatonState buildTestTopAutomatonStateWith(
+      Automaton testAutomaton, boolean isTreatingErrorsAsTargets) {
+    return new AutomatonState.TOP(testAutomaton, isTreatingErrorsAsTargets);
+  }
 }
