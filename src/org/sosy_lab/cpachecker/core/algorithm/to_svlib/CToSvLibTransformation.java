@@ -95,30 +95,17 @@ class CToSvLibTransformation {
 
   private final SvLibCurrentScope scope;
 
-  private final String INPUT_VAR_DUMMY_PREFIX;
-  private final String RETURN_VAR_DUMMY_PREFIX;
-  private final String TMP_VAR_ASSIGNMENT;
-  private final ImmutableSet<String> NAMES_OF_ASSERT_FUNCTIONS;
-
   CToSvLibTransformation(
       CFA pCFA,
       FormulaManagerView pFormulaManager,
       PathFormulaManager pPathFormulaManager,
       FormulaToSvLibVisitor pFormulaToSvLibVisitor,
-      SvLibCurrentScope pCurrentScope,
-      String pINPUT_VAR_DUMMY_PREFIX,
-      String pRETURN_VAR_DUMMY_PREFIX,
-      String pTMP_VAR_ASSIGNMENT,
-      ImmutableSet<String> pNAMES_OF_ASSERT_FUNCTIONS) {
+      SvLibCurrentScope pCurrentScope) {
     cfa = pCFA;
     formulaManager = pFormulaManager;
     pathFormulaManager = pPathFormulaManager;
     formulaToSvLibVisitor = pFormulaToSvLibVisitor;
     scope = pCurrentScope;
-    INPUT_VAR_DUMMY_PREFIX = pINPUT_VAR_DUMMY_PREFIX;
-    RETURN_VAR_DUMMY_PREFIX = pRETURN_VAR_DUMMY_PREFIX;
-    TMP_VAR_ASSIGNMENT = pTMP_VAR_ASSIGNMENT;
-    NAMES_OF_ASSERT_FUNCTIONS = pNAMES_OF_ASSERT_FUNCTIONS;
   }
 
   SvLibStatement transformFunction(@NonNull CFunctionEntryNode pEntryNode)
@@ -454,7 +441,8 @@ class CToSvLibTransformation {
                   .toASTString());
 
       // Handle calls to a set of external __assert functions that have a char* input parameter
-      if (NAMES_OF_ASSERT_FUNCTIONS.contains(calledProcedure.getName())) {
+      if (CToSvLibTransformationConstants.NAMES_OF_ASSERT_FUNCTIONS.contains(
+          calledProcedure.getName())) {
         return new SvLibProcedureCallStatement(
             FileLocation.DUMMY,
             ImmutableList.of(),
@@ -551,8 +539,10 @@ class CToSvLibTransformation {
       SvLibType returnType = parsingParameterDeclaration.getType();
       String returnDummyName =
           (returnType instanceof SvLibSmtLibBitVectorType bitVectorType)
-              ? RETURN_VAR_DUMMY_PREFIX + "bv" + bitVectorType.getSize()
-              : RETURN_VAR_DUMMY_PREFIX + returnType;
+              ? CToSvLibTransformationConstants.RETURN_VAR_DUMMY_PREFIX
+                  + "bv"
+                  + bitVectorType.getSize()
+              : CToSvLibTransformationConstants.RETURN_VAR_DUMMY_PREFIX + returnType;
       SvLibSimpleParsingDeclaration returnDummyVariable = scope.getVariable(returnDummyName);
       returnVariableDummies.add(returnDummyVariable);
     }
@@ -629,7 +619,7 @@ class CToSvLibTransformation {
     returnValueType = returnValues.getFirst().getType();
     return pCallEdge.getPredecessor().getFunctionName()
         + "::"
-        + TMP_VAR_ASSIGNMENT
+        + CToSvLibTransformationConstants.TMP_VAR_ASSIGNMENT
         + returnValueType;
   }
 
@@ -960,11 +950,14 @@ class CToSvLibTransformation {
   }
 
   private String getOriginalNameOfInputParameterDummy(String pDummyName) {
-    if (pDummyName.startsWith(INPUT_VAR_DUMMY_PREFIX)) {
+    if (pDummyName.startsWith(CToSvLibTransformationConstants.INPUT_VAR_DUMMY_PREFIX)) {
       // return the name without the prefix
-      return pDummyName.substring(INPUT_VAR_DUMMY_PREFIX.length());
+      return pDummyName.substring(CToSvLibTransformationConstants.INPUT_VAR_DUMMY_PREFIX.length());
     }
     throw new IllegalArgumentException(
-        "Cannot remove prefix " + INPUT_VAR_DUMMY_PREFIX + " from name " + pDummyName);
+        "Cannot remove prefix "
+            + CToSvLibTransformationConstants.INPUT_VAR_DUMMY_PREFIX
+            + " from name "
+            + pDummyName);
   }
 }

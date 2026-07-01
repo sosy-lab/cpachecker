@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.to_svlib;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Serial;
@@ -110,12 +109,6 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
 
   private final TransformationStatistics transformationStatistics;
 
-  private final String INPUT_VAR_DUMMY_PREFIX = "__originalInput_";
-  private final String RETURN_VAR_DUMMY_PREFIX = "__transformationDummyReturn_";
-  private final String TMP_VAR_ASSIGNMENT = "__Transformation_TMP_VariableAssignment_";
-  private final ImmutableSet<String> NAMES_OF_ASSERT_FUNCTIONS =
-      ImmutableSet.of("__assert_fail", "__assert_perror_fail", "__assert");
-
   /**
    * Transforms the CFA of a C program to a SvLibScript. At the moment in development and works
    * currently only for a limited subset of the C language.
@@ -193,16 +186,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     try {
       CToSvLibInitializer initializer =
           new CToSvLibInitializer(
-              logger,
-              cfa,
-              scope,
-              formulaManager,
-              pathFormulaManager,
-              converter,
-              INPUT_VAR_DUMMY_PREFIX,
-              RETURN_VAR_DUMMY_PREFIX,
-              TMP_VAR_ASSIGNMENT,
-              NAMES_OF_ASSERT_FUNCTIONS);
+              logger, cfa, scope, formulaManager, pathFormulaManager, converter);
       initializer.initialize(commandsCollector);
     } finally {
       transformationStatistics.initializationTime.stop();
@@ -216,15 +200,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
 
     CToSvLibTransformation transformation =
         new CToSvLibTransformation(
-            cfa,
-            formulaManager,
-            pathFormulaManager,
-            formulaToSvLibVisitor,
-            scope,
-            INPUT_VAR_DUMMY_PREFIX,
-            RETURN_VAR_DUMMY_PREFIX,
-            TMP_VAR_ASSIGNMENT,
-            NAMES_OF_ASSERT_FUNCTIONS);
+            cfa, formulaManager, pathFormulaManager, formulaToSvLibVisitor, scope);
 
     try {
       for (FunctionEntryNode functionEntryNode : cfa.entryNodes()) {

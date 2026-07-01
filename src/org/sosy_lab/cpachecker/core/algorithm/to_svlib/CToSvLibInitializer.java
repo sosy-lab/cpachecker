@@ -105,32 +105,19 @@ class CToSvLibInitializer {
   private final PathFormulaManager pathFormulaManager;
   private final CtoFormulaConverter converter;
 
-  private final String INPUT_VAR_DUMMY_PREFIX;
-  private final String RETURN_VAR_DUMMY_PREFIX;
-  private final String TMP_VAR_ASSIGNMENT;
-  private final ImmutableSet<String> NAMES_OF_ASSERT_FUNCTIONS;
-
   CToSvLibInitializer(
       LogManager pLogger,
       CFA pCFA,
       SvLibCurrentScope pCurrentScope,
       FormulaManagerView pFormulaManager,
       PathFormulaManager pPathFormulaManager,
-      CtoFormulaConverter pConverter,
-      String pINPUT_VAR_DUMMY_PREFIX,
-      String pRETURN_VAR_DUMMY_PREFIX,
-      String pTMP_VAR_ASSIGNMENT,
-      ImmutableSet<String> pNAMES_OF_ASSERT_FUNCTIONS) {
+      CtoFormulaConverter pConverter) {
     logger = pLogger;
     cfa = pCFA;
     scope = pCurrentScope;
     formulaManager = pFormulaManager;
     pathFormulaManager = pPathFormulaManager;
     converter = pConverter;
-    INPUT_VAR_DUMMY_PREFIX = pINPUT_VAR_DUMMY_PREFIX;
-    RETURN_VAR_DUMMY_PREFIX = pRETURN_VAR_DUMMY_PREFIX;
-    TMP_VAR_ASSIGNMENT = pTMP_VAR_ASSIGNMENT;
-    NAMES_OF_ASSERT_FUNCTIONS = pNAMES_OF_ASSERT_FUNCTIONS;
   }
 
   void initialize(ImmutableList.Builder<SvLibCommand> pCommandsCollector)
@@ -228,7 +215,7 @@ class CToSvLibInitializer {
               new SvLibParsingParameterDeclaration(
                   FileLocation.DUMMY,
                   returnValueType,
-                  TMP_VAR_ASSIGNMENT + returnValueType,
+                  CToSvLibTransformationConstants.TMP_VAR_ASSIGNMENT + returnValueType,
                   procedureName);
           localVariablesCollector.add(tmpHeapAssignVariable);
 
@@ -250,7 +237,7 @@ class CToSvLibInitializer {
               new SvLibParsingParameterDeclaration(
                   FileLocation.DUMMY,
                   returnValueType,
-                  TMP_VAR_ASSIGNMENT + returnValueType,
+                  CToSvLibTransformationConstants.TMP_VAR_ASSIGNMENT + returnValueType,
                   procedureName);
           localVariablesCollector.add(tmpHeapAssignVariable);
         }
@@ -404,8 +391,10 @@ class CToSvLibInitializer {
     SvLibSmtLibType returnType = convertToSvLibSmtLibType(functionReturnType);
     String returnDummyName =
         (returnType instanceof SvLibSmtLibBitVectorType bitVectorType)
-            ? RETURN_VAR_DUMMY_PREFIX + "bv" + bitVectorType.getSize()
-            : RETURN_VAR_DUMMY_PREFIX + returnType;
+            ? CToSvLibTransformationConstants.RETURN_VAR_DUMMY_PREFIX
+                + "bv"
+                + bitVectorType.getSize()
+            : CToSvLibTransformationConstants.RETURN_VAR_DUMMY_PREFIX + returnType;
     return new SvLibParsingParameterDeclaration(
         FileLocation.DUMMY, returnType, returnDummyName, pProcedureName);
   }
@@ -506,16 +495,19 @@ class CToSvLibInitializer {
   }
 
   private String getNameForInputParameterDummy(String pOriginalName) {
-    return INPUT_VAR_DUMMY_PREFIX + pOriginalName;
+    return CToSvLibTransformationConstants.INPUT_VAR_DUMMY_PREFIX + pOriginalName;
   }
 
   private String getOriginalNameOfInputParameterDummy(String pDummyName) {
-    if (pDummyName.startsWith(INPUT_VAR_DUMMY_PREFIX)) {
+    if (pDummyName.startsWith(CToSvLibTransformationConstants.INPUT_VAR_DUMMY_PREFIX)) {
       // return the name without the prefix
-      return pDummyName.substring(INPUT_VAR_DUMMY_PREFIX.length());
+      return pDummyName.substring(CToSvLibTransformationConstants.INPUT_VAR_DUMMY_PREFIX.length());
     }
     throw new IllegalArgumentException(
-        "Cannot remove prefix " + INPUT_VAR_DUMMY_PREFIX + " from name " + pDummyName);
+        "Cannot remove prefix "
+            + CToSvLibTransformationConstants.INPUT_VAR_DUMMY_PREFIX
+            + " from name "
+            + pDummyName);
   }
 
   private ImmutableList<CFAEdge> getAllRelevantEdges(FunctionEntryNode pEntryNode) {
@@ -538,7 +530,8 @@ class CToSvLibInitializer {
 
   private SvLibProcedureDefinitionCommand createExternProcedureDefinition(
       CFunctionDeclaration pFunctionDeclaration) throws CPATransferException, InterruptedException {
-    if (NAMES_OF_ASSERT_FUNCTIONS.contains(pFunctionDeclaration.getName())) {
+    if (CToSvLibTransformationConstants.NAMES_OF_ASSERT_FUNCTIONS.contains(
+        pFunctionDeclaration.getName())) {
       // Special handling of a set of external __assert functions that have char* input parameters
       // in the C program, since Transformation via the FormulaToSvlibVisitor cannot yet handle
       // pathFormulas with strings.
