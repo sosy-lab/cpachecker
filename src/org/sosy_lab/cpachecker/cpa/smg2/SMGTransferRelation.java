@@ -1135,7 +1135,7 @@ public class SMGTransferRelation
       CFAEdge cfaEdge,
       Precision pPrecision)
       throws CPATransferException, InterruptedException {
-    checkArgument(element instanceof SMGState initialSMGStateToStrengthen);
+    checkArgument(element instanceof SMGState);
     SMGState initialSMGStateToStrengthen = (SMGState) element;
 
     List<SMGState> toStrengthen = new ArrayList<>();
@@ -1153,6 +1153,8 @@ public class SMGTransferRelation
         result.clear();
 
         ExpressionTree<AExpression> invariants = automatonState.getCandidateInvariants();
+        // ACSL logic definitions give us e.g. the bodies for the ACSL functions
+        // (or boolean predicates) that are called (e.g. AcslLogicPredicateDefinition)
         ImmutableSet<AcslLogicDefinition> definitions = automatonState.getLogicDefinitions();
         // We expect only 1 item in the ExpressionTree due to ACSL
         Optional<AExpression> invariant = Optional.empty();
