@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.util;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import java.math.BigInteger;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -111,5 +112,33 @@ public class SMGObjectAndOffsetOrSMGState {
 
   public boolean hasNewErrorState() {
     return newErrorState && state != null;
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (this == other) {
+      return true;
+    }
+    if (other == null) {
+      return false;
+    }
+
+    if (other instanceof SMGObjectAndOffsetOrSMGState otherTriple) {
+      if (hasSMGState() && otherTriple.hasSMGState()) {
+        return state.equals(otherTriple.state) && newErrorState == otherTriple.newErrorState;
+      } else if (!hasSMGState() && !otherTriple.hasSMGState()) {
+        return offset.equals(otherTriple.offset) && object.equals(otherTriple.object);
+      }
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    if (hasSMGState()) {
+      return Objects.hashCode(state, newErrorState);
+    } else {
+      return Objects.hashCode(object, offset);
+    }
   }
 }
