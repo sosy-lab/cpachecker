@@ -22,24 +22,24 @@ public final class AcslPredicateApplicationPredicate implements AcslPredicate {
 
   private final FileLocation fileLocation;
   private final AcslPredicateDeclaration predicateDeclaration;
-  private final ImmutableList<AcslTerm> parameters;
+  private final ImmutableList<AcslTerm> arguments;
 
   public AcslPredicateApplicationPredicate(
       FileLocation pFileLocation,
       AcslPredicateDeclaration pPredicateDeclaration,
-      List<AcslTerm> pParameters) {
+      List<AcslTerm> pArguments) {
     Preconditions.checkNotNull(pFileLocation);
     Preconditions.checkNotNull(pPredicateDeclaration);
-    Preconditions.checkNotNull(pParameters);
+    Preconditions.checkNotNull(pArguments);
 
     Verify.verify(
-        pParameters.size() == pPredicateDeclaration.getParameters().size(),
+        pArguments.size() == pPredicateDeclaration.getParameters().size(),
         "Expected %s parameters but got %s.",
         pPredicateDeclaration.getParameters().size(),
-        pParameters.size());
+        pArguments.size());
 
-    for (int i = 0; i < pParameters.size(); i++) {
-      AcslType providedType = pParameters.get(i).getExpressionType();
+    for (int i = 0; i < pArguments.size(); i++) {
+      AcslType providedType = pArguments.get(i).getExpressionType();
       AcslType expectedType = (AcslType) pPredicateDeclaration.getType().getParameters().get(i);
       Verify.verify(
           providedTypeMatchesExpectedType(providedType, expectedType),
@@ -48,7 +48,7 @@ public final class AcslPredicateApplicationPredicate implements AcslPredicate {
     }
 
     predicateDeclaration = pPredicateDeclaration;
-    parameters = ImmutableList.copyOf(pParameters);
+    arguments = ImmutableList.copyOf(pArguments);
     fileLocation = pFileLocation;
   }
 
@@ -64,6 +64,14 @@ public final class AcslPredicateApplicationPredicate implements AcslPredicate {
     return AcslBuiltinLogicType.BOOLEAN;
   }
 
+  public ImmutableList<AcslTerm> getArguments() {
+    return arguments;
+  }
+
+  public AcslPredicateDeclaration getDeclaration() {
+    return predicateDeclaration;
+  }
+
   @Override
   public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
@@ -77,7 +85,7 @@ public final class AcslPredicateApplicationPredicate implements AcslPredicate {
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     StringBuilder astString = new StringBuilder(predicateDeclaration.getName() + "(");
-    String paramString = Joiner.on(", ").join(parameters.stream().toList());
+    String paramString = Joiner.on(", ").join(arguments.stream().toList());
     astString.append(paramString);
     astString.append(")");
     return astString.toString();
@@ -103,7 +111,7 @@ public final class AcslPredicateApplicationPredicate implements AcslPredicate {
     }
     return p0 instanceof AcslPredicateApplicationPredicate other
         && predicateDeclaration.equals(other.predicateDeclaration)
-        && parameters.equals(other.parameters);
+        && arguments.equals(other.arguments);
   }
 
   @Override
@@ -111,7 +119,7 @@ public final class AcslPredicateApplicationPredicate implements AcslPredicate {
     int hash = 7;
     int prime = 31;
     hash = prime * hash * Objects.hashCode(predicateDeclaration);
-    hash = hash * prime * Objects.hashCode(parameters);
+    hash = hash * prime * Objects.hashCode(arguments);
     return hash;
   }
 }
