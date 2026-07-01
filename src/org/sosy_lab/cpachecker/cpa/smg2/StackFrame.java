@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
-import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -21,8 +23,10 @@ import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -49,7 +53,7 @@ public final class StackFrame {
       PersistentMap<String, SMGObject> pVariables,
       Optional<SMGObject> pReturnValueObject,
       Optional<ImmutableList<Value>> pVariableArguments) {
-    stackVariables = Preconditions.checkNotNull(pVariables);
+    stackVariables = checkNotNull(pVariables);
     returnValueObject = pReturnValueObject;
     stackFunction = pDeclaration;
     variableArguments = pVariableArguments;
@@ -86,10 +90,26 @@ public final class StackFrame {
     variableArguments = Optional.ofNullable(pVariableArguments);
   }
 
-  /** Dummy Stackframe for tests */
-  private StackFrame() {
+  /**
+   * Dummy StackFrame for tests. This stack frame has void return type and no arguments.
+   *
+   * @param testFunctionName {@code null} or empty String for default {@link
+   *     CFunctionDeclaration#DUMMY}, or a non-empty String for a named dummy-frame, i.e. {@link
+   *     CFunctionDeclaration#DUMMY} but with the name given.
+   */
+  private StackFrame(@Nullable String testFunctionName) {
     stackVariables = PathCopyingPersistentTreeMap.of();
-    stackFunction = CFunctionDeclaration.DUMMY;
+    if (testFunctionName == null) {
+      stackFunction = CFunctionDeclaration.DUMMY;
+    } else {
+      stackFunction =
+          new CFunctionDeclaration(
+              FileLocation.DUMMY,
+              CFunctionType.NO_ARGS_VOID_FUNCTION,
+              testFunctionName,
+              ImmutableList.of(),
+              ImmutableSet.of());
+    }
     // use a plain int as return type for void functions
     returnValueObject = Optional.empty();
     variableArguments = Optional.empty();
@@ -98,10 +118,16 @@ public final class StackFrame {
   /**
    * For tests only!
    *
-   * @return a dummy stackframe with no return value and no variable args.
+   * @return a dummy stack frame with void return type (no return value) and no arguments on a
+   *     function named 'dummy'. Use
    */
   static StackFrame ofDummyStackframe() {
-    return new StackFrame();
+    return new StackFrame(null);
+  }
+
+  static StackFrame ofDummyStackframe(String functionName) {
+    checkArgument(!checkNotNull(functionName).isEmpty(), "Empty function names are not allowed");
+    return new StackFrame(functionName);
   }
 
   /**
@@ -114,7 +140,7 @@ public final class StackFrame {
    * @param pObject An object to put into the stack frame
    */
   public StackFrame copyAndAddStackVariable(String pVariableName, SMGObject pObject) {
-    Preconditions.checkArgument(
+    checkArgument(
         !stackVariables.containsKey(pVariableName),
         "Stack frame for function already contains a variable '%s'",
         pVariableName);

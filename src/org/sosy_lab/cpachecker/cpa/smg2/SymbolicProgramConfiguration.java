@@ -3144,6 +3144,23 @@ public class SymbolicProgramConfiguration {
         options);
   }
 
+  SymbolicProgramConfiguration copyAndAddDummyStackFrame(String functionName) {
+    StackFrame newStackFrame = StackFrame.ofDummyStackframe(functionName);
+    return of(
+        smg,
+        globalVariableMapping,
+        atExitStack,
+        stackVariableMapping.pushAndCopy(newStackFrame),
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        mallocZeroMemory,
+        readBlacklist,
+        valueToTypeMap,
+        options);
+  }
+
   /**
    * Copies this {@link SymbolicProgramConfiguration} and removes the stack variable given.
    *

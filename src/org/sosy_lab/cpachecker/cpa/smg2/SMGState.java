@@ -1301,6 +1301,11 @@ public class SMGState
     return copyAndReplaceMemoryModel(memoryModel.copyAndAddDummyStackFrame());
   }
 
+  /** Copy SMGState and adds a new dummy frame with a named function for tests. */
+  public SMGState copyAndAddDummyStackFrame(String functionName) {
+    return copyAndReplaceMemoryModel(memoryModel.copyAndAddDummyStackFrame(functionName));
+  }
+
   @Override
   public String toDOTLabel() {
     StringBuilder sb = new StringBuilder();
