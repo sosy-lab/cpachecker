@@ -172,7 +172,7 @@ public class InstrumentationAutomaton {
 
   private String initializeReadWriteVariables(String operation) {
     return operation.replace(
-        "__INSTR_init_read_write_vars()",
+        "__INSTR_init_read_write_vars();",
         liveVariablesAndTypes.entrySet().stream()
                 .map(
                     (entry) ->
