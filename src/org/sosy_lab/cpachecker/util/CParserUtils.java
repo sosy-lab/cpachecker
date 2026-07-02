@@ -16,6 +16,7 @@ import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -208,7 +209,7 @@ public class CParserUtils {
    * @return a collection of C statements.
    * @throws InvalidAutomatonException if the input strings cannot be interpreted as C statements.
    */
-  public static Collection<CStatement> parseStatements(
+  public static ImmutableSet<CStatement> parseStatements(
       Set<String> pStatements,
       Optional<String> pResultFunction,
       CParser pCParser,
@@ -216,7 +217,7 @@ public class CParserUtils {
       ParserTools pParserTools)
       throws InvalidAutomatonException, InterruptedException {
 
-    Set<CStatement> result = new HashSet<>();
+    ImmutableSet.Builder<CStatement> result = ImmutableSet.builder();
     for (String assumeCode : pStatements) {
       Collection<CStatement> statements =
           parseAsCStatements(assumeCode, pResultFunction, pCParser, pScope, pParserTools);
@@ -224,17 +225,17 @@ public class CParserUtils {
           removeDuplicates(
               Collections2.transform(statements, CParserUtils::adjustCharAssignmentSignedness)));
     }
-    return result;
+    return result.build();
   }
 
-  private static Collection<CStatement> parseAsCStatements(
+  private static ImmutableCollection<CStatement> parseAsCStatements(
       String pCode,
       Optional<String> pResultFunction,
       CParser pCParser,
       Scope pScope,
       ParserTools pParserTools)
       throws InvalidAutomatonException, InterruptedException {
-    Collection<CStatement> result = new HashSet<>();
+    ImmutableSet.Builder<CStatement> result = ImmutableSet.builder();
     boolean fallBack = false;
     ExpressionTree<AExpression> tree =
         parseStatement(pCode, pResultFunction, pCParser, pScope, pParserTools);
@@ -277,7 +278,7 @@ public class CParserUtils {
       String code = tryFixACSL(tryFixArrayInitializers(pCode), pResultFunction, pScope);
       return CParserUtils.parseListOfStatements(code, pCParser, pScope);
     }
-    return result;
+    return result.build();
   }
 
   /**
@@ -326,7 +327,7 @@ public class CParserUtils {
     // Try the old method first; it works for simple expressions
     // and also supports assignment statements and multiple statements easily
     String assumeCode = tryFixArrayInitializers(pAssumeCode);
-    Collection<CStatement> statements = null;
+    ImmutableCollection<CStatement> statements;
     try {
       statements = CParserUtils.parseListOfStatements(assumeCode, pCParser, pScope);
     } catch (RuntimeException e) {
@@ -600,9 +601,10 @@ public class CParserUtils {
    * @param pStatements the assumptions.
    * @return the duplicate-free assumptions.
    */
-  private static Collection<CStatement> removeDuplicates(
+  private static ImmutableCollection<CStatement> removeDuplicates(
       Collection<? extends CStatement> pStatements) {
-    Map<Object, CStatement> result = new HashMap<>();
+    ImmutableMap.Builder<Object, CStatement> result =
+        ImmutableMap.builderWithExpectedSize(pStatements.size());
     for (CStatement statement : pStatements) {
       if (statement instanceof CExpressionAssignmentStatement assignmentStatement) {
         result.put(assignmentStatement.getLeftHandSide(), assignmentStatement);
@@ -610,7 +612,7 @@ public class CParserUtils {
         result.put(statement, statement);
       }
     }
-    return result.values();
+    return result.buildKeepingLast().values();
   }
 
   /**
