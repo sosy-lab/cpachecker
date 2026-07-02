@@ -16,7 +16,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
@@ -299,8 +298,7 @@ public class AcslPredicateToFormulaVisitor
       smtVars.add(createSmtVarFromBinder(decl));
     }
 
-    QuantifierData data = new QuantifierData(smtVars, bodyF);
-    return data;
+    return new QuantifierData(smtVars, bodyF);
   }
 
   private Formula createSmtVarFromBinder(AcslParameterDeclaration pDecl) {

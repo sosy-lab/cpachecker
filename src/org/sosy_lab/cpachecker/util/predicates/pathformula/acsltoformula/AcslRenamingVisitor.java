@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAtTerm;
@@ -56,16 +55,17 @@ public class AcslRenamingVisitor
     implements AcslPredicateVisitor<AcslPredicate, NoException>,
         AcslTermVisitor<AcslTerm, NoException> {
 
-  private final Map<AcslSimpleDeclaration, AcslSimpleDeclaration> renamingMap;
-  private Map<String, String> nameRenamingMap;
+  private final ImmutableMap<AcslSimpleDeclaration, AcslSimpleDeclaration> renamingMap;
+  private final ImmutableMap<String, String> nameRenamingMap;
 
   public AcslRenamingVisitor(
       ImmutableMap<AcslSimpleDeclaration, AcslSimpleDeclaration> pRenamingMap) {
     this.renamingMap = pRenamingMap;
-    this.nameRenamingMap = new HashMap<>();
+    ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
     for (Map.Entry<AcslSimpleDeclaration, AcslSimpleDeclaration> entry : pRenamingMap.entrySet()) {
-      this.nameRenamingMap.put(entry.getKey().getName(), entry.getValue().getName());
+      builder.put(entry.getKey().getName(), entry.getValue().getName());
     }
+    this.nameRenamingMap = builder.build();
   }
 
   @Override
