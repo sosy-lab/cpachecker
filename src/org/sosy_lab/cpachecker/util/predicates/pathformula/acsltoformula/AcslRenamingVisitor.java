@@ -65,7 +65,7 @@ public class AcslRenamingVisitor
     for (Map.Entry<AcslSimpleDeclaration, AcslSimpleDeclaration> entry : pRenamingMap.entrySet()) {
       builder.put(entry.getKey().getName(), entry.getValue().getName());
     }
-    this.nameRenamingMap = builder.build();
+    this.nameRenamingMap = builder.buildOrThrow();
   }
 
   @Override
