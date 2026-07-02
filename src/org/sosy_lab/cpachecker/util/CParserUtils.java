@@ -8,13 +8,13 @@
 
 package org.sosy_lab.cpachecker.util;
 
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Ascii;
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -92,7 +92,8 @@ public class CParserUtils {
     return parse(addFunctionDeclaration(pSource), parser, scope);
   }
 
-  public static List<CStatement> parseListOfStatements(String pSource, CParser parser, Scope scope)
+  public static ImmutableList<CStatement> parseListOfStatements(
+      String pSource, CParser parser, Scope scope)
       throws InvalidAutomatonException, InterruptedException {
     return parseBlockOfStatements(addFunctionDeclaration(pSource), parser, scope);
   }
@@ -176,7 +177,8 @@ public class CParserUtils {
    * @param code The C code to parse.
    * @return The AST.
    */
-  private static List<CStatement> parseBlockOfStatements(String code, CParser parser, Scope scope)
+  private static ImmutableList<CStatement> parseBlockOfStatements(
+      String code, CParser parser, Scope scope)
       throws InvalidAutomatonException, InterruptedException {
     List<CAstNode> statements;
     try {
@@ -220,7 +222,7 @@ public class CParserUtils {
           parseAsCStatements(assumeCode, pResultFunction, pCParser, pScope, pParserTools);
       result.addAll(
           removeDuplicates(
-              from(statements).transform(CParserUtils::adjustCharAssignmentSignedness)));
+              Collections2.transform(statements, CParserUtils::adjustCharAssignmentSignedness)));
     }
     return result;
   }
@@ -341,7 +343,8 @@ public class CParserUtils {
               tryFixACSL(assumeCode, pResultFunction, pScope), pCParser, pScope);
     }
     statements =
-        removeDuplicates(from(statements).transform(CParserUtils::adjustCharAssignmentSignedness));
+        removeDuplicates(
+            Collections2.transform(statements, CParserUtils::adjustCharAssignmentSignedness));
     {
       CBinaryExpressionBuilder binaryExpressionBuilder =
           new CBinaryExpressionBuilder(pParserTools.machineModel, pParserTools.logger);
@@ -598,7 +601,7 @@ public class CParserUtils {
    * @return the duplicate-free assumptions.
    */
   private static Collection<CStatement> removeDuplicates(
-      Iterable<? extends CStatement> pStatements) {
+      Collection<? extends CStatement> pStatements) {
     Map<Object, CStatement> result = new HashMap<>();
     for (CStatement statement : pStatements) {
       if (statement instanceof CExpressionAssignmentStatement assignmentStatement) {
