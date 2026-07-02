@@ -47,10 +47,12 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPostConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssThreadCPUTimer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
@@ -119,6 +121,15 @@ public class DssBlockAnalysis {
   private final Algorithm algorithm;
 
   private final LogManager logger;
+
+  private final DssThreadCPUTimer storePreconditionTime =
+      new DssThreadCPUTimer("Store Precondition");
+  private final DssThreadCPUTimer analyzePreconditionTime =
+      new DssThreadCPUTimer("Analyze Precondition");
+  private final DssThreadCPUTimer storeViolationConditionTime =
+      new DssThreadCPUTimer("Store Violation Condition");
+  private final DssThreadCPUTimer analyzeViolationConditionTime =
+      new DssThreadCPUTimer("Analyze Violation Condition");
 
   private AlgorithmStatus status;
   private boolean containsViolationInsideBlock;
@@ -514,6 +525,8 @@ public class DssBlockAnalysis {
    */
   public DssMessageProcessing storePrecondition(DssPostConditionMessage pReceived)
       throws InterruptedException, SolverException, CPAException {
+    storePreconditionTime.start();
+    try {
     relevant.clear();
     logger.log(Level.INFO, "Running forward analysis with new precondition");
     resetStates();
@@ -562,6 +575,9 @@ public class DssBlockAnalysis {
 
     appendTopToRelevantIfNecessary(pReceived.getSenderId());
     return processing;
+    } finally {
+      storePreconditionTime.stop();
+    }
   }
 
   private String extractWitnessFromState(AbstractState state) {
@@ -582,6 +598,8 @@ public class DssBlockAnalysis {
   public DssMessageProcessing storeViolationCondition(
       DssViolationConditionMessage pNewViolationCondition)
       throws InterruptedException, SolverException {
+    storeViolationConditionTime.start();
+    try {
     logger.log(Level.INFO, "Running forward analysis with respect to error condition");
     // merge all states into the reached set
     ImmutableList<StateAndPrecision> deserializedStates = deserialize(pNewViolationCondition);
@@ -608,6 +626,9 @@ public class DssBlockAnalysis {
       return DssMessageProcessing.stop();
     }
     return DssMessageProcessing.proceed();
+    } finally {
+      storeViolationConditionTime.stop();
+    }
   }
 
   /**
@@ -618,21 +639,26 @@ public class DssBlockAnalysis {
    */
   public Collection<DssMessage> analyzePrecondition()
       throws SolverException, InterruptedException, CPAException {
-    if (!containsViolationInsideBlock && violationConditions.isEmpty()) {
-      return ImmutableSet.of();
+    analyzePreconditionTime.start();
+    try {
+      if (!containsViolationInsideBlock && violationConditions.isEmpty()) {
+        return ImmutableSet.of();
+      }
+      ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
+      AnalysisResult result =
+          analyzeViolationCondition(
+              transformedImmutableListCopy(violationConditions.values(), v -> (ARGState) v.state()),
+              true);
+      if (!result.violationConditions().isEmpty()) {
+        messages.addAll(reportViolationConditions(result.violationConditions()));
+      }
+      if (!result.summaries().isEmpty()) {
+        messages.addAll(reportPostconditions(result.summaries()));
+      }
+      return messages.build();
+    } finally {
+      analyzePreconditionTime.stop();
     }
-    ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
-    AnalysisResult result =
-        analyzeViolationCondition(
-            transformedImmutableListCopy(violationConditions.values(), v -> (ARGState) v.state()),
-            true);
-    if (!result.violationConditions().isEmpty()) {
-      messages.addAll(reportViolationConditions(result.violationConditions()));
-    }
-    if (!result.summaries().isEmpty()) {
-      messages.addAll(reportPostconditions(result.summaries()));
-    }
-    return messages.build();
   }
 
   /**
@@ -645,23 +671,28 @@ public class DssBlockAnalysis {
    */
   public Collection<DssMessage> analyzeViolationCondition(String pSenderId)
       throws SolverException, InterruptedException, CPAException {
-    relevant.clear();
-    Collection<@NonNull StateAndPrecision> violations = violationConditions.get(pSenderId);
-    if (violations.isEmpty()) {
-      throw new IllegalArgumentException(
-          "No violation condition found for sender ID: " + pSenderId);
+    analyzeViolationConditionTime.start();
+    try {
+      relevant.clear();
+      Collection<@NonNull StateAndPrecision> violations = violationConditions.get(pSenderId);
+      if (violations.isEmpty()) {
+        throw new IllegalArgumentException(
+            "No violation condition found for sender ID: " + pSenderId);
+      }
+      ImmutableList.Builder<DssMessage> messages = ImmutableList.builder();
+      AnalysisResult result =
+          analyzeViolationCondition(
+              transformedImmutableListCopy(violations, v -> (ARGState) v.state()), false);
+      if (!result.summaries().isEmpty()) {
+        messages.addAll(reportPostconditions(result.summaries()));
+      }
+      if (!result.violationConditions().isEmpty()) {
+        messages.addAll(reportViolationConditions(result.violationConditions()));
+      }
+      return messages.build();
+    } finally {
+      analyzeViolationConditionTime.stop();
     }
-    ImmutableList.Builder<DssMessage> messages = ImmutableList.builder();
-    AnalysisResult result =
-        analyzeViolationCondition(
-            transformedImmutableListCopy(violations, v -> (ARGState) v.state()), false);
-    if (!result.summaries().isEmpty()) {
-      messages.addAll(reportPostconditions(result.summaries()));
-    }
-    if (!result.violationConditions().isEmpty()) {
-      messages.addAll(reportViolationConditions(result.violationConditions()));
-    }
-    return messages.build();
   }
 
   private boolean isPredecessorWithTopSummary(String predecessor) {
@@ -721,7 +752,7 @@ public class DssBlockAnalysis {
       reachedSet.clear();
       reachedSet.add(
           stateAndPrecision.state(),
-          resetPrecisionsForEveryRun
+          resetPrecisionsForEveryRun || isTrivial
               ? makeStartPrecision()
               : combinePrecisionIfPossible().orElse(stateAndPrecision.precision()));
       Objects.requireNonNull(
@@ -780,6 +811,16 @@ public class DssBlockAnalysis {
           new StateAndPrecision(
               dcpa.reset(entry.getValue().state()), entry.getValue().precision()));
     }
+  }
+
+  public ImmutableMap<StatisticsKey, String> getTimingStats() {
+    return ImmutableMap.of(
+        StatisticsKey.STORE_PRECONDITION_TIME, Long.toString(storePreconditionTime.nanos()),
+        StatisticsKey.ANALYZE_PRECONDITION_TIME, Long.toString(analyzePreconditionTime.nanos()),
+        StatisticsKey.STORE_VIOLATION_CONDITION_TIME,
+            Long.toString(storeViolationConditionTime.nanos()),
+        StatisticsKey.ANALYZE_VIOLATION_CONDITION_TIME,
+            Long.toString(analyzeViolationConditionTime.nanos()));
   }
 
   public DistributedConfigurableProgramAnalysis getDcpa() {

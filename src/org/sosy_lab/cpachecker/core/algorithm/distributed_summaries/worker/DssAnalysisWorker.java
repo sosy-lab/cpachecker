@@ -31,14 +31,12 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssThreadCPUTimer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
@@ -88,11 +86,6 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   private final DssMessageFactory messageFactory;
 
   private final DssConnection connection;
-
-  private final DssThreadCPUTimer forwardAnalysisTime = new DssThreadCPUTimer("Forward Analysis");
-  private final DssThreadCPUTimer backwardAnalysisTime = new DssThreadCPUTimer("Backward Analysis");
-  private final StatCounter forwardAnalysisCount = new StatCounter("Forward analyses");
-  private final StatCounter backwardAnalysisCount = new StatCounter("Backward analyses");
 
   private boolean shutdown;
   private boolean closed;
@@ -160,23 +153,18 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
     return switch (message.getType()) {
       case POST_CONDITION -> {
         try {
-          forwardAnalysisTime.start();
           DssMessageProcessing processing =
               analysis.getDssBlockAnalysis().storePrecondition((DssPostConditionMessage) message);
           if (!processing.shouldProceed()) {
             yield processing;
           }
-          forwardAnalysisCount.inc();
           yield analysis.getDssBlockAnalysis().analyzePrecondition();
         } catch (Exception | Error e) {
           yield ImmutableSet.of(messageFactory.createDssExceptionMessage(getBlockId(), e));
-        } finally {
-          forwardAnalysisTime.stop();
         }
       }
       case VIOLATION_CONDITION -> {
         try {
-          backwardAnalysisTime.start();
           DssMessageProcessing processing =
               analysis
                   .getDssBlockAnalysis()
@@ -184,12 +172,9 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
           if (!processing.shouldProceed()) {
             yield processing;
           }
-          backwardAnalysisCount.inc();
           yield analysis.getDssBlockAnalysis().analyzeViolationCondition(message.getSenderId());
         } catch (Exception | Error e) {
           yield ImmutableSet.of(messageFactory.createDssExceptionMessage(getBlockId(), e));
-        } finally {
-          backwardAnalysisTime.stop();
         }
       }
       case EXCEPTION, RESULT -> {
@@ -292,17 +277,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
     }
 
     return stats
-        .put(
-            StatisticsKey.PRECONDITION_ANALYSIS_TIME, Long.toString(forwardAnalysisTime.nanos()))
-        .put(
-            StatisticsKey.PRECONDITION_ANALYSIS_COUNT,
-            Integer.toString(forwardAnalysisCount.getUpdateCount()))
-        .put(
-            StatisticsKey.VIOLATION_CONDITION_ANALYSIS_TIME,
-            Long.toString(backwardAnalysisTime.nanos()))
-        .put(
-            StatisticsKey.VIOLATION_CONDITION_ANALYSIS_COUNT,
-            Integer.toString(backwardAnalysisCount.getUpdateCount()))
+        .putAll(analysis.getDssBlockAnalysis().getTimingStats())
         .put(StatisticsKey.MESSAGES_SENT, Integer.toString(getSentMessages()))
         .put(StatisticsKey.MESSAGES_RECEIVED, Integer.toString(getReceivedMessages()))
         .buildOrThrow();
