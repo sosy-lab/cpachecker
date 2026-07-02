@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
@@ -58,7 +59,8 @@ public class AcslRenamingVisitor
   private final Map<AcslSimpleDeclaration, AcslSimpleDeclaration> renamingMap;
   private Map<String, String> nameRenamingMap;
 
-  public AcslRenamingVisitor(Map<AcslSimpleDeclaration, AcslSimpleDeclaration> pRenamingMap) {
+  public AcslRenamingVisitor(
+      ImmutableMap<AcslSimpleDeclaration, AcslSimpleDeclaration> pRenamingMap) {
     this.renamingMap = pRenamingMap;
     this.nameRenamingMap = new HashMap<>();
     for (Map.Entry<AcslSimpleDeclaration, AcslSimpleDeclaration> entry : pRenamingMap.entrySet()) {
@@ -197,12 +199,8 @@ public class AcslRenamingVisitor
   @Override
   public AcslTerm visit(AcslIdTerm pAcslIdTerm) throws NoException {
     AcslSimpleDeclaration declaration = pAcslIdTerm.getDeclaration();
-    AcslSimpleDeclaration renamed = renamingMap.get(declaration);
-    if (renamed != null) {
-      return new AcslIdTerm(pAcslIdTerm.getFileLocation(), renamed);
-    } else {
-      return pAcslIdTerm;
-    }
+    AcslSimpleDeclaration renamed = renamingMap.getOrDefault(declaration, declaration);
+    return new AcslIdTerm(pAcslIdTerm.getFileLocation(), renamed);
   }
 
   @Override

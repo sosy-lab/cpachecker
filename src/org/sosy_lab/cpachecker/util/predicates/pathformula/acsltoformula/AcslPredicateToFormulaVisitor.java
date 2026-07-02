@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -253,7 +254,7 @@ public class AcslPredicateToFormulaVisitor
       renamingMap.put(declaration, renamed);
       newBinders.add(renamed);
     }
-    AcslRenamingVisitor renamingVisitor = new AcslRenamingVisitor(renamingMap);
+    AcslRenamingVisitor renamingVisitor = new AcslRenamingVisitor(ImmutableMap.copyOf(renamingMap));
 
     AcslPredicate renamedBody = pForallPredicate.getPredicate().accept(renamingVisitor);
     BooleanFormula bodyF = renamedBody.accept(this);
@@ -283,7 +284,7 @@ public class AcslPredicateToFormulaVisitor
       renamingMap.put(declaration, renamed);
       newBinders.add(renamed);
     }
-    AcslRenamingVisitor renamingVisitor = new AcslRenamingVisitor(renamingMap);
+    AcslRenamingVisitor renamingVisitor = new AcslRenamingVisitor(ImmutableMap.copyOf(renamingMap));
 
     AcslPredicate renamedBody = pAcslExistsPredicate.getPredicate().accept(renamingVisitor);
     BooleanFormula bodyF = renamedBody.accept(this);

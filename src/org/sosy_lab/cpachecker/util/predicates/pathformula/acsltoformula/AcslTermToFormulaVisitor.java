@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Verify;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -323,7 +324,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
             dummyEdge, "dummy-function-name", currentSsa, pPts, constraints, errorConditions);
     Formula f = cExpr.accept(exprVisitor);
 
-    assert constraints.toString().equals("[]"); // make sure the constraints are still empty
+    Verify.verify(constraints.toString().equals("[]")); // make sure the constraints are still empty
     return f;
   }
 }
