@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
@@ -28,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslQuantifiedPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
@@ -241,7 +243,39 @@ public class AcslPredicateToFormulaVisitor
   @Override
   public BooleanFormula visit(AcslForallPredicate pForallPredicate) throws NoException {
     QuantifiedFormulaManagerView qfmr = fmgr.getQuantifiedFormulaManager();
+    QuantifierData data = handleQuantifier(pForallPredicate);
 
+    return qfmr.forall(data.smtVars, data.bodyFormula);
+  }
+
+  @Override
+  public BooleanFormula visit(AcslExistsPredicate pAcslExistsPredicate) throws NoException {
+    QuantifiedFormulaManagerView qfmr = fmgr.getQuantifiedFormulaManager();
+
+    QuantifierData data = handleQuantifier(pAcslExistsPredicate);
+    return qfmr.exists(data.smtVars, data.bodyFormula);
+  }
+
+  @Override
+  public BooleanFormula visit(AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate)
+      throws NoException {
+    AcslPredicateDeclaration declaration =
+        pAcslPredicateApplicationPredicate.getPredicateDeclaration();
+
+    String predName = "ACSLPred#" + declaration.getQualifiedName();
+
+    List<Formula> params = new ArrayList<>();
+    for (AcslTerm param : pAcslPredicateApplicationPredicate.getParameters()) {
+      params.add(param.accept(termVisitor));
+    }
+
+    return fmgr.getFunctionFormulaManager()
+        .declareAndCallUF(predName, FormulaType.BooleanType, params);
+  }
+
+  private record QuantifierData(List<Formula> smtVars, BooleanFormula bodyFormula) {}
+
+  private QuantifierData handleQuantifier(AcslQuantifiedPredicate pForallPredicate) {
     Map<AcslSimpleDeclaration, AcslSimpleDeclaration> renamingMap = new HashMap<>();
     List<AcslParameterDeclaration> newBinders = new ArrayList<>();
     for (AcslParameterDeclaration declaration : pForallPredicate.getBinders()) {
@@ -265,54 +299,8 @@ public class AcslPredicateToFormulaVisitor
       smtVars.add(createSmtVarFromBinder(decl));
     }
 
-    return qfmr.forall(smtVars, bodyF);
-  }
-
-  @Override
-  public BooleanFormula visit(AcslExistsPredicate pAcslExistsPredicate) throws NoException {
-    QuantifiedFormulaManagerView qfmr = fmgr.getQuantifiedFormulaManager();
-
-    Map<AcslSimpleDeclaration, AcslSimpleDeclaration> renamingMap = new HashMap<>();
-    List<AcslParameterDeclaration> newBinders = new ArrayList<>();
-    for (AcslParameterDeclaration declaration : pAcslExistsPredicate.getBinders()) {
-      String newName = "ACSL#q" + renamingCounter++ + "#" + declaration.getName();
-
-      AcslParameterDeclaration renamed =
-          new AcslParameterDeclaration(
-              declaration.getFileLocation(), declaration.getType(), newName, newName);
-
-      renamingMap.put(declaration, renamed);
-      newBinders.add(renamed);
-    }
-    AcslRenamingVisitor renamingVisitor = new AcslRenamingVisitor(ImmutableMap.copyOf(renamingMap));
-
-    AcslPredicate renamedBody = pAcslExistsPredicate.getPredicate().accept(renamingVisitor);
-    BooleanFormula bodyF = renamedBody.accept(this);
-
-    List<Formula> smtVars = new ArrayList<>();
-
-    for (AcslParameterDeclaration decl : newBinders) {
-      smtVars.add(createSmtVarFromBinder(decl));
-    }
-
-    return qfmr.exists(smtVars, bodyF);
-  }
-
-  @Override
-  public BooleanFormula visit(AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate)
-      throws NoException {
-    AcslPredicateDeclaration declaration =
-        pAcslPredicateApplicationPredicate.getPredicateDeclaration();
-
-    String predName = "ACSLPred#" + declaration.getQualifiedName();
-
-    List<Formula> params = new ArrayList<>();
-    for (AcslTerm param : pAcslPredicateApplicationPredicate.getParameters()) {
-      params.add(param.accept(termVisitor));
-    }
-
-    return fmgr.getFunctionFormulaManager()
-        .declareAndCallUF(predName, FormulaType.BooleanType, params);
+    QuantifierData data = new QuantifierData(smtVars, bodyF);
+    return data;
   }
 
   private Formula createSmtVarFromBinder(AcslParameterDeclaration pDecl) {
