@@ -95,7 +95,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     // Collect all the information about the new edges for the instrumented CFA
-    Set<String> newEdges = new HashSet<>();
+    List<String> newEdges = new ArrayList<>();
 
     // For some properties we construct more automata to more effectively track variables within
     // the scope. This map is used to map the automata to concrete line numbers in the code.
@@ -224,7 +224,9 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
                   throw new CPAException("Matching for line with function calls is unsupported.");
                 }
               } else {
-                newEdges.add(newEdge);
+                if (!newEdges.contains(newEdge)) {
+                  newEdges.add(newEdge);
+                }
               }
             }
           }
@@ -297,7 +299,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     return "";
   }
 
-  private void writeAllInformationIntoOutputFile(Set<String> newEdges) {
+  private void writeAllInformationIntoOutputFile(List<String> newEdges) {
     // Output the collected CFA information into newEdgesInfo
     try {
       IO.writeFile(newEdgesFile, StandardCharsets.UTF_8, String.join("\n", newEdges));
