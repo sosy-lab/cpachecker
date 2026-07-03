@@ -184,8 +184,6 @@ public class AcslPredicateToFormulaVisitor
 
     if (!fmgr.getFormulaType(operand1Formula).equals(fmgr.getFormulaType(operand2Formula))) {
       AcslType commonType = AcslType.mostGeneralType(operand1Type, operand2Type);
-      // TODO this is same typecasting as AcslBinaryTerm, so keep this up to date if you fixed the
-      // other
       operand1Formula = typeHelper.convertFormulaType(operand1Formula, commonType);
       operand2Formula = typeHelper.convertFormulaType(operand2Formula, commonType);
     }

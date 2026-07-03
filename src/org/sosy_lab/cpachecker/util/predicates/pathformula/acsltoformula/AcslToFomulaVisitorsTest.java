@@ -16,6 +16,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Objects;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -199,22 +200,21 @@ public class AcslToFomulaVisitorsTest {
     return ptsb;
   }
 
+  private AcslIdTerm getAcslIdTermFromVarName(CProgramScope cProgramScope, String name) {
+    return new AcslIdTerm(
+        FileLocation.DUMMY,
+        new AcslCVariableDeclaration(
+            (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable(name))));
+  }
+
   @Test
   public void testPlusAndMinus()
       throws InvalidConfigurationException, SolverException, InterruptedException {
     // x + y - x != y should be unsatisfiable
     CProgramScope cProgramScope = getCProgramScope();
-    AcslTerm x =
-        new AcslIdTerm(
-            FileLocation.DUMMY,
-            new AcslCVariableDeclaration(
-                (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable("x"))));
+    AcslTerm x = getAcslIdTermFromVarName(cProgramScope, "x");
 
-    AcslTerm y =
-        new AcslIdTerm(
-            FileLocation.DUMMY,
-            new AcslCVariableDeclaration(
-                (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable("y"))));
+    AcslTerm y = getAcslIdTermFromVarName(cProgramScope, "y");
 
     AcslPredicate pred =
         new AcslBinaryTermPredicate(
@@ -243,17 +243,9 @@ public class AcslToFomulaVisitorsTest {
     // NOT(x <= y AND y <= x -> x == y) should be unsatisfiable
 
     CProgramScope cProgramScope = getCProgramScope();
-    AcslTerm x =
-        new AcslIdTerm(
-            FileLocation.DUMMY,
-            new AcslCVariableDeclaration(
-                (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable("x"))));
+    AcslTerm x = getAcslIdTermFromVarName(cProgramScope, "x");
 
-    AcslTerm y =
-        new AcslIdTerm(
-            FileLocation.DUMMY,
-            new AcslCVariableDeclaration(
-                (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable("y"))));
+    AcslTerm y = getAcslIdTermFromVarName(cProgramScope, "y");
 
     AcslPredicate firstP =
         new AcslBinaryTermPredicate(
@@ -285,16 +277,8 @@ public class AcslToFomulaVisitorsTest {
     // (x >= y AND x < y) should be unsatisfiable
 
     CProgramScope cProgramScope = getCProgramScope();
-    AcslTerm x =
-        new AcslIdTerm(
-            FileLocation.DUMMY,
-            new AcslCVariableDeclaration(
-                (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable("x"))));
-    AcslTerm y =
-        new AcslIdTerm(
-            FileLocation.DUMMY,
-            new AcslCVariableDeclaration(
-                (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable("y"))));
+    AcslTerm x = getAcslIdTermFromVarName(cProgramScope, "x");
+    AcslTerm y = getAcslIdTermFromVarName(cProgramScope, "y");
 
     AcslPredicate pred =
         new AcslBinaryPredicate(
@@ -315,11 +299,7 @@ public class AcslToFomulaVisitorsTest {
     // NOT(x = +x) should be unsatisfiable
 
     CProgramScope cProgramScope = getCProgramScope();
-    AcslTerm x =
-        new AcslIdTerm(
-            FileLocation.DUMMY,
-            new AcslCVariableDeclaration(
-                (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable("x"))));
+    AcslTerm x = getAcslIdTermFromVarName(cProgramScope, "x");
 
     AcslPredicate pred =
         new AcslBinaryTermPredicate(
@@ -342,11 +322,7 @@ public class AcslToFomulaVisitorsTest {
     // NOT(x = -(-x)) should be unsatisfiable
 
     CProgramScope cProgramScope = getCProgramScope();
-    AcslTerm x =
-        new AcslIdTerm(
-            FileLocation.DUMMY,
-            new AcslCVariableDeclaration(
-                (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable("x"))));
+    AcslTerm x = getAcslIdTermFromVarName(cProgramScope, "x");
 
     AcslTerm minusx =
         new AcslUnaryTerm(
@@ -426,11 +402,7 @@ public class AcslToFomulaVisitorsTest {
     // NOT(true <=> (x = x)) should be unsatisfiable
 
     CProgramScope cProgramScope = getCProgramScope();
-    AcslTerm x =
-        new AcslIdTerm(
-            FileLocation.DUMMY,
-            new AcslCVariableDeclaration(
-                (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable("x"))));
+    AcslTerm x = getAcslIdTermFromVarName(cProgramScope, "x");
 
     AcslPredicate pred =
         new AcslBinaryPredicate(
@@ -474,11 +446,7 @@ public class AcslToFomulaVisitorsTest {
       throws InvalidConfigurationException, SolverException, InterruptedException {
     // x * 1 != x should be unsatisfiable for all x
     CProgramScope cProgramScope = getCProgramScope();
-    AcslTerm x =
-        new AcslIdTerm(
-            FileLocation.DUMMY,
-            new AcslCVariableDeclaration(
-                (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable("x"))));
+    AcslTerm x = getAcslIdTermFromVarName(cProgramScope, "x");
 
     AcslPredicate pred =
         new AcslBinaryTermPredicate(
