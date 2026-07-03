@@ -222,6 +222,21 @@ public class InstrumentationPattern {
                 && cIdExpression1.getDeclaration().getType() instanceof CSimpleType)
             && (operand2 instanceof CIdExpression cIdExpression2
                 && cIdExpression2.getDeclaration().getType() instanceof CSimpleType)) {
+
+          // Do not return twice the same variable, i.e. for edges with i := i - 1,
+          // return i only once in the assignment.
+          if (astNode instanceof CAssignment pAssignment) {
+            CExpression assigningVariable = pAssignment.getLeftHandSide();
+            String nameOfAssigningVariable =
+                removeIndicesOfVariablesWithSameName(assigningVariable, pCFAEdge);
+            if (nameOfAssigningVariable.equals(
+                    removeIndicesOfVariablesWithSameName(cIdExpression1, pCFAEdge))
+                || nameOfAssigningVariable.equals(
+                    removeIndicesOfVariablesWithSameName(cIdExpression2, pCFAEdge))) {
+              return ImmutableList.of();
+            }
+          }
+
           return ImmutableList.of(
               removeIndicesOfVariablesWithSameName(cIdExpression1, pCFAEdge),
               removeIndicesOfVariablesWithSameName(cIdExpression2, pCFAEdge),
@@ -250,6 +265,19 @@ public class InstrumentationPattern {
 
         if (operand instanceof CIdExpression cIdExpression
             && cIdExpression.getDeclaration().getType() instanceof CSimpleType) {
+
+          // Do not return twice the same variable, i.e. for edges with i := i - 1,
+          // return i only once in the assignment.
+          if (astNode instanceof CAssignment pAssignment) {
+            CExpression assigningVariable = pAssignment.getLeftHandSide();
+            String nameOfAssigningVariable =
+                removeIndicesOfVariablesWithSameName(assigningVariable, pCFAEdge);
+            if (nameOfAssigningVariable.equals(
+                removeIndicesOfVariablesWithSameName(cIdExpression, pCFAEdge))) {
+              return ImmutableList.of();
+            }
+          }
+
           return ImmutableList.of(
               removeIndicesOfVariablesWithSameName(cIdExpression, pCFAEdge), condition);
         } else {
@@ -264,11 +292,37 @@ public class InstrumentationPattern {
         if (operand1 instanceof CIdExpression cIdExpression1
             && cIdExpression1.getDeclaration().getType() instanceof CSimpleType
             && !(operand2 instanceof CIdExpression)) {
+
+          // Do not return twice the same variable, i.e. for edges with i := i - 1,
+          // return i only once in the assignment.
+          if (astNode instanceof CAssignment pAssignment) {
+            CExpression assigningVariable = pAssignment.getLeftHandSide();
+            String nameOfAssigningVariable =
+                removeIndicesOfVariablesWithSameName(assigningVariable, pCFAEdge);
+            if (nameOfAssigningVariable.equals(
+                removeIndicesOfVariablesWithSameName(cIdExpression1, pCFAEdge))) {
+              return ImmutableList.of();
+            }
+          }
+
           return ImmutableList.of(
               removeIndicesOfVariablesWithSameName(cIdExpression1, pCFAEdge), condition);
         } else if (operand2 instanceof CIdExpression cIdExpression2
             && cIdExpression2.getDeclaration().getType() instanceof CSimpleType
             && !(operand1 instanceof CIdExpression)) {
+
+          // Do not return twice the same variable, i.e. for edges with i := i - 1,
+          // return i only once in the assignment.
+          if (astNode instanceof CAssignment pAssignment) {
+            CExpression assigningVariable = pAssignment.getLeftHandSide();
+            String nameOfAssigningVariable =
+                removeIndicesOfVariablesWithSameName(assigningVariable, pCFAEdge);
+            if (nameOfAssigningVariable.equals(
+                removeIndicesOfVariablesWithSameName(cIdExpression2, pCFAEdge))) {
+              return ImmutableList.of();
+            }
+          }
+
           return ImmutableList.of(
               removeIndicesOfVariablesWithSameName(cIdExpression2, pCFAEdge), condition);
         } else {
