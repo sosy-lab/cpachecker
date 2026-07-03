@@ -154,12 +154,15 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
         mapAutomataToLocations.put(
             0,
             new InstrumentationAutomaton(
-                parsedInstrumentationAutomaton, ImmutableMap.of(), ImmutableMap.of(), 0));
+                parsedInstrumentationAutomaton,
+                getVariablesWithTypesFromFullCFA(),
+                ImmutableMap.of(),
+                0));
       } else {
         mapAutomataToLocations.put(
             0,
             new InstrumentationAutomaton(
-                instrumentationProperty, ImmutableMap.of(), ImmutableMap.of(), 0));
+                instrumentationProperty, getVariablesWithTypesFromFullCFA(), ImmutableMap.of(), 0));
       }
     }
     // MAIN INSTRUMENTATION OPERATOR ALGORITHM
@@ -408,6 +411,23 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     pWaitlist.add(Pair.of(node1, pTransition.getSource()));
     pWaitlist.add(Pair.of(node2, pTransition.getSource()));
     return true;
+  }
+
+  private ImmutableMap<String, String> getVariablesWithTypesFromFullCFA() {
+    ImmutableMap.Builder<String, String> builder = new ImmutableMap.Builder<>();
+    for (String variable :
+        cfa.getMetadata().getLiveVariables().get().getAllLiveVariables().stream()
+            .map(e -> e.getName())
+            .toList()) {
+      if (cProgramScope.variableNameInUse(variable)) {
+        try {
+          builder.put(variable, cProgramScope.lookupVariable(variable).getType().toString());
+        } catch (Exception e) {
+          logger.log(Level.WARNING, "There is a skipped variable without known type.");
+        }
+      }
+    }
+    return builder.build();
   }
 
   /* Decomposes a CFAEdge with assignment statement. */

@@ -174,16 +174,15 @@ public class InstrumentationAutomaton {
     return operation.replace(
         "__INSTR_init_read_write_vars();",
         liveVariablesAndTypes.entrySet().stream()
-                .map(
-                    (entry) ->
-                        "int read_INSTR_"
-                            + entry.getKey()
-                            + " = 0; "
-                            + "int write_INSTR_"
-                            + entry.getKey()
-                            + " = 0; ")
-                .collect(Collectors.joining("; "))
-            + (!liveVariablesAndTypes.isEmpty() ? ";" : ""));
+            .map(
+                (entry) ->
+                    "int read_INSTR_"
+                        + entry.getKey()
+                        + " = 0; "
+                        + "int write_INSTR_"
+                        + entry.getKey()
+                        + " = 0; ")
+            .collect(Collectors.joining("; ")));
   }
 
   private String initializeGhostVariables(String operation, int pIndex) {
