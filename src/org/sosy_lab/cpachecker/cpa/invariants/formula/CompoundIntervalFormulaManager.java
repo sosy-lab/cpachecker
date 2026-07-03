@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -145,29 +144,19 @@ public class CompoundIntervalFormulaManager {
   }
 
   private boolean definitelyImplies(
-      Iterable<BooleanFormula<CompoundInterval>> pFormulas,
+      Collection<BooleanFormula<CompoundInterval>> pFormulas,
       BooleanFormula<CompoundInterval> pFormula,
       boolean pOverflowCheck) {
     return definitelyImplies(pFormulas, pFormula, new HashMap<>(), pOverflowCheck);
   }
 
   private boolean definitelyImplies(
-      Iterable<BooleanFormula<CompoundInterval>> pFormulas,
+      Collection<BooleanFormula<CompoundInterval>> pFormulas,
       BooleanFormula<CompoundInterval> pFormula,
       Map<MemoryLocation, NumeralFormula<CompoundInterval>> pBaseEnvironment,
       boolean pDisableOverflowCheck) {
     Map<MemoryLocation, NumeralFormula<CompoundInterval>> newMap = new HashMap<>(pBaseEnvironment);
-    if (pFormula instanceof Collection<?>) {
-      return definitelyImplies(
-          (Collection<BooleanFormula<CompoundInterval>>) pFormulas,
-          pFormula,
-          true,
-          newMap,
-          false,
-          pDisableOverflowCheck);
-    }
-    return definitelyImplies(
-        ImmutableSet.copyOf(pFormulas), pFormula, true, newMap, false, pDisableOverflowCheck);
+    return definitelyImplies(pFormulas, pFormula, true, newMap, false, pDisableOverflowCheck);
   }
 
   /**
