@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssStateSerializer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -51,9 +52,8 @@ public class DssBlockAnalysisTest {
   @Parameters(name = "{2} in {0} with ({1} until M{3}.json)")
   public static List<Object[]> getParameters() {
     return ImmutableList.of(
-        new Object[] {
-          "doc/examples/example.c", "output/block_analysis", "L2", 40, new Responses(null, null)
-        });
+        new Object[] {"doc/examples/example.c", "output/block_analysis", "L2", 40,
+            new Responses(null, null)});
   }
 
   @Parameter(0)
@@ -101,29 +101,34 @@ public class DssBlockAnalysisTest {
         }
       }
 
-      Truth.assertWithMessage(
-          "Expected message %s to be covered by one of %s", expectedMessage, actualMessages)
-        .that(covered)
-        .isTrue();
+      Truth
+          .assertWithMessage(
+              "Expected message %s to be covered by one of %s",
+              expectedMessage,
+              actualMessages)
+          .that(covered)
+          .isTrue();
     }
   }
 
-  private static boolean covers(DssMessage pExp, DssMessage pAct, DistributedConfigurableProgramAnalysis dcpa)
-      throws InterruptedException, CPAException {
+  private static boolean
+      covers(DssMessage pExp, DssMessage pAct, DistributedConfigurableProgramAnalysis dcpa)
+          throws InterruptedException, CPAException {
     if (pExp.getType() != pAct.getType()) {
       return false;
     }
-    if (!pExp.getSenderId().equals(pAct.getSenderId())){
+    if (!pExp.getSenderId().equals(pAct.getSenderId())) {
       return false;
     }
 
-    ImmutableList<StateAndPrecision> expectedStates = deserialize(pExp, dcpa);
-    ImmutableList<StateAndPrecision> actualStates = deserialize(pAct, dcpa);
+    DssStateSerializer serializer = new DssStateSerializer(dcpa);
+    ImmutableList<StateAndPrecision> expectedStates = serializer.deserialize(pExp);
+    ImmutableList<StateAndPrecision> actualStates = serializer.deserialize(pAct);
 
     for (StateAndPrecision expectedState : expectedStates) {
       boolean stateCovered = false;
       for (StateAndPrecision actualState : actualStates) {
-        if (dcpa.getCoverageOperator().isSubsumed(expectedState.state(), actualState.state())){
+        if (dcpa.getCoverageOperator().isSubsumed(expectedState.state(), actualState.state())) {
           stateCovered = true;
           break;
         }
@@ -135,51 +140,60 @@ public class DssBlockAnalysisTest {
     return true;
   }
 
-  public record Responses(
-      Collection<DssMessage> postAnalysis, Collection<DssMessage> violationAnalysis) {}
+  public record Responses(Collection<DssMessage> postAnalysis,
+      Collection<DssMessage> violationAnalysis) {
+  }
 
-  public record ReplayResult(
-      Responses responses, DistributedConfigurableProgramAnalysis dcpa) {}
+  public record ReplayResult(Responses responses, DistributedConfigurableProgramAnalysis dcpa) {
+  }
+
   /**
    * repeats the analysis for a given block with given received messages
    *
-   * <p>How to create a usable folder:
+   * <p>
+   * How to create a usable folder:
    *
-   * <p>cpachecker --dss --option distributedSummaries.debug=true <file>
+   * <p>
+   * cpachecker --dss --option distributedSummaries.debug=true <file>
    *
-   * <p>cpachecker --dss --option distributedSummaries.decomposition.generateBlockGraphOnly=true
-   * <file>
+   * <p>
+   * cpachecker --dss --option distributedSummaries.decomposition.generateBlockGraphOnly=true <file>
    *
-   * <p>The second part is needed because debug exports the blocks after modifying the graph, which
+   * <p>
+   * The second part is needed because debug exports the blocks after modifying the graph, which
    * means we can not import it.
    *
-   * @param program the program that is analyzed
+   * @param program             the program that is analyzed
    * @param blockAnalysisFolder the folder where the debug information is stored
-   * @param blockID the block for which to run the analysis
-   * @param lastMessageNumber analyze after this message
+   * @param blockID             the block for which to run the analysis
+   * @param lastMessageNumber   analyze after this message
    * @return the responses to the last postCondition and the last violation condition message in the
-   *     folder
+   *         folder
    */
   public static ReplayResult getAnalysisResult(
-      String program, String blockAnalysisFolder, String blockID, int lastMessageNumber)
+      String program,
+      String blockAnalysisFolder,
+      String blockID,
+      int lastMessageNumber)
       throws Exception {
     CFA cfa = TestUtil.buildTestCFA(program);
     Modification mod = getModifiedBlockGraph(cfa, blockAnalysisFolder);
 
     BlockNode node =
-        mod.blockGraph().getNodes().stream()
+        mod.blockGraph()
+            .getNodes()
+            .stream()
             .filter(b -> b.getId().equals(blockID))
             .findAny()
             .orElseThrow(
-                () ->
-                    new IllegalArgumentException(
-                        "No block with id '" + blockID + "' found in the block graph."));
+                () -> new IllegalArgumentException(
+                    "No block with id '" + blockID + "' found in the block graph."));
 
     DssBlockAnalysis analysis = createAnalysis(mod.cfa(), node);
 
     DssViolationConditionMessage lastViolation = null;
     DssPostConditionMessage lastPrecondition = null;
-    for(int i = 0; i <= lastMessageNumber; i++) {
+    for (int i = 0; i <= lastMessageNumber; i++) {
       Path path = Path.of(blockAnalysisFolder, "messages", "M" + i + ".json");
       if (!path.toFile().exists()) {
         continue;
@@ -249,28 +263,9 @@ public class DssBlockAnalysisTest {
             .loadFromFile(TestUtil.DSS_FORWARD_CONFIGURATION_FILE)
             .build();
     Modification mod =
-        BlockGraphModification.instrumentCFA(
-            pCfa, graph, config, LogManager.createTestLogManager());
+        BlockGraphModification
+            .instrumentCFA(pCfa, graph, config, LogManager.createTestLogManager());
 
     return mod;
-  }
-
-  private static ImmutableList<@NonNull StateAndPrecision> deserialize(
-      final DssMessage pMessage, DistributedConfigurableProgramAnalysis dcpa) throws InterruptedException {
-    OptionalInt optionalNumberOfStates = pMessage.getNumberOfContainedStates();
-    if (optionalNumberOfStates.isEmpty()) {
-      return ImmutableList.of();
-    }
-    int numStates = optionalNumberOfStates.orElseThrow();
-    ImmutableList.Builder<StateAndPrecision> statesAndPrecisions =
-        ImmutableList.builderWithExpectedSize(numStates);
-    for (int i = 0; i < numStates; i++) {
-      DssMessage advancedMessage = pMessage.advance(DeserializeOperator.STATE_KEY + i);
-      AbstractState state = dcpa.getDeserializeOperator().deserialize(advancedMessage);
-      Precision precision =
-          dcpa.getDeserializePrecisionOperator().deserializePrecision(advancedMessage);
-      statesAndPrecisions.add(new StateAndPrecision(state, precision));
-    }
-    return statesAndPrecisions.build();
   }
 }
