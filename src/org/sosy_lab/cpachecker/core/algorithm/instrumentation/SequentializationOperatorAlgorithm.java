@@ -427,7 +427,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
         }
       }
     }
-    return builder.build();
+    return builder.buildOrThrow();
   }
 
   /* Decomposes a CFAEdge with assignment statement. */
