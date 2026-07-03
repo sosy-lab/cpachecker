@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.operators.mathematical.ISCOperator
 
 /** Instances of this class represent compound states of intervals. */
 @SuppressWarnings("AmbiguousMethodReference")
-public class CompoundMathematicalInterval implements CompoundIntegralInterval {
+public final class CompoundMathematicalInterval implements CompoundIntegralInterval {
 
   private static final CompoundMathematicalInterval ZERO =
       new CompoundMathematicalInterval(SimpleInterval.singleton(BigInteger.ZERO));
