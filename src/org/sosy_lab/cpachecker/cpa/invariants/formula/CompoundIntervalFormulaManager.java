@@ -144,12 +144,6 @@ public class CompoundIntervalFormulaManager {
         && ((Constant<CompoundInterval>) pFormula).getValue().containsAllPossibleValues();
   }
 
-  public boolean definitelyImplies(
-      Iterable<BooleanFormula<CompoundInterval>> pFormulas,
-      BooleanFormula<CompoundInterval> pFormula) {
-    return definitelyImplies(pFormulas, pFormula, new HashMap<>(), false);
-  }
-
   private boolean definitelyImplies(
       Iterable<BooleanFormula<CompoundInterval>> pFormulas,
       BooleanFormula<CompoundInterval> pFormula,
