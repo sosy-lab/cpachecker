@@ -47,7 +47,11 @@ public class StatTimer extends AbstractStatValue {
 
   @Override
   public String toString() {
-    return timer.toString();
+    if (getNumberOfIntervals() > 1) {
+      return timer.prettyFormat();
+    } else {
+      return timer.toString();
+    }
   }
 
   public TimeSpan getConsumedTime() {
