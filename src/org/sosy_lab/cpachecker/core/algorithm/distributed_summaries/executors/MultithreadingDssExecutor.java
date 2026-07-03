@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.util.concurrent.Uninterruptibles;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -65,18 +66,18 @@ public class MultithreadingDssExecutor implements DssExecutor {
     messageFactory = new DssMessageFactory(options);
   }
 
-  private DssActors createDssActors(CFA cfa, BlockGraph blockGraph)
+  private DssActors createDssActors(CFA cfa, BlockGraph blockGraph, DssWorkerStatistics workerStatistics)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     ImmutableSet<BlockNode> blocks = blockGraph.getNodes();
     DssWorkerBuilder builder =
-        new DssWorkerBuilder(cfa, specification, () -> new DssDefaultQueue(), messageFactory);
+        new DssWorkerBuilder(cfa, specification, () -> new DssDefaultQueue(), messageFactory, workerStatistics);
     for (BlockNode distinctNode : blocks) {
       builder = builder.addAnalysisWorker(distinctNode, options);
     }
     if (options.isDebugModeEnabled()) {
       builder = builder.addVisualizationWorker(blockGraph, options);
     }
-    builder.addObserverWorker(OBSERVER_WORKER_ID, blockGraph.getNodes().size(), options);
+    builder.addObserverWorker(OBSERVER_WORKER_ID, options);
     return builder.build();
   }
 
@@ -84,7 +85,7 @@ public class MultithreadingDssExecutor implements DssExecutor {
   public StatusAndResult execute(
       CFA cfa, BlockGraph blockGraph, DssWorkerStatistics workerStatistics)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    try (DssActors actors = createDssActors(cfa, blockGraph)) {
+    try (DssActors actors = createDssActors(cfa, blockGraph, workerStatistics)) {
       DssObserverWorker observer = Iterables.getOnlyElement(actors.getObservers());
       Preconditions.checkState(
           observer.getId().equals(OBSERVER_WORKER_ID),
@@ -107,9 +108,17 @@ public class MultithreadingDssExecutor implements DssExecutor {
           new DssThreadMonitor(threads, messageFactory, observer.getConnection());
       monitor.setDaemon(true);
       monitor.start();
-      // blocks the thread until the result message is received
-      StatusAndResult result = observer.observe();
-      workerStatistics.addAllMessages(observer.getCollectedStats());
+
+      StatusAndResult result = null;
+      try {
+        // Blocks until RESULT or EXCEPTION arrives
+        result = observer.observe();
+      } finally {
+        threads.forEach(Thread::interrupt);
+        for (Thread t : threads) {
+          Uninterruptibles.joinUninterruptibly(t);
+        }
+      }
       return result;
     }
   }

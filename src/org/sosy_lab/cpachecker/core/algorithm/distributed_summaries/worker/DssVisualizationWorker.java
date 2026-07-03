@@ -32,8 +32,6 @@ public class DssVisualizationWorker extends DssWorker {
   private boolean shutdown = false;
   private final int identifier;
 
-  private final int numberOfBlocks;
-  private int statisticMessageCount = 0;
 
   DssVisualizationWorker(
       String id,
@@ -47,7 +45,6 @@ public class DssVisualizationWorker extends DssWorker {
     identifier = Instant.now().hashCode();
     connection = pConnection;
     reportFiles = pOptions.getReportFiles();
-    numberOfBlocks = pBlockGraph.getNodes().size();
     try {
       if (pOptions.getBlockCFAFile() != null) {
         JSON.writeJSONString(pBlockGraph.getExportData(cfa), pOptions.getBlockCFAFile());
@@ -74,12 +71,12 @@ public class DssVisualizationWorker extends DssWorker {
   public Collection<DssMessage> processMessage(DssMessage pMessage)
       throws InterruptedException, IOException {
     log(pMessage);
-    boolean stop = false;
+    boolean stop = pMessage.getType() == DssMessageType.RESULT
+        || pMessage.getType() == DssMessageType.EXCEPTION;
     while (connection.hasPendingMessages()) {
       DssMessage m = connection.read();
       log(m);
-      statisticMessageCount += m.getType() == DssMessageType.STATISTIC ? 1 : 0;
-      stop |= m.getType() == DssMessageType.EXCEPTION || statisticMessageCount == numberOfBlocks;
+      stop |= m.getType() == DssMessageType.RESULT || m.getType() == DssMessageType.EXCEPTION;
     }
     if (stop) {
       shutdown = true;

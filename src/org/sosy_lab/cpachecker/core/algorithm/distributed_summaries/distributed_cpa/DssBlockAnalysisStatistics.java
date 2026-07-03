@@ -8,9 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
 
-import com.google.common.collect.ImmutableMap;
-import java.util.Map;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 
 public class DssBlockAnalysisStatistics {
@@ -45,6 +42,10 @@ public class DssBlockAnalysisStatistics {
     return deserializationTime;
   }
 
+  public StatCounter getProceedCount() {
+    return proceedCount;
+  }
+
   public DssThreadCPUTimer getProceedTime() {
     return proceedTime;
   }
@@ -53,18 +54,4 @@ public class DssBlockAnalysisStatistics {
     return serializationTime;
   }
 
-  public Map<StatisticsKey, String> getStatistics() {
-    return ImmutableMap.<StatisticsKey, String>builder()
-        .put(
-            StatisticsKey.SERIALIZATION_COUNT,
-            Integer.toString(serializationCount.getUpdateCount()))
-        .put(
-            StatisticsKey.DESERIALIZATION_COUNT,
-            Integer.toString(deserializationCount.getUpdateCount()))
-        .put(StatisticsKey.PROCEED_COUNT, Integer.toString(proceedCount.getUpdateCount()))
-        .put(StatisticsKey.SERIALIZATION_TIME, Long.toString(serializationTime.nanos()))
-        .put(StatisticsKey.DESERIALIZATION_TIME, Long.toString(deserializationTime.nanos()))
-        .put(StatisticsKey.PROCEED_TIME, Long.toString(proceedTime.nanos()))
-        .buildOrThrow();
-  }
 }

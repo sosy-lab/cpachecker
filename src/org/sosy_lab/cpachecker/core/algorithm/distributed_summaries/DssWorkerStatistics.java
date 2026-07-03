@@ -9,66 +9,136 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries;
 
 import java.io.PrintStream;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.DssExecutor;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssBlockAnalysisStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /**
- * Stores {@link DssStatisticsMessage}s from workers, populated by a {@link DssExecutor} after all workers have finished.
+ * Aggregate statistics for all DSS analysis workers. Worker statistics objects are registered at
+ * worker creation time via {@link #createWorkerStats} and written to by the workers directly.
  */
 public class DssWorkerStatistics implements Statistics {
 
-  private final Map<String, DssStatisticsMessage> statsPerBlock = new HashMap<>();
+  /** Keys used to label statistics collected from DSS analysis workers. */
+  public enum StatisticsKey {
+    SERIALIZATION_COUNT("number of serialized states", false),
+    DESERIALIZATION_COUNT("number of deserialized states", false),
+    PROCEED_COUNT("number of proceeded states", false),
+    SERIALIZATION_TIME("time spent serializing states", true),
+    DESERIALIZATION_TIME("time spent deserializing states", true),
+    PROCEED_TIME("time spent processing states", true),
+    MESSAGES_SENT("number of messages sent", false),
+    MESSAGES_RECEIVED("number of messages received", false),
+    ANALYZE_PRECONDITION_TIME("time spent in analyzing preconditions", true),
+    STORE_PRECONDITION_TIME("time spent in storing preconditions", true),
+    ANALYZE_VIOLATION_CONDITION_TIME("time spent in analyzing violation conditions", true),
+    STORE_VIOLATION_CONDITION_TIME("time spent in storing violation conditions", true);
 
-  public void addMessage(DssStatisticsMessage message) {
-    statsPerBlock.put(message.getSenderId(), message);
+    private final String key;
+    private final boolean formatAsTime;
+
+    StatisticsKey(String pKey, boolean pFormatAsTime) {
+      key = pKey;
+      formatAsTime = pFormatAsTime;
+    }
+
+    public String getKey() {
+      return key;
+    }
+
+    public boolean isFormattedAsTime() {
+      return formatAsTime;
+    }
   }
 
-  public void addAllMessages(Map<String, DssStatisticsMessage> messages) {
-    statsPerBlock.putAll(messages);
+  private final List<DssBlockWorkerStatistics> workerStats = new ArrayList<>();
+  private final boolean printBlockLevelStats;
+
+  public DssWorkerStatistics(boolean pPrintBlockLevelStats) {
+    printBlockLevelStats = pPrintBlockLevelStats;
+  }
+
+  public synchronized DssBlockWorkerStatistics createWorkerStats(String pWorkerId) {
+    DssBlockWorkerStatistics stats = new DssBlockWorkerStatistics(pWorkerId);
+    workerStats.add(stats);
+    return stats;
   }
 
   @Override
   public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
-    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
-    Map<StatisticsKey, String> overall = new HashMap<>();
-    for (Entry<String, DssStatisticsMessage> statEntry : statsPerBlock.entrySet()) {
-      String blockId = statEntry.getKey();
-      Map<StatisticsKey, String> blockStats = statEntry.getValue().getStats();
-      writer = writer.put("BlockID " + blockId, blockId).beginLevel();
-      for (Entry<StatisticsKey, String> entry : blockStats.entrySet()) {
-        writer = writer.put(entry.getKey().getKey(), format(entry.getKey(), entry.getValue()));
-        overall.merge(
-            entry.getKey(),
-            entry.getValue(),
-            (v1, v2) -> Long.toString(Long.parseLong(v1) + Long.parseLong(v2)));
+    if (printBlockLevelStats) {
+      for (DssBlockWorkerStatistics ws : workerStats) {
+        ws.printStatistics(out, pResult, pReached);
       }
-      writer = writer.endLevel();
     }
-    writer = writer.put("Overall", "Sum of all blocks").beginLevel();
-    for (Entry<StatisticsKey, String> overallEntry : overall.entrySet()) {
-      writer =
-          writer.put(
-              overallEntry.getKey().getKey() + " (overall)",
-              format(overallEntry.getKey(), overallEntry.getValue()));
-    }
+    printOverallStats(out);
   }
 
-  private String format(StatisticsKey key, String value) {
-    if (key.isFormattedAsTime()) {
-      return TimeSpan.ofNanos(Long.parseLong(value)).formatAs(TimeUnit.SECONDS);
+  private void printOverallStats(PrintStream out) {
+    long serializationCount = 0;
+    long deserializationCount = 0;
+    long proceedCount = 0;
+    long serializationNanos = 0;
+    long deserializationNanos = 0;
+    long proceedNanos = 0;
+    long analyzePreconditionNanos = 0;
+    long storePreconditionNanos = 0;
+    long analyzeViolationConditionNanos = 0;
+    long storeViolationConditionNanos = 0;
+    long messagesSent = 0;
+    long messagesReceived = 0;
+
+    for (DssBlockWorkerStatistics ws : workerStats) {
+      analyzePreconditionNanos += ws.getAnalyzePreconditionNanos();
+      storePreconditionNanos += ws.getStorePreconditionNanos();
+      analyzeViolationConditionNanos += ws.getAnalyzeViolationConditionNanos();
+      storeViolationConditionNanos += ws.getStoreViolationConditionNanos();
+      messagesSent += ws.getMessagesSent().getUpdateCount();
+      messagesReceived += ws.getMessagesReceived().getUpdateCount();
+      @Nullable DssBlockAnalysisStatistics dcpa = ws.getDcpaStatistics();
+      if (dcpa != null) {
+        serializationCount += dcpa.getSerializationCount().getUpdateCount();
+        deserializationCount += dcpa.getDeserializationCount().getUpdateCount();
+        proceedCount += dcpa.getProceedCount().getUpdateCount();
+        serializationNanos += dcpa.getSerializationTime().nanos();
+        deserializationNanos += dcpa.getDeserializationTime().nanos();
+        proceedNanos += dcpa.getProceedTime().nanos();
+      }
     }
-    return value;
+
+    StatisticsWriter.writingStatisticsTo(out)
+        .put("Overall Worker Statistics", "Sum across all blocks")
+        .beginLevel()
+        .put(StatisticsKey.SERIALIZATION_COUNT.getKey(), Long.toString(serializationCount))
+        .put(StatisticsKey.DESERIALIZATION_COUNT.getKey(), Long.toString(deserializationCount))
+        .put(StatisticsKey.PROCEED_COUNT.getKey(), Long.toString(proceedCount))
+        .put(
+            StatisticsKey.SERIALIZATION_TIME.getKey(),
+            DssBlockWorkerStatistics.formatNanos(serializationNanos))
+        .put(
+            StatisticsKey.DESERIALIZATION_TIME.getKey(),
+            DssBlockWorkerStatistics.formatNanos(deserializationNanos))
+        .put(
+            StatisticsKey.PROCEED_TIME.getKey(), DssBlockWorkerStatistics.formatNanos(proceedNanos))
+        .put(
+            StatisticsKey.ANALYZE_PRECONDITION_TIME.getKey(),
+            DssBlockWorkerStatistics.formatNanos(analyzePreconditionNanos))
+        .put(
+            StatisticsKey.STORE_PRECONDITION_TIME.getKey(),
+            DssBlockWorkerStatistics.formatNanos(storePreconditionNanos))
+        .put(
+            StatisticsKey.ANALYZE_VIOLATION_CONDITION_TIME.getKey(),
+            DssBlockWorkerStatistics.formatNanos(analyzeViolationConditionNanos))
+        .put(
+            StatisticsKey.STORE_VIOLATION_CONDITION_TIME.getKey(),
+            DssBlockWorkerStatistics.formatNanos(storeViolationConditionNanos))
+        .put(StatisticsKey.MESSAGES_SENT.getKey(), Long.toString(messagesSent))
+        .put(StatisticsKey.MESSAGES_RECEIVED.getKey(), Long.toString(messagesReceived));
   }
 
   @Override

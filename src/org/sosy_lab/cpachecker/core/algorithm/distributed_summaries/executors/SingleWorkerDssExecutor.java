@@ -172,7 +172,7 @@ public class SingleWorkerDssExecutor implements DssExecutor {
                     new IllegalArgumentException(
                         "No block with id '" + spawnWorkerForId + "' found in the block graph."));
     try (DssActors actors =
-        new DssWorkerBuilder(cfa, specification, () -> new DssDefaultQueue(), messageFactory)
+        new DssWorkerBuilder(cfa, specification, () -> new DssDefaultQueue(), messageFactory, workerStatistics)
             .addAnalysisWorker(blockNode, options)
             .build()) {
 
@@ -194,7 +194,6 @@ public class SingleWorkerDssExecutor implements DssExecutor {
         }
       }
       writeAllMessages(response);
-      workerStatistics.addMessage(actor.getStatsMessage());
     }
     return new StatusAndResult(AlgorithmStatus.NO_PROPERTY_CHECKED, Result.UNKNOWN);
   }

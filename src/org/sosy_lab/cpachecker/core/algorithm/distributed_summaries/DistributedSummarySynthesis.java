@@ -130,7 +130,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     configuration.inject(this);
 
     decompositionOptions = new DssDecompositionOptions(configuration, pInitialCFA);
-    dssStats = new DistributedSummarySynthesisStatistics();
+    dssStats = new DistributedSummarySynthesisStatistics(configuration);
 
     logger = pLogger;
     initialCFA = pInitialCFA;

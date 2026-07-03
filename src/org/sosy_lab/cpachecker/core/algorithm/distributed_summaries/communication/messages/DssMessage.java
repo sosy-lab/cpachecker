@@ -24,7 +24,6 @@ import java.util.Objects;
 import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -40,8 +39,7 @@ public abstract class DssMessage {
     POST_CONDITION,
     VIOLATION_CONDITION,
     EXCEPTION,
-    RESULT,
-    STATISTIC
+    RESULT
   }
 
   private static class DssMessageProxy {
@@ -236,17 +234,6 @@ public abstract class DssMessage {
     return asJsonWithIdentifier(0);
   }
 
-  public final Map<StatisticsKey, String> getStats() {
-    checkState(
-        type == DssMessageType.STATISTIC, "Cannot get stats for message type: " + "%s", type);
-    ImmutableMap.Builder<StatisticsKey, String> statsBuilder = ImmutableMap.builder();
-    for (Map.Entry<String, String> entry : content.entrySet()) {
-      StatisticsKey key = StatisticsKey.valueOf(entry.getKey());
-      statsBuilder.put(key, entry.getValue());
-    }
-    return statsBuilder.buildOrThrow();
-  }
-
   public static DssMessage fromJson(Path pJson) throws IOException {
     ObjectMapper mapper = new ObjectMapper();
     DssMessageProxy proxy = mapper.readValue(pJson.toFile(), DssMessageProxy.class);
@@ -273,7 +260,6 @@ public abstract class DssMessage {
       case VIOLATION_CONDITION -> new DssViolationConditionMessage(senderId, content);
       case EXCEPTION -> new DssExceptionMessage(senderId, content);
       case RESULT -> new DssResultMessage(senderId, content);
-      case STATISTIC -> new DssStatisticsMessage(senderId, content);
     };
   }
 }

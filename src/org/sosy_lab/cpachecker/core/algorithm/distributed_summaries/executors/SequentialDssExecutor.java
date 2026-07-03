@@ -54,11 +54,11 @@ public class SequentialDssExecutor implements DssExecutor {
     messageFactory = new DssMessageFactory(options);
   }
 
-  private DssActors createDssActors(CFA cfa, BlockGraph blockGraph)
+  private DssActors createDssActors(CFA cfa, BlockGraph blockGraph, DssWorkerStatistics workerStatistics)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     ImmutableSet<BlockNode> blocks = blockGraph.getNodes();
     DssWorkerBuilder builder =
-        new DssWorkerBuilder(cfa, specification, () -> new DssDefaultQueue(), messageFactory);
+        new DssWorkerBuilder(cfa, specification, () -> new DssDefaultQueue(), messageFactory, workerStatistics);
     for (BlockNode distinctNode : blocks) {
       builder = builder.addAnalysisWorker(distinctNode, options);
     }
@@ -72,7 +72,7 @@ public class SequentialDssExecutor implements DssExecutor {
   public StatusAndResult execute(
       CFA cfa, BlockGraph blockGraph, DssWorkerStatistics workerStatistics)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    DssActors actors = createDssActors(cfa, blockGraph);
+    DssActors actors = createDssActors(cfa, blockGraph, workerStatistics);
 
     Set<String> finished = new LinkedHashSet<>();
 
@@ -102,16 +102,8 @@ public class SequentialDssExecutor implements DssExecutor {
       }
     } catch (SolverException e) {
       throw new CPAException("Solver exception", e);
-    } finally {
-      collectWorkerStats(actors, workerStatistics);
     }
 
     return new StatusAndResult(AlgorithmStatus.SOUND_AND_PRECISE, Result.TRUE);
-  }
-
-  private void collectWorkerStats(DssActors actors, DssWorkerStatistics workerStatistics) {
-    for (DssAnalysisWorker worker : actors.getAnalysisWorkers()) {
-      workerStatistics.addMessage(worker.getStatsMessage());
-    }
   }
 }

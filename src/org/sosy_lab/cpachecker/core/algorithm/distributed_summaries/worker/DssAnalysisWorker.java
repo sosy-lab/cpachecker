@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
@@ -21,19 +20,17 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssBlockWorkerStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssMessageBroadcaster;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPostConditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -87,6 +84,8 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
 
   private final DssConnection connection;
 
+  private final DssBlockWorkerStatistics workerStats;
+
   private boolean shutdown;
   private boolean closed;
 
@@ -113,6 +112,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
       Specification pSpecification,
       DssMessageFactory pMessageFactory,
       ShutdownManager pShutdownManager,
+      DssWorkerStatistics pWorkerStatistics,
       LogManager pLogger)
       throws InvalidConfigurationException, IOException {
     super("analysis-worker-" + pId, pMessageFactory, pLogger);
@@ -129,6 +129,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
 
     messageFactory = pMessageFactory;
     logger = pLogger;
+    workerStats = pWorkerStatistics.createWorkerStats(pId);
     analysis =
         new CreateOrRetrieveThreadLocalAnalysis(
             () ->
@@ -140,7 +141,8 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
                     forwardConfiguration,
                     pOptions,
                     pMessageFactory,
-                    pShutdownManager));
+                    pShutdownManager,
+                    workerStats));
   }
 
   public Collection<DssMessage> runInitialAnalysis()
@@ -150,6 +152,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
 
   @Override
   public Collection<DssMessage> processMessage(DssMessage message) {
+    workerStats.getMessagesReceived().inc();
     return switch (message.getType()) {
       case POST_CONDITION -> {
         try {
@@ -179,9 +182,9 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
       }
       case EXCEPTION, RESULT -> {
         shutdown = true;
-        yield ImmutableSet.of(messageFactory.createDssStatisticsMessage(getBlockId(), getStats()));
+        close();
+        yield ImmutableSet.of();
       }
-      case STATISTIC -> ImmutableSet.of();
     };
   }
 
@@ -189,7 +192,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   public DssMessageProcessing storeMessage(DssMessage message)
       throws SolverException, InterruptedException, CPAException {
     return switch (message.getType()) {
-      case STATISTIC, RESULT, EXCEPTION -> DssMessageProcessing.stop();
+      case RESULT, EXCEPTION -> DssMessageProcessing.stop();
       case VIOLATION_CONDITION ->
           analysis
               .getDssBlockAnalysis()
@@ -213,7 +216,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   public void broadcast(Collection<DssMessage> pMessages) throws InterruptedException {
     DssMessageBroadcaster broadcaster = getConnection().getBroadcaster();
     for (DssMessage message : pMessages) {
-      sentMessages.inc();
+      workerStats.getMessagesSent().inc();
       switch (message.getType()) {
         case POST_CONDITION -> {
           broadcaster.broadcastToObserver(message);
@@ -228,7 +231,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
             broadcaster.broadcastToIds(message, block.getPredecessorIds());
           }
         }
-        case EXCEPTION, RESULT, STATISTIC -> {
+        case EXCEPTION, RESULT -> {
           broadcaster.broadcastToAll(message);
           close();
         }
@@ -264,27 +267,9 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
     return "Worker{block=" + block + ", finished=" + shutdownRequested() + '}';
   }
 
-  public DssStatisticsMessage getStatsMessage() {
-    return messageFactory.createDssStatisticsMessage(getBlockId(), getStats());
-  }
-
-  private ImmutableMap<StatisticsKey, String> getStats() {
-    ImmutableMap.Builder<StatisticsKey, String> stats = ImmutableMap.builder();
-
-    if (analysis.getDssBlockAnalysis().getDcpa() instanceof DistributedARGCPA arg
-        && arg.getWrappedCPA() instanceof DistributedCompositeCPA composite) {
-      stats.putAll(composite.getStatistics().getStatistics());
-    }
-
-    return stats
-        .putAll(analysis.getDssBlockAnalysis().getTimingStats())
-        .put(StatisticsKey.MESSAGES_SENT, Integer.toString(getSentMessages()))
-        .put(StatisticsKey.MESSAGES_RECEIVED, Integer.toString(getReceivedMessages()))
-        .buildOrThrow();
-  }
-
   @Override
   public void close() {
+    logger.logf(Level.INFO, "Worker %s called close().", getId());
     if (!closed && analysis.wouldBeCalledFromCorrectThread()) {
       CPAs.closeCpaIfPossible(analysis.getDssBlockAnalysis().getDcpa(), logger);
       closed = true;

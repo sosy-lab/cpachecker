@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssBlockWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -47,12 +48,13 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPostConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssThreadCPUTimer;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
@@ -122,14 +124,10 @@ public class DssBlockAnalysis {
 
   private final LogManager logger;
 
-  private final DssThreadCPUTimer storePreconditionTime =
-      new DssThreadCPUTimer("Store Precondition");
-  private final DssThreadCPUTimer analyzePreconditionTime =
-      new DssThreadCPUTimer("Analyze Precondition");
-  private final DssThreadCPUTimer storeViolationConditionTime =
-      new DssThreadCPUTimer("Store Violation Condition");
-  private final DssThreadCPUTimer analyzeViolationConditionTime =
-      new DssThreadCPUTimer("Analyze Violation Condition");
+  private final DssThreadCPUTimer storePreconditionTime;
+  private final DssThreadCPUTimer analyzePreconditionTime;
+  private final DssThreadCPUTimer storeViolationConditionTime;
+  private final DssThreadCPUTimer analyzeViolationConditionTime;
 
   private AlgorithmStatus status;
   private boolean containsViolationInsideBlock;
@@ -145,7 +143,8 @@ public class DssBlockAnalysis {
       Configuration pConfiguration,
       DssAnalysisOptions pOptions,
       DssMessageFactory pMessageFactory,
-      ShutdownManager pShutdownManager)
+      ShutdownManager pShutdownManager,
+      DssBlockWorkerStatistics pWorkerStats)
       throws CPAException, InterruptedException, InvalidConfigurationException {
     messageFactory = pMessageFactory;
     AnalysisComponents parts =
@@ -180,6 +179,16 @@ public class DssBlockAnalysis {
 
     containsViolationInsideBlock = false;
     combineByHash = pOptions.combineByHash();
+
+    storePreconditionTime = pWorkerStats.getStorePreconditionTime();
+    analyzePreconditionTime = pWorkerStats.getAnalyzePreconditionTime();
+    storeViolationConditionTime = pWorkerStats.getStoreViolationConditionTime();
+    analyzeViolationConditionTime = pWorkerStats.getAnalyzeViolationConditionTime();
+    // Register dcpa-level statistics with the worker stats object.
+    if (dcpa instanceof DistributedARGCPA arg
+        && arg.getWrappedCPA() instanceof DistributedCompositeCPA composite) {
+      pWorkerStats.setDcpaStatistics(composite.getStatistics());
+    }
   }
 
   /**
@@ -811,16 +820,6 @@ public class DssBlockAnalysis {
           new StateAndPrecision(
               dcpa.reset(entry.getValue().state()), entry.getValue().precision()));
     }
-  }
-
-  public ImmutableMap<StatisticsKey, String> getTimingStats() {
-    return ImmutableMap.of(
-        StatisticsKey.STORE_PRECONDITION_TIME, Long.toString(storePreconditionTime.nanos()),
-        StatisticsKey.ANALYZE_PRECONDITION_TIME, Long.toString(analyzePreconditionTime.nanos()),
-        StatisticsKey.STORE_VIOLATION_CONDITION_TIME,
-            Long.toString(storeViolationConditionTime.nanos()),
-        StatisticsKey.ANALYZE_VIOLATION_CONDITION_TIME,
-            Long.toString(analyzeViolationConditionTime.nanos()));
   }
 
   public DistributedConfigurableProgramAnalysis getDcpa() {

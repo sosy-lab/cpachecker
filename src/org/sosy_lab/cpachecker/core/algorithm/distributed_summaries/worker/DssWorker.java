@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public abstract class DssWorker implements DssActor {
@@ -25,9 +24,6 @@ public abstract class DssWorker implements DssActor {
   private final DssMessageFactory messageFactory;
   private final LogManager logger;
   private final String id;
-
-  private final StatCounter receivedMessages;
-  protected final StatCounter sentMessages;
 
   /**
    * Abstract definition of a Worker. All workers enter the same routine of receiving and producing
@@ -37,8 +33,6 @@ public abstract class DssWorker implements DssActor {
    */
   protected DssWorker(String pId, DssMessageFactory pMessageFactory, LogManager pLogger) {
     id = pId;
-    receivedMessages = new StatCounter(pId + " received messages");
-    sentMessages = new StatCounter(pId + " sent messages");
     messageFactory = pMessageFactory;
     logger = pLogger;
   }
@@ -47,7 +41,6 @@ public abstract class DssWorker implements DssActor {
   public void broadcast(Collection<DssMessage> pMessage) throws InterruptedException {
     // pMessage.forEach(m -> logger.log(Level.INFO, m));
     for (DssMessage message : pMessage) {
-      sentMessages.inc();
       getConnection().getBroadcaster().broadcastToAll(message);
     }
   }
@@ -70,10 +63,6 @@ public abstract class DssWorker implements DssActor {
     try (connection) {
       while (!shutdownRequested()) {
         broadcast(processMessage(nextMessage()));
-        receivedMessages.inc();
-        if (Thread.currentThread().isInterrupted()) {
-          break;
-        }
       }
     } catch (CPAException | InterruptedException | IOException | SolverException e) {
       logger.logfException(
@@ -90,11 +79,4 @@ public abstract class DssWorker implements DssActor {
     return id;
   }
 
-  int getReceivedMessages() {
-    return receivedMessages.getUpdateCount();
-  }
-
-  int getSentMessages() {
-    return sentMessages.getUpdateCount();
-  }
 }

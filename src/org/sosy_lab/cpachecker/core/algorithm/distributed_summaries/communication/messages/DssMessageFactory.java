@@ -15,7 +15,6 @@ import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 
 public class DssMessageFactory {
@@ -59,15 +58,6 @@ public class DssMessageFactory {
             .putAll(serializeStatus(pStatus))
             .putAll(pStateContent)
             .buildOrThrow());
-  }
-
-  public DssStatisticsMessage createDssStatisticsMessage(
-      String pSenderId, ImmutableMap<StatisticsKey, String> pContent) {
-    ImmutableMap.Builder<String, String> serializedContentBuilder = ImmutableMap.builder();
-    for (Map.Entry<StatisticsKey, String> entry : pContent.entrySet()) {
-      serializedContentBuilder.put(entry.getKey().name(), entry.getValue());
-    }
-    return new DssStatisticsMessage(pSenderId, serializedContentBuilder.buildOrThrow());
   }
 
   public DssResultMessage createDssResultMessage(String pSenderId, Result pResult) {

@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -20,23 +19,13 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Observer worker that detects termination conditions based on the received messages.
  *
- * <p>DssObserverWorker detects a termination condition when:
- *
- * <ul>
- *   <li>All blocks report that no violations are reachable (SAFE verdict)
- *   <li>A root block reports a reachable violation (UNSAFE verdict)
- *   <li>An exception occurs during analysis
- * </ul>
- *
- * To function correctly, this DssObserverWorker must receive the messages of all analysis workers.
- *
- * <p>The observer also collects statistics from all workers for analysis reporting.
+ * <p>DssObserverWorker shuts down as soon as a RESULT or EXCEPTION message arrives. Statistics are
+ * collected directly from analysis workers by the executor after joining their threads.
  */
 public class DssObserverWorker extends DssWorker {
 
@@ -46,16 +35,11 @@ public class DssObserverWorker extends DssWorker {
   private Optional<Result> result;
   private Optional<String> errorMessage;
 
-  private final Map<String, DssStatisticsMessage> stats = new HashMap<>();
-
-  private final int numberOfBlocks;
-
   public record StatusAndResult(AlgorithmStatus status, Result result) {}
 
   public DssObserverWorker(
       String pId,
       DssConnection pConnection,
-      int pNumberOfBlocks,
       DssMessageFactory pMessageFactory,
       LogManager pLogger) {
     super(pId, pMessageFactory, pLogger);
@@ -64,7 +48,6 @@ public class DssObserverWorker extends DssWorker {
     statusObserver = new StatusObserver();
     errorMessage = Optional.empty();
     result = Optional.empty();
-    numberOfBlocks = pNumberOfBlocks;
   }
 
   @Override
@@ -73,15 +56,12 @@ public class DssObserverWorker extends DssWorker {
       case RESULT -> {
         result = Optional.of(pMessage.getResult());
         statusObserver.updateStatus(pMessage);
+        shutdown = true;
       }
       case VIOLATION_CONDITION, POST_CONDITION -> statusObserver.updateStatus(pMessage);
       case EXCEPTION -> {
         errorMessage = Optional.of(pMessage.getExceptionMessage());
         shutdown = true;
-      }
-      case STATISTIC -> {
-        stats.put(pMessage.getSenderId(), (DssStatisticsMessage) pMessage);
-        shutdown = stats.size() == numberOfBlocks;
       }
     }
     return ImmutableList.of();
@@ -120,7 +100,7 @@ public class DssObserverWorker extends DssWorker {
       switch (pMessage.getType()) {
         case VIOLATION_CONDITION, POST_CONDITION ->
             statusMap.put(pMessage.getSenderId(), pMessage.getAlgorithmStatus());
-        case RESULT, EXCEPTION, STATISTIC -> {}
+        case RESULT, EXCEPTION -> {}
       }
     }
 
@@ -129,9 +109,5 @@ public class DssObserverWorker extends DssWorker {
           .reduce(AlgorithmStatus::update)
           .orElse(AlgorithmStatus.NO_PROPERTY_CHECKED);
     }
-  }
-
-  public ImmutableMap<String, DssStatisticsMessage> getCollectedStats() {
-    return ImmutableMap.copyOf(stats);
   }
 }
