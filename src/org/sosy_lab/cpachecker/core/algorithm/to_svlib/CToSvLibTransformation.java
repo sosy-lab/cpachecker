@@ -126,7 +126,7 @@ class CToSvLibTransformation {
     // Only in the procedure created for the main() function, and not entry functions in general:
     // Initialize _retval_ to 0 to account for the possibility of an implicit return 0; statement
     // in the main() function if no return value has been explicitly defined.
-    if (pEntryNode.getFunctionName().contains("main")
+    if (pEntryNode.getFunctionName().equals("main")
         && !procedureDeclaration.getReturnValues().isEmpty()) {
       statementCollector.put(
           pEntryNode,
