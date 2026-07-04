@@ -11,17 +11,23 @@ package org.sosy_lab.cpachecker.cfa.transformation;
 import static org.sosy_lab.cpachecker.cfa.transformation.LoopAccelerationUtils.closedFormAffine;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.matheclipse.core.eval.ExprEvaluator;
 import org.matheclipse.core.expression.F;
 import org.matheclipse.core.interfaces.IExpr;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -29,7 +35,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.transformation.LoopAccelerationUtils.Coefficient;
 import org.sosy_lab.cpachecker.cfa.transformation.LoopAccelerationUtils.RowSummand;
+import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
@@ -58,7 +66,7 @@ public class LoopAccelerationProgramTransformation extends ProgramTransformation
 
     // calculate the closed form of the loop
     Optional<ArrayList<ArrayList<RowSummand>>> closedFormOptional =
-        closedFormAffine(transformationData.A, transformationData.b, transformationData.x);
+        closedFormAffine(transformationData.A, transformationData.b, transformationData.varNames);
     if (closedFormOptional.isEmpty()) {
       return Optional.empty();
     }
@@ -66,21 +74,30 @@ public class LoopAccelerationProgramTransformation extends ProgramTransformation
     // f.e. let x = {x0, x1, x2} and closedForm = {{...}, {(0, x0, 0, lam0), (3, x1, 1, lam1), (-5, x2, 2, lam2)}, {...}}
     //   then we get x1 = 0 * n^0 * lam0^n * x0 + 3 * n * lam1^n * x1 - 5 * n^2 * lam2^n * x2
     ArrayList<ArrayList<RowSummand>> closedForm = closedFormOptional.orElseThrow();
+
+    // insert n into the closed form and build the resulting assignment statements
     ImmutableList.Builder<CExpressionAssignmentStatement> assignmentStatements = ImmutableList.builder();
-    int counter = 0;
+    int index = 0;
     for (ArrayList<RowSummand> assignment : closedForm) {
+      ArrayList<Coefficient> assignmentWithn = new  ArrayList<>();
+      // todo insert n
+      for (RowSummand rowSummand : assignment) {
+        int val = rowSummand.coeff() * (int)Math.pow(transformationData.numberOfIterations, rowSummand.power() * (int)Math.pow(rowSummand.lambda(), transformationData.numberOfIterations));
+        // todo check for overflows
+        assignmentWithn.add(new Coefficient(val, rowSummand.variable()));
+      }
       CExpressionAssignmentStatement assignmentStatement =
           new CExpressionAssignmentStatement(
               FileLocation.DUMMY,
               new CIdExpression(
                   FileLocation.DUMMY,
-                  null,
-                  transformationData.x[counter],
-                  null
+                  transformationData.x[index].getExpressionType(),
+                  transformationData.x[index].getName(),
+                  transformationData.x[index].getDeclaration()
               ),
               null);
       assignmentStatements.add(assignmentStatement);
-      counter++;
+      index++;
     }
 
     // perform transformation
@@ -137,11 +154,87 @@ public class LoopAccelerationProgramTransformation extends ProgramTransformation
       return Optional.empty();
     }
 
+    // todo calculate n
+    int n = 5;
+
     ImmutableSet<Loop> loops = pLoopStructure.getLoopsForLoopHead(pNode);
     Iterator<Loop> loopIterable = loops.iterator();
     for (Iterator<Loop> it = loopIterable; it.hasNext(); ) {
       Loop loop = it.next();
+      ImmutableSet<CFAEdge> loopEdges = loop.getInnerLoopEdges();
+      CFAEdge firstEdge = null;
+      for (CFAEdge edge : pNode.getLeavingEdges()) {
+        if (loopEdges.contains(edge)) {
+          firstEdge = edge;
+        }
+      }
+      if (firstEdge == null) {return  Optional.empty(); }
+      LoopAccelerationVisitor visitor = new LoopAccelerationVisitor(pNode);
+      TraversalProcess traversalProcess = visitor.visitEdge(firstEdge);
+      while (traversalProcess != TraversalProcess.ABORT) {
+        if (visitor.getLastEdge().isPresent()) {
+          traversalProcess = visitor.visitNode(visitor.getLastEdge().orElseThrow().getSuccessor());
+        } else if (visitor.getLastNode().isPresent()) {
+          traversalProcess = visitor.visitEdge(visitor.getLastNode().orElseThrow().getLeavingEdge(0));
+        } else {
+          break;
+        }
+      }
+      boolean isAffineLoop = true;
+      int[] b;
+      int[][] A;
+      CIdExpression[] x;
+      if (! visitor.wasSuccesful()) {
+        isAffineLoop = false;
+      } else {
+        // extract the loop as A * x + b from the collected statements
+        ImmutableList<CExpressionAssignmentStatement> assignmentStatements =
+            visitor.getStatements().build();
+        x = new CIdExpression[assignmentStatements.size()];
+        CExpression[] rightHandSides = new CExpression[assignmentStatements.size()];
+        b = new int[assignmentStatements.size()];
+        A = new int[assignmentStatements.size()][assignmentStatements.size()];
+        int i = 0;
+        for (CExpressionAssignmentStatement assignment : assignmentStatements) {
+          if (assignment.getLeftHandSide() instanceof CIdExpression variableExpression) {
+            x[i] = variableExpression;
+          } else {
+            isAffineLoop = false;
+            break;
+          }
+          // todo righthandside
+          rightHandSides[i] = assignment.getRightHandSide();
+          i++;
+        }
+        ArrayList<String> varNames = new ArrayList<>();
+        for (i = 0; i < x.length; i++) {
+          varNames.add(x[i].getName());
+        }
+        LoopAccelerationAffineLoopVisitor loopVisitor = new LoopAccelerationAffineLoopVisitor(varNames);
+        if(loopVisitor.visit(rightHandSides) == TraversalProcess.ABORT) {
+          isAffineLoop = false;
+        }
 
+        ImmutableMap<String, BigInteger[]> iterationMatrix = loopVisitor.getAssignments();
+        for (i = 0; i < x.length; i++) {
+          if (!iterationMatrix.containsKey(varNames.get(i))) {
+            isAffineLoop = false;
+            break;
+          }
+          BigInteger[] coefficients = iterationMatrix.get(varNames.get(i));
+          for (int j = 0; j < coefficients.length; j++) {
+            if (j == coefficients.length - 1) {
+              b[i] = coefficients[j].intValue();
+            } else {
+              A[i][j] =  coefficients[j].intValue();
+            }
+          }
+        }
+
+        if (isAffineLoop) {
+          return Optional.of(new TransformationData(n, Matrix.createMatrix(A), b, x, varNames.toArray(new String[x.length])));
+        }
+      }
     }
 
     return Optional.empty();
@@ -158,6 +251,7 @@ public class LoopAccelerationProgramTransformation extends ProgramTransformation
       int numberOfIterations,
       Matrix A,
       int[] b,
-      String[] x
+      CIdExpression[] x,
+      String[] varNames
   ) {}
 }

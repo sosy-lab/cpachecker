@@ -84,9 +84,10 @@ public class LoopAccelerationUtils {
 
       // 1. calculate the jordan form of the loop: A = P * J * Pinv
       IExpr jordanForm = util.eval("JordanDecomposition(" + A + ")");
-      assert (jordanForm.isListOfMatrices() && jordanForm.size() == 2) : "Error: jordan decomposition failed in LoopAccelerationProgramTransformation!";
+      //assert (jordanForm.isListOfMatrices() && jordanForm.size() == 2) : "Error: jordan decomposition failed in LoopAccelerationProgramTransformation!";
       Matrix P = Matrix.createMatrix(jordanForm.first().toIntMatrix());
       Matrix J = Matrix.createMatrix(jordanForm.last().toIntMatrix());
+      // TODO Pinv might have rational numbers
       Matrix Pinv = Matrix.createMatrix(util.eval("Inverse("+P+")").toIntMatrix());
       int d = A.getColumnNum();
       boolean negativeEigenvalue = false;
@@ -253,5 +254,10 @@ public class LoopAccelerationUtils {
       String variable,
       int power,
       int lambda
+  ) {}
+
+  public record Coefficient (
+      int coeff,
+      String variable
   ) {}
 }

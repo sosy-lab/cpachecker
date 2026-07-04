@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.transformation;
 
 public enum ProgramTransformationEnum {
+  LOOP_ACCELERATION,
   JUMP_THREADING,
   TAIL_RECURSION_ELIMINATION
 }

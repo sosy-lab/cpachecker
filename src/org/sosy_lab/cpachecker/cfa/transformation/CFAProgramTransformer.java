@@ -25,6 +25,7 @@ public class CFAProgramTransformer {
     ImmutableList<ProgramTransformationEnum> selectedProgramTransformations =
         new ImmutableList.Builder<ProgramTransformationEnum>()
             .add(ProgramTransformationEnum.TAIL_RECURSION_ELIMINATION)
+            .add(ProgramTransformationEnum.LOOP_ACCELERATION)
             .build();
 
     ImmutableList.Builder<ProgramTransformationInformation> newProgramTransformations =
@@ -35,9 +36,9 @@ public class CFAProgramTransformer {
       Iterable<CFANode> cfaNodeIterable = cfaNetworkTraverser.breadthFirst(functionEntryNode);
 
       for (CFANode currentNode : cfaNodeIterable) {
-        if (selectedProgramTransformations.contains(ProgramTransformationEnum.JUMP_THREADING)) {
+        if (selectedProgramTransformations.contains(ProgramTransformationEnum.LOOP_ACCELERATION)) {
           Optional<ProgramTransformationInformation> transformationResult =
-              new JumpThreadingProgramTransformation().transform(pCFA, currentNode);
+              new LoopAccelerationProgramTransformation().transform(pCFA, currentNode);
           if (transformationResult.isPresent()) {
             newProgramTransformations.add(transformationResult.orElseThrow());
           }
