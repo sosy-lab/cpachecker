@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
@@ -492,6 +493,41 @@ public class AcslToFomulaVisitorsTest {
     AcslPredicate forall = new AcslForallPredicate(FileLocation.DUMMY, ImmutableList.of(x), body);
 
     BooleanFormula f = translate(forall);
+    assertThat(smtSolver.isUnsat(f)).isTrue();
+  }
+
+  @Test
+  public void testPredicateApplication()
+      throws SolverException, InterruptedException, InvalidConfigurationException {
+    // P(x) and not P(x) should be unsatisfiable
+
+    CProgramScope cProgramScope = getCProgramScope();
+    AcslTerm x = getAcslIdTermFromVarName(cProgramScope, "x");
+
+    AcslParameterDeclaration paramX =
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "x", "P::x");
+
+    AcslPredicateDeclaration predDecl =
+        new AcslPredicateDeclaration(
+            FileLocation.DUMMY,
+            new AcslPredicateType(ImmutableList.of(paramX.getType()), false),
+            "P",
+            "P",
+            ImmutableList.of(),
+            ImmutableList.of(paramX));
+
+    AcslPredicate predApp =
+        new AcslPredicateApplicationPredicate(FileLocation.DUMMY, predDecl, ImmutableList.of(x));
+
+    AcslPredicate finalPred =
+        new AcslBinaryPredicate(
+            FileLocation.DUMMY,
+            predApp,
+            new AcslUnaryPredicate(
+                FileLocation.DUMMY, predApp, AcslUnaryExpressionOperator.NEGATION),
+            AcslBinaryPredicateOperator.AND);
+
+    BooleanFormula f = translate(finalPred);
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 
