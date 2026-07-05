@@ -11,8 +11,10 @@ package org.sosy_lab.cpachecker.cfa.transformation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.hipparchus.linear.RealMatrix;
 import org.matheclipse.core.eval.ExprEvaluator;
 import org.matheclipse.core.expression.F;
+import org.matheclipse.core.interfaces.IAST;
 import org.matheclipse.core.interfaces.IExpr;
 
 public class LoopAccelerationUtils {
@@ -88,7 +90,11 @@ public class LoopAccelerationUtils {
       Matrix P = Matrix.createMatrix(jordanForm.first().toIntMatrix());
       Matrix J = Matrix.createMatrix(jordanForm.last().toIntMatrix());
       // TODO Pinv might have rational numbers
-      Matrix Pinv = Matrix.createMatrix(util.eval("Inverse("+P+")").toIntMatrix());
+      RealMatrix Pinv = util.eval("Inverse("+P+")").toRealMatrix();
+      //Matrix Pinv = Matrix.createMatrix(util.eval("Inverse("+P+")").toIntMatrix());
+      IExpr P2 = jordanForm.first();
+      IExpr J2 = jordanForm.last();
+      IExpr Pinv2 = util.eval(F.Inverse(P2));
       int d = A.getColumnNum();
       boolean negativeEigenvalue = false;
 
@@ -96,35 +102,38 @@ public class LoopAccelerationUtils {
       List<BlockInfo> blockInfos = new ArrayList<>();
       int m = 1;
       for (int i = 0; i < d; i = i + m) {
-        int lamba = J.getElement(i,i);
-        if (lamba < 0) {
+        IExpr lambda = util.eval(getMatrixEntry(J2, i, i));
+        if (lambda.less(util.eval("0")).isTrue()) {
           negativeEigenvalue = true;
         }
         m = 1;
         while (i + m < d &&
-            J.getElement(i + m - 1, i + m) == 1) {
+            util.eval(getMatrixEntry(J2, i + m - 1, i + m)).isOne()) {
           m++;
         }
-        blockInfos.add(new BlockInfo(i, m, lamba));
+        blockInfos.add(new BlockInfo(i, m, lambda));
       }
 
       // 3. N0 = maximal size among zero eigenvalue blocks
       int N0 = 0;
       for (BlockInfo block : blockInfos) {
-        if (block.lambda == 0) {
+        if (block.lambda.isZero()) {
           N0 = Math.max(N0, block.blockSize);
         }
       }
 
       // 4. Compute J^n
-      List<Summand>[][] Jn = new ArrayList[d][d];
+      ArrayList<Summand>[][] Jn = (ArrayList<Summand>[][]) new ArrayList[d][d];
+      for (int i = 0; i < d; i++) {
+        for (int j = 0; j < d; j++) {
+          Jn[i][j] = new ArrayList<>();
+        }
+      }
       for (BlockInfo block : blockInfos) {
-        for (int i = 0; i < block.startIndex; i++) {
-          for (int j = 0; j < block.startIndex; j++) {
+        for (int i = 0; i < block.blockSize; i++) {
+          for (int j = 0; j < block.blockSize; j++) {
             int r = j - i;
-            if (r < 0) {
-              Jn[i][j] = new ArrayList<>();
-            } else {
+            if (r >= 0) {
               IExpr poly;
               if (r == 0) {
                 poly = util.eval("1");
@@ -133,23 +142,18 @@ public class LoopAccelerationUtils {
                 for (int k = 0; k < r; k++) {
                   poly = poly.times(n.subtract(util.eval(String.valueOf(k))));
                 }
-                poly = util.eval("Divide("+poly+", Factorial("+r+"))");
                 poly = poly.divide(util.eval(String.valueOf(r)).factorial());
                 poly = F.evalSimplify(poly);
               }
               // TODO check if this is correct
               int deg = r;
 
-              List<Summand> summands = new ArrayList<>();
-              if (block.lambda != 0) {
-                IExpr coeffsExpr = F.CoefficientList(poly, n);
-                int[] coeffs = coeffsExpr.toIntVector();
-                for (int s = 0; s < deg; s++) {
-                  // TODO cant this be calculated directly??
-                  // IExpr coeffExpr =
-                  // F.evalSimplify(util.eval(String.valueOf(coeff)).times(util.eval(String.valueOf(block.lambda)).pow(-1 * r)));
-                  int coeff = coeffs[s] * ((int)Math.pow(block.lambda, -1 * r));
-                  if (coeff != 0) {
+              ArrayList<Summand> summands = new ArrayList<>();
+              if (!block.lambda.isZero()) {
+                IExpr coeffList = util.eval(F.CoefficientList(poly, n));
+                for (int s = 0; s < deg + 1; s++) {
+                  IExpr coeff = coeffList.getAt(s+1).multiply(block.lambda.pow(-1 * r));
+                  if (!coeff.isZero()) {
                     summands.add(new Summand(coeff, s, block.lambda));
                   }
                 }
@@ -161,16 +165,21 @@ public class LoopAccelerationUtils {
       }
 
       // 5. Compute M = P * J^n
-      List<Summand>[][] M = new ArrayList[d][d];
+      List<Summand>[][] M = (ArrayList<Summand>[][]) new ArrayList[d][d];
+      for (int i = 0; i < d; i++) {
+        for (int j = 0; j < d; j++) {
+          M[i][j] = new ArrayList<>();
+        }
+      }
       for (int i = 0; i < d; i++) {
         for (int j = 0; j < d; j++) {
           List<Summand> acc = new ArrayList<>();
           for (int k = 0; k < d; k++) {
-            if (P.getElement(i,j) != 0) {
+            if (P.getElement(i,k) != 0) {
               List<Summand> JnSummand = Jn[k][j];
               for (Summand summand : JnSummand) {
-                if (summand.coeff != 0) {
-                  acc.add(new Summand(summand.coeff * P.getElement(i,j), summand.power, summand.lambda));
+                if (!summand.coeff.isZero()) {
+                  acc.add(new Summand(summand.coeff.multiply(getMatrixEntry(P2, i, k)), summand.power, summand.lambda));
                 }
               }
             }
@@ -180,16 +189,22 @@ public class LoopAccelerationUtils {
       }
 
       // 6. Compute A^n = M * Pinv
-      List<Summand>[][] An = new ArrayList[d][d];
+      List<Summand>[][] An = (ArrayList<Summand>[][]) new ArrayList[d][d];
+      for (int i = 0; i < d; i++) {
+        for (int j = 0; j < d; j++) {
+          An[i][j] = new ArrayList<>();
+        }
+      }
       for (int i = 0; i < d; i++) {
         for (int j = 0; j < d; j++) {
           List<Summand> acc = new ArrayList<>();
           for (int k = 0; k < d; k++) {
-            if (Pinv.getElement(k,j) != 0) {
+            //if (Pinv.getElement(k,j) != 0) {
+            if (Pinv.getEntry(k,j) != 0) {
               List<Summand> JnSummand = M[i][k];
               for (Summand summand : JnSummand) {
-                if (summand.coeff != 0) {
-                  acc.add(new Summand(summand.coeff * Pinv.getElement(k,j), summand.power, summand.lambda));
+                if (!summand.coeff.isZero()) {
+                  acc.add(new Summand(summand.coeff.multiply(getMatrixEntry(Pinv2, k, j)), summand.power, summand.lambda));
                 }
               }
             }
@@ -204,7 +219,7 @@ public class LoopAccelerationUtils {
         ArrayList<RowSummand> row = new ArrayList<>();
         for (int j = 0; j < d; j++) {
           for (Summand summand : An[i][j]) {
-            if (summand.coeff != 0) {
+            if (!summand.coeff.isZero()) {
               row.add(new RowSummand(
                   summand.coeff,
                   x[j],
@@ -227,7 +242,7 @@ public class LoopAccelerationUtils {
   private record BlockInfo (
       int startIndex,
       int blockSize,
-      int lambda
+      IExpr lambda
   ) {}
 
   /**
@@ -237,9 +252,9 @@ public class LoopAccelerationUtils {
    * @param lambda
    */
   private record Summand (
-      int coeff,
+      IExpr coeff,
       int power,
-      int lambda
+      IExpr lambda
   ) {}
 
   /**
@@ -250,14 +265,19 @@ public class LoopAccelerationUtils {
    * @param lambda
    */
   public record RowSummand (
-      int coeff,
+      IExpr coeff,
       String variable,
       int power,
-      int lambda
+      IExpr lambda
   ) {}
 
   public record Coefficient (
       int coeff,
       String variable
   ) {}
+
+  private static IExpr getMatrixEntry(IExpr matrix, int i, int j) {
+    IAST m = (IAST) matrix;
+    return ((IAST) m.get(i + 1)).get(j + 1);
+  }
 }

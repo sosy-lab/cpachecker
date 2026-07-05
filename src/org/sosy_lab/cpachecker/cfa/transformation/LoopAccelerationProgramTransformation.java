@@ -82,7 +82,7 @@ public class LoopAccelerationProgramTransformation extends ProgramTransformation
       ArrayList<Coefficient> assignmentWithn = new  ArrayList<>();
       // todo insert n
       for (RowSummand rowSummand : assignment) {
-        int val = rowSummand.coeff() * (int)Math.pow(transformationData.numberOfIterations, rowSummand.power() * (int)Math.pow(rowSummand.lambda(), transformationData.numberOfIterations));
+        int val = rowSummand.coeff().toIntDefault() * (int)Math.pow(transformationData.numberOfIterations, rowSummand.power() * (int)Math.pow(rowSummand.lambda().toIntDefault(), transformationData.numberOfIterations));
         // todo check for overflows
         assignmentWithn.add(new Coefficient(val, rowSummand.variable()));
       }
