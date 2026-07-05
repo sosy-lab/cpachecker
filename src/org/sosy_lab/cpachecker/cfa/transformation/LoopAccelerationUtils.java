@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.transformation;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -16,6 +17,18 @@ import org.matheclipse.core.eval.ExprEvaluator;
 import org.matheclipse.core.expression.F;
 import org.matheclipse.core.interfaces.IAST;
 import org.matheclipse.core.interfaces.IExpr;
+import org.matheclipse.core.interfaces.IExpr.COMPARE_TERNARY;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 
 public class LoopAccelerationUtils {
 
@@ -56,7 +69,7 @@ public class LoopAccelerationUtils {
           row.replaceAll(
               (RowSummand summand) ->
                   summand.variable.equals("x_fresh")
-                  ? new RowSummand(summand.coeff, null, summand.power, summand.lambda)
+                  ? new RowSummand(summand.coeff, "", summand.power, summand.lambda)
                   : summand);
         }
 
@@ -89,9 +102,7 @@ public class LoopAccelerationUtils {
       //assert (jordanForm.isListOfMatrices() && jordanForm.size() == 2) : "Error: jordan decomposition failed in LoopAccelerationProgramTransformation!";
       Matrix P = Matrix.createMatrix(jordanForm.first().toIntMatrix());
       Matrix J = Matrix.createMatrix(jordanForm.last().toIntMatrix());
-      // TODO Pinv might have rational numbers
       RealMatrix Pinv = util.eval("Inverse("+P+")").toRealMatrix();
-      //Matrix Pinv = Matrix.createMatrix(util.eval("Inverse("+P+")").toIntMatrix());
       IExpr P2 = jordanForm.first();
       IExpr J2 = jordanForm.last();
       IExpr Pinv2 = util.eval(F.Inverse(P2));
@@ -238,7 +249,6 @@ public class LoopAccelerationUtils {
     }
   }
 
-
   private record BlockInfo (
       int startIndex,
       int blockSize,
@@ -273,11 +283,86 @@ public class LoopAccelerationUtils {
 
   public record Coefficient (
       int coeff,
-      String variable
+      CIdExpression variable
   ) {}
 
   private static IExpr getMatrixEntry(IExpr matrix, int i, int j) {
     IAST m = (IAST) matrix;
-    return ((IAST) m.get(i + 1)).get(j + 1);
+    return m.get(i + 1).get(j + 1);
+  }
+
+  /**
+   * Calculate the exact value of a coefficient for n loop iterations.
+   * @param n the number of loop iterations
+   * @param rowSummand values from calculating the closed form
+   * @return coefficient expression
+   */
+  public static List<Coefficient> simplifyClosedFormAssignment(int n, List<RowSummand> rowSummand, CIdExpression[] variables) {
+    ArrayList<Coefficient> coefficients = new ArrayList<>();
+    ArrayList<RowSummand> tmpList = new ArrayList<>();
+    ExprEvaluator util = new ExprEvaluator(false, (short) 100);
+    for (RowSummand summand : rowSummand) {
+      IExpr coeff = summand.coeff.multiply((util.eval(String.valueOf(n)).pow(summand.power)).multiply(summand.lambda.pow(n)));
+      boolean alreadyPresent = false;
+      for (RowSummand summand2 : tmpList) {
+        if (summand2.variable.equals(summand.variable)) {
+          tmpList.add(new RowSummand(summand2.coeff().plus(coeff), summand.variable, 0, null));
+          tmpList.remove(summand2);
+          alreadyPresent = true;
+        }
+      }
+      if (!alreadyPresent) {
+        tmpList.add(new RowSummand(coeff, summand.variable, 0, null));
+      }
+    }
+
+    for (RowSummand summand : tmpList) {
+      if (summand.variable.isEmpty()) {
+        coefficients.add(new Coefficient(summand.coeff.toIntDefault(), null));
+      } else {
+        for (CIdExpression variable : variables) {
+          if (variable.getName().equals(summand.variable)) {
+            coefficients.add(new Coefficient(summand.coeff.toIntDefault(), variable));
+            break;
+          }
+        }
+      }
+    }
+
+    return coefficients;
+  }
+
+  public static CExpression expressionFromCoefficients(List<Coefficient> coefficients) {
+    int num = coefficients.size();
+    if (num == 1) {
+      // constant
+      if (coefficients.getFirst().variable == null) {
+        return new CIntegerLiteralExpression(
+            FileLocation.DUMMY,
+            CNumericTypes.INT,
+            BigInteger.valueOf(coefficients.getFirst().coeff)
+        );
+      }
+      return new CBinaryExpression(
+          FileLocation.DUMMY,
+          CNumericTypes.INT,
+          CNumericTypes.INT,
+          new CIntegerLiteralExpression(
+              FileLocation.DUMMY,
+              CNumericTypes.INT,
+              BigInteger.valueOf(coefficients.getFirst().coeff)),
+          coefficients.getFirst().variable,
+          BinaryOperator.MULTIPLY);
+
+    } else {
+      return new CBinaryExpression(
+          FileLocation.DUMMY,
+          CNumericTypes.INT,
+          CNumericTypes.INT,
+          expressionFromCoefficients(coefficients.subList(0, 1)),
+          expressionFromCoefficients(coefficients.subList(1, num)),
+          BinaryOperator.PLUS
+      );
+    }
   }
 }

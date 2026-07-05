@@ -51,6 +51,5 @@ public class LoopAccelerationTest {
         new LoopAccelerationProgramTransformation()
             .transform(cfa, loopHead);
     assertThat(successfulTransformation.isEmpty()).isFalse();
-
   }
 }

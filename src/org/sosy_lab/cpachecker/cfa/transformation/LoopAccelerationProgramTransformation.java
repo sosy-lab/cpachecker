@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.cfa.transformation;
 
 import static org.sosy_lab.cpachecker.cfa.transformation.LoopAccelerationUtils.closedFormAffine;
+import static org.sosy_lab.cpachecker.cfa.transformation.LoopAccelerationUtils.expressionFromCoefficients;
+import static org.sosy_lab.cpachecker.cfa.transformation.LoopAccelerationUtils.simplifyClosedFormAssignment;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -79,13 +81,7 @@ public class LoopAccelerationProgramTransformation extends ProgramTransformation
     ImmutableList.Builder<CExpressionAssignmentStatement> assignmentStatements = ImmutableList.builder();
     int index = 0;
     for (ArrayList<RowSummand> assignment : closedForm) {
-      ArrayList<Coefficient> assignmentWithn = new  ArrayList<>();
-      // todo insert n
-      for (RowSummand rowSummand : assignment) {
-        int val = rowSummand.coeff().toIntDefault() * (int)Math.pow(transformationData.numberOfIterations, rowSummand.power() * (int)Math.pow(rowSummand.lambda().toIntDefault(), transformationData.numberOfIterations));
-        // todo check for overflows
-        assignmentWithn.add(new Coefficient(val, rowSummand.variable()));
-      }
+      List<Coefficient> assignmentWithn = simplifyClosedFormAssignment(transformationData.numberOfIterations, assignment, transformationData.x);
       CExpressionAssignmentStatement assignmentStatement =
           new CExpressionAssignmentStatement(
               FileLocation.DUMMY,
@@ -95,49 +91,41 @@ public class LoopAccelerationProgramTransformation extends ProgramTransformation
                   transformationData.x[index].getName(),
                   transformationData.x[index].getDeclaration()
               ),
-              null);
+              expressionFromCoefficients(assignmentWithn));
       assignmentStatements.add(assignmentStatement);
       index++;
     }
+    ImmutableList<CExpressionAssignmentStatement> assignments = assignmentStatements.build();
 
     // perform transformation
     ImmutableList.Builder<CFANode> nodes = ImmutableList.builder();
     ImmutableList.Builder<CFAEdge> edges = ImmutableList.builder();
     CFANode newEntryNode = CFANode.newDummyCFANode(pNode.getFunctionName());
     CFANode newExitNode = CFANode.newDummyCFANode(pNode.getFunctionName());
-    CFANode nodeBeforeLoop = null;  // todo must be set in canBeApplied
-    CFANode nodeAfterLoop = null;   // todo must be set in canBeApplied
-//    nodes.add(newEntryNode, newExitNode);
-//    CFANode currentNode = newEntryNode;
-//    for (CStatement assignment : transformationData.assignments()) {
-//      CStatement acceleratedAssignment = calculateAcceleratedStatement(transformationData.numberOfIterations, assignment);
-//      if (transformationData.assignments.getLast() == assignment) {
-//        CStatementEdge newEdge = new CStatementEdge(
-//            null,
-//            acceleratedAssignment,
-//            FileLocation.DUMMY,
-//            currentNode,
-//            newExitNode
-//        );
-//        edges.add(newEdge);
-//      } else {
-//        CFANode newNode = CFANode.newDummyCFANode(pNode.getFunctionName());
-//        nodes.add(newNode);
-//        CStatementEdge newEdge = new CStatementEdge(
-//            null,
-//            acceleratedAssignment,
-//            FileLocation.DUMMY,
-//            currentNode,
-//            newNode
-//        );
-//        edges.add(newEdge);
-//        currentNode = newNode;
-//      }
-//    }
+
+    CFANode currentNode = newEntryNode;
+    CFANode nextNode;
+    for (int i = 0; i < assignments.size(); i++) {
+      if (i == assignments.size() - 1) {
+        nextNode = newExitNode;
+      } else {
+        nextNode = CFANode.newDummyCFANode(pNode.getFunctionName());
+        nodes.add(nextNode);
+      }
+      CFAEdge newEdge = new CStatementEdge(
+          assignments.get(i).toString(),
+          assignments.get(i),
+          FileLocation.DUMMY,
+          currentNode,
+          nextNode
+      );
+      edges.add(newEdge);
+      currentNode = nextNode;
+    }
 
     SubCFA subCFA = new SubCFA(
-        nodeBeforeLoop,
-        nodeAfterLoop,
+        transformationData.loopNode,
+        transformationData.nodeAfterLoop,
         newEntryNode,
         newExitNode,
         ProgramTransformationEnum.LOOP_ACCELERATION,
@@ -154,6 +142,8 @@ public class LoopAccelerationProgramTransformation extends ProgramTransformation
       return Optional.empty();
     }
 
+    CFANode nodeAfterLoop = null;
+
     // todo calculate n
     int n = 5;
 
@@ -166,6 +156,8 @@ public class LoopAccelerationProgramTransformation extends ProgramTransformation
       for (CFAEdge edge : pNode.getLeavingEdges()) {
         if (loopEdges.contains(edge)) {
           firstEdge = edge;
+        } else {
+          nodeAfterLoop = edge.getPredecessor();
         }
       }
       if (firstEdge == null) {return  Optional.empty(); }
@@ -184,7 +176,7 @@ public class LoopAccelerationProgramTransformation extends ProgramTransformation
       int[] b;
       int[][] A;
       CIdExpression[] x;
-      if (! visitor.wasSuccesful()) {
+      if (! visitor.wasSuccesful() || nodeAfterLoop == null) {
         isAffineLoop = false;
       } else {
         // extract the loop as A * x + b from the collected statements
@@ -202,7 +194,6 @@ public class LoopAccelerationProgramTransformation extends ProgramTransformation
             isAffineLoop = false;
             break;
           }
-          // todo righthandside
           rightHandSides[i] = assignment.getRightHandSide();
           i++;
         }
@@ -232,7 +223,7 @@ public class LoopAccelerationProgramTransformation extends ProgramTransformation
         }
 
         if (isAffineLoop) {
-          return Optional.of(new TransformationData(n, Matrix.createMatrix(A), b, x, varNames.toArray(new String[x.length])));
+          return Optional.of(new TransformationData(n, pNode, nodeAfterLoop, Matrix.createMatrix(A), b, x, varNames.toArray(new String[x.length])));
         }
       }
     }
@@ -249,6 +240,8 @@ public class LoopAccelerationProgramTransformation extends ProgramTransformation
    */
   private record TransformationData(
       int numberOfIterations,
+      CFANode loopNode,
+      CFANode nodeAfterLoop,
       Matrix A,
       int[] b,
       CIdExpression[] x,
