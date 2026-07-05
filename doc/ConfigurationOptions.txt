@@ -1964,6 +1964,10 @@ cpa.functionpointer.ignoreUnknownFunctionPointerCalls = false
 # in order to find calls to such pointers
 cpa.functionpointer.trackInvalidFunctionPointers = false
 
+# which type of merge operator to use for IntervalAnalysisCPA
+cpa.interval.merge = "INTERVAL_MERGE"
+  allowed values: [SEP, JOIN, INTERVAL_MERGE]
+
 # decides whether one (false) or two (true) successors should be created when
 # an inequality-check is encountered
 cpa.interval.splitIntervals = false
