@@ -11,15 +11,32 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
-<benchmark tool="cpachecker" timelimit="15 min" hardtimelimit="16 min" memlimit="15 GB" cpuCores="2">
+<benchmark tool="cpachecker" timelimit="30s" hardtimelimit="60s" memlimit="15 GB" cpuCores="2">
  
 
   <option name="--intervalAnalysis"/>
   <option name="--heap">10000M</option>
   <option name="--benchmark"/>
-  <option name="--timelimit">900 s</option>
+  <option name="--timelimit">30 s</option>
 
-  <rundefinition name="FunArray">
+  <rundefinition name="FunArray_join">
+    <option name="--option">cpa.interval.merge=JOIN</option>
+    <tasks name="C.unreach-call.Arrays">
+      <includesfile>../programs/benchmarks/Arrays.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="FunArray_sep">
+    <option name="--option">cpa.interval.merge=SEP</option>
+    <tasks name="C.unreach-call.Arrays">
+      <includesfile>../programs/benchmarks/Arrays.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+  <rundefinition name="FunArray_merge">
+    <option name="--option">cpa.interval.merge=INTERVAL_MERGE</option>
     <tasks name="C.unreach-call.Arrays">
       <includesfile>../programs/benchmarks/Arrays.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
