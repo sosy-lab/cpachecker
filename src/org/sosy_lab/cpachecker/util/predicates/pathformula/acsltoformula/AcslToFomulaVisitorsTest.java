@@ -12,7 +12,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Objects;
 import java.util.Optional;
@@ -25,14 +24,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate.AcslBinaryPredicateOperator;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperator;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCType;
@@ -40,18 +31,12 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateType;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressionOperator;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -92,6 +77,7 @@ public class AcslToFomulaVisitorsTest {
   final LogManager logger = LogManager.createTestLogManager();
   private Solver smtSolver;
   private FormulaManagerView fmgr;
+  private AcslTestBuilder b;
 
   @Before
   public void setUp() throws InvalidConfigurationException {
@@ -100,6 +86,7 @@ public class AcslToFomulaVisitorsTest {
         TestUtils.configurationForTest().setOption("solver.solver", "Z3").build();
     smtSolver = Solver.create(config, logger, ShutdownNotifier.createDummy());
     fmgr = smtSolver.getFormulaManager();
+    b = new AcslTestBuilder();
   }
 
   private BooleanFormula translate(AcslPredicate predicate) throws InvalidConfigurationException {
@@ -213,25 +200,9 @@ public class AcslToFomulaVisitorsTest {
     // x + y - x != y should be unsatisfiable
     CProgramScope cProgramScope = getCProgramScope();
     AcslTerm x = getAcslIdTermFromVarName(cProgramScope, "x");
-
     AcslTerm y = getAcslIdTermFromVarName(cProgramScope, "y");
 
-    AcslPredicate pred =
-        new AcslBinaryTermPredicate(
-            FileLocation.DUMMY,
-            new AcslBinaryTerm(
-                FileLocation.DUMMY,
-                AcslBuiltinLogicType.INTEGER,
-                new AcslBinaryTerm(
-                    FileLocation.DUMMY,
-                    AcslBuiltinLogicType.INTEGER,
-                    x,
-                    y,
-                    AcslBinaryTermOperator.PLUS),
-                x,
-                AcslBinaryTermOperator.MINUS),
-            y,
-            AcslBinaryTermExpressionOperator.NOT_EQUALS);
+    AcslPredicate pred = b.neq(b.minus(b.plus(x, y), x), y);
 
     BooleanFormula f = translate(pred);
     assertThat(smtSolver.isUnsat(f)).isTrue();
@@ -244,28 +215,10 @@ public class AcslToFomulaVisitorsTest {
 
     CProgramScope cProgramScope = getCProgramScope();
     AcslTerm x = getAcslIdTermFromVarName(cProgramScope, "x");
-
     AcslTerm y = getAcslIdTermFromVarName(cProgramScope, "y");
 
-    AcslPredicate firstP =
-        new AcslBinaryTermPredicate(
-            FileLocation.DUMMY, x, y, AcslBinaryTermExpressionOperator.LESS_EQUAL);
-
-    AcslPredicate secondP =
-        new AcslBinaryTermPredicate(
-            FileLocation.DUMMY, y, x, AcslBinaryTermExpressionOperator.LESS_EQUAL);
-
-    AcslPredicate pred =
-        new AcslBinaryPredicate(
-            FileLocation.DUMMY,
-            new AcslBinaryPredicate(
-                FileLocation.DUMMY, firstP, secondP, AcslBinaryPredicateOperator.AND),
-            new AcslBinaryTermPredicate(
-                FileLocation.DUMMY, x, y, AcslBinaryTermExpressionOperator.EQUALS),
-            AcslBinaryPredicateOperator.IMPLICATION);
-
-    AcslPredicate unsatPred =
-        new AcslUnaryPredicate(FileLocation.DUMMY, pred, AcslUnaryExpressionOperator.NEGATION);
+    AcslPredicate pred = b.implies(b.and(b.leq(x, y), b.leq(y, x)), b.eq(x, y));
+    AcslPredicate unsatPred = b.not(pred);
 
     BooleanFormula f = translate(unsatPred);
     assertThat(smtSolver.isUnsat(f)).isTrue();
@@ -280,14 +233,7 @@ public class AcslToFomulaVisitorsTest {
     AcslTerm x = getAcslIdTermFromVarName(cProgramScope, "x");
     AcslTerm y = getAcslIdTermFromVarName(cProgramScope, "y");
 
-    AcslPredicate pred =
-        new AcslBinaryPredicate(
-            FileLocation.DUMMY,
-            new AcslBinaryTermPredicate(
-                FileLocation.DUMMY, x, y, AcslBinaryTermExpressionOperator.GREATER_EQUAL),
-            new AcslBinaryTermPredicate(
-                FileLocation.DUMMY, x, y, AcslBinaryTermExpressionOperator.LESS_THAN),
-            AcslBinaryPredicateOperator.AND);
+    AcslPredicate pred = b.and(b.geq(x, y), b.lt(x, y));
 
     BooleanFormula f = translate(pred);
     assertThat(smtSolver.isUnsat(f)).isTrue();
@@ -301,16 +247,8 @@ public class AcslToFomulaVisitorsTest {
     CProgramScope cProgramScope = getCProgramScope();
     AcslTerm x = getAcslIdTermFromVarName(cProgramScope, "x");
 
-    AcslPredicate pred =
-        new AcslBinaryTermPredicate(
-            FileLocation.DUMMY,
-            x,
-            new AcslUnaryTerm(
-                FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, x, AcslUnaryTermOperator.PLUS),
-            AcslBinaryTermExpressionOperator.EQUALS);
-
-    AcslPredicate unsatPred =
-        new AcslUnaryPredicate(FileLocation.DUMMY, pred, AcslUnaryExpressionOperator.NEGATION);
+    AcslPredicate pred = b.eq(x, b.unaryPlus(x));
+    AcslPredicate unsatPred = b.not(pred);
 
     BooleanFormula f = translate(unsatPred);
     assertThat(smtSolver.isUnsat(f)).isTrue();
@@ -324,23 +262,9 @@ public class AcslToFomulaVisitorsTest {
     CProgramScope cProgramScope = getCProgramScope();
     AcslTerm x = getAcslIdTermFromVarName(cProgramScope, "x");
 
-    AcslTerm minusx =
-        new AcslUnaryTerm(
-            FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, x, AcslUnaryTermOperator.MINUS);
-
-    AcslPredicate pred =
-        new AcslBinaryTermPredicate(
-            FileLocation.DUMMY,
-            x,
-            new AcslUnaryTerm(
-                FileLocation.DUMMY,
-                AcslBuiltinLogicType.INTEGER,
-                minusx,
-                AcslUnaryTermOperator.MINUS),
-            AcslBinaryTermExpressionOperator.EQUALS);
-
-    AcslPredicate unsatPred =
-        new AcslUnaryPredicate(FileLocation.DUMMY, pred, AcslUnaryExpressionOperator.NEGATION);
+    AcslTerm minusx = b.unaryMinus(x);
+    AcslPredicate pred = b.eq(x, b.unaryMinus(minusx));
+    AcslPredicate unsatPred = b.not(pred);
 
     BooleanFormula f = translate(unsatPred);
     assertThat(smtSolver.isUnsat(f)).isTrue();
@@ -352,22 +276,8 @@ public class AcslToFomulaVisitorsTest {
     // NOT(5.0 * 0.2 == 1.0) should be unsatisfiable
 
     AcslPredicate pred =
-        new AcslBinaryTermPredicate(
-            FileLocation.DUMMY,
-            new AcslBinaryTerm(
-                FileLocation.DUMMY,
-                AcslBuiltinLogicType.REAL,
-                new AcslRealLiteralTerm(
-                    FileLocation.DUMMY, AcslBuiltinLogicType.REAL, new BigDecimal("5.0")),
-                new AcslRealLiteralTerm(
-                    FileLocation.DUMMY, AcslBuiltinLogicType.REAL, new BigDecimal("0.2")),
-                AcslBinaryTermOperator.MULTIPLY),
-            new AcslRealLiteralTerm(
-                FileLocation.DUMMY, AcslBuiltinLogicType.REAL, new BigDecimal("1.0")),
-            AcslBinaryTermExpressionOperator.EQUALS);
-
-    AcslPredicate unsatPred =
-        new AcslUnaryPredicate(FileLocation.DUMMY, pred, AcslUnaryExpressionOperator.NEGATION);
+        b.eq(b.multiply(b.real(5.0), b.real(0.2), AcslBuiltinLogicType.REAL), b.real(1.0));
+    AcslPredicate unsatPred = b.not(pred);
 
     BooleanFormula f = translate(unsatPred);
     assertThat(smtSolver.isUnsat(f)).isTrue();
@@ -379,18 +289,8 @@ public class AcslToFomulaVisitorsTest {
     // NOT(true = NEGATION(False)) should be unsatisfiable
 
     AcslPredicate pred =
-        new AcslBinaryTermPredicate(
-            FileLocation.DUMMY,
-            new AcslBooleanLiteralTerm(FileLocation.DUMMY, true),
-            new AcslUnaryTerm(
-                FileLocation.DUMMY,
-                AcslBuiltinLogicType.BOOLEAN,
-                new AcslBooleanLiteralTerm(FileLocation.DUMMY, false),
-                AcslUnaryTermOperator.NEGATION),
-            AcslBinaryTermExpressionOperator.EQUALS);
-
-    AcslPredicate unsatPred =
-        new AcslUnaryPredicate(FileLocation.DUMMY, pred, AcslUnaryExpressionOperator.NEGATION);
+        b.eq(b.bool(true), b.unaryNegation(b.bool(false), AcslBuiltinLogicType.BOOLEAN));
+    AcslPredicate unsatPred = b.not(pred);
 
     BooleanFormula f = translate(unsatPred);
     assertThat(smtSolver.isUnsat(f)).isTrue();
@@ -404,16 +304,8 @@ public class AcslToFomulaVisitorsTest {
     CProgramScope cProgramScope = getCProgramScope();
     AcslTerm x = getAcslIdTermFromVarName(cProgramScope, "x");
 
-    AcslPredicate pred =
-        new AcslBinaryPredicate(
-            FileLocation.DUMMY,
-            new AcslBooleanLiteralPredicate(FileLocation.DUMMY, true),
-            new AcslBinaryTermPredicate(
-                FileLocation.DUMMY, x, x, AcslBinaryTermExpressionOperator.EQUALS),
-            AcslBinaryPredicateOperator.EQUIVALENT);
-
-    AcslPredicate unsatPred =
-        new AcslUnaryPredicate(FileLocation.DUMMY, pred, AcslUnaryExpressionOperator.NEGATION);
+    AcslPredicate pred = b.equivalent(b.boolPred(true), b.eq(x, x));
+    AcslPredicate unsatPred = b.not(pred);
 
     BooleanFormula f = translate(unsatPred);
     assertThat(smtSolver.isUnsat(f)).isTrue();
@@ -431,11 +323,7 @@ public class AcslToFomulaVisitorsTest {
         new AcslExistsPredicate(
             FileLocation.DUMMY,
             ImmutableList.of(x),
-            new AcslBinaryTermPredicate(
-                FileLocation.DUMMY,
-                new AcslIdTerm(FileLocation.DUMMY, x),
-                new AcslIdTerm(FileLocation.DUMMY, x),
-                AcslBinaryTermExpressionOperator.NOT_EQUALS));
+            b.neq(new AcslIdTerm(FileLocation.DUMMY, x), new AcslIdTerm(FileLocation.DUMMY, x)));
 
     BooleanFormula f = translate(pred);
     assertThat(smtSolver.isUnsat(f)).isTrue();
@@ -448,18 +336,7 @@ public class AcslToFomulaVisitorsTest {
     CProgramScope cProgramScope = getCProgramScope();
     AcslTerm x = getAcslIdTermFromVarName(cProgramScope, "x");
 
-    AcslPredicate pred =
-        new AcslBinaryTermPredicate(
-            FileLocation.DUMMY,
-            new AcslBinaryTerm(
-                FileLocation.DUMMY,
-                AcslBuiltinLogicType.INTEGER,
-                x,
-                new AcslIntegerLiteralTerm(
-                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE),
-                AcslBinaryTermOperator.MULTIPLY),
-            x,
-            AcslBinaryTermExpressionOperator.NOT_EQUALS);
+    AcslPredicate pred = b.neq(b.multiply(x, b.integer(1)), x);
 
     BooleanFormula f = translate(pred);
     assertThat(smtSolver.isUnsat(f)).isTrue();
@@ -474,21 +351,9 @@ public class AcslToFomulaVisitorsTest {
         new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "x", "x");
 
     AcslPredicate body =
-        new AcslBinaryPredicate(
-            FileLocation.DUMMY,
-            new AcslBinaryTermPredicate(
-                FileLocation.DUMMY,
-                new AcslIdTerm(FileLocation.DUMMY, x),
-                new AcslIntegerLiteralTerm(
-                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.valueOf(5)),
-                AcslBinaryTermExpressionOperator.EQUALS),
-            new AcslBinaryTermPredicate(
-                FileLocation.DUMMY,
-                new AcslIdTerm(FileLocation.DUMMY, x),
-                new AcslIntegerLiteralTerm(
-                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.valueOf(6)),
-                AcslBinaryTermExpressionOperator.EQUALS),
-            AcslBinaryPredicateOperator.AND);
+        b.and(
+            b.eq(new AcslIdTerm(FileLocation.DUMMY, x), b.integer(5)),
+            b.eq(new AcslIdTerm(FileLocation.DUMMY, x), b.integer(6)));
 
     AcslPredicate forall = new AcslForallPredicate(FileLocation.DUMMY, ImmutableList.of(x), body);
 
@@ -519,13 +384,7 @@ public class AcslToFomulaVisitorsTest {
     AcslPredicate predApp =
         new AcslPredicateApplicationPredicate(FileLocation.DUMMY, predDecl, ImmutableList.of(x));
 
-    AcslPredicate finalPred =
-        new AcslBinaryPredicate(
-            FileLocation.DUMMY,
-            predApp,
-            new AcslUnaryPredicate(
-                FileLocation.DUMMY, predApp, AcslUnaryExpressionOperator.NEGATION),
-            AcslBinaryPredicateOperator.AND);
+    AcslPredicate finalPred = b.and(predApp, b.not(predApp));
 
     BooleanFormula f = translate(finalPred);
     assertThat(smtSolver.isUnsat(f)).isTrue();
@@ -553,10 +412,7 @@ public class AcslToFomulaVisitorsTest {
     AcslTerm termLeft = new AcslCExpression(FileLocation.DUMMY, cExpression);
     AcslTerm termRight = new AcslCExpression(FileLocation.DUMMY, z);
 
-    AcslPredicate pred =
-        new AcslBinaryTermPredicate(
-            FileLocation.DUMMY, termLeft, termRight, AcslBinaryTermExpressionOperator.NOT_EQUALS);
-
+    AcslPredicate pred = b.neq(termLeft, termRight);
     BooleanFormula f = translate(pred);
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
@@ -582,63 +438,40 @@ public class AcslToFomulaVisitorsTest {
             "i",
             null /* No initializer, we only want it for testing */);
 
-    AcslPredicate body =
-        new AcslBinaryPredicate(
+    AcslCExpression a1 =
+        new AcslCExpression(
             FileLocation.DUMMY,
-            new AcslBinaryPredicate(
+            new CArraySubscriptExpression(
                 FileLocation.DUMMY,
-                new AcslBinaryTermPredicate(
+                basicInt(),
+                new CIdExpression(
                     FileLocation.DUMMY,
-                    new AcslIntegerLiteralTerm(
-                        FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
-                    new AcslIdTerm(FileLocation.DUMMY, i),
-                    AcslBinaryTermExpressionOperator.LESS_EQUAL),
-                new AcslBinaryTermPredicate(
-                    FileLocation.DUMMY,
-                    new AcslIdTerm(FileLocation.DUMMY, i),
-                    new AcslIntegerLiteralTerm(
-                        FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.valueOf(3)),
-                    AcslBinaryTermExpressionOperator.LESS_THAN),
-                AcslBinaryPredicateOperator.AND),
-            new AcslBinaryTermPredicate(
+                    Objects.requireNonNull(getCProgramScope().lookupVariable("a"))),
+                new CIntegerLiteralExpression(FileLocation.DUMMY, basicInt(), BigInteger.ONE)));
+
+    AcslCExpression ai =
+        new AcslCExpression(
+            FileLocation.DUMMY,
+            new CArraySubscriptExpression(
                 FileLocation.DUMMY,
-                new AcslCExpression(
+                basicInt(),
+                new CIdExpression(
                     FileLocation.DUMMY,
-                    new CArraySubscriptExpression(
-                        FileLocation.DUMMY,
-                        basicInt(),
-                        new CIdExpression(
-                            FileLocation.DUMMY,
-                            Objects.requireNonNull(getCProgramScope().lookupVariable("a"))),
-                        new CIdExpression(FileLocation.DUMMY, ci))),
-                new AcslIntegerLiteralTerm(
-                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.valueOf(5)),
-                AcslBinaryTermExpressionOperator.EQUALS),
-            AcslBinaryPredicateOperator.IMPLICATION);
+                    Objects.requireNonNull(getCProgramScope().lookupVariable("a"))),
+                new CIdExpression(FileLocation.DUMMY, ci)));
+
+    AcslPredicate body =
+        b.implies(
+            b.and(
+                b.leq(b.integer(0), new AcslIdTerm(FileLocation.DUMMY, i)),
+                b.lt(new AcslIdTerm(FileLocation.DUMMY, i), b.integer(3))),
+            b.eq(ai, b.integer(5)));
 
     AcslPredicate forall = new AcslForallPredicate(FileLocation.DUMMY, ImmutableList.of(i), body);
-    AcslPredicate rhs =
-        new AcslBinaryTermPredicate(
-            FileLocation.DUMMY,
-            new AcslCExpression(
-                FileLocation.DUMMY,
-                new CArraySubscriptExpression(
-                    FileLocation.DUMMY,
-                    basicInt(),
-                    new CIdExpression(
-                        FileLocation.DUMMY,
-                        Objects.requireNonNull(getCProgramScope().lookupVariable("a"))),
-                    new CIntegerLiteralExpression(FileLocation.DUMMY, basicInt(), BigInteger.ONE))),
-            new AcslIntegerLiteralTerm(
-                FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.valueOf(5)),
-            AcslBinaryTermExpressionOperator.EQUALS);
 
-    AcslPredicate unsatPred =
-        new AcslUnaryPredicate(
-            FileLocation.DUMMY,
-            new AcslBinaryPredicate(
-                FileLocation.DUMMY, forall, rhs, AcslBinaryPredicateOperator.IMPLICATION),
-            AcslUnaryExpressionOperator.NEGATION);
+    AcslPredicate rhs = b.eq(a1, b.integer(5));
+
+    AcslPredicate unsatPred = b.not(b.implies(forall, rhs));
 
     BooleanFormula f = translate(unsatPred);
     assertThat(smtSolver.isUnsat(f)).isTrue();
