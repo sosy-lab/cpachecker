@@ -41,6 +41,9 @@ public class FunArrayUnification {
 
   int currentIndex;
 
+  private BinaryOperator<Interval> collapseOpA = Interval::union;
+  private BinaryOperator<Interval> collapseOpB = Interval::union;
+
   /**
    * Initializes the unification state by copying the bounds, values, and emptiness flags of both
    * arrays into mutable lists that will be updated during {@link #unify}.
@@ -59,6 +62,21 @@ public class FunArrayUnification {
 
   /** Holds the two structurally aligned FunArrays produced by a successful unification. */
   public record UnifyResult(FunArray resultA, FunArray resultB) {}
+
+  /**
+   * Variant of {@link #unify} that allows callers to override the binary operator used when
+   * collapsing ongoing segments in Case 6. {@code pCollapseOpA} is applied when A is the ongoing
+   * array (B exhausted); {@code pCollapseOpB} is applied when B is the ongoing array (A exhausted).
+   */
+  public UnifyResult unify(
+      Interval pNeutralElementA,
+      Interval pNeutralElementB,
+      BinaryOperator<Interval> pCollapseOpA,
+      BinaryOperator<Interval> pCollapseOpB) {
+    collapseOpA = pCollapseOpA;
+    collapseOpB = pCollapseOpB;
+    return unify(pNeutralElementA, pNeutralElementB);
+  }
 
   /**
    * Runs the unification algorithm to produce two {@link FunArray}s with identical bound
@@ -330,59 +348,63 @@ public class FunArrayUnification {
   }
 
   /**
-   * Joins two emptiness flags. The union of two emptiness values corresponds to logical OR, as
-   * implied in Section 11.2 of Cousot, Cousot, and Logozzo (2011): a merged segment may be empty
-   * if either of its constituent segments may be empty.
+   * Joins two emptiness flags for adjacent segments that are being merged into one. The merged
+   * segment {@code [a, c)} can only be empty if both constituent segments {@code [a, b)} and
+   * {@code [b, c)} may be empty simultaneously (i.e., {@code a == b == c}). If either segment is
+   * definitely non-empty, the merged segment is also definitely non-empty.
    *
-   * @param a the first emptiness flag.
-   * @param b the second emptiness flag.
-   * @return {@code true} if either segment may be empty.
+   * @param a the emptiness flag of the predecessor segment.
+   * @param b the emptiness flag of the segment being merged in.
+   * @return {@code true} only if both segments may be empty.
    */
   private static boolean joinEmptiness(boolean a, boolean b) {
-    return a || b;
+    return a && b;
   }
 
   /** Delegates to {@link #handleLast} when array A is exhausted (Case 6). */
   private void handleLastInA() {
-    handleLast(boundsA, boundsB, valuesB, emptinessB, currentIndex);
+    handleLast(boundsA, boundsB, valuesB, emptinessB, currentIndex, collapseOpB);
   }
 
   /** Delegates to {@link #handleLast} when array B is exhausted (Case 6). */
   private void handleLastInB() {
-    handleLast(boundsB, boundsA, valuesA, emptinessA, currentIndex);
+    handleLast(boundsB, boundsA, valuesA, emptinessA, currentIndex, collapseOpA);
   }
 
   /**
    * Handles Case 6 of the unification algorithm: one array has reached its last
    * bound while the other still has remaining bounds. The current bound of the exhausted array is
    * merged with the current and next bound of the ongoing array into a single joint bound, and the
-   * now-redundant segment in the ongoing array is removed.
+   * now-redundant segment in the ongoing array is joined into its predecessor.
    *
-   * @param exhaustedBounds the mutable bound list of the array that has reached its last bound.
-   * @param ongoingBounds the mutable bound list of the array that still has remaining bounds.
-   * @param ongoingValues the mutable value list of the ongoing array.
-   * @param ongoingEmptiness the mutable emptiness list of the ongoing array.
-   * @param currentIndex the current index position in both bound lists.
+   * @param pExhaustedBounds the mutable bound list of the array that has reached its last bound.
+   * @param pOngoingBounds the mutable bound list of the array that still has remaining bounds.
+   * @param pOngoingValues the mutable value list of the ongoing array.
+   * @param pOngoingEmptiness the mutable emptiness list of the ongoing array.
+   * @param pCurrentIndex the current index position in both bound lists.
+   * @param pCollapseOp the binary operator used to combine values when collapsing ongoing segments.
    */
   private static void handleLast(
-      List<Bound> exhaustedBounds,
-      List<Bound> ongoingBounds,
-      List<Interval> ongoingValues,
-      List<Boolean> ongoingEmptiness,
-      int currentIndex) {
-    assert ongoingBounds.size() > currentIndex + 1;
-    assert ongoingBounds.size() != exhaustedBounds.size();
+      List<Bound> pExhaustedBounds,
+      List<Bound> pOngoingBounds,
+      List<Interval> pOngoingValues,
+      List<Boolean> pOngoingEmptiness,
+      int pCurrentIndex,
+      BinaryOperator<Interval> pCollapseOp) {
+    assert pOngoingBounds.size() > pCurrentIndex + 1;
+    assert pOngoingBounds.size() != pExhaustedBounds.size();
 
-    Bound currentBoundExhausted = exhaustedBounds.get(currentIndex);
-    Bound currentBoundOngoing = ongoingBounds.get(currentIndex);
-    Bound nextBoundOngoing = ongoingBounds.get(currentIndex + 1);
+    Bound currentBoundExhausted = pExhaustedBounds.get(pCurrentIndex);
+    Bound currentBoundOngoing = pOngoingBounds.get(pCurrentIndex);
+    Bound nextBoundOngoing = pOngoingBounds.get(pCurrentIndex + 1);
 
-    Bound joinedBound = currentBoundExhausted.union(currentBoundOngoing).union(nextBoundOngoing);
+    Bound joinedBound =
+        currentBoundExhausted.union(currentBoundOngoing).union(nextBoundOngoing);
 
-    exhaustedBounds.set(currentIndex, joinedBound);
-    ongoingBounds.set(currentIndex, joinedBound);
-    ongoingBounds.remove(currentIndex + 1);
-    ongoingValues.remove(currentIndex);
-    ongoingEmptiness.remove(currentIndex);
+    pExhaustedBounds.set(pCurrentIndex, joinedBound);
+    pOngoingBounds.set(pCurrentIndex, joinedBound);
+    pOngoingBounds.remove(pCurrentIndex + 1);
+    joinElementWithPredecessor(pOngoingValues, pCurrentIndex, pCollapseOp);
+    joinElementWithPredecessor(pOngoingEmptiness, pCurrentIndex, FunArrayUnification::joinEmptiness);
   }
 }

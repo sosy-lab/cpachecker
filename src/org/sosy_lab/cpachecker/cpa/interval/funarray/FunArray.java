@@ -556,6 +556,22 @@ public record FunArray(
   }
 
   /**
+   * Variant of {@link #unify(FunArray, Interval, Interval)} with explicit collapse operators for
+   * Case 6 of the unification algorithm. See {@link FunArrayUnification#unify(Interval, Interval,
+   * java.util.function.BinaryOperator, java.util.function.BinaryOperator)}.
+   */
+  public UnifyResult unify(
+      FunArray pOther,
+      Interval pThisNeutralElement,
+      Interval pOtherNeutralElement,
+      BinaryOperator<Interval> pCollapseOpThis,
+      BinaryOperator<Interval> pCollapseOpOther) {
+    FunArrayUnification unification = new FunArrayUnification(this, pOther);
+    return unification.unify(
+        pThisNeutralElement, pOtherNeutralElement, pCollapseOpThis, pCollapseOpOther);
+  }
+
+  /**
    * Joins the value in a list at a given index with the element proceeding it.
    *
    * @param list the list.
@@ -912,7 +928,13 @@ public record FunArray(
    */
   @Override
   public boolean isLessOrEqual(FunArray other) {
-    UnifyResult unifyResult = unify(other, Interval.EMPTY, Interval.UNBOUND);
+    UnifyResult unifyResult =
+        unify(
+            other,
+            Interval.EMPTY,
+            Interval.UNBOUND,
+            Interval::union,
+            Interval::intersect);
 
     for (int i = 0; i < unifyResult.resultA().values.size(); i++) {
       if (!unifyResult

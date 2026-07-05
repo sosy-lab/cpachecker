@@ -18,6 +18,32 @@ import org.sosy_lab.cpachecker.cpa.interval.funarray.FunArrayBuilder.FunArrayBui
 public class FunArrayWideningTest {
 
   @Test
+  public void wideningCase6_preservesDroppedSegmentValue() throws FunArrayBuilderException {
+    // {0} [0,50] {i} [51,100] {n}?
+    FunArray existing =
+        FunArrayBuilder.firstBound(exp(0))
+            .value(new Interval(0L, 50L))
+            .bound(exp("i"))
+            .value(new Interval(51L, 100L))
+            .bound(exp("n"))
+            .mayBeEmpty()
+            .build();
+
+    // {0} [0,30] {n}?
+    FunArray newer =
+        FunArrayBuilder.firstBound(exp(0))
+            .value(new Interval(0L, 30L))
+            .bound(exp("n"))
+            .mayBeEmpty()
+            .build();
+
+    FunArray result = existing.widen(newer);
+
+    // The single merged segment must cover BOTH [0,50] (from {0}-{i}) AND [51,100] (from {i}-{n}).
+    assertThat(result.values()).containsExactly(new Interval(0L, 100L));
+  }
+
+  @Test
   public void testWideningForInitialization() throws FunArrayBuilderException {
 
     // {0} 0 {i} ⊤ {n}?

@@ -193,8 +193,11 @@ public class FunArrayUnificationTest {
             .build(),
         // Expected A: {0} 0 {n i}
         FunArrayBuilder.firstBound(exp(0)).value(0).bound(exp("n"), exp("i")).build(),
-        // Expected B: {0} 0 {n i}
-        FunArrayBuilder.firstBound(exp(0)).value(0).bound(exp("n"), exp("i")).build());
+        // Expected B: {0} ⊤ {n i}
+        FunArrayBuilder.firstBound(exp(0))
+            .value(Interval.UNBOUND)
+            .bound(exp("n"), exp("i"))
+            .build());
   }
 
   /*
