@@ -902,7 +902,7 @@ public class SMG {
    *     to be deleted. (e.g. for dropping stack frames with hanging values/pointers)
    * @return a new SMG with the object invalidated and all its HVEdges deleted.
    */
-  public SMG copyAndInvalidateObject(SMGObject pObject, boolean deleteDanglingPointers) {
+  public SMG copyAndInvalidateAndCleanObject(SMGObject pObject, boolean deleteDanglingPointers) {
     PersistentMap<SMGObject, Boolean> newObjects = smgObjects.putAndCopy(pObject, false);
     SMG newSMG = decrementHVEdgesInValueToMemoryMap(pObject, deleteDanglingPointers);
     PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHVEdges =
@@ -912,6 +912,18 @@ public class SMG {
     // TODO: actually delete old objects with no references to them (for example the dirt from
     //  SLL/DLL creation/deletion)
     return newSMG.of(newObjects, newHVEdges);
+  }
+
+  /**
+   * Returns a new SMG with all objects given (stack or heap memory) invalidated. Does not change
+   * HV-Edges or anything else. (Currently meant for Witness validation only!)
+   */
+  public SMG copyAndInvalidateObjects(Set<SMGObject> objectsToInvalidate) {
+    PersistentMap<SMGObject, Boolean> newObjects = smgObjects;
+    for (SMGObject objectToInvalidate : objectsToInvalidate) {
+      newObjects = newObjects.putAndCopy(objectToInvalidate, false);
+    }
+    return of(newObjects, hasValueEdges);
   }
 
   /**
@@ -975,7 +987,7 @@ public class SMG {
   public SMG copyAndRemoveObjects(Collection<SMGObject> pUnreachableObjects) {
     SMG returnSmg = this;
     for (SMGObject smgObject : pUnreachableObjects) {
-      returnSmg = returnSmg.copyAndInvalidateObject(smgObject, false);
+      returnSmg = returnSmg.copyAndInvalidateAndCleanObject(smgObject, false);
     }
     // assert returnSmg.checkValueInConcreteMemorySanity();
     return returnSmg;
