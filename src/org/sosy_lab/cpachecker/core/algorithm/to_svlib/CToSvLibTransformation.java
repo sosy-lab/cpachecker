@@ -163,7 +163,7 @@ class CToSvLibTransformation {
 
     // transform each edge to SV-LIB statement(s)
     for (CFAEdge currentEdge : relevantEdges) {
-      handleEdge(currentEdge, statementCollector, edgeToPointerTargetSet);
+      transformEdge(currentEdge, statementCollector, edgeToPointerTargetSet);
 
       if (!(currentEdge instanceof CReturnStatementEdge)
           && currentEdge.getSuccessor() instanceof FunctionExitNode functionExitNode) {
@@ -261,7 +261,7 @@ class CToSvLibTransformation {
         ImmutableList.of());
   }
 
-  private void handleEdge(
+  private void transformEdge(
       CFAEdge pEdge,
       ImmutableListMultimap.Builder<CFANode, SvLibStatement> pCreatedStatements,
       ImmutableMap.Builder<CFAEdge, PointerTargetSet> pEdgeToPointerTargetSet)
