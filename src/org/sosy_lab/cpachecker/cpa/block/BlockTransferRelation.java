@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.block;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -86,11 +88,10 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
     }
 
     if (blockState.getType() == BlockStateType.WITNESS) {
-      return FluentIterable.from(
-              pathTranferRelation.getAbstractSuccessorsForEdge(
-                  blockState.getWitnessCheckPathState(), prec, cfaEdge))
-          .transform(pnew -> copyBlockStateWithPath(cfaEdge, blockState, pnew))
-          .toList();
+      return transformedImmutableListCopy(
+          pathTranferRelation.getAbstractSuccessorsForEdge(
+              blockState.getWitnessCheckPathState(), prec, cfaEdge),
+          p -> copyBlockStateWithPath(cfaEdge, blockState, p));
     }
 
     Set<CFAEdge> intersection =

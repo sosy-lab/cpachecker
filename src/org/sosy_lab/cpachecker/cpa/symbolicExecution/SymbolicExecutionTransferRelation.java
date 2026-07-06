@@ -156,7 +156,7 @@ public class SymbolicExecutionTransferRelation extends SingleEdgeTransferRelatio
     Collection<? extends AbstractState> newCS =
         constraintsTransferRelation.strengthen(
             pStateToStrengthen.constraintsState(),
-            List.of(newConstraintsState),
+            ImmutableList.of(newConstraintsState),
             pCfaEdge,
             pPrecision);
     if (newCS.isEmpty()) return null;

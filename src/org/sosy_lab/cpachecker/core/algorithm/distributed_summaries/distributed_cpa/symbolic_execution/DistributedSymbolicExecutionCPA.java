@@ -152,7 +152,9 @@ public class DistributedSymbolicExecutionCPA implements DistributedConfigurableP
   @Override
   public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) {
     SymbolicExecutionState state = (SymbolicExecutionState) pAbstractState;
-    if (!state.constraintsState().isEmpty()) return false;
+    if (!state.constraintsState().isEmpty()) {
+      return false;
+    }
     return state.valueAnalysisState().getConstants().stream()
         .allMatch(
             constant ->

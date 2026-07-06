@@ -72,17 +72,6 @@ public record ViolationWitness(ImmutableList<ImmutableSet<ImmutableList<String>>
             first.witness.subList(0, first.witness.size() - 1), allLastSegmentsMerged));
   }
 
-  private boolean equalExceptLast(ViolationWitness other) {
-    if (witness.size() != other.witness.size()) {
-      return false;
-    }
-    int n = witness.size();
-    if (n <= 1) {
-      return true; // for size 0 or 1 the prefixes (empty) are equal
-    }
-    return witness.subList(0, n - 1).equals(other.witness.subList(0, n - 1));
-  }
-
   private static final Joiner JOIN_LIST = Joiner.on(','); // join elements in inner list
   private static final Joiner JOIN_SET =
       Joiner.on('|'); // join inner-list tokens inside a set (sorted)

@@ -79,7 +79,7 @@ public class SerializeValueAnalysisStateOperator implements SerializeOperator {
       state =
           new ValueAnalysisState(
               Optional.ofNullable(state.getMachineModel()),
-              PathCopyingPersistentTreeMap.copyOf(filteredConstraints.build()));
+              PathCopyingPersistentTreeMap.copyOf(filteredConstraints.buildKeepingLast()));
     }
 
     storeIdentifiersForConstraints(state);
