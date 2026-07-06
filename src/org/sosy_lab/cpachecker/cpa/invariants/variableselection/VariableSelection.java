@@ -12,7 +12,8 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public interface VariableSelection<ConstantType> {
+public sealed interface VariableSelection<ConstantType>
+    permits AcceptAllVariableSelection, AcceptSpecifiedVariableSelection {
 
   boolean contains(MemoryLocation pMemoryLocation);
 

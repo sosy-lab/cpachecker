@@ -21,6 +21,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.ObjectArrays;
@@ -78,7 +79,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
-import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.Model;
@@ -620,6 +620,44 @@ public final class InterpolationManager {
       BlockFormulas f, Optional<ARGPath> imprecisePath)
       throws SolverException, InterruptedException {
 
+    if (f.getFormulas().size() == 1) {
+      // Optimized case for single-block path to make use of cache in solver.isUnsat().
+      // This cache can then be reused by the abstraction computation
+      // (which will attempt to solve exactly the same formula again if it is unsat).
+
+      CounterexampleTraceInfo[] feasibleResult = {
+        CounterexampleTraceInfo.feasibleImprecise(f.getFormulas()), // default value for sat result
+      };
+      Solver.ModelCallback callbackOnSat = null;
+      if (imprecisePath.isPresent()) {
+        callbackOnSat =
+            model -> {
+              satCheckTimer.stop(); // stop before calling getPreciseErrorPath
+              try {
+                feasibleResult[0] = getPreciseErrorPath(f, model, imprecisePath.orElseThrow());
+              } catch (SolverException modelException) {
+                logger.logUserException(
+                    Level.WARNING, modelException, "Could not create model for error path!");
+              }
+            };
+      }
+
+      final boolean isSat;
+
+      satCheckTimer.start();
+      try {
+        isSat = !solver.isUnsat(Iterables.getOnlyElement(f.getFormulas()), callbackOnSat);
+      } finally {
+        satCheckTimer.stopIfRunning(); // can already be stopped in callback
+      }
+
+      if (isSat) {
+        return feasibleResult[0]; // result from getPreciseErrorPath() or imprecise default
+      } else {
+        return CounterexampleTraceInfo.infeasible(ImmutableList.of());
+      }
+    }
+
     try (ProverEnvironment prover = solver.newProverEnvironment(proverOptions)) {
       final boolean isSat;
 
@@ -637,8 +675,8 @@ public final class InterpolationManager {
         if (imprecisePath.isEmpty()) {
           return CounterexampleTraceInfo.feasibleImprecise(f.getFormulas());
         }
-        try {
-          return getPreciseErrorPath(f, prover, imprecisePath.orElseThrow());
+        try (Model model = prover.getModel()) {
+          return getPreciseErrorPath(f, model, imprecisePath.orElseThrow());
         } catch (SolverException modelException) {
           logger.logUserException(
               Level.WARNING, modelException, "Could not create model for error path!");
@@ -662,6 +700,7 @@ public final class InterpolationManager {
   private CounterexampleTraceInfo solveCounterexampleAndFindInfeasibleBlock(
       BlockFormulas f, Optional<ARGPath> imprecisePath)
       throws SolverException, InterruptedException {
+    assert f.getFormulas().size() > 1 : "Should have called solveCounterexample for single block";
 
     ProverOptions[] localProverOptions =
         ObjectArrays.concat(proverOptions, ProverOptions.GENERATE_UNSAT_CORE_OVER_ASSUMPTIONS);
@@ -690,8 +729,8 @@ public final class InterpolationManager {
         if (imprecisePath.isEmpty()) {
           return CounterexampleTraceInfo.feasibleImprecise(f.getFormulas());
         }
-        try {
-          return getPreciseErrorPath(f, prover, imprecisePath.orElseThrow());
+        try (Model model = prover.getModel()) {
+          return getPreciseErrorPath(f, model, imprecisePath.orElseThrow());
         } catch (SolverException modelException) {
           logger.logUserException(
               Level.WARNING, modelException, "Could not create model for error path!");
@@ -952,19 +991,19 @@ public final class InterpolationManager {
    * target state.
    *
    * @param formulas The list of formulas on the path.
-   * @param pProver The solver.
+   * @param model The model.
    * @param imprecisePath A (potentially infeasible) path to the target state.
    * @return Information about the error path, including a satisfying assignment.
    * @throws SolverException If the solver fails to produce a model.
    */
   private CounterexampleTraceInfo getPreciseErrorPath(
-      BlockFormulas formulas, BasicProverEnvironment<?> pProver, ARGPath imprecisePath)
+      BlockFormulas formulas, Model model, ARGPath imprecisePath)
       throws SolverException, InterruptedException {
 
     errorPathCreationTimer.start();
     try {
       Set<ARGState> pathElements = ARGUtils.getAllStatesOnPathsTo(imprecisePath.getLastState());
-      try (Model model = pProver.getModel()) {
+      try {
         ARGPath precisePath =
             pmgr.getARGPathFromModel(
                 model,
@@ -1196,7 +1235,9 @@ public final class InterpolationManager {
         if (imprecisePath.isEmpty()) {
           info = CounterexampleTraceInfo.feasibleImprecise(formulas.getFormulas());
         } else {
-          info = getPreciseErrorPath(formulas, itpProver, imprecisePath.orElseThrow());
+          try (Model model = itpProver.getModel()) {
+            info = getPreciseErrorPath(formulas, model, imprecisePath.orElseThrow());
+          }
         }
       }
 

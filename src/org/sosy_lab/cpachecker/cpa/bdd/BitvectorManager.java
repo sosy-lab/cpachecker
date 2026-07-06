@@ -435,14 +435,11 @@ public class BitvectorManager {
   public Region[] toBitsize(int bitsize, boolean signed, Region... regions) {
     assert regions != null : "can not expand NULL";
 
-    int min = Math.min(regions.length, bitsize);
-    final Region[] newRegions = new Region[bitsize];
-
-    // copy old elements
-    System.arraycopy(regions, 0, newRegions, 0, min);
+    // copy with min(regions.length, bitsize) elements
+    final Region[] newRegions = Arrays.copyOf(regions, bitsize);
 
     // fill front with new elements
-    for (int i = min; i < bitsize; i++) {
+    for (int i = regions.length; i < bitsize; i++) {
       newRegions[i] = signed ? regions[regions.length - 1] : rmgr.makeFalse();
     }
 
