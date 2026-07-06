@@ -31,8 +31,7 @@ public class DistributedCallstackCPATest {
             .setShutdownNotifier(ShutdownNotifier.createDummy())
             .createInstance();
 
-    // TODO find program which tests something interesting!!
     DistributedConfigurableProgramAnalysisTestBase.testSerialization(
-        "test/programs/cfa-ast-relation/full-expression.c", cpa);
+        "test/programs/dss/function_graph_DAG.c", cpa);
   }
 }
