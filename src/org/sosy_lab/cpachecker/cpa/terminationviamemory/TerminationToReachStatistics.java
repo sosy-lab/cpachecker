@@ -108,63 +108,7 @@ public class TerminationToReachStatistics extends TerminationStatistics implemen
     }
 
     if (!validation && pResult == Result.TRUE) {
-      try {
-        ImmutableList.Builder<AbstractInvariantEntry> transitionInvariants =
-            ImmutableList.builder();
-        for (AbstractState state :
-            pReached.stream()
-                .filter(
-                    state ->
-                        AbstractStates.extractStateByType(state, TerminationToReachState.class)
-                            .getCandidateTransitionInvariant()
-                            .isPresent())
-                .collect(ImmutableSet.toImmutableSet())) {
-          TerminationToReachState terminationState =
-              AbstractStates.extractStateByType(state, TerminationToReachState.class);
-          LocationState locationState =
-              AbstractStates.extractStateByType(state, LocationState.class);
-          String transitionInvariantAsC;
-
-          PartitionedRelationFormula formula =
-              terminationState.getCandidateTransitionInvariant().get();
-          formula.extendPrevVarsWithPrefixSuffix("::at(", ", AnyPrev)");
-          formula.extendCurrVarsWithPrefixSuffix("", "");
-          // Transforming the candidate transition invariant from formula to C expression
-          // and wrapping the previous variables into \\at(x, AnyPrev)
-          try {
-            transitionInvariantAsC =
-                TransitionInvariantUtils.transformFormulaToStringWithTrivialReplacement(
-                        formula.getFormula(), bfmgr, fmgr)
-                    .replace("::at", "\\at");
-            transitionInvariantAsC =
-                TransitionInvariantUtils.removeFunctionFromVarsName(transitionInvariantAsC);
-          } catch (CPAException e) {
-            transitionInvariantAsC = "true";
-          }
-
-          LocationRecord locationEntry =
-              LocationRecord.createLocationRecordAtStart(
-                  locationState.getLocationNode().getEnteringEdge(0).getFileLocation(),
-                  locationState
-                      .getLocationNode()
-                      .getFunction()
-                      .getFileLocation()
-                      .getFileName()
-                      .toString(),
-                  locationState.getLocationNode().getFunctionName());
-          transitionInvariants.add(
-              new InvariantEntry(
-                  transitionInvariantAsC,
-                  InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword(),
-                  YAMLWitnessExpressionType.EXT_C,
-                  locationEntry));
-        }
-        terminationWitnessExporter.export(
-            transitionInvariants.build(), yamlWitnessOutputFileTemplate);
-      } catch (IOException e) {
-        logger.logUserException(
-            WARNING, e, "There is a problem when writing the witness into a file.");
-      }
+      exportTerminationWitness(pReached);
     }
   }
 
@@ -185,6 +129,66 @@ public class TerminationToReachStatistics extends TerminationStatistics implemen
     checkState(nonterminatingLoops == null);
     checkState(pLoop != null);
     nonterminatingLoops = pLoop;
+  }
+
+  private void exportTerminationWitness(UnmodifiableReachedSet pReached) {
+    try {
+      ImmutableList.Builder<AbstractInvariantEntry> transitionInvariants =
+          ImmutableList.builder();
+      for (AbstractState state :
+          pReached.stream()
+              .filter(
+                  state ->
+                      AbstractStates.extractStateByType(state, TerminationToReachState.class)
+                          .getCandidateTransitionInvariant()
+                          .isPresent())
+              .collect(ImmutableSet.toImmutableSet())) {
+        TerminationToReachState terminationState =
+            AbstractStates.extractStateByType(state, TerminationToReachState.class);
+        LocationState locationState =
+            AbstractStates.extractStateByType(state, LocationState.class);
+        String transitionInvariantAsC;
+
+        PartitionedRelationFormula formula =
+            terminationState.getCandidateTransitionInvariant().orElseThrow();
+        formula.extendPrevVarsWithPrefixSuffix("::at(", ", AnyPrev)");
+        formula.extendCurrVarsWithPrefixSuffix("", "");
+        // Transforming the candidate transition invariant from formula to C expression
+        // and wrapping the previous variables into \\at(x, AnyPrev)
+        try {
+          transitionInvariantAsC =
+              TransitionInvariantUtils.transformFormulaToStringWithTrivialReplacement(
+                      formula.getFormula(), bfmgr, fmgr)
+                  .replace("::at", "\\at");
+          transitionInvariantAsC =
+              TransitionInvariantUtils.removeFunctionFromVarsName(transitionInvariantAsC);
+        } catch (CPAException e) {
+          transitionInvariantAsC = "true";
+        }
+
+        LocationRecord locationEntry =
+            LocationRecord.createLocationRecordAtStart(
+                locationState.getLocationNode().getEnteringEdge(0).getFileLocation(),
+                locationState
+                    .getLocationNode()
+                    .getFunction()
+                    .getFileLocation()
+                    .getFileName()
+                    .toString(),
+                locationState.getLocationNode().getFunctionName());
+        transitionInvariants.add(
+            new InvariantEntry(
+                transitionInvariantAsC,
+                InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword(),
+                YAMLWitnessExpressionType.EXT_C,
+                locationEntry));
+      }
+      terminationWitnessExporter.export(
+          transitionInvariants.build(), yamlWitnessOutputFileTemplate);
+    } catch (IOException e) {
+      logger.logUserException(
+          WARNING, e, "There is a problem when writing the witness into a file.");
+    }
   }
 
   private void exportTrivialWitness(final ARGState root, final ARGState loopStart) {
