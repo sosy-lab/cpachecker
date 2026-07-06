@@ -17,8 +17,8 @@ import static org.sosy_lab.cpachecker.cpa.smg2.SMGTransferRelation.representsBoo
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -143,7 +143,6 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibSymbolApplicationRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetOrSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
@@ -222,14 +221,6 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
   // Are we in a negated case or not
   private final boolean truthAssumption;
 
-  // Memory that is allowed to be accessed via canAccess(target) predicates
-  // This is mutable, but we use new sets in every new function call
-  private final Set<SMGObjectAndOffsetOrSMGState> canAccessMemory;
-
-  // Actually accessed memory (and offsets) that need to be validated
-  // This is mutable, but we use new sets in every new function call
-  private final Set<SMGObjectAndOffsetOrSMGState> accessedMemory;
-
   private final SMGState initialState;
 
   // For example definitions for functions/predicates that are called. These definitions (e.g.
@@ -249,8 +240,6 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
       ImmutableSet<AcslLogicDefinition> pDefinitions,
       SMGState pInitialState,
       boolean pTruthAssumption,
-      Set<SMGObjectAndOffsetOrSMGState> pCanAccessMemory,
-      Set<SMGObjectAndOffsetOrSMGState> pAccessedMemory,
       SMGOptions pOptions,
       LogManagerWithoutDuplicates pLogger,
       SMGCPAExpressionEvaluator pEvaluator,
@@ -258,8 +247,6 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
       CFAEdge pCfaEdge) {
     logicDefinitions = checkNotNull(pDefinitions);
     initialState = checkNotNull(pInitialState);
-    canAccessMemory = checkNotNull(pCanAccessMemory);
-    accessedMemory = checkNotNull(pAccessedMemory);
     logger = checkNotNull(pLogger);
     options = checkNotNull(pOptions);
     truthAssumption = pTruthAssumption;
@@ -268,47 +255,85 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
     originCfaEdge = pCfaEdge;
   }
 
-  private void addCanAccessMemory(SMGObject memory, Value offset, SMGState state) {
+  private void checkCanAccessMemory(SMGObject memory, Value offset, SMGState state) {
     checkNotNull(memory);
     checkNotNull(offset);
     checkNotNull(state);
     checkArgument(state.getMemoryModel().isObjectValid(memory));
-    canAccessMemory.add(SMGObjectAndOffsetOrSMGState.of(memory, offset));
-  }
-
-  private void addAccessedMemory(SMGObject memory, Value offset, SMGState state) {
-    checkNotNull(memory);
-    checkNotNull(offset);
-    checkNotNull(state);
-    checkArgument(state.getMemoryModel().isObjectValid(memory));
-    accessedMemory.add(SMGObjectAndOffsetOrSMGState.of(memory, offset));
   }
 
   /**
-   * Returns true if all accessed memory is fully validated to be allowed to be accessed via
-   * canAccess() statements.
+   * Entry function to validate a predicate from a witness on the {@link SMGState} of this visitor.
+   *
+   * @return {@link Optional#empty()} for rejection of the invariant on the given state and a
+   *     non-empty {@link Optional} with a potentially updated {@link SMGState} for accepted
+   *     invariants on the given state.
    */
-  private boolean validateCanAccessCoversAllAccessedMemory() {
-    // We allow more valid memory than used memory for now
-    if (!(canAccessMemory.size() >= accessedMemory.size())) {
-      logger.log(
-          Level.FINE,
-          "MemSafety witness validation failed due to memory access without matching canAccess()");
-      return false;
-    }
+  public static Optional<SMGState> validate(
+      final AcslPredicate invariantToValidate,
+      final SMGState stateToValidateOn,
+      ImmutableSet<AcslLogicDefinition> pDefinitions,
+      SMGOptions pOptions,
+      LogManagerWithoutDuplicates pLogger,
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGTransferRelation pCallingTransfer,
+      CFAEdge pCfaEdge)
+      throws CPATransferException {
 
-    for (SMGObjectAndOffsetOrSMGState mem : accessedMemory) {
-      checkState(mem.hasSMGObjectAndOffset());
-      if (!canAccessMemory.contains(mem)) {
-        logger.log(
-            Level.FINE,
-            "MemSafety witness validation failed due to memory access without matching"
-                + " canAccess()");
-        return false;
+    verify(!stateToValidateOn.hasMemoryErrors());
+    // We currently only check whether canAccess() statements are correct, so we don't need
+    // preprocessing for now
+    // AcslPredicate preprocessedInvariant = preprocessInvariant(invariantToValidate);
+    // TODO: problem: we read things before we allow it to set up ACSL stack frames!
+    // SMGState preprocessedState = preprocessState(stateToValidateOn);
+    // verify(!preprocessedState.hasMemoryErrors());
+
+    SMGCPAAcslVisitor visitor =
+        new SMGCPAAcslVisitor(
+            pDefinitions,
+            stateToValidateOn,
+            pOptions,
+            pLogger,
+            pEvaluator,
+            pCallingTransfer,
+            pCfaEdge);
+
+    Set<SMGState> validatedStates = invariantToValidate.accept(visitor);
+
+    // Check the resulting states for errors (=rejected witness) and sanity check
+    checkNotNull(validatedStates);
+    for (SMGState validatedState : validatedStates) {
+      verify(
+          validatedState.getStackFrameTopFunctionDefinition()
+              == stateToValidateOn.getStackFrameTopFunctionDefinition());
+      if (validatedState.hasMemoryErrors()) {
+        return Optional.empty();
       }
     }
 
-    return true;
+    // TODO: for now we return the initial state, as we reject invariants that don't hold in all
+    // cases and do not change the state (besides materializing the list). Should we add information
+    // from the invariant, for example abstract lists based on invariant information, we need to
+    // return the updated state instead. But we also need to validate the memory again, such that it
+    // matches the initial state!
+    return Optional.of(stateToValidateOn);
+  }
+
+  /**
+   * Preprocess the state to validate. Invalidates all memory without changing it, so that
+   * canAccess() can validate it again.
+   */
+  @SuppressWarnings("unused")
+  private static SMGState copyAndInvalidateAllMemoryInState(SMGState pStateToValidateOn) {
+    return pStateToValidateOn.copyAndReplaceMemoryModel(
+        pStateToValidateOn
+            .getMemoryModel()
+            .copyWithNewSMG(
+                pStateToValidateOn
+                    .getMemoryModel()
+                    .getSmg()
+                    .copyAndInvalidateObjects(
+                        pStateToValidateOn.getMemoryModel().getSmg().getObjects())));
   }
 
   /**
@@ -316,7 +341,7 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
    * need to modify the visitor, use the copy methods of this class, e.g. {@link
    * #copyWithNewState(SMGState)}.
    */
-  SMGCPAAcslVisitor(
+  private SMGCPAAcslVisitor(
       ImmutableSet<AcslLogicDefinition> pDefinitions,
       SMGState pInitialState,
       SMGOptions pOptions,
@@ -324,8 +349,6 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
       SMGCPAExpressionEvaluator pEvaluator,
       SMGTransferRelation pCallingTransfer,
       CFAEdge pCfaEdge) {
-    canAccessMemory = new HashSet<>();
-    accessedMemory = new HashSet<>();
     logicDefinitions = checkNotNull(pDefinitions);
     initialState = checkNotNull(pInitialState);
     logger = checkNotNull(pLogger);
@@ -341,27 +364,6 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
         logicDefinitions,
         newInitialState,
         truthAssumption,
-        canAccessMemory,
-        accessedMemory,
-        options,
-        logger,
-        evaluator,
-        callingTransfer,
-        originCfaEdge);
-  }
-
-  /**
-   * Returns a new {@link SMGCPAAcslVisitor} with new, empty tracking for canAccess memory, as well
-   * as accessed memory. This is needed due to them both being mutable, but we want to separate
-   * tracking by function calls.
-   */
-  private SMGCPAAcslVisitor copyWithNewMemoryAccessTracking() {
-    return new SMGCPAAcslVisitor(
-        logicDefinitions,
-        initialState,
-        truthAssumption,
-        new HashSet<>(),
-        new HashSet<>(),
         options,
         logger,
         evaluator,
@@ -433,11 +435,7 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
   public Set<SMGState> visit(ABinaryExpression exp) throws CPATransferException {
     // Check that the assumptions posed are correct (reject non-logical operators)
     if (exp instanceof CBinaryExpression cExpr && cExpr.getOperator().isLogicalOperator()) {
-      try {
-        return handleAssumptionWithSimplification(initialState, cExpr);
-      } catch (InterruptedException pE) {
-        throw new RuntimeException(pE);
-      }
+      return handleAssumptionWithSimplification(initialState, cExpr);
     }
 
     throw new UnsupportedOperationException("Handling for " + exp + " currently not implemented");
@@ -798,11 +796,6 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
         "Pure ACSL expressions (without C expression arguments) are currently not supported");
     verify(cParameterDeclarations.size() == cArguments.size());
 
-    // TODO: do we check all arguments whether they are allowed to be used via canAccess() as well?
-
-    // Validate that all memory used in the current function call is valid
-    validateCanAccessCoversAllAccessedMemory();
-
     SMGState stateWithNewStackFrameAndVars =
         callingTransfer.handleAcslPredicateFunctionCall(
             initialState, originCfaEdge, funDecl, cArguments, cParameterDeclarations);
@@ -998,10 +991,6 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
   @Override
   public Set<SMGState> visit(AcslCanAccessPredicate pAcslCanAccessPredicate)
       throws CPATransferException {
-    // We somehow need to remember whether we checked all memory for valid access (i.e. this
-    // predicate) that is used by the witness.
-    // We save the object/offset pairs that we checked for valid access and that we accessed. Once
-    // the visitor returns, the sets need to be 1:1.
     CExpression exprTargetingMemory = pAcslCanAccessPredicate.getCExpressionTargetingMemory();
 
     // Theoretically this may materialize a list, returning 2 elements. We need to keep working with
@@ -1020,7 +1009,7 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
         // TODO: switch to the return. I only put the exception there to see whether this happens.
         // return ImmutableSet.of();
       }
-      addCanAccessMemory(
+      checkCanAccessMemory(
           targetMemory.getSMGObject(),
           targetMemory.getOffsetForObject(),
           targetMemory.getSMGState());
@@ -1495,7 +1484,7 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
    * fulfilling states. This might materialize list elements (e.g. more than one returned element).
    */
   private Set<SMGState> handleAssumptionWithSimplification(SMGState state, CExpression pExpression)
-      throws CPATransferException, InterruptedException {
+      throws CPATransferException {
 
     Pair<AExpression, Boolean> simplifiedExpression =
         simplifyAssumption(pExpression, truthAssumption);
