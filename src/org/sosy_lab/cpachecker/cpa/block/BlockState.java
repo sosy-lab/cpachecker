@@ -8,11 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.block;
 
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -50,12 +51,10 @@ public class BlockState
   private final CFANode node;
   private final BlockStateType type;
   private final BlockNode blockNode;
-  private final ImmutableList<String> history;
+  private ImmutableList<String> history;
   private List<? extends AbstractState> violationConditions;
   private final ViolationWitness witness;
-  private boolean topSummaryFromNonTrivialState;
-  private String postConditionId = "-";
-  private List<String> replace = new ArrayList<>();
+  private int timestamp;
 
   private final Optional<PathState> witnessCheckPathState;
 
@@ -66,15 +65,18 @@ public class BlockState
       List<? extends AbstractState> pViolationConditions,
       List<String> pHistory,
       ViolationWitness pWitness,
-      boolean pTopSummaryFromNonTrivialState) {
+      PathState pWitnessCheckPathState) {
+    Preconditions.checkArgument(
+        pType == BlockStateType.WITNESS || pWitnessCheckPathState == null,
+        "Added path state while not being in Witnes state");
     node = pNode;
     type = pType;
     blockNode = pTargetNode;
     violationConditions = pViolationConditions;
     history = ImmutableList.copyOf(pHistory);
     witness = pWitness;
-    topSummaryFromNonTrivialState = pTopSummaryFromNonTrivialState;
-    witnessCheckPathState = Optional.empty();
+    witnessCheckPathState = Optional.ofNullable(pWitnessCheckPathState);
+    timestamp = 0;
   }
 
   public BlockState(
@@ -83,47 +85,24 @@ public class BlockState
       BlockStateType pType,
       List<? extends AbstractState> pViolationConditions,
       List<String> pHistory,
-      ViolationWitness pWitness,
-      boolean pTopSummaryFromNonTrivialState,
-      PathState pWitnessCheckPathState) {
-    Preconditions.checkArgument(
-        pType == BlockStateType.WITNESS, "Added path state while not being in Witnes state");
-    node = pNode;
-    type = pType;
-    blockNode = pTargetNode;
-    violationConditions = pViolationConditions;
-    history = ImmutableList.copyOf(pHistory);
-    witness = pWitness;
-    topSummaryFromNonTrivialState = pTopSummaryFromNonTrivialState;
-    witnessCheckPathState = Optional.of(pWitnessCheckPathState);
+      ViolationWitness pWitness) {
+    this(pNode, pTargetNode, pType, pViolationConditions, pHistory, pWitness, null);
   }
 
-  public void setReplace(List<String> pReplace) {
-    replace = pReplace;
+  public void incrementTimestamp() {
+    timestamp++;
   }
 
-  public List<String> getReplace() {
-    return replace;
+  public int getTimestamp() {
+    return timestamp;
   }
 
-  public void setPostConditionId(String pPostConditionId) {
-    postConditionId = pPostConditionId;
-  }
-
-  public String getPostConditionId() {
-    return postConditionId;
-  }
-
-  public void setTopSummaryFromNonTrivialState(boolean pStemsFromTopState) {
-    topSummaryFromNonTrivialState = pStemsFromTopState;
+  public void addHistory(BlockNode pBlockNode) {
+    history = listAndElement(history, pBlockNode.getId());
   }
 
   public ViolationWitness getWitness() {
     return witness;
-  }
-
-  public boolean hasNonTrivialSummaryForEachPredecessor() {
-    return topSummaryFromNonTrivialState;
   }
 
   public ImmutableList<String> getHistory() {

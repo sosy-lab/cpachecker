@@ -38,9 +38,6 @@ public class BlockStateCombineViolationConditionOperator
                 .transform(BlockState::getWitness)
                 .toList());
 
-    boolean stemsFromTopState =
-        Iterables.any(
-            states, s -> s instanceof BlockState b && b.hasNonTrivialSummaryForEachPredecessor());
     AbstractState reference = Iterables.getFirst(states, null);
     Preconditions.checkNotNull(reference);
     BlockState blockState = (BlockState) reference;
@@ -50,7 +47,6 @@ public class BlockStateCombineViolationConditionOperator
         blockState.getType(),
         blockState.getViolationConditions(),
         blockState.getHistory(),
-        finalWitness,
-        stemsFromTopState);
+        finalWitness);
   }
 }
