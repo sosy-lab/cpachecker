@@ -80,6 +80,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCExpressionTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCLeftHandSideTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCanAccessPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
@@ -102,6 +103,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslProgramLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslResultTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSeparateMemoryConjunctionPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslStringLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
@@ -1358,7 +1360,7 @@ public class CFAUtils {
     @Override
     public Iterable<? extends AAstNode> visit(
         AcslCParameterDeclaration pAcslCParameterDeclaration) {
-      throw new UnsupportedOperationException();
+      return ImmutableList.of();
     }
 
     @Override
@@ -1403,17 +1405,17 @@ public class CFAUtils {
 
     @Override
     public Iterable<? extends AAstNode> visit(AcslCLeftHandSideTerm pAcslCLeftHandSideTerm) {
-      throw new UnsupportedOperationException("AcslCLeftHandSideTerm needs to be implemented");
+      return ImmutableList.of();
     }
 
     @Override
     public Iterable<? extends AAstNode> visit(AcslCExpressionTerm pAcslCExpressionTerm) {
-      throw new UnsupportedOperationException("AcslCExpressionTerm needs to be implemented");
+      return ImmutableList.of();
     }
 
     @Override
     public Iterable<? extends AAstNode> visit(AcslCIdExpression pAcslCIdExpression) {
-      throw new UnsupportedOperationException();
+      return ImmutableList.of();
     }
 
     @Override
@@ -1449,12 +1451,25 @@ public class CFAUtils {
     @Override
     public Iterable<? extends AAstNode> visit(
         AcslFunctionCallPredicate pAcslFunctionCallPredicate) {
-      throw new UnsupportedOperationException("AcslFunctionCallPredicate needs to be implemented");
+      return ImmutableList.of();
     }
 
     @Override
     public Iterable<? extends AAstNode> visit(AcslPredicateTerm pAcslPredicateTerm) {
-      throw new UnsupportedOperationException("AcslPredicateTerm needs to be implemented");
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(AcslCanAccessPredicate pAcslCanAccessPredicate)
+        throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(
+        AcslSeparateMemoryConjunctionPredicate pAcslSeparateMemoryConjunctionPredicate)
+        throws NoException {
+      return ImmutableList.of();
     }
 
     @Override
