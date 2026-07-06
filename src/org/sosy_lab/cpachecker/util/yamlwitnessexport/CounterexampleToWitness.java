@@ -355,7 +355,25 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
    * @param pPath the path to export the witness to
    * @throws IOException if writing the witness to the path is not possible
    */
-  private void exportWitnessVersion2(CounterexampleInfo pCex, Path pPath) throws IOException {
+  private void exportWitnessV2(CounterexampleInfo pCex, Path pPath) throws IOException {
+    exportEntries(
+        new ViolationSequenceEntry(getMetadata(YAMLWitnessVersion.V2), buildSegments(pCex)), pPath);
+  }
+
+  /**
+   * Export the given counterexample to the path as a Witness version 2.1
+   *
+   * @param pCex the counterexample to be exported
+   * @param pPath the path to export the witness to
+   * @throws IOException if writing the witness to the path is not possible
+   */
+  private void exportWitnessV2d1(CounterexampleInfo pCex, Path pPath) throws IOException {
+    exportEntries(
+        new ViolationSequenceEntry(getMetadata(YAMLWitnessVersion.V2d1), buildSegments(pCex)),
+        pPath);
+  }
+
+  private ImmutableList<SegmentRecord> buildSegments(CounterexampleInfo pCex) {
     AstCfaRelation astCFARelation = getASTStructure();
 
     ImmutableListMultimap.Builder<CFAEdge, String> edgeToAssumptionsBuilder =
@@ -445,9 +463,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     // this needs to be done using another function
     CFAEdge lastEdge = edges.getLast();
     segments.add(SegmentRecord.ofOnlyElement(targetWaypoint(lastEdge, astCFARelation)));
-
-    exportEntries(
-        new ViolationSequenceEntry(getMetadata(YAMLWitnessVersion.V2), segments.build()), pPath);
+    return segments.build();
   }
 
   /**
@@ -464,11 +480,13 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   public void export(CounterexampleInfo pCex, PathTemplate pOutputFileTemplate, int uniqueId)
       throws IOException {
     for (YAMLWitnessVersion witnessVersion : witnessVersions) {
-      Path outputFile = pOutputFileTemplate.getPath(uniqueId, YAMLWitnessVersion.V2.toString());
       switch (witnessVersion) {
-        case V2 -> exportWitnessVersion2(pCex, outputFile);
+        case V2 ->
+            exportWitnessV2(
+                pCex, pOutputFileTemplate.getPath(uniqueId, YAMLWitnessVersion.V2.toString()));
         case V2d1 ->
-            logger.log(Level.INFO, "There is currently no version 2.1 for Violation Witnesses.");
+            exportWitnessV2d1(
+                pCex, pOutputFileTemplate.getPath(uniqueId, YAMLWitnessVersion.V2d1.toString()));
       }
     }
   }

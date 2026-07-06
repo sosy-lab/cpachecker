@@ -73,7 +73,7 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
       throws InvalidConfigurationException {
     super("sep", "sep", null);
     pConfiguration.inject(this);
-    statistics = new TerminationToReachStatistics(pConfiguration, pLogger, pCFA);
+    statistics = new TerminationToReachStatistics(pConfiguration, pLogger, pCFA, this);
     cfa = pCFA;
     configuration = pConfiguration;
     shutdownNotifier = pShutdownNotifier;
