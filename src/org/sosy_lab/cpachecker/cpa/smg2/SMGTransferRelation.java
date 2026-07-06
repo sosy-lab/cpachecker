@@ -1200,14 +1200,7 @@ public class SMGTransferRelation
 
     for (AbstractState ae : elements) {
       if (ae instanceof AutomatonState automatonState) {
-        // TODO: we get an AutomatonState with assumptions for v2 correctness witnesses
-        // TODO: build a new state using the current SMGState using the assumptions (predicates) and
-        //  merge the 2 states. The merge result can lead to failure (i.e. invalid witness).
-        //  Return merged state to continue analysis with.
-
         result.clear();
-
-        checkArgument(!automatonState.toString().equalsIgnoreCase("AutomatonState.BOTTOM"));
 
         ExpressionTree<AExpression> invariants = automatonState.getCandidateInvariants();
         // ACSL logic definitions give us e.g. the bodies for the ACSL functions
@@ -1218,6 +1211,10 @@ public class SMGTransferRelation
         if (invariants instanceof LeafExpression<AExpression> leaf) {
           maybeInvariant = Optional.of(leaf.getExpression());
         }
+        // TODO: Handling a false invariant is not as obvious as it might seem. We can only outright
+        // reject non-overapproximated. While we can easily detect abstractions in the state, it is
+        // currently unclear whether we need to also take overapproximations from merges into
+        // account!
         checkArgument(invariants.equals(ExpressionTrees.getTrue()) || maybeInvariant.isPresent());
 
         List<AExpression> assumptions = automatonState.getAssumptions();
@@ -1232,24 +1229,33 @@ public class SMGTransferRelation
 
             if (maybeInvariant.isPresent()
                 && maybeInvariant.orElseThrow() instanceof AcslPredicate acslInvariant) {
-              for (SMGState strengthenedState : strengthenedStates) {
+              for (SMGState stateToValidate : strengthenedStates) {
                 verify(
-                    strengthenedState.getStackFrameTopFunctionDefinition()
+                    stateToValidate.getStackFrameTopFunctionDefinition()
                         == stateToStrengthen.getStackFrameTopFunctionDefinition());
-                SMGCPAAcslVisitor acslVisitor =
-                    new SMGCPAAcslVisitor(
-                        definitions, strengthenedState, options, logger, evaluator, this, cfaEdge);
 
-                Set<SMGState> processedStates = acslInvariant.accept(acslVisitor);
-                checkNotNull(processedStates);
-                for (SMGState processedState : processedStates) {
-                  verify(
-                      processedState.getStackFrameTopFunctionDefinition()
-                          == stateToStrengthen.getStackFrameTopFunctionDefinition());
-                }
-                if (!processedStates.isEmpty()) {
-                  // Invariant holds for the states returned
-                  result.addAll(processedStates);
+                Optional<SMGState> maybeValidatedState =
+                    SMGCPAAcslVisitor.validate(
+                        acslInvariant,
+                        stateToValidate,
+                        definitions,
+                        options,
+                        logger,
+                        evaluator,
+                        this,
+                        cfaEdge);
+
+                if (maybeValidatedState.isPresent()) {
+                  // Accepted state (that may be updated)
+                  result.add(maybeValidatedState.orElseThrow());
+                } else {
+                  // Rejected correctness witnesses needs to be a target state so that we fail the
+                  // validation. One wrong state is enough for the whole validation to fail!
+                  String errorMsg = "Invariant " + maybeInvariant.orElseThrow() + " rejected";
+                  result.add(stateToValidate.withInvalidCorrectnessWitness(errorMsg));
+                  // break;
+                  throw new UnsupportedOperationException(
+                      "implement me. The error added is not part of the automaton yet!");
                 }
               }
             }
@@ -1258,14 +1264,6 @@ public class SMGTransferRelation
             throw new CPATransferException(
                 "Solver error while strengthening for memory-safety witnesses v2 " + e);
           }
-        }
-
-        if (result.isEmpty() && maybeInvariant.isPresent()) {
-          // Rejected correctness witnesses get a pseudo target state
-          String errorMsg = "Invariant " + maybeInvariant.orElseThrow() + " rejected";
-          result.add(initialSMGStateToStrengthen.withInvalidCorrectnessWitness(errorMsg));
-          throw new UnsupportedOperationException(
-              "implement me. The error added is not part of the automaton yet!");
         }
 
         toStrengthen.clear();
