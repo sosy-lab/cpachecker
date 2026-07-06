@@ -23,7 +23,6 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -119,7 +118,7 @@ public class TerminationToReachStatistics extends TerminationStatistics implemen
                         AbstractStates.extractStateByType(state, TerminationToReachState.class)
                             .getCandidateTransitionInvariant()
                             .isPresent())
-                .collect(Collectors.toSet())) {
+                .collect(ImmutableSet.toImmutableSet())) {
           TerminationToReachState terminationState =
               AbstractStates.extractStateByType(state, TerminationToReachState.class);
           LocationState locationState =
