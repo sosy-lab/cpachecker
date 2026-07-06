@@ -50,7 +50,7 @@ public class PolyhedraWideningManagerTest {
     }
   }
 
-  @Ignore
+  @Ignore("Apron library fails to load")
   @Test
   public void test_polyhedra() throws ApronException {
     // FIXME Tests should not rely on a user manually checking log message

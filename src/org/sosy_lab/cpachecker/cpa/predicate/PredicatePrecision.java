@@ -15,6 +15,7 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -28,11 +29,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 /**
  * This class represents the precision of the PredicateCPA. It is basically a map which assigns to
@@ -233,6 +236,17 @@ public final class PredicatePrecision implements AdjustablePrecision {
     }
     assert distinctPrecisions.size() == orderedPrecisions.size();
     return unionOf(orderedPrecisions);
+  }
+
+  public Set<String> getVariables(FormulaManagerView mgr) {
+    return FluentIterable.<@NonNull AbstractionPredicate>from(
+            Iterables.concat(
+                mFunctionPredicates.values(),
+                mLocalPredicates.values(),
+                mLocationInstancePredicates.values(),
+                mGlobalPredicates))
+        .transformAndConcat(a -> mgr.extractVariables(a.getSymbolicAtom()).keySet())
+        .toSet();
   }
 
   /**

@@ -360,9 +360,10 @@ analysis.algorithm.MPOR.executeSingleActiveThreadFirst = true
 analysis.algorithm.MPOR.executeThreadsUntilConflict = false
 
 # Include original function declarations from the input program? Including
-# them may result in unsound analysis (e.g. false alarms for CBMC, or ignored
-# function calls through function pointers for CPAchecker).
-analysis.algorithm.MPOR.inputFunctionDeclarations = false
+# them may result in an unsound analysis (e.g. false alarms for CBMC). Not
+# including them may  result in the output program producing errors when
+# compiled e.g. by clang.
+analysis.algorithm.MPOR.inputFunctionDeclarations = true
 
 # Include original type declarations from the input file? Disabling may
 # result in parse errors for the output program.
@@ -4632,6 +4633,9 @@ differential.stopOnPointers = false
 # pairs. Set cpa.automaton.deleteDoubleEdges as well!
 differential.variableSetMerge = false
 
+# Whether to combine violation conditions at same program location
+distributedSummaries.combineVcsByHash = true
+
 # Whether to enable debug mode of block-summary analysis. This creates visual
 # output for debugging and exports additional metadata.Creating this
 # information consumes resources and should not be used for benchmarks.
@@ -4671,20 +4675,18 @@ distributedSummaries.decomposition.largestHorizontalMerge = HorizontalMergeDecom
 
 # Decomposition type to use for the block analysis.
 distributedSummaries.executorType = DSS
-  enum:     [DSS, SINGLE_WORKER]
-
-# If this option is set to true, the analysis will try to cover all violation
-# conditions in the block, even if no valid ARG path exists. In some cases,
-# ARGUtils#getAllPaths does not compute all paths as promised. However,
-# setting this option to true may lead to a significant increase in analysis
-# time.
-distributedSummaries.forcefullyCollectAllViolationConditions = false
+  enum:     [DSS, SINGLE_WORKER, SEQUENTIAL]
 
 # output file for visualizing the block graph
 distributedSummaries.logging.blockCFAFile = "block_analysis/blocks.json"
 
 # output file for visualizing message exchange
 distributedSummaries.logging.reportFiles = "block_analysis/messages"
+
+# Whether to reset the precision for each run of the analysis or to keep the
+# transmitted one. The latter has disadvantages as unnecessary variables
+# might be tracked due to a too precise precision.
+distributedSummaries.resetPrecisionForEveryRun = false
 
 # List of input files that contain preconditions and verification conditions
 # that should be assumed as 'known' by block-summary analysis. Each file must

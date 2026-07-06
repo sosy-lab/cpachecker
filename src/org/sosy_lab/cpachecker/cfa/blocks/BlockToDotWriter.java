@@ -177,7 +177,7 @@ public class BlockToDotWriter {
   }
 
   /**
-   * method copied from <ode>org.sosy_lab.cpachecker.cfa.export.DOTBuilder.DotGenerator#formatEdge
+   * method copied from <code>org.sosy_lab.cpachecker.cfa.export.DOTBuilder.DotGenerator#formatEdge
    * </code>
    */
   private static String formatEdge(CFAEdge edge) {

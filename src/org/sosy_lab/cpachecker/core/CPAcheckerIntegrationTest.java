@@ -236,8 +236,8 @@ public class CPAcheckerIntegrationTest {
   }
 
   @Test
-  @Deprecated // cf. https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356
-  @Ignore
+  @Deprecated
+  @Ignore("cf. issue #1356")
   public void testRunForSafeLlvmProgram() throws Exception {
     Configuration config =
         getConfigWithOutputFiles(CONFIGURATION_FILE_LLVM, Language.LLVM, SPECIFICATION_LLVM);
@@ -255,8 +255,8 @@ public class CPAcheckerIntegrationTest {
   }
 
   @Test
-  @Deprecated // cf. https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356
-  @Ignore
+  @Deprecated
+  @Ignore("cf. issue #1356")
   public void testRunForUnsafeLlvmProgram() throws Exception {
     Configuration config =
         getConfigWithOutputFiles(CONFIGURATION_FILE_LLVM, Language.LLVM, SPECIFICATION_LLVM);

@@ -15,6 +15,35 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 
+/**
+ * Serializes a {@link BlockState} into the wire format shared with {@link
+ * DeserializeBlockStateOperator}.
+ *
+ * <p>The serialized state is stored as a single string under the {@code STATE_KEY} entry of the
+ * content map. Its format is:
+ *
+ * <pre>{@code
+ * <blockNodeId> W:<witness> [ H:<history>]
+ * }</pre>
+ *
+ * <ul>
+ *   <li>{@code <blockNodeId>} is the id of the block node ({@link
+ *       org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode#getId()}).
+ *   <li>The {@code W:} marker (preceded by a single space) is followed by the witness elements
+ *       joined by {@code ','}.
+ *   <li>The {@code H:} marker (preceded by a single space) is followed by the history elements
+ *       joined by {@code ','}. This suffix is omitted entirely when the history is empty.
+ * </ul>
+ *
+ * <p>Concrete examples:
+ *
+ * <pre>{@code
+ * "B1 W:w0,w1 H:h0,h1"   // block "B1", witness [w0, w1], history [h0, h1]
+ * "B1 W:w0,w1"           // block "B1", witness [w0, w1], empty history (H: suffix omitted)
+ * }</pre>
+ *
+ * <p>The exact reverse parsing is implemented by {@link DeserializeBlockStateOperator}.
+ */
 public class SerializeBlockStateOperator implements SerializeOperator {
 
   @Override
@@ -23,7 +52,8 @@ public class SerializeBlockStateOperator implements SerializeOperator {
       throw new IllegalArgumentException(
           String.format("Expected state of type %s, got %s", BlockState.class, pState.getClass()));
     }
-    String suffix = b.getHistory().isEmpty() ? "" : ", " + Joiner.on(", ").join(b.getHistory());
+    String suffix = " W:" + Joiner.on(",").join(b.getWitness());
+    suffix = suffix + (b.getHistory().isEmpty() ? "" : " H:" + Joiner.on(",").join(b.getHistory()));
     return ContentBuilder.builder()
         .pushLevel(BlockState.class.getName())
         .put(STATE_KEY, b.getBlockNode().getId() + suffix)
