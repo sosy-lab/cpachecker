@@ -708,14 +708,16 @@ class CToSvLibInitializer {
           ImmutableList.of(havocStatement, assumeStatement),
           FileLocation.DUMMY,
           ImmutableList.of(),
-          ImmutableList.of());
+          ImmutableList.of(
+              new SvLibTagReference(pProcedureDeclaration.getName(), FileLocation.DUMMY)));
     } else {
       // TODO log that no assume statement for bounds was created?
       return new SvLibSequenceStatement(
           ImmutableList.of(havocStatement),
           FileLocation.DUMMY,
           ImmutableList.of(),
-          ImmutableList.of());
+          ImmutableList.of(
+              new SvLibTagReference(pProcedureDeclaration.getName(), FileLocation.DUMMY)));
     }
   }
 
