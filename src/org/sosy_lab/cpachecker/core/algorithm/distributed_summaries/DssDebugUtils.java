@@ -78,9 +78,12 @@ public class DssDebugUtils {
         violationConditions,
         a ->
             AbstractStates.extractStateByType(a, PredicateAbstractState.class)
-                .getAbstractionFormula()
-                .asFormula()
-                .toString());
+                    .getAbstractionFormula()
+                    .asFormula()
+                    .toString()
+                + " ("
+                + AbstractStates.extractStateByType(a, BlockState.class).getHistory()
+                + ")");
   }
 
   public static String prettyPrintSymbolicExecution(

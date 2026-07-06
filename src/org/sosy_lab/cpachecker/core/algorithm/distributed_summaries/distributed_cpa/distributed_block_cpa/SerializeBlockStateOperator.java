@@ -24,22 +24,11 @@ public class SerializeBlockStateOperator implements SerializeOperator {
       throw new IllegalArgumentException(
           String.format("Expected state of type %s, got %s", BlockState.class, pState.getClass()));
     }
-    String replacements =
-        b.getPostConditionId()
-            + " ["
-            + Joiner.on(",").join(b.getReplace() == null ? new ArrayList<>() : b.getReplace())
-            + "]";
     String suffix = " W:" + b.getWitness().serialize();
     suffix = suffix + (b.getHistory().isEmpty() ? "" : " H:" + Joiner.on(",").join(b.getHistory()));
     return ContentBuilder.builder()
         .pushLevel(BlockState.class.getName())
-        .put(
-            STATE_KEY,
-            replacements
-                + b.hasNonTrivialSummaryForEachPredecessor()
-                + " "
-                + b.getBlockNode().getId()
-                + suffix)
+        .put(STATE_KEY, b.getBlockNode().getId() + suffix)
         .build();
   }
 }

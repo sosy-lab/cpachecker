@@ -32,36 +32,6 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
   public AbstractState deserialize(DssMessage pMessage) throws InterruptedException {
     String content = pMessage.getAbstractStateContent(BlockState.class).get(STATE_KEY);
 
-    String id = "";
-    String repl = "";
-    boolean trackId = true;
-    int lastI = 0;
-    for (int i = 0; i < content.length(); i++) {
-      lastI = i;
-      if (content.charAt(i) == ']') {
-        break;
-      }
-      if (content.charAt(i) == '[') {
-        continue;
-      }
-      if (content.charAt(i) == ' ') {
-        trackId = false;
-        continue;
-      }
-      if (trackId) {
-        id = id + content.charAt(i);
-      } else {
-        repl = repl + content.charAt(i);
-      }
-    }
-    content = content.substring(lastI + 1);
-
-    boolean stemsFromTopState = content.startsWith("true ");
-    if (stemsFromTopState) {
-      content = content.substring("true ".length());
-    } else {
-      content = content.substring("false ".length());
-    }
     List<String> idAndWitnessAndMaybeHistory = Splitter.on(" W:").limit(2).splitToList(content);
     Preconditions.checkArgument(idAndWitnessAndMaybeHistory.size() == 2);
     String serializedBlockState = idAndWitnessAndMaybeHistory.getFirst();
@@ -77,17 +47,12 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
     Preconditions.checkArgument(
         blockNode.getPredecessorIds().contains(serializedBlockState)
             || blockNode.getSuccessorIds().contains(serializedBlockState));
-    BlockState b =
-        new BlockState(
-            DeserializeOperator.startLocationFromMessageType(pMessage, blockNode),
-            blockNode,
-            BlockStateType.INITIAL,
-            ImmutableList.of(),
-            history,
-            finalWitness,
-            stemsFromTopState);
-    b.setPostConditionId(id);
-    b.setReplace(Splitter.on(",").splitToList(repl));
-    return b;
+    return new BlockState(
+        DeserializeOperator.startLocationFromMessageType(pMessage, blockNode),
+        blockNode,
+        BlockStateType.INITIAL,
+        ImmutableList.of(),
+        history,
+        finalWitness);
   }
 }

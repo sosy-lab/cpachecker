@@ -46,8 +46,7 @@ public class BlockCPA extends AbstractCPA {
         BlockStateType.INITIAL,
         ImmutableList.of(),
         ImmutableList.of(),
-        ViolationWitness.EMPTY,
-        false);
+        ViolationWitness.EMPTY);
   }
 
   public static CPAFactory factory() {
