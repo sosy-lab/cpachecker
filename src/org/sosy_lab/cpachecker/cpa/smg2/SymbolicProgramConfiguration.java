@@ -3215,7 +3215,7 @@ public class SymbolicProgramConfiguration {
       FluentIterable<SMGHasValueEdge> edgesInObj =
           smg.getHasValueEdgesByPredicate(objToRemove, e -> true);
        */
-      SMG newSmg = smg.copyAndInvalidateObject(objToRemove, true);
+      SMG newSmg = smg.copyAndInvalidateAndCleanObject(objToRemove, true);
       PersistentMap<SMGValue, CType> newValueToTypeMap = valueToTypeMap;
       /*
       for (SMGHasValueEdge hve : edgesInObj) {
@@ -3553,7 +3553,7 @@ public class SymbolicProgramConfiguration {
       // Pointers from may be given as array argument, then we have the object, but don't own it,
       // hence no heap objs.
       if (!validObjects.contains(object) && !isHeapObject(object)) {
-        newSmg = newSmg.copyAndInvalidateObject(object, false);
+        newSmg = newSmg.copyAndInvalidateAndCleanObject(object, false);
       }
     }
     for (String varName : frame.getVariables().keySet()) {
@@ -4516,7 +4516,7 @@ public class SymbolicProgramConfiguration {
     if (isObjectExternallyAllocated(pObject)) {
       newSPC = copyAndInvalidateExternalAllocation(pObject);
     }
-    SMG newSMG = newSPC.getSmg().copyAndInvalidateObject(pObject, deleteDanglingPointers);
+    SMG newSMG = newSPC.getSmg().copyAndInvalidateAndCleanObject(pObject, deleteDanglingPointers);
     assert newSMG.checkSMGSanity();
     return newSPC.copyAndReplaceSMG(newSMG);
   }
