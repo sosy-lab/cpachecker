@@ -108,7 +108,7 @@ class CToSvLibTransformation {
     scope = pCurrentScope;
   }
 
-  SvLibStatement transformFunction(@NonNull CFunctionEntryNode pEntryNode)
+  SvLibSequenceStatement transformFunction(@NonNull CFunctionEntryNode pEntryNode)
       throws CPATransferException, InterruptedException {
     SvLibProcedureDeclaration procedureDeclaration =
         scope.getProcedureDeclaration(pEntryNode.getFunctionName());
@@ -176,7 +176,7 @@ class CToSvLibTransformation {
       }
     }
 
-    SvLibStatement procedureBodySequence =
+    SvLibSequenceStatement procedureBodySequence =
         createSequenceStatement(statementCollector.build(), procedureName);
 
     scope.leaveProcedure();
