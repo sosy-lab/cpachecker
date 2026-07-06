@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
 
 @Options(prefix = "terminationtoreach")
 public class TerminationToReachStatistics extends TerminationStatistics implements Statistics {

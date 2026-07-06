@@ -117,9 +117,7 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationYAMLWitnessExporter;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessVersion;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 
 @Options(prefix = "termination", deprecatedPrefix = "termination")
 public class TerminationStatistics extends LassoAnalysisStatistics {
@@ -497,8 +495,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     if (pResult == Result.TRUE) {
       try {
         terminationWitnessExporter.export(
-            convertRankingFuncToTransInv(terminationArguments),
-            yamlWitnessOutputFileTemplate);
+            convertRankingFuncToTransInv(terminationArguments), yamlWitnessOutputFileTemplate);
       } catch (IOException e) {
         logger.logUserException(
             WARNING, e, "There is a problem when writing the witness into a file.");
