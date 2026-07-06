@@ -21,7 +21,9 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -31,6 +33,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
@@ -133,8 +136,7 @@ public class TerminationToReachStatistics extends TerminationStatistics implemen
 
   private void exportTerminationWitness(UnmodifiableReachedSet pReached) {
     try {
-      ImmutableList.Builder<AbstractInvariantEntry> transitionInvariants =
-          ImmutableList.builder();
+      Map<CFANode, AbstractInvariantEntry> transitionInvariants = new HashMap<>();
       for (AbstractState state :
           pReached.stream()
               .filter(
@@ -145,8 +147,8 @@ public class TerminationToReachStatistics extends TerminationStatistics implemen
               .collect(ImmutableSet.toImmutableSet())) {
         TerminationToReachState terminationState =
             AbstractStates.extractStateByType(state, TerminationToReachState.class);
-        LocationState locationState =
-            AbstractStates.extractStateByType(state, LocationState.class);
+        CFANode location =
+            AbstractStates.extractStateByType(state, LocationState.class).getLocationNode();
         String transitionInvariantAsC;
 
         PartitionedRelationFormula formula =
@@ -166,17 +168,18 @@ public class TerminationToReachStatistics extends TerminationStatistics implemen
           transitionInvariantAsC = "true";
         }
 
+        if (transitionInvariants.containsKey(location)) {
+          transitionInvariantAsC =
+              transitionInvariantAsC + " || " + transitionInvariants.get(location).toString();
+          transitionInvariants.remove(location, transitionInvariants.get(location));
+        }
         LocationRecord locationEntry =
             LocationRecord.createLocationRecordAtStart(
-                locationState.getLocationNode().getEnteringEdge(0).getFileLocation(),
-                locationState
-                    .getLocationNode()
-                    .getFunction()
-                    .getFileLocation()
-                    .getFileName()
-                    .toString(),
-                locationState.getLocationNode().getFunctionName());
-        transitionInvariants.add(
+                location.getEnteringEdge(0).getFileLocation(),
+                location.getFunction().getFileLocation().getFileName().toString(),
+                location.getFunctionName());
+        transitionInvariants.put(
+            location,
             new InvariantEntry(
                 transitionInvariantAsC,
                 InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword(),
@@ -184,7 +187,8 @@ public class TerminationToReachStatistics extends TerminationStatistics implemen
                 locationEntry));
       }
       terminationWitnessExporter.export(
-          transitionInvariants.build(), yamlWitnessOutputFileTemplate);
+          transitionInvariants.values().stream().collect(ImmutableList.toImmutableList()),
+          yamlWitnessOutputFileTemplate);
     } catch (IOException e) {
       logger.logUserException(
           WARNING, e, "There is a problem when writing the witness into a file.");
