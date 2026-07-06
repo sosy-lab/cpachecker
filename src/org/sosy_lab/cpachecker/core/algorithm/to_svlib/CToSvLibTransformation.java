@@ -285,29 +285,10 @@ class CToSvLibTransformation {
       }
       case StatementEdge -> {
         CStatementEdge statementEdge = (CStatementEdge) pEdge;
-        if (statementEdge.getStatement() instanceof CFunctionCall functionCall) {
-          if (functionCall instanceof CFunctionCallAssignmentStatement callAssignmentStatement
-              && callAssignmentStatement.getLeftHandSide() instanceof CArraySubscriptExpression) {
-            SvLibSequenceStatement sequenceStatement =
-                handleReturnValueAssignmentToHeap(
-                    statementEdge, callAssignmentStatement, pEdgeToPointerTargetSet);
-            pCreatedStatements.put(pEdge.getPredecessor(), sequenceStatement);
-
-          } else if (functionCall
-                  instanceof CFunctionCallAssignmentStatement callAssignmentStatement
-              && callAssignmentStatement.getLeftHandSide() instanceof CFieldReference) {
-            // TODO check why storePTS is needed here for struct but not for array subscript
-            storePtsForFunctionCall(pEdge, pEdgeToPointerTargetSet);
-            SvLibSequenceStatement sequenceStatement =
-                handleReturnValueAssignmentToHeap(
-                    statementEdge, callAssignmentStatement, pEdgeToPointerTargetSet);
-            pCreatedStatements.put(pEdge.getPredecessor(), sequenceStatement);
-
-          } else {
-            SvLibStatement externCallStatement =
-                transformExternFunctionCall(statementEdge, pEdgeToPointerTargetSet);
-            pCreatedStatements.put(pEdge.getPredecessor(), externCallStatement);
-          }
+        if (statementEdge.getStatement() instanceof CFunctionCall) {
+          SvLibStatement externCallStatement =
+              transformCallToExternalFunction(statementEdge, pEdgeToPointerTargetSet);
+          pCreatedStatements.put(pEdge.getPredecessor(), externCallStatement);
         } else {
           SvLibTerm transformedTerm = transformEdgeToSvLibTerm(pEdge, pEdgeToPointerTargetSet);
           SvLibStatement assignmentStatement = handleAssignment(pEdge, transformedTerm);
@@ -335,17 +316,9 @@ class CToSvLibTransformation {
       case CallToReturnEdge -> {
         // CFunctionSummaryEdge for function calls
         CFunctionSummaryEdge callEdge = (CFunctionSummaryEdge) pEdge;
-        if (callEdge.getExpression() instanceof CFunctionCallAssignmentStatement assignment
-            && assignment.getLeftHandSide() instanceof CArraySubscriptExpression) {
-          SvLibSequenceStatement sequenceStatement =
-              handleReturnValueAssignmentToHeap(callEdge, assignment, pEdgeToPointerTargetSet);
-          pCreatedStatements.put(pEdge.getPredecessor(), sequenceStatement);
-          pCreatedStatements.put(pEdge.getPredecessor(), createGotoStatement(pEdge.getSuccessor()));
-        } else {
-          SvLibStatement callStatement = transformFunctionCall(callEdge, pEdgeToPointerTargetSet);
-          pCreatedStatements.put(pEdge.getPredecessor(), callStatement);
-          pCreatedStatements.put(pEdge.getPredecessor(), createGotoStatement(pEdge.getSuccessor()));
-        }
+        SvLibStatement callStatement = transformFunctionCall(callEdge, pEdgeToPointerTargetSet);
+        pCreatedStatements.put(pEdge.getPredecessor(), callStatement);
+        pCreatedStatements.put(pEdge.getPredecessor(), createGotoStatement(pEdge.getSuccessor()));
       }
     }
   }
@@ -402,13 +375,19 @@ class CToSvLibTransformation {
     pEdgeToPointerTargetSet.put(pEdge, edgeFormula.getPointerTargetSet());
   }
 
-  private SvLibStatement transformExternFunctionCall(
+  private SvLibStatement transformCallToExternalFunction(
       CStatementEdge pStatementEdge,
       ImmutableMap.Builder<CFAEdge, PointerTargetSet> pEdgeToPointerTargetSet)
       throws CPATransferException, InterruptedException {
-    if (pStatementEdge.getStatement()
+    storePtsForFunctionCall(pStatementEdge, pEdgeToPointerTargetSet);
+    if (pStatementEdge.getStatement() instanceof CFunctionCall functionCall
+        && functionCall instanceof CFunctionCallAssignmentStatement callAssignmentStatement
+        && (callAssignmentStatement.getLeftHandSide() instanceof CArraySubscriptExpression
+            || callAssignmentStatement.getLeftHandSide() instanceof CFieldReference)) {
+      return handleReturnValueAssignmentToHeap(
+          pStatementEdge, callAssignmentStatement, pEdgeToPointerTargetSet);
+    } else if (pStatementEdge.getStatement()
         instanceof CFunctionCallAssignmentStatement functionCallAssignmentStatement) {
-      storePtsForFunctionCall(pStatementEdge, pEdgeToPointerTargetSet);
 
       CIdExpression lhsIdExpression =
           (CIdExpression) functionCallAssignmentStatement.getLeftHandSide();
@@ -422,7 +401,6 @@ class CToSvLibTransformation {
               pStatementEdge, functionCallAssignmentStatement, pEdgeToPointerTargetSet);
         }
       }
-
       return createProcedureCallStatement(
           pStatementEdge,
           functionCallAssignmentStatement,
@@ -431,7 +409,6 @@ class CToSvLibTransformation {
 
     } else if (pStatementEdge.getStatement()
         instanceof CFunctionCallStatement functionCallStatement) {
-      storePtsForFunctionCall(pStatementEdge, pEdgeToPointerTargetSet);
 
       SvLibProcedureDeclaration calledProcedure =
           scope.getProcedureDeclaration(
@@ -463,10 +440,15 @@ class CToSvLibTransformation {
       CFunctionSummaryEdge pCallEdge,
       ImmutableMap.Builder<CFAEdge, PointerTargetSet> pEdgeToPointerTargetSet)
       throws CPATransferException, InterruptedException {
-    CFunctionCall functionCall = pCallEdge.getExpression();
+    storePtsForFunctionCall(pCallEdge, pEdgeToPointerTargetSet);
 
-    if (functionCall instanceof CFunctionCallAssignmentStatement functionCallAssignment) {
-      storePtsForFunctionCall(pCallEdge, pEdgeToPointerTargetSet);
+    CFunctionCall functionCall = pCallEdge.getExpression();
+    if (pCallEdge.getExpression() instanceof CFunctionCallAssignmentStatement assignment
+        && (assignment.getLeftHandSide() instanceof CArraySubscriptExpression
+            || assignment.getLeftHandSide() instanceof CFieldReference)) {
+      return handleReturnValueAssignmentToHeap(pCallEdge, assignment, pEdgeToPointerTargetSet);
+
+    } else if (functionCall instanceof CFunctionCallAssignmentStatement functionCallAssignment) {
 
       CIdExpression lhsIdExpression = (CIdExpression) functionCallAssignment.getLeftHandSide();
       PointerTargetSet pointerTargetSet = pEdgeToPointerTargetSet.buildOrThrow().get(pCallEdge);
@@ -482,7 +464,6 @@ class CToSvLibTransformation {
           pCallEdge, functionCallAssignment, lhsIdExpression, pEdgeToPointerTargetSet);
 
     } else if (functionCall instanceof CFunctionCallStatement callStatement) {
-      storePtsForFunctionCall(pCallEdge, pEdgeToPointerTargetSet);
 
       SvLibProcedureDeclaration calledProcedure =
           scope.getProcedureDeclaration(pCallEdge.getFunctionEntry().getFunctionName());
