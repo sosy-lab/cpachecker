@@ -57,16 +57,16 @@ public final class AcslSeparateMemoryConjunctionPredicate extends AbstractExpres
   }
 
   /**
-   * @return the {@link CExpression} left statement that is supposed to target some memory that is
-   *     separate from the right memory. If it does not, this is an invalid witness!
+   * Returns the left {@link CExpression} that is supposed to target some memory region that is
+   * disjoint from the right memory region.
    */
   public CExpression getLeftCExpressionTargetingMemory() {
     return leftPointer;
   }
 
   /**
-   * @return the {@link CExpression} right statement that is supposed to target some memory that is
-   *     separate from the left memory. If it does not, this is an invalid witness!
+   * Returns the right {@link CExpression} that is supposed to target some memory region that is
+   * disjoint from the left memory region.
    */
   public CExpression getRightCExpressionTargetingMemory() {
     return rightPointer;

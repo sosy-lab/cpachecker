@@ -35,8 +35,11 @@ public final class AcslCanAccessPredicate extends AbstractExpression implements 
   }
 
   /**
+   * Returns the {@link CExpression} in the canAccess() statement that is supposed to target some
+   * memory whose access is supposed to be valid.
+   *
    * @return the {@link CExpression} in the canAccess() statement that is supposed to target some
-   *     memory. If it does not, this is an invalid witness!
+   *     memory.
    */
   public CExpression getCExpressionTargetingMemory() {
     return pointer;
