@@ -23,6 +23,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -33,6 +34,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -40,11 +43,19 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 
 @Options(prefix = "terminationtoreach")
 public class TerminationToReachStatistics extends TerminationStatistics implements Statistics {
@@ -72,6 +83,8 @@ public class TerminationToReachStatistics extends TerminationStatistics implemen
   private boolean validation = false;
 
   private ImmutableSet<Loop> nonterminatingLoops = null;
+  private FormulaManagerView fmgr;
+  private BooleanFormulaManagerView bfmgr;
 
   public TerminationToReachStatistics(Configuration pConfig, LogManager pLogger, CFA pCFA)
       throws InvalidConfigurationException {
@@ -97,12 +110,71 @@ public class TerminationToReachStatistics extends TerminationStatistics implemen
 
     if (!validation && pResult == Result.TRUE) {
       try {
-        terminationWitnessExporter.export(ImmutableList.of(), yamlWitnessOutputFileTemplate);
+        ImmutableList.Builder<AbstractInvariantEntry> transitionInvariants =
+            ImmutableList.builder();
+        for (AbstractState state :
+            pReached.stream()
+                .filter(
+                    state ->
+                        AbstractStates.extractStateByType(state, TerminationToReachState.class)
+                            .getCandidateTransitionInvariant()
+                            .isPresent())
+                .collect(Collectors.toSet())) {
+          TerminationToReachState terminationState =
+              AbstractStates.extractStateByType(state, TerminationToReachState.class);
+          LocationState locationState =
+              AbstractStates.extractStateByType(state, LocationState.class);
+          String transitionInvariantAsC;
+
+          PartitionedRelationFormula formula =
+              terminationState.getCandidateTransitionInvariant().get();
+          formula.extendPrevVarsWithPrefixSuffix("::at(", ", AnyPrev)");
+          formula.extendCurrVarsWithPrefixSuffix("", "");
+          // Transforming the candidate transition invariant from formula to C expression
+          // and wrapping the previous variables into \\at(x, AnyPrev)
+          try {
+            transitionInvariantAsC =
+                TransitionInvariantUtils.transformFormulaToStringWithTrivialReplacement(
+                        formula.getFormula(), bfmgr, fmgr)
+                    .replace("::at", "\\at");
+            transitionInvariantAsC =
+                TransitionInvariantUtils.removeFunctionFromVarsName(transitionInvariantAsC);
+          } catch (CPAException e) {
+            transitionInvariantAsC = "true";
+          }
+
+          LocationRecord locationEntry =
+              LocationRecord.createLocationRecordAtStart(
+                  locationState.getLocationNode().getEnteringEdge(0).getFileLocation(),
+                  locationState
+                      .getLocationNode()
+                      .getFunction()
+                      .getFileLocation()
+                      .getFileName()
+                      .toString(),
+                  locationState.getLocationNode().getFunctionName());
+          transitionInvariants.add(
+              new InvariantEntry(
+                  transitionInvariantAsC,
+                  InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword(),
+                  YAMLWitnessExpressionType.EXT_C,
+                  locationEntry));
+        }
+        terminationWitnessExporter.export(
+            transitionInvariants.build(), yamlWitnessOutputFileTemplate);
       } catch (IOException e) {
         logger.logUserException(
             WARNING, e, "There is a problem when writing the witness into a file.");
       }
     }
+  }
+
+  public void setFormulaManager(FormulaManagerView pFmgr) {
+    fmgr = pFmgr;
+  }
+
+  public void setBooleanFormulaManager(BooleanFormulaManagerView pBfmgr) {
+    bfmgr = pBfmgr;
   }
 
   @Override

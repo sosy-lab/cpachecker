@@ -64,6 +64,9 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
    */
   private ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pathFormulaForIteration;
 
+  /** Candidate transition invariant computed at the previous loop-head. */
+  private Optional<PartitionedRelationFormula> candidateTransitionInvariant;
+
   /**
    * For every loop-head (given by location and call-stack), we track the path formula until
    * reaching this abstract state. This is the part before reaching the loop.
@@ -93,6 +96,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     allLoops = pAllLoops;
     isTarget = false;
     visitedNodes = alreadyVisitedNodes;
+    candidateTransitionInvariant = Optional.empty();
   }
 
   public int getNumberOfIterationsAtLoopHead(Pair<LocationState, CallstackState> pKeyPair) {
@@ -148,6 +152,14 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
                         || loop.getLoopNodes().stream()
                             .anyMatch(node -> !visitedNodes.contains(node)))
             .collect(ImmutableSet.toImmutableSet());
+  }
+
+  public void setCandidateTransitionInvariant(PartitionedRelationFormula pTransitionInvariant) {
+    candidateTransitionInvariant = Optional.of(pTransitionInvariant);
+  }
+
+  public Optional<PartitionedRelationFormula> getCandidateTransitionInvariant() {
+    return candidateTransitionInvariant;
   }
 
   public boolean isTerminating() {

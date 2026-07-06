@@ -115,7 +115,8 @@ public class PartitionedRelationFormula {
     return FormulaManagerView.parseName(pFormula).getSecond().orElse(-2);
   }
 
-  private ImmutableMap<Formula, Formula> getSubMap(ImmutableSet<Formula> variables, String suffix) {
+  private ImmutableMap<Formula, Formula> getSubMap(
+      ImmutableSet<Formula> variables, String prefix, String suffix) {
     return variables.stream()
         .collect(
             ImmutableMap.toImmutableMap(
@@ -123,18 +124,19 @@ public class PartitionedRelationFormula {
                 var ->
                     fmgr.makeVariable(
                         fmgr.getFormulaType(var),
-                        TransitionInvariantUtils.removeTransInvKeyWord(
+                        prefix
+                            + TransitionInvariantUtils.removeTransInvKeyWord(
                                 fmgr.uninstantiate(var).toString())
                             + suffix)));
   }
 
-  public void extendPrevVarsWithSuffix(String suffix) {
-    formula = fmgr.substitute(formula, getSubMap(prevVariables, suffix));
+  public void extendPrevVarsWithPrefixSuffix(String prefix, String suffix) {
+    formula = fmgr.substitute(formula, getSubMap(prevVariables, prefix, suffix));
     instantiateThePrevVariables();
   }
 
-  public void extendCurrVarsWithSuffix(String suffix) {
-    formula = fmgr.substitute(formula, getSubMap(currVariables, suffix));
+  public void extendCurrVarsWithPrefixSuffix(String prefix, String suffix) {
+    formula = fmgr.substitute(formula, getSubMap(currVariables, prefix, suffix));
     instantiateTheCurrVariables();
   }
 

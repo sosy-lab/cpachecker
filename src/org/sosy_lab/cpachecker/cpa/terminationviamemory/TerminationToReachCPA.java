@@ -115,6 +115,8 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
     precisionAdjustment =
         new TerminationToReachPrecisionAdjustment(
             solver, statistics, logger, cfa, bfmgr, fmgr, itpMgr, configuration);
+    statistics.setFormulaManager(fmgr);
+    statistics.setBooleanFormulaManager(bfmgr);
   }
 
   @Override

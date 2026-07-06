@@ -59,6 +59,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private final String PREV_KEYWORD = "__TransInv@1";
   private final String CURR_KEYWORD = "__TransInv@2";
   private final String CURR2_KEYWORD = "__TransInv@3";
+  private final String DUMMY_PREFIX = "";
   private static final long MAX_INT = 4294967295L;
   private static final long MIN_INT = -4294967295L;
 
@@ -160,17 +161,18 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                 // Construct formula instantiated to x__PREV = x__CURR2
                 PartitionedRelationFormula sameStateFormulaRelation =
                     new PartitionedRelationFormula(sameStateFormula, fmgr);
-                sameStateFormulaRelation.extendPrevVarsWithSuffix(PREV_KEYWORD);
-                sameStateFormulaRelation.extendCurrVarsWithSuffix(CURR2_KEYWORD);
+                sameStateFormulaRelation.extendPrevVarsWithPrefixSuffix(DUMMY_PREFIX, PREV_KEYWORD);
+                sameStateFormulaRelation.extendCurrVarsWithPrefixSuffix(
+                    DUMMY_PREFIX, CURR2_KEYWORD);
                 latestSameStateFormula = sameStateFormulaRelation.getFormula();
 
                 // Set the prev vars in T to match x__PREV and the curr cars to match x__CURR
-                candidateTransInv.extendPrevVarsWithSuffix(PREV_KEYWORD);
-                candidateTransInv.extendCurrVarsWithSuffix(CURR_KEYWORD);
+                candidateTransInv.extendPrevVarsWithPrefixSuffix(DUMMY_PREFIX, PREV_KEYWORD);
+                candidateTransInv.extendCurrVarsWithPrefixSuffix(DUMMY_PREFIX, CURR_KEYWORD);
 
                 // Set the prev vars in Tr to match x__CURR and the curr cars to match x__CURR2
-                iterationFormula.extendPrevVarsWithSuffix(CURR_KEYWORD);
-                iterationFormula.extendCurrVarsWithSuffix(CURR2_KEYWORD);
+                iterationFormula.extendPrevVarsWithPrefixSuffix(DUMMY_PREFIX, CURR_KEYWORD);
+                iterationFormula.extendCurrVarsWithPrefixSuffix(DUMMY_PREFIX, CURR2_KEYWORD);
 
                 isTargetStateReachable =
                     !solver.isUnsat(
@@ -216,12 +218,13 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           if (isOverapproximating
               && isTransitionInvariant(candidateTransInv, iterationFormula, location)) {
             terminationState.setTerminatingIfAllNodesVisited(locationState.getLocationNode());
+            terminationState.setCandidateTransitionInvariant(candidateTransInv);
             return Optional.of(result.withAbstractState(terminationState));
           }
 
           BooleanFormula interpolant;
-          candidateTransInv.extendPrevVarsWithSuffix(PREV_KEYWORD);
-          candidateTransInv.extendCurrVarsWithSuffix(CURR_KEYWORD);
+          candidateTransInv.extendPrevVarsWithPrefixSuffix(DUMMY_PREFIX, PREV_KEYWORD);
+          candidateTransInv.extendCurrVarsWithPrefixSuffix(DUMMY_PREFIX, CURR_KEYWORD);
           try {
             // If BMC check is UNSAT, try to overapproximate the transition invariant
             BooleanFormula firstStep =
@@ -243,8 +246,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           // Instantiate the new interpolant to T(x__PREV, x__CURR)
           PartitionedRelationFormula newInterpolant =
               new PartitionedRelationFormula(interpolant, fmgr);
-          newInterpolant.extendPrevVarsWithSuffix(PREV_KEYWORD);
-          newInterpolant.extendCurrVarsWithSuffix(CURR_KEYWORD);
+          newInterpolant.extendPrevVarsWithPrefixSuffix(DUMMY_PREFIX, PREV_KEYWORD);
+          newInterpolant.extendCurrVarsWithPrefixSuffix(DUMMY_PREFIX, CURR_KEYWORD);
           try {
             if (containsOnlyIrrelevantVariables(interpolant, callstackState)
                 || solver.implies(newInterpolant.getFormula(), candidateTransInv.getFormula())) {
@@ -334,12 +337,12 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     // T(x__PREV, x__CURR) and Tr(x__CURR, x__CURR2) => T(x__PREV, x__CURR)
 
     // Construct T(x__PREV, x__CURR)
-    candidateTransitionInvariant.extendPrevVarsWithSuffix(PREV_KEYWORD);
-    candidateTransitionInvariant.extendCurrVarsWithSuffix(CURR_KEYWORD);
+    candidateTransitionInvariant.extendPrevVarsWithPrefixSuffix(DUMMY_PREFIX, PREV_KEYWORD);
+    candidateTransitionInvariant.extendCurrVarsWithPrefixSuffix(DUMMY_PREFIX, CURR_KEYWORD);
     BooleanFormula firstStepInTransInv = candidateTransitionInvariant.getFormula();
 
     // Construct T(x__PREV, x__CURR2)
-    candidateTransitionInvariant.extendCurrVarsWithSuffix(CURR2_KEYWORD);
+    candidateTransitionInvariant.extendCurrVarsWithPrefixSuffix(DUMMY_PREFIX, CURR2_KEYWORD);
     BooleanFormula secondStepInTransInv = candidateTransitionInvariant.getFormula();
 
     if (addConstraintsToPreventOverflows) {
@@ -348,8 +351,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     }
 
     // Construct Tr(x__CURR, x__CURR2)
-    iterationFormula.extendPrevVarsWithSuffix(CURR_KEYWORD);
-    iterationFormula.extendCurrVarsWithSuffix(CURR2_KEYWORD);
+    iterationFormula.extendPrevVarsWithPrefixSuffix(DUMMY_PREFIX, CURR_KEYWORD);
+    iterationFormula.extendCurrVarsWithPrefixSuffix(DUMMY_PREFIX, CURR2_KEYWORD);
 
     try {
       isTransitionInvariant =
@@ -357,7 +360,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
               bfmgr.and(firstStepInTransInv, iterationFormula.getFormula()), secondStepInTransInv);
 
       // Check Init(x__CURR) and Tr(x__CURR, x__CURR2) => T(x__CURR, x__CURR2)
-      candidateTransitionInvariant.extendPrevVarsWithSuffix(CURR_KEYWORD);
+      candidateTransitionInvariant.extendPrevVarsWithPrefixSuffix(DUMMY_PREFIX, CURR_KEYWORD);
 
       isTransitionInvariant =
           isTransitionInvariant
