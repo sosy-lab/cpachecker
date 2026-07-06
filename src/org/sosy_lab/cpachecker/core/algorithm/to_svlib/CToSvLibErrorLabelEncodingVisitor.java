@@ -26,9 +26,9 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibSequenceStat
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibWhileStatement;
-import org.sosy_lab.cpachecker.exceptions.NoException;
 
-class CToSvLibErrorLabelEncodingVisitor implements SvLibStatementVisitor<Void, NoException> {
+class CToSvLibErrorLabelEncodingVisitor
+    implements SvLibStatementVisitor<Void, IllegalArgumentException> {
   private final String ERROR_LABEL = "ERROR";
   ImmutableList.Builder<SvLibTagReference> errorLabelTagReferences;
 
@@ -38,22 +38,25 @@ class CToSvLibErrorLabelEncodingVisitor implements SvLibStatementVisitor<Void, N
   }
 
   @Override
-  public Void visit(SvLibAssignmentStatement pSvLibAssignmentStatement) throws NoException {
+  public Void visit(SvLibAssignmentStatement pSvLibAssignmentStatement)
+      throws IllegalArgumentException {
     return null;
   }
 
   @Override
-  public Void visit(SvLibHavocStatement pSvLibHavocStatement) throws NoException {
+  public Void visit(SvLibHavocStatement pSvLibHavocStatement) throws IllegalArgumentException {
     return null;
   }
 
   @Override
-  public Void visit(SvLibProcedureCallStatement pSvLibProcedureCallStatement) throws NoException {
+  public Void visit(SvLibProcedureCallStatement pSvLibProcedureCallStatement)
+      throws IllegalArgumentException {
     return null;
   }
 
   @Override
-  public Void visit(SvLibSequenceStatement pSvLibSequenceStatement) throws NoException {
+  public Void visit(SvLibSequenceStatement pSvLibSequenceStatement)
+      throws IllegalArgumentException {
     for (SvLibStatement substatement : pSvLibSequenceStatement.getStatements()) {
       substatement.accept(this);
     }
@@ -62,19 +65,19 @@ class CToSvLibErrorLabelEncodingVisitor implements SvLibStatementVisitor<Void, N
   }
 
   @Override
-  public Void visit(SvLibAssumeStatement pSvLibAssumeStatement) throws NoException {
+  public Void visit(SvLibAssumeStatement pSvLibAssumeStatement) throws IllegalArgumentException {
     return null;
   }
 
   @Override
-  public Void visit(SvLibWhileStatement pSvLibWhileStatement) throws NoException {
+  public Void visit(SvLibWhileStatement pSvLibWhileStatement) throws IllegalArgumentException {
     pSvLibWhileStatement.getBody().accept(this);
 
     return null;
   }
 
   @Override
-  public Void visit(SvLibIfStatement pSvLibIfStatement) throws NoException {
+  public Void visit(SvLibIfStatement pSvLibIfStatement) throws IllegalArgumentException {
     pSvLibIfStatement.getThenBranch().accept(this);
     if (pSvLibIfStatement.getElseBranch().isPresent()) {
       SvLibStatement elseBranch = pSvLibIfStatement.getElseBranch().orElseThrow();
@@ -85,51 +88,54 @@ class CToSvLibErrorLabelEncodingVisitor implements SvLibStatementVisitor<Void, N
   }
 
   @Override
-  public Void visit(SvLibBreakStatement pSvLibBreakStatement) throws NoException {
+  public Void visit(SvLibBreakStatement pSvLibBreakStatement) throws IllegalArgumentException {
     return null;
   }
 
   @Override
-  public Void visit(SvLibContinueStatement pSvLibContinueStatement) throws NoException {
+  public Void visit(SvLibContinueStatement pSvLibContinueStatement)
+      throws IllegalArgumentException {
     return null;
   }
 
   @Override
-  public Void visit(SvLibReturnStatement pSvLibReturnStatement) throws NoException {
+  public Void visit(SvLibReturnStatement pSvLibReturnStatement) throws IllegalArgumentException {
     return null;
   }
 
   @Override
-  public Void visit(SvLibGotoStatement pSvLibGotoStatement) throws NoException {
+  public Void visit(SvLibGotoStatement pSvLibGotoStatement) throws IllegalArgumentException {
     return null;
   }
 
   @Override
-  public Void visit(SvLibLabelStatement pSvLibLabelStatement) throws NoException {
+  public Void visit(SvLibLabelStatement pSvLibLabelStatement) throws IllegalArgumentException {
     String label = pSvLibLabelStatement.getLabel();
     if (label.toUpperCase(Locale.ROOT).startsWith(ERROR_LABEL)) {
       ImmutableList<SvLibTagReference> labelTagReferences = pSvLibLabelStatement.getTagReferences();
-      // FIXME Throw if list is empty?
-      SvLibTagReference tagReferenceError = labelTagReferences.getFirst();
-      if (labelTagReferences.size() > 1) {
-        for (SvLibTagReference tagReference : labelTagReferences) {
-          if (tagReference.getTagName().toUpperCase(Locale.ROOT).startsWith(ERROR_LABEL)) {
-            tagReferenceError = tagReference;
+      if (labelTagReferences.size() == 1) {
+        errorLabelTagReferences.add(labelTagReferences.getFirst());
+      } else if (labelTagReferences.size() > 1) {
+        SvLibTagReference tagReference = labelTagReferences.getFirst();
+        for (SvLibTagReference errorTagReference : labelTagReferences) {
+          if (errorTagReference.getTagName().toUpperCase(Locale.ROOT).startsWith(ERROR_LABEL)) {
+            tagReference = errorTagReference;
           }
         }
+        errorLabelTagReferences.add(tagReference);
+      } else {
+        throw new IllegalArgumentException("Missing tag reference for ERROR label");
       }
-      errorLabelTagReferences.add(tagReferenceError);
     }
 
     return null;
   }
 
   @Override
-  public Void visit(SvLibChoiceStatement pSvLibChoiceStatement) throws NoException {
+  public Void visit(SvLibChoiceStatement pSvLibChoiceStatement) throws IllegalArgumentException {
     for (SvLibStatement possibleChoice : pSvLibChoiceStatement.getChoices()) {
       possibleChoice.accept(this);
     }
-
     return null;
   }
 }
