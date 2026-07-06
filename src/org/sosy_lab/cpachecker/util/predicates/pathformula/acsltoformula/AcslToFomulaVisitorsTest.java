@@ -12,7 +12,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.math.BigInteger;
 import java.util.Objects;
 import java.util.Optional;
 import org.junit.Before;
@@ -31,17 +30,16 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicPredicateDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -192,6 +190,18 @@ public class AcslToFomulaVisitorsTest {
         FileLocation.DUMMY,
         new AcslCVariableDeclaration(
             (CVariableDeclaration) Objects.requireNonNull(cProgramScope.lookupVariable(name))));
+  }
+
+  private CVariableDeclaration createCVariableDeclaration(String name) {
+    return new CVariableDeclaration(
+        FileLocation.DUMMY,
+        true,
+        CStorageClass.AUTO,
+        basicInt(),
+        name,
+        name,
+        name,
+        null /* No initializer, we only want it for testing */);
   }
 
   @Test
@@ -418,6 +428,7 @@ public class AcslToFomulaVisitorsTest {
   }
 
   // TODO Issue: I do not understand why this still creates constraints even though a is in the pts
+  // TODO Issue2: SSA Index in CExpression with quantified variable is not removed
   @Ignore
   @Test
   public void testAcslCExpressionWithArray()
@@ -427,38 +438,17 @@ public class AcslToFomulaVisitorsTest {
     AcslParameterDeclaration i =
         new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i", "i");
 
-    CVariableDeclaration ci =
-        new CVariableDeclaration(
-            FileLocation.DUMMY,
-            true,
-            CStorageClass.AUTO,
-            basicInt(),
-            "i",
-            "i",
-            "i",
-            null /* No initializer, we only want it for testing */);
+    CVariableDeclaration ci = createCVariableDeclaration("i");
 
     AcslCExpression a1 =
-        new AcslCExpression(
-            FileLocation.DUMMY,
-            new CArraySubscriptExpression(
-                FileLocation.DUMMY,
-                basicInt(),
-                new CIdExpression(
-                    FileLocation.DUMMY,
-                    Objects.requireNonNull(getCProgramScope().lookupVariable("a"))),
-                new CIntegerLiteralExpression(FileLocation.DUMMY, basicInt(), BigInteger.ONE)));
+        b.arrayAcslCExpression(
+            basicInt(), Objects.requireNonNull(getCProgramScope().lookupVariable("a")), 1);
 
     AcslCExpression ai =
-        new AcslCExpression(
-            FileLocation.DUMMY,
-            new CArraySubscriptExpression(
-                FileLocation.DUMMY,
-                basicInt(),
-                new CIdExpression(
-                    FileLocation.DUMMY,
-                    Objects.requireNonNull(getCProgramScope().lookupVariable("a"))),
-                new CIdExpression(FileLocation.DUMMY, ci)));
+        b.arrayAcslCExpression(
+            basicInt(),
+            Objects.requireNonNull(getCProgramScope().lookupVariable("a")),
+            new CIdExpression(FileLocation.DUMMY, ci));
 
     AcslPredicate body =
         b.implies(
@@ -479,7 +469,8 @@ public class AcslToFomulaVisitorsTest {
 
   @Ignore
   @Test
-  public void testAcslPredicateOverArray() {
+  public void testAcslPredicateOverArray()
+      throws InvalidConfigurationException, SolverException, InterruptedException {
     // predicate P(int *a, integer i) = (i == 0) ? (a[0] == 0) : (P(a, i-1) && a[i] == 0);
     // !(P(a, 2) => a[0] == 0 && a[1] == 0 && a[2] == 0) should be unsat
 
@@ -493,7 +484,6 @@ public class AcslToFomulaVisitorsTest {
     AcslParameterDeclaration index =
         new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i", "P::i");
 
-    @SuppressWarnings("unused")
     AcslPredicateDeclaration declP =
         new AcslPredicateDeclaration(
             FileLocation.DUMMY,
@@ -506,7 +496,60 @@ public class AcslToFomulaVisitorsTest {
             // Parameters
             ImmutableList.of(a, index));
 
-    // TODO before I continue coding this: how can a test like this even work if my visitor for
-    // AcslPredicateApplicationPredicate just creates a UF?
+    CVariableDeclaration ci = createCVariableDeclaration("i");
+    AcslCExpression a0 =
+        b.arrayAcslCExpression(
+            basicInt(), Objects.requireNonNull(getCProgramScope().lookupVariable("a")), 0);
+    AcslCExpression a1 =
+        b.arrayAcslCExpression(
+            basicInt(), Objects.requireNonNull(getCProgramScope().lookupVariable("a")), 1);
+    AcslCExpression a2 =
+        b.arrayAcslCExpression(
+            basicInt(), Objects.requireNonNull(getCProgramScope().lookupVariable("a")), 2);
+    AcslCExpression ai =
+        b.arrayAcslCExpression(
+            basicInt(),
+            Objects.requireNonNull(getCProgramScope().lookupVariable("a")),
+            new CIdExpression(FileLocation.DUMMY, ci));
+
+    @SuppressWarnings("unused")
+    AcslLogicPredicateDefinition defP =
+        new AcslLogicPredicateDefinition(
+            FileLocation.DUMMY,
+            // Function declaration
+            declP,
+            // Function body
+            b.ite(
+                // if
+                b.eq(new AcslIdTerm(FileLocation.DUMMY, index), b.integer(0)),
+                // then
+                b.eq(a0, b.integer(0)),
+                // else
+                b.and(
+                    new AcslPredicateApplicationPredicate(
+                        FileLocation.DUMMY,
+                        declP,
+                        ImmutableList.of(
+                            new AcslIdTerm(FileLocation.DUMMY, a),
+                            b.minus(new AcslIdTerm(FileLocation.DUMMY, index), b.integer(1)))),
+                    b.eq(ai, b.integer(0)))));
+
+    // TODO I don't have code to add this definition as an assumption
+    // but if i don't this cannot work...
+
+    AcslPredicateApplicationPredicate pa2 =
+        new AcslPredicateApplicationPredicate(
+            FileLocation.DUMMY,
+            declP,
+            ImmutableList.of(new AcslIdTerm(FileLocation.DUMMY, a), b.integer(2)));
+
+    AcslPredicate pred =
+        b.implies(
+            pa2,
+            b.and(b.eq(a0, b.integer(0)), b.and(b.eq(a1, b.integer(0)), b.eq(a2, b.integer(0)))));
+
+    AcslPredicate unsatPred = b.not(pred);
+    BooleanFormula f = translate(unsatPred);
+    assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 }

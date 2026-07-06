@@ -20,15 +20,27 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTe
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 
 public class AcslTestBuilder {
 
@@ -86,6 +98,10 @@ public class AcslTestBuilder {
     return new AcslUnaryTerm(DUMMY_LOC, type, term, AcslUnaryTermOperator.NEGATION);
   }
 
+  public AcslTerm ite(AcslPredicate condition, AcslTerm trueTerm, AcslTerm falseTerm) {
+    return new AcslTernaryTerm(DUMMY_LOC, condition, trueTerm, falseTerm);
+  }
+
   // Predicates
   public AcslPredicate eq(AcslTerm left, AcslTerm right) {
     return binaryTermPred(left, right, AcslBinaryTermExpressionOperator.EQUALS);
@@ -131,6 +147,11 @@ public class AcslTestBuilder {
     return new AcslUnaryPredicate(DUMMY_LOC, pred, AcslUnaryExpressionOperator.NEGATION);
   }
 
+  public AcslPredicate ite(
+      AcslPredicate condition, AcslPredicate trueTerm, AcslPredicate falseTerm) {
+    return new AcslTernaryPredicate(DUMMY_LOC, condition, trueTerm, falseTerm);
+  }
+
   // Literals
   public AcslIntegerLiteralTerm integer(int value) {
     return new AcslIntegerLiteralTerm(
@@ -147,5 +168,33 @@ public class AcslTestBuilder {
 
   public AcslBooleanLiteralPredicate boolPred(boolean value) {
     return new AcslBooleanLiteralPredicate(DUMMY_LOC, value);
+  }
+
+  // Arrays
+  private CSimpleType cBasicInt() {
+    return new CSimpleType(
+        CTypeQualifiers.NONE, CBasicType.INT, false, false, true, false, false, false, false);
+  }
+
+  public AcslCExpression arrayAcslCExpression(
+      CType type, CSimpleDeclaration arrayDecl, CExpression subscriptExpr) {
+    return new AcslCExpression(
+        FileLocation.DUMMY,
+        new CArraySubscriptExpression(
+            FileLocation.DUMMY,
+            type,
+            new CIdExpression(FileLocation.DUMMY, arrayDecl),
+            subscriptExpr));
+  }
+
+  public AcslCExpression arrayAcslCExpression(CType type, CSimpleDeclaration arrayDecl, int index) {
+    return new AcslCExpression(
+        FileLocation.DUMMY,
+        new CArraySubscriptExpression(
+            FileLocation.DUMMY,
+            type,
+            new CIdExpression(FileLocation.DUMMY, arrayDecl),
+            new CIntegerLiteralExpression(
+                FileLocation.DUMMY, cBasicInt(), BigInteger.valueOf(index))));
   }
 }
