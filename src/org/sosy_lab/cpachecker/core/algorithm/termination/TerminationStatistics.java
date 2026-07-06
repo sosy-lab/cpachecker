@@ -593,7 +593,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   }
 
   private ImmutableList<AbstractInvariantEntry> convertRankingFuncToTransInv(
-      Multimap<Loop, TerminationArgument> pTerminationArguments) throws IOException {
+      Multimap<Loop, TerminationArgument> pTerminationArguments) {
     ImmutableList.Builder<AbstractInvariantEntry> entries = new ImmutableList.Builder<>();
 
     for (Loop loop : pTerminationArguments.keySet()) {
