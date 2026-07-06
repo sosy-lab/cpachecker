@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssDebugUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -73,7 +72,6 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.path.ViolationWitness;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -426,7 +424,6 @@ public class DssBlockAnalysis {
   public DssMessageProcessing storePrecondition(DssPostConditionMessage pReceived)
       throws InterruptedException, SolverException, CPAException {
 
-    if (block.getId().equals("L7")) System.out.println("Before:\n" + preToPostMap);
     logger.log(Level.INFO, "Running forward analysis with new precondition");
     resetStates();
     relevant.clear();
@@ -458,9 +455,6 @@ public class DssBlockAnalysis {
           AbstractStates.extractStateByType(newStateAndPrecision.state(), BlockState.class);
       Collection<@NonNull StateAndPrecision> oldPreconditions =
           ImmutableSet.copyOf(preconditions.values());
-      if (block.getId().equals("L7"))
-        System.out.println(
-            newBlockState.getPostConditionId() + " -> " + newBlockState.getReplace());
       boolean hasEqualState = false;
       for (StateAndPrecision oldStateAndPrecision : oldPreconditions) {
         BlockState oldBlockState =
@@ -614,13 +608,6 @@ public class DssBlockAnalysis {
       return new AnalysisResult(ImmutableList.of(), ImmutableSet.of());
     }
 
-    if (block.getId().equals("L7"))
-      System.out.println(
-          DssDebugUtils.prettyPrintPredicateAnalysisBlock(
-              block,
-              ImmutableListMultimap.copyOf(preconditions.entrySet()),
-              ImmutableListMultimap.of()));
-
     ImmutableList.Builder<StateAndPrecision> summaries = ImmutableList.builder();
     ImmutableSet.Builder<ArgPathAndCondition> vcs = ImmutableSet.builder();
 
@@ -682,8 +669,6 @@ public class DssBlockAnalysis {
 
     entriesToAdd.build().forEach(preToPostMap::put);
 
-    if (sender.isEmpty() && block.getId().equals("L7"))
-      System.out.println("After:\n" + preToPostMap);
     return new AnalysisResult(summaries.build(), vcs.build());
   }
 
