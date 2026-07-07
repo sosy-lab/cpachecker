@@ -9,26 +9,25 @@
 package org.sosy_lab.cpachecker.util;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
+import de.uni_freiburg.informatik.ultimate.core.model.services.ILogger;
+import de.uni_freiburg.informatik.ultimate.util.scc.SccComputation;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -253,83 +252,32 @@ public class GraphUtils {
    * @return A set containing all {@link StronglyConnectedComponent}s. This set also includes SCCs
    *     that only consists of a single ARGState.
    */
-  public static ImmutableSet<StronglyConnectedComponent> retrieveSCCs(ReachedSet pReached) {
+  public static ImmutableSet<StronglyConnectedComponent>
+      retrieveSCCs(ReachedSet pReached) {
     checkNotNull(pReached);
 
-    ImmutableList<ARGState> argStates =
-        transformedImmutableListCopy(pReached.asCollection(), x -> (ARGState) x);
-
-    return retrieveSCCs(argStates, ImmutableSet.of());
+    return retrieveSCCs(
+        FluentIterable.from(pReached.asCollection()).transform(x -> (ARGState) x).toList(),
+        ImmutableSet.of());
   }
 
   private static ImmutableSet<StronglyConnectedComponent> retrieveSCCs(
       List<ARGState> pARGStates, Collection<ARGState> pExcludeStates) {
     checkNotNull(pARGStates);
 
-    List<StronglyConnectedComponent> SCCs = new ArrayList<>();
+    ImmutableSet<ARGState> filteredARGStates = FluentIterable.from(pARGStates).filter(c -> !pExcludeStates.contains(c)).toSet();
 
-    int index = 0;
+    SccComputation<ARGState, StronglyConnectedComponent> comp =
+        new SccComputation<>(
+            ILogger.getDummyLogger(),
+            s ->
+                FluentIterable.from(s.getChildren())
+                    .filter(c -> !pExcludeStates.contains(c))
+                    .iterator(),
+            () -> new StronglyConnectedComponent(),
+            filteredARGStates.size(),
+            filteredARGStates);
 
-    Deque<ARGState> dfsStack = new ArrayDeque<>();
-    Map<ARGState, Integer> stateIndex = new HashMap<>();
-
-    // Map to store the topmost reachable ancestor with the minimum possible index value
-    Map<ARGState, Integer> stateLowLink = new HashMap<>();
-
-    for (ARGState state : pARGStates) {
-      if (pExcludeStates.contains(state)) {
-        continue;
-      }
-      if (!stateIndex.containsKey(state)) {
-        strongConnect(state, index, stateIndex, stateLowLink, dfsStack, SCCs, pExcludeStates);
-      }
-    }
-    return ImmutableSet.copyOf(SCCs.reversed());
-  }
-
-  /** Recursively find {@link StronglyConnectedComponent}s using DFS traversal */
-  private static void strongConnect(
-      ARGState pState,
-      int pIndex,
-      Map<ARGState, Integer> pStateIndex,
-      Map<ARGState, Integer> pStateLowLink,
-      Deque<ARGState> pDfsStack,
-      List<StronglyConnectedComponent> pSCCs,
-      Collection<ARGState> pExcludeStates) {
-
-    pStateIndex.put(pState, pIndex);
-    pStateLowLink.put(pState, pIndex);
-    pIndex++;
-    pDfsStack.push(pState);
-
-    for (ARGState sucessorState : pState.getChildren()) {
-      if (pExcludeStates.contains(sucessorState)) {
-        continue;
-      }
-      if (!pStateIndex.containsKey(sucessorState)) {
-        // Successor has not yet been visited; recurse on it
-        strongConnect(
-            sucessorState, pIndex, pStateIndex, pStateLowLink, pDfsStack, pSCCs, pExcludeStates);
-        pStateLowLink.put(
-            pState, Math.min(pStateLowLink.get(pState), pStateLowLink.get(sucessorState)));
-      } else if (pDfsStack.contains(sucessorState)) {
-        // Successor is in the stack ('dfsNodeStack') and hence in the current SCC
-        // Otherwise, if the sucessorState is not on the stack, then (pState, sucessorState) is a
-        // cross-edge (not a back edge) in the DFS tree and thus it must be ignored
-        pStateLowLink.put(
-            pState, Math.min(pStateLowLink.get(pState), pStateIndex.get(sucessorState)));
-      }
-    }
-
-    // If pState is a root node, pop the stack and generate an SCC
-    if (pStateIndex.get(pState).intValue() == pStateLowLink.get(pState).intValue()) {
-      ARGState s;
-      StronglyConnectedComponent scc = new StronglyConnectedComponent(pState);
-      do {
-        s = pDfsStack.pop();
-        scc.addNode(s);
-      } while (!Objects.equals(pState, s));
-      pSCCs.add(scc);
-    }
+    return ImmutableSet.copyOf(comp.getSCCs());
   }
 }

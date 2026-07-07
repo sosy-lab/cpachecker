@@ -10,13 +10,15 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
+import de.uni_freiburg.informatik.ultimate.core.model.services.ILogger;
+import de.uni_freiburg.informatik.ultimate.util.scc.DefaultSccComputation;
+import de.uni_freiburg.informatik.ultimate.util.scc.SccComputation;
+import de.uni_freiburg.informatik.ultimate.util.scc.StronglyConnectedComponent;
 import java.util.List;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.inlining.FunctionGraph.Call;
-import org.sosy_lab.cpachecker.util.graph.StronglyConnectedComponents;
 import org.sosy_lab.cpachecker.util.graph.TopologicalTraversal;
 
 public class FunctionSCCGraph {
@@ -47,16 +49,19 @@ public class FunctionSCCGraph {
 
   public static FunctionSCCGraph from(FunctionGraph graph) {
 
-    ImmutableList<List<BlockFunction>> sccList =
-        StronglyConnectedComponents.performTarjanAlgorithm(graph.getRoot(), graph::getSuccessors);
+    SccComputation<BlockFunction, StronglyConnectedComponent<BlockFunction>> comp =
+        new DefaultSccComputation<>(ILogger.getDummyLogger(), bf -> graph.getSuccessors(bf).iterator(),
+            graph.getFunctions().size(), ImmutableSet.of(graph.getRoot()));
+
+    List<StronglyConnectedComponent<BlockFunction>> sccList = comp.getSCCs();
 
     ImmutableMap.Builder<BlockFunction, FunctionSCC> functionToSCCBuilder = ImmutableMap.builder();
 
     FunctionSCC root = null;
 
-    for (List<BlockFunction> scc : sccList) {
-      FunctionSCC curr = new FunctionSCC(ImmutableSet.copyOf(scc));
-      for (BlockFunction f : scc) {
+    for (StronglyConnectedComponent<BlockFunction> scc : sccList) {
+      FunctionSCC curr = new FunctionSCC(ImmutableSet.copyOf(scc.getNodes()));
+      for (BlockFunction f : scc.getNodes()) {
         functionToSCCBuilder.put(f, curr);
       }
       if (curr.functions().contains(graph.getRoot())) {

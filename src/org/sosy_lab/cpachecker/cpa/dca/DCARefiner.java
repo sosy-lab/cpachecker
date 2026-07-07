@@ -332,7 +332,7 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
 
       shutdownNotifier.shutdownIfNecessary();
       List<ImmutableList<ARGState>> sscCycles =
-          GraphUtils.retrieveSimpleCycles(scc.getNodes(), reached);
+          GraphUtils.retrieveSimpleCycles(scc.nodesAsList(), reached);
       logger.logf(Level.INFO, "Found %d cycle(s) in current SCC", sscCycles.size());
 
       for (ImmutableList<ARGState> cycle : sscCycles) {
