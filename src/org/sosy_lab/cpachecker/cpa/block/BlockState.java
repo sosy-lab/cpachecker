@@ -54,7 +54,6 @@ public class BlockState
   private ImmutableList<String> history;
   private List<? extends AbstractState> violationConditions;
   private final ViolationWitness witness;
-  private int timestamp;
 
   private final Optional<PathState> witnessCheckPathState;
 
@@ -87,14 +86,6 @@ public class BlockState
       List<String> pHistory,
       ViolationWitness pWitness) {
     this(pNode, pTargetNode, pType, pViolationConditions, pHistory, pWitness, null);
-  }
-
-  public void incrementTimestamp() {
-    timestamp++;
-  }
-
-  public int getTimestamp() {
-    return timestamp;
   }
 
   public void addHistory(BlockNode pBlockNode) {

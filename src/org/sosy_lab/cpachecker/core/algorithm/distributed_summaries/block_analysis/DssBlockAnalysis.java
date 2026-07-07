@@ -13,6 +13,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -421,10 +422,9 @@ public class DssBlockAnalysis {
    */
   public DssMessageProcessing storePrecondition(DssPostConditionMessage pReceived)
       throws InterruptedException, SolverException, CPAException {
-
+    relevant.clear();
     logger.log(Level.INFO, "Running forward analysis with new precondition");
     resetStates();
-    relevant.clear();
     ImmutableList<@NonNull StateAndPrecision> deserializedStatesAndPrecisions =
         deserialize(pReceived);
     DssMessageProcessing processing = DssMessageProcessing.proceed();
@@ -447,61 +447,78 @@ public class DssBlockAnalysis {
                     .add(unifiedPrecision)
                     .build());
 
-    // find new states to analyze that are not covered by previous summaries
-    int coveredCount = 0;
-    for (StateAndPrecision newStateAndPrecision : deserializedStatesAndPrecisions) {
-      for (StateAndPrecision oldStateAndPrecision : preconditions.values()) {
-        if (isPrefixOf(oldStateAndPrecision.state(), newStateAndPrecision.state())
-            && dcpa.getCoverageOperator()
-                .isSubsumed(newStateAndPrecision.state(), oldStateAndPrecision.state())) {
-          coveredCount++;
-        }
-      }
+    for (StateAndPrecision dsap : deserializedStatesAndPrecisions) {
+      AbstractStates.extractStateByType(dsap.state(), BlockState.class).addHistory(block);
     }
 
-    ImmutableList.Builder<Entry<String, StateAndPrecision>> removeBuilder = ImmutableList.builder();
-
-    // remove all with same prefix
-    for (StateAndPrecision newStateAndPrecision : deserializedStatesAndPrecisions) {
-      for (Entry<String, StateAndPrecision> oldEntry : preconditions.entries()) {
-        if (isPrefixOf(newStateAndPrecision.state(), oldEntry.getValue().state())) {
-          removeBuilder.add(oldEntry);
-        }
-      }
+    if (preconditions.get(pReceived.getSenderId()).isEmpty()) {
+      preconditions.putAll(pReceived.getSenderId(), deserializedStatesAndPrecisions);
+      relevant.addAll(deserializedStatesAndPrecisions);
+      return processing;
     }
-
-    removeBuilder.build().forEach(e -> preconditions.remove(e.getKey(), e.getValue()));
-
-    preconditions.putAll(pReceived.getSenderId(), deserializedStatesAndPrecisions);
-    resetStates();
-    if (coveredCount == deserializedStatesAndPrecisions.size()) {
+    for (StateAndPrecision newStateAndPrecision : deserializedStatesAndPrecisions) {
+      boolean isCovered = false;
+      for (StateAndPrecision oldStateAndPrecision :
+          ImmutableSet.copyOf(preconditions.get(pReceived.getSenderId()))) {
+        if (isNotPrefixedBy(oldStateAndPrecision.state(), newStateAndPrecision.state())
+            && isNotPrefixedBy(newStateAndPrecision.state(), oldStateAndPrecision.state())) {
+          continue;
+        }
+        boolean oldIsTop = dcpa.isMostGeneralBlockEntryState(oldStateAndPrecision.state());
+        boolean newIsTop = dcpa.isMostGeneralBlockEntryState(newStateAndPrecision.state());
+        boolean newLeqOld =
+            oldIsTop
+                || dcpa.getCoverageOperator()
+                    .isSubsumed(
+                        dcpa.reset(newStateAndPrecision.state()), oldStateAndPrecision.state());
+        boolean oldLeqNew;
+        if (dcpa.getCoverageOperator().isBasedOnEquality()) {
+          oldLeqNew = newLeqOld;
+        } else {
+          oldLeqNew =
+              newIsTop
+                  || dcpa.getCoverageOperator()
+                      .isSubsumed(
+                          oldStateAndPrecision.state(), dcpa.reset(newStateAndPrecision.state()));
+        }
+        if (newLeqOld || oldLeqNew) {
+          preconditions.remove(pReceived.getSenderId(), oldStateAndPrecision);
+        }
+        isCovered |= newLeqOld;
+      }
+      if (!isCovered) {
+        relevant.add(newStateAndPrecision);
+      }
+      preconditions.put(pReceived.getSenderId(), newStateAndPrecision);
+    }
+    if (relevant.isEmpty()) {
       return DssMessageProcessing.stop();
     }
-
-    relevant.clear();
-    relevant.addAll(preconditions.values());
     return processing;
   }
 
-  private boolean isPrefixOf(AbstractState oldState, AbstractState newState) {
+  private boolean isNotPrefixedBy(AbstractState oldState, AbstractState newState) {
 
     BlockState newBlockState = AbstractStates.extractStateByType(newState, BlockState.class);
     BlockState oldBlockState = AbstractStates.extractStateByType(oldState, BlockState.class);
+
+    Preconditions.checkNotNull(newBlockState);
+    Preconditions.checkNotNull(oldBlockState);
 
     ImmutableList<String> newHistory = newBlockState.getHistory();
     ImmutableList<String> oldHistory = oldBlockState.getHistory();
 
     if (newHistory.size() < oldHistory.size()) {
-      return false;
+      return true;
     }
 
     for (int i = 0; i < oldHistory.size(); i++) {
       if (!newHistory.get(i).equals(oldHistory.get(i))) {
-        return false;
+        return true;
       }
     }
 
-    return true;
+    return false;
   }
 
   private ViolationWitness extractWitnessFromState(AbstractState state) {
@@ -554,9 +571,6 @@ public class DssBlockAnalysis {
       relevant.add(new StateAndPrecision(makeStartState(), makeStartPrecision()));
     } else {
       relevant.addAll(preconditions.values());
-    }
-    for (StateAndPrecision sap : preconditions.values()) {
-      AbstractStates.extractStateByType(sap.state(), BlockState.class).incrementTimestamp();
     }
     return DssMessageProcessing.proceed();
   }
