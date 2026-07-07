@@ -5665,7 +5665,7 @@ stop = "SEP"
 svlib.config = no default value
 
 # Where to find the symbolic execution config without cegar.
-symbolicExecution.symbolicExecutionProperties = "config/includes/symbolicExecutionForDss.properties"
+symbolicExecution.symbolicExecutionProperties = "../../../../../../config/includes/symbolicExecutionForDss.properties"
 
 # compress the produced violation-witness automata using GZIP compression.
 termination.compressWitness = true
