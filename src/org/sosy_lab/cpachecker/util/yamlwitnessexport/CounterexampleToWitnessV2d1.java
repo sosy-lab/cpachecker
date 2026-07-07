@@ -67,7 +67,6 @@ public class CounterexampleToWitnessV2d1 extends CounterexampleToWitnessV2 {
 
     TerminationToReachState terminationState =
         AbstractStates.extractStateByType(pCex.getTargetState(), TerminationToReachState.class);
-    boolean isTermination = terminationState != null;
     LocationState location =
         AbstractStates.extractStateByType(pCex.getTargetState(), LocationState.class);
 
@@ -88,7 +87,7 @@ public class CounterexampleToWitnessV2d1 extends CounterexampleToWitnessV2 {
       List<WaypointRecord> waypoints =
           buildWaypoints(edge, edgeToAssumptions, astCFARelation, edgeToCurrentExpressionIndex);
 
-      if (isTermination
+      if (terminationState != null
           && numberOfTargetVisits >= terminationState.getNumberOfUnrollingsInTarget()) {
         waypoints =
             waypoints.stream().map(waypoint -> waypoint.withAction(WaypointAction.CYCLE)).toList();
@@ -110,7 +109,7 @@ public class CounterexampleToWitnessV2d1 extends CounterexampleToWitnessV2 {
     // segment point. Therefore, instead of creating a location record the way as is for
     // assumptions,
     // this needs to be done using another function
-    if (!isTermination) {
+    if (terminationState == null) {
       CFAEdge lastEdge = edges.getLast();
       segments.add(SegmentRecord.ofOnlyElement(targetWaypoint(lastEdge, astCFARelation)));
     }

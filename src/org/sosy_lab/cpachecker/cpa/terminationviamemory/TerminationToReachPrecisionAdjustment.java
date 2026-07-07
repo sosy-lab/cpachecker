@@ -400,6 +400,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       }
       comparingFormulas.put(savedVariables.getKey(), comparingFormula);
     }
-    return comparingFormulas.build();
+    return comparingFormulas.buildOrThrow();
   }
 }
