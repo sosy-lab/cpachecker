@@ -203,7 +203,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     AcslSimpleDeclaration variable = pAcslIdTerm.getDeclaration();
     String varName = variable.getName();
     // Quantifier variables do not need tracking in the SSA map, use index 1 for them
-    int useIndex = (varName.startsWith("ACSL#q")) ? 1 : getIndex(varName, variable.getType());
+    int useIndex = varName.startsWith("ACSL#q") ? 1 : getIndex(varName, variable.getType());
 
     return fmgr.makeVariable(
         typeHelper.acslTypeToFormulaType(pAcslIdTerm.getExpressionType()), varName, useIndex);
