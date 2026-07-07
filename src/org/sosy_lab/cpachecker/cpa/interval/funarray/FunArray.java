@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * <p>See Patrick Cousot, Radhia Cousot, and Francesco Logozzo. 2011. A parametric segmentation
  * functor for fully automatic and scalable array content analysis. SIGPLAN Not. 46, 1 (January
  * 2011), 105–118. <a href="https://doi.org/10.1145/1925844.1926399">
- *   https://doi.org/10.1145/1925844.1926399</a>
+ * https://doi.org/10.1145/1925844.1926399</a>
  *
  * @param bounds the ordered list of segment boundaries, leftmost first. Must contain at least two
  *     elements; no two bounds may share a {@link NormalFormExpression}.
@@ -298,8 +298,8 @@ public record FunArray(
    * If the lower bound already equals {@code index} (left-adjacent), the left overhang is omitted.
    * If the upper bound already equals {@code index+1} (right-adjacent), the right overhang is
    * omitted.
-   * <p>
-   * Implements the assignment operation described in Section 11.6 of Cousot, Cousot, and Logozzo
+   *
+   * <p>Implements the assignment operation described in Section 11.6 of Cousot, Cousot, and Logozzo
    * (2011).
    *
    * @param indeces the set of normal-form index expressions for the assignment target.
@@ -412,9 +412,9 @@ public record FunArray(
   /**
    * Returns the abstract value at array index {@code abstractIndex} by joining all segment values
    * whose range overlaps with the index.
-   * <p>
-   * Implements the 'Abstract value of an indexed array element' operation described in section 11.6
-   * of Cousot, Cousot, and Logozzo (2011).
+   *
+   * <p>Implements the 'Abstract value of an indexed array element' operation described in section
+   * 11.6 of Cousot, Cousot, and Logozzo (2011).
    *
    * @param abstractIndex the index expression to read.
    * @param visitor the expression value visitor for the current abstract state.
@@ -669,8 +669,8 @@ public record FunArray(
    * Returns the greatest lower bound (meet) of this FunArray and {@code other} in the abstract
    * domain. The arrays are unified with {@code unknown} as the neutral element for both sides, then
    * corresponding segment values are intersected pointwise with {@link Interval#intersect}.
-   * Corresponds to the meet operator of the FunArray abstract domain (Section 11.5 of Cousot, Cousot,
-   * and Logozzo (2011)).
+   * Corresponds to the meet operator of the FunArray abstract domain (Section 11.5 of Cousot,
+   * Cousot, and Logozzo (2011)).
    *
    * @param other the FunArray to meet with.
    * @param unknown the neutral element for unification; should be the top interval when the content
@@ -856,8 +856,8 @@ public record FunArray(
    *
    * <ul>
    *   <li>If the two expressions are already in the same bound, no change is made.
-   *   <li>If all segments between them are possibly-empty, those segments are squashed into a single
-   *       bound containing both expressions.
+   *   <li>If all segments between them are possibly-empty, those segments are squashed into a
+   *       single bound containing both expressions.
    *   <li>If any segment between them is non-empty (contradiction), {@link #BOTTOM} is returned.
    * </ul>
    *
@@ -871,16 +871,16 @@ public record FunArray(
   }
 
   /**
-   * Narrows this FunArray to reflect the constraint {@code pExpr1 != pExpr2}. The relative
-   * position of the two expressions in the bound list determines the outcome:
+   * Narrows this FunArray to reflect the constraint {@code pExpr1 != pExpr2}. The relative position
+   * of the two expressions in the bound list determines the outcome:
    *
    * <ul>
    *   <li>If either expression is absent from all bounds, no change is made.
    *   <li>If the two expressions are in the same bound (considered equal), their equality
    *       contradicts the constraint and {@link #BOTTOM} is returned.
    *   <li>If the expressions are in different bounds, the not-equal constraint is equivalent to a
-   *       strict inequality in the direction already implied by bound order. The method delegates to
-   *       {@link #satisfyStrictLessThan} with the left-of expression as {@code lesser}.
+   *       strict inequality in the direction already implied by bound order. The method delegates
+   *       to {@link #satisfyStrictLessThan} with the left-of expression as {@code lesser}.
    * </ul>
    *
    * @param pExpr1 the first expression asserted to be not equal to {@code pExpr2}.
@@ -920,8 +920,8 @@ public record FunArray(
    *       other}.
    * </ol>
    *
-   * Implements the partial order of the FunArray abstract domain (Section 11.5 of Cousot, Cousot, and
-   * Logozzo (2011)).
+   * Implements the partial order of the FunArray abstract domain (Section 11.5 of Cousot, Cousot,
+   * and Logozzo (2011)).
    *
    * @param other the FunArray to compare against.
    * @return {@code true} if this FunArray is below {@code other} in the lattice.
@@ -929,12 +929,7 @@ public record FunArray(
   @Override
   public boolean isLessOrEqual(FunArray other) {
     UnifyResult unifyResult =
-        unify(
-            other,
-            Interval.EMPTY,
-            Interval.UNBOUND,
-            Interval::union,
-            Interval::intersect);
+        unify(other, Interval.EMPTY, Interval.UNBOUND, Interval::union, Interval::intersect);
 
     for (int i = 0; i < unifyResult.resultA().values.size(); i++) {
       if (!unifyResult

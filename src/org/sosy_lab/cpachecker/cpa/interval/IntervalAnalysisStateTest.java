@@ -106,7 +106,8 @@ public class IntervalAnalysisStateTest {
       throws FunArrayBuilder.FunArrayBuilderException {
     FunArray array = FunArrayBuilder.firstBound(exp(0)).value(3, 3).bound(exp("n")).build();
 
-    IntervalAnalysisState stateWithArray = new IntervalAnalysisState(null).addArray("a", array, null);
+    IntervalAnalysisState stateWithArray =
+        new IntervalAnalysisState(null).addArray("a", array, null);
     IntervalAnalysisState stateWithout = new IntervalAnalysisState(null);
 
     IntervalAnalysisState joined = stateWithArray.join(stateWithout);
@@ -117,15 +118,12 @@ public class IntervalAnalysisStateTest {
   @Test
   public void testAssignArrayElementUnknownIndexWidensAllSegments()
       throws FunArrayBuilderException {
-    FunArray arr =
-        FunArrayBuilder.firstBound(exp(0)).value(5, 5).bound(exp("n")).build();
-    IntervalAnalysisState state =
-        new IntervalAnalysisState(null).addArray("a", arr, null);
+    FunArray arr = FunArrayBuilder.firstBound(exp(0)).value(5, 5).bound(exp("n")).build();
+    IntervalAnalysisState state = new IntervalAnalysisState(null).addArray("a", arr, null);
 
     state = state.assignArrayElementUnknownIndex("a", new Interval(10L, 10L), null);
 
-    FunArray expected =
-        FunArrayBuilder.firstBound(exp(0)).value(5, 10).bound(exp("n")).build();
+    FunArray expected = FunArrayBuilder.firstBound(exp(0)).value(5, 10).bound(exp("n")).build();
     assertThat(state.arrays().get("a")).isEqualTo(expected);
   }
 

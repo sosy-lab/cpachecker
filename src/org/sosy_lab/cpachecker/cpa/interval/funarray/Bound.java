@@ -21,14 +21,14 @@ import org.sosy_lab.cpachecker.cpa.interval.Interval;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
- * A segment boundary in a {@link FunArray}, holding a set of {@link NormalFormExpression}s that
- * are all equal to the same concrete program value at a given point in time. A bound separates two
+ * A segment boundary in a {@link FunArray}, holding a set of {@link NormalFormExpression}s that are
+ * all equal to the same concrete program value at a given point in time. A bound separates two
  * adjacent segments of the array; all expressions in the bound denote the same index value under
  * the current abstract state.
  *
  * <p>A bound may contain more than one expression — for example, after {@code j = i}, the bound at
- * position {@code i} may contain both {@code i} and {@code j}. A bound with no expressions is
- * empty and must be removed by {@link FunArray#removeEmptyBounds()}. This also merges the adjacent
+ * position {@code i} may contain both {@code i} and {@code j}. A bound with no expressions is empty
+ * and must be removed by {@link FunArray#removeEmptyBounds()}. This also merges the adjacent
  * segments.
  *
  * @param expressions the set of normal-form expressions that are mutually equal at this boundary.
@@ -247,9 +247,9 @@ public record Bound(Set<NormalFormExpression> expressions) {
   }
 
   /**
-   * Evaluates {@code predicate} between the interval value of each expression in this bound and
-   * the interval value of {@code other}. Returns {@code true} if the predicate holds for at least
-   * one expression. Used to implement the comparison methods.
+   * Evaluates {@code predicate} between the interval value of each expression in this bound and the
+   * interval value of {@code other}. Returns {@code true} if the predicate holds for at least one
+   * expression. Used to implement the comparison methods.
    *
    * @param other the expression to compare against.
    * @param visitor the expression value visitor for the current abstract state.

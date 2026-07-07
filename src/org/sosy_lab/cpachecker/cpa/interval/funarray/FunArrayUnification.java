@@ -79,11 +79,11 @@ public class FunArrayUnification {
   }
 
   /**
-   * Runs the unification algorithm to produce two {@link FunArray}s with identical bound
-   * structure. The algorithm steps through the bound lists left-to-right, applying one of the six
-   * cases from Section 11.4 of Cousot, Cousot, and Logozzo (2011) at each position until both lists
-   * are exhausted. The resulting arrays are cleaned up with {@link FunArray#removeEmptyBounds()}
-   * before being returned.
+   * Runs the unification algorithm to produce two {@link FunArray}s with identical bound structure.
+   * The algorithm steps through the bound lists left-to-right, applying one of the six cases from
+   * Section 11.4 of Cousot, Cousot, and Logozzo (2011) at each position until both lists are
+   * exhausted. The resulting arrays are cleaned up with {@link FunArray#removeEmptyBounds()} before
+   * being returned.
    *
    * @param neutralElementA the interval inserted into newly created segments in array A.
    * @param neutralElementB the interval inserted into newly created segments in array B.
@@ -298,9 +298,9 @@ public class FunArrayUnification {
   }
 
   /**
-   * Handles Case 5 of the unification algorithm: the current bounds of A and B are
-   * entirely disjoint. Both bounds at the current index are dropped, and their segment values are
-   * joined into the preceding segment in each array.
+   * Handles Case 5 of the unification algorithm: the current bounds of A and B are entirely
+   * disjoint. Both bounds at the current index are dropped, and their segment values are joined
+   * into the preceding segment in each array.
    */
   private void handleDisjoint() {
     // A prerequisite for array unification is that the two arrays must have the same extremal
@@ -349,8 +349,8 @@ public class FunArrayUnification {
 
   /**
    * Joins two emptiness flags for adjacent segments that are being merged into one. The merged
-   * segment {@code [a, c)} can only be empty if both constituent segments {@code [a, b)} and
-   * {@code [b, c)} may be empty simultaneously (i.e., {@code a == b == c}). If either segment is
+   * segment {@code [a, c)} can only be empty if both constituent segments {@code [a, b)} and {@code
+   * [b, c)} may be empty simultaneously (i.e., {@code a == b == c}). If either segment is
    * definitely non-empty, the merged segment is also definitely non-empty.
    *
    * @param a the emptiness flag of the predecessor segment.
@@ -372,10 +372,10 @@ public class FunArrayUnification {
   }
 
   /**
-   * Handles Case 6 of the unification algorithm: one array has reached its last
-   * bound while the other still has remaining bounds. The current bound of the exhausted array is
-   * merged with the current and next bound of the ongoing array into a single joint bound, and the
-   * now-redundant segment in the ongoing array is joined into its predecessor.
+   * Handles Case 6 of the unification algorithm: one array has reached its last bound while the
+   * other still has remaining bounds. The current bound of the exhausted array is merged with the
+   * current and next bound of the ongoing array into a single joint bound, and the now-redundant
+   * segment in the ongoing array is joined into its predecessor.
    *
    * @param pExhaustedBounds the mutable bound list of the array that has reached its last bound.
    * @param pOngoingBounds the mutable bound list of the array that still has remaining bounds.
@@ -398,13 +398,13 @@ public class FunArrayUnification {
     Bound currentBoundOngoing = pOngoingBounds.get(pCurrentIndex);
     Bound nextBoundOngoing = pOngoingBounds.get(pCurrentIndex + 1);
 
-    Bound joinedBound =
-        currentBoundExhausted.union(currentBoundOngoing).union(nextBoundOngoing);
+    Bound joinedBound = currentBoundExhausted.union(currentBoundOngoing).union(nextBoundOngoing);
 
     pExhaustedBounds.set(pCurrentIndex, joinedBound);
     pOngoingBounds.set(pCurrentIndex, joinedBound);
     pOngoingBounds.remove(pCurrentIndex + 1);
     joinElementWithPredecessor(pOngoingValues, pCurrentIndex, pCollapseOp);
-    joinElementWithPredecessor(pOngoingEmptiness, pCurrentIndex, FunArrayUnification::joinEmptiness);
+    joinElementWithPredecessor(
+        pOngoingEmptiness, pCurrentIndex, FunArrayUnification::joinEmptiness);
   }
 }

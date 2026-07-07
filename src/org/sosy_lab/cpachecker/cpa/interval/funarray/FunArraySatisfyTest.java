@@ -182,8 +182,7 @@ public class FunArraySatisfyTest {
 
   @Test
   public void testNarrowElementValueAlreadyContained() throws FunArrayBuilderException {
-    FunArray initial =
-        FunArrayBuilder.firstBound(exp(0)).value(0L, 0L).bound(exp(5)).build();
+    FunArray initial = FunArrayBuilder.firstBound(exp(0)).value(0L, 0L).bound(exp(5)).build();
 
     ExpressionValueVisitor visitor =
         new ExpressionValueVisitor(new IntervalAnalysisState(null), null);
@@ -195,10 +194,8 @@ public class FunArraySatisfyTest {
   }
 
   @Test
-  public void testNarrowElementEmptyIntersectionReturnsBottom()
-      throws FunArrayBuilderException {
-    FunArray initial =
-        FunArrayBuilder.firstBound(exp(0)).value(5L, 10L).bound(exp(20)).build();
+  public void testNarrowElementEmptyIntersectionReturnsBottom() throws FunArrayBuilderException {
+    FunArray initial = FunArrayBuilder.firstBound(exp(0)).value(5L, 10L).bound(exp(20)).build();
 
     ExpressionValueVisitor visitor =
         new ExpressionValueVisitor(new IntervalAnalysisState(null), null);
