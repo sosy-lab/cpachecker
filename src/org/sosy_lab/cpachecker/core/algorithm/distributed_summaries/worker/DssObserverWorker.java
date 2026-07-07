@@ -22,10 +22,13 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * Observer worker that detects termination conditions based on the received messages.
+ * Observer worker that monitors messages of analysis workers and detects termination conditions.
  *
- * <p>DssObserverWorker shuts down as soon as a RESULT or EXCEPTION message arrives. Statistics are
- * collected directly from analysis workers by the executor after joining their threads.
+ * <p>It accumulates {@link AlgorithmStatus} from every POST_CONDITION and VIOLATION_CONDITION
+ * message it sees, merging them across all senders. This
+ * combined status reflects the overall soundness of the analysis across all blocks.
+ *
+ * <p>The observer shuts down as soon as a RESULT or EXCEPTION message arrives.
  */
 public class DssObserverWorker extends DssWorker {
 
