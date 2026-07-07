@@ -159,7 +159,9 @@ public class SymbolicExecutionTransferRelation extends SingleEdgeTransferRelatio
             ImmutableList.of(newConstraintsState),
             pCfaEdge,
             pPrecision);
-    if (newCS.isEmpty()) return null;
+    if (newCS.isEmpty()) {
+      return null;
+    }
     Preconditions.checkArgument(newCS.size() == 1);
 
     ValueAnalysisState newVS =
