@@ -16,7 +16,9 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -27,14 +29,12 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -864,7 +865,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
    * lists a literal for it).
    */
   private ImmutableList<AggregateCell> aggregateInitCells(
-      CVariableDeclaration pDeclaration, CFAEdge pEdge) throws UnsupportedCodeException {
+      CVariableDeclaration pDeclaration, CFAEdge pEdge) throws CPATransferException {
     if (pDeclaration.getType().getCanonicalType() instanceof CElaboratedType) {
       return ImmutableList.of(); // incomplete type: address-only object, no value cells
     }
@@ -875,37 +876,34 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       }
       return cells.build();
     }
-    List<AggregateCell> cells = new ArrayList<>();
-    enumerateInitCells(
-        pDeclaration.getType().getCanonicalType(), pDeclaration.getInitializer(), 0, cells, pEdge);
-    return ImmutableList.copyOf(cells);
+    // C zero-initializes static storage; a defined object is a zero skeleton (one cell per scalar
+    // leaf at its byte offset) with the explicit initializer values overlaid on top
+    LinkedHashMap<Long, AggregateCell> cells = new LinkedHashMap<>();
+    enumerateZeroCells(pDeclaration.getType().getCanonicalType(), 0, cells, pEdge);
+    // reuse CPAchecker's own initializer flattener (resolves designators, nesting, partial lists)
+    for (CExpressionAssignmentStatement assignment :
+        CInitializers.convertToAssignments(pDeclaration, pEdge)) {
+      long offset = staticOffsetOf(assignment.getLeftHandSide(), pEdge);
+      CType type = assignment.getLeftHandSide().getExpressionType().getCanonicalType();
+      cells.put(offset, new AggregateCell(type, offset, literalValueOf(assignment, pEdge)));
+    }
+    return ImmutableList.copyOf(cells.values());
   }
 
-  private void enumerateInitCells(
-      CType pCanonical,
-      @Nullable CInitializer pInitializer,
-      long pBaseOffset,
-      List<AggregateCell> pCells,
-      CFAEdge pEdge)
+  private void enumerateZeroCells(
+      CType pCanonical, long pBaseOffset, Map<Long, AggregateCell> pCells, CFAEdge pEdge)
       throws UnsupportedCodeException {
     if (pCells.size() > MAX_AGGREGATE_INIT_CELLS) {
       throw new UnsupportedCodeException("aggregate with too many cells", pEdge);
     }
     if (pCanonical instanceof CCompositeType composite) {
-      List<CInitializer> members = initializerElements(pInitializer, pEdge);
-      int i = 0;
       for (CCompositeType.CCompositeTypeMemberDeclaration member : composite.getMembers()) {
         long memberOffset =
             composite.getKind() == ComplexTypeKind.UNION
                 ? 0
                 : fieldOffsetBytes(composite, member.getName());
-        enumerateInitCells(
-            member.getType().getCanonicalType(),
-            i < members.size() ? members.get(i) : null,
-            pBaseOffset + memberOffset,
-            pCells,
-            pEdge);
-        i++;
+        enumerateZeroCells(
+            member.getType().getCanonicalType(), pBaseOffset + memberOffset, pCells, pEdge);
       }
     } else if (pCanonical instanceof CArrayType array) {
       int length =
@@ -914,47 +912,43 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
               .orElseThrow(
                   () -> new UnsupportedCodeException("array of statically unknown length", pEdge));
       long stride = sizeofBytes(array.getType());
-      List<CInitializer> elements = initializerElements(pInitializer, pEdge);
       for (int i = 0; i < length; i++) {
-        enumerateInitCells(
-            array.getType().getCanonicalType(),
-            i < elements.size() ? elements.get(i) : null,
-            pBaseOffset + i * stride,
-            pCells,
-            pEdge);
+        enumerateZeroCells(
+            array.getType().getCanonicalType(), pBaseOffset + i * stride, pCells, pEdge);
       }
-    } else {
-      pCells.add(new AggregateCell(pCanonical, pBaseOffset, scalarInitValue(pInitializer, pEdge)));
+    } else if (isValueType(pCanonical)) {
+      pCells.put(pBaseOffset, new AggregateCell(pCanonical, pBaseOffset, BigInteger.ZERO));
     }
   }
 
-  /** The elements of an initializer list; a missing initializer is an empty list (zero init). */
-  private static List<CInitializer> initializerElements(
-      @Nullable CInitializer pInitializer, CFAEdge pEdge) throws UnsupportedCodeException {
-    if (pInitializer == null) {
-      return ImmutableList.of();
+  /** The constant byte offset of a designator-resolved lvalue rooted at the declared object. */
+  private long staticOffsetOf(CExpression pLvalue, CFAEdge pEdge) throws UnsupportedCodeException {
+    CExpression lvalue = stripCasts(pLvalue);
+    if (lvalue instanceof CIdExpression) {
+      return 0;
     }
-    if (pInitializer instanceof CInitializerList list) {
-      for (CInitializer element : list.getInitializers()) {
-        if (element instanceof CDesignatedInitializer) {
-          throw new UnsupportedCodeException("designated aggregate initializer", pEdge);
-        }
+    if (lvalue instanceof CFieldReference field && !field.isPointerDereference()) {
+      CType ownerType = field.getFieldOwner().getExpressionType().getCanonicalType();
+      if (ownerType instanceof CCompositeType composite) {
+        return staticOffsetOf(field.getFieldOwner(), pEdge)
+            + fieldOffsetBytes(composite, field.getFieldName());
       }
-      return list.getInitializers();
     }
-    throw new UnsupportedCodeException("unsupported aggregate initializer", pEdge);
+    if (lvalue instanceof CArraySubscriptExpression subscript
+        && stripCasts(subscript.getSubscriptExpression())
+            instanceof CIntegerLiteralExpression idx) {
+      return staticOffsetOf(subscript.getArrayExpression(), pEdge)
+          + idx.getValue().longValueExact() * sizeofBytes(subscript.getExpressionType());
+    }
+    throw new UnsupportedCodeException("unsupported aggregate initializer target", pEdge);
   }
 
-  private static BigInteger scalarInitValue(@Nullable CInitializer pInitializer, CFAEdge pEdge)
-      throws UnsupportedCodeException {
-    if (pInitializer == null) {
-      return BigInteger.ZERO;
-    }
-    if (pInitializer instanceof CInitializerExpression expression
-        && expression.getExpression() instanceof CIntegerLiteralExpression literal) {
+  private static BigInteger literalValueOf(
+      CExpressionAssignmentStatement pAssignment, CFAEdge pEdge) throws UnsupportedCodeException {
+    if (stripCasts(pAssignment.getRightHandSide()) instanceof CIntegerLiteralExpression literal) {
       return literal.getValue();
     }
-    throw new UnsupportedCodeException("unsupported aggregate cell initializer", pEdge);
+    throw new UnsupportedCodeException("non-literal aggregate initializer value", pEdge);
   }
 
   /** The distinct scalar member types an object of the given type decomposes into. */
@@ -971,9 +965,16 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       }
     } else if (pCanonical instanceof CArrayType array) {
       collectScalarLeafTypes(array.getType().getCanonicalType(), pLeaves);
-    } else {
+    } else if (isValueType(pCanonical)) {
       pLeaves.add(pCanonical);
     }
+    // void / incomplete leaves (e.g. void* malloc) have no typed cell until accessed through a
+    // typed pointer; they get no initial write here
+  }
+
+  /** Whether a value of this canonical type can be held in a declared solver symbol. */
+  private static boolean isValueType(CType pCanonical) {
+    return !(pCanonical instanceof CVoidType) && !(pCanonical instanceof CElaboratedType);
   }
 
   private static List<? extends AExpression> getCallParameters(CFAEdge pEdge)

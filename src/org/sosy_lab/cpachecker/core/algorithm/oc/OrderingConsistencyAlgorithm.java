@@ -54,14 +54,18 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
 
   /** How the ordering constraints are decided. */
   public enum EncodingMode {
-    /** Lazy: solve, check the model's event graph for cycles, add conflict clauses, repeat. */
+    /**
+     * Lazy: solve, check the model's event graph for cycles, add conflict clauses, repeat.
+     * Experimental — the derivation loop can reject real violations, so it may report a safe
+     * verdict unsoundly; prefer {@link #CLOCKS}.
+     */
     REFINEMENT,
-    /** Eager: integer clock variables per event, single solver query. */
+    /** Eager: integer clock variables per event, single solver query. The sound default. */
     CLOCKS,
   }
 
   @Option(secure = true, description = "how the ordering constraints are decided")
-  private EncodingMode encoding = EncodingMode.REFINEMENT;
+  private EncodingMode encoding = EncodingMode.CLOCKS;
 
   @Option(
       secure = true,
