@@ -17,25 +17,16 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import org.matheclipse.core.eval.ExprEvaluator;
-import org.matheclipse.core.expression.F;
-import org.matheclipse.core.interfaces.IExpr;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.transformation.LoopAccelerationUtils.Coefficient;
 import org.sosy_lab.cpachecker.cfa.transformation.LoopAccelerationUtils.RowSummand;
@@ -124,7 +115,7 @@ public class LoopAccelerationProgramTransformation extends ProgramTransformation
     }
 
     SubCFA subCFA = new SubCFA(
-        transformationData.loopNode,
+        transformationData.loopHead,
         transformationData.nodeAfterLoop,
         newEntryNode,
         newExitNode,
@@ -142,89 +133,101 @@ public class LoopAccelerationProgramTransformation extends ProgramTransformation
       return Optional.empty();
     }
 
-    CFANode nodeAfterLoop = null;
+    // todo calculate the number of iterations
 
-    // todo calculate n
     int n = 5;
 
     ImmutableSet<Loop> loops = pLoopStructure.getLoopsForLoopHead(pNode);
-    Iterator<Loop> loopIterable = loops.iterator();
-    for (Iterator<Loop> it = loopIterable; it.hasNext(); ) {
-      Loop loop = it.next();
+    for (Loop loop : loops) {
+      CFANode nodeAfterLoop = null;
+      CFAEdge loopConditionEdge = null;
+      CExpression loopCondition = null;
+      CExpression iterations = null;
+
+      // get some needed edges, nodes and expressions
       ImmutableSet<CFAEdge> loopEdges = loop.getInnerLoopEdges();
-      CFAEdge firstEdge = null;
       for (CFAEdge edge : pNode.getLeavingEdges()) {
         if (loopEdges.contains(edge)) {
-          firstEdge = edge;
+          loopConditionEdge = edge;
+          loopCondition = ((CAssumeEdge) edge).getExpression();
         } else {
           nodeAfterLoop = edge.getPredecessor();
         }
       }
-      if (firstEdge == null) {return  Optional.empty(); }
-      LoopAccelerationVisitor visitor = new LoopAccelerationVisitor(pNode);
-      TraversalProcess traversalProcess = visitor.visitEdge(firstEdge);
-      while (traversalProcess != TraversalProcess.ABORT) {
-        if (visitor.getLastEdge().isPresent()) {
-          traversalProcess = visitor.visitNode(visitor.getLastEdge().orElseThrow().getSuccessor());
-        } else if (visitor.getLastNode().isPresent()) {
-          traversalProcess = visitor.visitEdge(visitor.getLastNode().orElseThrow().getLeavingEdge(0));
-        } else {
-          break;
-        }
+      if (loopConditionEdge == null || nodeAfterLoop == null) {
+        continue;
       }
-      boolean isAffineLoop = true;
+
+      // visit each edge and check that the loop has one AssumeEdge followed by only assignments to
+      // variables
+      LoopAccelerationVisitor visitor = new LoopAccelerationVisitor(pNode);
+        TraversalProcess traversalProcess = visitor.visitEdge(loopConditionEdge);
+        while (traversalProcess != TraversalProcess.ABORT) {
+          if (visitor.getLastEdge().isPresent()) {
+            traversalProcess =
+                visitor.visitNode(visitor.getLastEdge().orElseThrow().getSuccessor());
+          } else if (visitor.getLastNode().isPresent()) {
+            traversalProcess =
+                visitor.visitEdge(visitor.getLastNode().orElseThrow().getLeavingEdge(0));
+          } else {
+            break;
+          }
+        }
+        if (!visitor.wasSuccesful()) {
+          continue;
+        }
+
+      // extract the loop as A * x + b from the collected statements
       int[] b;
       int[][] A;
       CIdExpression[] x;
-      if (! visitor.wasSuccesful() || nodeAfterLoop == null) {
-        isAffineLoop = false;
-      } else {
-        // extract the loop as A * x + b from the collected statements
-        ImmutableList<CExpressionAssignmentStatement> assignmentStatements =
-            visitor.getStatements().build();
-        x = new CIdExpression[assignmentStatements.size()];
-        CExpression[] rightHandSides = new CExpression[assignmentStatements.size()];
-        b = new int[assignmentStatements.size()];
-        A = new int[assignmentStatements.size()][assignmentStatements.size()];
-        int i = 0;
-        for (CExpressionAssignmentStatement assignment : assignmentStatements) {
-          if (assignment.getLeftHandSide() instanceof CIdExpression variableExpression) {
-            x[i] = variableExpression;
-          } else {
-            isAffineLoop = false;
-            break;
-          }
-          rightHandSides[i] = assignment.getRightHandSide();
-          i++;
-        }
-        ArrayList<String> varNames = new ArrayList<>();
-        for (i = 0; i < x.length; i++) {
-          varNames.add(x[i].getName());
-        }
-        LoopAccelerationAffineLoopVisitor loopVisitor = new LoopAccelerationAffineLoopVisitor(varNames);
-        if(loopVisitor.visit(rightHandSides) == TraversalProcess.ABORT) {
+      ArrayList<String> varNames = new ArrayList<>();
+      ImmutableList<CExpressionAssignmentStatement> assignmentStatements =
+          visitor.getStatements().build();
+      x = new CIdExpression[assignmentStatements.size()];
+      CExpression[] rightHandSides = new CExpression[assignmentStatements.size()];
+      b = new int[assignmentStatements.size()];
+      A = new int[assignmentStatements.size()][assignmentStatements.size()];
+      int i = 0;
+      boolean isAffineLoop = true;
+      for (CExpressionAssignmentStatement assignment : assignmentStatements) {
+        if (assignment.getLeftHandSide() instanceof CIdExpression variableExpression) {
+          x[i] = variableExpression;
+          varNames.add(variableExpression.getName());
+        } else {
           isAffineLoop = false;
+          break;
         }
+        rightHandSides[i] = assignment.getRightHandSide();
+        i++;
+      }
+      if (!isAffineLoop) {continue;}
+      LoopAccelerationAffineLoopVisitor loopVisitor =
+          new LoopAccelerationAffineLoopVisitor(varNames);
+      if (loopVisitor.visit(rightHandSides) == TraversalProcess.ABORT) {
+        continue;
+      }
 
-        ImmutableMap<String, BigInteger[]> iterationMatrix = loopVisitor.getAssignments();
-        for (i = 0; i < x.length; i++) {
-          if (!iterationMatrix.containsKey(varNames.get(i))) {
-            isAffineLoop = false;
-            break;
-          }
-          BigInteger[] coefficients = iterationMatrix.get(varNames.get(i));
-          for (int j = 0; j < coefficients.length; j++) {
-            if (j == coefficients.length - 1) {
-              b[i] = coefficients[j].intValue();
-            } else {
-              A[i][j] =  coefficients[j].intValue();
-            }
+      ImmutableMap<String, BigInteger[]> iterationMatrix = loopVisitor.getAssignments();
+      for (i = 0; i < x.length; i++) {
+        if (!iterationMatrix.containsKey(varNames.get(i))) {
+          isAffineLoop = false;
+          break;
+        }
+        BigInteger[] coefficients = iterationMatrix.get(varNames.get(i));
+        for (int j = 0; j < coefficients.length; j++) {
+          if (j == coefficients.length - 1) {
+            b[i] = coefficients[j].intValue();
+          } else {
+            A[i][j] = coefficients[j].intValue();
           }
         }
+      }
 
-        if (isAffineLoop) {
-          return Optional.of(new TransformationData(n, pNode, nodeAfterLoop, Matrix.createMatrix(A), b, x, varNames.toArray(new String[x.length])));
-        }
+      if (isAffineLoop) {
+        return Optional.of(
+            new TransformationData(n, pNode, nodeAfterLoop, Matrix.createMatrix(A), b, x,
+                varNames.toArray(new String[x.length])));
       }
     }
 
@@ -240,7 +243,7 @@ public class LoopAccelerationProgramTransformation extends ProgramTransformation
    */
   private record TransformationData(
       int numberOfIterations,
-      CFANode loopNode,
+      CFANode loopHead,
       CFANode nodeAfterLoop,
       Matrix A,
       int[] b,
