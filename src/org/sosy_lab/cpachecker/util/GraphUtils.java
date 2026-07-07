@@ -252,8 +252,7 @@ public class GraphUtils {
    * @return A set containing all {@link StronglyConnectedComponent}s. This set also includes SCCs
    *     that only consists of a single ARGState.
    */
-  public static ImmutableSet<StronglyConnectedComponent>
-      retrieveSCCs(ReachedSet pReached) {
+  public static ImmutableSet<StronglyConnectedComponent> retrieveSCCs(ReachedSet pReached) {
     checkNotNull(pReached);
 
     return retrieveSCCs(
@@ -265,7 +264,8 @@ public class GraphUtils {
       List<ARGState> pARGStates, Collection<ARGState> pExcludeStates) {
     checkNotNull(pARGStates);
 
-    ImmutableSet<ARGState> filteredARGStates = FluentIterable.from(pARGStates).filter(c -> !pExcludeStates.contains(c)).toSet();
+    ImmutableSet<ARGState> filteredARGStates =
+        FluentIterable.from(pARGStates).filter(c -> !pExcludeStates.contains(c)).toSet();
 
     SccComputation<ARGState, StronglyConnectedComponent> comp =
         new SccComputation<>(

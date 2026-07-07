@@ -50,8 +50,11 @@ public class FunctionSCCGraph {
   public static FunctionSCCGraph from(FunctionGraph graph) {
 
     SccComputation<BlockFunction, StronglyConnectedComponent<BlockFunction>> comp =
-        new DefaultSccComputation<>(ILogger.getDummyLogger(), bf -> graph.getSuccessors(bf).iterator(),
-            graph.getFunctions().size(), ImmutableSet.of(graph.getRoot()));
+        new DefaultSccComputation<>(
+            ILogger.getDummyLogger(),
+            bf -> graph.getSuccessors(bf).iterator(),
+            graph.getFunctions().size(),
+            ImmutableSet.of(graph.getRoot()));
 
     List<StronglyConnectedComponent<BlockFunction>> sccList = comp.getSCCs();
 
