@@ -11,6 +11,9 @@ package org.sosy_lab.cpachecker.cpa.oc;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.SetMultimap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -34,6 +37,7 @@ public final class OcExplorationRegistry {
   private final Map<InstanceKey, ThreadInstance> instancesByKey = new HashMap<>();
   private final List<BooleanFormula> pathConstraints = new ArrayList<>();
   private final List<Formula> addressBases = new ArrayList<>();
+  private final SetMultimap<Integer, Integer> poPredecessors = LinkedHashMultimap.create();
   private int nextCssaIndex = 0;
   private boolean truncated = false;
 
@@ -95,7 +99,20 @@ public final class OcExplorationRegistry {
             pRegionId,
             pAddressTerm);
     events.put(event.id(), event);
+    if (pPoParentId != MemoryEvent.NO_EVENT) {
+      poPredecessors.put(event.id(), pPoParentId);
+    }
     return event;
+  }
+
+  /** Adds one more program-order predecessor (an event after a merge point has several). */
+  public void addPoPredecessor(int pEventId, int pPredecessorId) {
+    poPredecessors.put(pEventId, pPredecessorId);
+  }
+
+  /** Program-order predecessor events within the same instance, by event id. */
+  public ImmutableSetMultimap<Integer, Integer> getPoPredecessors() {
+    return ImmutableSetMultimap.copyOf(poPredecessors);
   }
 
   /**

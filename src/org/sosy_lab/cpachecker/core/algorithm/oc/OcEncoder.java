@@ -11,13 +11,19 @@ package org.sosy_lab.cpachecker.core.algorithm.oc;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimaps;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Comparator;
 import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.oc.EventKind;
 import org.sosy_lab.cpachecker.cpa.oc.MemoryEvent;
 import org.sosy_lab.cpachecker.cpa.oc.OcExplorationRegistry;
@@ -283,30 +289,53 @@ final class OcEncoder {
     return constraints;
   }
 
+  /**
+   * Program-order successor multimap, built by inverting the authoritative predecessor multimap of
+   * the registry (an event right after a DAG merge point has several predecessors, and thus is a
+   * successor of several parents).
+   */
   private ImmutableListMultimap<Integer, MemoryEvent> buildChildren() {
-    return events.stream()
-        .filter(e -> e.poParentId() != MemoryEvent.NO_EVENT)
-        .collect(ImmutableListMultimap.toImmutableListMultimap(MemoryEvent::poParentId, e -> e));
+    ImmutableListMultimap.Builder<Integer, MemoryEvent> result = ImmutableListMultimap.builder();
+    for (Map.Entry<Integer, Integer> entry : registry.getPoPredecessors().entries()) {
+      result.put(entry.getValue(), events.get(entry.getKey()));
+    }
+    return result.build();
   }
 
+  /**
+   * A deterministic total order per instance, computed as a Kahn topological sort of the instance's
+   * program-order DAG: nodes with no remaining predecessors become ready, and the smallest-id ready
+   * event is always picked next. DAG-parallel events of one instance have mutually exclusive
+   * guards, so any topological linearization is a sound total program order.
+   */
   private ImmutableMap<Integer, List<MemoryEvent>> buildLinearizations(
       ImmutableListMultimap<Integer, MemoryEvent> pChildren) {
+    ImmutableSetMultimap<Integer, Integer> predecessors = registry.getPoPredecessors();
     ImmutableMap.Builder<Integer, List<MemoryEvent>> result = ImmutableMap.builder();
     for (ThreadInstance instance : registry.getInstances()) {
-      List<MemoryEvent> roots =
+      List<MemoryEvent> instanceEvents =
           events.stream()
-              .filter(
-                  e -> e.instanceId() == instance.getId() && e.poParentId() == MemoryEvent.NO_EVENT)
+              .filter(e -> e.instanceId() == instance.getId())
               .collect(ImmutableList.toImmutableList());
+      Map<Integer, Integer> indegree = new HashMap<>();
+      PriorityQueue<MemoryEvent> ready =
+          new PriorityQueue<>(Comparator.comparingInt(MemoryEvent::id));
+      for (MemoryEvent event : instanceEvents) {
+        int degree = predecessors.get(event.id()).size();
+        indegree.put(event.id(), degree);
+        if (degree == 0) {
+          ready.add(event);
+        }
+      }
       List<MemoryEvent> linear = new ArrayList<>();
-      Deque<MemoryEvent> stack = new ArrayDeque<>();
-      roots.reversed().forEach(stack::push);
-      while (!stack.isEmpty()) {
-        MemoryEvent event = stack.pop();
+      while (!ready.isEmpty()) {
+        MemoryEvent event = ready.poll();
         linear.add(event);
-        List<MemoryEvent> children = pChildren.get(event.id());
-        for (int i = children.size() - 1; i >= 0; i--) {
-          stack.push(children.get(i));
+        for (MemoryEvent child : pChildren.get(event.id())) {
+          int remaining = indegree.merge(child.id(), -1, Integer::sum);
+          if (remaining == 0) {
+            ready.add(child);
+          }
         }
       }
       result.put(instance.getId(), linear);
@@ -338,16 +367,18 @@ final class OcEncoder {
 
   /**
    * Edges of the "definite" order, which holds in every execution in which both endpoints are
-   * enabled: the exploration-tree order within an instance, everything up to the common ancestor of
-   * all creates of an instance before all its events, and all events of an instance before every
-   * join of that instance.
+   * enabled: the program-order DAG edges within an instance, the single create event before all
+   * roots of an instance that has exactly one create event (instances with several creates only
+   * lose optional rf/ws pruning, not correctness), and all sinks of an instance before every join
+   * of that instance.
    */
   private List<int[]> buildDefiniteOrderEdges(
       ImmutableListMultimap<Integer, MemoryEvent> pChildren) {
     List<int[]> edges = new ArrayList<>();
+    ImmutableSetMultimap<Integer, Integer> predecessors = registry.getPoPredecessors();
     for (MemoryEvent event : events) {
-      if (event.poParentId() != MemoryEvent.NO_EVENT) {
-        edges.add(new int[] {event.poParentId(), event.id()});
+      for (int predecessorId : predecessors.get(event.id())) {
+        edges.add(new int[] {predecessorId, event.id()});
       }
     }
     for (ThreadInstance instance : registry.getInstances()) {
@@ -358,50 +389,25 @@ final class OcEncoder {
       if (instanceEvents.isEmpty()) {
         continue;
       }
-      if (!instance.getCreateEventIds().isEmpty()) {
-        int commonAncestor = -1;
-        for (int createEventId : instance.getCreateEventIds()) {
-          commonAncestor =
-              commonAncestor < 0
-                  ? createEventId
-                  : commonTreeAncestor(commonAncestor, createEventId);
-          if (commonAncestor < 0) {
-            break;
-          }
-        }
-        if (commonAncestor >= 0) {
-          for (MemoryEvent root : instanceEvents) {
-            if (root.poParentId() == MemoryEvent.NO_EVENT) {
-              edges.add(new int[] {commonAncestor, root.id()});
-            }
+      if (instance.getCreateEventIds().size() == 1) {
+        int createEventId = instance.getCreateEventIds().get(0);
+        for (MemoryEvent root : instanceEvents) {
+          if (predecessors.get(root.id()).isEmpty()) {
+            edges.add(new int[] {createEventId, root.id()});
           }
         }
       }
-      for (MemoryEvent leaf : instanceEvents) {
-        if (pChildren.get(leaf.id()).isEmpty()) {
+      for (MemoryEvent sink : instanceEvents) {
+        if (pChildren.get(sink.id()).isEmpty()) {
           for (MemoryEvent join : events) {
             if (join.kind() == EventKind.JOIN && join.otherInstanceId() == instance.getId()) {
-              edges.add(new int[] {leaf.id(), join.id()});
+              edges.add(new int[] {sink.id(), join.id()});
             }
           }
         }
       }
     }
     return edges;
-  }
-
-  /** Deepest common ancestor-or-self of two events in their instance's exploration tree. */
-  private int commonTreeAncestor(int pFirst, int pSecond) {
-    BitSet ancestors = new BitSet(events.size());
-    for (int node = pFirst; node != MemoryEvent.NO_EVENT; node = events.get(node).poParentId()) {
-      ancestors.set(node);
-    }
-    for (int node = pSecond; node != MemoryEvent.NO_EVENT; node = events.get(node).poParentId()) {
-      if (ancestors.get(node)) {
-        return node;
-      }
-    }
-    return -1;
   }
 
   private BitSet[] computeReachability(List<int[]> pEdges) {
@@ -532,18 +538,23 @@ final class OcEncoder {
       if (lock.kind() != EventKind.LOCK) {
         continue;
       }
-      // find the matching unlock (same mutex, nesting depth zero) on every path below the lock;
-      // a path that ends while still holding the lock keeps it to its last event
+      // find the matching unlock (same mutex, nesting depth zero) reachable from the lock in the
+      // DAG; a path that ends while still holding the lock keeps it to its last event. Nesting
+      // depth at a DAG node is path-independent (states with different lock depths never merge),
+      // so a plain visited set (one visit per node) suffices instead of per-path revisits.
       record Item(MemoryEvent event, int depth) {}
-      Deque<Item> stack = new ArrayDeque<>();
+      Deque<Item> queue = new ArrayDeque<>();
+      Set<Integer> visited = new HashSet<>();
       for (MemoryEvent child : pChildren.get(lock.id())) {
-        stack.push(new Item(child, 1));
+        if (visited.add(child.id())) {
+          queue.addLast(new Item(child, 1));
+        }
       }
       if (pChildren.get(lock.id()).isEmpty()) {
         sections.add(new Section(lock, lock));
       }
-      while (!stack.isEmpty()) {
-        Item item = stack.pop();
+      while (!queue.isEmpty()) {
+        Item item = queue.pollFirst();
         int depth = item.depth();
         MemoryEvent event = item.event();
         if (lock.mutexId().equals(event.mutexId())) {
@@ -562,7 +573,9 @@ final class OcEncoder {
           sections.add(new Section(lock, event));
         }
         for (MemoryEvent child : children) {
-          stack.push(new Item(child, depth));
+          if (visited.add(child.id())) {
+            queue.addLast(new Item(child, depth));
+          }
         }
       }
     }

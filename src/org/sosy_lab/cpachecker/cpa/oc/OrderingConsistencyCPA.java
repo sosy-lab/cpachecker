@@ -10,8 +10,10 @@ package org.sosy_lab.cpachecker.cpa.oc;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -26,15 +28,22 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.oc.ThreadInstance.InstanceKey;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
  * CPA that explores every thread instance of a concurrent program separately, over all its paths
@@ -110,13 +119,70 @@ public class OrderingConsistencyCPA extends AbstractCPA implements AutoCloseable
               (CallstackState) callstackCPA.getInitialState(pNode, pPartition),
               pathFormulaManager.makeEmptyPathFormula(),
               solver.getFormulaManager().getBooleanFormulaManager().makeTrue(),
-              MemoryEvent.NO_EVENT,
+              ImmutableList.of(),
+              ImmutableMap.of(),
               ImmutableMap.of(),
               ImmutableMap.of(),
               ImmutableMap.of(),
               false);
     }
     return initialState;
+  }
+
+  @Override
+  public MergeOperator getMergeOperator() {
+    return this::mergeStates;
+  }
+
+  @Override
+  public StopOperator getStopOperator() {
+    // covers exactly the states absorbed by a merge; nothing else is ever covered
+    return (pState, pReached, pPrecision) -> ((OrderingConsistencyState) pState).isAbsorbed();
+  }
+
+  /**
+   * Merges two states of the same unrolled program point into one whose guard is the disjunction of
+   * the incoming guards, turning the per-thread exploration into a DAG. Never merges into an
+   * already expanded state: its suffix would be explored a second time with overlapping guards
+   * (duplicated events); a missed merge only falls back to tree-shaped, sound exploration.
+   */
+  private AbstractState mergeStates(
+      AbstractState pState1, AbstractState pState2, Precision pPrecision)
+      throws CPAException, InterruptedException {
+    OrderingConsistencyState s1 = (OrderingConsistencyState) pState1;
+    OrderingConsistencyState s2 = (OrderingConsistencyState) pState2;
+    if (s1 == s2
+        || s1.isAbsorbed()
+        || s2.isExpanded()
+        || !s1.getMergeKey().equals(s2.getMergeKey())) {
+      return s2;
+    }
+    BooleanFormulaManagerView bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
+    BooleanFormula mergedGuard = bfmgr.or(s1.getGuard(), s2.getGuard());
+
+    // reconcile the branches' local SSA indices: makeOr yields
+    // (guard1 and bridge1) or (guard2 and bridge2), the guarded phi assignments of the join
+    PathFormula merged =
+        pathFormulaManager.makeOr(
+            s1.getPathFormula().withFormula(s1.getGuard()),
+            s2.getPathFormula().withFormula(s2.getGuard()));
+    registry.addPathConstraint(bfmgr.implication(mergedGuard, merged.getFormula()));
+
+    ImmutableList<Integer> lastEvents =
+        ImmutableSet.copyOf(Iterables.concat(s1.getLastEventIds(), s2.getLastEventIds())).asList();
+    s1.markAbsorbed(); // the stop operator covers s1, only the merged state continues
+    return new OrderingConsistencyState(
+        s2.getInstanceId(),
+        s2.getLocationState(),
+        s2.getCallstackState(),
+        pathFormulaManager.makeEmptyPathFormulaWithContextFrom(merged),
+        mergedGuard,
+        lastEvents,
+        s2.getCreateCounts(),
+        s2.getThreadHandles(),
+        s2.getLoopCounts(),
+        s2.getLockDepths(),
+        false);
   }
 
   public Solver getSolver() {

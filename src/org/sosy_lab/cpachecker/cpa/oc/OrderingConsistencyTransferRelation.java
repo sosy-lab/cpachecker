@@ -96,6 +96,37 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     bfmgr = fmgr.getBooleanFormulaManager();
   }
 
+  /** Creates an event chained in program order after all of the state's last events. */
+  private MemoryEvent addEventAfter(
+      OrderingConsistencyState pState,
+      EventKind pKind,
+      @Nullable MemoryLocation pMemoryLocation,
+      @Nullable String pCssaName,
+      @Nullable Formula pVariable,
+      @Nullable String pMutexId,
+      int pOtherInstanceId,
+      @Nullable String pRegionId,
+      @Nullable Formula pAddressTerm) {
+    ImmutableList<Integer> predecessors = pState.getLastEventIds();
+    MemoryEvent event =
+        registry.addEvent(
+            pState.getInstanceId(),
+            pKind,
+            predecessors.isEmpty() ? MemoryEvent.NO_EVENT : predecessors.get(0),
+            pState.getGuard(),
+            pMemoryLocation,
+            pCssaName,
+            pVariable,
+            pMutexId,
+            pOtherInstanceId,
+            pRegionId,
+            pAddressTerm);
+    for (int i = 1; i < predecessors.size(); i++) {
+      registry.addPoPredecessor(event.id(), predecessors.get(i));
+    }
+    return event;
+  }
+
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(
       AbstractState pState, Precision pPrecision)
@@ -105,6 +136,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     if (state.isTarget()) {
       return ImmutableList.of();
     }
+    state.markExpanded();
 
     CFANode node = state.getLocationState().getLocationNode();
     if (node instanceof FunctionExitNode && state.getCallstackState().getDepth() == 1) {
@@ -147,16 +179,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     }
     if (callee != null && PROGRAM_EXIT_FUNCTIONS.contains(callee)) {
       // the whole program dies here; the event blocks any pthread_join of this instance
-      registry.addEvent(
-          pState.getInstanceId(),
-          EventKind.ABORT,
-          pState.getLastEventId(),
-          pState.getGuard(),
-          null,
-          null,
-          null,
-          null,
-          MemoryEvent.NO_INSTANCE);
+      addEventAfter(
+          pState, EventKind.ABORT, null, null, null, null, MemoryEvent.NO_INSTANCE, null, null);
       return;
     }
     if (callee != null && ThreadFunctions.isCreateFunction(callee)) {
@@ -174,16 +198,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
   }
 
   private void addThreadExitEvent(OrderingConsistencyState pState) {
-    registry.addEvent(
-        pState.getInstanceId(),
-        EventKind.THREAD_EXIT,
-        pState.getLastEventId(),
-        pState.getGuard(),
-        null,
-        null,
-        null,
-        null,
-        MemoryEvent.NO_INSTANCE);
+    addEventAfter(
+        pState, EventKind.THREAD_EXIT, null, null, null, null, MemoryEvent.NO_INSTANCE, null, null);
   }
 
   /** Returns the name of the function called by this edge, or null if it is not a call. */
@@ -197,16 +213,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
   private void handleError(
       OrderingConsistencyState pState, CFAEdge pEdge, List<AbstractState> pSuccessors) {
     MemoryEvent event =
-        registry.addEvent(
-            pState.getInstanceId(),
-            EventKind.ERROR,
-            pState.getLastEventId(),
-            pState.getGuard(),
-            null,
-            null,
-            null,
-            null,
-            MemoryEvent.NO_INSTANCE);
+        addEventAfter(
+            pState, EventKind.ERROR, null, null, null, null, MemoryEvent.NO_INSTANCE, null, null);
     pSuccessors.add(
         new OrderingConsistencyState(
             pState.getInstanceId(),
@@ -214,10 +222,11 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
             pState.getCallstackState(),
             pState.getPathFormula(),
             pState.getGuard(),
-            event.id(),
+            ImmutableList.of(event.id()),
             pState.getCreateCounts(),
             pState.getThreadHandles(),
             pState.getLoopCounts(),
+            pState.getLockDepths(),
             true));
   }
 
@@ -263,16 +272,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     ThreadInstance instance = isNew ? registry.newInstance(key) : existing;
 
     MemoryEvent event =
-        registry.addEvent(
-            pState.getInstanceId(),
-            EventKind.CREATE,
-            pState.getLastEventId(),
-            pState.getGuard(),
-            null,
-            null,
-            null,
-            null,
-            instance.getId());
+        addEventAfter(
+            pState, EventKind.CREATE, null, null, null, null, instance.getId(), null, null);
     registry.addCreateEvent(instance.getId(), event.id());
 
     PathFormula rootFormula = pathFormulaManager.makeEmptyPathFormula();
@@ -287,9 +288,10 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         pState.getCallstackState(),
         pState.getPathFormula(),
         pState.getGuard(),
-        event.id(),
+        ImmutableList.of(event.id()),
         withEntry(pState.getCreateCounts(), function, ordinal + 1),
-        withEntry(pState.getThreadHandles(), handle, instance.getId()));
+        withEntry(pState.getThreadHandles(), handle, instance.getId()),
+        pState.getLockDepths());
 
     if (isNew) {
       pSuccessors.add(
@@ -301,7 +303,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
                       .getInitialState(entry, StateSpacePartition.getDefaultPartition()),
               rootFormula,
               bfmgr.makeTrue(),
-              MemoryEvent.NO_EVENT,
+              ImmutableList.of(),
+              ImmutableMap.of(),
               ImmutableMap.of(),
               ImmutableMap.of(),
               ImmutableMap.of(),
@@ -369,16 +372,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       throw new UnsupportedCodeException("pthread_join with unknown thread handle", pEdge);
     }
     MemoryEvent event =
-        registry.addEvent(
-            pState.getInstanceId(),
-            EventKind.JOIN,
-            pState.getLastEventId(),
-            pState.getGuard(),
-            null,
-            null,
-            null,
-            null,
-            joined);
+        addEventAfter(pState, EventKind.JOIN, null, null, null, null, joined, null, null);
     addSuccessor(
         pSuccessors,
         pState,
@@ -386,9 +380,10 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         pState.getCallstackState(),
         pState.getPathFormula(),
         pState.getGuard(),
-        event.id(),
+        ImmutableList.of(event.id()),
         pState.getCreateCounts(),
-        pState.getThreadHandles());
+        pState.getThreadHandles(),
+        pState.getLockDepths());
   }
 
   /** Handles mutex and atomic-block edges; returns false if the edge is none of those. */
@@ -431,25 +426,19 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
               pState.getCallstackState(),
               pState.getPathFormula(),
               pState.getGuard(),
-              pState.getLastEventId(),
+              pState.getLastEventIds(),
               pState.getCreateCounts(),
-              pState.getThreadHandles());
+              pState.getThreadHandles(),
+              pState.getLockDepths());
           return true;
         }
         return false;
       }
     }
     MemoryEvent event =
-        registry.addEvent(
-            pState.getInstanceId(),
-            kind,
-            pState.getLastEventId(),
-            pState.getGuard(),
-            null,
-            null,
-            null,
-            mutexId,
-            MemoryEvent.NO_INSTANCE);
+        addEventAfter(pState, kind, null, null, null, mutexId, MemoryEvent.NO_INSTANCE, null, null);
+    ImmutableMap<String, Integer> lockDepths =
+        withLockDepth(pState.getLockDepths(), mutexId, kind == EventKind.LOCK ? 1 : -1);
     addSuccessor(
         pSuccessors,
         pState,
@@ -457,9 +446,10 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         pState.getCallstackState(),
         pState.getPathFormula(),
         pState.getGuard(),
-        event.id(),
+        ImmutableList.of(event.id()),
         pState.getCreateCounts(),
-        pState.getThreadHandles());
+        pState.getThreadHandles(),
+        lockDepths);
     return true;
   }
 
@@ -493,8 +483,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     if (!bfmgr.isTrue(formula)) {
       registry.addPathConstraint(bfmgr.implication(pState.getGuard(), formula));
     }
-    int lastEventId = chainAccessEvents(pState, renamer, edgeFormula, pEdge);
-    lastEventId = handleMallocIfAny(pState, pEdge, renamer, edgeFormula, lastEventId);
+    ImmutableList<Integer> lastEventIds = chainAccessEvents(pState, renamer, edgeFormula, pEdge);
+    lastEventIds = handleMallocIfAny(pState, pEdge, renamer, edgeFormula, lastEventIds);
 
     addSuccessor(
         pSuccessors,
@@ -503,9 +493,10 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         nextCallstack,
         edgeFormula,
         pState.getGuard(),
-        lastEventId,
+        lastEventIds,
         pState.getCreateCounts(),
-        pState.getThreadHandles());
+        pState.getThreadHandles(),
+        pState.getLockDepths());
   }
 
   /**
@@ -541,7 +532,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         pathFormulaManager.makeAnd(
             pathFormulaManager.makeEmptyPathFormulaWithContextFrom(pState.getPathFormula()),
             rewrittenFirst);
-    int sharedLastEventId = chainAccessEvents(pState, renamer, firstFormula, pFirst);
+    ImmutableList<Integer> sharedLastEventIds =
+        chainAccessEvents(pState, renamer, firstFormula, pFirst);
     PathFormula secondFormula =
         pathFormulaManager.makeAnd(
             pathFormulaManager.makeEmptyPathFormulaWithContextFrom(pState.getPathFormula()),
@@ -554,9 +546,10 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         pState.getCallstackState(),
         firstFormula,
         bfmgr.and(pState.getGuard(), firstFormula.getFormula()),
-        sharedLastEventId,
+        sharedLastEventIds,
         pState.getCreateCounts(),
-        pState.getThreadHandles());
+        pState.getThreadHandles(),
+        pState.getLockDepths());
     addSuccessor(
         pSuccessors,
         pState,
@@ -564,17 +557,19 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         pState.getCallstackState(),
         secondFormula,
         bfmgr.and(pState.getGuard(), secondFormula.getFormula()),
-        sharedLastEventId,
+        sharedLastEventIds,
         pState.getCreateCounts(),
-        pState.getThreadHandles());
+        pState.getThreadHandles(),
+        pState.getLockDepths());
   }
 
   /**
    * Registers the accesses collected while rewriting one edge, reads before writes (matching
-   * evaluation order), chained in program order after the state's last event. Returns the new last
-   * event id.
+   * evaluation order), chained in program order after all of the state's last events. Returns the
+   * singleton list of the new last event id, or the state's unchanged last event ids if there were
+   * no accesses.
    */
-  private int chainAccessEvents(
+  private ImmutableList<Integer> chainAccessEvents(
       OrderingConsistencyState pState,
       CollectingRenamer pRenamer,
       PathFormula pEdgeFormula,
@@ -600,7 +595,9 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       }
     }
 
-    int lastEventId = pState.getLastEventId();
+    ImmutableList<Integer> predecessors = pState.getLastEventIds();
+    int lastEventId = predecessors.isEmpty() ? MemoryEvent.NO_EVENT : predecessors.get(0);
+    boolean anyEvent = false;
     for (boolean writes : new boolean[] {false, true}) {
       for (PendingAccess access : pRenamer.accesses) {
         if (access.write != writes) {
@@ -624,10 +621,16 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
                 MemoryEvent.NO_INSTANCE,
                 access.regionId,
                 addressTerm);
+        if (!anyEvent) {
+          for (int i = 1; i < predecessors.size(); i++) {
+            registry.addPoPredecessor(event.id(), predecessors.get(i));
+          }
+          anyEvent = true;
+        }
         lastEventId = event.id();
       }
     }
-    return lastEventId;
+    return anyEvent ? ImmutableList.of(lastEventId) : pState.getLastEventIds();
   }
 
   /** Brings a symbol that occurs in no formula into the SSA context via a trivial assumption. */
@@ -659,19 +662,19 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
   }
 
   /** Binds the freshly written pointer of a {@code lhs = malloc(...)} to a distinct heap base. */
-  private int handleMallocIfAny(
+  private ImmutableList<Integer> handleMallocIfAny(
       OrderingConsistencyState pState,
       CFAEdge pEdge,
       CollectingRenamer pRenamer,
       PathFormula pEdgeFormula,
-      int pLastEventId)
+      ImmutableList<Integer> pLastEventIds)
       throws CPATransferException, InterruptedException {
     if (!(pEdge instanceof AStatementEdge statementEdge)
         || !(statementEdge.getStatement() instanceof CFunctionCallAssignmentStatement call)
         || !(call.getFunctionCallExpression().getFunctionNameExpression()
             instanceof CIdExpression function)
         || !function.getName().equals("malloc")) {
-      return pLastEventId;
+      return pLastEventIds;
     }
     if (!(call.getLeftHandSide() instanceof CIdExpression lhs)
         || !(lhs.getExpressionType().getCanonicalType() instanceof CPointerType pointerType)) {
@@ -713,11 +716,12 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         bfmgr.implication(pState.getGuard(), fmgr.makeEqual(lhsTerm, baseTerm)));
 
     // the allocated cell starts with an unconstrained value
+    int primary = pLastEventIds.isEmpty() ? MemoryEvent.NO_EVENT : pLastEventIds.get(0);
     MemoryEvent initialWrite =
         registry.addEvent(
             pState.getInstanceId(),
             EventKind.WRITE,
-            pLastEventId,
+            primary,
             pState.getGuard(),
             null,
             initName,
@@ -726,7 +730,10 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
             MemoryEvent.NO_INSTANCE,
             regionOf(pointee),
             baseTerm);
-    return initialWrite.id();
+    for (int i = 1; i < pLastEventIds.size(); i++) {
+      registry.addPoPredecessor(initialWrite.id(), pLastEventIds.get(i));
+    }
+    return ImmutableList.of(initialWrite.id());
   }
 
   private static List<? extends AExpression> getCallParameters(CFAEdge pEdge)
@@ -746,25 +753,31 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       CallstackState pCallstack,
       PathFormula pPathFormula,
       BooleanFormula pGuard,
-      int pLastEventId,
+      ImmutableList<Integer> pLastEventIds,
       ImmutableMap<String, Integer> pCreateCounts,
-      ImmutableMap<String, Integer> pThreadHandles) {
+      ImmutableMap<String, Integer> pThreadHandles,
+      ImmutableMap<String, Integer> pLockDepths) {
     ImmutableMap<CFANode, Integer> loopCounts = pState.getLoopCounts();
     if (pNextNode.isLoopStart()) {
       int count = loopCounts.getOrDefault(pNextNode, 0) + 1;
       if (count > cpa.getMaxLoopIterations()) {
         registry.markTruncated();
         // the thread has not terminated on this path, so it can never be joined here
-        registry.addEvent(
-            pState.getInstanceId(),
-            EventKind.TRUNCATED,
-            pLastEventId,
-            pGuard,
-            null,
-            null,
-            null,
-            null,
-            MemoryEvent.NO_INSTANCE);
+        int primary = pLastEventIds.isEmpty() ? MemoryEvent.NO_EVENT : pLastEventIds.get(0);
+        MemoryEvent truncated =
+            registry.addEvent(
+                pState.getInstanceId(),
+                EventKind.TRUNCATED,
+                primary,
+                pGuard,
+                null,
+                null,
+                null,
+                null,
+                MemoryEvent.NO_INSTANCE);
+        for (int i = 1; i < pLastEventIds.size(); i++) {
+          registry.addPoPredecessor(truncated.id(), pLastEventIds.get(i));
+        }
         return;
       }
       loopCounts = withEntry(loopCounts, pNextNode, count);
@@ -776,10 +789,11 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
             pCallstack,
             pPathFormula,
             pGuard,
-            pLastEventId,
+            pLastEventIds,
             pCreateCounts,
             pThreadHandles,
             loopCounts,
+            pLockDepths,
             false));
   }
 
@@ -796,6 +810,25 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       }
     }
     builder.put(pKey, pValue);
+    return builder.buildOrThrow();
+  }
+
+  /**
+   * Updates one mutex's lock depth by the given delta, clamped at zero; entries at zero are removed
+   * so the map stays in canonical (merge-key) form.
+   */
+  private static ImmutableMap<String, Integer> withLockDepth(
+      ImmutableMap<String, Integer> pLockDepths, String pMutexId, int pDelta) {
+    int depth = Math.max(0, pLockDepths.getOrDefault(pMutexId, 0) + pDelta);
+    ImmutableMap.Builder<String, Integer> builder = ImmutableMap.builder();
+    for (var entry : pLockDepths.entrySet()) {
+      if (!entry.getKey().equals(pMutexId)) {
+        builder.put(entry);
+      }
+    }
+    if (depth > 0) {
+      builder.put(pMutexId, depth);
+    }
     return builder.buildOrThrow();
   }
 
