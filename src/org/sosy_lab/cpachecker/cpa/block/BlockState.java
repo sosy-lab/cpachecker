@@ -76,7 +76,6 @@ public class BlockState
     history = ImmutableList.copyOf(pHistory);
     witness = pWitness;
     witnessCheckPathState = Optional.ofNullable(pWitnessCheckPathState);
-    timestamp = 0;
   }
 
   public BlockState(
@@ -102,7 +101,6 @@ public class BlockState
   }
 
   public void setViolationConditions(List<? extends AbstractState> pViolationConditions) {
-<<<<<<< HEAD
     violationConditions =
         ImmutableList.sortedCopyOf(
             Comparator.comparingInt(
@@ -112,9 +110,6 @@ public class BlockState
                         .witness()
                         .size()),
             pViolationConditions);
-=======
-    violationConditions = ImmutableList.copyOf(pViolationConditions);
->>>>>>> main
   }
 
   public BlockNode getBlockNode() {
