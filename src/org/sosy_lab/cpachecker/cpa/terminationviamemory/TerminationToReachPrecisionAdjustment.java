@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -140,7 +141,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         PartitionedRelationFormula iterationFormula =
             new PartitionedRelationFormula(
                 terminationState.getPathFormulasForIteration().get(keyPair).getFormula(), fmgr);
-        ImmutableList<BooleanFormula> sameStateFormulas =
+        ImmutableMap<Integer, BooleanFormula> sameStateFormulas =
             buildCycleFormula(
                 terminationState.getStoredValues().get(keyPair),
                 largestIndices,
@@ -153,14 +154,14 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         while (true) {
           // First, check that the BMC check is UNSATs
           BooleanFormula latestSameStateFormula = bfmgr.makeTrue();
-          for (BooleanFormula sameStateFormula : sameStateFormulas) {
+          for (Entry<Integer, BooleanFormula> sameStateFormula : sameStateFormulas.entrySet()) {
             try {
               // Construct formula:
               // T(x__PREV, x__CURR) and Tr(x__CURR, x__CURR2) and x__PREV = x_CURR2
               if (isOverapproximating) {
                 // Construct formula instantiated to x__PREV = x__CURR2
                 PartitionedRelationFormula sameStateFormulaRelation =
-                    new PartitionedRelationFormula(sameStateFormula, fmgr);
+                    new PartitionedRelationFormula(sameStateFormula.getValue(), fmgr);
                 sameStateFormulaRelation.extendPrevVarsWithPrefixSuffix(DUMMY_PREFIX, PREV_KEYWORD);
                 sameStateFormulaRelation.extendCurrVarsWithPrefixSuffix(
                     DUMMY_PREFIX, CURR2_KEYWORD);
@@ -186,7 +187,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                         bfmgr.and(
                             prefixPathFormula.getFormula(),
                             iterationFormula.getFormula(),
-                            sameStateFormula));
+                            sameStateFormula.getValue()));
               }
             } catch (SolverException e) {
               logger.logDebugException(e);
@@ -195,6 +196,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
             if (isTargetStateReachable) {
               if (!isOverapproximating && isSound(iterationFormula.getFormula())) {
                 terminationState.makeTarget();
+                terminationState.setNumberOfUnrollingsInTarget(sameStateFormula.getKey());
                 result = result.withAbstractState(terminationState);
                 statistics.setNonterminatingLoop(
                     cfa.getLoopStructure().orElseThrow().getLoopsForLoopHead(location));
@@ -202,7 +204,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
               }
               return Optional.of(result);
             }
-            latestSameStateFormula = sameStateFormula;
+            latestSameStateFormula = sameStateFormula.getValue();
             if (isOverapproximating) {
               break;
             }
@@ -376,14 +378,14 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     return false;
   }
 
-  private ImmutableList<BooleanFormula> buildCycleFormula(
+  private ImmutableMap<Integer, BooleanFormula> buildCycleFormula(
       Map<Integer, ImmutableSet<Formula>> storedValues, SSAMap pLatestValues, int pMaxIndex) {
     return buildComparingFormulas(storedValues, pMaxIndex, pLatestValues);
   }
 
-  private ImmutableList<BooleanFormula> buildComparingFormulas(
+  private ImmutableMap<Integer, BooleanFormula> buildComparingFormulas(
       Map<Integer, ImmutableSet<Formula>> storedValues, int pMaxIndex, SSAMap pLatestValues) {
-    ImmutableList.Builder<BooleanFormula> comparingFormulas = ImmutableList.builder();
+    ImmutableMap.Builder<Integer, BooleanFormula> comparingFormulas = ImmutableMap.builder();
     for (Entry<Integer, ImmutableSet<Formula>> savedVariables : storedValues.entrySet()) {
       if (savedVariables.getKey().intValue() >= pMaxIndex) {
         continue;
@@ -396,7 +398,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                 fmgr.assignment(
                     fmgr.instantiate(fmgr.uninstantiate(oldVariable), pLatestValues), oldVariable));
       }
-      comparingFormulas.add(comparingFormula);
+      comparingFormulas.put(savedVariables.getKey(), comparingFormula);
     }
     return comparingFormulas.build();
   }

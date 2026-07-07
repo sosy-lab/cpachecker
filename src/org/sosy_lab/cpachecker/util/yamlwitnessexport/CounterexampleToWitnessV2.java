@@ -55,9 +55,9 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointAction;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointType;
 
-public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
+public class CounterexampleToWitnessV2 extends AbstractYAMLWitnessExporter {
 
-  public CounterexampleToWitness(
+  public CounterexampleToWitnessV2(
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
       throws InvalidConfigurationException {
     super(pConfig, pCfa, pSpecification, pLogger);
@@ -175,7 +175,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
             assumeEdge.getPredecessor().getFunctionName()));
   }
 
-  private List<WaypointRecord> buildWaypoints(
+  protected List<WaypointRecord> buildWaypoints(
       CFAEdge pEdge,
       ImmutableListMultimap<CFAEdge, String> pEdgeToAssumptions,
       AstCfaRelation pAstCFARelation,
@@ -312,7 +312,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
    *     `no-overflow` specification this is the full expression whose execution caused the
    *     violation
    */
-  private WaypointRecord targetWaypoint(CFAEdge pEdge, AstCfaRelation pAstCfaRelation) {
+  protected WaypointRecord targetWaypoint(CFAEdge pEdge, AstCfaRelation pAstCfaRelation) {
     Specification specification = getSpecification();
     Set<Property> properties = specification.getProperties();
 
@@ -355,30 +355,14 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
    * @param pPath the path to export the witness to
    * @throws IOException if writing the witness to the path is not possible
    */
-  private void exportWitnessV2(CounterexampleInfo pCex, Path pPath) throws IOException {
+  private void exportWitness(CounterexampleInfo pCex, Path pPath) throws IOException {
     exportEntries(
         new ViolationSequenceEntry(getMetadata(YAMLWitnessVersion.V2), buildSegments(pCex)), pPath);
   }
 
-  /**
-   * Export the given counterexample to the path as a Witness version 2.1
-   *
-   * @param pCex the counterexample to be exported
-   * @param pPath the path to export the witness to
-   * @throws IOException if writing the witness to the path is not possible
-   */
-  private void exportWitnessV2d1(CounterexampleInfo pCex, Path pPath) throws IOException {
-    exportEntries(
-        new ViolationSequenceEntry(getMetadata(YAMLWitnessVersion.V2d1), buildSegments(pCex)),
-        pPath);
-  }
-
-  private ImmutableList<SegmentRecord> buildSegments(CounterexampleInfo pCex) {
-    AstCfaRelation astCFARelation = getASTStructure();
-
+  protected ImmutableListMultimap<CFAEdge, String> mapEdgesToAssumptions(CounterexampleInfo pCex) {
     ImmutableListMultimap.Builder<CFAEdge, String> edgeToAssumptionsBuilder =
         new ImmutableListMultimap.Builder<>();
-    Map<CFAEdge, Integer> edgeToCurrentExpressionIndex = new HashMap<>();
     if (pCex.isPreciseCounterExample()) {
       for (CFAEdgeWithAssumptions edgeWithAssumptions : pCex.getCFAPathWithAssignments()) {
         CFAEdge edge = edgeWithAssumptions.getCFAEdge();
@@ -423,14 +407,22 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         }
 
         edgeToAssumptionsBuilder.put(edge, statement);
-        edgeToCurrentExpressionIndex.put(edge, 0);
       }
     }
 
-    ImmutableListMultimap<CFAEdge, String> edgeToAssumptions = edgeToAssumptionsBuilder.build();
+    return edgeToAssumptionsBuilder.build();
+  }
+
+  protected ImmutableList<SegmentRecord> buildSegments(CounterexampleInfo pCex) {
+    ImmutableListMultimap<CFAEdge, String> edgeToAssumptions = mapEdgesToAssumptions(pCex);
+    Map<CFAEdge, Integer> edgeToCurrentExpressionIndex = new HashMap<>();
+    for (CFAEdge edge : edgeToAssumptions.keySet()) {
+      edgeToCurrentExpressionIndex.put(edge, 0);
+    }
 
     ImmutableList.Builder<SegmentRecord> segments = ImmutableList.builder();
     List<CFAEdge> edges = pCex.getTargetPath().getFullPath();
+    AstCfaRelation astCFARelation = getASTStructure();
 
     // The semantics of the YAML witnesses imply that every assumption waypoint should be
     // valid before the sequence statement it points to. Due to the semantics of the format:
@@ -467,9 +459,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   }
 
   /**
-   * Export the given counterexample to a witness file. The format of the witness file is determined
-   * by the witness versions given in the configuration. All versions of witnesses will be exported.
-   * Currently, only Version 2 exists for Violation Witnesses.
+   * Export the given counterexample to a witness file in Version 2.
    *
    * @param pCex The counterexample to export.
    * @param pOutputFileTemplate The template for the output file. The template will be used to *
@@ -479,15 +469,6 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
    */
   public void export(CounterexampleInfo pCex, PathTemplate pOutputFileTemplate, int uniqueId)
       throws IOException {
-    for (YAMLWitnessVersion witnessVersion : witnessVersions) {
-      switch (witnessVersion) {
-        case V2 ->
-            exportWitnessV2(
-                pCex, pOutputFileTemplate.getPath(uniqueId, YAMLWitnessVersion.V2.toString()));
-        case V2d1 ->
-            exportWitnessV2d1(
-                pCex, pOutputFileTemplate.getPath(uniqueId, YAMLWitnessVersion.V2d1.toString()));
-      }
-    }
+    exportWitness(pCex, pOutputFileTemplate.getPath(uniqueId, YAMLWitnessVersion.V2.toString()));
   }
 }

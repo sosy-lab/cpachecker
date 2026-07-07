@@ -42,7 +42,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitnessV2;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitnessV2d1;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationYAMLWitnessExporter;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
@@ -71,7 +72,7 @@ public class TerminationToReachStatistics extends ARGStatistics implements Stati
   private ImmutableSet<Loop> nonterminatingLoops = null;
   private FormulaManagerView fmgr;
   private BooleanFormulaManagerView bfmgr;
-  private CounterexampleToWitness nonterminationWitnessExporter;
+  private CounterexampleToWitnessV2 nonterminationWitnessExporter;
 
   public TerminationToReachStatistics(
       Configuration pConfig, LogManager pLogger, CFA pCFA, ConfigurableProgramAnalysis pCPA)
@@ -92,7 +93,7 @@ public class TerminationToReachStatistics extends ARGStatistics implements Stati
                 .withAdditionalProperties(ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
             pLogger);
     nonterminationWitnessExporter =
-        new CounterexampleToWitness(
+        new CounterexampleToWitnessV2d1(
             pConfig,
             pCFA,
             Specification.alwaysSatisfied()

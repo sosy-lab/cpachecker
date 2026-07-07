@@ -71,7 +71,7 @@ import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.CounterexampleToSvLibWitnessExport;
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.WitnessExportUtils;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitnessV2;
 import org.xml.sax.SAXException;
 
 @Options(prefix = "counterexample.export", deprecatedPrefix = "cpa.arg.errorPath")
@@ -118,7 +118,7 @@ public class CEXExporter {
   private final CEXExportOptions options;
   private final LogManager logger;
   private final WitnessExporter witnessExporter;
-  private final CounterexampleToWitness cexToWitness;
+  private final CounterexampleToWitnessV2 cexToWitness;
   private final CounterexampleToSvLibWitnessExport cexToSvLibWitness;
   private final PathTemplate svLibWitnessOutputPath;
   private final ExtendedWitnessExporter extendedWitnessExporter;
@@ -162,7 +162,7 @@ public class CEXExporter {
       testExporter = new TestCaseExporter(pCFA, logger, config);
       faultExporter = new FaultLocalizationInfoExporter(config);
       if (options.getYamlWitnessPathTemplate() != null) {
-        cexToWitness = new CounterexampleToWitness(config, pCFA, pSpecification, pLogger);
+        cexToWitness = new CounterexampleToWitnessV2(config, pCFA, pSpecification, pLogger);
       } else {
         cexToWitness = null;
       }
