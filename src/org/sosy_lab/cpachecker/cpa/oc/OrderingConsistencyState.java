@@ -2,135 +2,126 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
 package org.sosy_lab.cpachecker.cpa.oc;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.function.Predicate;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public record OrderingConsistencyState(
-    Optional<Integer> pid, ImmutableMap<Integer, OrderingConsistencyThreadState> waitingThreads)
-    implements AbstractState, AbstractStateWithLocations, Graphable {
-  static OrderingConsistencyState empty() {
-    return new OrderingConsistencyState(Optional.empty(), ImmutableMap.of());
+/**
+ * One node of one thread instance's exploration tree. States are never merged or covered (every
+ * object is a distinct tree node), so object identity is the state identity and equals/hashCode are
+ * intentionally not overridden.
+ */
+public final class OrderingConsistencyState implements AbstractState, Targetable, Graphable {
+
+  private static final ImmutableSet<TargetInformation> TARGET_INFORMATION =
+      SimpleTargetInformation.singleton("error function called");
+
+  private final int instanceId;
+  private final LocationState locationState;
+  private final CallstackState callstackState;
+  private final PathFormula pathFormula;
+  private final BooleanFormula guard;
+  private final int lastEventId;
+  private final ImmutableMap<String, Integer> createCounts;
+  private final ImmutableMap<String, Integer> threadHandles;
+  private final ImmutableMap<CFANode, Integer> loopCounts;
+  private final boolean target;
+
+  OrderingConsistencyState(
+      int pInstanceId,
+      LocationState pLocationState,
+      CallstackState pCallstackState,
+      PathFormula pPathFormula,
+      BooleanFormula pGuard,
+      int pLastEventId,
+      ImmutableMap<String, Integer> pCreateCounts,
+      ImmutableMap<String, Integer> pThreadHandles,
+      ImmutableMap<CFANode, Integer> pLoopCounts,
+      boolean pTarget) {
+    instanceId = pInstanceId;
+    locationState = pLocationState;
+    callstackState = pCallstackState;
+    pathFormula = pPathFormula;
+    guard = pGuard;
+    lastEventId = pLastEventId;
+    createCounts = pCreateCounts;
+    threadHandles = pThreadHandles;
+    loopCounts = pLoopCounts;
+    target = pTarget;
   }
 
-  boolean canMerge(OrderingConsistencyState other) {
-    return Objects.equals(pid, other.pid) && waitingThreads.equals(other.waitingThreads);
+  int getInstanceId() {
+    return instanceId;
   }
 
-  Optional<Pair<Integer, OrderingConsistencyThreadState>> nextThreadToStep() {
-    final Predicate<OrderingConsistencyThreadState> hasNext =
-        state -> !state.pLocationState().getLocationNode().getAllLeavingEdges().isEmpty();
-
-    // if the current pid can continue, we keep it
-    if (pid.isPresent() && hasNext.test(waitingThreads.get(pid.get()))) {
-      return Optional.of(Pair.of(pid.orElseThrow(), waitingThreads.get(pid.get())));
-    }
-    // otherwise, we choose the first suitable candidate (doesn't matter which)
-    for (Entry<Integer, OrderingConsistencyThreadState> entry : waitingThreads.entrySet()) {
-      final int nextPid = entry.getKey();
-      final OrderingConsistencyThreadState threadState = entry.getValue();
-      if (hasNext.test(threadState)) {
-        return Optional.of(Pair.of(nextPid, threadState));
-      }
-    }
-    return Optional.empty();
+  LocationState getLocationState() {
+    return locationState;
   }
 
-  OrderingConsistencyState addNewThread(
-      LocationState pInitialLoc,
-      CallstackState pInitialStack,
-      PathFormula pEmptyFormula,
-      Optional<MemoryEvent> pHbBeforeEvent) {
-    final int newPid = waitingThreads.size();
-    final List<MemoryEvent> eventList =
-        pHbBeforeEvent
-            .map(pMemoryEvent -> ImmutableList.of(pMemoryEvent))
-            .orElse(ImmutableList.of());
-    final ImmutableMap<Integer, OrderingConsistencyThreadState> newWaiting =
-        ImmutableMap.<Integer, OrderingConsistencyThreadState>builder()
-            .putAll(waitingThreads)
-            .put(
-                newPid,
-                new OrderingConsistencyThreadState(
-                    pInitialLoc, pInitialStack, pEmptyFormula, eventList))
-            .buildKeepingLast();
-    return new OrderingConsistencyState(pid, newWaiting);
+  CallstackState getCallstackState() {
+    return callstackState;
   }
 
-  public OrderingConsistencyState stepThread(
-      int pPid,
-      LocationState pNextLoc,
-      CallstackState pNextStack,
-      PathFormula pNextFormula,
-      List<MemoryEvent> pAccesses) {
-    assert waitingThreads.containsKey(pPid) : "waitingThreads must contain pid to step " + pPid;
-    boolean removeCurrent = pid.map(it -> it != pPid).orElse(false);
-    final Builder<Integer, OrderingConsistencyThreadState> newWaiting = ImmutableMap.builder();
-    for (Entry<Integer, OrderingConsistencyThreadState> entry : waitingThreads.entrySet()) {
-      if (!removeCurrent || !Objects.equals(entry.getKey(), pid.get())) {
-        newWaiting.put(entry.getKey(), entry.getValue());
-      }
-    }
-    newWaiting.put(
-        pPid, new OrderingConsistencyThreadState(pNextLoc, pNextStack, pNextFormula, pAccesses));
-    return new OrderingConsistencyState(Optional.of(pPid), newWaiting.buildKeepingLast());
+  PathFormula getPathFormula() {
+    return pathFormula;
   }
 
-  @Override
-  public Iterable<CFANode> getLocationNodes() {
-    return pid.map(pid -> waitingThreads.get(pid).pLocationState().getLocationNodes())
-        .orElseGet(ImmutableList::of);
+  BooleanFormula getGuard() {
+    return guard;
   }
 
-  @Override
-  public Iterable<CFAEdge> getOutgoingEdges() {
-    return nextThreadToStep()
-        .map(
-            pair -> {
-              final var ret = ImmutableList.<CFAEdge>builder();
-              for (CFAEdge outgoingEdge :
-                  pair.getSecondNotNull().pLocationState().getOutgoingEdges()) {
-                ret.add(EdgeCloner.clone(outgoingEdge, pair.getFirstNotNull(), this));
-              }
-              return ret.build();
-            })
-        .orElseGet(ImmutableList::of);
+  int getLastEventId() {
+    return lastEventId;
+  }
+
+  ImmutableMap<String, Integer> getCreateCounts() {
+    return createCounts;
+  }
+
+  ImmutableMap<String, Integer> getThreadHandles() {
+    return threadHandles;
+  }
+
+  ImmutableMap<CFANode, Integer> getLoopCounts() {
+    return loopCounts;
   }
 
   @Override
-  public Iterable<CFAEdge> getIncomingEdges() {
-    // TODO: how to parameterize EdgeTools::clone() here?
-    return pid.map(pid -> waitingThreads.get(pid).pLocationState().getIncomingEdges())
-        .orElseGet(ImmutableList::of);
+  public boolean isTarget() {
+    return target;
+  }
+
+  @Override
+  public ImmutableSet<TargetInformation> getTargetInformation() {
+    return TARGET_INFORMATION;
   }
 
   @Override
   public String toDOTLabel() {
-    return "pid: %s\\nwaiting threads: %s".formatted(pid, waitingThreads.entrySet());
+    return "T" + instanceId + "@" + locationState.getLocationNode() + (target ? " TARGET" : "");
   }
 
   @Override
   public boolean shouldBeHighlighted() {
-    return false;
+    return target;
+  }
+
+  @Override
+  public String toString() {
+    return toDOTLabel();
   }
 }

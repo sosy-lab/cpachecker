@@ -8,10 +8,13 @@
 
 package org.sosy_lab.cpachecker.cpa.por;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
@@ -52,15 +55,28 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 
 /**
- * AST cloner for POR that renames variables using only the thread ID prefix (never fresh CSSA
- * indices). All variables — global and local — are renamed to {@code T{threadId}_{qualifiedName}}.
+ * AST cloner for POR. Locals and parameters are always renamed to {@code
+ * T{threadId}_{qualifiedName}}. Globals keep their original name unless a {@link
+ * GlobalAccessRenamer} is supplied, in which case every single access to a global variable is
+ * instead renamed to a fresh, access-specific name ("concurrent SSA"); with no renamer, cloning is
+ * bit-identical to the plain thread-ID renaming.
  */
 class PorAstCloner {
 
   private final int threadId;
+  private final @Nullable GlobalAccessRenamer globalRenamer;
+
+  /** Whether the AST currently being cloned is on the left-hand side of an assignment/write. */
+  private boolean isLhs = false;
 
   PorAstCloner(int pThreadId) {
     this.threadId = pThreadId;
+    this.globalRenamer = null;
+  }
+
+  PorAstCloner(int pThreadId, GlobalAccessRenamer pGlobalRenamer) {
+    this.threadId = pThreadId;
+    this.globalRenamer = checkNotNull(pGlobalRenamer);
   }
 
   @SuppressWarnings("unchecked")
@@ -70,12 +86,24 @@ class PorAstCloner {
 
   @SuppressWarnings("unchecked")
   <T extends AAstNode> T cloneAstRightSide(T ast) {
-    return (T) cloneAstDirect(ast);
+    boolean oldIsLhs = isLhs;
+    isLhs = false;
+    try {
+      return (T) cloneAstDirect(ast);
+    } finally {
+      isLhs = oldIsLhs;
+    }
   }
 
   @SuppressWarnings("unchecked")
   <T extends AAstNode> T cloneAstLeftSide(T ast) {
-    return (T) cloneAstDirect(ast);
+    boolean oldIsLhs = isLhs;
+    isLhs = true;
+    try {
+      return (T) cloneAstDirect(ast);
+    } finally {
+      isLhs = oldIsLhs;
+    }
   }
 
   private <T extends AAstNode> List<T> cloneAstList(final List<T> astList) {
@@ -123,7 +151,9 @@ class PorAstCloner {
     } else if (ast instanceof CSimpleDeclaration) {
 
       if (ast instanceof CVariableDeclaration decl) {
-        CVariableDeclaration newDecl = (CVariableDeclaration) createNewDeclaration(decl);
+        // Declaring a variable is always an initializing write, regardless of the ambient isLhs
+        // (a caller may clone the declaration via the plain cloneAst entry point).
+        CVariableDeclaration newDecl = (CVariableDeclaration) createNewDeclaration(decl, true);
         if (decl == newDecl) {
           return decl;
         }
@@ -136,7 +166,11 @@ class PorAstCloner {
           l.add(cloneAstRightSide(param));
         }
         return new CFunctionDeclaration(
-            loc, cloneFunctionType(decl.getType()), decl.getName(), decl.getOrigName(), l,
+            loc,
+            cloneFunctionType(decl.getType()),
+            decl.getName(),
+            decl.getOrigName(),
+            l,
             decl.getAttributes());
 
       } else if (ast instanceof CComplexTypeDeclaration decl) {
@@ -179,11 +213,22 @@ class PorAstCloner {
       }
 
     } else if (ast instanceof CReturnStatement ret) {
+      // Clone the assignment form only once and reuse its right-hand side as the return value:
+      // both refer to the same expression, and a stateful renamer must see each access only once.
+      Optional<CAssignment> returnAssignment = ret.asAssignment();
+      if (returnAssignment.isPresent()
+          && returnAssignment.orElseThrow().getRightHandSide() instanceof CExpression) {
+        CAssignment clonedAssignment = cloneAst(returnAssignment.orElseThrow());
+        Optional<CExpression> returnExp =
+            ret.getReturnValue().isPresent()
+                ? Optional.of((CExpression) clonedAssignment.getRightHandSide())
+                : Optional.empty();
+        return new CReturnStatement(loc, returnExp, Optional.of(clonedAssignment));
+      }
       Optional<CExpression> returnExp = ret.getReturnValue();
       if (returnExp.isPresent()) {
         returnExp = Optional.of(cloneAstRightSide(returnExp.orElseThrow()));
       }
-      Optional<CAssignment> returnAssignment = ret.asAssignment();
       if (returnAssignment.isPresent()) {
         returnAssignment = Optional.of(cloneAst(returnAssignment.orElseThrow()));
       }
@@ -222,12 +267,35 @@ class PorAstCloner {
   }
 
   private CSimpleDeclaration createNewDeclaration(CSimpleDeclaration cDecl) {
+    return createNewDeclaration(cDecl, isLhs);
+  }
+
+  /**
+   * Creates the renamed declaration to use for one access to {@code cDecl}. Locals and parameters
+   * always get the thread-ID prefix. Globals keep their original name unless {@link #globalRenamer}
+   * is set, in which case {@code pIsWrite} is forwarded to it so every single access gets its own
+   * fresh name.
+   */
+  private CSimpleDeclaration createNewDeclaration(CSimpleDeclaration cDecl, boolean pIsWrite) {
     FileLocation loc = cDecl.getFileLocation();
-    if (cDecl instanceof CVariableDeclaration decl && !decl.isGlobal()) {
+    if (cDecl instanceof CVariableDeclaration decl && decl.isGlobal()) {
+      if (globalRenamer == null) {
+        return decl;
+      }
+      return new CVariableDeclaration(
+          loc,
+          true,
+          decl.getCStorageClass(),
+          decl.getType(),
+          decl.getName(),
+          decl.getOrigName(),
+          globalRenamer.freshName(decl, pIsWrite),
+          null);
+    } else if (cDecl instanceof CVariableDeclaration decl) {
       CVariableDeclaration newDecl =
           new CVariableDeclaration(
               loc,
-              decl.isGlobal(),
+              false,
               decl.getCStorageClass(),
               decl.getType(),
               decl.getName(),
@@ -236,7 +304,8 @@ class PorAstCloner {
               null);
       return newDecl;
     } else if (cDecl instanceof CParameterDeclaration param) {
-      final CParameterDeclaration newParam = new CParameterDeclaration(loc, param.getType(), param.getName());
+      final CParameterDeclaration newParam =
+          new CParameterDeclaration(loc, param.getType(), param.getName());
       newParam.setQualifiedName(changeQualifiedName(param));
       return newParam;
     } else {
@@ -245,8 +314,8 @@ class PorAstCloner {
   }
 
   /**
-   * All variables (global and local) are renamed with a thread-ID prefix only. No fresh CSSA
-   * indices are used.
+   * Renames a local variable or parameter with a thread-ID prefix. Never called for globals: those
+   * are either left unchanged or renamed via {@link #globalRenamer} instead.
    */
   private String changeQualifiedName(CSimpleDeclaration decl) {
     return "T%d_%s".formatted(threadId, decl.getQualifiedName());
@@ -278,6 +347,12 @@ class PorAstCloner {
 
     @Override
     public CExpression visit(CUnaryExpression exp) {
+      if (globalRenamer != null && exp.getOperator() == CUnaryExpression.UnaryOperator.AMPER) {
+        CExpression replacement = globalRenamer.replaceAddressOf(exp);
+        if (replacement != null) {
+          return replacement;
+        }
+      }
       return new CUnaryExpression(
           exp.getFileLocation(),
           exp.getExpressionType(),
@@ -287,11 +362,21 @@ class PorAstCloner {
 
     @Override
     public CExpression visit(CArraySubscriptExpression exp) {
-      return new CArraySubscriptExpression(
-          exp.getFileLocation(),
-          exp.getExpressionType(),
-          exp.getArrayExpression().accept(this),
-          exp.getSubscriptExpression().accept(this));
+      // the deref direction is the ambient access direction; the operands are always reads
+      boolean accessIsWrite = isLhs;
+      CArraySubscriptExpression rebuilt =
+          new CArraySubscriptExpression(
+              exp.getFileLocation(),
+              exp.getExpressionType(),
+              cloneAstRightSide(exp.getArrayExpression()),
+              cloneAstRightSide(exp.getSubscriptExpression()));
+      if (globalRenamer != null) {
+        CIdExpression replacement = globalRenamer.replaceAliasedAccess(rebuilt, accessIsWrite);
+        if (replacement != null) {
+          return replacement;
+        }
+      }
+      return rebuilt;
     }
 
     @Override
@@ -323,8 +408,18 @@ class PorAstCloner {
 
     @Override
     public CExpression visit(CPointerExpression exp) {
-      return new CPointerExpression(
-          exp.getFileLocation(), exp.getExpressionType(), exp.getOperand().accept(this));
+      // the deref direction is the ambient access direction; the pointer itself is always read
+      boolean accessIsWrite = isLhs;
+      CPointerExpression rebuilt =
+          new CPointerExpression(
+              exp.getFileLocation(), exp.getExpressionType(), cloneAstRightSide(exp.getOperand()));
+      if (globalRenamer != null) {
+        CIdExpression replacement = globalRenamer.replaceAliasedAccess(rebuilt, accessIsWrite);
+        if (replacement != null) {
+          return replacement;
+        }
+      }
+      return rebuilt;
     }
 
     @Override

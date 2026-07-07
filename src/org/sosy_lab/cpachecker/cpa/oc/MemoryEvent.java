@@ -2,23 +2,63 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
 package org.sosy_lab.cpachecker.cpa.oc;
 
-import java.util.Optional;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
 
+/**
+ * One event of the ordering-consistency exploration. Events of one thread instance form a tree via
+ * {@link #poParentId} (program order along each explored path; sibling branches have mutually
+ * exclusive guards).
+ *
+ * @param id globally unique event id
+ * @param instanceId the thread instance this event belongs to
+ * @param kind the kind of the event
+ * @param poParentId id of the preceding event of the same instance on the path, or {@link
+ *     #NO_EVENT} for the first event(s) of an instance
+ * @param pathGuard guard of the event within its own instance's tree (the creation guard of the
+ *     instance is not included; it is added during encoding)
+ * @param memoryLocation accessed global variable, for READ/WRITE events
+ * @param cssaName the fresh qualified name minted for this access, for READ/WRITE events
+ * @param variable the instantiated solver variable holding the read/written value, for READ/WRITE
+ *     events
+ * @param mutexId identifier of the mutex (or {@link #ATOMIC_BLOCK_MUTEX}), for LOCK/UNLOCK
+ * @param otherInstanceId the created/joined thread instance, for CREATE/JOIN events, else {@link
+ *     #NO_INSTANCE}
+ * @param regionId alias region (canonical accessed type) for READ/WRITE events of address-taken
+ *     variables and pointer dereferences; null for accesses that can never be aliased
+ * @param addressTerm the accessed address in the solver, for events with a {@link #regionId}: two
+ *     region events access the same cell iff their address terms are equal
+ */
 public record MemoryEvent(
     int id,
-    MemoryLocation memoryLocation,
-    String cssaQualifiedName,
-    Optional<PathFormula> guard,
-    EventType eventType) {
-  public MemoryEvent withGuard(PathFormula pf) {
-    return new MemoryEvent(id, memoryLocation, cssaQualifiedName, Optional.of(pf), eventType);
+    int instanceId,
+    EventKind kind,
+    int poParentId,
+    BooleanFormula pathGuard,
+    @Nullable MemoryLocation memoryLocation,
+    @Nullable String cssaName,
+    @Nullable Formula variable,
+    @Nullable String mutexId,
+    int otherInstanceId,
+    @Nullable String regionId,
+    @Nullable Formula addressTerm) {
+
+  public static final int NO_EVENT = -1;
+  public static final int NO_INSTANCE = -1;
+
+  /** Pseudo-mutex representing {@code __VERIFIER_atomic_begin/end} blocks. */
+  public static final String ATOMIC_BLOCK_MUTEX = "__VERIFIER_atomic__";
+
+  /** Whether this access goes through the aliasing regime (address-equality read-from). */
+  public boolean isRegionAccess() {
+    return regionId != null;
   }
 }

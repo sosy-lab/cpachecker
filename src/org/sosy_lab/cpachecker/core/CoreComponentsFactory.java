@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MporPreprocessingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVReachedSet;
+import org.sosy_lab.cpachecker.core.algorithm.oc.OrderingConsistencyAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ConfigReadingProofCheckAlgorithm;
@@ -164,6 +165,14 @@ public class CoreComponentsFactory {
           "use a BMC like algorithm that checks for satisfiability "
               + "after the analysis has finished, works only with PredicateCPA")
   private boolean useBMC = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.OC",
+      description =
+          "use the ordering-consistency algorithm for concurrent programs, "
+              + "works only with the OrderingConsistencyCPA")
+  private boolean useOC = false;
 
   @Option(
       secure = true,
@@ -717,6 +726,11 @@ public class CoreComponentsFactory {
                 cfa,
                 specification,
                 aggregatedReachedSets);
+      }
+
+      if (useOC) {
+        algorithm =
+            new OrderingConsistencyAlgorithm(algorithm, cpa, config, logger, shutdownNotifier);
       }
 
       if (useIMC) {
