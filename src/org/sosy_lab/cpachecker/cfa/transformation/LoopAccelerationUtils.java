@@ -17,21 +17,23 @@ import org.matheclipse.core.eval.ExprEvaluator;
 import org.matheclipse.core.expression.F;
 import org.matheclipse.core.interfaces.IAST;
 import org.matheclipse.core.interfaces.IExpr;
-import org.matheclipse.core.interfaces.IExpr.COMPARE_TERNARY;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 
 public class LoopAccelerationUtils {
 
+  /**
+   * Calculate the closed form A^n = A * x + b of an affine loop.
+   * @param A square iteration matrix
+   * @param x array of variable names
+   * @param b array of integers
+   * @return closed form as a matrix of RowSummands
+   */
   public static Optional<ArrayList<ArrayList<RowSummand>>> closedFormAffine(Matrix A, int[] b, String[] x) {
     assert (A.getRowNum() == A.getColumnNum()) : "Error: A is not a square matrix!";
     assert (A.getRowNum() == b.length);
@@ -42,7 +44,7 @@ public class LoopAccelerationUtils {
       IExpr n = util.eval("n");
       int d = A.getRowNum();
 
-      // 0. make A * x + b homogenous
+      // make A * x + b homogenous
       IExpr x_fresh = util.eval("x_fresh");
       int[][] Ahom = new int[d+1][d+1];
       for(int i = 0; i < d; i++){
@@ -84,10 +86,10 @@ public class LoopAccelerationUtils {
   }
 
   /**
-   *
-   * @param A homogenous iteration matrix
+   * Calculate the closed form A^n = A * x of a linear loop.
+   * @param A square iteration matrix
    * @param x array of variable names
-   * @return
+   * @return closed form as a matrix of RowSummands
    */
   public static Optional<ArrayList<ArrayList<RowSummand>>> closedFormLinear(Matrix A, String[] x) {
     assert (A.getRowNum() == A.getColumnNum()) : "Error: A is not a square matrix!";
@@ -210,7 +212,6 @@ public class LoopAccelerationUtils {
         for (int j = 0; j < d; j++) {
           List<Summand> acc = new ArrayList<>();
           for (int k = 0; k < d; k++) {
-            //if (Pinv.getElement(k,j) != 0) {
             if (Pinv.getEntry(k,j) != 0) {
               List<Summand> JnSummand = M[i][k];
               for (Summand summand : JnSummand) {
@@ -281,6 +282,11 @@ public class LoopAccelerationUtils {
       IExpr lambda
   ) {}
 
+  /**
+   * Representation of a single coefficient, variable pair.
+   * @param coeff int
+   * @param variable CIdExpression
+   */
   public record Coefficient (
       int coeff,
       CIdExpression variable
@@ -332,6 +338,11 @@ public class LoopAccelerationUtils {
     return coefficients;
   }
 
+  /**
+   * Create the CRightHandSide for a list of Coefficients.
+   * @param coefficients list of coefficient, variable pairs
+   * @return a CRightHandSide expression for an assignment statement
+   */
   public static CExpression expressionFromCoefficients(List<Coefficient> coefficients) {
     int num = coefficients.size();
     if (num == 1) {
