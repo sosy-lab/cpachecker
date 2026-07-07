@@ -70,7 +70,7 @@ import org.sosy_lab.cpachecker.util.test.TestUtils;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class AcslToFomulaVisitorsTest {
+public class AcslToFormulaVisitorsTest {
 
   final LogManager logger = LogManager.createTestLogManager();
   private Solver smtSolver;
