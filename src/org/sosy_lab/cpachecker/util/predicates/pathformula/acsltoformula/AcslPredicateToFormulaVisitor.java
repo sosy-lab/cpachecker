@@ -287,10 +287,6 @@ public class AcslPredicateToFormulaVisitor
       renamingMap.put(declaration, renamed);
       newBinders.add(renamed);
     }
-    AcslRenamingVisitor renamingVisitor = new AcslRenamingVisitor(ImmutableMap.copyOf(renamingMap));
-
-    AcslPredicate renamedBody = pForallPredicate.getPredicate().accept(renamingVisitor);
-    BooleanFormula bodyF = renamedBody.accept(this);
 
     List<Formula> smtVars = new ArrayList<>();
 
@@ -298,11 +294,17 @@ public class AcslPredicateToFormulaVisitor
       smtVars.add(createSmtVarFromBinder(decl));
     }
 
+    AcslRenamingVisitor renamingVisitor = new AcslRenamingVisitor(ImmutableMap.copyOf(renamingMap));
+
+    AcslPredicate renamedBody = pForallPredicate.getPredicate().accept(renamingVisitor);
+    BooleanFormula bodyF = renamedBody.accept(this);
+
     return new QuantifierData(smtVars, bodyF);
   }
 
   private Formula createSmtVarFromBinder(AcslParameterDeclaration pDecl) {
     String varName = pDecl.getName();
-    return fmgr.makeVariable(typeHelper.acslTypeToFormulaType(pDecl.getType()), varName);
+    // A quantifier does not need an SSA index, just use 1 for consistency
+    return fmgr.makeVariable(typeHelper.acslTypeToFormulaType(pDecl.getType()), varName, 1);
   }
 }
