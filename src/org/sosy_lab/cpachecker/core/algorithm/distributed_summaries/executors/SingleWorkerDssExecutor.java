@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 import org.sosy_lab.common.JSON;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -58,6 +59,7 @@ public class SingleWorkerDssExecutor implements DssExecutor {
   private final Specification specification;
   private final DssAnalysisOptions options;
   private final DssMessageFactory messageFactory;
+  private final ShutdownManager shutdownManager;
 
   @FileOption(Type.OUTPUT_DIRECTORY)
   @Option(description = "Where to write responses", secure = true)
@@ -94,12 +96,16 @@ public class SingleWorkerDssExecutor implements DssExecutor {
   @Option(description = "Whether to spawn a worker for only one block id", secure = true)
   private String spawnWorkerForId = "";
 
-  public SingleWorkerDssExecutor(Configuration pConfiguration, Specification pSpecification)
+  public SingleWorkerDssExecutor(
+      Configuration pConfiguration,
+      Specification pSpecification,
+      ShutdownManager pShutdownManager)
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
     options = new DssAnalysisOptions(pConfiguration);
     messageFactory = new DssMessageFactory(options);
     specification = pSpecification;
+    shutdownManager = pShutdownManager;
     if (Stream.concat(knownConditions.stream(), newConditions.stream())
         .anyMatch(f -> !Files.isRegularFile(f))) {
       throw new InvalidConfigurationException(
@@ -172,7 +178,7 @@ public class SingleWorkerDssExecutor implements DssExecutor {
                     new IllegalArgumentException(
                         "No block with id '" + spawnWorkerForId + "' found in the block graph."));
     try (DssActors actors =
-        new DssWorkerBuilder(cfa, specification, () -> new DssDefaultQueue(), messageFactory, workerStatistics)
+        new DssWorkerBuilder(cfa, specification, () -> new DssDefaultQueue(), messageFactory, workerStatistics, shutdownManager)
             .addAnalysisWorker(blockNode, options)
             .build()) {
 

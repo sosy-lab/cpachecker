@@ -45,18 +45,21 @@ public class DssWorkerBuilder {
   private final ImmutableMap.Builder<CommunicationId, WorkerGenerator> workerGenerators;
   private final Supplier<BlockingQueue<DssMessage>> queueFactory;
   private final DssWorkerStatistics workerStatistics;
+  private final ShutdownManager shutdownManager;
 
   public DssWorkerBuilder(
       CFA pCFA,
       Specification pSpecification,
       Supplier<BlockingQueue<DssMessage>> pQueueFactory,
       DssMessageFactory pMessageFactory,
-      DssWorkerStatistics pWorkerStatistics) {
+      DssWorkerStatistics pWorkerStatistics,
+      ShutdownManager pShutdownManager) {
     cfa = pCFA;
     specification = pSpecification;
     queueFactory = pQueueFactory;
     messageFactory = pMessageFactory;
     workerStatistics = pWorkerStatistics;
+    shutdownManager = pShutdownManager;
     workerGenerators = ImmutableMap.builder();
   }
 
@@ -102,7 +105,7 @@ public class DssWorkerBuilder {
                 cfa,
                 specification,
                 messageFactory,
-                ShutdownManager.create(),
+                ShutdownManager.createWithParent(shutdownManager.getNotifier()),
                 workerStatistics,
                 logger));
     return this;

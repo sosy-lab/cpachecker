@@ -15,6 +15,7 @@ import com.google.common.util.concurrent.Uninterruptibles;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -58,19 +59,24 @@ public class MultithreadingDssExecutor implements DssExecutor {
   private final DssMessageFactory messageFactory;
   private final DssAnalysisOptions options;
   private final Specification specification;
+  private final ShutdownManager shutdownManager;
 
-  public MultithreadingDssExecutor(Configuration pConfiguration, Specification pSpecification)
+  public MultithreadingDssExecutor(
+      Configuration pConfiguration,
+      Specification pSpecification,
+      ShutdownManager pShutdownManager)
       throws InvalidConfigurationException {
     specification = pSpecification;
     options = new DssAnalysisOptions(pConfiguration);
     messageFactory = new DssMessageFactory(options);
+    shutdownManager = pShutdownManager;
   }
 
   private DssActors createDssActors(CFA cfa, BlockGraph blockGraph, DssWorkerStatistics workerStatistics)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     ImmutableSet<BlockNode> blocks = blockGraph.getNodes();
     DssWorkerBuilder builder =
-        new DssWorkerBuilder(cfa, specification, () -> new DssDefaultQueue(), messageFactory, workerStatistics);
+        new DssWorkerBuilder(cfa, specification, () -> new DssDefaultQueue(), messageFactory, workerStatistics, shutdownManager);
     for (BlockNode distinctNode : blocks) {
       builder = builder.addAnalysisWorker(distinctNode, options);
     }
@@ -114,8 +120,8 @@ public class MultithreadingDssExecutor implements DssExecutor {
         // Blocks until RESULT or EXCEPTION arrives
         result = observer.observe();
       } finally {
-        threads.forEach(Thread::interrupt);
         for (Thread t : threads) {
+          // We don't have to worry about interruptions during cleanup
           Uninterruptibles.joinUninterruptibly(t);
         }
       }

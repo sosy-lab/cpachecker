@@ -182,7 +182,6 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
       }
       case EXCEPTION, RESULT -> {
         shutdown = true;
-        close();
         yield ImmutableSet.of();
       }
     };
@@ -232,8 +231,9 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
           }
         }
         case EXCEPTION, RESULT -> {
+          // the worker will also broadcast to itself and react
+          // appropriately in processMessage
           broadcaster.broadcastToAll(message);
-          close();
         }
       }
     }
@@ -253,7 +253,6 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
       logger.logException(Level.SEVERE, e, "Worker stopped working due to an error...");
       broadcastOrLogException(
           ImmutableSet.of(messageFactory.createDssExceptionMessage(getBlockId(), e)));
-      close();
       shutdown = true;
     }
   }

@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -46,19 +47,24 @@ public class SequentialDssExecutor implements DssExecutor {
   private final DssMessageFactory messageFactory;
   private final DssAnalysisOptions options;
   private final Specification specification;
+  private final ShutdownManager shutdownManager;
 
-  public SequentialDssExecutor(Configuration pConfiguration, Specification pSpecification)
+  public SequentialDssExecutor(
+      Configuration pConfiguration,
+      Specification pSpecification,
+      ShutdownManager pShutdownManager)
       throws InvalidConfigurationException {
     specification = pSpecification;
     options = new DssAnalysisOptions(pConfiguration);
     messageFactory = new DssMessageFactory(options);
+    shutdownManager = pShutdownManager;
   }
 
   private DssActors createDssActors(CFA cfa, BlockGraph blockGraph, DssWorkerStatistics workerStatistics)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     ImmutableSet<BlockNode> blocks = blockGraph.getNodes();
     DssWorkerBuilder builder =
-        new DssWorkerBuilder(cfa, specification, () -> new DssDefaultQueue(), messageFactory, workerStatistics);
+        new DssWorkerBuilder(cfa, specification, () -> new DssDefaultQueue(), messageFactory, workerStatistics, shutdownManager);
     for (BlockNode distinctNode : blocks) {
       builder = builder.addAnalysisWorker(distinctNode, options);
     }
