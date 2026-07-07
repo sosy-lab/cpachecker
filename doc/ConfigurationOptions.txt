@@ -5095,7 +5095,7 @@ mpv.propertySeparator = FILE
 oc.dumpViolationModel = false
 
 # how the ordering constraints are decided
-oc.encoding = REFINEMENT
+oc.encoding = CLOCKS
   enum:     [REFINEMENT, CLOCKS]
 
 # give up when the loop bound exceeds this value; a negative value deepens

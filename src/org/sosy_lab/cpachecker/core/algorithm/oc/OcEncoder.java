@@ -107,6 +107,22 @@ final class OcEncoder {
     return events;
   }
 
+  /**
+   * The real program-order DAG edges (predecessor to event), as opposed to {@link #getPoEdges()}
+   * which are consecutive pairs of an arbitrary linearization and therefore also connect
+   * mutually-exclusive branch events. The consistency checker must use these so it never treats two
+   * events that are never co-enabled as ordered.
+   */
+  List<int[]> getProgramOrderDagEdges() {
+    List<int[]> edges = new ArrayList<>();
+    for (MemoryEvent event : events) {
+      for (int predecessorId : registry.getPoPredecessors().get(event.id())) {
+        edges.add(new int[] {predecessorId, event.id()});
+      }
+    }
+    return edges;
+  }
+
   List<int[]> getPoEdges() {
     return poEdges;
   }

@@ -73,12 +73,26 @@ final class ConsistencyChecker {
       enabled[event.id()] = isTrue(pModel.evaluate(encoder.getFullGuard(event)));
     }
 
-    for (int[] edge : encoder.getPoEdges()) {
-      addEdge(new Edge(edge[0], edge[1], null));
+    // Only enabled events are part of this model's execution; edges touching a disabled event are
+    // not real happens-before and must not enter the graph. Every edge's reason must fully imply
+    // its presence (including the enabled-ness of its endpoints), so the conflict clause it feeds
+    // excludes only models that genuinely contain the cycle.
+    for (int[] edge : encoder.getProgramOrderDagEdges()) {
+      if (enabled[edge[0]] && enabled[edge[1]]) {
+        addEdge(new Edge(edge[0], edge[1], guardsOf(edge[0], edge[1])));
+      }
     }
     // create/join ordering holds only when the creating/joining event is enabled
     for (OcEncoder.CrossPoEdge cross : encoder.getCrossPoEdges()) {
-      addEdge(new Edge(cross.from(), cross.to(), encoder.getFullGuard(cross.guardEventId())));
+      if (enabled[cross.from()] && enabled[cross.to()]) {
+        addEdge(
+            new Edge(
+                cross.from(),
+                cross.to(),
+                bfmgr.and(
+                    encoder.getFullGuard(cross.guardEventId()),
+                    guardsOf(cross.from(), cross.to()))));
+      }
     }
     List<RfPair> activeRf = new ArrayList<>();
     for (RfPair rf : encoder.getRfPairs()) {
@@ -155,6 +169,11 @@ final class ConsistencyChecker {
       }
     }
     return new ArrayList<>(conflicts);
+  }
+
+  /** The presence condition of a program-order edge: both of its endpoints are enabled. */
+  private BooleanFormula guardsOf(int pFrom, int pTo) {
+    return bfmgr.and(encoder.getFullGuard(pFrom), encoder.getFullGuard(pTo));
   }
 
   private void addEdge(Edge pEdge) {
