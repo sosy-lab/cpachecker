@@ -70,7 +70,8 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
   private final AcslTypeHelper typeHelper;
   private final PointerTargetSetBuilder
       ptsb; // needed for CRightHandSideVisitor to convert AcslCExpressions
-  private final PointerTargetSet originalPts; // copy to ensure we do not accidentally modify the original pts
+  private final PointerTargetSet
+      originalPts; // copy to ensure we do not accidentally modify the original pts
 
   public AcslTermToFormulaVisitor(
       FormulaManagerView pFmgr,
@@ -281,7 +282,8 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
   public Formula visit(AcslCExpression pAcslCExpression) {
     try {
       Formula f = cExpressionToFormula(pAcslCExpression.getCExpression(), ptsb);
-      Verify.verify(ptsb.build().equals(originalPts)); // make sure we did not modify the original pts
+      Verify.verify(
+          ptsb.build().equals(originalPts)); // make sure we did not modify the original pts
       return f;
     } catch (UnrecognizedCodeException ex) {
       throw new RuntimeException(ex);

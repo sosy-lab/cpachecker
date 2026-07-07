@@ -373,8 +373,7 @@ public class AcslParserLogicalDefinitionsTest {
   @Test
   public void parseFibLogicalFunctionDeclaration() throws AcslParseException {
     AcslParameterDeclaration inputValue =
-        new AcslParameterDeclaration(
-            FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i", "Fib");
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i", "Fib");
     AcslFunctionDeclaration fibDeclaration =
         new AcslFunctionDeclaration(
             FileLocation.DUMMY,

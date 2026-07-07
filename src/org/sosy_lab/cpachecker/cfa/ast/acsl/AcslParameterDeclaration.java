@@ -20,8 +20,7 @@ public final class AcslParameterDeclaration extends AParameterDeclaration
   @Serial private static final long serialVersionUID = 145675929875456789L;
   private String qualifiedName;
 
-  public AcslParameterDeclaration(
-      FileLocation pFileLocation, AcslType pType, String pName) {
+  public AcslParameterDeclaration(FileLocation pFileLocation, AcslType pType, String pName) {
     super(pFileLocation, pType, pName);
     checkNotNull(pFileLocation);
     checkNotNull(pType);
