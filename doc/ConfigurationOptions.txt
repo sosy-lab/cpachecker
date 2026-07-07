@@ -4665,7 +4665,7 @@ distributedSummaries.logging.blockCFAFile = "block_analysis/blocks.json"
 # output file for visualizing message exchange
 distributedSummaries.logging.reportFiles = "block_analysis/messages"
 
-# Print per-block statistics in addition to overall statistics.
+# Print per-block statistics in addition to aggregate block statistics.
 distributedSummaries.printBlockLevelStats = false
 
 # Whether to reset the precision for each run of the analysis or to keep the

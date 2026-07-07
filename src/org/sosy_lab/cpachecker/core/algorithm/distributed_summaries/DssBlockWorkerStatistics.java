@@ -92,6 +92,29 @@ public class DssBlockWorkerStatistics implements Statistics {
     return dcpaStatistics;
   }
 
+  public long getValue(StatisticsKey key) {
+    return switch (key) {
+      case SERIALIZATION_COUNT ->
+          dcpaStatistics != null ? dcpaStatistics.getSerializationCount().getUpdateCount() : 0;
+      case DESERIALIZATION_COUNT ->
+          dcpaStatistics != null ? dcpaStatistics.getDeserializationCount().getUpdateCount() : 0;
+      case PROCEED_COUNT ->
+          dcpaStatistics != null ? dcpaStatistics.getProceedCount().getUpdateCount() : 0;
+      case SERIALIZATION_TIME ->
+          dcpaStatistics != null ? dcpaStatistics.getSerializationTime().nanos() : 0;
+      case DESERIALIZATION_TIME ->
+          dcpaStatistics != null ? dcpaStatistics.getDeserializationTime().nanos() : 0;
+      case PROCEED_TIME ->
+          dcpaStatistics != null ? dcpaStatistics.getProceedTime().nanos() : 0;
+      case ANALYZE_PRECONDITION_TIME -> analyzePreconditionTime.nanos();
+      case STORE_PRECONDITION_TIME -> storePreconditionTime.nanos();
+      case ANALYZE_VIOLATION_CONDITION_TIME -> analyzeViolationConditionTime.nanos();
+      case STORE_VIOLATION_CONDITION_TIME -> storeViolationConditionTime.nanos();
+      case MESSAGES_SENT -> messagesSent.getUpdateCount();
+      case MESSAGES_RECEIVED -> messagesReceived.getUpdateCount();
+    };
+  }
+
   @Override
   public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
     StatisticsWriter writer =
