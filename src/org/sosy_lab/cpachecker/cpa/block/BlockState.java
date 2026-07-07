@@ -75,7 +75,6 @@ public class BlockState
     history = ImmutableList.copyOf(pHistory);
     witness = pWitness;
     witnessCheckPathState = Optional.ofNullable(pWitnessCheckPathState);
-    timestamp = 0;
   }
 
   public BlockState(
