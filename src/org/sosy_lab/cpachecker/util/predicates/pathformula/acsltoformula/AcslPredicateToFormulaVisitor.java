@@ -62,7 +62,7 @@ public class AcslPredicateToFormulaVisitor
   private final SSAMapBuilder currentSsa;
 
   private final MachineModel machineModel;
-  private final PointerTargetSetBuilder ptsb;
+  private final PointerTargetSetBuilder ptsb; // need to create an AcslTermToFormulaVisitor
   private final Optional<SSAMap>
       functionEntrySsa; // Optional SSA map for function-entry state (\old)
 

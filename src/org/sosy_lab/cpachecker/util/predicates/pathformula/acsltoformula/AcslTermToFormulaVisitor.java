@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -67,7 +68,9 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
   private final CToFormulaConverterWithPointerAliasing ctoFormulaConverter;
   private final MachineModel machineModel;
   private final AcslTypeHelper typeHelper;
-  private final PointerTargetSetBuilder ptsb;
+  private final PointerTargetSetBuilder
+      ptsb; // needed for CRightHandSideVisitor to convert AcslCExpressions
+  private final PointerTargetSet originalPts; // copy to ensure we do not accidentally modify the original pts
 
   public AcslTermToFormulaVisitor(
       FormulaManagerView pFmgr,
@@ -86,6 +89,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     this.machineModel = pMachineModel;
     this.typeHelper = new AcslTypeHelper(pMachineModel, pFmgr, pCtoFormulaConverter);
     this.ptsb = pPtsb;
+    this.originalPts = pPtsb.build();
   }
 
   public AcslTermToFormulaVisitor(
@@ -94,7 +98,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
       SSAMap pFunctionEntrySsa,
       CToFormulaConverterWithPointerAliasing pCtoFormulaConverter,
       MachineModel pMachineModel,
-      PointerTargetSetBuilder pPPtsb) {
+      PointerTargetSetBuilder pPtsb) {
     checkNotNull(pFmgr);
     checkNotNull(pCurrentSsa);
     checkNotNull(pMachineModel);
@@ -105,7 +109,8 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     this.ctoFormulaConverter = pCtoFormulaConverter;
     this.machineModel = pMachineModel;
     this.typeHelper = new AcslTypeHelper(pMachineModel, pFmgr, pCtoFormulaConverter);
-    this.ptsb = pPPtsb;
+    this.ptsb = pPtsb;
+    this.originalPts = pPtsb.build();
   }
 
   @Override
@@ -275,7 +280,9 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
   @Override
   public Formula visit(AcslCExpression pAcslCExpression) {
     try {
-      return cExpressionToFormula(pAcslCExpression.getCExpression(), ptsb);
+      Formula f = cExpressionToFormula(pAcslCExpression.getCExpression(), ptsb);
+      Verify.verify(ptsb.build().equals(originalPts)); // make sure we did not modify the original pts
+      return f;
     } catch (UnrecognizedCodeException ex) {
       throw new RuntimeException(ex);
     }
