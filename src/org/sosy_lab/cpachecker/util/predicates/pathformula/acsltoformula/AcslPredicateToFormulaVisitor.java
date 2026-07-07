@@ -266,6 +266,8 @@ public class AcslPredicateToFormulaVisitor
       params.add(param.accept(termVisitor));
     }
 
+    // Calling declareAndCallUF multiple times with the same function name does not seem to create
+    // any issues (see: AcslToFormulaVisitorsTest.testPredicateApplication())
     return fmgr.getFunctionFormulaManager()
         .declareAndCallUF(predName, FormulaType.BooleanType, params);
   }

@@ -260,6 +260,9 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
       params.add(param.accept(this));
     }
 
+    // Calling declareAndCallUF multiple times with the same function name does not seem to create
+    // any issues (see: AcslToFormulaVisitorsTest.testPredicateApplication(), where this also
+    // happens)
     return fmgr.getFunctionFormulaManager().declareAndCallUF(functionName, returnType, params);
   }
 

@@ -306,6 +306,8 @@ public class AcslRenamingVisitor
             decl.getParameters(),
             decl.getAttributes());
       }
+      // This function is passed to SubstitutingCAstNodeVisitor, which requires it to return null
+      // for nodes that should not be substituted
       case null, default -> {
         return null;
       }
