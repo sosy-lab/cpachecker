@@ -53,20 +53,17 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 @Options(prefix = "cpa.oc")
 public class OrderingConsistencyCPA extends AbstractCPA implements AutoCloseable {
 
-  @Option(
-      secure = true,
-      description =
-          "maximum number of times a loop head may be entered on one path before the path is cut")
-  private int maxLoopIterations = 5;
-
   @Option(secure = true, description = "calls to these functions are the reachability targets")
   private Set<String> errorFunctions = ImmutableSet.of("reach_error");
+
+  // per exploration round, set by the algorithm's iterative deepening via resetExploration
+  private int maxLoopIterations = 5;
 
   private final CFA cfa;
   private final ImmutableSet<String> addressedVariables;
   private final Solver solver;
   private final PathFormulaManager pathFormulaManager;
-  private final OcExplorationRegistry registry = new OcExplorationRegistry();
+  private OcExplorationRegistry registry = new OcExplorationRegistry();
   private final LocationCPA locationCPA;
   private final CallstackCPA callstackCPA;
   private final OrderingConsistencyTransferRelation transferRelation;
@@ -195,6 +192,14 @@ public class OrderingConsistencyCPA extends AbstractCPA implements AutoCloseable
 
   public OcExplorationRegistry getRegistry() {
     return registry;
+  }
+
+  /** Discards all exploration results and prepares a fresh round with the given loop bound. */
+  public void resetExploration(int pLoopBound) {
+    maxLoopIterations = pLoopBound;
+    registry = new OcExplorationRegistry();
+    initialState = null;
+    transferRelation.resetRegistry(registry);
   }
 
   CFA getCfa() {

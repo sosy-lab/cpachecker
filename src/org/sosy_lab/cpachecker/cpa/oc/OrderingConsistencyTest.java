@@ -36,13 +36,16 @@ public class OrderingConsistencyTest {
   private static final String TEST_DIR = "test/programs/por/";
   private static final String CONFIG_FILE = "config/orderingConsistency.properties";
 
-  private static Configuration getConfig(String encoding, String maxLoopIterations)
+  private static Configuration getConfig(
+      String encoding, String initialBound, String step, String finalBound)
       throws InvalidConfigurationException, IOException {
     return configurationForTest()
         .loadFromFile(CONFIG_FILE)
         .setOption("parser.usePreprocessor", "true")
         .setOption("oc.encoding", encoding)
-        .setOption("cpa.oc.maxLoopIterations", maxLoopIterations)
+        .setOption("oc.initialLoopBound", initialBound)
+        .setOption("oc.loopBoundStep", step)
+        .setOption("oc.finalLoopBound", finalBound)
         .build();
   }
 
@@ -58,6 +61,7 @@ public class OrderingConsistencyTest {
         Pair.of("atomic_swap_safe.c", Result.TRUE),
         Pair.of("pthread_exit_safe.c", Result.TRUE),
         Pair.of("oc_branch_create.c", Result.TRUE),
+        Pair.of("oc_loop_safe.c", Result.TRUE),
         Pair.of("two_threads_unsafe.c", Result.FALSE),
         Pair.of("three_threads_unsafe.c", Result.FALSE),
         Pair.of("mutex_unprotected_unsafe.c", Result.FALSE),
@@ -70,20 +74,64 @@ public class OrderingConsistencyTest {
     return List.of("bigshot_s.i", "28-race_reach_83-list2_racing1.i");
   }
 
+  // suite-wide default bounds: a finite final bound so programs with unbounded
+  // loops terminate with UNKNOWN instead of deepening forever
+  private static final String DEFAULT_INITIAL_BOUND = "5";
+  private static final String DEFAULT_STEP = "5";
+  private static final String DEFAULT_FINAL_BOUND = "15";
+
   @Parameters(name = "{0} [{1}]")
   public static List<Object[]> testData() {
     List<Object[]> data = new ArrayList<>();
     for (String encoding : List.of("REFINEMENT", "CLOCKS")) {
       for (Pair<String, Result> testCase : getTestCases()) {
-        data.add(new Object[] {testCase.getFirst(), encoding, "5", testCase.getSecond()});
+        data.add(
+            new Object[] {
+              testCase.getFirst(),
+              encoding,
+              DEFAULT_INITIAL_BOUND,
+              DEFAULT_STEP,
+              DEFAULT_FINAL_BOUND,
+              testCase.getSecond()
+            });
       }
     }
-    data.add(new Object[] {"fib_unsafe-5.i", "CLOCKS", "13", Result.FALSE});
-    // safe up to the bound, but the infinite loop is always truncated
-    data.add(new Object[] {"need-learning.i", "REFINEMENT", "5", null});
-    data.add(new Object[] {"need-learning.i", "CLOCKS", "5", null});
+    // REFINEMENT is too slow on this one; CLOCKS reaches the violation at round 3
+    // with the suite default bounds
+    data.add(
+        new Object[] {
+          "fib_unsafe-5.i",
+          "CLOCKS",
+          DEFAULT_INITIAL_BOUND,
+          DEFAULT_STEP,
+          DEFAULT_FINAL_BOUND,
+          Result.FALSE
+        });
+    // safe up to the bound, but the infinite loop is always truncated: the default
+    // final bound of 15 is reached without proving the unwinding assertion
+    data.add(
+        new Object[] {
+          "need-learning.i",
+          "REFINEMENT",
+          DEFAULT_INITIAL_BOUND,
+          DEFAULT_STEP,
+          DEFAULT_FINAL_BOUND,
+          null
+        });
+    data.add(
+        new Object[] {
+          "need-learning.i",
+          "CLOCKS",
+          DEFAULT_INITIAL_BOUND,
+          DEFAULT_STEP,
+          DEFAULT_FINAL_BOUND,
+          null
+        });
     for (String fileName : getUnknownTestCases()) {
-      data.add(new Object[] {fileName, "REFINEMENT", "5", null});
+      data.add(
+          new Object[] {
+            fileName, "REFINEMENT", DEFAULT_INITIAL_BOUND, DEFAULT_STEP, DEFAULT_FINAL_BOUND, null
+          });
     }
     return data;
   }
@@ -95,14 +143,20 @@ public class OrderingConsistencyTest {
   public String encoding;
 
   @Parameter(2)
-  public String maxLoopIterations;
+  public String initialBound;
 
   @Parameter(3)
+  public String step;
+
+  @Parameter(4)
+  public String finalBound;
+
+  @Parameter(5)
   public Result expectedResult;
 
   @Test
   public void testOrderingConsistency() throws Exception {
-    Configuration config = getConfig(encoding, maxLoopIterations);
+    Configuration config = getConfig(encoding, initialBound, step, finalBound);
     IntegrationTestResult results = IntegrationTestRunner.run(config, TEST_DIR + fileName);
     if (expectedResult == null) {
       assertThat(results.cpaCheckerResult().getResult()).isNoneOf(Result.TRUE, Result.FALSE);

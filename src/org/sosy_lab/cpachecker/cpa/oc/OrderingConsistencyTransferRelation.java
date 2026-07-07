@@ -80,11 +80,11 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
 
   private final OrderingConsistencyCPA cpa;
   private final ShutdownNotifier shutdownNotifier;
-  private final OcExplorationRegistry registry;
   private final PathFormulaManager pathFormulaManager;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final Set<String> registeredBases = new HashSet<>();
+  private OcExplorationRegistry registry;
 
   OrderingConsistencyTransferRelation(
       OrderingConsistencyCPA pCpa, ShutdownNotifier pShutdownNotifier) {
@@ -94,6 +94,12 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     pathFormulaManager = pCpa.getPathFormulaManager();
     fmgr = pCpa.getSolver().getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
+  }
+
+  /** Starts collecting into a fresh registry (one iterative-deepening round). */
+  void resetRegistry(OcExplorationRegistry pRegistry) {
+    registry = pRegistry;
+    registeredBases.clear();
   }
 
   /** Creates an event chained in program order after all of the state's last events. */

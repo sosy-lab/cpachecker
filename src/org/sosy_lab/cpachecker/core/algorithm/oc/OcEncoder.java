@@ -140,6 +140,61 @@ final class OcEncoder {
     return definiteReach[pFirst.id()].get(pSecond.id());
   }
 
+  /**
+   * A join completes only if the joined instance terminated normally (THREAD_EXIT); paths that
+   * abort the program or are cut at the loop bound have no such event and cannot be joined. An
+   * ERROR in the joined instance also satisfies the join: the run is already violating, so the
+   * (hypothetical) continuation must not make the model inconsistent.
+   *
+   * <p>These are COMPLETION facts and must be asserted only for the violation check. The unwinding
+   * assertion asks about executions that were deliberately cut short; assuming there that joined
+   * threads finished within the bound would contradict the cut guards by construction and unsoundly
+   * "prove" the bound sufficient.
+   */
+  List<BooleanFormula> getJoinConstraints() {
+    List<BooleanFormula> constraints = new ArrayList<>();
+    ImmutableListMultimap<Integer, MemoryEvent> exitsByInstance =
+        events.stream()
+            .filter(e -> e.kind() == EventKind.THREAD_EXIT || e.kind() == EventKind.ERROR)
+            .collect(
+                ImmutableListMultimap.toImmutableListMultimap(MemoryEvent::instanceId, e -> e));
+    for (MemoryEvent join : events) {
+      if (join.kind() == EventKind.JOIN) {
+        List<BooleanFormula> exitGuards =
+            exitsByInstance.get(join.otherInstanceId()).stream()
+                .map(this::getFullGuard)
+                .collect(ImmutableList.toImmutableList());
+        constraints.add(bfmgr.implication(getFullGuard(join), bfmgr.or(exitGuards)));
+      }
+    }
+    return constraints;
+  }
+
+  /** The error property: some error event is enabled. Asserted only for the violation check. */
+  BooleanFormula getErrorConstraint() {
+    List<BooleanFormula> errorGuards = new ArrayList<>();
+    for (MemoryEvent event : events) {
+      if (event.kind() == EventKind.ERROR) {
+        errorGuards.add(getFullGuard(event));
+      }
+    }
+    return bfmgr.or(errorGuards);
+  }
+
+  /**
+   * Guards of the loop-bound cut points; if none of them is feasible, no real execution was cut and
+   * a safe verdict is sound despite the structural truncation (unwinding assertion).
+   */
+  ImmutableList<BooleanFormula> getTruncationGuards() {
+    ImmutableList.Builder<BooleanFormula> guards = ImmutableList.builder();
+    for (MemoryEvent event : events) {
+      if (event.kind() == EventKind.TRUNCATED) {
+        guards.add(getFullGuard(event));
+      }
+    }
+    return guards.build();
+  }
+
   /** Constraints shared by both solving modes. */
   List<BooleanFormula> getBaseConstraints() {
     List<BooleanFormula> constraints = new ArrayList<>(registry.getPathConstraints());
@@ -164,33 +219,6 @@ final class OcEncoder {
                 .map(RfPair::variable)
                 .collect(ImmutableList.toImmutableList());
         constraints.add(bfmgr.implication(getFullGuard(event), bfmgr.or(candidates)));
-      }
-    }
-
-    List<BooleanFormula> errorGuards = new ArrayList<>();
-    for (MemoryEvent event : events) {
-      if (event.kind() == EventKind.ERROR) {
-        errorGuards.add(getFullGuard(event));
-      }
-    }
-    constraints.add(bfmgr.or(errorGuards));
-
-    // a join completes only if the joined instance terminated normally (THREAD_EXIT); paths that
-    // abort the program or are cut at the loop bound have no such event and cannot be joined.
-    // An ERROR in the joined instance also satisfies the join: the run is already violating, so
-    // the (hypothetical) continuation must not make the model inconsistent.
-    ImmutableListMultimap<Integer, MemoryEvent> exitsByInstance =
-        events.stream()
-            .filter(e -> e.kind() == EventKind.THREAD_EXIT || e.kind() == EventKind.ERROR)
-            .collect(
-                ImmutableListMultimap.toImmutableListMultimap(MemoryEvent::instanceId, e -> e));
-    for (MemoryEvent join : events) {
-      if (join.kind() == EventKind.JOIN) {
-        List<BooleanFormula> exitGuards =
-            exitsByInstance.get(join.otherInstanceId()).stream()
-                .map(this::getFullGuard)
-                .collect(ImmutableList.toImmutableList());
-        constraints.add(bfmgr.implication(getFullGuard(join), bfmgr.or(exitGuards)));
       }
     }
 

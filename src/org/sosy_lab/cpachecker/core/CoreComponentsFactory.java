@@ -730,7 +730,7 @@ public class CoreComponentsFactory {
 
       if (useOC) {
         algorithm =
-            new OrderingConsistencyAlgorithm(algorithm, cpa, config, logger, shutdownNotifier);
+            new OrderingConsistencyAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa);
       }
 
       if (useIMC) {

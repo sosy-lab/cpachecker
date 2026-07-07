@@ -19,10 +19,13 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -65,8 +68,22 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
       description = "log the enabled events and read-from choices of a found violation model")
   private boolean dumpViolationModel = false;
 
+  @Option(secure = true, description = "loop bound of the first exploration round")
+  private int initialLoopBound = 5;
+
+  @Option(secure = true, description = "loop bound increase between iterative-deepening rounds")
+  private int loopBoundStep = 5;
+
+  @Option(
+      secure = true,
+      description =
+          "give up when the loop bound exceeds this value; a negative value deepens without bound")
+  private int finalLoopBound = -1;
+
   private final Algorithm innerAlgorithm;
+  private final ConfigurableProgramAnalysis topCpa;
   private final OrderingConsistencyCPA ocCpa;
+  private final CFA cfa;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final OcStatistics statistics = new OcStatistics();
@@ -76,13 +93,19 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
       ConfigurableProgramAnalysis pCpa,
       Configuration pConfig,
       LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier)
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCfa)
       throws InvalidConfigurationException {
     pConfig.inject(this);
+    if (loopBoundStep < 1) {
+      throw new InvalidConfigurationException("oc.loopBoundStep must be positive");
+    }
     innerAlgorithm = pInnerAlgorithm;
+    topCpa = pCpa;
     ocCpa =
         CPAs.retrieveCPAOrFail(
             pCpa, OrderingConsistencyCPA.class, OrderingConsistencyAlgorithm.class);
+    cfa = pCfa;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
   }
@@ -90,24 +113,67 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
-    statistics.explorationTimer.start();
-    try {
-      // the inner algorithm returns at every target state; drain the waitlist completely
-      do {
-        status = status.update(innerAlgorithm.run(pReachedSet));
-      } while (pReachedSet.hasWaitingState());
-    } finally {
-      statistics.explorationTimer.stop();
-    }
+    int bound = initialLoopBound;
+    while (true) {
+      shutdownNotifier.shutdownIfNecessary();
+      statistics.rounds++;
+      statistics.lastLoopBound = bound;
+      ocCpa.resetExploration(bound);
+      resetReachedSet(pReachedSet);
 
+      statistics.explorationTimer.start();
+      try {
+        // the inner algorithm returns at every target state; drain the waitlist completely
+        do {
+          status = status.update(innerAlgorithm.run(pReachedSet));
+        } while (pReachedSet.hasWaitingState());
+      } finally {
+        statistics.explorationTimer.stop();
+      }
+
+      RoundResult result = solveRound();
+      if (result == RoundResult.VIOLATION) {
+        logger.log(Level.INFO, "Ordering-consistency analysis found a consistent violation.");
+        return status; // target states stay in the reached set
+      }
+      if (result == RoundResult.SAFE) {
+        TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
+        return status;
+      }
+
+      // safe up to the bound, but a feasible execution may have been cut: deepen or give up
+      if (finalLoopBound >= 0 && bound >= finalLoopBound) {
+        logger.log(
+            Level.WARNING,
+            "Ordering-consistency loop bound exhausted at "
+                + bound
+                + "; the safety result is not sound.");
+        TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
+        return status.withSound(false);
+      }
+      int next = bound + loopBoundStep;
+      bound = finalLoopBound >= 0 ? Math.min(next, finalLoopBound) : next;
+    }
+  }
+
+  private enum RoundResult {
+    /** A consistent violating execution exists within the bound. */
+    VIOLATION,
+    /** No violation, and no feasible execution was cut: the safe verdict is sound. */
+    SAFE,
+    /** No violation within the bound, but a feasible execution was cut at the loop bound. */
+    CUT
+  }
+
+  private RoundResult solveRound() throws CPAException, InterruptedException {
     OcExplorationRegistry registry = ocCpa.getRegistry();
     statistics.eventCount = registry.getEvents().size();
     statistics.instanceCount = registry.getInstances().size();
     boolean truncated = registry.isTruncated();
     boolean hasErrorEvents =
         registry.getEvents().stream().anyMatch(e -> e.kind() == EventKind.ERROR);
-    if (!hasErrorEvents) {
-      return finishSafe(pReachedSet, status, truncated);
+    if (!hasErrorEvents && !truncated) {
+      return RoundResult.SAFE;
     }
 
     Solver solver = ocCpa.getSolver();
@@ -131,28 +197,74 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
     }
 
     statistics.solvingTimer.start();
-    try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      for (BooleanFormula constraint : constraints) {
-        prover.addConstraint(constraint);
-      }
-      boolean violation =
-          switch (encoding) {
-            case CLOCKS -> !prover.isUnsat();
-            case REFINEMENT -> runRefinementLoop(prover, encoder, bfmgr);
-          };
-      if (violation) {
-        logger.log(Level.INFO, "Ordering-consistency analysis found a consistent violation.");
-        if (dumpViolationModel) {
-          dumpViolationModel(prover, encoder);
+    try {
+      if (hasErrorEvents) {
+        try (ProverEnvironment prover =
+            solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+          for (BooleanFormula constraint : constraints) {
+            prover.addConstraint(constraint);
+          }
+          for (BooleanFormula constraint : encoder.getJoinConstraints()) {
+            prover.addConstraint(constraint);
+          }
+          prover.addConstraint(encoder.getErrorConstraint());
+          boolean violation =
+              switch (encoding) {
+                case CLOCKS -> !prover.isUnsat();
+                case REFINEMENT -> runRefinementLoop(prover, encoder, bfmgr);
+              };
+          if (violation) {
+            if (dumpViolationModel) {
+              dumpViolationModel(prover, encoder);
+            }
+            return RoundResult.VIOLATION;
+          }
         }
-        return status; // target states stay in the reached set
       }
-      return finishSafe(pReachedSet, status, truncated);
+      if (!truncated) {
+        return RoundResult.SAFE;
+      }
+      return unwindingAssertionHolds(encoder, constraints, bfmgr)
+          ? RoundResult.SAFE
+          : RoundResult.CUT;
     } catch (SolverException e) {
       throw new CPAException("solving the ordering-consistency encoding failed", e);
     } finally {
       statistics.solvingTimer.stop();
     }
+  }
+
+  /**
+   * The unwinding assertion: no feasible execution reaches any loop-bound cut point, so the
+   * structural truncation is harmless and a safe verdict is sound. Checking without the ordering
+   * constraints over-approximates reachability of the cuts, which errs only towards deepening.
+   */
+  private boolean unwindingAssertionHolds(
+      OcEncoder pEncoder, List<BooleanFormula> pConstraints, BooleanFormulaManagerView pBfmgr)
+      throws SolverException, InterruptedException {
+    List<BooleanFormula> cutGuards = pEncoder.getTruncationGuards();
+    if (cutGuards.isEmpty()) {
+      return false; // conservative: the flag is set but no cut point was recorded
+    }
+    try (ProverEnvironment prover = ocCpa.getSolver().newProverEnvironment()) {
+      for (BooleanFormula constraint : pConstraints) {
+        prover.addConstraint(constraint);
+      }
+      prover.addConstraint(pBfmgr.or(cutGuards));
+      boolean holds = prover.isUnsat();
+      if (holds) {
+        statistics.unwindingProofs++;
+      }
+      return holds;
+    }
+  }
+
+  private void resetReachedSet(ReachedSet pReachedSet) throws InterruptedException {
+    pReachedSet.clear();
+    CFANode entry = cfa.getMainFunction();
+    StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
+    pReachedSet.add(
+        topCpa.getInitialState(entry, partition), topCpa.getInitialPrecision(entry, partition));
   }
 
   /** Logs the enabled events (with clock values in CLOCKS mode) and read-from choices. */
@@ -216,19 +328,6 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
     }
   }
 
-  private AlgorithmStatus finishSafe(
-      ReachedSet pReachedSet, AlgorithmStatus pStatus, boolean pTruncated) {
-    TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
-    if (pTruncated) {
-      logger.log(
-          Level.WARNING,
-          "Ordering-consistency analysis cut some paths at the loop bound;"
-              + " the safety result is not sound.");
-      return pStatus.withSound(false);
-    }
-    return pStatus;
-  }
-
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     if (innerAlgorithm instanceof StatisticsProvider provider) {
@@ -248,9 +347,15 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
     private int csCount;
     private int refinementIterations;
     private int conflictClauses;
+    private int rounds;
+    private int lastLoopBound;
+    private int unwindingProofs;
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+      pOut.println("Deepening rounds:                    " + rounds);
+      pOut.println("Final loop bound:                    " + lastLoopBound);
+      pOut.println("Unwinding-assertion proofs:          " + unwindingProofs);
       pOut.println("Thread instances:                    " + instanceCount);
       pOut.println("Events:                              " + eventCount);
       pOut.println("Read-from pairs:                     " + rfCount);
