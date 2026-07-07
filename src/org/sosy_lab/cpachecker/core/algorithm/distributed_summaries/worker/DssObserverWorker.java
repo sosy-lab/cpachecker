@@ -25,8 +25,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * Observer worker that monitors messages of analysis workers and detects termination conditions.
  *
  * <p>It accumulates {@link AlgorithmStatus} from every POST_CONDITION and VIOLATION_CONDITION
- * message it sees, merging them across all senders. This
- * combined status reflects the overall soundness of the analysis across all blocks.
+ * message it sees, merging them across all senders. This combined status reflects the overall
+ * soundness of the analysis across all blocks.
  *
  * <p>The observer shuts down as soon as a RESULT or EXCEPTION message arrives.
  */

@@ -44,19 +44,19 @@ public class DssBlockWorkerStatistics implements Statistics {
     blockId = pBlockId;
   }
 
-  public DssThreadCPUTimer getAnalyzePreconditionTime() {
+  public DssThreadCPUTimer getAnalyzePreconditionTimer() {
     return analyzePreconditionTime;
   }
 
-  public DssThreadCPUTimer getStorePreconditionTime() {
+  public DssThreadCPUTimer getStorePreconditionTimer() {
     return storePreconditionTime;
   }
 
-  public DssThreadCPUTimer getAnalyzeViolationConditionTime() {
+  public DssThreadCPUTimer getAnalyzeViolationConditionTimer() {
     return analyzeViolationConditionTime;
   }
 
-  public DssThreadCPUTimer getStoreViolationConditionTime() {
+  public DssThreadCPUTimer getStoreViolationConditionTimer() {
     return storeViolationConditionTime;
   }
 
@@ -64,27 +64,11 @@ public class DssBlockWorkerStatistics implements Statistics {
     dcpaStatistics = pDcpaStatistics;
   }
 
-  public long getAnalyzePreconditionNanos() {
-    return analyzePreconditionTime.nanos();
-  }
-
-  public long getStorePreconditionNanos() {
-    return storePreconditionTime.nanos();
-  }
-
-  public long getAnalyzeViolationConditionNanos() {
-    return analyzeViolationConditionTime.nanos();
-  }
-
-  public long getStoreViolationConditionNanos() {
-    return storeViolationConditionTime.nanos();
-  }
-
-  public StatCounter getMessagesSent() {
+  public StatCounter getMessagesSentCounter() {
     return messagesSent;
   }
 
-  public StatCounter getMessagesReceived() {
+  public StatCounter getMessagesReceivedCounter() {
     return messagesReceived;
   }
 
@@ -104,8 +88,7 @@ public class DssBlockWorkerStatistics implements Statistics {
           dcpaStatistics != null ? dcpaStatistics.getSerializationTime().nanos() : 0;
       case DESERIALIZATION_TIME ->
           dcpaStatistics != null ? dcpaStatistics.getDeserializationTime().nanos() : 0;
-      case PROCEED_TIME ->
-          dcpaStatistics != null ? dcpaStatistics.getProceedTime().nanos() : 0;
+      case PROCEED_TIME -> dcpaStatistics != null ? dcpaStatistics.getProceedTime().nanos() : 0;
       case ANALYZE_PRECONDITION_TIME -> analyzePreconditionTime.nanos();
       case STORE_PRECONDITION_TIME -> storePreconditionTime.nanos();
       case ANALYZE_VIOLATION_CONDITION_TIME -> analyzeViolationConditionTime.nanos();
@@ -118,7 +101,9 @@ public class DssBlockWorkerStatistics implements Statistics {
   @Override
   public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
     StatisticsWriter writer =
-        StatisticsWriter.writingStatisticsTo(out).put("Block " + blockId, blockId).beginLevel();
+        StatisticsWriter.writingStatisticsTo(out)
+            .put("DSS Block Worker Statistics for:", blockId)
+            .beginLevel();
 
     if (dcpaStatistics != null) {
       writer
@@ -165,6 +150,6 @@ public class DssBlockWorkerStatistics implements Statistics {
 
   @Override
   public @Nullable String getName() {
-    return null;
+    return "DSS Block Worker Statistics for " + blockId;
   }
 }

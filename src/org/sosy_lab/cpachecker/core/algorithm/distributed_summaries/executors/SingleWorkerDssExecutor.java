@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -97,9 +96,7 @@ public class SingleWorkerDssExecutor implements DssExecutor {
   private String spawnWorkerForId = "";
 
   public SingleWorkerDssExecutor(
-      Configuration pConfiguration,
-      Specification pSpecification,
-      ShutdownManager pShutdownManager)
+      Configuration pConfiguration, Specification pSpecification, ShutdownManager pShutdownManager)
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
     options = new DssAnalysisOptions(pConfiguration);
@@ -178,7 +175,13 @@ public class SingleWorkerDssExecutor implements DssExecutor {
                     new IllegalArgumentException(
                         "No block with id '" + spawnWorkerForId + "' found in the block graph."));
     try (DssActors actors =
-        new DssWorkerBuilder(cfa, specification, () -> new DssDefaultQueue(), messageFactory, workerStatistics, shutdownManager)
+        new DssWorkerBuilder(
+                cfa,
+                specification,
+                () -> new DssDefaultQueue(),
+                messageFactory,
+                workerStatistics,
+                shutdownManager)
             .addAnalysisWorker(blockNode, options)
             .build()) {
 

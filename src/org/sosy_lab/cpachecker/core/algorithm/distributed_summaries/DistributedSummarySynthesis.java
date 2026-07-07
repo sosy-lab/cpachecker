@@ -142,7 +142,8 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
       throws InvalidConfigurationException {
     return switch (executorType) {
       case DSS -> new MultithreadingDssExecutor(configuration, specification, shutdownManager);
-      case SINGLE_WORKER -> new SingleWorkerDssExecutor(configuration, specification, shutdownManager);
+      case SINGLE_WORKER ->
+          new SingleWorkerDssExecutor(configuration, specification, shutdownManager);
       case SEQUENTIAL -> new SequentialDssExecutor(configuration, specification, shutdownManager);
     };
   }

@@ -180,10 +180,10 @@ public class DssBlockAnalysis {
     containsViolationInsideBlock = false;
     combineByHash = pOptions.combineByHash();
 
-    storePreconditionTime = pWorkerStats.getStorePreconditionTime();
-    analyzePreconditionTime = pWorkerStats.getAnalyzePreconditionTime();
-    storeViolationConditionTime = pWorkerStats.getStoreViolationConditionTime();
-    analyzeViolationConditionTime = pWorkerStats.getAnalyzeViolationConditionTime();
+    storePreconditionTime = pWorkerStats.getStorePreconditionTimer();
+    analyzePreconditionTime = pWorkerStats.getAnalyzePreconditionTimer();
+    storeViolationConditionTime = pWorkerStats.getStoreViolationConditionTimer();
+    analyzeViolationConditionTime = pWorkerStats.getAnalyzeViolationConditionTimer();
     // Register dcpa-level statistics with the worker stats object.
     if (dcpa instanceof DistributedARGCPA arg
         && arg.getWrappedCPA() instanceof DistributedCompositeCPA composite) {
@@ -536,54 +536,55 @@ public class DssBlockAnalysis {
       throws InterruptedException, SolverException, CPAException {
     storePreconditionTime.start();
     try {
-    relevant.clear();
-    logger.log(Level.INFO, "Running forward analysis with new precondition");
-    resetStates();
-    ImmutableList<@NonNull StateAndPrecision> deserializedStatesAndPrecisions =
-        deserialize(pReceived);
-    DssMessageProcessing processing = DssMessageProcessing.proceed();
-    for (StateAndPrecision stateAndPrecision : deserializedStatesAndPrecisions) {
-      processing =
-          processing.merge(
-              dcpa.getProceedOperator().processForward(stateAndPrecision.state()), true);
-    }
-    if (!processing.shouldProceed()) {
-      return processing;
-    }
+      relevant.clear();
+      logger.log(Level.INFO, "Running forward analysis with new precondition");
+      resetStates();
+      ImmutableList<@NonNull StateAndPrecision> deserializedStatesAndPrecisions =
+          deserialize(pReceived);
+      DssMessageProcessing processing = DssMessageProcessing.proceed();
+      for (StateAndPrecision stateAndPrecision : deserializedStatesAndPrecisions) {
+        processing =
+            processing.merge(
+                dcpa.getProceedOperator().processForward(stateAndPrecision.state()), true);
+      }
+      if (!processing.shouldProceed()) {
+        return processing;
+      }
 
-    if (preconditions.get(pReceived.getSenderId()).isEmpty()) {
-      preconditions.putAll(pReceived.getSenderId(), deserializedStatesAndPrecisions);
-      relevant.addAll(deserializedStatesAndPrecisions);
+      if (preconditions.get(pReceived.getSenderId()).isEmpty()) {
+        preconditions.putAll(pReceived.getSenderId(), deserializedStatesAndPrecisions);
+        relevant.addAll(deserializedStatesAndPrecisions);
+        appendTopToRelevantIfNecessary(pReceived.getSenderId());
+        return processing;
+      }
+      for (StateAndPrecision deserializedStateAndPrecision : deserializedStatesAndPrecisions) {
+        boolean isRelevant = true;
+        for (StateAndPrecision stateAndPrecision :
+            ImmutableSet.copyOf(preconditions.get(pReceived.getSenderId()))) {
+          if (dcpa.getCoverageOperator()
+              .isSubsumed(
+                  dcpa.reset(deserializedStateAndPrecision.state()), stateAndPrecision.state())) {
+            preconditions.remove(pReceived.getSenderId(), stateAndPrecision);
+          }
+          if (isRelevant
+              && dcpa.getCoverageOperator()
+                  .isSubsumed(
+                      stateAndPrecision.state(),
+                      dcpa.reset(deserializedStateAndPrecision.state()))) {
+            isRelevant = false;
+          }
+        }
+        if (isRelevant) {
+          relevant.add(deserializedStateAndPrecision);
+        }
+        preconditions.put(pReceived.getSenderId(), deserializedStateAndPrecision);
+      }
+      if (relevant.isEmpty()) {
+        return DssMessageProcessing.stop();
+      }
+
       appendTopToRelevantIfNecessary(pReceived.getSenderId());
       return processing;
-    }
-    for (StateAndPrecision deserializedStateAndPrecision : deserializedStatesAndPrecisions) {
-      boolean isRelevant = true;
-      for (StateAndPrecision stateAndPrecision :
-          ImmutableSet.copyOf(preconditions.get(pReceived.getSenderId()))) {
-        if (dcpa.getCoverageOperator()
-            .isSubsumed(
-                dcpa.reset(deserializedStateAndPrecision.state()), stateAndPrecision.state())) {
-          preconditions.remove(pReceived.getSenderId(), stateAndPrecision);
-        }
-        if (isRelevant
-            && dcpa.getCoverageOperator()
-                .isSubsumed(
-                    stateAndPrecision.state(), dcpa.reset(deserializedStateAndPrecision.state()))) {
-          isRelevant = false;
-        }
-      }
-      if (isRelevant) {
-        relevant.add(deserializedStateAndPrecision);
-      }
-      preconditions.put(pReceived.getSenderId(), deserializedStateAndPrecision);
-    }
-    if (relevant.isEmpty()) {
-      return DssMessageProcessing.stop();
-    }
-
-    appendTopToRelevantIfNecessary(pReceived.getSenderId());
-    return processing;
     } finally {
       storePreconditionTime.stop();
     }
@@ -609,32 +610,32 @@ public class DssBlockAnalysis {
       throws InterruptedException, SolverException {
     storeViolationConditionTime.start();
     try {
-    logger.log(Level.INFO, "Running forward analysis with respect to error condition");
-    // merge all states into the reached set
-    ImmutableList<StateAndPrecision> deserializedStates = deserialize(pNewViolationCondition);
-    Collection<@NonNull StateAndPrecision> oldVcs =
-        violationConditions.removeAll(pNewViolationCondition.getSenderId());
-    int equal = 0;
-    for (StateAndPrecision stateAndPrecision : deserializedStates) {
-      String newWitness = extractWitnessFromState(stateAndPrecision.state());
-      for (StateAndPrecision vc : oldVcs) {
-        String oldWitness = extractWitnessFromState(vc.state());
-        if (oldWitness.equals(newWitness)) {
-          equal++;
-          break;
+      logger.log(Level.INFO, "Running forward analysis with respect to error condition");
+      // merge all states into the reached set
+      ImmutableList<StateAndPrecision> deserializedStates = deserialize(pNewViolationCondition);
+      Collection<@NonNull StateAndPrecision> oldVcs =
+          violationConditions.removeAll(pNewViolationCondition.getSenderId());
+      int equal = 0;
+      for (StateAndPrecision stateAndPrecision : deserializedStates) {
+        String newWitness = extractWitnessFromState(stateAndPrecision.state());
+        for (StateAndPrecision vc : oldVcs) {
+          String oldWitness = extractWitnessFromState(vc.state());
+          if (oldWitness.equals(newWitness)) {
+            equal++;
+            break;
+          }
+        }
+        DssMessageProcessing current =
+            dcpa.getProceedOperator().processBackward(stateAndPrecision.state());
+        if (current.shouldProceed()) {
+          violationConditions.put(pNewViolationCondition.getSenderId(), stateAndPrecision);
         }
       }
-      DssMessageProcessing current =
-          dcpa.getProceedOperator().processBackward(stateAndPrecision.state());
-      if (current.shouldProceed()) {
-        violationConditions.put(pNewViolationCondition.getSenderId(), stateAndPrecision);
+      if (violationConditions.get(pNewViolationCondition.getSenderId()).isEmpty()
+          || equal == deserializedStates.size()) {
+        return DssMessageProcessing.stop();
       }
-    }
-    if (violationConditions.get(pNewViolationCondition.getSenderId()).isEmpty()
-        || equal == deserializedStates.size()) {
-      return DssMessageProcessing.stop();
-    }
-    return DssMessageProcessing.proceed();
+      return DssMessageProcessing.proceed();
     } finally {
       storeViolationConditionTime.stop();
     }

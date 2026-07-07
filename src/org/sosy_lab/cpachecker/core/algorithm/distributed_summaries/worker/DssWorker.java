@@ -78,5 +78,4 @@ public abstract class DssWorker implements DssActor {
   public final String getId() {
     return id;
   }
-
 }

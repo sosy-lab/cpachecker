@@ -53,5 +53,4 @@ public class DssBlockAnalysisStatistics {
   public DssThreadCPUTimer getSerializationTime() {
     return serializationTime;
   }
-
 }

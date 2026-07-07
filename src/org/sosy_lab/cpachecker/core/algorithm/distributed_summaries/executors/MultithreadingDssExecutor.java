@@ -62,9 +62,7 @@ public class MultithreadingDssExecutor implements DssExecutor {
   private final ShutdownManager shutdownManager;
 
   public MultithreadingDssExecutor(
-      Configuration pConfiguration,
-      Specification pSpecification,
-      ShutdownManager pShutdownManager)
+      Configuration pConfiguration, Specification pSpecification, ShutdownManager pShutdownManager)
       throws InvalidConfigurationException {
     specification = pSpecification;
     options = new DssAnalysisOptions(pConfiguration);
@@ -72,11 +70,18 @@ public class MultithreadingDssExecutor implements DssExecutor {
     shutdownManager = pShutdownManager;
   }
 
-  private DssActors createDssActors(CFA cfa, BlockGraph blockGraph, DssWorkerStatistics workerStatistics)
+  private DssActors createDssActors(
+      CFA cfa, BlockGraph blockGraph, DssWorkerStatistics workerStatistics)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     ImmutableSet<BlockNode> blocks = blockGraph.getNodes();
     DssWorkerBuilder builder =
-        new DssWorkerBuilder(cfa, specification, () -> new DssDefaultQueue(), messageFactory, workerStatistics, shutdownManager);
+        new DssWorkerBuilder(
+            cfa,
+            specification,
+            () -> new DssDefaultQueue(),
+            messageFactory,
+            workerStatistics,
+            shutdownManager);
     for (BlockNode distinctNode : blocks) {
       builder = builder.addAnalysisWorker(distinctNode, options);
     }

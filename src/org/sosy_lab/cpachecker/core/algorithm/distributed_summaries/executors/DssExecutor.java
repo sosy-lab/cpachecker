@@ -31,7 +31,8 @@ public interface DssExecutor {
    *
    * @param cfa The CFA to analyze
    * @param blockGraph The block decomposition of the CFA
-   * @param workerStatistics The statistics object to collect statistics from the workers created by the executor
+   * @param workerStatistics The statistics object to collect statistics from the workers created by
+   *     the executor
    * @return The status and result of the analysis
    */
   StatusAndResult execute(CFA cfa, BlockGraph blockGraph, DssWorkerStatistics workerStatistics)

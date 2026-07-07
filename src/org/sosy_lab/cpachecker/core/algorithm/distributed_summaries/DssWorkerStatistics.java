@@ -18,8 +18,9 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /**
- * Aggregate statistics for all DSS analysis workers. {@link DssBlockWorkerStatistics} objects are registered at
- * worker creation time via {@link #createWorkerStats} and written to by the workers directly.
+ * Aggregate statistics for all DSS analysis workers. {@link DssBlockWorkerStatistics} objects are
+ * registered at worker creation time via {@link #createWorkerStats} and written to by the workers
+ * directly.
  */
 public class DssWorkerStatistics implements Statistics {
 

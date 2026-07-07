@@ -32,7 +32,6 @@ public class DssVisualizationWorker extends DssWorker {
   private boolean shutdown = false;
   private final int identifier;
 
-
   DssVisualizationWorker(
       String id,
       BlockGraph pBlockGraph,
@@ -71,8 +70,9 @@ public class DssVisualizationWorker extends DssWorker {
   public Collection<DssMessage> processMessage(DssMessage pMessage)
       throws InterruptedException, IOException {
     log(pMessage);
-    boolean stop = pMessage.getType() == DssMessageType.RESULT
-        || pMessage.getType() == DssMessageType.EXCEPTION;
+    boolean stop =
+        pMessage.getType() == DssMessageType.RESULT
+            || pMessage.getType() == DssMessageType.EXCEPTION;
     while (connection.hasPendingMessages()) {
       DssMessage m = connection.read();
       log(m);
