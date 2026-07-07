@@ -512,9 +512,9 @@ public class AcslParserPredicateTest {
   @Test
   public void parseSimpleForallPredicate() throws AcslParseException {
     AcslParameterDeclaration x =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "ax", "ax");
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "ax");
     AcslParameterDeclaration y =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.REAL, "ay", "ay");
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.REAL, "ay");
     AcslPredicate output =
         new AcslForallPredicate(
             FileLocation.DUMMY,
@@ -532,9 +532,9 @@ public class AcslParserPredicateTest {
   @Test
   public void parseSimpleForallPredicate2() throws AcslParseException {
     AcslParameterDeclaration x =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "ax", "ax");
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "ax");
     AcslParameterDeclaration y =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "ay", "ay");
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "ay");
     AcslPredicate output =
         new AcslForallPredicate(
             FileLocation.DUMMY,
@@ -552,9 +552,9 @@ public class AcslParserPredicateTest {
   @Test
   public void parseSimpleExistsPredicate() throws AcslParseException {
     AcslParameterDeclaration x =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "ax", "ax");
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "ax");
     AcslParameterDeclaration y =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.REAL, "ay", "ay");
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.REAL, "ay");
     AcslPredicate output =
         new AcslExistsPredicate(
             FileLocation.DUMMY,

@@ -327,7 +327,7 @@ public class AcslToFomulaVisitorsTest {
     // \exists x: x != x should be unsatisfiable
 
     AcslParameterDeclaration x =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "x", "x");
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "x");
 
     AcslPredicate pred =
         new AcslExistsPredicate(
@@ -358,7 +358,7 @@ public class AcslToFomulaVisitorsTest {
     // \forall x: (x=5) and (x=6) should be unsatisfiable
 
     AcslParameterDeclaration x =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "x", "x");
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "x");
 
     AcslPredicate body =
         b.and(
@@ -380,7 +380,7 @@ public class AcslToFomulaVisitorsTest {
     AcslTerm x = getAcslIdTermFromVarName(cProgramScope, "x");
 
     AcslParameterDeclaration paramX =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "x", "P::x");
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "x", "P");
 
     AcslPredicateDeclaration predDecl =
         new AcslPredicateDeclaration(
@@ -436,7 +436,7 @@ public class AcslToFomulaVisitorsTest {
     // !((\forall integer i; 0 <= i && i < 3 ==> a[i] == 5) ==> a[1] == 5) should be unsat
 
     AcslParameterDeclaration i =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i", "i");
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i");
 
     CVariableDeclaration ci = createCVariableDeclaration("i");
 
@@ -479,10 +479,10 @@ public class AcslToFomulaVisitorsTest {
             FileLocation.DUMMY,
             new AcslCType(new CPointerType(CTypeQualifiers.NONE, basicInt())),
             "a",
-            "a");
+            "P");
 
     AcslParameterDeclaration index =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i", "P::i");
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i", "P");
 
     AcslPredicateDeclaration declP =
         new AcslPredicateDeclaration(

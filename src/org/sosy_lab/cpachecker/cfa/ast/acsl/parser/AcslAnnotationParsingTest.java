@@ -226,7 +226,7 @@ ensures x <= 10;
 
     AcslParameterDeclaration i =
         new AcslParameterDeclaration(
-            FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i", "is_positive::i");
+            FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i", "is_positive");
     AcslPredicateDeclaration declaration =
         new AcslPredicateDeclaration(
             FileLocation.DUMMY,
@@ -314,7 +314,7 @@ ensures x <= 10;
 
     AcslParameterDeclaration i =
         new AcslParameterDeclaration(
-            FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i", "is_positive::i");
+            FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i", "is_positive");
     AcslFunctionDeclaration declaration =
         new AcslFunctionDeclaration(
             FileLocation.DUMMY,

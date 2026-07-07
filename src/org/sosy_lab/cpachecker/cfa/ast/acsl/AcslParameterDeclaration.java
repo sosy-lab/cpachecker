@@ -21,13 +21,22 @@ public final class AcslParameterDeclaration extends AParameterDeclaration
   private String qualifiedName;
 
   public AcslParameterDeclaration(
-      FileLocation pFileLocation, AcslType pType, String pName, String pQualifiedName) {
+      FileLocation pFileLocation, AcslType pType, String pName) {
     super(pFileLocation, pType, pName);
     checkNotNull(pFileLocation);
     checkNotNull(pType);
     checkNotNull(pName);
-    checkNotNull(pQualifiedName);
-    this.qualifiedName = pQualifiedName;
+    this.qualifiedName = pName;
+  }
+
+  public AcslParameterDeclaration(
+      FileLocation pFileLocation, AcslType pType, String pName, String pFunctionName) {
+    super(pFileLocation, pType, pName);
+    checkNotNull(pFileLocation);
+    checkNotNull(pType);
+    checkNotNull(pName);
+    checkNotNull(pFunctionName);
+    this.qualifiedName = pFunctionName + "::" + pName;
   }
 
   @Override

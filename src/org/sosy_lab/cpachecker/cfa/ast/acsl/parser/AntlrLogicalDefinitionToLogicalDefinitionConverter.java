@@ -94,10 +94,9 @@ public class AntlrLogicalDefinitionToLogicalDefinitionConverter
             .transform(
                 parameter -> {
                   String variableName = parameter.getChild(1).getText();
-                  String qualifiedName = functionName + "::" + variableName;
                   AcslType type = antrlTypeExpressionToTypeConverter.visit(parameter.getChild(0));
                   return new AcslParameterDeclaration(
-                      fileLocationFromContext(ctx), type, variableName, qualifiedName);
+                      fileLocationFromContext(ctx), type, variableName, functionName);
                 })
             .toList();
 
