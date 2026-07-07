@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -25,6 +26,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
@@ -40,13 +42,14 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
+import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitnessV2;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitnessV2d1;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationYAMLWitnessExporter;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
@@ -141,57 +144,80 @@ public class TerminationToReachStatistics extends ARGStatistics implements Stati
   }
 
   private void exportTerminationWitness(UnmodifiableReachedSet pReached) {
-    try {
-      Map<CFANode, AbstractInvariantEntry> transitionInvariants = new HashMap<>();
-      for (AbstractState state :
-          pReached.stream()
-              .filter(
-                  state ->
-                      AbstractStates.extractStateByType(state, TerminationToReachState.class)
-                          .getCandidateTransitionInvariant()
-                          .isPresent())
-              .collect(ImmutableSet.toImmutableSet())) {
-        TerminationToReachState terminationState =
-            AbstractStates.extractStateByType(state, TerminationToReachState.class);
-        CFANode location =
-            AbstractStates.extractStateByType(state, LocationState.class).getLocationNode();
-        String transitionInvariantAsC;
+    Map<FileLocation, InvariantEntry> transitionInvariants = new HashMap<>();
+    AstCfaRelation astCfaRelation = cfa.getAstCfaRelation();
+    for (AbstractState state :
+        pReached.stream()
+            .filter(
+                state ->
+                    AbstractStates.extractStateByType(state, TerminationToReachState.class)
+                        .getCandidateTransitionInvariant()
+                        .isPresent())
+            .collect(ImmutableSet.toImmutableSet())) {
+      TerminationToReachState terminationState =
+          AbstractStates.extractStateByType(state, TerminationToReachState.class);
+      CFANode location =
+          AbstractStates.extractStateByType(state, LocationState.class).getLocationNode();
+      String transitionInvariantAsC;
 
-        PartitionedRelationFormula formula =
-            terminationState.getCandidateTransitionInvariant().orElseThrow();
-        formula.extendPrevVarsWithPrefixSuffix("::at(", ", AnyPrev)");
-        formula.extendCurrVarsWithPrefixSuffix("", "");
-        // Transforming the candidate transition invariant from formula to C expression
-        // and wrapping the previous variables into \\at(x, AnyPrev)
-        try {
-          transitionInvariantAsC =
-              TransitionInvariantUtils.transformFormulaToStringWithTrivialReplacement(
-                      formula.getFormula(), bfmgr, fmgr)
-                  .replace("::at", "\\at");
-          transitionInvariantAsC =
-              TransitionInvariantUtils.removeFunctionFromVarsName(transitionInvariantAsC);
-        } catch (CPAException e) {
-          transitionInvariantAsC = "true";
-        }
-
-        if (transitionInvariants.containsKey(location)) {
-          transitionInvariantAsC =
-              transitionInvariantAsC + " || " + transitionInvariants.get(location);
-          transitionInvariants.remove(location, transitionInvariants.get(location));
-        }
-        LocationRecord locationEntry =
-            LocationRecord.createLocationRecordAtStart(
-                location.getEnteringEdge(0).getFileLocation(),
-                location.getFunction().getFileLocation().getFileName().toString(),
-                location.getFunctionName());
-        transitionInvariants.put(
-            location,
-            new InvariantEntry(
-                transitionInvariantAsC,
-                InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword(),
-                YAMLWitnessExpressionType.EXT_C,
-                locationEntry));
+      PartitionedRelationFormula formula =
+          terminationState.getCandidateTransitionInvariant().orElseThrow();
+      formula.extendPrevVarsWithPrefixSuffix("::at(", ", AnyPrev)");
+      formula.extendCurrVarsWithPrefixSuffix("", "");
+      // Transforming the candidate transition invariant from formula to C expression
+      // and wrapping the previous variables into \\at(x, AnyPrev)
+      try {
+        transitionInvariantAsC =
+            TransitionInvariantUtils.transformFormulaToStringWithTrivialReplacement(
+                    formula.getFormula(), bfmgr, fmgr)
+                .replace("::at", "\\at");
+        transitionInvariantAsC =
+            TransitionInvariantUtils.removeFunctionFromVarsName(transitionInvariantAsC);
+      } catch (CPAException e) {
+        transitionInvariantAsC = "true";
       }
+
+      Optional<IterationElement> iterationElement =
+          astCfaRelation.getTightestIterationStructureForNode(location);
+      if (iterationElement.isPresent()) {
+        FileLocation fileLocation = iterationElement.orElseThrow().getCompleteElement().location();
+        if (transitionInvariants.containsKey(fileLocation)) {
+          if (!transitionInvariants.get(fileLocation).getValue().contains(transitionInvariantAsC)) {
+            transitionInvariantAsC =
+                transitionInvariantAsC + " || " + transitionInvariants.get(fileLocation).getValue();
+            transitionInvariants.remove(fileLocation, transitionInvariants.get(fileLocation));
+            LocationRecord locationEntry =
+                LocationRecord.createLocationRecordAtStart(
+                    iterationElement.orElseThrow().getCompleteElement().location(),
+                    location.getFunction().getFileLocation().getFileName().toString(),
+                    location.getFunctionName());
+
+            transitionInvariants.put(
+                fileLocation,
+                new InvariantEntry(
+                    transitionInvariantAsC,
+                    InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword(),
+                    YAMLWitnessExpressionType.EXT_C,
+                    locationEntry));
+          }
+        } else {
+          LocationRecord locationEntry =
+              LocationRecord.createLocationRecordAtStart(
+                  iterationElement.orElseThrow().getCompleteElement().location(),
+                  location.getFunction().getFileLocation().getFileName().toString(),
+                  location.getFunctionName());
+
+          transitionInvariants.put(
+              fileLocation,
+              new InvariantEntry(
+                  transitionInvariantAsC,
+                  InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword(),
+                  YAMLWitnessExpressionType.EXT_C,
+                  locationEntry));
+        }
+      }
+    }
+    try {
       terminationWitnessExporter.export(
           transitionInvariants.values().stream().collect(ImmutableList.toImmutableList()),
           yamlWitnessOutputFileTemplate);
