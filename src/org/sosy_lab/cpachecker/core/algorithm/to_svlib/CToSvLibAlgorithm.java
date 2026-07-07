@@ -309,7 +309,14 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     pReachedSet.clear();
     coreComponents.initializeReachedSet(pReachedSet, newSvLibCfa.getMainFunction(), cpa);
 
-    return innerAlgorithm.run(pReachedSet);
+    AlgorithmStatus algorithmStatus;
+    transformationStatistics.innerAnalysisTimer.start();
+    try {
+      algorithmStatus = innerAlgorithm.run(pReachedSet);
+    } finally {
+      transformationStatistics.innerAnalysisTimer.stop();
+    }
+    return algorithmStatus;
   }
 
   private void handleExport(String pOutputScript) {
@@ -333,7 +340,9 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
   }
 
   @Override
-  public void collectStatistics(Collection<Statistics> statsCollection) {}
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    statsCollection.add(transformationStatistics);
+  }
 
   @Override
   public void close() {
@@ -344,15 +353,14 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
 
     private final List<Statistics> innerStatistics = new ArrayList<>();
 
-    private final StatTimer totalTransformationTime = new StatTimer("Total Transformation Time");
-    private final StatTimer initializationTime = new StatTimer("Time to initialize scope");
-    private final StatTimer transformationTime = new StatTimer("Transformation Time");
+    private final StatTimer totalTransformationTime = new StatTimer("Total transformation time");
+    private final StatTimer initializationTime = new StatTimer("time to initialize scope");
+    private final StatTimer transformationTime = new StatTimer("Transformation time");
     private int numberOfCommands;
-    private int numberOfLabelsCreated;
+    private final StatTimer innerAnalysisTimer = new StatTimer("Time for inner analysis");
 
     private TransformationStatistics() {
       numberOfCommands = 0;
-      numberOfLabelsCreated = 0;
     }
 
     @Override
@@ -361,7 +369,8 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
       out.println("Time to initialize scope:          " + initializationTime);
       out.println("Time for transformation:           " + transformationTime);
       out.println("Number of commands:                " + numberOfCommands);
-      out.println("Number of labels created:          " + numberOfLabelsCreated);
+      out.println("Time for inner analysis            " + innerAnalysisTimer);
+      out.println("\n-- Inner statistics --\n");
 
       for (Statistics statistics : innerStatistics) {
         statistics.printStatistics(out, result, reached);
