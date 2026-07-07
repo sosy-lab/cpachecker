@@ -512,6 +512,9 @@ public class IntervalAnalysisTransferRelation
 
   private IntervalAnalysisState assign(CExpression assignee, Interval value, CFAEdge cfaEdge)
       throws UnrecognizedCodeException {
+    // TODO: add a else case (for all ifs here!) that throws (else you underapproximate!)
+    // TODO: better: add a visitor pattern for this (e.g. a visitor that retrieves a section to save
+    //  things in in general)
     if (assignee instanceof CIdExpression id) {
       return state.addInterval(
           id.getDeclaration().getQualifiedName(), value, threshold, cfaEdge.getSuccessor());

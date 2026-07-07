@@ -159,7 +159,8 @@ public final class IntervalAnalysisState
     if (normalizations.isEmpty()) {
       return Interval.UNBOUND;
     }
-    // TODO: Don't just pick any normalization, but the one that results in the least abstract result
+    // TODO: Don't just pick any normalization, but the one that results in the least abstract
+    //  result
     return array.get(normalizations.iterator().next(), visitor);
   }
 
@@ -693,6 +694,8 @@ public final class IntervalAnalysisState
 
     for (NormalFormExpression lesser : lesserSet) {
       for (NormalFormExpression greater : greaterSet) {
+        // TODO: FunArrays drop empty (?) here without obvious reason. E.g. in
+        //  array-examples/sorting_bubblesort_ground-2.c line 12
         modifiedState =
             modifiedState.forAllArrays(e -> e.satisfyStrictLessThan(lesser, greater), pLocation);
       }
@@ -723,8 +726,7 @@ public final class IntervalAnalysisState
 
     for (NormalFormExpression expr1 : pSet1) {
       for (NormalFormExpression expr2 : pSet2) {
-        modifiedState =
-            modifiedState.forAllArrays(e -> e.satisfyEquals(expr1, expr2), pLocation);
+        modifiedState = modifiedState.forAllArrays(e -> e.satisfyEquals(expr1, expr2), pLocation);
       }
     }
 
@@ -755,6 +757,7 @@ public final class IntervalAnalysisState
     return this.withArrays(modifiedArrays).withLocation(pLocation);
   }
 
+  // TODO: give me a JavaDoc please ;D
   public IntervalAnalysisState widen(IntervalAnalysisState other, CFANode pLocation) {
 
     var modifiedFunArrays =
@@ -788,6 +791,14 @@ public final class IntervalAnalysisState
                       return leftSide.widen(rightSide);
                     }));
 
+    // TODO: copyOf on Persistent data-structures is not needed as they are immutable and
+    //  persistent, i.e. all modifications return a new copy (but they are copy efficient). So you
+    //  don't need copyOf ;D
+
+    // TODO: error in array-examples/sorting_bubblesort_ground-2.c line 14 result of
+    //  widen(main::a -> {FunArray@4928} "{0} ⊤ {100000}?",
+    //  main::a -> {FunArray@4933} "{0 main::j-1} ⊤ {1 main::j} ⊤ {100000 main::j+99999}?")
+    //  = main::a -> {FunArray@5040} "{0} ⊤ {1 100000 main::j main::j+99999}?"
     return this.withIntervals(PathCopyingPersistentTreeMap.copyOf(modifiedVariables))
         .withArrays(PathCopyingPersistentTreeMap.copyOf(modifiedFunArrays))
         .withLocation(pLocation); // TODO: Widening der reference counts überlegen
