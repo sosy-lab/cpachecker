@@ -504,9 +504,15 @@ final class OcEncoder {
     return pEvent.isRegionAccess() ? pEvent.regionId() : pEvent.memoryLocation();
   }
 
-  /** Address equality of two events of the same region. */
+  /**
+   * Same-cell test of two events of the same region: equal object base and equal byte offset. Bases
+   * are pairwise distinct so base equality is exact; region events always carry a concrete offset
+   * (zero when the access has none), so both components are compared directly.
+   */
   BooleanFormula sameAddress(MemoryEvent pFirst, MemoryEvent pSecond) {
-    return fmgr.makeEqual(pFirst.addressTerm(), pSecond.addressTerm());
+    return bfmgr.and(
+        fmgr.makeEqual(pFirst.addressTerm(), pSecond.addressTerm()),
+        fmgr.makeEqual(pFirst.offsetTerm(), pSecond.offsetTerm()));
   }
 
   private ImmutableListMultimap<Object, MemoryEvent> writesByCell() {

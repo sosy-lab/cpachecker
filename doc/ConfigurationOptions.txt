@@ -63,7 +63,7 @@ rootDirectory = "."
 # SPDX-License-Identifier: Apache-2.0
 
 # Further options for Bitwuzla in addition to the default options. Format: 
-# "option_name=value" with ’,’ to separate options. Option names and values
+# "option_name=value" with ?,? to separate options. Option names and values
 # can be found in the Bitwuzla documentation online:
 # https://bitwuzla.github.io/docs/cpp/enums/option.html#_CPPv4N8bitwuzla6OptionE
 # Example: "PRODUCE_MODELS=2,SAT_SOLVER=kissat".
@@ -74,7 +74,7 @@ solver.bitwuzla.satSolver = CADICAL
   enum:     [LINGELING, CMS, CADICAL, KISSAT]
 
 # Further options for Boolector in addition to the default options. Format: 
-# "Optionname=value" with ’,’ to separate options. Option names and values
+# "Optionname=value" with ?,? to separate options. Option names and values
 # can be found in BtorOption or Boolector C Api. Example:
 # "BTOR_OPT_MODEL_GEN=2,BTOR_OPT_INCREMENTAL=1".
 solver.boolector.furtherOptions = ""
@@ -256,7 +256,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
-# SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
+# SPDX-FileCopyrightText: 2014-2017 Universit? Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
@@ -471,6 +471,10 @@ analysis.algorithm.MPOR.validateProgramCounters = true
 
 # use MPV algorithm for checking multiple properties
 analysis.algorithm.MPV = false
+
+# use the ordering-consistency algorithm for concurrent programs, works only
+# with the OrderingConsistencyCPA
+analysis.algorithm.OC = false
 
 # use an analysis which proves if the program satisfies a specified property
 # with the help of an enabler CPA to separate differnt program paths
@@ -2509,6 +2513,9 @@ cpa.monitor.pathcomputationlimit = 0
 # keep tracking nondeterministically-assigned variables even if they are used
 # in assumptions
 cpa.nondeterminism.acceptConstrained = true
+
+# calls to these functions are the reachability targets
+cpa.oc.errorFunctions = {"reach_error"}
 
 # this option determines which initial precision should be used
 cpa.octagon.initialPrecisionType = "STATIC_FULL"
@@ -5083,6 +5090,23 @@ mpv.partitionOperator = no default value
 # - AUTOMATON: each automaton represent a single property.
 mpv.propertySeparator = FILE
   enum:     [FILE, AUTOMATON]
+
+# log the enabled events and read-from choices of a found violation model
+oc.dumpViolationModel = false
+
+# how the ordering constraints are decided
+oc.encoding = REFINEMENT
+  enum:     [REFINEMENT, CLOCKS]
+
+# give up when the loop bound exceeds this value; a negative value deepens
+# without bound
+oc.finalLoopBound = -1
+
+# loop bound of the first exploration round
+oc.initialLoopBound = 5
+
+# loop bound increase between iterative-deepening rounds
+oc.loopBoundStep = 5
 
 # Check for unsigned integer overflows
 overflow.checkUnsigned = false

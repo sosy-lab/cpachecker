@@ -84,6 +84,11 @@ class PorAstCloner {
     return (T) cloneAstDirect(ast);
   }
 
+  /** Clones a sub-expression as an rvalue (read); exposed to a {@link GlobalAccessRenamer}. */
+  private CExpression cloneRvalue(CExpression pExpression) {
+    return cloneAstRightSide(pExpression);
+  }
+
   @SuppressWarnings("unchecked")
   <T extends AAstNode> T cloneAstRightSide(T ast) {
     boolean oldIsLhs = isLhs;
@@ -362,30 +367,37 @@ class PorAstCloner {
 
     @Override
     public CExpression visit(CArraySubscriptExpression exp) {
-      // the deref direction is the ambient access direction; the operands are always reads
       boolean accessIsWrite = isLhs;
-      CArraySubscriptExpression rebuilt =
-          new CArraySubscriptExpression(
-              exp.getFileLocation(),
-              exp.getExpressionType(),
-              cloneAstRightSide(exp.getArrayExpression()),
-              cloneAstRightSide(exp.getSubscriptExpression()));
       if (globalRenamer != null) {
-        CIdExpression replacement = globalRenamer.replaceAliasedAccess(rebuilt, accessIsWrite);
+        CIdExpression replacement =
+            globalRenamer.replaceAliasedAccess(exp, accessIsWrite, PorAstCloner.this::cloneRvalue);
         if (replacement != null) {
           return replacement;
         }
       }
-      return rebuilt;
+      // the operands are always reads regardless of the ambient access direction
+      return new CArraySubscriptExpression(
+          exp.getFileLocation(),
+          exp.getExpressionType(),
+          cloneAstRightSide(exp.getArrayExpression()),
+          cloneAstRightSide(exp.getSubscriptExpression()));
     }
 
     @Override
     public CExpression visit(CFieldReference exp) {
+      boolean accessIsWrite = isLhs;
+      if (globalRenamer != null) {
+        CIdExpression replacement =
+            globalRenamer.replaceAliasedAccess(exp, accessIsWrite, PorAstCloner.this::cloneRvalue);
+        if (replacement != null) {
+          return replacement;
+        }
+      }
       return new CFieldReference(
           exp.getFileLocation(),
           exp.getExpressionType(),
           exp.getFieldName(),
-          exp.getFieldOwner().accept(this),
+          cloneAstRightSide(exp.getFieldOwner()),
           exp.isPointerDereference());
     }
 
@@ -408,18 +420,17 @@ class PorAstCloner {
 
     @Override
     public CExpression visit(CPointerExpression exp) {
-      // the deref direction is the ambient access direction; the pointer itself is always read
       boolean accessIsWrite = isLhs;
-      CPointerExpression rebuilt =
-          new CPointerExpression(
-              exp.getFileLocation(), exp.getExpressionType(), cloneAstRightSide(exp.getOperand()));
       if (globalRenamer != null) {
-        CIdExpression replacement = globalRenamer.replaceAliasedAccess(rebuilt, accessIsWrite);
+        CIdExpression replacement =
+            globalRenamer.replaceAliasedAccess(exp, accessIsWrite, PorAstCloner.this::cloneRvalue);
         if (replacement != null) {
           return replacement;
         }
       }
-      return rebuilt;
+      // the pointer itself is always read regardless of the ambient access direction
+      return new CPointerExpression(
+          exp.getFileLocation(), exp.getExpressionType(), cloneAstRightSide(exp.getOperand()));
     }
 
     @Override

@@ -255,12 +255,14 @@ final class ConsistencyChecker {
     return result.build();
   }
 
-  /** The model's value of every region event's address term, by event id (else null). */
+  /** The model's (base, offset) value of every region event's address, by event id (else null). */
   private Object[] evaluateAddresses(Model pModel) {
     Object[] values = new Object[eventCount];
     for (MemoryEvent event : encoder.getEvents()) {
       if (event.isRegionAccess()) {
-        values[event.id()] = pModel.evaluate(event.addressTerm());
+        Object base = pModel.evaluate(event.addressTerm());
+        Object offset = event.offsetTerm() == null ? null : pModel.evaluate(event.offsetTerm());
+        values[event.id()] = List.of(base == null ? "?" : base, offset == null ? 0 : offset);
       }
     }
     return values;

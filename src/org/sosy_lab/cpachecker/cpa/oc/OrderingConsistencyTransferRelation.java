@@ -12,11 +12,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -25,9 +27,14 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -39,6 +46,11 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -83,8 +95,11 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
   private final PathFormulaManager pathFormulaManager;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
+  private final MachineModel machineModel;
   private final Set<String> registeredBases = new HashSet<>();
+  private final Set<String> aggregateInitEmitted = new HashSet<>();
   private OcExplorationRegistry registry;
+  private @Nullable Formula zeroOffsetTerm;
 
   OrderingConsistencyTransferRelation(
       OrderingConsistencyCPA pCpa, ShutdownNotifier pShutdownNotifier) {
@@ -94,12 +109,15 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     pathFormulaManager = pCpa.getPathFormulaManager();
     fmgr = pCpa.getSolver().getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
+    machineModel = pCpa.getCfa().getMachineModel();
   }
 
   /** Starts collecting into a fresh registry (one iterative-deepening round). */
   void resetRegistry(OcExplorationRegistry pRegistry) {
     registry = pRegistry;
     registeredBases.clear();
+    aggregateInitEmitted.clear();
+    zeroOffsetTerm = null;
   }
 
   /** Creates an event chained in program order after all of the state's last events. */
@@ -126,7 +144,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
             pMutexId,
             pOtherInstanceId,
             pRegionId,
-            pAddressTerm);
+            pAddressTerm,
+            null);
     for (int i = 1; i < predecessors.size(); i++) {
       registry.addPoPredecessor(event.id(), predecessors.get(i));
     }
@@ -604,6 +623,59 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     ImmutableList<Integer> predecessors = pState.getLastEventIds();
     int lastEventId = predecessors.isEmpty() ? MemoryEvent.NO_EVENT : predecessors.get(0);
     boolean anyEvent = false;
+
+    for (CVariableDeclaration aggregate : pRenamer.aggregateDecls) {
+      if (!aggregateInitEmitted.add(aggregate.getQualifiedName())) {
+        continue;
+      }
+      String baseName = baseNameFor(aggregate.getQualifiedName());
+      CType baseType = new CPointerType(CTypeQualifiers.NONE, aggregate.getType());
+      if (!resolution.getSsa().containsVariable(baseName)) {
+        resolution = indexSymbol(resolution, baseName, baseType, pEdge);
+      }
+      Formula baseTerm = resolve(resolution, baseName, baseType, pEdge);
+      if (registeredBases.add(baseName)) {
+        registry.addAddressBase(baseTerm);
+      }
+      for (AggregateCell cell : aggregateInitCells(aggregate, pEdge)) {
+        String initName = registry.freshCssaName("__oc_agginit");
+        resolution = indexSymbol(resolution, initName, cell.type(), pEdge);
+        Formula valueTerm = resolve(resolution, initName, cell.type(), pEdge);
+        if (cell.value() != null) {
+          registry.addPathConstraint(
+              bfmgr.implication(
+                  pState.getGuard(),
+                  fmgr.makeEqual(
+                      valueTerm, fmgr.makeNumber(fmgr.getFormulaType(valueTerm), cell.value()))));
+        }
+        Formula offsetTerm =
+            cell.offset() == null
+                ? symbolicOffset(resolution, pEdge)
+                : evaluateInt(longLiteral(cell.offset()), resolution, pEdge);
+        MemoryEvent event =
+            registry.addEvent(
+                pState.getInstanceId(),
+                EventKind.WRITE,
+                lastEventId,
+                pState.getGuard(),
+                null,
+                initName,
+                valueTerm,
+                null,
+                MemoryEvent.NO_INSTANCE,
+                regionOf(cell.type()),
+                baseTerm,
+                offsetTerm);
+        if (!anyEvent) {
+          for (int i = 1; i < predecessors.size(); i++) {
+            registry.addPoPredecessor(event.id(), predecessors.get(i));
+          }
+          anyEvent = true;
+        }
+        lastEventId = event.id();
+      }
+    }
+
     for (boolean writes : new boolean[] {false, true}) {
       for (PendingAccess access : pRenamer.accesses) {
         if (access.write != writes) {
@@ -614,6 +686,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
             access.addressName == null
                 ? null
                 : resolve(resolution, access.addressName, access.addressType, pEdge);
+        Formula offsetTerm =
+            access.regionId == null ? null : offsetTermOf(access, resolution, pEdge);
         MemoryEvent event =
             registry.addEvent(
                 pState.getInstanceId(),
@@ -626,7 +700,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
                 null,
                 MemoryEvent.NO_INSTANCE,
                 access.regionId,
-                addressTerm);
+                addressTerm,
+                offsetTerm);
         if (!anyEvent) {
           for (int i = 1; i < predecessors.size(); i++) {
             registry.addPoPredecessor(event.id(), predecessors.get(i));
@@ -667,6 +742,34 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     }
   }
 
+  /**
+   * Evaluates an (already cloned) integer expression to a formula by binding it to a fresh symbol
+   * via a synthetic assumption and resolving that symbol; reuses the path-formula converter for all
+   * arithmetic instead of interpreting the expression here. The binding is asserted globally so the
+   * returned symbol is constrained to the expression's value (the symbol is fresh, so an unguarded
+   * binding is sound: it only feeds this access's guarded address constraints).
+   */
+  private Formula evaluateInt(CExpression pExpr, PathFormula pContext, CFAEdge pEdge)
+      throws CPATransferException, InterruptedException {
+    CType type = pExpr.getExpressionType();
+    String name = registry.freshCssaName("__oc_idx");
+    CIdExpression id = syntheticIdExpression(name, type);
+    CBinaryExpression binding =
+        new CBinaryExpression(
+            FileLocation.DUMMY,
+            CNumericTypes.INT,
+            type,
+            id,
+            pExpr,
+            CBinaryExpression.BinaryOperator.EQUALS);
+    CAssumeEdge bindingEdge =
+        new CAssumeEdge(
+            "", FileLocation.DUMMY, pEdge.getPredecessor(), pEdge.getSuccessor(), binding, true);
+    PathFormula bound = pathFormulaManager.makeAnd(pContext, bindingEdge);
+    registry.addPathConstraint(bound.getFormula());
+    return resolve(bound, name, type, pEdge);
+  }
+
   /** Binds the freshly written pointer of a {@code lhs = malloc(...)} to a distinct heap base. */
   private ImmutableList<Integer> handleMallocIfAny(
       OrderingConsistencyState pState,
@@ -687,10 +790,6 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       throw new UnsupportedCodeException("unsupported form of malloc", pEdge);
     }
     CType pointee = pointerType.getType();
-    CType canonicalPointee = pointee.getCanonicalType();
-    if (!(canonicalPointee instanceof CSimpleType || canonicalPointee instanceof CPointerType)) {
-      throw new UnsupportedCodeException("malloc of a non-scalar cell", pEdge);
-    }
 
     String lhsName;
     if (lhs.getDeclaration() instanceof CVariableDeclaration decl && decl.isGlobal()) {
@@ -711,9 +810,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
 
     PathFormula resolution = pathFormulaManager.makeEmptyPathFormulaWithContextFrom(pEdgeFormula);
     String baseName = registry.freshCssaName("__oc_heap");
-    String initName = registry.freshCssaName("__oc_heapinit");
     resolution = indexSymbol(resolution, baseName, lhsType, pEdge);
-    resolution = indexSymbol(resolution, initName, pointee, pEdge);
 
     Formula lhsTerm = resolve(resolution, lhsName, lhsType, pEdge);
     Formula baseTerm = resolve(resolution, baseName, lhsType, pEdge);
@@ -721,25 +818,162 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     registry.addPathConstraint(
         bfmgr.implication(pState.getGuard(), fmgr.makeEqual(lhsTerm, baseTerm)));
 
-    // the allocated cell starts with an unconstrained value
-    int primary = pLastEventIds.isEmpty() ? MemoryEvent.NO_EVENT : pLastEventIds.get(0);
-    MemoryEvent initialWrite =
-        registry.addEvent(
-            pState.getInstanceId(),
-            EventKind.WRITE,
-            primary,
-            pState.getGuard(),
-            null,
-            initName,
-            resolve(resolution, initName, pointee, pEdge),
-            null,
-            MemoryEvent.NO_INSTANCE,
-            regionOf(pointee),
-            baseTerm);
-    for (int i = 1; i < pLastEventIds.size(); i++) {
-      registry.addPoPredecessor(initialWrite.id(), pLastEventIds.get(i));
+    // the allocation provides an indeterminate value at an indeterminate cell of each scalar leaf
+    // region of the pointee: a symbolic offset lets a later read of this allocation read from it,
+    // so uninitialised reads stay feasible (one indeterminate cell per region; programs reading
+    // several never-written cells of one allocation are beyond this approximation)
+    ImmutableList<Integer> lastEventIds = pLastEventIds;
+    for (CType leafType : scalarLeafTypes(pointee)) {
+      String initName = registry.freshCssaName("__oc_heapinit");
+      resolution = indexSymbol(resolution, initName, leafType, pEdge);
+      int primary = lastEventIds.isEmpty() ? MemoryEvent.NO_EVENT : lastEventIds.get(0);
+      MemoryEvent initialWrite =
+          registry.addEvent(
+              pState.getInstanceId(),
+              EventKind.WRITE,
+              primary,
+              pState.getGuard(),
+              null,
+              initName,
+              resolve(resolution, initName, leafType, pEdge),
+              null,
+              MemoryEvent.NO_INSTANCE,
+              regionOf(leafType),
+              baseTerm,
+              symbolicOffset(resolution, pEdge));
+      for (int i = 1; i < lastEventIds.size(); i++) {
+        registry.addPoPredecessor(initialWrite.id(), lastEventIds.get(i));
+      }
+      lastEventIds = ImmutableList.of(initialWrite.id());
     }
-    return ImmutableList.of(initialWrite.id());
+    return lastEventIds;
+  }
+
+  /**
+   * One initial-write cell of an aggregate global: its scalar type, its byte offset (null for one
+   * indeterminate cell per region), and its initial value (null for an indeterminate value).
+   */
+  private record AggregateCell(CType type, @Nullable Long offset, @Nullable BigInteger value) {}
+
+  private static final int MAX_AGGREGATE_INIT_CELLS = 64;
+
+  /**
+   * The initial-write cells of an aggregate global declaration: an extern object has indeterminate
+   * contents (one symbolic-offset cell per scalar region, like a heap allocation), while a defined
+   * object gets one valued cell per scalar leaf at its literal offset (zero unless the initializer
+   * lists a literal for it).
+   */
+  private ImmutableList<AggregateCell> aggregateInitCells(
+      CVariableDeclaration pDeclaration, CFAEdge pEdge) throws UnsupportedCodeException {
+    if (pDeclaration.getType().getCanonicalType() instanceof CElaboratedType) {
+      return ImmutableList.of(); // incomplete type: address-only object, no value cells
+    }
+    if (pDeclaration.getCStorageClass() == CStorageClass.EXTERN) {
+      ImmutableList.Builder<AggregateCell> cells = ImmutableList.builder();
+      for (CType leafType : scalarLeafTypes(pDeclaration.getType())) {
+        cells.add(new AggregateCell(leafType, null, null));
+      }
+      return cells.build();
+    }
+    List<AggregateCell> cells = new ArrayList<>();
+    enumerateInitCells(
+        pDeclaration.getType().getCanonicalType(), pDeclaration.getInitializer(), 0, cells, pEdge);
+    return ImmutableList.copyOf(cells);
+  }
+
+  private void enumerateInitCells(
+      CType pCanonical,
+      @Nullable CInitializer pInitializer,
+      long pBaseOffset,
+      List<AggregateCell> pCells,
+      CFAEdge pEdge)
+      throws UnsupportedCodeException {
+    if (pCells.size() > MAX_AGGREGATE_INIT_CELLS) {
+      throw new UnsupportedCodeException("aggregate with too many cells", pEdge);
+    }
+    if (pCanonical instanceof CCompositeType composite) {
+      List<CInitializer> members = initializerElements(pInitializer, pEdge);
+      int i = 0;
+      for (CCompositeType.CCompositeTypeMemberDeclaration member : composite.getMembers()) {
+        long memberOffset =
+            composite.getKind() == ComplexTypeKind.UNION
+                ? 0
+                : fieldOffsetBytes(composite, member.getName());
+        enumerateInitCells(
+            member.getType().getCanonicalType(),
+            i < members.size() ? members.get(i) : null,
+            pBaseOffset + memberOffset,
+            pCells,
+            pEdge);
+        i++;
+      }
+    } else if (pCanonical instanceof CArrayType array) {
+      int length =
+          array
+              .getLengthAsInt()
+              .orElseThrow(
+                  () -> new UnsupportedCodeException("array of statically unknown length", pEdge));
+      long stride = sizeofBytes(array.getType());
+      List<CInitializer> elements = initializerElements(pInitializer, pEdge);
+      for (int i = 0; i < length; i++) {
+        enumerateInitCells(
+            array.getType().getCanonicalType(),
+            i < elements.size() ? elements.get(i) : null,
+            pBaseOffset + i * stride,
+            pCells,
+            pEdge);
+      }
+    } else {
+      pCells.add(new AggregateCell(pCanonical, pBaseOffset, scalarInitValue(pInitializer, pEdge)));
+    }
+  }
+
+  /** The elements of an initializer list; a missing initializer is an empty list (zero init). */
+  private static List<CInitializer> initializerElements(
+      @Nullable CInitializer pInitializer, CFAEdge pEdge) throws UnsupportedCodeException {
+    if (pInitializer == null) {
+      return ImmutableList.of();
+    }
+    if (pInitializer instanceof CInitializerList list) {
+      for (CInitializer element : list.getInitializers()) {
+        if (element instanceof CDesignatedInitializer) {
+          throw new UnsupportedCodeException("designated aggregate initializer", pEdge);
+        }
+      }
+      return list.getInitializers();
+    }
+    throw new UnsupportedCodeException("unsupported aggregate initializer", pEdge);
+  }
+
+  private static BigInteger scalarInitValue(@Nullable CInitializer pInitializer, CFAEdge pEdge)
+      throws UnsupportedCodeException {
+    if (pInitializer == null) {
+      return BigInteger.ZERO;
+    }
+    if (pInitializer instanceof CInitializerExpression expression
+        && expression.getExpression() instanceof CIntegerLiteralExpression literal) {
+      return literal.getValue();
+    }
+    throw new UnsupportedCodeException("unsupported aggregate cell initializer", pEdge);
+  }
+
+  /** The distinct scalar member types an object of the given type decomposes into. */
+  private static ImmutableList<CType> scalarLeafTypes(CType pType) {
+    Set<CType> leaves = new java.util.LinkedHashSet<>();
+    collectScalarLeafTypes(pType.getCanonicalType(), leaves);
+    return ImmutableList.copyOf(leaves);
+  }
+
+  private static void collectScalarLeafTypes(CType pCanonical, Set<CType> pLeaves) {
+    if (pCanonical instanceof CCompositeType composite) {
+      for (CCompositeType.CCompositeTypeMemberDeclaration member : composite.getMembers()) {
+        collectScalarLeafTypes(member.getType().getCanonicalType(), pLeaves);
+      }
+    } else if (pCanonical instanceof CArrayType array) {
+      collectScalarLeafTypes(array.getType().getCanonicalType(), pLeaves);
+    } else {
+      pLeaves.add(pCanonical);
+    }
   }
 
   private static List<? extends AExpression> getCallParameters(CFAEdge pEdge)
@@ -849,11 +1083,22 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
   private final class CollectingRenamer implements GlobalAccessRenamer {
     private final List<PendingAccess> accesses = new ArrayList<>();
     private final List<PendingBase> mintedBases = new ArrayList<>();
+    private final List<CVariableDeclaration> aggregateDecls = new ArrayList<>();
 
     @Override
     public String freshName(CVariableDeclaration pDeclaration, boolean pIsWrite) {
       String qualifiedName = pDeclaration.getQualifiedName();
       String cssaName = registry.freshCssaName(qualifiedName);
+      CType canonicalType = pDeclaration.getType().getCanonicalType();
+      if (canonicalType instanceof CCompositeType
+          || canonicalType instanceof CArrayType
+          || canonicalType instanceof CElaboratedType) {
+        // aggregate globals have no whole-object value symbol; their cells live in the aliasing
+        // regime, seeded with initial writes when the declaration is first seen. An incomplete
+        // (only forward-declared) type can never be value-accessed, so it gets no cells at all
+        aggregateDecls.add(pDeclaration);
+        return cssaName;
+      }
       PendingAccess access =
           new PendingAccess(
               MemoryLocation.forDeclaration(pDeclaration),
@@ -890,41 +1135,105 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     }
 
     @Override
-    public CIdExpression replaceAliasedAccess(CExpression pClonedAccess, boolean pIsWrite) {
-      CIdExpression pointer;
-      if (pClonedAccess instanceof CPointerExpression deref
-          && stripCasts(deref.getOperand()) instanceof CIdExpression id) {
-        pointer = id;
-      } else if (pClonedAccess instanceof CArraySubscriptExpression subscript
-          && stripCasts(subscript.getArrayExpression()) instanceof CIdExpression id
-          && subscript.getSubscriptExpression() instanceof CIntegerLiteralExpression literal
-          && literal.getValue().signum() == 0) {
-        pointer = id;
-      } else {
-        throw new UnsupportedAccessException(
-            "unsupported dereferencing access: " + pClonedAccess.toASTString());
+    public CIdExpression replaceAliasedAccess(
+        CExpression pOriginalAccess, boolean pIsWrite, UnaryOperator<CExpression> pSubCloner) {
+      CType valueType = pOriginalAccess.getExpressionType();
+      CType canonical = valueType.getCanonicalType();
+      if (!(canonical instanceof CSimpleType || canonical instanceof CPointerType)) {
+        return null; // only scalar cells; fall back to default cloning
       }
-      if (!(pointer.getExpressionType().getCanonicalType() instanceof CPointerType)) {
-        throw new UnsupportedAccessException(
-            "dereference of a non-pointer: " + pClonedAccess.toASTString());
+      PendingAccess access =
+          new PendingAccess(null, registry.freshCssaName("__oc_mem"), pIsWrite, valueType);
+      BaseInfo base = analyzeLvalue(pOriginalAccess, access, pSubCloner);
+      if (base == null) {
+        return null; // a local, non-aliased object; fall back to default cloning
       }
-      CType valueType = pClonedAccess.getExpressionType();
-      CType canonicalValueType = valueType.getCanonicalType();
-      if (!(canonicalValueType instanceof CSimpleType
-          || canonicalValueType instanceof CPointerType)) {
-        throw new UnsupportedAccessException(
-            "non-scalar dereference: " + pClonedAccess.toASTString());
-      }
-
-      String pointerName = pointer.getDeclaration().getQualifiedName();
-      String tempName = registry.freshCssaName("__oc_mem");
-      PendingAccess access = new PendingAccess(null, tempName, pIsWrite, valueType);
       access.regionId = regionOf(valueType);
-      access.addressName = pointerName;
-      access.addressType = pointer.getExpressionType();
+      access.addressName = base.name();
+      access.addressType = base.type();
       accesses.add(access);
-      return syntheticIdExpression(tempName, valueType);
+      return syntheticIdExpression(access.cssaName, valueType);
     }
+
+    /**
+     * Walks an lvalue, accumulating its byte offset (constant field/literal parts plus symbolic
+     * index contributions) into the access, and returns the base object's identity: a distinct
+     * constant for a global object, or the value of a pointer. Returns null if the base is a local
+     * non-pointer object (not an aliased global access).
+     */
+    private @Nullable BaseInfo analyzeLvalue(
+        CExpression pLvalue, PendingAccess pAccess, UnaryOperator<CExpression> pSubCloner) {
+      CExpression lvalue = stripCasts(pLvalue);
+      if (lvalue instanceof CIdExpression id) {
+        if (id.getDeclaration() instanceof CVariableDeclaration decl && decl.isGlobal()) {
+          return mintObjectBase(decl.getQualifiedName(), decl.getType());
+        }
+        return null; // local object base
+      }
+      if (lvalue instanceof CPointerExpression deref) {
+        return pointerBase(deref.getOperand(), pSubCloner);
+      }
+      if (lvalue instanceof CArraySubscriptExpression subscript) {
+        CExpression arrayExpr = stripCasts(subscript.getArrayExpression());
+        long stride = sizeofBytes(subscript.getExpressionType());
+        CExpression index = subscript.getSubscriptExpression();
+        if (index instanceof CIntegerLiteralExpression literal) {
+          addOffset(pAccess, longLiteral(literal.getValue().longValueExact() * stride));
+        } else {
+          addOffset(pAccess, scaled(pSubCloner.apply(index), stride));
+        }
+        if (arrayExpr.getExpressionType().getCanonicalType() instanceof CArrayType) {
+          return analyzeLvalue(arrayExpr, pAccess, pSubCloner); // array object indexed
+        }
+        return pointerBase(arrayExpr, pSubCloner); // pointer indexed (p[i])
+      }
+      if (lvalue instanceof CFieldReference field) {
+        CExpression owner = field.getFieldOwner();
+        CType ownerType =
+            field.isPointerDereference()
+                ? ((CPointerType) stripCasts(owner).getExpressionType().getCanonicalType())
+                    .getType()
+                : owner.getExpressionType();
+        if (!(ownerType.getCanonicalType() instanceof CCompositeType composite)) {
+          throw new UnsupportedAccessException("field of non-composite: " + lvalue.toASTString());
+        }
+        addOffset(pAccess, longLiteral(fieldOffsetBytes(composite, field.getFieldName())));
+        return field.isPointerDereference()
+            ? pointerBase(owner, pSubCloner) // owner->field
+            : analyzeLvalue(owner, pAccess, pSubCloner); // owner.field
+      }
+      throw new UnsupportedAccessException("unsupported aliased access: " + lvalue.toASTString());
+    }
+
+    /** The base of a pointer expression: the cloned pointer's value symbol. */
+    private BaseInfo pointerBase(CExpression pPointer, UnaryOperator<CExpression> pSubCloner) {
+      CExpression cloned = stripCasts(pSubCloner.apply(pPointer));
+      if (cloned instanceof CIdExpression id
+          && id.getExpressionType().getCanonicalType() instanceof CPointerType) {
+        return new BaseInfo(id.getDeclaration().getQualifiedName(), id.getExpressionType());
+      }
+      throw new UnsupportedAccessException("unsupported pointer base: " + pPointer.toASTString());
+    }
+
+    /** A distinct base constant for a global object of the given qualified name and type. */
+    private BaseInfo mintObjectBase(String pQualifiedName, CType pObjectType) {
+      String baseName = baseNameFor(pQualifiedName);
+      CType baseType = new CPointerType(CTypeQualifiers.NONE, pObjectType);
+      mintedBases.add(new PendingBase(baseName, baseType));
+      return new BaseInfo(baseName, baseType);
+    }
+  }
+
+  /** The base object identity of an aliased access. */
+  private record BaseInfo(String name, CType type) {}
+
+  private long sizeofBytes(CType pType) {
+    return machineModel.getSizeof(pType.getCanonicalType()).longValueExact();
+  }
+
+  private long fieldOffsetBytes(CCompositeType pComposite, String pField) {
+    return machineModel.getFieldOffsetInBits(pComposite, pField).longValueExact()
+        / machineModel.getSizeofCharInBits();
   }
 
   /** One renamed access; region fields are set for accesses of the aliasing regime. */
@@ -936,6 +1245,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     private @Nullable String regionId;
     private @Nullable String addressName;
     private @Nullable CType addressType;
+    // byte offset within the object as a C expression, or null for a plain zero offset
+    private @Nullable CExpression offsetExpr;
 
     private PendingAccess(
         @Nullable MemoryLocation pMemoryLocation, String pCssaName, boolean pWrite, CType pType) {
@@ -944,6 +1255,61 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       write = pWrite;
       type = pType;
     }
+  }
+
+  private static void addOffset(PendingAccess pAccess, CExpression pTerm) {
+    pAccess.offsetExpr = pAccess.offsetExpr == null ? pTerm : plus(pAccess.offsetExpr, pTerm);
+  }
+
+  /**
+   * Builds the byte-offset term of a region access as one integer formula in the solver's native
+   * word type, by evaluating the accumulated offset expression (zero if none) through the
+   * path-formula converter so its type matches the index values.
+   */
+  private Formula offsetTermOf(PendingAccess pAccess, PathFormula pResolution, CFAEdge pEdge)
+      throws CPATransferException, InterruptedException {
+    if (pAccess.offsetExpr == null) {
+      // offset-free accesses share one constant zero term instead of minting a symbol each
+      if (zeroOffsetTerm == null) {
+        zeroOffsetTerm = evaluateInt(longLiteral(0), pResolution, pEdge);
+      }
+      return zeroOffsetTerm;
+    }
+    return evaluateInt(pAccess.offsetExpr, pResolution, pEdge);
+  }
+
+  /** A fresh, unconstrained byte-offset term in the solver's native word type. */
+  private Formula symbolicOffset(PathFormula pContext, CFAEdge pEdge)
+      throws CPATransferException, InterruptedException {
+    return evaluateInt(
+        syntheticIdExpression(registry.freshCssaName("__oc_off"), CNumericTypes.LONG_INT),
+        pContext,
+        pEdge);
+  }
+
+  private static CExpression longLiteral(long pValue) {
+    return new CIntegerLiteralExpression(
+        FileLocation.DUMMY, CNumericTypes.LONG_INT, BigInteger.valueOf(pValue));
+  }
+
+  private static CExpression plus(CExpression pLeft, CExpression pRight) {
+    return new CBinaryExpression(
+        FileLocation.DUMMY,
+        CNumericTypes.LONG_INT,
+        CNumericTypes.LONG_INT,
+        pLeft,
+        pRight,
+        CBinaryExpression.BinaryOperator.PLUS);
+  }
+
+  private static CExpression scaled(CExpression pIndex, long pScale) {
+    return new CBinaryExpression(
+        FileLocation.DUMMY,
+        CNumericTypes.LONG_INT,
+        CNumericTypes.LONG_INT,
+        pIndex,
+        longLiteral(pScale),
+        CBinaryExpression.BinaryOperator.MULTIPLY);
   }
 
   /** The address constant of one address-taken variable or heap allocation. */

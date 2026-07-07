@@ -34,8 +34,11 @@ import org.sosy_lab.java_smt.api.Formula;
  *     #NO_INSTANCE}
  * @param regionId alias region (canonical accessed type) for READ/WRITE events of address-taken
  *     variables and pointer dereferences; null for accesses that can never be aliased
- * @param addressTerm the accessed address in the solver, for events with a {@link #regionId}: two
- *     region events access the same cell iff their address terms are equal
+ * @param addressTerm the base (object identity) of the access, for events with a {@link #regionId}:
+ *     two region events touch the same object iff their base terms are equal (bases are pairwise
+ *     distinct, so this equality is exact)
+ * @param offsetTerm the byte offset within the object, for events with a {@link #regionId}; null
+ *     means a zero offset. Two region events touch the same cell iff both base and offset are equal
  */
 public record MemoryEvent(
     int id,
@@ -49,7 +52,8 @@ public record MemoryEvent(
     @Nullable String mutexId,
     int otherInstanceId,
     @Nullable String regionId,
-    @Nullable Formula addressTerm) {
+    @Nullable Formula addressTerm,
+    @Nullable Formula offsetTerm) {
 
   public static final int NO_EVENT = -1;
   public static final int NO_INSTANCE = -1;

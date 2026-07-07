@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.por;
 
+import java.util.function.UnaryOperator;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -39,11 +40,13 @@ public interface GlobalAccessRenamer {
   }
 
   /**
-   * Offers to replace one dereferencing access (pointer dereference or array subscript, rebuilt
-   * from already-cloned operands). Returning null keeps the rebuilt expression unchanged.
+   * Offers to replace one aliased memory access (pointer dereference, array subscript, or field
+   * reference), given the ORIGINAL access expression and a sub-cloner that clones an rvalue
+   * sub-expression with the same renaming (so the renamer can decide, per sub-part, whether to
+   * clone it or treat it as an object base/offset). Returning null keeps the default cloning.
    */
   default @Nullable CIdExpression replaceAliasedAccess(
-      CExpression pClonedAccess, boolean pIsWrite) {
+      CExpression pOriginalAccess, boolean pIsWrite, UnaryOperator<CExpression> pSubCloner) {
     return null;
   }
 
