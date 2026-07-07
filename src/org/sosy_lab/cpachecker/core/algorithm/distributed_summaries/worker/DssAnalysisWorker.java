@@ -268,7 +268,6 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
 
   @Override
   public void close() {
-    logger.logf(Level.INFO, "Worker %s called close().", getId());
     if (!closed && analysis.wouldBeCalledFromCorrectThread()) {
       CPAs.closeCpaIfPossible(analysis.getDssBlockAnalysis().getDcpa(), logger);
       closed = true;
