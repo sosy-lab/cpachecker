@@ -249,8 +249,7 @@ class AntlrPredicateToPredicateConverter extends AntlrToInternalAbstractConverte
           }
 
           parameters.add(
-              new AcslParameterDeclaration(
-                  fileLocationFromContext(binder), type, variableName));
+              new AcslParameterDeclaration(fileLocationFromContext(binder), type, variableName));
         }
       } else {
         throw new RuntimeException("Expected a binder in the binders list");

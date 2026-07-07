@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class AcslToFormulaVisitorsTest {
@@ -534,8 +535,14 @@ public class AcslToFormulaVisitorsTest {
                             b.minus(new AcslIdTerm(FileLocation.DUMMY, index), b.integer(1)))),
                     b.eq(ai, b.integer(0)))));
 
-    // TODO I don't have code to add this definition as an assumption
-    // but if i don't this cannot work...
+    AcslPredicateApplicationPredicate pai =
+        new AcslPredicateApplicationPredicate(
+            FileLocation.DUMMY,
+            declP,
+            ImmutableList.of(
+                new AcslIdTerm(FileLocation.DUMMY, a), new AcslIdTerm(FileLocation.DUMMY, index)));
+
+    BooleanFormula fDefinition = translate(b.equivalent(pai, defP.getBody()));
 
     AcslPredicateApplicationPredicate pa2 =
         new AcslPredicateApplicationPredicate(
@@ -550,6 +557,14 @@ public class AcslToFormulaVisitorsTest {
 
     AcslPredicate unsatPred = b.not(pred);
     BooleanFormula f = translate(unsatPred);
-    assertThat(smtSolver.isUnsat(f)).isTrue();
+
+    boolean unsat;
+
+    try (ProverEnvironment prover = smtSolver.newProverEnvironment()) {
+      prover.addConstraint(fDefinition);
+      prover.addConstraint(f);
+      unsat = prover.isUnsat();
+    }
+    assertThat(unsat).isTrue();
   }
 }
