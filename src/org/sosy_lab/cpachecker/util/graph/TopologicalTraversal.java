@@ -17,7 +17,7 @@ import java.util.List;
 import org.jspecify.annotations.Nullable;
 
 // Interface is inspired by {@link Traverser}
-public class TopologicalTraversal<T> extends AbstractIterator<T> {
+public final class TopologicalTraversal<T> extends AbstractIterator<T> {
 
   private final T root;
   private final SuccessorsFunction<T> edges;
@@ -79,7 +79,11 @@ public class TopologicalTraversal<T> extends AbstractIterator<T> {
   }
 
   /**
-   * Returns an iterator that traverses the nodes of a DAG in topological order.
+   * Returns an iterator that traverses the nodes of a DAG in topological order. Only nodes
+   * reachable from root are visited. If the graph is not a DAG, the traversal will not visit any
+   * nodes that are reachable through a loop.
+   *
+   * <p>Traverses the whole graph at setup and requires O(nodes) memory.
    *
    * @param <T> The nodes. The hash function of these elements should not change during the
    *     traversal
