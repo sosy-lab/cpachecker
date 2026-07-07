@@ -16,6 +16,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.TreeMultimap;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -41,12 +42,16 @@ import org.sosy_lab.common.io.TempFile;
 import org.sosy_lab.common.io.TempFile.DeleteOnCloseFile;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
+import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
@@ -54,6 +59,7 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -63,14 +69,18 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 @Options(prefix = "counterexample.checker")
 public class CounterexampleCPAchecker implements CounterexampleChecker {
@@ -232,12 +242,27 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
       ShutdownManager lShutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
       ResourceLimitChecker.fromConfiguration(lConfig, lLogger, lShutdownManager).start();
 
+      // TODO TMP
+      //MutableCFA newCFA = MutableCFA.copyOf(cfa, lConfig, lLogger);
+      TreeMultimap<String, CFANode> allNodes = TreeMultimap.create();
+      for (CFANode node : cfa.nodes()) {
+        String functionName = node.getFunction().getQualifiedName();
+        allNodes.put(functionName, node);
+      }
+      MutableCFA newCFA = new MutableCFA(
+          cfa.getAllFunctions(),
+          allNodes,
+          cfa.getMetadata().withNodesToProgramTransformations(null)
+      );
+      //newCFA.setMetadata(newCFA.getMetadata().withNodesToProgramTransformations(null));
+      // TODO TMP
+
       Specification lSpecification =
           specification.withAdditionalSpecificationFile(
-              ImmutableSet.of(automatonFile), cfa, lConfig, lLogger, shutdownNotifier);
+              ImmutableSet.of(automatonFile), newCFA.immutableCopy(), lConfig, lLogger, shutdownNotifier);
       CoreComponentsFactory factory =
           new CoreComponentsFactory(
-              lConfig, lLogger, lShutdownManager.getNotifier(), AggregatedReachedSets.empty(), cfa);
+              lConfig, lLogger, lShutdownManager.getNotifier(), AggregatedReachedSets.empty(), newCFA.immutableCopy());
       ConfigurableProgramAnalysis lCpas = factory.createCPA(lSpecification);
       Algorithm lAlgorithm = factory.createAlgorithm(lCpas, lSpecification);
       ReachedSet lReached = factory.createReachedSet(lCpas);
