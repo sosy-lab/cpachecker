@@ -105,8 +105,15 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
   boolean isMostGeneralBlockEntryState(AbstractState pAbstractState);
 
   /**
-   * Hash the current location of the abstract state. This is typically given by the CFA node, the
-   * callstack, and the function pointer state.
+   * Return a hash that represents the location-part of the given abstract state, for this CPA's
+   * domain. Examples for CPAs tracking location information are the {@link
+   * org.sosy_lab.cpachecker.cpa.location.LocationCPA}, the {@link
+   * org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA}, and the {@link
+   * org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA}.
+   *
+   * <p>Different program locations should provide different hashes, and equal program locations
+   * must provide the same hash. If a CPA does not track any location information, this method must
+   * always return the same value.
    *
    * @param pAbstractState Any abstract state.
    * @return an identifier for unique program points.

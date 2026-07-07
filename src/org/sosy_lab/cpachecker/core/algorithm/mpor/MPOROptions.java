@@ -110,9 +110,9 @@ public class MPOROptions {
       secure = true,
       description =
           "Include original function declarations from the input program? Including them may result"
-              + " in unsound analysis (e.g. false alarms for CBMC, or ignored function calls"
-              + " through function pointers for CPAchecker).")
-  private boolean inputFunctionDeclarations = false;
+              + " in an unsound analysis (e.g. false alarms for CBMC). Not including them may "
+              + " result in the output program producing errors when compiled e.g. by clang.")
+  private boolean inputFunctionDeclarations = true;
 
   @Option(
       secure = true,

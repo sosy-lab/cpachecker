@@ -7,6 +7,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include <pthread.h>
+#include <stdlib.h>
+
 int x;
 int x = 1;
 pthread_mutex_t mutexA;
@@ -32,8 +34,15 @@ PQUEUE struct_with_mutex_implicit = { 0, PTHREAD_MUTEX_INITIALIZER };
 PQUEUE_PTR struct_with_mutex_ptr;
 PQUEUE_PTR yet_another_struct_with_mutex_ptr;
 extern void __assert_fail(const char *__assertion, const char *__file, unsigned int __line, const char *__function);
+int assume(int cond);
+void abort();
 int printk(const char *arg0, ...) {
   return __VERIFIER_nondet_int();
+}
+int assume(int cond) {
+  if (cond == 0) {
+    abort();
+  }
 }
 void *task1(void *arg) {
     int hello = 42;

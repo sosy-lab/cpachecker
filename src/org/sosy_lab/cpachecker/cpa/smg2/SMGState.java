@@ -444,38 +444,38 @@ public class SMGState
 
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    switch (pProperty) {
+    return switch (pProperty) {
       case HAS_LEAKS -> {
         if (hasMemoryLeak()) {
           // TODO: Give more information
           issueMemoryError("Memory leak found", false);
-          return true;
+          yield true;
         }
-        return false;
+        yield false;
       }
       case HAS_INVALID_WRITES -> {
         if (hasInvalidWrite()) {
           // TODO: Give more information
           issueMemoryError("Invalid write found", true);
-          return true;
+          yield true;
         }
-        return false;
+        yield false;
       }
       case HAS_INVALID_READS -> {
         if (hasInvalidRead()) {
           // TODO: Give more information
           issueMemoryError("Invalid read found", true);
-          return true;
+          yield true;
         }
-        return false;
+        yield false;
       }
       case HAS_INVALID_FREES -> {
         if (hasInvalidFree()) {
           // TODO: Give more information
           issueMemoryError("Invalid free found", true);
-          return true;
+          yield true;
         }
-        return false;
+        yield false;
       }
       case HAS_HEAP_OBJECTS -> {
         // Having heap objects is not an error on its own.
@@ -491,10 +491,10 @@ public class SMGState
             heapObs = heapObs.removeAndCopy(object);
           }
         }
-        return !heapObs.isEmpty();
+        yield !heapObs.isEmpty();
       }
       default -> throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
-    }
+    };
   }
 
   private void issueMemoryError(String pMessage, boolean pUndefinedBehavior) {

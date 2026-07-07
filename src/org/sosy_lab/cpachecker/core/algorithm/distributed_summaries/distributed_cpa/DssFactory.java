@@ -74,12 +74,15 @@ public class DssFactory {
         LogManager pLogManager,
         ShutdownNotifier pShutdownNotifier)
         throws InvalidConfigurationException, CPATransferException, InterruptedException {
-      if (!cachedVariableAndFunctionToTypeMap.containsKey(pCFA)) {
-        cachedVariableAndFunctionToTypeMap.put(
-            pCFA,
-            ImmutableMap.copyOf(getTypeMap(pCFA, pConfiguration, pLogManager, pShutdownNotifier)));
+      ImmutableMap<String, Type> cached = cachedVariableAndFunctionToTypeMap.get(pCFA);
+      if (cached == null) {
+        // computeIfAbsent cannot be used here because getTypeMap throws checked exceptions that the
+        // functional interface cannot propagate.
+        cached =
+            ImmutableMap.copyOf(getTypeMap(pCFA, pConfiguration, pLogManager, pShutdownNotifier));
+        cachedVariableAndFunctionToTypeMap.put(pCFA, cached);
       }
-      return cachedVariableAndFunctionToTypeMap.get(pCFA);
+      return cached;
     }
 
     /**
@@ -122,7 +125,7 @@ public class DssFactory {
       }
     }
 
-    static BiMap<Integer, CFANode> getOrCreateLocationMapping(CFA pCFA) {
+    static synchronized BiMap<Integer, CFANode> getOrCreateLocationMapping(CFA pCFA) {
       if (!integerToNodeMap.containsKey(pCFA)) {
         ImmutableMap<Integer, CFANode> nodeMap =
             ImmutableMap.copyOf(CFAUtils.getMappingFromNodeIDsToCFANodes(pCFA));

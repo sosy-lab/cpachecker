@@ -27,6 +27,8 @@ int main() {
   pthread_join(t2, NULL);
   if (counter != 2) {
     // this point is only reachable if the increment is not interpreted as atomic
+    // Currently CPAchecker does not consider interleavings within individual statements
+    // and treats all statements as atomic, so a wrong proof is expected here.
     ERROR: {reach_error();abort();}
   }
 
