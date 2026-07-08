@@ -53,7 +53,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -523,17 +522,11 @@ public class ARGUtils {
           ARGState trueChild = null;
           ARGState falseChild = null;
 
-          Iterable<CFANode> locs = AbstractStates.extractLocations(currentElement);
-          checkArgument(
-              !Iterables.any(
-                  locs,
-                  loc ->
-                      !loc.getLeavingEdges()
-                          .allMatch(e -> e instanceof AssumeEdge || e instanceof BlankEdge)),
-              "ARG branches where there is no AssumeEdge!");
-
           for (ARGState currentChild : childrenInArg) {
             CFAEdge currentEdge = currentElement.getEdgeToChild(currentChild);
+            checkArgument(
+                currentEdge instanceof AssumeEdge,
+                "ARG branches with edge that is not an AssumeEdge!");
             if (((AssumeEdge) currentEdge).getTruthAssumption()) {
               trueEdge = (AssumeEdge) currentEdge;
               trueChild = currentChild;
