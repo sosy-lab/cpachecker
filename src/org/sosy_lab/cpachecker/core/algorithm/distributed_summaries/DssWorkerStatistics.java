@@ -95,7 +95,7 @@ public class DssWorkerStatistics implements Statistics {
   }
 
   @Override
-  public @Nullable String getName() {
+  public String getName() {
     return "DSS Worker Statistics";
   }
 }
