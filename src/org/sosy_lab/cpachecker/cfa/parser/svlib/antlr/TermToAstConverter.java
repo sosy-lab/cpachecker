@@ -118,7 +118,10 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
     // Match Integer Arithmetic logic
     if (FluentIterable.from(pLogics).anyMatch(SmtLibLogic::containsIntegerArithmetic)
         && FluentIterable.from(pArguments)
-            .allMatch(term -> term.getExpressionType().equals(SvLibSmtLibPredefinedType.INT))) {
+            .allMatch(
+                term ->
+                    SvLibType.canBeCastTo(
+                        term.getExpressionType(), SvLibSmtLibPredefinedType.INT))) {
       switch (pSymbol) {
         case "=" -> {
           Verify.verify(pArguments.size() == 2);
