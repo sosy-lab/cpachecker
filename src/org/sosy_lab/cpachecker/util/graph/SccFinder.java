@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -113,7 +112,7 @@ public final class SccFinder {
             pSCCFactory);
       }
     }
-    return ImmutableSet.copyOf(Lists.reverse(sccs));
+    return ImmutableSet.copyOf(sccs);
   }
 
   /** Recursively find {@link StronglyConnectedComponent}s using DFS traversal. */

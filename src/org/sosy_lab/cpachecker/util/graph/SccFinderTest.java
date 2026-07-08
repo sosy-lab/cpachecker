@@ -44,7 +44,8 @@ public class SccFinderTest {
         SccFinder.findSCCs(ImmutableList.of(1, 2, 3), adj::get);
 
     assertThat(sccs).hasSize(3);
-    assertThat(getAllNodeSets(sccs)).containsExactly(Set.of(1), Set.of(2), Set.of(3));
+    assertThat(getAllNodeSets(sccs))
+        .containsExactly(ImmutableSet.of(1), ImmutableSet.of(2), ImmutableSet.of(3));
   }
 
   @Test
@@ -79,7 +80,7 @@ public class SccFinderTest {
         SccFinder.findSCCs(ImmutableList.of(1, 2, 3, 4), adj::get);
 
     assertThat(sccs).hasSize(2);
-    assertThat(getAllNodeSets(sccs)).containsExactly(Set.of(1, 2), Set.of(3, 4));
+    assertThat(getAllNodeSets(sccs)).containsExactly(ImmutableSet.of(1, 2), ImmutableSet.of(3, 4));
   }
 
   @Test
@@ -167,7 +168,8 @@ public class SccFinderTest {
         SccFinder.findSCCs(ImmutableList.of(a, b, c, d, e), adj::get);
 
     assertThat(sccs).hasSize(2);
-    assertThat(getAllNodeSets(sccs)).containsExactly(Set.of(e), Set.of(a, b, c, d));
+    assertThat(getAllNodeSets(sccs))
+        .containsExactly(ImmutableSet.of(e), ImmutableSet.of(a, b, c, d));
   }
 
   // ---------------------------------------------------------------------
