@@ -428,16 +428,13 @@ public class AcslToFormulaVisitorsTest {
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 
-  // TODO Issue: I do not understand why this still creates constraints even though a is in the pts
-  // TODO Issue2: SSA Index in CExpression with quantified variable is not removed
-  @Ignore
   @Test
   public void testAcslCExpressionWithArray()
       throws InvalidConfigurationException, SolverException, InterruptedException {
     // !((\forall integer i; 0 <= i && i < 3 ==> a[i] == 5) ==> a[1] == 5) should be unsat
 
     AcslParameterDeclaration i =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i");
+        new AcslParameterDeclaration(FileLocation.DUMMY, new AcslCType(basicInt()), "i");
 
     CVariableDeclaration ci = createCVariableDeclaration("i");
 
@@ -468,6 +465,7 @@ public class AcslToFormulaVisitorsTest {
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 
+  // TODO there is still a bug in the translation of this
   @Ignore
   @Test
   public void testAcslPredicateOverArray()
@@ -483,7 +481,7 @@ public class AcslToFormulaVisitorsTest {
             "P");
 
     AcslParameterDeclaration index =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i", "P");
+        new AcslParameterDeclaration(FileLocation.DUMMY, new AcslCType(basicInt()), "i", "P");
 
     AcslPredicateDeclaration declP =
         new AcslPredicateDeclaration(
