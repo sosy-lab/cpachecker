@@ -11,23 +11,27 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import com.google.common.collect.ImmutableList;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.graph.StronglyConnectedComponent;
 
-public class StronglyConnectedComponent
-    extends de.uni_freiburg.informatik.ultimate.util.scc.StronglyConnectedComponent<ARGState> {
+public final class ARGStronglyConnectedComponent extends StronglyConnectedComponent<ARGState> {
+
+  public ARGStronglyConnectedComponent(ARGState pRoot) {
+    super(pRoot);
+  }
 
   public ImmutableList<ARGState> nodesAsList() {
-    return ImmutableList.copyOf(mNodes);
+    return ImmutableList.copyOf(getNodes());
   }
 
   public boolean hasTargetStates() {
-    return mNodes.stream().anyMatch(ARGState::isTarget);
+    return getNodes().stream().anyMatch(ARGState::isTarget);
   }
 
   @Override
   public String toString() {
     return String.format(
         "[%s]",
-        mNodes.stream()
+        getNodes().stream()
             .map(x -> (x.getStateId() + ":" + AbstractStates.extractLocation(x)))
             .collect(Collectors.joining(", ")));
   }

@@ -69,8 +69,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGStronglyConnectedComponent;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.arg.StronglyConnectedComponent;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.InterpolationAutomaton;
@@ -86,9 +86,9 @@ import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUti
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.GraphUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.graph.GraphUtils;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AssignmentToPathAllocator;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
@@ -318,17 +318,17 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
     logger.logf(Level.INFO, "Current iteration: %d", curRefinementIteration);
 
     shutdownNotifier.shutdownIfNecessary();
-    Set<StronglyConnectedComponent> SCCs =
+    Set<ARGStronglyConnectedComponent> SCCs =
         GraphUtils.retrieveSCCs(reached).stream()
             .filter(x -> x.getNodes().size() > 1)
-            .filter(StronglyConnectedComponent::hasTargetStates)
+            .filter(ARGStronglyConnectedComponent::hasTargetStates)
             .collect(ImmutableSet.toImmutableSet());
 
     logger.logf(Level.INFO, "Found %d SCC(s) with target-states", SCCs.size());
 
     boolean terminationFunctionFound = false;
 
-    for (StronglyConnectedComponent scc : SCCs) {
+    for (ARGStronglyConnectedComponent scc : SCCs) {
 
       shutdownNotifier.shutdownIfNecessary();
       List<ImmutableList<ARGState>> sscCycles =

@@ -6,22 +6,20 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util;
+package org.sosy_lab.cpachecker.util.graph;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
-import de.uni_freiburg.informatik.ultimate.core.model.services.ILogger;
-import de.uni_freiburg.informatik.ultimate.util.scc.SccComputation;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,7 +30,8 @@ import java.util.Set;
 import java.util.function.Function;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.StronglyConnectedComponent;
+import org.sosy_lab.cpachecker.cpa.arg.ARGStronglyConnectedComponent;
+import org.sosy_lab.cpachecker.util.Pair;
 
 /** Some utilities for generic graphs. */
 public class GraphUtils {
@@ -146,7 +145,7 @@ public class GraphUtils {
       Set<ARGState> excludeSet = new HashSet<>(pStates);
       excludeSet.addAll(pExcludeStates);
       excludeSet.removeAll(subList);
-      ImmutableSet<StronglyConnectedComponent> SCCs =
+      ImmutableSet<ARGStronglyConnectedComponent> SCCs =
           retrieveSCCs(subList, excludeSet).stream()
               .filter(x -> x.getNodes().size() > 1)
               .collect(ImmutableSet.toImmutableSet());
@@ -249,35 +248,27 @@ public class GraphUtils {
    * O(|N| + |E|)
    *
    * @param pReached the reached set.
-   * @return A set containing all {@link StronglyConnectedComponent}s. This set also includes SCCs
-   *     that only consists of a single ARGState.
+   * @return A set containing all {@link ARGStronglyConnectedComponent}s. This set also includes
+   *     SCCs that only consists of a single ARGState.
    */
-  public static ImmutableSet<StronglyConnectedComponent> retrieveSCCs(ReachedSet pReached) {
+  public static ImmutableSet<ARGStronglyConnectedComponent> retrieveSCCs(ReachedSet pReached) {
     checkNotNull(pReached);
 
-    return retrieveSCCs(
-        FluentIterable.from(pReached.asCollection()).transform(x -> (ARGState) x).toList(),
-        ImmutableSet.of());
+    ImmutableList<ARGState> argStates =
+        transformedImmutableListCopy(pReached.asCollection(), x -> (ARGState) x);
+
+    return retrieveSCCs(argStates, ImmutableSet.of());
   }
 
-  private static ImmutableSet<StronglyConnectedComponent> retrieveSCCs(
+  private static ImmutableSet<ARGStronglyConnectedComponent> retrieveSCCs(
       List<ARGState> pARGStates, Collection<ARGState> pExcludeStates) {
     checkNotNull(pARGStates);
+    checkNotNull(pExcludeStates);
 
-    ImmutableSet<ARGState> filteredARGStates =
-        FluentIterable.from(pARGStates).filter(c -> !pExcludeStates.contains(c)).toSet();
-
-    SccComputation<ARGState, StronglyConnectedComponent> comp =
-        new SccComputation<>(
-            ILogger.getDummyLogger(),
-            s ->
-                FluentIterable.from(s.getChildren())
-                    .filter(c -> !pExcludeStates.contains(c))
-                    .iterator(),
-            () -> new StronglyConnectedComponent(),
-            filteredARGStates.size(),
-            filteredARGStates);
-
-    return ImmutableSet.copyOf(comp.getSCCs());
+    return SccFinder.findSCCs(
+        pARGStates,
+        node -> node.getChildren(),
+        pExcludeStates,
+        r -> new ARGStronglyConnectedComponent(r));
   }
 }

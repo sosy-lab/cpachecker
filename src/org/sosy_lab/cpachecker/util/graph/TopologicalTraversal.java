@@ -83,10 +83,11 @@ public final class TopologicalTraversal<T> extends AbstractIterator<T> {
    * reachable from root are visited. If the graph is not a DAG, the traversal will not visit any
    * nodes that are reachable through a loop.
    *
-   * <p>Traverses the whole graph at setup and requires O(nodes) memory.
+   * <p>Traverses the whole graph at setup and requires O(nodes) memory. If the predecessor
+   * relationship is known, a different implementation that avoids this should be used.
    *
-   * @param <T> The nodes. The hash function of these elements should not change during the
-   *     traversal
+   * @param <T> The type of the nodes. The hash function of these elements should not change during
+   *     the traversal
    */
   public static final <T> Iterable<T> traverse(T root, SuccessorsFunction<T> edges) {
     return () -> new TopologicalTraversal<>(root, edges);

@@ -13,12 +13,9 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
-import de.uni_freiburg.informatik.ultimate.core.model.services.ILogger;
-import de.uni_freiburg.informatik.ultimate.util.scc.DefaultSccComputation;
-import de.uni_freiburg.informatik.ultimate.util.scc.SccComputation;
-import de.uni_freiburg.informatik.ultimate.util.scc.StronglyConnectedComponent;
-import java.util.List;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.inlining.FunctionGraph.Call;
+import org.sosy_lab.cpachecker.util.graph.SccFinder;
+import org.sosy_lab.cpachecker.util.graph.StronglyConnectedComponent;
 import org.sosy_lab.cpachecker.util.graph.TopologicalTraversal;
 
 public class FunctionSCCGraph {
@@ -49,14 +46,8 @@ public class FunctionSCCGraph {
 
   public static FunctionSCCGraph from(FunctionGraph graph) {
 
-    SccComputation<BlockFunction, StronglyConnectedComponent<BlockFunction>> comp =
-        new DefaultSccComputation<>(
-            ILogger.getDummyLogger(),
-            bf -> graph.getSuccessors(bf).iterator(),
-            graph.getFunctions().size(),
-            ImmutableSet.of(graph.getRoot()));
-
-    List<StronglyConnectedComponent<BlockFunction>> sccList = comp.getSCCs();
+    ImmutableSet<StronglyConnectedComponent<BlockFunction>> sccList =
+        SccFinder.findSCCs(graph.getFunctions(), graph::getSuccessors);
 
     ImmutableMap.Builder<BlockFunction, FunctionSCC> functionToSCCBuilder = ImmutableMap.builder();
 
