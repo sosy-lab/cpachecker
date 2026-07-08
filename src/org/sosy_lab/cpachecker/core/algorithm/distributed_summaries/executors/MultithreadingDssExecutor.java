@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.Uninterruptibles;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
