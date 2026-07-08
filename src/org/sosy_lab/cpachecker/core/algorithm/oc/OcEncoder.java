@@ -526,9 +526,12 @@ final class OcEncoder {
    * (zero when the access has none), so both components are compared directly.
    */
   BooleanFormula sameAddress(MemoryEvent pFirst, MemoryEvent pSecond) {
-    return bfmgr.and(
-        fmgr.makeEqual(pFirst.addressTerm(), pSecond.addressTerm()),
-        fmgr.makeEqual(pFirst.offsetTerm(), pSecond.offsetTerm()));
+    BooleanFormula sameBase = fmgr.makeEqual(pFirst.addressTerm(), pSecond.addressTerm());
+    if (pFirst.fill() || pSecond.fill()) {
+      // a fill write covers every offset of its base, so only the base has to match
+      return sameBase;
+    }
+    return bfmgr.and(sameBase, fmgr.makeEqual(pFirst.offsetTerm(), pSecond.offsetTerm()));
   }
 
   private ImmutableListMultimap<Object, MemoryEvent> writesByCell() {

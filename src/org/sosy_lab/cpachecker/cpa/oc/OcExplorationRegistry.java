@@ -69,7 +69,8 @@ public final class OcExplorationRegistry {
         pOtherInstanceId,
         null,
         null,
-        null);
+        null,
+        false);
   }
 
   /** Creates and stores an event of the aliasing regime (with region, base, and offset). */
@@ -85,7 +86,8 @@ public final class OcExplorationRegistry {
       int pOtherInstanceId,
       @Nullable String pRegionId,
       @Nullable Formula pAddressTerm,
-      @Nullable Formula pOffsetTerm) {
+      @Nullable Formula pOffsetTerm,
+      boolean pFill) {
     MemoryEvent event =
         new MemoryEvent(
             events.size(),
@@ -100,7 +102,8 @@ public final class OcExplorationRegistry {
             pOtherInstanceId,
             pRegionId,
             pAddressTerm,
-            pOffsetTerm);
+            pOffsetTerm,
+            pFill);
     events.put(event.id(), event);
     if (pPoParentId != MemoryEvent.NO_EVENT) {
       poPredecessors.put(event.id(), pPoParentId);

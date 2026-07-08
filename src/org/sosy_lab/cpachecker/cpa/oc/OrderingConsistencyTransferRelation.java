@@ -16,9 +16,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -48,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -146,7 +143,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
             pOtherInstanceId,
             pRegionId,
             pAddressTerm,
-            null);
+            null,
+            false);
     for (int i = 1; i < predecessors.size(); i++) {
       registry.addPoPredecessor(event.id(), predecessors.get(i));
     }
@@ -650,9 +648,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
                       valueTerm, fmgr.makeNumber(fmgr.getFormulaType(valueTerm), cell.value()))));
         }
         Formula offsetTerm =
-            cell.offset() == null
-                ? symbolicOffset(resolution, pEdge)
-                : evaluateInt(longLiteral(cell.offset()), resolution, pEdge);
+            cell.fill() ? null : evaluateInt(longLiteral(cell.offset()), resolution, pEdge);
         MemoryEvent event =
             registry.addEvent(
                 pState.getInstanceId(),
@@ -666,7 +662,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
                 MemoryEvent.NO_INSTANCE,
                 regionOf(cell.type()),
                 baseTerm,
-                offsetTerm);
+                offsetTerm,
+                cell.fill());
         if (!anyEvent) {
           for (int i = 1; i < predecessors.size(); i++) {
             registry.addPoPredecessor(event.id(), predecessors.get(i));
@@ -702,7 +699,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
                 MemoryEvent.NO_INSTANCE,
                 access.regionId,
                 addressTerm,
-                offsetTerm);
+                offsetTerm,
+                false);
         if (!anyEvent) {
           for (int i = 1; i < predecessors.size(); i++) {
             registry.addPoPredecessor(event.id(), predecessors.get(i));
@@ -819,10 +817,9 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     registry.addPathConstraint(
         bfmgr.implication(pState.getGuard(), fmgr.makeEqual(lhsTerm, baseTerm)));
 
-    // the allocation provides an indeterminate value at an indeterminate cell of each scalar leaf
-    // region of the pointee: a symbolic offset lets a later read of this allocation read from it,
-    // so uninitialised reads stay feasible (one indeterminate cell per region; programs reading
-    // several never-written cells of one allocation are beyond this approximation)
+    // the allocation provides one indeterminate value across each of its scalar leaf regions: a
+    // fill write covers the whole allocation, so a later read at any offset can read from it and
+    // uninitialised reads stay feasible (cells of one region share one indeterminate value)
     ImmutableList<Integer> lastEventIds = pLastEventIds;
     for (CType leafType : scalarLeafTypes(pointee)) {
       String initName = registry.freshCssaName("__oc_heapinit");
@@ -841,7 +838,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
               MemoryEvent.NO_INSTANCE,
               regionOf(leafType),
               baseTerm,
-              symbolicOffset(resolution, pEdge));
+              null,
+              true);
       for (int i = 1; i < lastEventIds.size(); i++) {
         registry.addPoPredecessor(initialWrite.id(), lastEventIds.get(i));
       }
@@ -851,18 +849,20 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
   }
 
   /**
-   * One initial-write cell of an aggregate global: its scalar type, its byte offset (null for one
-   * indeterminate cell per region), and its initial value (null for an indeterminate value).
+   * One initial write of an aggregate global. A fill cell covers the whole object of its region
+   * with a uniform value; a point cell writes one scalar at a literal byte offset (an explicit
+   * non-zero initializer entry). A null value means an indeterminate (extern) fill.
    */
-  private record AggregateCell(CType type, @Nullable Long offset, @Nullable BigInteger value) {}
+  private record AggregateCell(
+      CType type, boolean fill, @Nullable Long offset, @Nullable BigInteger value) {}
 
-  private static final int MAX_AGGREGATE_INIT_CELLS = 64;
+  private static final int MAX_AGGREGATE_POINT_CELLS = 256;
 
   /**
-   * The initial-write cells of an aggregate global declaration: an extern object has indeterminate
-   * contents (one symbolic-offset cell per scalar region, like a heap allocation), while a defined
-   * object gets one valued cell per scalar leaf at its literal offset (zero unless the initializer
-   * lists a literal for it).
+   * The initial writes of an aggregate global declaration: an extern object has indeterminate
+   * contents (one fill per scalar region), while a defined object is zero-initialized (one
+   * zero-valued fill per scalar region) with the explicit non-zero initializer entries overlaid as
+   * point writes. One fill covers an array of any size.
    */
   private ImmutableList<AggregateCell> aggregateInitCells(
       CVariableDeclaration pDeclaration, CFAEdge pEdge) throws CPATransferException {
@@ -872,53 +872,34 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     if (pDeclaration.getCStorageClass() == CStorageClass.EXTERN) {
       ImmutableList.Builder<AggregateCell> cells = ImmutableList.builder();
       for (CType leafType : scalarLeafTypes(pDeclaration.getType())) {
-        cells.add(new AggregateCell(leafType, null, null));
+        cells.add(new AggregateCell(leafType, true, null, null));
       }
       return cells.build();
     }
-    // C zero-initializes static storage; a defined object is a zero skeleton (one cell per scalar
-    // leaf at its byte offset) with the explicit initializer values overlaid on top
-    LinkedHashMap<Long, AggregateCell> cells = new LinkedHashMap<>();
-    enumerateZeroCells(pDeclaration.getType().getCanonicalType(), 0, cells, pEdge);
+    // C zero-initializes static storage: one zero-valued fill per scalar leaf region covers the
+    // whole object (an array of any size), and the explicit non-zero initializer entries are
+    // overlaid as point writes, which take precedence at their cell because they are emitted after
+    // the fills
+    List<AggregateCell> cells = new ArrayList<>();
+    for (CType leafType : scalarLeafTypes(pDeclaration.getType())) {
+      cells.add(new AggregateCell(leafType, true, null, BigInteger.ZERO));
+    }
+    int points = 0;
     // reuse CPAchecker's own initializer flattener (resolves designators, nesting, partial lists)
     for (CExpressionAssignmentStatement assignment :
         CInitializers.convertToAssignments(pDeclaration, pEdge)) {
+      BigInteger value = literalValueOf(assignment, pEdge);
+      if (value.signum() == 0) {
+        continue; // already covered by the zero fill
+      }
+      if (++points > MAX_AGGREGATE_POINT_CELLS) {
+        throw new UnsupportedCodeException("aggregate with too many explicit initializers", pEdge);
+      }
       long offset = staticOffsetOf(assignment.getLeftHandSide(), pEdge);
       CType type = assignment.getLeftHandSide().getExpressionType().getCanonicalType();
-      cells.put(offset, new AggregateCell(type, offset, literalValueOf(assignment, pEdge)));
+      cells.add(new AggregateCell(type, false, offset, value));
     }
-    return ImmutableList.copyOf(cells.values());
-  }
-
-  private void enumerateZeroCells(
-      CType pCanonical, long pBaseOffset, Map<Long, AggregateCell> pCells, CFAEdge pEdge)
-      throws UnsupportedCodeException {
-    if (pCells.size() > MAX_AGGREGATE_INIT_CELLS) {
-      throw new UnsupportedCodeException("aggregate with too many cells", pEdge);
-    }
-    if (pCanonical instanceof CCompositeType composite) {
-      for (CCompositeType.CCompositeTypeMemberDeclaration member : composite.getMembers()) {
-        long memberOffset =
-            composite.getKind() == ComplexTypeKind.UNION
-                ? 0
-                : fieldOffsetBytes(composite, member.getName());
-        enumerateZeroCells(
-            member.getType().getCanonicalType(), pBaseOffset + memberOffset, pCells, pEdge);
-      }
-    } else if (pCanonical instanceof CArrayType array) {
-      int length =
-          array
-              .getLengthAsInt()
-              .orElseThrow(
-                  () -> new UnsupportedCodeException("array of statically unknown length", pEdge));
-      long stride = sizeofBytes(array.getType());
-      for (int i = 0; i < length; i++) {
-        enumerateZeroCells(
-            array.getType().getCanonicalType(), pBaseOffset + i * stride, pCells, pEdge);
-      }
-    } else if (isValueType(pCanonical)) {
-      pCells.put(pBaseOffset, new AggregateCell(pCanonical, pBaseOffset, BigInteger.ZERO));
-    }
+    return ImmutableList.copyOf(cells);
   }
 
   /** The constant byte offset of a designator-resolved lvalue rooted at the declared object. */
@@ -1277,15 +1258,6 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       return zeroOffsetTerm;
     }
     return evaluateInt(pAccess.offsetExpr, pResolution, pEdge);
-  }
-
-  /** A fresh, unconstrained byte-offset term in the solver's native word type. */
-  private Formula symbolicOffset(PathFormula pContext, CFAEdge pEdge)
-      throws CPATransferException, InterruptedException {
-    return evaluateInt(
-        syntheticIdExpression(registry.freshCssaName("__oc_off"), CNumericTypes.LONG_INT),
-        pContext,
-        pEdge);
   }
 
   private static CExpression longLiteral(long pValue) {

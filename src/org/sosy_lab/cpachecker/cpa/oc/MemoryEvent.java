@@ -39,6 +39,10 @@ import org.sosy_lab.java_smt.api.Formula;
  *     distinct, so this equality is exact)
  * @param offsetTerm the byte offset within the object, for events with a {@link #regionId}; null
  *     means a zero offset. Two region events touch the same cell iff both base and offset are equal
+ * @param fill whether this is a fill write that covers the whole object of its region (an
+ *     initialization of a zero-initialized or indeterminate aggregate/allocation): it provides one
+ *     value at every offset, so any same-base access of the region reads from it regardless of
+ *     offset. This lets one event stand in for an array of any size
  */
 public record MemoryEvent(
     int id,
@@ -53,7 +57,8 @@ public record MemoryEvent(
     int otherInstanceId,
     @Nullable String regionId,
     @Nullable Formula addressTerm,
-    @Nullable Formula offsetTerm) {
+    @Nullable Formula offsetTerm,
+    boolean fill) {
 
   public static final int NO_EVENT = -1;
   public static final int NO_INSTANCE = -1;

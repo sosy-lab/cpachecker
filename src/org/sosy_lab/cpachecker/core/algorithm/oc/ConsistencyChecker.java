@@ -136,8 +136,7 @@ final class ConsistencyChecker {
           BooleanFormula sideCondition = encoder.getFullGuard(other);
           if (writeEvent.isRegionAccess()) {
             // in the aliasing regime, "same cell" additionally means equal addresses
-            if (addressValues[other.id()] == null
-                || !addressValues[other.id()].equals(addressValues[write])) {
+            if (!sameCellInModel(other, writeEvent, addressValues)) {
               continue;
             }
             sideCondition = bfmgr.and(sideCondition, encoder.sameAddress(other, writeEvent));
@@ -285,6 +284,19 @@ final class ConsistencyChecker {
       }
     }
     return values;
+  }
+
+  /**
+   * Whether two region writes touch the same cell in the model: equal object base, and equal offset
+   * unless one of them is a fill write (which covers every offset of its base).
+   */
+  private boolean sameCellInModel(MemoryEvent pFirst, MemoryEvent pSecond, Object[] pAddresses) {
+    List<?> a = (List<?>) pAddresses[pFirst.id()];
+    List<?> b = (List<?>) pAddresses[pSecond.id()];
+    if (a == null || b == null || !a.get(0).equals(b.get(0))) {
+      return false; // different base
+    }
+    return pFirst.fill() || pSecond.fill() || a.get(1).equals(b.get(1));
   }
 
   private static boolean isTrue(Boolean pValue) {
