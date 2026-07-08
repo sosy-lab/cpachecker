@@ -254,6 +254,7 @@ public class SvLibTermToFormulaConverter {
     }
   }
 
+  @SuppressWarnings("RefactorSwitch")
   private static @NonNull Formula convertBitvectorApplication(
       SvLibGeneralSymbolApplicationTerm pSvLibGeneralSymbolApplicationTerm,
       SSAMapBuilder ssa,
