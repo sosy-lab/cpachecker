@@ -38,12 +38,38 @@ public final class OcExplorationRegistry {
   private final List<BooleanFormula> pathConstraints = new ArrayList<>();
   private final List<Formula> addressBases = new ArrayList<>();
   private final SetMultimap<Integer, Integer> poPredecessors = LinkedHashMultimap.create();
-  private int nextCssaIndex = 0;
+  private int nextCssaIndex;
   private boolean truncated = false;
+
+  public OcExplorationRegistry() {
+    this(0);
+  }
+
+  /**
+   * Starts the fresh-name counter at {@code pStartCssaIndex} instead of zero. Iterative deepening
+   * (see {@code OrderingConsistencyCPA#resetExploration}) throws away the registry every round and
+   * starts a new one, but keeps solving in the very same, persistent solver context. If the
+   * counter restarted at zero every round, two different rounds could mint the identical fresh
+   * name (same prefix, same counter value) for accesses of different types; the solver rejects
+   * redeclaring a symbol at a different sort under the same name. Carrying the counter forward
+   * (see the caller) keeps every name minted over the whole analysis run globally unique.
+   */
+  public OcExplorationRegistry(int pStartCssaIndex) {
+    nextCssaIndex = pStartCssaIndex;
+  }
 
   /** Mints a globally fresh qualified name for a single access to the given global variable. */
   public String freshCssaName(String pQualifiedName) {
     return pQualifiedName + "__" + nextCssaIndex++;
+  }
+
+  /**
+   * The next unused fresh-name counter value; carried into the following round's registry so
+   * names stay unique across iterative-deepening rounds (see {@link
+   * #OcExplorationRegistry(int)}).
+   */
+  public int getNextCssaIndex() {
+    return nextCssaIndex;
   }
 
   /** Creates and stores the event with the next free id. */

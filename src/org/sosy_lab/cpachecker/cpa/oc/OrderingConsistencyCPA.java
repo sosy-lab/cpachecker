@@ -194,10 +194,16 @@ public class OrderingConsistencyCPA extends AbstractCPA implements AutoCloseable
     return registry;
   }
 
-  /** Discards all exploration results and prepares a fresh round with the given loop bound. */
+  /**
+   * Discards all exploration results and prepares a fresh round with the given loop bound. The
+   * fresh-name counter is carried over into the new registry: the solver (and its formula manager)
+   * lives across all rounds, so restarting the counter at zero could mint a name already used, at
+   * a different type, by an earlier round (see {@link OcExplorationRegistry#OcExplorationRegistry
+   * (int)}).
+   */
   public void resetExploration(int pLoopBound) {
     maxLoopIterations = pLoopBound;
-    registry = new OcExplorationRegistry();
+    registry = new OcExplorationRegistry(registry.getNextCssaIndex());
     initialState = null;
     transferRelation.resetRegistry(registry);
   }

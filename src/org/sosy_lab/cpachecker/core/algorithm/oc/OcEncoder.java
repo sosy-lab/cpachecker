@@ -94,7 +94,7 @@ final class OcEncoder {
 
     ImmutableListMultimap<Integer, MemoryEvent> childrenByParent = buildChildren();
     ImmutableMap<Integer, List<MemoryEvent>> linearizations = buildLinearizations(childrenByParent);
-    buildPoEdges(linearizations);
+    buildPoEdges(linearizations, childrenByParent);
     definiteReach = computeReachability(buildDefiniteOrderEdges(childrenByParent));
     checkProgramOrderAcyclic();
     fullGuards = computeFullGuards();
@@ -387,12 +387,34 @@ final class OcEncoder {
     return result.buildOrThrow();
   }
 
-  private void buildPoEdges(ImmutableMap<Integer, List<MemoryEvent>> pLinearizations) {
+  /**
+   * Builds the per-instance linearization edges (consecutive pairs, used only by the eager CLOCKS
+   * encoding) and the create/join cross edges.
+   *
+   * <p>A create/join cross edge must connect to <em>every</em> root (respectively sink) of the
+   * other instance's real program-order DAG, not just one of them: a DAG merge can be missed (the
+   * merge operator never merges into an already-expanded state, so two branches that reconverge at
+   * the same program point after unequal exploration depths — e.g. the arms of a nested ternary —
+   * can end up as siblings instead of merging), leaving the instance with several mutually exclusive
+   * terminal (or initial) events. Anchoring the cross edge on a single, arbitrarily chosen
+   * linearization endpoint (as opposed to all of them) would silently drop the ordering edge
+   * whenever a model's actually-enabled root/sink is a different one: the checker builds its
+   * happens-before graph only from enabled events, so with no edge at all from the created/joined
+   * instance to the create/join event, a required order (e.g. "the joined thread's write happens
+   * before the joining read") becomes unreachable in the graph and a real conflict goes undetected.
+   * The eager CLOCKS encoding does not strictly need this (its unconditional per-instance clock
+   * chain already relates every sibling event, enabled or not, so the ordering leaks through
+   * transitively), but asserting it there too is sound and harmless (redundant, already implied).
+   */
+  private void buildPoEdges(
+      ImmutableMap<Integer, List<MemoryEvent>> pLinearizations,
+      ImmutableListMultimap<Integer, MemoryEvent> pChildren) {
     for (List<MemoryEvent> linear : pLinearizations.values()) {
       for (int i = 0; i + 1 < linear.size(); i++) {
         poEdges.add(new int[] {linear.get(i).id(), linear.get(i + 1).id()});
       }
     }
+    ImmutableSetMultimap<Integer, Integer> predecessors = registry.getPoPredecessors();
     for (MemoryEvent event : events) {
       if (event.kind() == EventKind.CREATE || event.kind() == EventKind.JOIN) {
         List<MemoryEvent> other = pLinearizations.get(event.otherInstanceId());
@@ -400,10 +422,17 @@ final class OcEncoder {
           continue;
         }
         if (event.kind() == EventKind.CREATE) {
-          crossPoEdges.add(new CrossPoEdge(event.id(), other.get(0).id(), event.id()));
+          for (MemoryEvent root : other) {
+            if (predecessors.get(root.id()).isEmpty()) {
+              crossPoEdges.add(new CrossPoEdge(event.id(), root.id(), event.id()));
+            }
+          }
         } else {
-          crossPoEdges.add(
-              new CrossPoEdge(other.get(other.size() - 1).id(), event.id(), event.id()));
+          for (MemoryEvent sink : other) {
+            if (pChildren.get(sink.id()).isEmpty()) {
+              crossPoEdges.add(new CrossPoEdge(sink.id(), event.id(), event.id()));
+            }
+          }
         }
       }
     }
