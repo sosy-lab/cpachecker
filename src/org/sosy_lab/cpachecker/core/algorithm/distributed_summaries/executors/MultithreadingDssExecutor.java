@@ -126,8 +126,7 @@ public class MultithreadingDssExecutor implements DssExecutor {
         result = observer.observe();
       } finally {
         for (Thread t : threads) {
-          // We don't have to worry about interruptions during cleanup
-          Uninterruptibles.joinUninterruptibly(t);
+          t.join();
         }
       }
       return result;
