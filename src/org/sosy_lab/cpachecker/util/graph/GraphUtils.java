@@ -265,10 +265,7 @@ public class GraphUtils {
     checkNotNull(pARGStates);
     checkNotNull(pExcludeStates);
 
-    return SccFinder.findSCCs(
-        pARGStates,
-        node -> node.getChildren(),
-        pExcludeStates,
-        r -> new ARGStronglyConnectedComponent(r));
+    return SccFinder.<ARGState, ARGStronglyConnectedComponent>findSCCs(
+        pARGStates, node -> node.getChildren(), pExcludeStates, ARGStronglyConnectedComponent::new);
   }
 }

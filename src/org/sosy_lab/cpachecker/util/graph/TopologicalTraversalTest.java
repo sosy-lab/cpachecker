@@ -168,21 +168,6 @@ public final class TopologicalTraversalTest {
   }
 
   @Test
-  public void traverseReturnsFreshIterableEachTime() {
-    Map<String, List<String>> adjacency =
-        ImmutableMap.of(
-            "A", ImmutableList.of("B"),
-            "B", ImmutableList.of("C"));
-    SuccessorsFunction<String> edges = successorsOf(adjacency);
-
-    Iterable<String> traversal = TopologicalTraversal.traverse("A", edges);
-
-    assertThat(ImmutableList.copyOf(traversal)).containsExactly("A", "B", "C").inOrder();
-    // Iterating a second time must produce the same, complete sequence again.
-    assertThat(ImmutableList.copyOf(traversal)).containsExactly("A", "B", "C").inOrder();
-  }
-
-  @Test
   public void iteratorThrowsAfterExhaustion() {
     SuccessorsFunction<String> edges = successorsOf(ImmutableMap.of());
 

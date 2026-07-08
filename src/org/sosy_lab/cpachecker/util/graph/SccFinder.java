@@ -43,7 +43,7 @@ public final class SccFinder {
    */
   public static <T> ImmutableSet<StronglyConnectedComponent<T>> findSCCs(
       Collection<T> pNodes, Function<T, Collection<T>> pSuccessorFunction) {
-    return findSCCs(
+    return SccFinder.<T, StronglyConnectedComponent<T>>findSCCs(
         pNodes, pSuccessorFunction, ImmutableList.of(), r -> new StronglyConnectedComponent<>(r));
   }
 
@@ -59,7 +59,7 @@ public final class SccFinder {
       Collection<T> pNodes,
       Function<T, Collection<T>> pSuccessorFunction,
       Collection<T> pExcludeNodes) {
-    return findSCCs(
+    return SccFinder.<T, StronglyConnectedComponent<T>>findSCCs(
         pNodes, pSuccessorFunction, pExcludeNodes, r -> new StronglyConnectedComponent<>(r));
   }
 

@@ -53,10 +53,7 @@ public class StronglyConnectedComponent<T> {
     if (this == pOther) {
       return true;
     }
-    if (!(pOther instanceof StronglyConnectedComponent<?> other)) {
-      return false;
-    }
-    return nodes.equals(other.nodes);
+    return pOther instanceof StronglyConnectedComponent<?> other && nodes.equals(other.nodes);
   }
 
   @Override
