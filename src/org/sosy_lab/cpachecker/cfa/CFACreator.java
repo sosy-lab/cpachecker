@@ -95,6 +95,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.ThreadCreateTransform
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
 import org.sosy_lab.cpachecker.cfa.transformation.CFAProgramTransformer;
+import org.sosy_lab.cpachecker.cfa.transformation.ProgramTransformationEnum;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
@@ -339,7 +340,7 @@ public class CFACreator {
       secure = true,
       name = "cfa.useProgramTransformations",
       description = "Use Program Transformations to add simplified paths to the CFA.")
-  private boolean useProgramTransformations = false;
+  private List<ProgramTransformationEnum> useProgramTransformations = List.of();
 
   @Option(
       secure = true,
@@ -904,8 +905,8 @@ public class CFACreator {
 
     // TODO is this the right place?
     // perform program transformations and insert the resulting subCFAs
-    if (useProgramTransformations) {
-      cfa = CFAProgramTransformer.applyTransformations(cfa);
+    if (! useProgramTransformations.isEmpty()) {
+      cfa = CFAProgramTransformer.applyTransformations(cfa, useProgramTransformations);
     }
 
     return cfa;
