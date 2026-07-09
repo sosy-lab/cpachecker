@@ -31,24 +31,29 @@ public final class BuiltinAtomicFunctions {
     LOAD,
     EXCHANGE,
     CMP_XCHG,
-    FETCH
+    FETCH,
+    FENCE
   }
 
+  /**
+   * The atomic builtins whose semantics CPAchecker encodes.
+   *
+   * <p>Only the {@code _n} ("value") forms are listed. The generic forms ({@code __atomic_store},
+   * {@code __atomic_load}, ...) pass their operands <em>by pointer</em> rather than by value, so
+   * encoding them like the {@code _n} forms would be wrong. They are deliberately absent so that
+   * {@code CtoFormulaConverter#isUnsupportedFunction} rejects them instead.
+   */
   public enum CAtomicOperations {
     ATOMIC_STORE_N("__atomic_store_n", CAtomicOperationType.STORE),
-    ATOMIC_STORE("__atomic_store", CAtomicOperationType.STORE),
     ATOMIC_LOAD_N("__atomic_load_n", CAtomicOperationType.LOAD),
-    ATOMIC_LOAD("__atomic_load", CAtomicOperationType.LOAD),
     ATOMIC_EXCHANGE_N("__atomic_exchange_n", CAtomicOperationType.EXCHANGE),
-    ATOMIC_EXCHANGE("__atomic_exchange", CAtomicOperationType.EXCHANGE),
     ATOMIC_CMP_XCHG_N("__atomic_compare_exchange_n", CAtomicOperationType.CMP_XCHG),
-    ATOMIC_CMP_XCHG("__atomic_compare_exchange", CAtomicOperationType.CMP_XCHG),
+    ATOMIC_THREAD_FENCE("__atomic_thread_fence", CAtomicOperationType.FENCE),
     ATOMIC_FETCH_ADD("__atomic_fetch_add", CAtomicOperationType.FETCH),
     ATOMIC_FETCH_SUB("__atomic_fetch_sub", CAtomicOperationType.FETCH),
     ATOMIC_FETCH_AND("__atomic_fetch_and", CAtomicOperationType.FETCH),
     ATOMIC_FETCH_OR("__atomic_fetch_or", CAtomicOperationType.FETCH),
-    ATOMIC_FETCH_XOR("__atomic_fetch_xor", CAtomicOperationType.FETCH),
-    ATOMIC_FETCH_NAND("__atomic_fetch_nand", CAtomicOperationType.FETCH);
+    ATOMIC_FETCH_XOR("__atomic_fetch_xor", CAtomicOperationType.FETCH);
 
     private final String representation;
     private final CAtomicOperationType operationType;
@@ -74,31 +79,38 @@ public final class BuiltinAtomicFunctions {
     }
   }
 
-  /** Check whether a given function name identifies an atomic builtin. */
+  /** Check whether a given function name identifies an atomic builtin that CPAchecker encodes. */
   public static boolean isBuiltinAtomicFunction(String pFunctionName) {
     return pFunctionName != null && CAtomicOperations.fromString(pFunctionName) != null;
   }
 
+  private static boolean matches(String pFunctionName, CAtomicOperationType pType) {
+    CAtomicOperations operation = CAtomicOperations.fromString(pFunctionName);
+    return operation != null && operation.operationType == pType;
+  }
+
   public static boolean matchesStore(String pFunctionName) {
-    return CAtomicOperations.fromString(pFunctionName).operationType == CAtomicOperationType.STORE;
+    return matches(pFunctionName, CAtomicOperationType.STORE);
   }
 
   public static boolean matchesLoad(String pFunctionName) {
-    return CAtomicOperations.fromString(pFunctionName).operationType == CAtomicOperationType.LOAD;
+    return matches(pFunctionName, CAtomicOperationType.LOAD);
   }
 
   public static boolean matchesExchange(String pFunctionName) {
-    return CAtomicOperations.fromString(pFunctionName).operationType
-        == CAtomicOperationType.EXCHANGE;
+    return matches(pFunctionName, CAtomicOperationType.EXCHANGE);
   }
 
   public static boolean matchesCompareExchange(String pFunctionName) {
-    return CAtomicOperations.fromString(pFunctionName).operationType
-        == CAtomicOperationType.CMP_XCHG;
+    return matches(pFunctionName, CAtomicOperationType.CMP_XCHG);
   }
 
   public static boolean matchesFetchOp(String pFunctionName) {
-    return CAtomicOperations.fromString(pFunctionName).operationType == CAtomicOperationType.FETCH;
+    return matches(pFunctionName, CAtomicOperationType.FETCH);
+  }
+
+  public static boolean matchesThreadFence(String pFunctionName) {
+    return matches(pFunctionName, CAtomicOperationType.FENCE);
   }
 
   /**
@@ -110,7 +122,7 @@ public final class BuiltinAtomicFunctions {
    * resolved here.
    */
   public static Optional<CType> getType(String pFunctionName) {
-    if (matchesStore(pFunctionName)) {
+    if (matchesStore(pFunctionName) || matchesThreadFence(pFunctionName)) {
       return Optional.of(CVoidType.VOID);
     }
     if (matchesCompareExchange(pFunctionName)) {

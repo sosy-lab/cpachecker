@@ -88,6 +88,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinAtomicFunctions;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.StandardFunctions;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
@@ -1960,6 +1961,11 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
     String result = null;
     if (UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
       result = UNSUPPORTED_FUNCTIONS.get(functionName);
+    } else if (functionName.startsWith("__atomic_")
+        && !BuiltinAtomicFunctions.isBuiltinAtomicFunction(functionName)) {
+      // Atomic builtins we do not encode must be rejected rather than treated as pure external
+      // functions: silently ignoring an atomic store would yield a wrong verdict.
+      result = "atomic operations";
     } else if (StandardFunctions.C11_MATH_H_FUNCTIONS.contains(functionName)) {
       // Some of these functions are actually supported, but handled before this check here.
       result = "arithmetic function";
