@@ -671,12 +671,34 @@ final class OcEncoder {
             || s1.lock().instanceId() == s2.lock().instanceId()) {
           continue;
         }
+        // The selector atom names must include the section-END (unlock) ids, not just the
+        // lock ids: a single lock can yield multiple mutually-exclusive Section objects (e.g.
+        // an internal branch or an early error-exit before the matching unlock). If two such
+        // sections of the same lock-pair shared an atom name, getBaseConstraints() would force
+        // that atom to imply BOTH sections' (mutually exclusive) unlock guards, making cs-total
+        // unsatisfiable and the whole query wrongly UNSAT (reported as safe/TRUE).
         result.add(
             new CsPair(
                 s1,
                 s2,
-                bfmgr.makeVariable("__oc_cs_" + s1.lock().id() + "_" + s2.lock().id()),
-                bfmgr.makeVariable("__oc_cs_" + s2.lock().id() + "_" + s1.lock().id())));
+                bfmgr.makeVariable(
+                    "__oc_cs_"
+                        + s1.lock().id()
+                        + "_"
+                        + s1.unlock().id()
+                        + "__"
+                        + s2.lock().id()
+                        + "_"
+                        + s2.unlock().id()),
+                bfmgr.makeVariable(
+                    "__oc_cs_"
+                        + s2.lock().id()
+                        + "_"
+                        + s2.unlock().id()
+                        + "__"
+                        + s1.lock().id()
+                        + "_"
+                        + s1.unlock().id())));
       }
     }
     return result.build();
