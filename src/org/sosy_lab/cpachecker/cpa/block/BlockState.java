@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.cpa.path.ViolationWitness;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -45,7 +46,7 @@ public class BlockState
   private final BlockNode blockNode;
   private final ImmutableList<String> history;
   private List<? extends AbstractState> violationConditions;
-  private final ImmutableList<String> witness;
+  private final ViolationWitness witness;
 
   public BlockState(
       CFANode pNode,
@@ -53,16 +54,16 @@ public class BlockState
       BlockStateType pType,
       List<? extends AbstractState> pViolationConditions,
       List<String> pHistory,
-      List<String> pWitness) {
+      ViolationWitness pWitness) {
     node = pNode;
     type = pType;
     blockNode = pTargetNode;
     violationConditions = pViolationConditions;
     history = ImmutableList.copyOf(pHistory);
-    witness = ImmutableList.copyOf(pWitness);
+    witness = pWitness;
   }
 
-  public ImmutableList<String> getWitness() {
+  public ViolationWitness getWitness() {
     return witness;
   }
 

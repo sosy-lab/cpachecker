@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Set;
-import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
@@ -69,7 +68,7 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
                   getBlockStateTypeOfLocation(blockState.getBlockNode(), cfaEdge.getSuccessor()),
                   ImmutableList.of(vc),
                   blockState.getHistory(),
-                  Collections3.listAndElement(blockState.getWitness(), edgeToString(cfaEdge))));
+                  blockState.getWitness()));
         }
         return successors.build();
       }
@@ -80,7 +79,7 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
               getBlockStateTypeOfLocation(blockState.getBlockNode(), cfaEdge.getSuccessor()),
               blockState.getViolationConditions(),
               blockState.getHistory(),
-              Collections3.listAndElement(blockState.getWitness(), edgeToString(cfaEdge))));
+              blockState.getWitness()));
     }
     return ImmutableList.of();
   }

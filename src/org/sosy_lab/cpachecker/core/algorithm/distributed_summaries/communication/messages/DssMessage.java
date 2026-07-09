@@ -15,7 +15,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -33,6 +32,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.path.ViolationWitness;
 
 /**
  * Abstract base class for messages used in distributed summary synthesis. Each message has a sender
@@ -178,7 +178,7 @@ public abstract class DssMessage {
     return Result.valueOf(resultString);
   }
 
-  public final ImmutableList<String> getViolationPath() {
+  public final ViolationWitness getViolationPath() {
     checkArgument(getResult() == Result.FALSE, "Cannot get content for type: " + "%s", type);
     String violationPathString = content.get(DssResultMessage.DSS_MESSAGE_VIOLATION_PATH_KEY);
 
@@ -186,7 +186,7 @@ public abstract class DssMessage {
 
     ParseResult res = DeserializeBlockStateOperator.parseWitness(violationPathString);
 
-    return ImmutableList.copyOf(res.witness().reversed());
+    return res.witness();
   }
 
   public final String extractBlockStateWitnessString() {

@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.path.ViolationWitness;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -566,11 +567,9 @@ public class DssBlockAnalysis {
     return processing;
   }
 
-  private String extractWitnessFromState(AbstractState state) {
-    return Joiner.on("")
-        .join(
-            Objects.requireNonNull(AbstractStates.extractStateByType(state, BlockState.class))
-                .getWitness());
+  private ViolationWitness extractWitnessFromState(AbstractState state) {
+    return Objects.requireNonNull(AbstractStates.extractStateByType(state, BlockState.class))
+        .getWitness();
   }
 
   /**
@@ -591,9 +590,9 @@ public class DssBlockAnalysis {
         violationConditions.removeAll(pNewViolationCondition.getSenderId());
     int equal = 0;
     for (StateAndPrecision stateAndPrecision : deserializedStates) {
-      String newWitness = extractWitnessFromState(stateAndPrecision.state());
+      ViolationWitness newWitness = extractWitnessFromState(stateAndPrecision.state());
       for (StateAndPrecision vc : oldVcs) {
-        String oldWitness = extractWitnessFromState(vc.state());
+        ViolationWitness oldWitness = extractWitnessFromState(vc.state());
         if (oldWitness.equals(newWitness)) {
           equal++;
           break;

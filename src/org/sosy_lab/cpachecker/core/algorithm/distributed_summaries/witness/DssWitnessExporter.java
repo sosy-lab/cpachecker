@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness;
 
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -41,6 +40,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.path.PathCPA;
+import org.sosy_lab.cpachecker.cpa.path.ViolationWitness;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -117,8 +117,7 @@ public class DssWitnessExporter {
             pModification.metadata().originalCfa(),
             specification,
             logger,
-            resultWithWitness
-                .correctnessPreConditionCollector); // TODO convert nodes to original nodes!
+            resultWithWitness.correctnessPreConditionCollector);
     PathTemplate correctnessWitnessPath =
         new DssAnalysisOptions(configuration).getYamlCorrectnessWitnessOutputFileTemplate();
     try {
@@ -140,22 +139,18 @@ public class DssWitnessExporter {
   }
 
   private void fillReachedSetWithViolation(
-      ReachedSet reachedSet, ImmutableList<String> violationPath, Modification modification)
+      ReachedSet reachedSet, ViolationWitness pViolationPath, Modification modification)
       throws CPAException, InterruptedException, InvalidConfigurationException {
 
-    ImmutableList<CFAEdge> edges =
-        FluentIterable.from(violationPath)
-            .transform(s -> parseEdge(s, modification))
-            .filter(e -> e != null)
-            .toList();
-
+    ViolationWitness mappedViolation = convertToOriginalEdges(pViolationPath, modification);
     Optional.ofNullable(CPAs.retrieveCPA(violationCPA, PathCPA.class))
-        .ifPresent(p -> p.init(edges));
+        .ifPresent(p -> p.init(mappedViolation));
 
     reachedSet.clear();
 
     // TODO Do we need to speed this up by tracking the relevant precision for the violation
     // conditions?
+    // Or we could just do a single SAT check of each path?
     reachedSet.add(
         violationCPA.getInitialState(
             modification.metadata().originalCfa().getMainFunction(),
@@ -190,6 +185,13 @@ public class DssWitnessExporter {
 
       addDummyTargetToReachedSet(reachedSet);
     }
+  }
+
+  private ViolationWitness convertToOriginalEdges(
+      ViolationWitness pViolationPath, Modification pModification) {
+
+    return pViolationPath.transformEdges(
+        e -> ViolationWitness.edgeToString(parseEdge(e, pModification)));
   }
 
   private CFAEdge parseEdge(String edge, Modification pModification) {

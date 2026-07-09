@@ -8,19 +8,19 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness;
 
-import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.cpa.path.ViolationWitness;
 
 public class ResultWithWitnessInformation {
 
   private final Result result;
 
-  final ImmutableList<String> violationPath;
+  final ViolationWitness violationPath;
   final DssArgStateCollector correctnessPreConditionCollector;
 
   private ResultWithWitnessInformation(
       Result pResult,
-      ImmutableList<String> pViolationPath,
+      ViolationWitness pViolationPath,
       DssArgStateCollector pCorrectnessPreConditionCollector) {
     result = pResult;
     violationPath = pViolationPath;
@@ -31,7 +31,7 @@ public class ResultWithWitnessInformation {
     return result;
   }
 
-  public static ResultWithWitnessInformation ofViolationPath(ImmutableList<String> violationPath) {
+  public static ResultWithWitnessInformation ofViolationPath(ViolationWitness violationPath) {
     return new ResultWithWitnessInformation(Result.FALSE, violationPath, null);
   }
 
