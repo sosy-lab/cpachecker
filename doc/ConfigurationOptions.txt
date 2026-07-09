@@ -2541,18 +2541,6 @@ cpa.pointerA.merge = "JOIN"
 cpa.pointerA.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
 
-# Use an abstraction-aware POR algorithm. Abstraction-aware POR can
-# ignorecertain variables during dependency calculation if there is no
-# information about themin the precision (e.g., no predicates referring to
-# them).
-cpa.por.abstractionAware = no default value
-
-# Aggregate basic blocks to MultiEdges. Similar to basic block aggregation
-# inthe CompositeCPA transfer relation, but only one global statement (i.e.,
-# astatement that accesses a global variable or uses heap memory) is included
-# in aMultiEdge, so that all concurrent thread interleavings are explored.
-cpa.por.aggregateBasicBlocks = no default value
-
 # Whether to give up immediately if a very large array is encountered
 # (heuristic, often we would just waste time otherwise)
 cpa.predicate.abortOnLargeArrays = true
