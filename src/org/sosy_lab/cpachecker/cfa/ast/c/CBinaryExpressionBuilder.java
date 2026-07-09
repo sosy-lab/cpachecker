@@ -14,8 +14,8 @@ import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.FLOAT128;
 import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.INT;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -68,19 +68,20 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public class CBinaryExpressionBuilder {
 
-  private static final Set<BinaryOperator> shiftOperators =
+  private static final ImmutableSet<BinaryOperator> shiftOperators =
       Sets.immutableEnumSet(BinaryOperator.SHIFT_LEFT, BinaryOperator.SHIFT_RIGHT);
 
-  private static final Set<BinaryOperator> additiveOperators =
+  private static final ImmutableSet<BinaryOperator> additiveOperators =
       Sets.immutableEnumSet(BinaryOperator.PLUS, BinaryOperator.MINUS);
 
   @SuppressWarnings("unused")
-  private static final Set<BinaryOperator> multiplicativeOperators =
-      Sets.immutableEnumSet(BinaryOperator.MULTIPLY, BinaryOperator.MODULO, BinaryOperator.DIVIDE);
-
-  private static final Set<BinaryOperator> bitwiseOperators =
+  private static final ImmutableSet<BinaryOperator> multiplicativeOperators =
       Sets.immutableEnumSet(
-          BinaryOperator.BINARY_AND, BinaryOperator.BINARY_OR, BinaryOperator.BINARY_XOR);
+          BinaryOperator.MULTIPLY, BinaryOperator.REMAINDER, BinaryOperator.DIVIDE);
+
+  private static final ImmutableSet<BinaryOperator> bitwiseOperators =
+      Sets.immutableEnumSet(
+          BinaryOperator.BITWISE_AND, BinaryOperator.BITWISE_OR, BinaryOperator.BITWISE_XOR);
 
   private final MachineModel machineModel;
   private final LogManager logger;
@@ -172,16 +173,16 @@ public class CBinaryExpressionBuilder {
         return buildBinaryExpression(binExpr.getOperand1(), binExpr.getOperand2(), inverseOperator);
       }
       // others can be negated using De Morgan's law:
-      if (binOp.equals(BinaryOperator.BINARY_AND) || binOp.equals(BinaryOperator.BINARY_OR)) {
+      if (binOp.equals(BinaryOperator.BITWISE_AND) || binOp.equals(BinaryOperator.BITWISE_OR)) {
         if (binExpr.getOperand1() instanceof CBinaryExpression binExpr1
             && binExpr.getOperand2() instanceof CBinaryExpression binExpr2) {
 
           if (binExpr1.getOperator().isLogicalOperator()
               && binExpr2.getOperator().isLogicalOperator()) {
             BinaryOperator negatedOperator =
-                binOp.equals(BinaryOperator.BINARY_AND)
-                    ? BinaryOperator.BINARY_OR
-                    : BinaryOperator.BINARY_AND;
+                binOp.equals(BinaryOperator.BITWISE_AND)
+                    ? BinaryOperator.BITWISE_OR
+                    : BinaryOperator.BITWISE_AND;
             CBinaryExpression newOp1 =
                 buildBinaryExpression(
                     binExpr1.getOperand1(),
@@ -641,15 +642,13 @@ public class CBinaryExpressionBuilder {
 
     CBasicType type = t.getType();
 
-    switch (type) {
-      case BOOL -> {
-        // The rank of _Bool shall be less than the rank of all other standard integer types.
-        return 10;
-      }
-      case CHAR -> {
-        // The rank of char shall equal the rank of signed char and unsigned char.
-        return 20;
-      }
+    return switch (type) {
+      case BOOL ->
+          // The rank of _Bool shall be less than the rank of all other standard integer types.
+          10;
+      case CHAR ->
+          // The rank of char shall equal the rank of signed char and unsigned char.
+          20;
       case INT -> {
         /* The rank of any unsigned integer type shall equal the rank of the
          * corresponding signed integer type, if any.
@@ -659,21 +658,19 @@ public class CBinaryExpressionBuilder {
          * which shall be greater than the rank of signed char.
          */
         if (t.hasShortSpecifier()) {
-          return 30;
+          yield 30;
         }
         if (t.hasLongSpecifier()) {
-          return 50;
+          yield 50;
         }
         if (t.hasLongLongSpecifier()) {
-          return 60;
+          yield 60;
         }
-        return 40;
+        yield 40;
       }
-      case INT128 -> {
-        return 70;
-      }
+      case INT128 -> 70;
       default -> throw new AssertionError("unhandled CSimpleType: " + t);
-    }
+    };
   }
 
   /** only for logging or exceptions */

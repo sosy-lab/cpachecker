@@ -21,7 +21,9 @@ import java.util.Set;
 import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibScope;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -29,6 +31,7 @@ import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.svlibwitnessexport.FormulaToSvLibVisitor;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
@@ -132,6 +135,11 @@ public class AbstractionFormula implements Serializable {
       throws InterruptedException, TranslationToExpressionTreeFailedException {
     return ExpressionTrees.fromFormula(
         asFormula(), fMgr, pIncludeVariablesFilter, pVariableNameConverter);
+  }
+
+  public SvLibTerm asSvLibTerm(SvLibScope pScope) {
+    FormulaToSvLibVisitor visitor = new FormulaToSvLibVisitor(fMgr, pScope);
+    return fMgr.visit(asFormula(), visitor);
   }
 
   /** Returns the formula representation where all variables DO have SSA indices. */

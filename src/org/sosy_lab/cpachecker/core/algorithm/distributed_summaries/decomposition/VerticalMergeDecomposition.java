@@ -49,7 +49,7 @@ public class VerticalMergeDecomposition implements DssBlockDecomposition {
       }
     }
 
-    return BlockGraph.fromBlockNodesWithoutGraphInformation(cfa, nodes);
+    return BlockGraph.fromBlockNodesWithoutGraphInformation(nodes);
   }
 
   private Collection<BlockNodeWithoutGraphInformation> sorted(

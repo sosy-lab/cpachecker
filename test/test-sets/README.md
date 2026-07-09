@@ -20,6 +20,11 @@ of the [SV-Benchmarks repository](https://gitlab.com/sosy-lab/benchmarking/sv-be
 is checked out in the directory `../programs/benchmarks`
 (i.e., `test/programs/benchmarks` from the project root).
 
+Furthemore, they assume that the directory
+`sv-lib` of the [SV-Benchmarks repository](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/tree/main/sv-lib)
+is checked out in the directory `../programs/svlib-benchmarks`
+(i.e., `test/programs/svlib-benchmarks` from the project root).
+
 All files starting with `integration-` are used
 by our continuous-integration system
 [BuildBot](https://buildbot.sosy-lab.org/cpachecker/).
@@ -27,3 +32,5 @@ and executed for commits on main
 (with `integration-nightly-` being executed every few days).
 However, note that new files won't get picked up by BuildBot automatically,
 please contact the maintainers for new integration tests.
+Benchmark definitions for the BuildBot must have exactly one rundefinition tag
+without a name attribute.

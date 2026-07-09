@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.errorprone.annotations.DoNotCall;
 import java.util.List;
@@ -94,7 +95,7 @@ public abstract non-sealed class FunctionEntryNode extends CFANode {
     return Lists.transform(functionDefinition.getParameters(), AParameterDeclaration::getName);
   }
 
-  public abstract List<? extends AParameterDeclaration> getFunctionParameters();
+  public abstract ImmutableList<? extends AParameterDeclaration> getFunctionParameters();
 
   /**
    * Return a declaration for a pseudo variable that can be used to store the return value of this
@@ -140,7 +141,7 @@ public abstract non-sealed class FunctionEntryNode extends CFANode {
   }
 
   @SuppressWarnings("unchecked")
-  public final FluentIterable<FunctionCallEdge> getEnteringCallEdges() {
+  public FluentIterable<? extends FunctionCallEdge> getEnteringCallEdges() {
     return (FluentIterable<FunctionCallEdge>) (FluentIterable<?>) getEnteringEdges();
   }
 

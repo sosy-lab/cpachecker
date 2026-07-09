@@ -219,7 +219,7 @@ Releasing a New Version
 
 1. Publish new CPAchecker archive on [Zenodo](https://doi.org/10.5281/zenodo.3816620):
    - Assign new DOI and upload `CPAchecker-<version>-unix.zip` archive.
-   - Update title to `CPAchecker Release <version> (image)`.
+   - Update title to `CPAchecker Release <version> (unix)`.
    - Set publication date.
    - Update description with entries for new version in [`NEWS.md`](../NEWS.md).
    - Update list of contributors according to [`Authors.md`](../Authors.md).

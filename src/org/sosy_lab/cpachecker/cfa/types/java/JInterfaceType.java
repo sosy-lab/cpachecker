@@ -15,7 +15,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.Serial;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 
@@ -243,7 +242,7 @@ public final class JInterfaceType extends JClassOrInterfaceType {
    *
    * @return a <code>List</code> of all subtypes of this interface
    */
-  public List<JClassOrInterfaceType> getAllSubTypesOfInterfaces() {
+  public ImmutableList<JClassOrInterfaceType> getAllSubTypesOfInterfaces() {
     return ImmutableList.<JClassOrInterfaceType>builder()
         .addAll(getAllSubInterfacesOfInterface())
         .addAll(getAllKnownImplementingClassesOfInterface())

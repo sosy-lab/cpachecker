@@ -16,7 +16,6 @@ import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.logging.Level;
 import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -24,15 +23,12 @@ import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.io.TempFile;
-import org.sosy_lab.common.log.BasicLogManager;
-import org.sosy_lab.common.log.ConsoleLogFormatter;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.StringBuildingLogHandler;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 
 /**
  * This abstract class serves as a base for writing tests that check various approaches for
@@ -41,7 +37,7 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 @Ignore("prevent this abstract class being executed as testcase by ant")
 @RunWith(Parameterized.class)
 public abstract class AbstractTranslationTest {
-  public static final String TEST_DIR_PATH = "test/programs/programtranslation/";
+  protected static final String TEST_DIR_PATH = "test/programs/programtranslation/";
 
   /** Compiler executable to use in tests. */
   private static final String COMPILER = "gcc";
@@ -49,36 +45,11 @@ public abstract class AbstractTranslationTest {
   /** Compile parameter that tells gcc/clang to not perform linking. */
   private static final String PARAM_NO_LINKING = "-c";
 
-  protected String filePrefix = "tmp";
-  protected final LogManager logger;
-
-  protected AbstractTranslationTest() {
-    StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
-    stringLogHandler.setLevel(Level.ALL);
-    stringLogHandler.setFormatter(ConsoleLogFormatter.withoutColors());
-    logger = BasicLogManager.createWithHandler(stringLogHandler);
-  }
-
-  protected Path newTempFile() throws IOException {
-    return TempFile.builder().prefix(filePrefix).suffix(".spc").create().toAbsolutePath();
-  }
-
-  protected static TestResults run0(Configuration config, Path program) throws Exception {
-    TestResults results;
-    try {
-      results = CPATestRunner.run(config, program.toString());
-    } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {
-      throw new AssertionError(e);
-    }
-    return results;
-  }
-
   protected static ARGState run(Configuration config, Path program) throws Exception {
-    TestResults results = run0(config, program);
-    UnmodifiableReachedSet reached = results.getCheckerResult().getReached();
+    IntegrationTestResult results = IntegrationTestRunner.run(config, program.toString());
+    UnmodifiableReachedSet reached = results.cpaCheckerResult().getReached();
     assert_()
-        .withMessage(
-            "reached set: %s\nlog: %s\nfirst state of reached set", reached, results.getLog())
+        .withMessage("reached set: %s\nlog: %s\nfirst state of reached set", reached, results.log())
         .that(reached.getFirstState())
         .isNotNull();
     return (ARGState) reached.getFirstState();
@@ -94,7 +65,7 @@ public abstract class AbstractTranslationTest {
    */
   protected static void check(Configuration config, Path program, boolean expectedVerdict)
       throws Exception {
-    TestResults results = run0(config, program);
+    IntegrationTestResult results = IntegrationTestRunner.run(config, program.toString());
     if (expectedVerdict) {
       results.assertIsSafe();
     } else {
@@ -134,7 +105,8 @@ public abstract class AbstractTranslationTest {
       throws IOException, InterruptedException {
     final LogManager logger = LogManager.createTestLogManager();
     final List<String> compileCommandList =
-        ImmutableList.of(COMPILER, PARAM_NO_LINKING, "-o", "/dev/null", program.toString());
+        ImmutableList.of(
+            COMPILER, PARAM_NO_LINKING, "-std=c11", "-o", "/dev/null", program.toString());
     final String[] compileCommand = compileCommandList.toArray(new String[0]);
 
     final CompilerExecutor exec = new CompilerExecutor(logger, compileCommand);

@@ -83,9 +83,13 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
 
     CoreComponentsFactory coreComponents =
         new CoreComponentsFactory(
-            singleConfig, singleLogger, singleShutdownManager.getNotifier(), aggregateReached);
-    ConfigurableProgramAnalysis cpa = coreComponents.createCPA(pCfa, specification);
-    Algorithm algorithm = coreComponents.createAlgorithm(cpa, pCfa, specification);
+            singleConfig,
+            singleLogger,
+            singleShutdownManager.getNotifier(),
+            aggregateReached,
+            pCfa);
+    ConfigurableProgramAnalysis cpa = coreComponents.createCPA(specification);
+    Algorithm algorithm = coreComponents.createAlgorithm(cpa, specification);
     ReachedSet reached = createInitialReachedSet(cpa, initialNode, coreComponents, singleLogger);
 
     if (cpa instanceof StatisticsProvider statisticsProvider) {

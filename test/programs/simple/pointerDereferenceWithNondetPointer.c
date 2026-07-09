@@ -15,10 +15,10 @@ int *p2 = &a;
 int main() {
 
     int *p = (int*) __VERIFIER_nondet_pointer();
-    *p = 5;
+    *p = 5; // Can cause undefined behavior as this might be an invalid-deref!
 
     if (a > 0) {
 ERROR:
-        __VERIFIER_error();
+        __VERIFIER_error();  // Reachable under the assumption that the nondet_pointer p is the address of a
     }
 }

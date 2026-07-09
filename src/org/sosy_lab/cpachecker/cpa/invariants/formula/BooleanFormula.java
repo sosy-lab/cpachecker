@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-public interface BooleanFormula<ConstantType> {
+public sealed interface BooleanFormula<ConstantType>
+    permits BooleanConstant, Equal, LessThan, LogicalAnd, LogicalNot {
 
   <ReturnType> ReturnType accept(BooleanFormulaVisitor<ConstantType, ReturnType> pVisitor);
 

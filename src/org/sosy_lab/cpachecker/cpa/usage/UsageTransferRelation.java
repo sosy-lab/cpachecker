@@ -196,7 +196,7 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
       if (skippedfunctions.contains(functionName)) {
         CFAEdge newEdge = ((FunctionCallEdge) pCfaEdge).getSummaryEdge();
         Preconditions.checkNotNull(
-            newEdge, "Cannot find summary edge for " + pCfaEdge + " as skipped function");
+            newEdge, "Cannot find summary edge for %s as skipped function", pCfaEdge);
         logger.log(Level.FINEST, pCfaEdge.getSuccessor().getFunctionName() + " is skipped");
         callstackTransfer.enableRecursiveContext();
         return newEdge;

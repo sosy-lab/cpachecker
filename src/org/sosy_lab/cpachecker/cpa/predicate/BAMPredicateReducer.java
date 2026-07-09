@@ -32,7 +32,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.defaults.GenericReducer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -440,7 +440,7 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
 
     final SSAMap expandedSSA = expandedState.getAbstractionFormula().getBlockFormula().getSsa();
     for (String var : expandedSSA.allVariables()) {
-      final CType type = expandedSSA.getType(var);
+      final Type type = expandedSSA.getType(var);
       if (var.startsWith(calledFunction + "::") && var.endsWith(PARAM_VARIABLE_NAME)) {
         int newIndex = entrySsaWithRet.getIndex(var);
         assert entrySsaWithRet.containsVariable(var)
@@ -554,7 +554,7 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
 
       // Depending on the scope of vars, set either only the lastUsedIndex or the default index.
       // var was used and maybe overridden inside the block
-      final CType type = expandedSSA.getType(var);
+      final Type type = expandedSSA.getType(var);
       if (var.contains("::")
           && !isReturnVar(var, functionExitNode)) { // var is scoped -> not global
 

@@ -142,10 +142,10 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
         shutdown.shutdownIfNecessary();
 
         CoreComponentsFactory coreComponents =
-            new CoreComponentsFactory(config, logger, shutdown, AggregatedReachedSets.empty());
+            new CoreComponentsFactory(config, logger, shutdown, AggregatedReachedSets.empty(), cfa);
 
         logger.log(Level.FINE, "Build configurable program analysis");
-        ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, spec);
+        ConfigurableProgramAnalysis cpa = coreComponents.createCPA(spec);
         shutdown.shutdownIfNecessary();
 
         logger.log(Level.FINE, "Instantiate residual program construction algorithm");
@@ -225,15 +225,16 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
         shutdown.shutdownIfNecessary();
 
         CoreComponentsFactory coreComponents =
-            new CoreComponentsFactory(config, logger, shutdown, AggregatedReachedSets.empty());
+            new CoreComponentsFactory(
+                config, logger, shutdown, AggregatedReachedSets.empty(), cfaResidProg);
 
         logger.log(Level.FINE, "Build configurable program analysis");
-        ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfaResidProg, spec);
+        ConfigurableProgramAnalysis cpa = coreComponents.createCPA(spec);
         collectStatistics(cpa);
         shutdown.shutdownIfNecessary();
 
         logger.log(Level.FINE, "Get verification algorithm");
-        Algorithm algorithm = coreComponents.createAlgorithm(cpa, cfaResidProg, spec);
+        Algorithm algorithm = coreComponents.createAlgorithm(cpa, spec);
         shutdown.shutdownIfNecessary();
 
         logger.log(Level.FINE, "Create reached set");

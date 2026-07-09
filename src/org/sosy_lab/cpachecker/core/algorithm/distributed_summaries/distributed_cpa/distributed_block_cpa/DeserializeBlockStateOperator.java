@@ -8,33 +8,53 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa;
 
-import com.google.common.collect.ImmutableMap;
-import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
+import java.util.List;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
 
+/**
+ * Reverses the serialization performed by {@link SerializeBlockStateOperator}; see there for the
+ * documentation of the wire format (the {@code W:} witness and {@code H:} history markers and the
+ * omission of the history suffix when empty).
+ */
 public class DeserializeBlockStateOperator implements DeserializeOperator {
 
   private final BlockNode blockNode;
-  private final ImmutableMap<Integer, CFANode> integerCFANodeMap;
 
-  public DeserializeBlockStateOperator(
-      BlockNode pBlockNode, ImmutableMap<Integer, CFANode> pIntegerCFANodeMap) {
+  public DeserializeBlockStateOperator(BlockNode pBlockNode) {
     blockNode = pBlockNode;
-    integerCFANodeMap = pIntegerCFANodeMap;
   }
 
   @Override
   public AbstractState deserialize(DssMessage pMessage) throws InterruptedException {
+    String content = pMessage.getAbstractStateContent(BlockState.class).get(STATE_KEY);
+    List<String> idAndWitnessAndMaybeHistory = Splitter.on(" W:").limit(2).splitToList(content);
+    Preconditions.checkArgument(idAndWitnessAndMaybeHistory.size() == 2);
+    String serializedBlockState = idAndWitnessAndMaybeHistory.getFirst();
+    List<String> witnessAndMaybeHistory =
+        Splitter.on(" H:").limit(2).splitToList(idAndWitnessAndMaybeHistory.getLast());
+    List<String> witness = Splitter.on(",").splitToList(witnessAndMaybeHistory.getFirst());
+    List<String> history =
+        witnessAndMaybeHistory.size() == 2
+            ? Splitter.on(",").splitToList(witnessAndMaybeHistory.getLast())
+            : ImmutableList.of();
+    Preconditions.checkNotNull(serializedBlockState);
+    Preconditions.checkArgument(
+        blockNode.getPredecessorIds().contains(serializedBlockState)
+            || blockNode.getSuccessorIds().contains(serializedBlockState));
     return new BlockState(
-        integerCFANodeMap.get(pMessage.getTargetNodeNumber()),
+        DeserializeOperator.startLocationFromMessageType(pMessage, blockNode),
         blockNode,
         BlockStateType.INITIAL,
-        Optional.empty());
+        ImmutableList.of(),
+        history,
+        witness);
   }
 }

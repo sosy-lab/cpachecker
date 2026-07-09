@@ -13,8 +13,10 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Set;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -22,6 +24,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
 
 public class BlockTransferRelation extends SingleEdgeTransferRelation {
+
+  public static String edgeToString(CFAEdge edge) {
+    return "N" + edge.getPredecessor().getNodeNumber() + "N" + edge.getSuccessor().getNodeNumber();
+  }
 
   @Override
   public Collection<BlockState> getAbstractSuccessorsForEdge(
@@ -31,7 +37,7 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
 
     // block end cannot be reached directly before processing the first edge
     if (blockState.getType().equals(BlockStateType.INITIAL)
-        && cfaEdge.getDescription().equals("<<ghost-edge>>")) {
+        && cfaEdge.getDescription().equals(BlockGraph.GHOST_EDGE_DESCRIPTION)) {
       return ImmutableSet.of();
     }
 
@@ -50,14 +56,32 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
         Sets.intersection(node.getLeavingEdges().toSet(), blockState.getBlockNode().getEdges());
 
     if (intersection.contains(cfaEdge)) {
+      if (!blockState.getViolationConditions().isEmpty()
+          && cfaEdge
+              .getSuccessor()
+              .equals(blockState.getBlockNode().getViolationConditionLocation())) {
+        ImmutableList.Builder<BlockState> successors = ImmutableList.builder();
+        for (AbstractState vc : blockState.getViolationConditions()) {
+          successors.add(
+              new BlockState(
+                  cfaEdge.getSuccessor(),
+                  blockState.getBlockNode(),
+                  getBlockStateTypeOfLocation(blockState.getBlockNode(), cfaEdge.getSuccessor()),
+                  ImmutableList.of(vc),
+                  blockState.getHistory(),
+                  Collections3.listAndElement(blockState.getWitness(), edgeToString(cfaEdge))));
+        }
+        return successors.build();
+      }
       return ImmutableList.of(
           new BlockState(
               cfaEdge.getSuccessor(),
               blockState.getBlockNode(),
               getBlockStateTypeOfLocation(blockState.getBlockNode(), cfaEdge.getSuccessor()),
-              blockState.getErrorCondition()));
+              blockState.getViolationConditions(),
+              blockState.getHistory(),
+              Collections3.listAndElement(blockState.getWitness(), edgeToString(cfaEdge))));
     }
-
     return ImmutableList.of();
   }
 

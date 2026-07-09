@@ -167,6 +167,14 @@ public class FormulaManagerView {
   @Option(
       secure = true,
       description =
+          "When using encodeBitvectorAs=INTEGER, this will modify the bitvector replacement"
+              + " behavior such that unbounded integer arithmetic (NLA) (and additional\n"
+              + " constraints) is used to model wrap-around and boundedness.")
+  private boolean useNonlinearArithmeticForIntAsBv = false;
+
+  @Option(
+      secure = true,
+      description =
           "Theory to use as backend for floats. If different from FLOAT, the specified theory is"
               + " used to approximate floats. This can be used for solvers that do not support"
               + " floating-point arithmetic, or for increased performance. If UNSUPPORTED, solvers"
@@ -200,6 +208,11 @@ public class FormulaManagerView {
               + encodeBitvectorAs
               + " for option cpa.predicate.encodeBitvectorAs. "
               + "This kind of theory approximation is not supported.");
+    }
+    if (encodeBitvectorAs != Theory.INTEGER && useNonlinearArithmeticForIntAsBv) {
+      throw new InvalidConfigurationException(
+          "Setting cpa.predicate.useNonlinearArithmeticForIntAsBv without"
+              + " cpa.predicate.encodeBitvectorAs = INTEGER is not supported.");
     }
     if (!ImmutableSet.of(Theory.UNSUPPORTED, Theory.FLOAT, Theory.INTEGER, Theory.RATIONAL)
         .contains(encodeFloatAs)) {
@@ -291,13 +304,23 @@ public class FormulaManagerView {
       rawBvmgr =
           switch (encodeBitvectorAs) {
             case BITVECTOR -> manager.getBitvectorFormulaManager();
-            case INTEGER ->
-                new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
+            case INTEGER -> {
+              if (useNonlinearArithmeticForIntAsBv) {
+                yield new ReplaceBitvectorWithNLAIntegerTheory(
                     wrappingHandler,
                     manager.getBooleanFormulaManager(),
                     manager.getIntegerFormulaManager(),
                     manager.getUFManager(),
                     config);
+              } else {
+                yield new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
+                    wrappingHandler,
+                    manager.getBooleanFormulaManager(),
+                    manager.getIntegerFormulaManager(),
+                    manager.getUFManager(),
+                    config);
+              }
+            }
             case RATIONAL ->
                 new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
                     wrappingHandler,
@@ -364,7 +387,19 @@ public class FormulaManagerView {
               + "but CPAchecker will crash if floats are used during the analysis.",
           e);
     }
-    return new FloatingPointFormulaManagerView(wrappingHandler, rawFpmgr, manager.getUFManager());
+    if (wrappingHandler.useIntForBitvectors()) {
+      try {
+        return new FloatingPointFormulaManagerView(
+            wrappingHandler,
+            rawFpmgr,
+            manager.getUFManager(),
+            manager.getBitvectorFormulaManager());
+      } catch (UnsupportedOperationException e) {
+        logger.logDebugException(e);
+      }
+    }
+    return new FloatingPointFormulaManagerView(
+        wrappingHandler, rawFpmgr, manager.getUFManager(), null);
   }
 
   /** Creates the IntegerFormulaManager or a replacement based on the option encodeIntegerAs. */
@@ -957,6 +992,24 @@ public class FormulaManagerView {
         makeLessOrEqual(start, term, signed), makeLessOrEqual(term, end, signed));
   }
 
+  /**
+   * Create a formula for the constraint that a term is within the full range of its type. For
+   * bitvectors encoded as integers, this checks that the term fits within its signed or unsigned
+   * bounds. For other theories and encodings, this returns {@code true} (no constraint).
+   *
+   * @param term The term that should be checked against its full type range.
+   * @param signed Whether the arithmetic should be signed or unsigned (relevant for bitvectors).
+   * @return A BooleanFormula representing a constraint about term, or {@code true} if not
+   *     applicable.
+   */
+  public <T extends Formula> BooleanFormula makeDomainRangeConstraint(T term, boolean signed) {
+    if (getFormulaType(term).isBitvectorType()) {
+      return bitvectorFormulaManager.makeDomainRangeConstraint((BitvectorFormula) term, signed);
+    } else {
+      return booleanFormulaManager.makeTrue();
+    }
+  }
+
   /** Create a variable with an SSA index. */
   public <T extends Formula> T makeVariable(FormulaType<T> formulaType, String name, int idx) {
     return makeVariable(formulaType, makeName(name, idx));
@@ -1506,41 +1559,51 @@ public class FormulaManagerView {
           }
         };
 
-    return booleanFormulaManager.visit(
+    final AtomicBoolean isPurelyConjunctive = new AtomicBoolean(true);
+    booleanFormulaManager.visitRecursively(
         t,
         new DefaultBooleanFormulaVisitor<>() {
 
-          @Override
-          public Boolean visitDefault() {
-            return false;
+          private TraversalProcess markAsNonConjunctive() {
+            isPurelyConjunctive.set(false);
+            return TraversalProcess.ABORT;
           }
 
           @Override
-          public Boolean visitConstant(boolean constantValue) {
-            return true;
+          protected TraversalProcess visitDefault() {
+            return markAsNonConjunctive();
           }
 
           @Override
-          public Boolean visitAtom(BooleanFormula atom, FunctionDeclaration<BooleanFormula> decl) {
-            return !containsIfThenElse(atom);
+          public TraversalProcess visitConstant(boolean pValue) {
+            return TraversalProcess.SKIP;
           }
 
           @Override
-          public Boolean visitNot(BooleanFormula operand) {
-            // Return false unless the operand is atomic.
-            return booleanFormulaManager.visit(operand, isAtomicVisitor);
-          }
-
-          @Override
-          public Boolean visitAnd(List<BooleanFormula> operands) {
-            for (BooleanFormula operand : operands) {
-              if (!booleanFormulaManager.visit(operand, this)) {
-                return false;
-              }
+          public TraversalProcess visitAtom(
+              BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> pDecl) {
+            if (containsIfThenElse(pAtom)) {
+              return markAsNonConjunctive();
             }
-            return true;
+            return TraversalProcess.SKIP;
+          }
+
+          @Override
+          public TraversalProcess visitNot(BooleanFormula pOperand) {
+            // Fine if operand is atomic.
+            if (booleanFormulaManager.visit(pOperand, isAtomicVisitor)) {
+              return TraversalProcess.SKIP;
+            }
+            return markAsNonConjunctive();
+          }
+
+          @Override
+          public TraversalProcess visitAnd(List<BooleanFormula> pOperands) {
+            return TraversalProcess.CONTINUE; // recurse deeper
           }
         });
+
+    return isPurelyConjunctive.get();
   }
 
   private boolean containsIfThenElse(Formula f) {
@@ -2027,7 +2090,7 @@ public class FormulaManagerView {
           public @Nullable BigInteger visitFunction(
               Formula pF, List<Formula> args, FunctionDeclaration<?> decl) {
             assert !args.isEmpty();
-            switch (decl.getKind()) {
+            return switch (decl.getKind()) {
               case AND, OR, NOT -> {
                 BigInteger count = BigInteger.valueOf(args.size());
                 for (Formula arg : args) {
@@ -2036,17 +2099,15 @@ public class FormulaManagerView {
                     // pF will be visited again later, non-recursive implementation of DFS
                     waitlist.push(pF);
                     waitlist.push(arg);
-                    return null;
+                    yield null;
                   } else {
                     count = count.add(subCount);
                   }
                 }
-                return count;
+                yield count;
               }
-              default -> {
-                return visitDefault(pF);
-              }
-            }
+              default -> visitDefault(pF);
+            };
           }
         };
 

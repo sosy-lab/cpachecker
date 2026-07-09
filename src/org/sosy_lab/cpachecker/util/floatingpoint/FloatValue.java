@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
+import static org.sosy_lab.java_smt.api.FormulaType.getFloatingPointTypeFromSizesWithoutHiddenBit;
+
 import com.google.common.base.Ascii;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
@@ -26,6 +28,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -536,6 +539,21 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   public static FloatValue nan(Format pFormat) {
     return new FloatValue(
         pFormat, false, pFormat.maxExp() + 1, BigInteger.ONE.shiftLeft(pFormat.sigBits - 1));
+  }
+
+  /**
+   * Create a random FloatValue.
+   *
+   * @param pFormat The format of the generated value according to machine model and C type.
+   * @param pRandomGenerator The random generator to use.
+   * @return A random FloatValue.
+   */
+  public static FloatValue randomValue(Format pFormat, Random pRandomGenerator) {
+    return new FloatValue(
+        pFormat,
+        pRandomGenerator.nextBoolean(),
+        pRandomGenerator.nextLong(pFormat.minExp(), pFormat.maxExp() + 1),
+        new BigInteger(pFormat.sigBits() + 1, pRandomGenerator));
   }
 
   /** Positive infinity. */
@@ -2679,7 +2697,8 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
   /** Convert a {@link FloatingPointNumber} to {@link FloatValue} */
   public static FloatValue fromFloatingPointNumber(FloatingPointNumber pNumber) {
-    Format format = new Format(pNumber.getExponentSize(), pNumber.getMantissaSize());
+    Format format =
+        new Format(pNumber.getExponentSize(), pNumber.getMantissaSizeWithoutHiddenBit());
     long exponent = pNumber.getExponent().longValue() - format.bias();
     BigInteger significand = pNumber.getMantissa();
     if (exponent >= format.minExp() && exponent <= format.maxExp()) {
@@ -2696,8 +2715,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
         Sign.of(sign),
         BigInteger.valueOf(exponent + format.bias()),
         significand.clearBit(format.sigBits()),
-        format.expBits(),
-        format.sigBits());
+        getFloatingPointTypeFromSizesWithoutHiddenBit(format.expBits(), format.sigBits()));
   }
 
   /** Convert a <code>float</code> to {@link FloatValue} */

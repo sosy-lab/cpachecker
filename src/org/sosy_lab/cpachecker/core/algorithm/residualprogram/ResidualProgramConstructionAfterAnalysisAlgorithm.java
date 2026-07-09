@@ -332,7 +332,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
       Configuration config = configBuilder.build();
 
       CoreComponentsFactory coreComponents =
-          new CoreComponentsFactory(config, logger, shutdown, AggregatedReachedSets.empty());
+          new CoreComponentsFactory(config, logger, shutdown, AggregatedReachedSets.empty(), cfa);
 
       Specification spec = getSpecification();
       if (usesParallelCompositionOfProgramAndCondition()) {
@@ -345,7 +345,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
                 logger,
                 shutdown);
       }
-      ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, spec);
+      ConfigurableProgramAnalysis cpa = coreComponents.createCPA(spec);
 
       ReachedSet reached = coreComponents.createReachedSet(cpa);
       reached.add(

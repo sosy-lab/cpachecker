@@ -9,7 +9,11 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
+import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement.createNoArgsFunctionCall;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.ATOMIC_BEGIN_DECLARATION;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.ATOMIC_END_DECLARATION;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -30,6 +34,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTArrayModifier;
@@ -464,11 +469,16 @@ class ASTConverter {
       case IASTIdExpression iASTIdExpression -> {
         CExpression exp = convert(iASTIdExpression);
         CType type = exp.getExpressionType();
-        // this id expression is the name of a function. When there is no
-        // functionCallExpressionn or unaryexpression with pointertype and operator.Amper
-        // around it, we create it.
+        // This id expression is the name of a function. If it's not part of a function call, it
+        // must be used as a function pointer, and we add an '&' in front of it (unless there
+        // already is one). Note that no '&' is added if the id is the operand of a sizeOf or
+        // alignOf operator
+        // See §6.3.2.1 (4) in the C11 standard for details
         if (type instanceof CFunctionType
-            && !(isFunctionCallNameExpression(e) || isAddressOfArgument(e))) {
+            && !(isFunctionCallNameExpression(e)
+                || isAddressOfArgument(e)
+                || isSizeOfArgument(e)
+                || isAlignOfArgument(e))) {
           exp =
               new CUnaryExpression(
                   exp.getFileLocation(),
@@ -529,6 +539,20 @@ class ASTConverter {
     return currentNode.getParent() instanceof IASTUnaryExpression unaryOpParent
         && currentNode.getPropertyInParent() == IASTUnaryExpression.OPERAND
         && unaryOpParent.getOperator() == IASTUnaryExpression.op_amper;
+  }
+
+  private boolean isSizeOfArgument(IASTExpression e) {
+    IASTNode currentNode = reAddParentheses(e);
+    return currentNode.getParent() instanceof IASTUnaryExpression unaryOpParent
+        && currentNode.getPropertyInParent() == IASTUnaryExpression.OPERAND
+        && unaryOpParent.getOperator() == IASTUnaryExpression.op_sizeof;
+  }
+
+  private boolean isAlignOfArgument(IASTExpression e) {
+    IASTNode currentNode = reAddParentheses(e);
+    return currentNode.getParent() instanceof IASTUnaryExpression unaryOpParent
+        && currentNode.getPropertyInParent() == IASTUnaryExpression.OPERAND
+        && unaryOpParent.getOperator() == IASTUnaryExpression.op_alignOf;
   }
 
   enum Condition {
@@ -648,6 +672,15 @@ class ASTConverter {
     return false;
   }
 
+  /** Check whether the given expression is a local variable. */
+  private boolean isLocalVariable(CExpression exp) {
+    if (exp instanceof CIdExpression cIdExpression
+        && cIdExpression.getDeclaration() instanceof CVariableDeclaration cVariableDeclaration) {
+      return !cVariableDeclaration.isGlobal();
+    }
+    return false;
+  }
+
   /**
    * Evaluate a constant expression into an integer literal. This method is for cases where the
    * frontend really needs to know the resulting int value, so we simplify the expression and force
@@ -688,13 +721,13 @@ class ASTConverter {
 
     // Eclipse CDT has a bug in determining the result type if the array type is a typedef.
     CType resultType = arrayExpr.getExpressionType();
-    while (resultType instanceof CTypedefType) {
-      resultType = ((CTypedefType) resultType).getRealType();
+    while (resultType instanceof CTypedefType typedefType) {
+      resultType = typedefType.getRealType();
     }
-    if (resultType instanceof CArrayType) {
-      resultType = ((CArrayType) resultType).getType();
-    } else if (resultType instanceof CPointerType) {
-      resultType = ((CPointerType) resultType).getType();
+    if (resultType instanceof CArrayType arrayType) {
+      resultType = arrayType.getType();
+    } else if (resultType instanceof CPointerType pointerType) {
+      resultType = pointerType.getType();
     } else if (resultType instanceof CTypedefType || resultType instanceof CProblemType) {
       // TODO probably we should throw exception,
       // but for now we delegate to Eclipse CDT and see whether it knows better than we do
@@ -892,13 +925,29 @@ class ASTConverter {
         };
 
       } else {
-        // a += b etc.
+        // a += b, a *= b etc.
         CExpression rightHandSide = convertExpressionWithoutSideEffects(e.getOperand2());
 
-        // first create expression "a + b"
-        CBinaryExpression exp = buildBinaryExpression(leftHandSide, rightHandSide, op);
+        // C11 _Atomic compound assignments (+=, -=, etc.) must appear inside an atomic
+        // section so that concurrent analyses treat the read-modify-write as indivisible.
+        // see https://en.cppreference.com/w/c/language/atomic.html
+        if (lhs.getExpressionType().isAtomic() && !isLocalVariable(lhs)) {
+          // If a has an atomic type, a += b is transformed to
+          // atomic_begin(); a = a + b; atomic_end();
+          CBinaryExpression exp = buildBinaryExpression(lhs, rightHandSide, op);
+          CExpressionAssignmentStatement result =
+              new CExpressionAssignmentStatement(fileLoc, lhs, exp);
 
-        // and now the assignment
+          sideAssignmentStack.addPreSideAssignment(
+              createNoArgsFunctionCall(lhs.getFileLocation(), ATOMIC_BEGIN_DECLARATION));
+          sideAssignmentStack.addPreSideAssignment(result);
+          sideAssignmentStack.addPreSideAssignment(
+              createNoArgsFunctionCall(lhs.getFileLocation(), ATOMIC_END_DECLARATION));
+
+          return lhs;
+        }
+
+        CBinaryExpression exp = buildBinaryExpression(lhs, rightHandSide, op);
         return new CExpressionAssignmentStatement(fileLoc, lhs, exp);
       }
 
@@ -970,7 +1019,15 @@ class ASTConverter {
       return new CComplexCastExpression(loc, castType, operand, castType, true);
     }
 
-    if (options.simplifyPointerExpressions()
+    // Cast-to-union extension (GCC): initialize the union member whose type is an exact match of
+    // the operand's type.
+    // https://gcc.gnu.org/onlinedocs/gcc/Cast-to-Union.html
+    // We found out, that 'match' means exact type match in this case through our own experiments.
+    // Lower this to a designated initializer stored in a temporary variable.
+    CAstNode loweredUnionCast = tryLowerGccCastToUnion(loc, castType, operand);
+    if (loweredUnionCast != null) {
+      return loweredUnionCast;
+    } else if (options.simplifyPointerExpressions()
         && e.getOperand() instanceof IASTFieldReference iASTFieldReference
         && iASTFieldReference.isPointerDereference()) {
       return createTemporaryVariableWithInitializer(
@@ -978,6 +1035,70 @@ class ASTConverter {
     } else {
       return new CCastExpression(loc, castType, operand);
     }
+  }
+
+  /**
+   * Try to lower a GCC cast-to-union extension into a temporary union value initialized with a
+   * designated initializer. Returns {@code null} if this cast is not a cast to a union type.
+   *
+   * <p>GCC extension: (U)expr is valid iff {@code expr}'s type is an exact match of a direct union
+   * member type. If no member matches (or the union is empty), this method throws a {@link
+   * CFAGenerationRuntimeException}.
+   */
+  private @Nullable CAstNode tryLowerGccCastToUnion(
+      FileLocation loc, CType castType, CExpression castOperand) {
+
+    if (!(castType.getCanonicalType() instanceof CCompositeType compositeType)
+        || compositeType.getKind() != ComplexTypeKind.UNION) {
+      return null;
+    }
+
+    if (compositeType.getMembers().isEmpty()) {
+      throw new CFAGenerationRuntimeException("Invalid cast to empty union type at " + loc);
+    }
+
+    CType operandType = castOperand.getExpressionType().getCanonicalType();
+    CCompositeTypeMemberDeclaration matchingMember =
+        findUnionMemberWithExactType(compositeType, operandType);
+
+    if (matchingMember == null) {
+      throw new CFAGenerationRuntimeException(
+          "Invalid cast to union type: operand type "
+              + operandType.toASTString("")
+              + " does not exactly match any union member's type at "
+              + loc);
+    }
+
+    CInitializer init = buildDesignatedUnionMemberInitializer(loc, matchingMember, castOperand);
+    return createTemporaryVariable(loc, castType, init);
+  }
+
+  /**
+   * Returns the first union member whose canonical type exactly matches the given operand type.
+   * Deterministic: first matching member wins.
+   */
+  private @Nullable CCompositeTypeMemberDeclaration findUnionMemberWithExactType(
+      CCompositeType unionType, CType operandType) {
+
+    for (CCompositeTypeMemberDeclaration member : unionType.getMembers()) {
+      if (member.getType().getCanonicalType().equals(operandType)) {
+        return member;
+      }
+    }
+    return null;
+  }
+
+  /** Build initializer list equivalent to: (U){ .member = operand } */
+  private CInitializer buildDesignatedUnionMemberInitializer(
+      FileLocation loc, CCompositeTypeMemberDeclaration member, CExpression operand) {
+
+    String memberName = member.getName();
+    CFieldDesignator designator = new CFieldDesignator(loc, memberName);
+    CInitializer designated =
+        new CDesignatedInitializer(
+            loc, ImmutableList.of(designator), new CInitializerExpression(loc, operand));
+
+    return new CInitializerList(loc, ImmutableList.of(designated));
   }
 
   private static class ContainsProblemTypeVisitor
@@ -1044,9 +1165,19 @@ class ASTConverter {
     final FileLocation loc = getLocation(e);
 
     CType ownerType = owner.getExpressionType().getCanonicalType();
-    if (e.isPointerDereference()) {
+    boolean isPointerDereference = e.isPointerDereference();
+    if (isPointerDereference) {
       if (ownerType instanceof CPointerType) {
         ownerType = ((CPointerType) ownerType).getType();
+
+      } else if (ownerType instanceof CArrayType arrayType) {
+        // Implicit use of the address of the array. "s->f" is the same as "(&(s[0])->f" but also
+        // the same as "s[0].f". We prefer the latter.
+        isPointerDereference = false;
+        ownerType = arrayType.getType();
+        owner =
+            new CArraySubscriptExpression(loc, ownerType, owner, CIntegerLiteralExpression.ZERO);
+
       } else if (!(ownerType instanceof CProblemType)) {
         throw parseContext.parseError("Pointer dereference of non-pointer type " + ownerType, e);
       }
@@ -1075,13 +1206,12 @@ class ASTConverter {
               typeConverter.convert(e.getExpressionType()),
               fieldName,
               owner,
-              e.isPointerDereference());
-    } else if (ownerType instanceof CCompositeType) {
+              isPointerDereference);
+    } else if (ownerType instanceof CCompositeType compositeType) {
       wayToInnerField =
-          getWayToInnerField((CCompositeType) ownerType, fieldName, loc, new ArrayList<>());
+          PositionInComposite.getWayToInnerField(compositeType, fieldName, new ArrayList<>());
       if (!wayToInnerField.isEmpty()) {
         CExpression current = owner;
-        boolean isPointerDereference = e.isPointerDereference();
         for (Pair<String, CType> field : wayToInnerField) {
           current =
               new CFieldReference(
@@ -1125,7 +1255,7 @@ class ASTConverter {
         if (fields.isEmpty()) {
 
           // in case there is only one field access we have to check here on a pointer dereference
-          if (isFirstVisit && e.isPointerDereference()) {
+          if (isFirstVisit && isPointerDereference) {
             CPointerExpression exp = new CPointerExpression(loc, owner.getExpressionType(), owner);
             CExpression tmpOwner =
                 new CFieldReference(loc, actField.getFirst(), actField.getSecond(), exp, false);
@@ -1139,7 +1269,7 @@ class ASTConverter {
           // here could be a pointer dereference, in this case we create a temporary variable
           // otherwise there is nothing special to be done
           if (isFirstVisit) {
-            if (e.isPointerDereference()) {
+            if (isPointerDereference) {
               CPointerExpression exp =
                   new CPointerExpression(loc, owner.getExpressionType(), owner);
               CExpression tmpOwner =
@@ -1171,45 +1301,6 @@ class ASTConverter {
     }
 
     return fullFieldReference;
-  }
-
-  /**
-   * This method creates a list of all necessary field access for finding the searched field.
-   * Besides the case that the searched field is directly in the struct, there is the case that the
-   * field is in an anonymous struct or union inside the "owner" struct. This anonymous structs /
-   * unions are then the "way" to the searched field.
-   *
-   * @param allReferences an empty list
-   * @return the fields (including the searched one) in the right order
-   */
-  private static List<Pair<String, CType>> getWayToInnerField(
-      CCompositeType owner,
-      String fieldName,
-      FileLocation loc,
-      List<Pair<String, CType>> allReferences) {
-    for (CCompositeTypeMemberDeclaration member : owner.getMembers()) {
-      if (member.getName().equals(fieldName)) {
-        allReferences.add(Pair.of(member.getName(), member.getType()));
-        return ImmutableList.copyOf(allReferences);
-      }
-    }
-
-    // no field found in current struct, so proceed to the structs/unions which are
-    // fields inside the current struct
-    for (CCompositeTypeMemberDeclaration member : owner.getMembers()) {
-      CType memberType = member.getType().getCanonicalType();
-      if (memberType instanceof CCompositeType cCompositeType
-          && member.getName().contains("__anon_type_member_")) {
-        List<Pair<String, CType>> tmp = new ArrayList<>(allReferences);
-        tmp.add(Pair.of(member.getName(), member.getType()));
-        tmp = getWayToInnerField(cCompositeType, fieldName, loc, tmp);
-        if (!tmp.isEmpty()) {
-          return ImmutableList.copyOf(tmp);
-        }
-      }
-    }
-
-    return ImmutableList.of();
   }
 
   private CRightHandSide convert(IASTFunctionCallExpression e) {
@@ -1584,8 +1675,32 @@ class ASTConverter {
         CBinaryExpression preExp =
             buildBinaryExpression(operand, CIntegerLiteralExpression.ONE, preOp);
         CLeftHandSide lhsPre = (CLeftHandSide) operand;
+        CExpressionAssignmentStatement result =
+            new CExpressionAssignmentStatement(fileLoc, lhsPre, preExp);
 
-        return new CExpressionAssignmentStatement(fileLoc, lhsPre, preExp);
+        // C11 _Atomic operations must appear inside an atomic section so that concurrent
+        // analyses treat the read-modify-write as a single indivisible step.
+        if (operandType.isAtomic() && !isLocalVariable(operand)) {
+          // if x is an atomic type, ++x is transformed to
+          // atomic_begin(); x = x + 1; tmp = x; atomic_end(); return tmp;
+          //
+          // e.g., y = ++x; is transformed to
+          // atomic_begin(); x = x + 1; tmp = x; atomic_end(); y = tmp;
+          //
+          // That is, the new value of x is saved to a temporary variable still in the atomic block
+          // so that the value of the expression is correct even for concurrent analyses.
+          // Without the temporary variable, another thread modifying x could interleave with the
+          // incrementing thread after the atomic block end, but before the value of x is read.
+          sideAssignmentStack.addPreSideAssignment(
+              createNoArgsFunctionCall(operand.getFileLocation(), ATOMIC_BEGIN_DECLARATION));
+          sideAssignmentStack.addPreSideAssignment(result);
+          CExpression tmp = createTemporaryVariableWithInitializer(fileLoc, lhsPre);
+          sideAssignmentStack.addPreSideAssignment(
+              createNoArgsFunctionCall(operand.getFileLocation(), ATOMIC_END_DECLARATION));
+          return tmp;
+        }
+
+        return result;
       }
       case IASTUnaryExpression.op_postFixIncr, IASTUnaryExpression.op_postFixDecr -> {
         // instead of x++ create "x = x + 1"
@@ -1607,8 +1722,34 @@ class ASTConverter {
           return result;
         }
 
+        // C11 _Atomic operations must appear inside an atomic section so that concurrent
+        // analyses treat the read-modify-write as a single indivisible step.
+        // see https://en.cppreference.com/w/c/language/atomic.html
+
+        // if x is an atomic type, x++ is transformed to
+        // atomic_begin(); tmp = x; x = x + 1; atomic_end(); return tmp;
+        //
+        // e.g., y = x++; is transformed to
+        // atomic_begin(); tmp = x; x = x + 1; atomic_end(); y = tmp;
+        //
+        // That is, the old value of x is saved to a temporary variable within the atomic block
+        // so that the value of the expression is correct even for concurrent analyses.
+        // Without the temporary variable, another thread modifying x could interleave with the
+        // incrementing thread after saving the old value of x, but before the atomic block start.
+        boolean isAtomic = operandType.isAtomic() && !isLocalVariable(operand);
+
+        if (isAtomic) {
+          sideAssignmentStack.addPreSideAssignment(
+              createNoArgsFunctionCall(operand.getFileLocation(), ATOMIC_BEGIN_DECLARATION));
+        }
+
         CExpression tmp = createTemporaryVariableWithInitializer(fileLoc, lhsPost);
         sideAssignmentStack.addPreSideAssignment(result);
+
+        if (isAtomic) {
+          sideAssignmentStack.addPreSideAssignment(
+              createNoArgsFunctionCall(operand.getFileLocation(), ATOMIC_END_DECLARATION));
+        }
 
         return tmp;
       }
@@ -2749,42 +2890,183 @@ class ASTConverter {
       ICASTDesignatedInitializer init, CType type, @Nullable CVariableDeclaration declaration) {
     ICASTDesignator[] desInit = init.getDesignators();
 
-    CInitializer cInit = convert(init.getOperand(), type, declaration);
-
-    FileLocation fileLoc = cInit.getFileLocation();
+    FileLocation fileLoc = getLocation(init);
 
     List<CDesignator> designators = new ArrayList<>(desInit.length);
+    CType currentOwnerType = type.getCanonicalType();
 
     // convert all designators
     for (ICASTDesignator designator : desInit) {
-      CDesignator r =
+      DesignatorsAndLastType resolvedDesignator =
           switch (designator) {
-            case ICASTFieldDesignator iCASTFieldDesignator ->
-                new CFieldDesignator(fileLoc, convert(iCASTFieldDesignator.getName()));
-            case ICASTArrayDesignator iCASTArrayDesignator ->
-                new CArrayDesignator(
-                    fileLoc,
-                    convertExpressionWithoutSideEffects(
-                        iCASTArrayDesignator.getSubscriptExpression()));
-            case IGCCASTArrayRangeDesignator iGCCASTArrayRangeDesignator ->
-                new CArrayRangeDesignator(
-                    fileLoc,
-                    convertExpressionWithoutSideEffects(
-                        iGCCASTArrayRangeDesignator.getRangeFloor()),
-                    convertExpressionWithoutSideEffects(
-                        iGCCASTArrayRangeDesignator.getRangeCeiling()));
+            case ICASTFieldDesignator fieldDesignator ->
+                resolveFieldDesignator(fileLoc, currentOwnerType, fieldDesignator);
+            case ICASTArrayDesignator arrayDesignator ->
+                resolveArrayDesignator(fileLoc, currentOwnerType, arrayDesignator);
+            case IGCCASTArrayRangeDesignator arrayRangeDesignator ->
+                resolveArrayRangeDesignator(fileLoc, currentOwnerType, arrayRangeDesignator);
             default -> throw parseContext.parseError("Unsupported Designator", designator);
           };
-      designators.add(r);
+      designators.addAll(resolvedDesignator.designators());
+      currentOwnerType = resolvedDesignator.lastOwnerType().getCanonicalType();
     }
+    CInitializer cInit = convert(init.getOperand(), currentOwnerType, declaration);
 
     return new CDesignatedInitializer(fileLoc, designators, cInit);
   }
 
+  private record DesignatorsAndLastType(List<CDesignator> designators, CType lastOwnerType) {}
+
+  private DesignatorsAndLastType resolveArrayDesignator(
+      FileLocation fileLoc, CType ownerType, ICASTArrayDesignator arrayDesignator) {
+
+    final CType elementType;
+    if (ownerType instanceof CArrayType arrayType) {
+      elementType = arrayType.getType().getCanonicalType();
+    } else {
+      // If an array designator is applied to a type different from array,
+      // we assume that the array type was already resolved by a parent initializer list.
+      elementType = ownerType;
+    }
+
+    CExpression subscriptExpression =
+        convertExpressionWithoutSideEffects(arrayDesignator.getSubscriptExpression());
+    CDesignator designator = new CArrayDesignator(fileLoc, subscriptExpression);
+    return new DesignatorsAndLastType(ImmutableList.of(designator), elementType);
+  }
+
+  private DesignatorsAndLastType resolveArrayRangeDesignator(
+      FileLocation fileLoc, CType ownerType, IGCCASTArrayRangeDesignator rangeDesignator) {
+
+    final CType elementType;
+    if (ownerType instanceof CArrayType arrayType) {
+      elementType = arrayType.getType().getCanonicalType();
+    } else {
+      // If an array designator is applied to a type different from array,
+      // we assume that the array type was already resolved by a parent initializer list.
+      elementType = ownerType;
+    }
+
+    CExpression rangeFloor = convertExpressionWithoutSideEffects(rangeDesignator.getRangeFloor());
+    CExpression rangeCeiling =
+        convertExpressionWithoutSideEffects(rangeDesignator.getRangeCeiling());
+
+    CDesignator designator = new CArrayRangeDesignator(fileLoc, rangeFloor, rangeCeiling);
+    return new DesignatorsAndLastType(ImmutableList.of(designator), elementType);
+  }
+
+  private DesignatorsAndLastType resolveFieldDesignator(
+      FileLocation fileLoc, CType ownerType, ICASTFieldDesignator fieldDesignator) {
+
+    String targetFieldName = convert(fieldDesignator.getName());
+
+    final List<CDesignator> designators;
+    CType currentOwnerType = ownerType;
+    if (ownerType instanceof CCompositeType compositeType) {
+      List<Pair<String, CType>> wayToField =
+          PositionInComposite.getWayToInnerField(compositeType, targetFieldName, new ArrayList<>());
+      Preconditions.checkState(!wayToField.isEmpty());
+
+      ImmutableList.Builder<CDesignator> listBuilder =
+          ImmutableList.builderWithExpectedSize(wayToField.size());
+      for (Pair<String, CType> wayToFieldPair : wayToField) {
+        String name = wayToFieldPair.getFirst();
+        listBuilder.add(new CFieldDesignator(fileLoc, name));
+        currentOwnerType = wayToFieldPair.getSecondNotNull();
+      }
+      designators = listBuilder.build();
+
+    } else {
+      designators = ImmutableList.of(new CFieldDesignator(fileLoc, targetFieldName));
+    }
+    return new DesignatorsAndLastType(designators, currentOwnerType);
+  }
+
+  /**
+   * Convert an initializer list for an array or scalar type. Any excess elements are still
+   * converted as if they fit the assigned type.
+   *
+   * <p>Example: For the below code, value '1' is used to initialize x.i == 1 and y[0],
+   * respectively. The values 2 and 3 are ignored in both initializations. But this method still
+   * returns an initializer that lists all three values: 1, 2, and 3.
+   *
+   * <pre>
+   *   struct {
+   *     int i;
+   *   } x = {1, 2, 3};
+   *   int y[1] = {1, 2, 3};
+   * </pre>
+   *
+   * <p>The provided assignment type must be a non-composite type, but it may contain nested
+   * composite types (for example an array of structs).
+   */
+  private CInitializer convertInitializerListForNonCompositeType(
+      IASTInitializerList iList, CType assignmentType, @Nullable CVariableDeclaration declaration) {
+
+    final CType elementType =
+        switch (assignmentType.getCanonicalType()) {
+          case CCompositeType ignored ->
+              throw new IllegalArgumentException(
+                  "Given type is resolved to composite type, expected array or scalar: "
+                      + assignmentType);
+          case CArrayType arrayType -> arrayType.getType();
+          default -> assignmentType.getCanonicalType();
+        };
+    List<CInitializer> initializerList = new ArrayList<>();
+    for (IASTInitializerClause clause : iList.getClauses()) {
+      CInitializer newI = convert(clause, elementType, declaration);
+      if (newI != null) {
+        initializerList.add(newI);
+      }
+    }
+    return new CInitializerList(getLocation(iList), initializerList);
+  }
+
+  /** Convert an initializer list for a composite type (struct/union). */
+  private CInitializer convertInitializerListForCompositeType(
+      IASTInitializerList iList,
+      CCompositeType compositeType,
+      @Nullable CVariableDeclaration declaration) {
+    List<CInitializer> initializerList = new ArrayList<>();
+
+    PositionInComposite positionInComposite = new PositionInComposite(compositeType);
+
+    for (IASTInitializerClause clause : iList.getClauses()) {
+      CInitializer newI =
+          switch (clause) {
+            case IASTExpression expr -> {
+              positionInComposite.advanceToScalar();
+              CInitializer result =
+                  new CInitializerExpression(
+                      getLocation(expr), convertExpressionWithoutSideEffects(expr));
+              positionInComposite.advanceToNextElement();
+              yield result;
+            }
+            case IASTInitializerList nestedList -> {
+              CType targetType = positionInComposite.getCurrentType();
+              CInitializer result = convert(nestedList, targetType, declaration);
+              positionInComposite.advanceToNextElement();
+              yield result;
+            }
+            case ICASTDesignatedInitializer designatedInit -> {
+              CInitializer result = convert(designatedInit, compositeType, declaration);
+              positionInComposite.jumpToPositionAfterDesignator(designatedInit);
+              yield result;
+            }
+            default ->
+                throw parseContext.parseError(
+                    "unknown initializer clause: " + clause.getClass().getSimpleName(), clause);
+          };
+      if (newI != null) {
+        initializerList.add(newI);
+      }
+    }
+
+    return new CInitializerList(getLocation(iList), initializerList);
+  }
+
   private CInitializer convert(
       IASTInitializerList iList, CType type, @Nullable CVariableDeclaration declaration) {
-
-    List<CInitializer> initializerList = new ArrayList<>();
 
     if (declaration != null && iList.getSize() == 1) {
       if (type instanceof CSimpleType || type instanceof CPointerType) {
@@ -2795,19 +3077,12 @@ class ASTConverter {
       }
     }
 
-    // TODO: we might need do to something similar for more types
-    if (type instanceof CArrayType) {
-      type = ((CArrayType) type).getType();
+    CType canonicalParentType = type.getCanonicalType();
+    if (canonicalParentType instanceof CCompositeType compositeType) {
+      return convertInitializerListForCompositeType(iList, compositeType, declaration);
+    } else {
+      return convertInitializerListForNonCompositeType(iList, type, declaration);
     }
-
-    for (IASTInitializerClause i : iList.getClauses()) {
-      CInitializer newI = convert(i, type, declaration);
-      if (newI != null) {
-        initializerList.add(newI);
-      }
-    }
-
-    return new CInitializerList(getLocation(iList), initializerList);
   }
 
   private @Nullable IASTInitializerClause unpackBracedInitializer(IASTInitializerList pIList) {
@@ -2830,14 +3105,14 @@ class ASTConverter {
         return null;
       }
 
-      final CInitializerExpression result;
+      final FileLocation loc = getLocation(ic);
+      CExpression initializedExpression;
       switch (initializer) {
         case CAssignment cAssignment -> {
           sideAssignmentStack.addPreSideAssignment(initializer);
-          result = new CInitializerExpression(getLocation(e), cAssignment.getLeftHandSide());
+          initializedExpression = cAssignment.getLeftHandSide();
         }
         case CFunctionCallExpression cFunctionCallExpression -> {
-          FileLocation loc = getLocation(i);
           if (declaration != null && !declaration.getType().getCanonicalType().isConst()) {
             // This is a variable declaration like "int i = f();"
             // We can replace this with "int i; i = f();"
@@ -2853,28 +3128,42 @@ class ASTConverter {
             CIdExpression var = createTemporaryVariableWithTypeOf(e);
             sideAssignmentStack.addPreSideAssignment(
                 new CFunctionCallAssignmentStatement(loc, var, cFunctionCallExpression));
-            result = new CInitializerExpression(loc, var);
+            initializedExpression = var;
           }
         }
-        case CExpression cExpression ->
-            result = new CInitializerExpression(getLocation(ic), cExpression);
+        case CExpression cExpression -> initializedExpression = cExpression;
         default ->
             throw parseContext.parseError(
-                "Initializer is not free of side effects, it is a "
+                "Initializer is not free of side-effects, it is a "
                     + initializer.getClass().getSimpleName(),
                 e);
       }
 
-      if (!areInitializerAssignable(type, result.getExpression())) {
+      if (type.getCanonicalType() instanceof CPointerType
+          && initializedExpression.getExpressionType().getCanonicalType()
+              instanceof CArrayType initializerType) {
+        // TODO This is part of #1035 but should probably be handled generally somewhere else and
+        // removed here.
+        CType elementType = initializerType.getType();
+        initializedExpression =
+            new CUnaryExpression(
+                loc,
+                new CPointerType(initializerType.getQualifiers(), elementType),
+                new CArraySubscriptExpression(
+                    loc, elementType, initializedExpression, CIntegerLiteralExpression.ZERO),
+                CUnaryExpression.UnaryOperator.AMPER);
+      }
+
+      if (!areInitializerAssignable(type, initializedExpression)) {
         if (type.getCanonicalType() instanceof CPointerType
-            && CTypes.isIntegerType(result.getExpression().getExpressionType())) {
+            && CTypes.isIntegerType(initializedExpression.getExpressionType())) {
           if (declaration != null) {
             logger.logf(
                 Level.WARNING,
                 "%s: Initialization of pointer variable %s with integer expression %s.",
-                result.getFileLocation(),
+                initializedExpression.getFileLocation(),
                 type.toASTString(declaration.getName()),
-                result);
+                initializedExpression);
           }
         } else {
           throw parseContext.parseError(
@@ -2887,7 +3176,7 @@ class ASTConverter {
         }
       }
 
-      return result;
+      return new CInitializerExpression(loc, initializedExpression);
 
     } else if (ic instanceof IASTInitializerList iASTInitializerList) {
       return convert(iASTInitializerList, type, declaration);
@@ -2999,5 +3288,406 @@ class ASTConverter {
     }
 
     return declarator.type();
+  }
+
+  /**
+   * A position within a composite type. The position can be any given member (named or unnamed)
+   * within a hierarchical structure of (potentially nested) composite types.
+   *
+   * <p>Example:
+   *
+   * <pre>
+   *   struct {
+   *     union { <--- potential position
+   *       int a; <--- potential position
+   *       struct { <- potential position
+   *         int b; <- potential position
+   *       }
+   *     };
+   *     int c; <----- potential position
+   *     struct { <--- potential position
+   *       int d; <--- potential position
+   *     }
+   *   }
+   * </pre>
+   */
+  private class PositionInComposite {
+    private final CCompositeType rootType;
+
+    /**
+     * Path encoding to the current position within the root type. The path is represented as a list
+     * of member indices, where each index represents the position within a composite type at that
+     * nesting level.
+     *
+     * <p>Path semantics:
+     *
+     * <ul>
+     *   <li>[i] - positioned at member i of the root type
+     *   <li>[i,j] - positioned at member j of member i
+     *   <li>[i,j,k] - positioned at member k of member j of member i
+     * </ul>
+     *
+     * <p>Examples:
+     *
+     * <pre>
+     *   struct {
+     *     struct { <--- position [0]
+     *       int a; <--- position [0,0]
+     *       struct { <- position [0,1]
+     *         int b; <- position [0,1,0]
+     *       }
+     *     };
+     *     int c[5]; <----- position [1]: 'c'. position [1, 0]: c[0]. position [1,3]: c[3]
+     *     union { <--- position [2]
+     *       int d; <--- position [2,0]
+     *     }
+     *   }
+     * </pre>
+     */
+    private Deque<Integer> path;
+
+    /**
+     * Creates a new position at the first direct member of the given type.
+     *
+     * @param pRootType the root type being initialized (canonical type must be a CCompositeType)
+     */
+    PositionInComposite(CType pRootType) {
+      if (!(pRootType.getCanonicalType() instanceof CCompositeType compositeType)) {
+        throw new IllegalArgumentException(
+            "Type must resolve to a composite type, but does not: "
+                + pRootType
+                + "(resolves to "
+                + pRootType.getCanonicalType()
+                + ")");
+      }
+      rootType = compositeType;
+      path = new ArrayDeque<>();
+      path.addLast(0);
+    }
+
+    /** Get the type of the (potentially nested) member at the current position. */
+    CType getCurrentType() {
+      return getTypeAt(path);
+    }
+
+    private CType getTypeAt(Iterable<Integer> pathToTraverse) {
+      CType currentType = rootType;
+
+      for (int memberIndex : pathToTraverse) {
+        verify(memberIndex >= 0);
+        if (currentType instanceof CCompositeType compositeType) {
+          List<CCompositeTypeMemberDeclaration> members = compositeType.getMembers();
+
+          if (memberIndex >= members.size()) {
+            throw new IndexOutOfBoundsException(
+                "Position out of bounds: index "
+                    + memberIndex
+                    + ", but type "
+                    + compositeType
+                    + " has only "
+                    + members.size()
+                    + " members");
+          }
+          currentType = members.get(memberIndex).getType().getCanonicalType();
+
+        } else if (currentType instanceof CArrayType arrayType) {
+          currentType = arrayType.getType().getCanonicalType();
+
+        } else {
+          throw new AssertionError(
+              "Cannot traverse into into non-composite, non-array type at index "
+                  + memberIndex
+                  + ": "
+                  + currentType);
+        }
+      }
+
+      return currentType;
+    }
+
+    /**
+     * Advance the position to the next element, following the semantics of C11 positional
+     * initializers.
+     *
+     * <p>For structs, the position moves to the next sibling member at the current nesting level.
+     * If no more siblings exist, it pops to the structural parent level and advances there.
+     *
+     * <p>For unions, the position always pops to the structural parent level and advances there.
+     *
+     * <p>Example:
+     *
+     * <pre>
+     * struct {
+     *   int a;
+     *   int b;
+     *   struct {
+     *     int x;
+     *     int y;
+     *   } n;
+     *   union {
+     *     int z;
+     *     int w;
+     *   } u;
+     *   int c;
+     * }
+     * </pre>
+     *
+     * <ul>
+     *   <li>At 'a' advance to 'b'
+     *   <li>At 'b' advance to 'n'
+     *   <li>At 'n.x' advance to 'n.y'
+     *   <li>At 'n.y' advance to 'u'. 'n.y' is the last sub-member, so pop to the parent struct and
+     *       advance to 'u')
+     *   <li>At 'u.z' advance to 'c'. 'u.z' is the only member initialized in the union, so pop to
+     *       the parent struct and advance to 'c')
+     * </ul>
+     *
+     * @see #advanceToScalar()
+     */
+    void advanceToNextElement() {
+      int currentPosition = path.getLast();
+      int nextPositionOnSameLevel = currentPosition + 1;
+
+      Deque<Integer> pathToParent = removeLastPosition(path);
+      CType parentType = getTypeAt(pathToParent);
+
+      int numberOfElementsInParents =
+          switch (parentType) {
+            case CCompositeType compositeType -> {
+              if (compositeType.getKind() == ComplexTypeKind.UNION) {
+                // For unions the next position is not the next member within the union,
+                // but the next sibling of that union.
+                yield 1;
+              } else {
+                yield compositeType.getMembers().size();
+              }
+            }
+            case CArrayType arrayType -> arrayType.getLengthAsInt().orElse(0);
+            default -> 1;
+          };
+
+      if (nextPositionOnSameLevel < numberOfElementsInParents) {
+        path.removeLast();
+        path.addLast(nextPositionOnSameLevel);
+      } else {
+        // 'pop out' and advance to the next element (to the sibling of the parent of the old
+        // position)
+        path.removeLast();
+        if (!path.isEmpty()) {
+          advanceToNextElement();
+        }
+      }
+    }
+
+    private Deque<Integer> removeLastPosition(Deque<Integer> sequence) {
+      Deque<Integer> result = new ArrayDeque<>(sequence);
+      result.removeLast();
+      return result;
+    }
+
+    /**
+     * Advances to the next scalar, if the current position is at an array or composite type. If the
+     * position already is at a scalar, nothing happens.
+     *
+     * <p>Example:
+     *
+     * <pre>
+     * struct {
+     *   int a;
+     *   struct {
+     *     struct {
+     *      int x;
+     *     } m;
+     *     int y;
+     *   } n;
+     * }
+     * </pre>
+     *
+     * <ul>
+     *   <li>At 'a' stays at 'a'.
+     *   <li>At 'n' advances to 'n.m.x'
+     * </ul>
+     *
+     * @see #advanceToNextElement()
+     */
+    void advanceToScalar() {
+      CType currentType = getCurrentType();
+      while (currentType.getCanonicalType() instanceof CCompositeType
+          || currentType.getCanonicalType() instanceof CArrayType) {
+        // Descend to the first member/element
+        path.add(0);
+        currentType = getCurrentType();
+      }
+    }
+
+    /**
+     * Jump to the next position after the given designated initializer.
+     *
+     * @param designatedInit the designated initializer
+     */
+    void jumpToPositionAfterDesignator(ICASTDesignatedInitializer designatedInit) {
+
+      jumpToDesignator(designatedInit.getDesignators(), rootType);
+      advanceToNextElement();
+    }
+
+    private void jumpToDesignator(ICASTDesignator[] designatorSequence, CType parentType) {
+      path = getMemberIndicesToDesignators(Arrays.asList(designatorSequence), parentType);
+    }
+
+    private Deque<Integer> getMemberIndicesToDesignators(
+        List<ICASTDesignator> designatorSequence, CType parentType) {
+      Deque<Integer> indices = new ArrayDeque<>(designatorSequence.size());
+      CType currentPositionType = parentType;
+      for (ICASTDesignator designator : designatorSequence) {
+        var nextIndexAndType = resolveIndicesOfDesignator(designator, currentPositionType);
+        indices.addAll(nextIndexAndType.getFirst());
+        currentPositionType = nextIndexAndType.getSecond();
+      }
+      return indices;
+    }
+
+    private Pair<List<Integer>, CType> resolveIndicesOfDesignator(
+        ICASTDesignator designator, CType parentType) {
+      CType currentType = parentType.getCanonicalType();
+      return switch (designator) {
+        case ICASTFieldDesignator fieldDesignator -> {
+          String targetFieldName = fieldDesignator.getName().toString();
+          yield resolveIndicesOfFieldDesignator(targetFieldName, currentType);
+        }
+
+        case ICASTArrayDesignator arrayDesignator ->
+            resolveIndicesOfArraySubscript(arrayDesignator.getSubscriptExpression(), currentType);
+
+        case IGCCASTArrayRangeDesignator rangeDesignator ->
+            resolveIndicesOfArraySubscript(rangeDesignator.getRangeCeiling(), currentType);
+        case null, default ->
+            throw new AssertionError("Unexpected designator in sequence: " + designator);
+      };
+    }
+
+    private Pair<List<Integer>, CType> resolveIndicesOfFieldDesignator(
+        String fieldName, CType parentType) {
+      if (!(parentType instanceof CCompositeType compositeType)) {
+        throw new AssertionError(
+            "No composite type trying to reach " + fieldName + ": " + parentType);
+      }
+
+      List<Pair<String, CType>> wayToCurrentField =
+          getWayToInnerField(compositeType, fieldName, new ArrayList<>());
+      Preconditions.checkState(!wayToCurrentField.isEmpty());
+      CType nextTypeInDelegatorList = wayToCurrentField.getLast().getSecond();
+      List<Integer> indices = getMemberIndicesToField(compositeType, wayToCurrentField);
+      return Pair.of(indices, nextTypeInDelegatorList);
+    }
+
+    private Pair<List<Integer>, CType> resolveIndicesOfArraySubscript(
+        IASTExpression subscriptExpression, CType type) {
+      if (!(type instanceof CArrayType arrayType)) {
+        throw new AssertionError(
+            "Expected array type for array subscript expression "
+                + subscriptExpression
+                + ", but got: "
+                + type);
+      }
+      int index = evaluateIntegerConstantExpression(subscriptExpression).intValueExact();
+      CType nextTypeInDelegatorList = arrayType.getType();
+      return Pair.of(ImmutableList.of(index), nextTypeInDelegatorList);
+    }
+
+    /**
+     * Returns the sequence of member indices that represent the named way to a field.
+     *
+     * <p>Example: Given the below struct as composite type and the way '.a.z.t', the method returns
+     * '[0, 2, 1]'
+     *
+     * <pre>
+     *   struct {
+     *     struct {
+     *       int x;
+     *       int y;
+     *       struct {
+     *         int s;
+     *         int t;
+     *       } z;
+     *     } a;
+     *   }
+     * </pre>
+     */
+    private @NonNull List<Integer> getMemberIndicesToField(
+        CCompositeType compositeType, List<Pair<String, CType>> wayToField) {
+
+      List<Integer> indices = new ArrayList<>();
+      CType currentType = compositeType;
+
+      for (Pair<String, CType> nextField : wayToField) {
+        String fieldName = nextField.getFirst();
+        if (!(currentType instanceof CCompositeType currentCompositeType)) {
+          throw new AssertionError(
+              "Cannot navigate through non-composite type "
+                  + currentType
+                  + " to reach field "
+                  + fieldName);
+        }
+
+        List<CCompositeTypeMemberDeclaration> members = currentCompositeType.getMembers();
+        int memberIndex = getMemberIndex(members, fieldName, currentCompositeType);
+
+        indices.addLast(memberIndex);
+        currentType = nextField.getSecond().getCanonicalType();
+      }
+      return indices;
+    }
+
+    private int getMemberIndex(
+        List<CCompositeTypeMemberDeclaration> members,
+        String fieldName,
+        CCompositeType currentComposite) {
+
+      for (int memberIndex = 0; memberIndex < members.size(); memberIndex++) {
+        CCompositeTypeMemberDeclaration member = members.get(memberIndex);
+        if (member.getName().equals(fieldName)) {
+          return memberIndex;
+        }
+      }
+      throw new AssertionError(
+          String.format("Field %s not found in composite type %s", fieldName, currentComposite));
+    }
+
+    /**
+     * Resolves the path to a field within a composite type, traversing anonymous structs/unions.
+     *
+     * @param owner the composite type to search in
+     * @param fieldName the name of the field to find
+     * @param allReferences accumulator list tracking the path to the field
+     * @return immutable list of (field name, field type) pairs representing the path, or empty if
+     *     field not found
+     */
+    static List<Pair<String, CType>> getWayToInnerField(
+        CCompositeType owner, String fieldName, List<Pair<String, CType>> allReferences) {
+      for (CCompositeTypeMemberDeclaration member : owner.getMembers()) {
+        if (member.getName().equals(fieldName)) {
+          allReferences.add(Pair.of(member.getName(), member.getType()));
+          return ImmutableList.copyOf(allReferences);
+        }
+      }
+
+      // no field found in current struct, so proceed to the structs/unions which are
+      // fields inside the current struct
+      for (CCompositeTypeMemberDeclaration member : owner.getMembers()) {
+        CType memberType = member.getType().getCanonicalType();
+        if (memberType instanceof CCompositeType cCompositeType
+            && member.getName().contains("__anon_type_member_")) {
+          List<Pair<String, CType>> tmp = new ArrayList<>(allReferences);
+          tmp.add(Pair.of(member.getName(), member.getType()));
+          tmp = getWayToInnerField(cCompositeType, fieldName, tmp);
+          if (!tmp.isEmpty()) {
+            return ImmutableList.copyOf(tmp);
+          }
+        }
+      }
+
+      return ImmutableList.of();
+    }
   }
 }

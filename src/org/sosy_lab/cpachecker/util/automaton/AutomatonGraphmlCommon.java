@@ -406,10 +406,7 @@ public final class AutomatonGraphmlCommon {
 
       graph.appendChild(
           createDataElement(KeyDef.ARCHITECTURE, getArchitecture(pCfa.getMachineModel())));
-      ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault()).withNano(0);
-      graph.appendChild(
-          createDataElement(
-              KeyDef.CREATIONTIME, now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)));
+      graph.appendChild(createDataElement(KeyDef.CREATIONTIME, getCreationTime()));
     }
 
     private void defineKey(KeyDef pKeyDef) {
@@ -646,6 +643,11 @@ public final class AutomatonGraphmlCommon {
           default -> pMachineModel.toString();
         };
     return architecture;
+  }
+
+  public static String getCreationTime() {
+    ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault()).withNano(0);
+    return now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
   }
 
   public static Set<FileLocation> getFileLocationsFromCfaEdge(

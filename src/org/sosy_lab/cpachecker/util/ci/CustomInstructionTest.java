@@ -26,7 +26,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.annotations.SuppressForbidden;
-import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 
 public class CustomInstructionTest {
   private CustomInstructionApplications cia;
@@ -46,7 +46,7 @@ public class CustomInstructionTest {
   private Map<CFANode, AppliedCustomInstruction> cis;
   private CustomInstruction ci;
   private Constructor<? extends AbstractState> locConstructor;
-  private CFA cfa;
+  private ImmutableCFA cfa;
   private CFANode startNode;
   private Set<CFANode> endNodes;
   private ARGState start;
@@ -56,15 +56,17 @@ public class CustomInstructionTest {
   @SuppressForbidden("reflection only in test")
   public void init() throws Exception {
     cfa =
-        TestDataTools.makeCFA(
-            "void main(int a) {",
-            "  int a;",
-            "  if (a>0) {",
-            "    a=a+1;",
-            "  } else {",
-            "    a=a-1;",
-            "  }",
-            "}");
+        TestCfaUtils.makeCFA(
+            """
+            void main(int a) {
+              int a;
+              if (a>0) {
+                a=a+1;
+              } else {
+                a=a-1;
+              }
+            }
+            """);
 
     locConstructor = LocationState.class.getDeclaredConstructor(CFANode.class, boolean.class);
     locConstructor.setAccessible(true);
@@ -219,35 +221,37 @@ public class CustomInstructionTest {
   @Test
   public void testInspectAppliedCustomInstruction() throws Exception {
     cfa =
-        TestDataTools.makeCFA(
-            "extern int f2(int);",
-            "int f(int x) {",
-            "  return x * x;",
-            "}",
-            "void main() {",
-            "  int z;",
-            "  int y;",
-            "  start_ci: int x = 5 * z;",
-            "  if (!(x>y)) {",
-            "    if (z>0) {",
-            "      x + y;",
-            "      z = x + y;",
-            "      z = f(x);",
-            "      x = f2(y);",
-            "    }",
-            "  }",
-            "  end_ci_1: int b;",
-            "  int a = 5 * b;",
-            "  if (!(a>7)) {",
-            "    if (b>0) {",
-            "      a + 7;",
-            "      b = a + 7;",
-            "      b = f(a);",
-            "      a = f2(7);",
-            "    }",
-            "  }",
-            "  x = x + 1;",
-            "}");
+        TestCfaUtils.makeCFA(
+            """
+            extern int f2(int);
+            int f(int x) {
+              return x * x;
+            }
+            void main() {
+              int z;
+              int y;
+              start_ci: int x = 5 * z;
+              if (!(x>y)) {
+                if (z>0) {
+                  x + y;
+                  z = x + y;
+                  z = f(x);
+                  x = f2(y);
+                }
+              }
+              end_ci_1: int b;
+              int a = 5 * b;
+              if (!(a>7)) {
+                if (b>0) {
+                  a + 7;
+                  b = a + 7;
+                  b = f(a);
+                  a = f2(7);
+                }
+              }
+              x = x + 1;
+            }
+            """);
 
     CFANode aciStartNode = null;
     CFANode aciEndNode = null;

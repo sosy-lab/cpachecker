@@ -27,7 +27,6 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
@@ -40,12 +39,13 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -219,8 +219,7 @@ final class PredicateStaticRefiner extends StaticRefiner
     satCheckTime.start();
     try {
       counterexample =
-          itpManager.buildCounterexampleTraceWithoutInterpolation(
-              formulas, Optional.of(allStatesTrace));
+          itpManager.buildCounterexampleTraceWithoutInterpolation(formulas, allStatesTrace);
     } finally {
       satCheckTime.stop();
     }
@@ -450,14 +449,13 @@ final class PredicateStaticRefiner extends StaticRefiner
       // Check whether the predicate should be used global or only local
       boolean applyGlobal = true;
       if (applyScoped) {
-        for (CIdExpression idExpr :
-            CFAUtils.getIdExpressionsOfExpression((CExpression) assume.getExpression())) {
-          CSimpleDeclaration decl = idExpr.getDeclaration();
-          if (decl instanceof CVariableDeclaration cVariableDeclaration) {
-            if (!cVariableDeclaration.isGlobal()) {
+        for (AIdExpression idExpr : CFAUtils.getIdExpressionsOfExpression(assume.getExpression())) {
+          ASimpleDeclaration decl = idExpr.getDeclaration();
+          if (decl instanceof AVariableDeclaration variableDeclaration) {
+            if (!variableDeclaration.isGlobal()) {
               applyGlobal = false;
             }
-          } else if (decl instanceof CParameterDeclaration) {
+          } else if (decl instanceof AParameterDeclaration) {
             applyGlobal = false;
           }
         }

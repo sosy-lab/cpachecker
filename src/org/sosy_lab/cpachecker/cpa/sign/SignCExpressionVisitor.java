@@ -124,8 +124,8 @@ public class SignCExpressionVisitor
           case MINUS -> evaluateMinusOperator(pLeft, pRight, pExp.getOperand2());
           case MULTIPLY -> evaluateMulOperator(pLeft, pRight);
           case DIVIDE -> evaluateDivideOperator(pLeft, pRight);
-          case MODULO -> evaluateModuloOperator(pLeft, pRight);
-          case BINARY_AND -> evaluateAndOperator(pLeft, pRight);
+          case REMAINDER -> evaluateModuloOperator(pLeft, pRight);
+          case BITWISE_AND -> evaluateAndOperator(pLeft, pRight);
           case LESS_EQUAL -> evaluateLessEqualOperator(pLeft, pRight);
           case GREATER_EQUAL -> evaluateLessEqualOperator(pRight, pLeft);
           case LESS_THAN -> evaluateLessOperator(pLeft, pRight);
@@ -175,7 +175,7 @@ public class SignCExpressionVisitor
 
   @Override
   public Sign visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCodeException {
-    switch (pIastUnaryExpression.getOperator()) {
+    return switch (pIastUnaryExpression.getOperator()) {
       case MINUS -> {
         Sign result = Sign.EMPTY;
         Sign operandSign = pIastUnaryExpression.getOperand().accept(this);
@@ -184,11 +184,11 @@ public class SignCExpressionVisitor
               result.combineWith(
                   evaluateUnaryExpression(pIastUnaryExpression.getOperator(), atomSign));
         }
-        return result;
+        yield result;
       }
       default ->
           throw new UnsupportedCodeException("Not supported", edgeOfExpr, pIastUnaryExpression);
-    }
+    };
   }
 
   private static Sign evaluateUnaryExpression(UnaryOperator operator, Sign operand) {

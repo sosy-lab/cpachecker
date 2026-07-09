@@ -11,22 +11,20 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.cpachecker.util.BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions.INTERNAL_NONDET_FUNCTION_NAME;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -34,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -41,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -52,24 +52,23 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinAtomicFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinAtomicFunctions.CAtomicOperationType;
 import org.sosy_lab.cpachecker.util.BuiltinAtomicFunctions.CAtomicOperations;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinIoFunctions;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -183,7 +182,7 @@ public class ExpressionToFormulaVisitor
     final CType calculationType = exp.getCalculationType();
 
     // these operators expect numeric arguments
-    final FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
+    final FormulaType<?> returnFormulaType = conv.getFormulaTypeFromType(returnType);
 
     final boolean signed;
     if (calculationType instanceof CSimpleType cSimpleType) {
@@ -247,15 +246,15 @@ public class ExpressionToFormulaVisitor
       }
       case MULTIPLY -> ret = mgr.makeMultiply(f1, f2);
       case DIVIDE -> ret = mgr.makeDivide(f1, f2, signed);
-      case MODULO -> {
+      case REMAINDER -> {
         // Modulo in C is remainder in SMTLIB2
         ret = mgr.makeRemainder(f1, f2, signed);
 
         addModuloConstraints(exp, f1, f2, signed, ret);
       }
-      case BINARY_AND -> ret = mgr.makeAnd(f1, f2);
-      case BINARY_OR -> ret = mgr.makeOr(f1, f2);
-      case BINARY_XOR -> ret = mgr.makeXor(f1, f2);
+      case BITWISE_AND -> ret = mgr.makeAnd(f1, f2);
+      case BITWISE_OR -> ret = mgr.makeOr(f1, f2);
+      case BITWISE_XOR -> ret = mgr.makeXor(f1, f2);
       case SHIFT_LEFT ->
           // NOTE: The type of the result is that of the promoted left operand. (6.5.7 3)
           ret = mgr.makeShiftLeft(f1, f2);
@@ -299,7 +298,7 @@ public class ExpressionToFormulaVisitor
     CExpression e2 = exp.getOperand2();
     if (e2.equals(CIntegerLiteralExpression.ZERO)
         && e1 instanceof CBinaryExpression or
-        && ((CBinaryExpression) e1).getOperator() == BinaryOperator.BINARY_OR) {
+        && ((CBinaryExpression) e1).getOperator() == BinaryOperator.BITWISE_OR) {
       // This is code like "(a | b) == 0".
       // According to LDV, GCC sometimes produces this during weaving,
       // but for non-bitprecise analysis it can be handled in a better way as (a == 0) || (b == 0).
@@ -391,7 +390,7 @@ public class ExpressionToFormulaVisitor
 
     if (idExp.getDeclaration() instanceof CEnumerator enumerator) {
       CType t = idExp.getExpressionType();
-      return mgr.makeNumber(conv.getFormulaTypeFromCType(t), enumerator.getValue());
+      return mgr.makeNumber(conv.getFormulaTypeFromType(t), enumerator.getValue());
     }
 
     return conv.makeVariable(
@@ -425,13 +424,13 @@ public class ExpressionToFormulaVisitor
   @Override
   public Formula visit(CCharLiteralExpression cExp) throws UnrecognizedCodeException {
     // we just take the byte value
-    FormulaType<?> t = conv.getFormulaTypeFromCType(cExp.getExpressionType());
+    FormulaType<?> t = conv.getFormulaTypeFromType(cExp.getExpressionType());
     return mgr.makeNumber(t, cExp.getCharacter());
   }
 
   @Override
   public Formula visit(CIntegerLiteralExpression iExp) throws UnrecognizedCodeException {
-    FormulaType<?> t = conv.getFormulaTypeFromCType(iExp.getExpressionType());
+    FormulaType<?> t = conv.getFormulaTypeFromType(iExp.getExpressionType());
     return mgr.makeNumber(t, iExp.getValue());
   }
 
@@ -450,7 +449,8 @@ public class ExpressionToFormulaVisitor
         converted.getExponent(),
         converted.getMantissa(),
         converted.getMathSign(),
-        FormulaType.getFloatingPointType(value.getFormat().expBits(), value.getFormat().sigBits()));
+        FormulaType.getFloatingPointTypeFromSizesWithoutHiddenBit(
+            value.getFormat().expBits(), value.getFormat().sigBits()));
   }
 
   @Override
@@ -484,7 +484,7 @@ public class ExpressionToFormulaVisitor
         }
 
         CType returnType = exp.getExpressionType();
-        FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
+        FormulaType<?> returnFormulaType = conv.getFormulaTypeFromType(returnType);
         if (!returnFormulaType.equals(mgr.getFormulaType(ret))) {
           ret = conv.makeCast(promoted, returnType, ret, constraints, edge);
         }
@@ -632,7 +632,7 @@ public class ExpressionToFormulaVisitor
 
   private Formula handleAlignOf(CExpression pExp, CType pCType) {
     return mgr.makeNumber(
-        conv.getFormulaTypeFromCType(pExp.getExpressionType()),
+        conv.getFormulaTypeFromType(pExp.getExpressionType()),
         conv.machineModel.getAlignof(pCType));
   }
 
@@ -655,70 +655,25 @@ public class ExpressionToFormulaVisitor
         // Ignore parameters and just create a fresh variable for it.
         return conv.makeNondet(functionName, returnType, ssa, constraints);
 
-      } else if (BuiltinFunctions.matchesFscanf(functionName)) {
+      } else if (BuiltinIoFunctions.matchesFscanf(functionName)) {
+        CFunctionCallAssignmentStatement nondetCallForScanfCall =
+            BuiltinIoFunctions.createNondetCallModellingFscanf(e, edge);
 
-        ValidatedFScanFParameter receivingParameter = validateFscanfParameters(parameters, e);
-
-        if (receivingParameter.receiver() instanceof CUnaryExpression unaryParameter) {
-          UnaryOperator operator = unaryParameter.getOperator();
-          CExpression operand = unaryParameter.getOperand();
-          if (operator.equals(UnaryOperator.AMPER)
-              && operand instanceof CIdExpression idExpression) {
-            // For simplicity, we start with the case where only parameters of the form "&id" occur
-            CType variableType = idExpression.getExpressionType();
-
-            if (!isCompatibleWithScanfFormatString(receivingParameter.format(), variableType)) {
-              throw new UnsupportedCodeException(
-                  "fscanf with receiving type <-> format specifier mismatch is not supported.",
+        try {
+          BooleanFormula assignment =
+              conv.makeAssignment(
+                  nondetCallForScanfCall.getLeftHandSide(),
+                  nondetCallForScanfCall.getLeftHandSide(),
+                  nondetCallForScanfCall.getRightHandSide(),
                   edge,
-                  e);
-            }
-
-            CFunctionDeclaration nondetFun =
-                new CFunctionDeclaration(
-                    edge.getFileLocation(),
-                    CFunctionType.functionTypeWithReturnType(variableType),
-                    INTERNAL_NONDET_FUNCTION_NAME,
-                    ImmutableList.of(),
-                    ImmutableSet.of());
-            CIdExpression nondetFunctionName =
-                new CIdExpression(
-                    edge.getFileLocation(), variableType, nondetFun.getName(), nondetFun);
-
-            CFunctionCallExpression rhs =
-                new CFunctionCallExpression(
-                    edge.getFileLocation(),
-                    variableType,
-                    nondetFunctionName,
-                    ImmutableList.of(),
-                    nondetFun);
-            try {
-              BooleanFormula assignment =
-                  conv.makeAssignment(
-                      idExpression,
-                      idExpression,
-                      rhs,
-                      edge,
-                      function,
-                      ssa,
-                      pts,
-                      constraints,
-                      errorConditions);
-              constraints.addConstraint(assignment);
-            } catch (InterruptedException interruptedException) {
-              CtoFormulaConverter.propagateInterruptedException(interruptedException);
-            }
-          } else {
-            throw new UnsupportedCodeException(
-                "Currently, only fscanf with a single parameter of the form &id is supported.",
-                edge,
-                e);
-          }
-        } else {
-          throw new UnsupportedCodeException(
-              "Currently, only fscanf with a single parameter of the form &id is supported.",
-              edge,
-              e);
+                  function,
+                  ssa,
+                  pts,
+                  constraints,
+                  errorConditions);
+          constraints.addConstraint(assignment);
+        } catch (InterruptedException interruptedException) {
+          CtoFormulaConverter.propagateInterruptedException(interruptedException);
         }
 
         // fscanf(FILE *stream, const char *format, ...) returns the number of assigned items
@@ -729,12 +684,12 @@ public class ExpressionToFormulaVisitor
       } else if (conv.options.isExternModelFunction(functionName)) {
         ExternModelLoader loader = new ExternModelLoader(conv, conv.bfmgr, conv.fmgr);
         BooleanFormula result = loader.handleExternModelFunction(parameters, ssa);
-        FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(e.getExpressionType());
+        FormulaType<?> returnFormulaType = conv.getFormulaTypeFromType(e.getExpressionType());
         return conv.ifTrueThenOneElseZero(returnFormulaType, result);
 
       } else if (BuiltinFunctions.isSetjmpFunction(functionName)) {
         // setjmp always returns 0 on the "regular" return, and we don't support longjmp
-        return mgr.makeNumber(conv.getFormulaTypeFromCType(returnType), 0);
+        return mgr.makeNumber(conv.getFormulaTypeFromType(returnType), 0);
 
       } else if (BuiltinFunctions.isPopcountFunction(functionName)) {
         return handlePopCount(functionName, returnType, parameters, e);
@@ -743,7 +698,7 @@ public class ExpressionToFormulaVisitor
         if (parameters.isEmpty()) {
           CType resultType = getTypeOfBuiltinFloatFunction(functionName);
 
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(resultType);
           if (formulaType.isFloatingPointType()) {
             return mgr.getFloatingPointFormulaManager()
                 .makePlusInfinity((FloatingPointType) formulaType);
@@ -755,7 +710,7 @@ public class ExpressionToFormulaVisitor
         if (parameters.isEmpty()) {
           CType resultType = getTypeOfBuiltinFloatFunction(functionName);
 
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(resultType);
           if (formulaType.isFloatingPointType()) {
             return mgr.getFloatingPointFormulaManager()
                 .makePlusInfinity((FloatingPointType) formulaType);
@@ -767,7 +722,7 @@ public class ExpressionToFormulaVisitor
         if (parameters.size() == 1) {
           CType resultType = getTypeOfBuiltinFloatFunction(functionName);
 
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(resultType);
           if (formulaType.isFloatingPointType()) {
             return mgr.getFloatingPointFormulaManager().makeNaN((FloatingPointType) formulaType);
           }
@@ -777,7 +732,7 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 1) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param =
@@ -801,13 +756,13 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 1) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param =
                 (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
 
-            FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
+            FormulaType<?> resultType = conv.getFormulaTypeFromType(CNumericTypes.INT);
             return conv.bfmgr.ifThenElse(
                 conv.bfmgr.or(fpfmgr.isInfinity(param), fpfmgr.isNaN(param)),
                 mgr.makeNumber(resultType, 0),
@@ -819,13 +774,13 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 1) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param =
                 (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
 
-            FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
+            FormulaType<?> resultType = conv.getFormulaTypeFromType(CNumericTypes.INT);
             return conv.bfmgr.ifThenElse(
                 fpfmgr.isNaN(param), mgr.makeNumber(resultType, 1), mgr.makeNumber(resultType, 0));
           }
@@ -835,14 +790,14 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 1) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param =
                 (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
             FloatingPointFormula fp_zero = fpfmgr.makeNumber(0, (FloatingPointType) formulaType);
 
-            FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
+            FormulaType<?> resultType = conv.getFormulaTypeFromType(CNumericTypes.INT);
             Formula zero = mgr.makeNumber(resultType, 0);
             Formula one = mgr.makeNumber(resultType, 1);
             Formula minus_one = mgr.makeNumber(resultType, -1);
@@ -858,14 +813,14 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 1) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param =
                 (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
             FloatingPointFormula fp_zero = fpfmgr.makeNumber(0, (FloatingPointType) formulaType);
 
-            FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
+            FormulaType<?> resultType = conv.getFormulaTypeFromType(CNumericTypes.INT);
             Formula zero = mgr.makeNumber(resultType, 0);
             Formula one = mgr.makeNumber(resultType, 1);
             Formula minus_one = mgr.makeNumber(resultType, -1);
@@ -881,13 +836,13 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 1) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param =
                 (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
 
-            FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
+            FormulaType<?> resultType = conv.getFormulaTypeFromType(CNumericTypes.INT);
             Formula zero = mgr.makeNumber(resultType, 0);
             Formula one = mgr.makeNumber(resultType, 1);
             Formula two = mgr.makeNumber(resultType, 2);
@@ -911,7 +866,7 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 2) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param0 =
@@ -951,7 +906,7 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 2) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param0 =
@@ -1000,7 +955,7 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 2) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param0 =
@@ -1022,7 +977,7 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 2) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param0 =
@@ -1045,7 +1000,7 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 2) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param0 =
@@ -1118,7 +1073,7 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 2) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param0 =
@@ -1126,7 +1081,7 @@ public class ExpressionToFormulaVisitor
             FloatingPointFormula param1 =
                 (FloatingPointFormula) processOperand(parameters.get(1), paramType, paramType);
 
-            FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
+            FormulaType<?> resultType = conv.getFormulaTypeFromType(CNumericTypes.INT);
             Formula zero = mgr.makeNumber(resultType, 0);
             Formula one = mgr.makeNumber(resultType, 1);
 
@@ -1138,14 +1093,14 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 1) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param =
                 (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
             FloatingPointFormula fp_zero = fpfmgr.makeNumber(0, (FloatingPointType) formulaType);
 
-            FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
+            FormulaType<?> resultType = conv.getFormulaTypeFromType(CNumericTypes.INT);
             Formula zero = mgr.makeNumber(resultType, 0);
             Formula not_zero =
                 conv.makeNondet(functionName + "_NonZero", CNumericTypes.INT, ssa, constraints);
@@ -1169,7 +1124,7 @@ public class ExpressionToFormulaVisitor
 
         if (parameters.size() == 2) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
-          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param =
@@ -1241,35 +1196,8 @@ public class ExpressionToFormulaVisitor
         return conv.makeNondet(functionName, returnType, ssa, constraints);
 
       } else if (BuiltinAtomicFunctions.isBuiltinAtomicFunction(functionName)) {
-        if (BuiltinAtomicFunctions.matchesStore(functionName) && parameters.size() >= 2) {
-          Formula result = atomicStore(e, parameters);
-          if (result != null) {
-            return result;
-          }
-        } else if (BuiltinAtomicFunctions.matchesLoad(functionName) && parameters.size() >= 1) {
-          Formula result = atomicLoad(e, parameters, returnType);
-          if (result != null) {
-            return result;
-          }
-        } else if (BuiltinAtomicFunctions.matchesExchange(functionName) && parameters.size() >= 2) {
-          Formula result = atomicExchange(e, parameters, returnType);
-          if (result != null) {
-            return result;
-          }
-        } else if (BuiltinAtomicFunctions.matchesCompareExchange(functionName)) {
-          Formula result = atomicCmpXchg(e, parameters, returnType);
-          if (result != null) {
-            return result;
-          }
-        } else if (BuiltinAtomicFunctions.matchesFetchOp(functionName) && parameters.size() >= 2) {
-          Formula result = atomicFetch(e, parameters, returnType, functionName);
-          if (result != null) {
-            return result;
-          }
-        } else {
-          throw new UnsupportedCodeException(
-              "Unsupported __atomic operation " + functionName, edge, e);
-        }
+        return atomicOperation(e, parameters, returnType, functionName);
+
       } else if (!CtoFormulaConverter.PURE_EXTERNAL_FUNCTIONS.contains(functionName)) {
         if (parameters.isEmpty()) {
           // function of arity 0
@@ -1350,300 +1278,268 @@ public class ExpressionToFormulaVisitor
       assert !formalParameterTypesIt.hasNext() && !parametersIt.hasNext();
 
       final CType realReturnType = conv.getReturnType(e, edge);
-      final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(realReturnType);
+      final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromType(realReturnType);
       return conv.ffmgr.declareAndCallUF(functionName, resultFormulaType, arguments);
     }
   }
 
-  @Nullable
-  private Formula atomicFetch(
+  /**
+   * Encode a call to one of the GCC atomic builtins, cf. {@link BuiltinAtomicFunctions}.
+   *
+   * <p>CPAchecker assumes sequential consistency, so any other memory order is rejected and the
+   * fences are no-ops. The actual semantics of each builtin is expressed as plain C expressions by
+   * {@link BuiltinAtomicFunctions}; this method only turns those into formulas.
+   */
+  private Formula atomicOperation(
       CFunctionCallExpression e,
       List<CExpression> parameters,
       CType returnType,
       String functionName)
       throws UnrecognizedCodeException {
-    CExpression ptr = parameters.get(0);
-    CExpression val = parameters.get(1);
-    if (parameters.size() >= 3) {
-      CExpression ordering = parameters.get(2);
-      if (!(ordering instanceof CIntegerLiteralExpression orderValue)
-          || !orderValue.getValue().equals(BigInteger.valueOf(5))) {
-        throw new UnsupportedCodeException("Not-sequentially-consistent fetch detected", edge, e);
-      }
+    CAtomicOperations operation = CAtomicOperations.fromString(functionName);
+    verify(operation != null, "not an atomic builtin: %s", functionName);
+
+    if (parameters.size() < operation.getMinimumArgumentCount()) {
+      throw new UnrecognizedCodeException(
+          "Atomic builtin " + functionName + " called with too few arguments", edge, e);
     }
-    if (ptr instanceof CPointerExpression pointer
-        && pointer.getOperand() instanceof CLeftHandSide leftHandSide) {
-      Formula old = toFormula(leftHandSide);
-      CAtomicOperations op = CAtomicOperations.fromString(functionName);
-      BinaryOperator operator =
-          switch (op) {
-            case ATOMIC_FETCH_ADD -> BinaryOperator.PLUS;
-            case ATOMIC_FETCH_SUB -> BinaryOperator.MINUS;
-            case ATOMIC_FETCH_AND -> BinaryOperator.BINARY_AND;
-            case ATOMIC_FETCH_XOR -> BinaryOperator.BINARY_XOR;
-            case ATOMIC_FETCH_OR -> BinaryOperator.BINARY_OR;
-            default ->
-                throw new UnsupportedCodeException(
-                    "Unsupported fetch operation " + functionName, edge, e);
-          };
-      CExpression newValue =
-          new CBinaryExpression(null, returnType, returnType, leftHandSide, val, operator);
-      try {
-        BooleanFormula assignment =
-            conv.makeAssignment(
-                leftHandSide,
-                leftHandSide,
-                newValue,
-                edge,
-                function,
-                ssa,
-                pts,
-                constraints,
-                errorConditions);
-        constraints.addConstraint(assignment);
-      } catch (InterruptedException interruptedException) {
-        CtoFormulaConverter.propagateInterruptedException(interruptedException);
-      }
-      return old;
+    for (int memoryOrderIndex : operation.getMemoryOrderIndices()) {
+      checkSequentiallyConsistent(e, parameters, memoryOrderIndex, operation);
     }
-    return null;
+
+    return switch (operation.getOperationType()) {
+      case LOAD -> atomicLoad(operation, parameters, returnType, functionName);
+      case STORE -> {
+        atomicStore(operation, parameters);
+        yield voidResult(functionName, returnType);
+      }
+      case EXCHANGE -> atomicExchange(operation, parameters, returnType, functionName);
+      case CMP_XCHG -> atomicCompareExchange(e, operation, parameters, returnType);
+      case FETCH_OP, OP_FETCH -> atomicFetch(operation, parameters);
+      case TEST_AND_SET -> atomicTestAndSet(parameters, returnType);
+      case CLEAR -> {
+        atomicClear(parameters);
+        yield voidResult(functionName, returnType);
+      }
+      // Under sequential consistency every access is already ordered, so a fence constrains
+      // nothing and needs no encoding.
+      case FENCE -> voidResult(functionName, returnType);
+    };
   }
 
-  @Nullable
-  private Formula atomicCmpXchg(
-      CFunctionCallExpression e, List<CExpression> parameters, CType returnType)
-      throws UnrecognizedCodeException {
-    // This built-in function implements an atomic compare and exchange operation. This compares the
-    // contents of *ptr with the contents of *expected. If equal, the operation is a
-    // read-modify-write operation that writes desired into *ptr. If they are not equal, the
-    // operation is a read and the current contents of *ptr are written into *expected.
-    CExpression ptr = parameters.get(0);
-    CExpression expectedPtr = parameters.get(1);
-    CExpression desired = parameters.get(2);
-    if (parameters.size() >= 4) {
-      CExpression weak = parameters.get(3);
-      if (!(weak instanceof CIntegerLiteralExpression weakValue)
-          || !weakValue.equals(BigInteger.valueOf(0))) {
-        throw new UnsupportedCodeException("Not-sequentially-consistent cmpxchg detected", edge, e);
-      }
-    }
-    if (parameters.size() >= 5) {
-      CExpression ordering = parameters.get(4);
-      if (!(ordering instanceof CIntegerLiteralExpression orderValue)
-          || !orderValue.getValue().equals(BigInteger.valueOf(5))) {
-        throw new UnsupportedCodeException("Not-sequentially-consistent cmpxchg detected", edge, e);
-      }
-    }
-    if (parameters.size() >= 6) {
-      CExpression ordering = parameters.get(5);
-      if (!(ordering instanceof CIntegerLiteralExpression orderValue)
-          || !orderValue.getValue().equals(BigInteger.valueOf(5))) {
-        throw new UnsupportedCodeException("Not-sequentially-consistent cmpxchg detected", edge, e);
-      }
-    }
-    if (ptr instanceof CPointerExpression pointer
-        && pointer.getOperand() instanceof CLeftHandSide leftHandSide
-        && expectedPtr instanceof CPointerExpression expPointer
-        && expPointer.getOperand() instanceof CLeftHandSide expLeftHandSide) {
-      CType type = leftHandSide.getExpressionType();
-      Formula old = processOperand(leftHandSide, type, type);
-      Formula exp = processOperand(expLeftHandSide, type, type);
-      Formula des = processOperand(desired, type, type);
-      Formula newVal = conv.bfmgr.ifThenElse(conv.fmgr.makeEqual(old, exp), des, old);
-      Formula newExp = conv.bfmgr.ifThenElse(conv.fmgr.makeEqual(old, exp), exp, old);
-
-      FormulaType<?> resultType = conv.getFormulaTypeFromCType(returnType);
-      Formula zero = mgr.makeNumber(resultType, 0);
-      Formula one = mgr.makeNumber(resultType, 1);
-      Formula retVal = conv.bfmgr.ifThenElse(conv.fmgr.makeEqual(old, exp), one, zero);
-
-      Formula lvalue =
-          conv.buildLvalueTerm(
-              leftHandSide, edge, function, ssa, pts, constraints, errorConditions);
-      Formula lvalueExp =
-          conv.buildLvalueTerm(
-              expLeftHandSide, edge, function, ssa, pts, constraints, errorConditions);
-      BooleanFormula assignment1 = conv.fmgr.assignment(lvalue, newVal);
-      constraints.addConstraint(assignment1);
-      BooleanFormula assignment2 = conv.fmgr.assignment(lvalueExp, newExp);
-      constraints.addConstraint(assignment2);
-      return retVal;
-    }
-    return null;
-  }
-
-  @Nullable
-  private Formula atomicExchange(
-      CFunctionCallExpression e, List<CExpression> parameters, CType returnType)
-      throws UnrecognizedCodeException {
-    CExpression ptr = parameters.get(0);
-    CExpression val = parameters.get(1);
-    if (parameters.size() >= 3) {
-      CExpression ordering = parameters.get(2);
-      if (!(ordering instanceof CIntegerLiteralExpression orderValue)
-          || !orderValue.getValue().equals(BigInteger.valueOf(5))) {
-        throw new UnsupportedCodeException(
-            "Not-sequentially-consistent exchange detected", edge, e);
-      }
-    }
-    if (ptr instanceof CPointerExpression pointer
-        && pointer.getOperand() instanceof CLeftHandSide leftHandSide) {
-      Formula old = processOperand(leftHandSide, returnType, returnType);
-      try {
-        BooleanFormula assignment =
-            conv.makeAssignment(
-                leftHandSide,
-                leftHandSide,
-                val,
-                edge,
-                function,
-                ssa,
-                pts,
-                constraints,
-                errorConditions);
-        constraints.addConstraint(assignment);
-      } catch (InterruptedException interruptedException) {
-        CtoFormulaConverter.propagateInterruptedException(interruptedException);
-      }
-      return old;
-    }
-    return null;
-  }
-
-  @Nullable
+  /** {@code __atomic_load_n(ptr, order)} and {@code __atomic_load(ptr, result, order)}. */
   private Formula atomicLoad(
-      CFunctionCallExpression e, List<CExpression> parameters, CType returnType)
+      CAtomicOperations operation,
+      List<CExpression> parameters,
+      CType returnType,
+      String functionName)
       throws UnrecognizedCodeException {
-    CExpression ptr = parameters.get(0);
-    if (parameters.size() >= 2) {
-      CExpression ordering = parameters.get(1);
-      if (!(ordering instanceof CIntegerLiteralExpression orderValue)
-          || !orderValue.getValue().equals(BigInteger.valueOf(5))) {
-        throw new UnsupportedCodeException("Not-sequentially-consistent load detected", edge, e);
-      }
+    CLeftHandSide source = BuiltinAtomicFunctions.getPointerTarget(parameters.get(0));
+    if (operation.isGeneric()) {
+      // the generic form does not return the value but writes it through the second pointer
+      atomicAssign(BuiltinAtomicFunctions.getPointerTarget(parameters.get(1)), source);
+      return voidResult(functionName, returnType);
     }
-    if (ptr instanceof CPointerExpression pointer) {
-      return processOperand(pointer.getOperand(), returnType, returnType);
-    }
-    return null;
+    return processOperand(source, returnType, returnType);
   }
 
-  private Formula atomicStore(CFunctionCallExpression e, List<CExpression> parameters)
+  /** {@code __atomic_store_n(ptr, value, order)} and {@code __atomic_store(ptr, value, order)}. */
+  private void atomicStore(CAtomicOperations operation, List<CExpression> parameters)
       throws UnrecognizedCodeException {
-    CExpression ptr = parameters.get(0);
-    CExpression val = parameters.get(1);
-    if (parameters.size() >= 3) {
-      CExpression ordering = parameters.get(2);
-      if (!(ordering instanceof CIntegerLiteralExpression orderValue)
-          || !orderValue.getValue().equals(BigInteger.valueOf(5))) {
-        throw new UnsupportedCodeException("Not-sequentially-consistent store detected", edge, e);
-      }
-    }
-    if (ptr instanceof CPointerExpression pointer
-        && pointer.getOperand() instanceof CLeftHandSide leftHandSide) {
-      try {
-        BooleanFormula assignment =
-            conv.makeAssignment(
-                leftHandSide,
-                leftHandSide,
-                val,
-                edge,
-                function,
-                ssa,
-                pts,
-                constraints,
-                errorConditions);
-        constraints.addConstraint(assignment);
-      } catch (InterruptedException interruptedException) {
-        CtoFormulaConverter.propagateInterruptedException(interruptedException);
-      }
-      // what to return instead of void?
-    }
-    return null;
+    CLeftHandSide target = BuiltinAtomicFunctions.getPointerTarget(parameters.get(0));
+    atomicAssign(target, valueOperand(operation, parameters, 1));
   }
-
-  private record ValidatedFScanFParameter(String format, CExpression receiver) {}
 
   /**
-   * Checks whether the format specifier in the second argument of fscanf agrees with the type of
-   * the parameter it writes to. Paragraph § 7.21.6.2 (10) of the C Standard says, that input item
-   * read form the stream is converted to the `appropriate` type according to the conversion
-   * specifier, e.g., %d. Further § 7.21.6.2 (11-12) tells us the expected argument (receiver) type
-   * for each argument, corresponding to a conversion specifier and length modifier .The exact
-   * mapping brought forward by the standard is reflected in {@link
-   * BuiltinFunctions#getTypeFromScanfFormatSpecifier(String)}.
-   *
-   * @param formatString the scanf format string
-   * @param pVariableType the type of the receiving variable
-   * @return whether the scanf-format-specifier agrees with the type it writes to
-   * @throws UnsupportedCodeException if the format specifier is not supported
+   * {@code __atomic_exchange_n(ptr, value, order)} and {@code __atomic_exchange(ptr, value, result,
+   * order)}, which write {@code value} to {@code *ptr} and yield the previous value.
    */
-  private boolean isCompatibleWithScanfFormatString(String formatString, CType pVariableType)
+  private Formula atomicExchange(
+      CAtomicOperations operation,
+      List<CExpression> parameters,
+      CType returnType,
+      String functionName)
+      throws UnrecognizedCodeException {
+    CLeftHandSide target = BuiltinAtomicFunctions.getPointerTarget(parameters.get(0));
+    if (operation.isGeneric()) {
+      CLeftHandSide value = BuiltinAtomicFunctions.getPointerTarget(parameters.get(1));
+      CLeftHandSide result = BuiltinAtomicFunctions.getPointerTarget(parameters.get(2));
+      // GCC requires the three objects to be distinct, so the old value may be copied out first
+      atomicAssign(result, target);
+      atomicAssign(target, value);
+      return voidResult(functionName, returnType);
+    }
+    // read the old value before the assignment assigns a fresh SSA index to the target
+    Formula old = processOperand(target, returnType, returnType);
+    atomicAssign(target, parameters.get(1));
+    return old;
+  }
+
+  /**
+   * The fetch builtins, which update {@code *ptr} with an arithmetic operation. The {@code
+   * __atomic_fetch_op} variants yield the value from before the update, the {@code
+   * __atomic_op_fetch} variants the one from after it.
+   */
+  private Formula atomicFetch(CAtomicOperations operation, List<CExpression> parameters)
+      throws UnrecognizedCodeException {
+    CLeftHandSide target = BuiltinAtomicFunctions.getPointerTarget(parameters.get(0));
+    CExpression updated =
+        BuiltinAtomicFunctions.getUpdatedValue(
+            new CBinaryExpressionBuilder(conv.machineModel, conv.logger),
+            operation,
+            target,
+            parameters.get(1));
+
+    // both values have to be read before the assignment assigns a fresh SSA index to the target
+    Formula oldValue = toFormula(target);
+    Formula newValue = toFormula(updated);
+    atomicAssign(target, updated);
+
+    return operation.getOperationType() == CAtomicOperationType.FETCH_OP ? oldValue : newValue;
+  }
+
+  /**
+   * The compare-exchange builtins, which write {@code desired} to {@code *ptr} if it equals {@code
+   * *expected}, and otherwise write the current value of {@code *ptr} to {@code *expected}. The
+   * result reports whether the exchange happened.
+   */
+  private Formula atomicCompareExchange(
+      CFunctionCallExpression e,
+      CAtomicOperations operation,
+      List<CExpression> parameters,
+      CType returnType)
+      throws UnrecognizedCodeException {
+    OptionalInt weakArgumentIndex = operation.getWeakArgumentIndex();
+    if (weakArgumentIndex.isPresent() && parameters.size() > weakArgumentIndex.orElseThrow()) {
+      CExpression weak = parameters.get(weakArgumentIndex.orElseThrow());
+      if (!(weak instanceof CIntegerLiteralExpression weakValue)
+          || !weakValue.getValue().equals(BigInteger.ZERO)) {
+        // a weak compare-exchange may fail spuriously, which we would have to model as nondet
+        throw new UnsupportedCodeException("Weak compare-exchange is not supported", edge, e);
+      }
+    }
+
+    CLeftHandSide target = BuiltinAtomicFunctions.getPointerTarget(parameters.get(0));
+    CLeftHandSide expected = BuiltinAtomicFunctions.getPointerTarget(parameters.get(1));
+    CExpression desired = valueOperand(operation, parameters, 2);
+
+    // The new values are conditional and thus have no CExpression form that makeAssignment could
+    // take, so the operands are converted explicitly, each cast to the type of the target.
+    CType type = target.getExpressionType();
+    Formula oldValue = processOperand(target, type, type);
+    Formula expectedValue = processOperand(expected, type, type);
+    Formula desiredValue = processOperand(desired, type, type);
+    BooleanFormula succeeds = conv.fmgr.makeEqual(oldValue, expectedValue);
+
+    FormulaType<?> resultType = conv.getFormulaTypeFromType(returnType);
+    Formula result =
+        conv.bfmgr.ifThenElse(
+            succeeds, mgr.makeNumber(resultType, 1), mgr.makeNumber(resultType, 0));
+
+    // all reads happen above, so the lvalue terms may now assign fresh SSA indices
+    Formula targetLvalue =
+        conv.buildLvalueTerm(target, edge, function, ssa, pts, constraints, errorConditions);
+    constraints.addConstraint(
+        conv.fmgr.assignment(
+            targetLvalue, conv.bfmgr.ifThenElse(succeeds, desiredValue, oldValue)));
+    Formula expectedLvalue =
+        conv.buildLvalueTerm(expected, edge, function, ssa, pts, constraints, errorConditions);
+    constraints.addConstraint(
+        conv.fmgr.assignment(
+            expectedLvalue, conv.bfmgr.ifThenElse(succeeds, expectedValue, oldValue)));
+
+    return result;
+  }
+
+  /**
+   * {@code __atomic_test_and_set(ptr, order)}, which sets {@code *ptr} and yields whether it had
+   * already been set.
+   */
+  private Formula atomicTestAndSet(List<CExpression> parameters, CType returnType)
+      throws UnrecognizedCodeException {
+    CLeftHandSide target = BuiltinAtomicFunctions.getPointerTarget(parameters.get(0));
+    CType type = target.getExpressionType();
+
+    // read the old value before the assignment assigns a fresh SSA index to the target
+    Formula oldValue = processOperand(target, type, type);
+    atomicAssign(target, BuiltinAtomicFunctions.getLiteral(type, BigInteger.ONE));
+
+    Formula zero = mgr.makeNumber(conv.getFormulaTypeFromType(type), 0);
+    FormulaType<?> resultType = conv.getFormulaTypeFromType(returnType);
+    return conv.bfmgr.ifThenElse(
+        mgr.makeNot(mgr.makeEqual(oldValue, zero)),
+        mgr.makeNumber(resultType, 1),
+        mgr.makeNumber(resultType, 0));
+  }
+
+  /** {@code __atomic_clear(ptr, order)}, which clears the flag stored in {@code *ptr}. */
+  private void atomicClear(List<CExpression> parameters) throws UnrecognizedCodeException {
+    CLeftHandSide target = BuiltinAtomicFunctions.getPointerTarget(parameters.get(0));
+    atomicAssign(
+        target, BuiltinAtomicFunctions.getLiteral(target.getExpressionType(), BigInteger.ZERO));
+  }
+
+  /**
+   * The value operand of an atomic builtin, which the generic forms pass by pointer and the {@code
+   * _n} forms by value.
+   */
+  private CExpression valueOperand(
+      CAtomicOperations operation, List<CExpression> parameters, int index)
+      throws UnrecognizedCodeException {
+    CExpression operand = parameters.get(index);
+    return operation.isGeneric() ? BuiltinAtomicFunctions.getPointerTarget(operand) : operand;
+  }
+
+  /** Add the constraint that an atomic builtin assigns {@code rhs} to {@code lhs}. */
+  private void atomicAssign(CLeftHandSide lhs, CRightHandSide rhs)
+      throws UnrecognizedCodeException {
+    try {
+      constraints.addConstraint(
+          conv.makeAssignment(
+              lhs, lhs, rhs, edge, function, ssa, pts, constraints, errorConditions));
+    } catch (InterruptedException interruptedException) {
+      CtoFormulaConverter.propagateInterruptedException(interruptedException);
+    }
+  }
+
+  /**
+   * The result of an atomic builtin that returns {@code void}. Well-formed C never uses this value,
+   * but the visitor has to return some formula.
+   */
+  private Formula voidResult(String functionName, CType returnType) {
+    CType type =
+        returnType.getCanonicalType() instanceof CVoidType ? CNumericTypes.INT : returnType;
+    return conv.makeNondet(functionName, type, ssa, constraints);
+  }
+
+  /**
+   * Reject an atomic builtin whose memory-order argument at {@code pIndex} is not {@code
+   * __ATOMIC_SEQ_CST}.
+   *
+   * <p>The memory order is inserted by the preprocessor and is therefore always an integer literal;
+   * a non-literal is rejected as well, because we then cannot show that it is sequentially
+   * consistent.
+   */
+  private void checkSequentiallyConsistent(
+      CFunctionCallExpression pCall,
+      List<CExpression> pParameters,
+      int pIndex,
+      CAtomicOperations pOperation)
       throws UnsupportedCodeException {
-    CType expectedType =
-        BuiltinFunctions.getTypeFromScanfFormatSpecifier(formatString)
-            .orElseThrow(
-                () ->
-                    new UnsupportedCodeException(
-                        "format specifier " + formatString + " not supported.", edge));
-
-    return pVariableType.getCanonicalType().equals(expectedType.getCanonicalType());
-  }
-
-  private ValidatedFScanFParameter validateFscanfParameters(
-      List<CExpression> pParameters, CFunctionCallExpression e) throws UnrecognizedCodeException {
-    if (pParameters.size() < 2) {
-      throw new UnrecognizedCodeException("fscanf() needs at least 2 parameters", edge, e);
+    if (pParameters.size() <= pIndex) {
+      return;
     }
-
-    if (pParameters.size() > 3) {
+    CExpression ordering = pParameters.get(pIndex);
+    if (!(ordering instanceof CIntegerLiteralExpression orderValue)
+        || !orderValue.getValue().equals(BuiltinAtomicFunctions.MEMORY_ORDER_SEQ_CST)) {
       throw new UnsupportedCodeException(
-          "fscanf() with more than 3 parameters is not supported", edge, e);
+          "Only sequentially consistent memory order (__ATOMIC_SEQ_CST) is supported, but "
+              + pOperation.getRepresentation()
+              + " uses "
+              + ordering.toASTString(),
+          edge,
+          pCall);
     }
-
-    CExpression file = pParameters.getFirst();
-
-    if (file instanceof CIdExpression idExpression) {
-      if (!isFilePointer(idExpression.getExpressionType())) {
-        throw new UnrecognizedCodeException("First parameter of fscanf() must be a FILE*", edge, e);
-      }
-    }
-
-    CExpression format = pParameters.get(1);
-    String formatString =
-        checkFscanfFormatString(format)
-            .orElseThrow(
-                () ->
-                    new UnsupportedCodeException(
-                        "Format string of fscanf is not supported", edge, e));
-
-    return new ValidatedFScanFParameter(formatString, pParameters.get(2));
-  }
-
-  private boolean isFilePointer(CType pType) {
-    if (pType instanceof CPointerType pointerType) {
-      if (pointerType.getType() instanceof CTypedefType typedefType) {
-        CType realType = typedefType.getRealType();
-        if (realType instanceof CElaboratedType elaboratedType) {
-          return elaboratedType.getKind() == ComplexTypeKind.STRUCT
-              && elaboratedType.getName().equals("_IO_FILE");
-        }
-      }
-    }
-    return false;
-  }
-
-  private Optional<String> checkFscanfFormatString(CExpression pFormat) {
-    ImmutableSet<String> allowlistedFormatStrings =
-        BuiltinFunctions.getAllowedScanfFormatSpecifiers();
-    if (pFormat instanceof CStringLiteralExpression stringLiteral) {
-      String content = stringLiteral.getContentWithoutNullTerminator();
-      if (allowlistedFormatStrings.contains(content)) {
-        return Optional.of(content);
-      }
-    }
-
-    return Optional.empty();
   }
 
   private @Nullable Formula roundNearestTiesAway(
@@ -1652,7 +1548,7 @@ public class ExpressionToFormulaVisitor
 
     if (pParameters.size() == 1) {
       CType paramType = getTypeOfBuiltinFloatFunction(pFunctionName);
-      FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+      FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
       if (formulaType.isFloatingPointType()) {
         FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
         FloatingPointFormula param =
@@ -1675,8 +1571,8 @@ public class ExpressionToFormulaVisitor
         if (pIsLRound) {
           FormulaType<?> type =
               pIsLongLong
-                  ? conv.getFormulaTypeFromCType(CNumericTypes.LONG_LONG_INT)
-                  : conv.getFormulaTypeFromCType(CNumericTypes.LONG_INT);
+                  ? conv.getFormulaTypeFromType(CNumericTypes.LONG_LONG_INT)
+                  : conv.getFormulaTypeFromType(CNumericTypes.LONG_INT);
           final boolean signed = true; // LongLongInt and LongInt are signed
 
           castIntegral = fpfmgr.castTo(integral, signed, type);
@@ -1727,7 +1623,7 @@ public class ExpressionToFormulaVisitor
 
     if (pParameters.size() == 1) {
       CType paramType = getTypeOfBuiltinFloatFunction(pFunctionName);
-      FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+      FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
       if (formulaType.isFloatingPointType()) {
         FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
         FloatingPointFormula param =
@@ -1762,14 +1658,14 @@ public class ExpressionToFormulaVisitor
 
     if (pParameters.size() == 2) {
       CType paramType = getTypeOfBuiltinFloatFunction(pFunctionName);
-      FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+      FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
       if (formulaType.isFloatingPointType()) {
         FloatingPointFormula param0 =
             (FloatingPointFormula) processOperand(pParameters.getFirst(), paramType, paramType);
         FloatingPointFormula param1 =
             (FloatingPointFormula) processOperand(pParameters.get(1), paramType, paramType);
 
-        FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
+        FormulaType<?> resultType = conv.getFormulaTypeFromType(CNumericTypes.INT);
         Formula zero = mgr.makeNumber(resultType, 0);
         Formula one = mgr.makeNumber(resultType, 1);
 
@@ -1790,9 +1686,9 @@ public class ExpressionToFormulaVisitor
   }
 
   /**
-   * Handle calls to __builtin_popcount, __builtin_popcountl, and __builtin_popcountll. Popcount
-   * sums up all 1-bits of an int, long or long long. Test c programs available:
-   * test/programs/simple/builtin_popcount32_x.c and test/programs/simple/builtin_popcount64_x.c
+   * Handle calls to __builtin_popcount(), __builtin_popcountl(), and __builtin_popcountll().
+   * Popcount sums up all 1-bits in an unsigned int, unsigned long int or unsigned long long int
+   * number given. Test C programs available at test/programs/simple/builtin_popcount*.c
    */
   private Formula handlePopCount(
       String pFunctionName,
@@ -1802,8 +1698,8 @@ public class ExpressionToFormulaVisitor
       throws UnrecognizedCodeException {
     if (pParameters.size() == 1) {
       CType paramType = BuiltinFunctions.getParameterTypeOfBuiltinPopcountFunction(pFunctionName);
-      FormulaType<?> paramFormulaType = conv.getFormulaTypeFromCType(paramType);
-      FormulaType<?> formulaReturnType = conv.getFormulaTypeFromCType(pReturnType);
+      FormulaType<?> paramFormulaType = conv.getFormulaTypeFromType(paramType);
+      FormulaType<?> formulaReturnType = conv.getFormulaTypeFromType(pReturnType);
 
       if (paramFormulaType.isBitvectorType()) {
         BitvectorFormulaManagerView bvMgrv = mgr.getBitvectorFormulaManager();

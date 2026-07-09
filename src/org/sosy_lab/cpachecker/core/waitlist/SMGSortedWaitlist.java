@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.waitlist;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
@@ -27,7 +27,7 @@ public class SMGSortedWaitlist extends AbstractSortedWaitlist<Integer> {
     SMGState state = AbstractStates.extractStateByType(pState, SMGState.class);
 
     // negate size so that the highest key corresponds to the smallest map
-    return (state == null) ? 0 : -state.getHeap().getHeapObjects().size();
+    return (state == null) ? 0 : -state.getMemoryModel().getSmg().getValidObjects().size();
   }
 
   public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {
