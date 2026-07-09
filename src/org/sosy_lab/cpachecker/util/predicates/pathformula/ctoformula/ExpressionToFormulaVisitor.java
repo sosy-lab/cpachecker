@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
+import java.util.OptionalInt;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -38,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -57,10 +58,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinAtomicFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinAtomicFunctions.CAtomicOperationType;
 import org.sosy_lab.cpachecker.util.BuiltinAtomicFunctions.CAtomicOperations;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
@@ -1192,27 +1195,8 @@ public class ExpressionToFormulaVisitor
         return conv.makeNondet(functionName, returnType, ssa, constraints);
 
       } else if (BuiltinAtomicFunctions.isBuiltinAtomicFunction(functionName)) {
-        if (BuiltinAtomicFunctions.matchesStore(functionName) && parameters.size() >= 2) {
-          atomicStore(e, parameters);
-          // __atomic_store* has no result; the value below is never used by well-formed C.
-          return conv.makeNondet(functionName, returnType, ssa, constraints);
-        } else if (BuiltinAtomicFunctions.matchesLoad(functionName) && !parameters.isEmpty()) {
-          return atomicLoad(e, parameters, returnType);
-        } else if (BuiltinAtomicFunctions.matchesExchange(functionName) && parameters.size() >= 2) {
-          return atomicExchange(e, parameters, returnType);
-        } else if (BuiltinAtomicFunctions.matchesCompareExchange(functionName)
-            && parameters.size() >= 3) {
-          return atomicCmpXchg(e, parameters, returnType);
-        } else if (BuiltinAtomicFunctions.matchesFetchOp(functionName) && parameters.size() >= 2) {
-          return atomicFetch(e, parameters, functionName);
-        } else if (BuiltinAtomicFunctions.matchesThreadFence(functionName)) {
-          // Under the assumed sequentially consistent memory model a fence constrains nothing.
-          checkSequentiallyConsistent(e, parameters, 0, "thread fence");
-          return conv.makeNondet(functionName, returnType, ssa, constraints);
-        } else {
-          throw new UnrecognizedCodeException(
-              "Unexpected argument count for atomic builtin " + functionName, edge, e);
-        }
+        return atomicOperation(e, parameters, returnType, functionName);
+
       } else if (!CtoFormulaConverter.PURE_EXTERNAL_FUNCTIONS.contains(functionName)) {
         if (parameters.isEmpty()) {
           // function of arity 0
@@ -1298,207 +1282,262 @@ public class ExpressionToFormulaVisitor
     }
   }
 
-  private Formula atomicFetch(
-      CFunctionCallExpression e, List<CExpression> parameters, String functionName)
+  /**
+   * Encode a call to one of the GCC atomic builtins, cf. {@link BuiltinAtomicFunctions}.
+   *
+   * <p>CPAchecker assumes sequential consistency, so any other memory order is rejected and the
+   * fences are no-ops. The actual semantics of each builtin is expressed as plain C expressions by
+   * {@link BuiltinAtomicFunctions}; this method only turns those into formulas.
+   */
+  private Formula atomicOperation(
+      CFunctionCallExpression e,
+      List<CExpression> parameters,
+      CType returnType,
+      String functionName)
       throws UnrecognizedCodeException {
-    CExpression ptr = parameters.get(0);
-    CExpression val = parameters.get(1);
-    checkSequentiallyConsistent(e, parameters, 2, "fetch");
-    CLeftHandSide leftHandSide = derefTarget(ptr);
-    // The old value must be read before the assignment bumps the SSA index of the target.
-    Formula old = toFormula(leftHandSide);
-    CAtomicOperations op = CAtomicOperations.fromString(functionName);
-    BinaryOperator operator =
-        switch (op) {
-          case ATOMIC_FETCH_ADD -> BinaryOperator.PLUS;
-          case ATOMIC_FETCH_SUB -> BinaryOperator.MINUS;
-          case ATOMIC_FETCH_AND -> BinaryOperator.BITWISE_AND;
-          case ATOMIC_FETCH_XOR -> BinaryOperator.BITWISE_XOR;
-          case ATOMIC_FETCH_OR -> BinaryOperator.BITWISE_OR;
-          default ->
-              throw new UnsupportedCodeException(
-                  "Unsupported fetch operation " + functionName, edge, e);
-        };
-    // Let the builder derive the C conversion/promotion types instead of assuming the return type.
-    CExpression newValue =
-        new CBinaryExpressionBuilder(conv.machineModel, conv.logger)
-            .buildBinaryExpression(leftHandSide, val, operator);
-    try {
-      BooleanFormula assignment =
-          conv.makeAssignment(
-              leftHandSide,
-              leftHandSide,
-              newValue,
-              edge,
-              function,
-              ssa,
-              pts,
-              constraints,
-              errorConditions);
-      constraints.addConstraint(assignment);
-    } catch (InterruptedException interruptedException) {
-      CtoFormulaConverter.propagateInterruptedException(interruptedException);
+    CAtomicOperations operation = CAtomicOperations.fromString(functionName);
+    verify(operation != null, "not an atomic builtin: %s", functionName);
+
+    if (parameters.size() < operation.getMinimumArgumentCount()) {
+      throw new UnrecognizedCodeException(
+          "Atomic builtin " + functionName + " called with too few arguments", edge, e);
     }
+    for (int memoryOrderIndex : operation.getMemoryOrderIndices()) {
+      checkSequentiallyConsistent(e, parameters, memoryOrderIndex, operation);
+    }
+
+    return switch (operation.getOperationType()) {
+      case LOAD -> atomicLoad(operation, parameters, returnType, functionName);
+      case STORE -> {
+        atomicStore(operation, parameters);
+        yield voidResult(functionName, returnType);
+      }
+      case EXCHANGE -> atomicExchange(operation, parameters, returnType, functionName);
+      case CMP_XCHG -> atomicCompareExchange(e, operation, parameters, returnType);
+      case FETCH_OP, OP_FETCH -> atomicFetch(operation, parameters);
+      case TEST_AND_SET -> atomicTestAndSet(parameters, returnType);
+      case CLEAR -> {
+        atomicClear(parameters);
+        yield voidResult(functionName, returnType);
+      }
+      // Under sequential consistency every access is already ordered, so a fence constrains
+      // nothing and needs no encoding.
+      case FENCE -> voidResult(functionName, returnType);
+    };
+  }
+
+  /** {@code __atomic_load_n(ptr, order)} and {@code __atomic_load(ptr, result, order)}. */
+  private Formula atomicLoad(
+      CAtomicOperations operation,
+      List<CExpression> parameters,
+      CType returnType,
+      String functionName)
+      throws UnrecognizedCodeException {
+    CLeftHandSide source = BuiltinAtomicFunctions.getPointerTarget(parameters.get(0));
+    if (operation.isGeneric()) {
+      // the generic form does not return the value but writes it through the second pointer
+      atomicAssign(BuiltinAtomicFunctions.getPointerTarget(parameters.get(1)), source);
+      return voidResult(functionName, returnType);
+    }
+    return processOperand(source, returnType, returnType);
+  }
+
+  /** {@code __atomic_store_n(ptr, value, order)} and {@code __atomic_store(ptr, value, order)}. */
+  private void atomicStore(CAtomicOperations operation, List<CExpression> parameters)
+      throws UnrecognizedCodeException {
+    CLeftHandSide target = BuiltinAtomicFunctions.getPointerTarget(parameters.get(0));
+    atomicAssign(target, valueOperand(operation, parameters, 1));
+  }
+
+  /**
+   * {@code __atomic_exchange_n(ptr, value, order)} and {@code __atomic_exchange(ptr, value, result,
+   * order)}, which write {@code value} to {@code *ptr} and yield the previous value.
+   */
+  private Formula atomicExchange(
+      CAtomicOperations operation,
+      List<CExpression> parameters,
+      CType returnType,
+      String functionName)
+      throws UnrecognizedCodeException {
+    CLeftHandSide target = BuiltinAtomicFunctions.getPointerTarget(parameters.get(0));
+    if (operation.isGeneric()) {
+      CLeftHandSide value = BuiltinAtomicFunctions.getPointerTarget(parameters.get(1));
+      CLeftHandSide result = BuiltinAtomicFunctions.getPointerTarget(parameters.get(2));
+      // GCC requires the three objects to be distinct, so the old value may be copied out first
+      atomicAssign(result, target);
+      atomicAssign(target, value);
+      return voidResult(functionName, returnType);
+    }
+    // read the old value before the assignment assigns a fresh SSA index to the target
+    Formula old = processOperand(target, returnType, returnType);
+    atomicAssign(target, parameters.get(1));
     return old;
   }
 
-  private Formula atomicCmpXchg(
-      CFunctionCallExpression e, List<CExpression> parameters, CType returnType)
+  /**
+   * The fetch builtins, which update {@code *ptr} with an arithmetic operation. The {@code
+   * __atomic_fetch_op} variants yield the value from before the update, the {@code
+   * __atomic_op_fetch} variants the one from after it.
+   */
+  private Formula atomicFetch(CAtomicOperations operation, List<CExpression> parameters)
       throws UnrecognizedCodeException {
-    // This built-in function implements an atomic compare and exchange operation. This compares the
-    // contents of *ptr with the contents of *expected. If equal, the operation is a
-    // read-modify-write operation that writes desired into *ptr. If they are not equal, the
-    // operation is a read and the current contents of *ptr are written into *expected.
-    CExpression ptr = parameters.get(0);
-    CExpression expectedPtr = parameters.get(1);
-    CExpression desired = parameters.get(2);
-    if (parameters.size() >= 4) {
-      CExpression weak = parameters.get(3);
+    CLeftHandSide target = BuiltinAtomicFunctions.getPointerTarget(parameters.get(0));
+    CExpression updated =
+        BuiltinAtomicFunctions.getUpdatedValue(
+            new CBinaryExpressionBuilder(conv.machineModel, conv.logger),
+            operation,
+            target,
+            parameters.get(1));
+
+    // both values have to be read before the assignment assigns a fresh SSA index to the target
+    Formula oldValue = toFormula(target);
+    Formula newValue = toFormula(updated);
+    atomicAssign(target, updated);
+
+    return operation.getOperationType() == CAtomicOperationType.FETCH_OP ? oldValue : newValue;
+  }
+
+  /**
+   * The compare-exchange builtins, which write {@code desired} to {@code *ptr} if it equals {@code
+   * *expected}, and otherwise write the current value of {@code *ptr} to {@code *expected}. The
+   * result reports whether the exchange happened.
+   */
+  private Formula atomicCompareExchange(
+      CFunctionCallExpression e,
+      CAtomicOperations operation,
+      List<CExpression> parameters,
+      CType returnType)
+      throws UnrecognizedCodeException {
+    OptionalInt weakArgumentIndex = operation.getWeakArgumentIndex();
+    if (weakArgumentIndex.isPresent() && parameters.size() > weakArgumentIndex.orElseThrow()) {
+      CExpression weak = parameters.get(weakArgumentIndex.orElseThrow());
       if (!(weak instanceof CIntegerLiteralExpression weakValue)
           || !weakValue.getValue().equals(BigInteger.ZERO)) {
+        // a weak compare-exchange may fail spuriously, which we would have to model as nondet
         throw new UnsupportedCodeException("Weak compare-exchange is not supported", edge, e);
       }
     }
-    checkSequentiallyConsistent(e, parameters, 4, "compare-exchange (success order)");
-    checkSequentiallyConsistent(e, parameters, 5, "compare-exchange (failure order)");
-    CLeftHandSide leftHandSide = derefTarget(ptr);
-    CLeftHandSide expLeftHandSide = derefTarget(expectedPtr);
 
-    CType type = leftHandSide.getExpressionType();
-    // All reads of the pre-state must happen before buildLvalueTerm() assigns fresh SSA indices.
-    Formula old = processOperand(leftHandSide, type, type);
-    Formula exp = processOperand(expLeftHandSide, type, type);
-    Formula des = processOperand(desired, type, type);
-    BooleanFormula succeeds = conv.fmgr.makeEqual(old, exp);
-    Formula newVal = conv.bfmgr.ifThenElse(succeeds, des, old);
-    Formula newExp = conv.bfmgr.ifThenElse(succeeds, exp, old);
+    CLeftHandSide target = BuiltinAtomicFunctions.getPointerTarget(parameters.get(0));
+    CLeftHandSide expected = BuiltinAtomicFunctions.getPointerTarget(parameters.get(1));
+    CExpression desired = valueOperand(operation, parameters, 2);
+
+    // The new values are conditional and thus have no CExpression form that makeAssignment could
+    // take, so the operands are converted explicitly, each cast to the type of the target.
+    CType type = target.getExpressionType();
+    Formula oldValue = processOperand(target, type, type);
+    Formula expectedValue = processOperand(expected, type, type);
+    Formula desiredValue = processOperand(desired, type, type);
+    BooleanFormula succeeds = conv.fmgr.makeEqual(oldValue, expectedValue);
 
     FormulaType<?> resultType = conv.getFormulaTypeFromType(returnType);
-    Formula zero = mgr.makeNumber(resultType, 0);
-    Formula one = mgr.makeNumber(resultType, 1);
-    Formula retVal = conv.bfmgr.ifThenElse(succeeds, one, zero);
+    Formula result =
+        conv.bfmgr.ifThenElse(
+            succeeds, mgr.makeNumber(resultType, 1), mgr.makeNumber(resultType, 0));
 
-    Formula lvalue =
-        conv.buildLvalueTerm(leftHandSide, edge, function, ssa, pts, constraints, errorConditions);
-    BooleanFormula assignment1 = conv.fmgr.assignment(lvalue, newVal);
-    constraints.addConstraint(assignment1);
-    Formula lvalueExp =
-        conv.buildLvalueTerm(
-            expLeftHandSide, edge, function, ssa, pts, constraints, errorConditions);
-    BooleanFormula assignment2 = conv.fmgr.assignment(lvalueExp, newExp);
-    constraints.addConstraint(assignment2);
-    return retVal;
+    // all reads happen above, so the lvalue terms may now assign fresh SSA indices
+    Formula targetLvalue =
+        conv.buildLvalueTerm(target, edge, function, ssa, pts, constraints, errorConditions);
+    constraints.addConstraint(
+        conv.fmgr.assignment(
+            targetLvalue, conv.bfmgr.ifThenElse(succeeds, desiredValue, oldValue)));
+    Formula expectedLvalue =
+        conv.buildLvalueTerm(expected, edge, function, ssa, pts, constraints, errorConditions);
+    constraints.addConstraint(
+        conv.fmgr.assignment(
+            expectedLvalue, conv.bfmgr.ifThenElse(succeeds, expectedValue, oldValue)));
+
+    return result;
   }
 
-  private Formula atomicExchange(
-      CFunctionCallExpression e, List<CExpression> parameters, CType returnType)
+  /**
+   * {@code __atomic_test_and_set(ptr, order)}, which sets {@code *ptr} and yields whether it had
+   * already been set.
+   */
+  private Formula atomicTestAndSet(List<CExpression> parameters, CType returnType)
       throws UnrecognizedCodeException {
-    CExpression ptr = parameters.get(0);
-    CExpression val = parameters.get(1);
-    checkSequentiallyConsistent(e, parameters, 2, "exchange");
-    CLeftHandSide leftHandSide = derefTarget(ptr);
-    // The old value must be read before the assignment bumps the SSA index of the target.
-    Formula old = processOperand(leftHandSide, returnType, returnType);
+    CLeftHandSide target = BuiltinAtomicFunctions.getPointerTarget(parameters.get(0));
+    CType type = target.getExpressionType();
+
+    // read the old value before the assignment assigns a fresh SSA index to the target
+    Formula oldValue = processOperand(target, type, type);
+    atomicAssign(target, BuiltinAtomicFunctions.getLiteral(type, BigInteger.ONE));
+
+    Formula zero = mgr.makeNumber(conv.getFormulaTypeFromType(type), 0);
+    FormulaType<?> resultType = conv.getFormulaTypeFromType(returnType);
+    return conv.bfmgr.ifThenElse(
+        mgr.makeNot(mgr.makeEqual(oldValue, zero)),
+        mgr.makeNumber(resultType, 1),
+        mgr.makeNumber(resultType, 0));
+  }
+
+  /** {@code __atomic_clear(ptr, order)}, which clears the flag stored in {@code *ptr}. */
+  private void atomicClear(List<CExpression> parameters) throws UnrecognizedCodeException {
+    CLeftHandSide target = BuiltinAtomicFunctions.getPointerTarget(parameters.get(0));
+    atomicAssign(
+        target, BuiltinAtomicFunctions.getLiteral(target.getExpressionType(), BigInteger.ZERO));
+  }
+
+  /**
+   * The value operand of an atomic builtin, which the generic forms pass by pointer and the {@code
+   * _n} forms by value.
+   */
+  private CExpression valueOperand(
+      CAtomicOperations operation, List<CExpression> parameters, int index)
+      throws UnrecognizedCodeException {
+    CExpression operand = parameters.get(index);
+    return operation.isGeneric() ? BuiltinAtomicFunctions.getPointerTarget(operand) : operand;
+  }
+
+  /** Add the constraint that an atomic builtin assigns {@code rhs} to {@code lhs}. */
+  private void atomicAssign(CLeftHandSide lhs, CRightHandSide rhs)
+      throws UnrecognizedCodeException {
     try {
-      BooleanFormula assignment =
+      constraints.addConstraint(
           conv.makeAssignment(
-              leftHandSide,
-              leftHandSide,
-              val,
-              edge,
-              function,
-              ssa,
-              pts,
-              constraints,
-              errorConditions);
-      constraints.addConstraint(assignment);
+              lhs, lhs, rhs, edge, function, ssa, pts, constraints, errorConditions));
     } catch (InterruptedException interruptedException) {
       CtoFormulaConverter.propagateInterruptedException(interruptedException);
     }
-    return old;
   }
 
-  private Formula atomicLoad(
-      CFunctionCallExpression e, List<CExpression> parameters, CType returnType)
-      throws UnrecognizedCodeException {
-    CExpression ptr = parameters.get(0);
-    checkSequentiallyConsistent(e, parameters, 1, "load");
-    CLeftHandSide target = derefTarget(ptr);
-    return processOperand(target, returnType, returnType);
+  /**
+   * The result of an atomic builtin that returns {@code void}. Well-formed C never uses this value,
+   * but the visitor has to return some formula.
+   */
+  private Formula voidResult(String functionName, CType returnType) {
+    CType type =
+        returnType.getCanonicalType() instanceof CVoidType ? CNumericTypes.INT : returnType;
+    return conv.makeNondet(functionName, type, ssa, constraints);
   }
-
-  /** Value of GCC's {@code __ATOMIC_SEQ_CST} memory order, the only one supported here. */
-  private static final BigInteger MEMORY_ORDER_SEQ_CST = BigInteger.valueOf(5);
 
   /**
    * Reject an atomic builtin whose memory-order argument at {@code pIndex} is not {@code
    * __ATOMIC_SEQ_CST}.
    *
    * <p>The memory order is inserted by the preprocessor and is therefore always an integer literal;
-   * a non-literal is rejected as well, because we then cannot prove it is sequentially consistent.
+   * a non-literal is rejected as well, because we then cannot show that it is sequentially
+   * consistent.
    */
   private void checkSequentiallyConsistent(
-      CFunctionCallExpression pCall, List<CExpression> pParameters, int pIndex, String pOperation)
+      CFunctionCallExpression pCall,
+      List<CExpression> pParameters,
+      int pIndex,
+      CAtomicOperations pOperation)
       throws UnsupportedCodeException {
     if (pParameters.size() <= pIndex) {
       return;
     }
     CExpression ordering = pParameters.get(pIndex);
     if (!(ordering instanceof CIntegerLiteralExpression orderValue)
-        || !orderValue.getValue().equals(MEMORY_ORDER_SEQ_CST)) {
+        || !orderValue.getValue().equals(BuiltinAtomicFunctions.MEMORY_ORDER_SEQ_CST)) {
       throw new UnsupportedCodeException(
-          "Only sequentially consistent memory order (__ATOMIC_SEQ_CST) is supported, but atomic "
-              + pOperation
+          "Only sequentially consistent memory order (__ATOMIC_SEQ_CST) is supported, but "
+              + pOperation.getRepresentation()
               + " uses "
               + ordering.toASTString(),
           edge,
           pCall);
-    }
-  }
-
-  /**
-   * Return the object an atomic builtin's pointer argument designates, i.e. {@code *pPointer}.
-   *
-   * <p>{@code &x} is folded back to {@code x} so that the common case does not needlessly go
-   * through pointer-alias handling; any other pointer-typed expression is wrapped in a {@link
-   * CPointerExpression}.
-   */
-  private CLeftHandSide derefTarget(CExpression pPointer) throws UnrecognizedCodeException {
-    if (pPointer instanceof CUnaryExpression unary
-        && unary.getOperator() == UnaryOperator.AMPER
-        && unary.getOperand() instanceof CLeftHandSide operand) {
-      return operand;
-    }
-    CType pointerType = pPointer.getExpressionType().getCanonicalType();
-    if (!(pointerType instanceof CPointerType pointer)) {
-      throw new UnrecognizedCodeException(
-          "Atomic builtin expects a pointer argument, but got type " + pointerType, edge, pPointer);
-    }
-    return new CPointerExpression(
-        pPointer.getFileLocation(), pointer.getType().getCanonicalType(), pPointer);
-  }
-
-  private void atomicStore(CFunctionCallExpression e, List<CExpression> parameters)
-      throws UnrecognizedCodeException {
-    CExpression ptr = parameters.get(0);
-    CExpression val = parameters.get(1);
-    checkSequentiallyConsistent(e, parameters, 2, "store");
-    CLeftHandSide leftHandSide = derefTarget(ptr);
-    try {
-      BooleanFormula assignment =
-          conv.makeAssignment(
-              leftHandSide,
-              leftHandSide,
-              val,
-              edge,
-              function,
-              ssa,
-              pts,
-              constraints,
-              errorConditions);
-      constraints.addConstraint(assignment);
-    } catch (InterruptedException interruptedException) {
-      CtoFormulaConverter.propagateInterruptedException(interruptedException);
     }
   }
 

@@ -843,8 +843,12 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     // perform as slice assignment from LHS to RHS
     SliceExpression assignmentLhs = new SliceExpression(lhs);
     SliceExpression assignmentRhs = new SliceExpression(rhs);
+    // An assignment whose right-hand side writes to memory itself must be performed even if its
+    // left-hand side is irrelevant, because skipping it would also skip the side effect.
+    Optional<CLeftHandSide> relevancyLhs =
+        hasSideEffect(rhs) ? Optional.empty() : Optional.of(lhsForChecking);
     SliceAssignment assignment =
-        new SliceAssignment(assignmentLhs, Optional.of(lhsForChecking), Optional.of(assignmentRhs));
+        new SliceAssignment(assignmentLhs, relevancyLhs, Optional.of(assignmentRhs));
 
     // use normal assignment options with cast conversion, force pointer assignment if necessary,
     // leave everything else as-is

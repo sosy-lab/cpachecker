@@ -1616,6 +1616,23 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
   }
 
   /**
+   * Whether evaluating the right-hand side of an assignment writes to memory itself, in which case
+   * the assignment may not be dropped even if its left-hand side is irrelevant.
+   *
+   * <p>External functions are assumed to be pure, but the atomic builtins are encoded by {@link
+   * ExpressionToFormulaVisitor} and do update the object their pointer argument designates.
+   * 
+   * TODO: this must exist somehow already, but I cannot find it. 
+   * Adding it here, and the two CToFormulaConverters.
+   */
+  protected static boolean hasSideEffect(CRightHandSide rhs) {
+    return rhs instanceof CFunctionCallExpression call
+        && call.getFunctionNameExpression() instanceof CIdExpression functionName
+        && BuiltinAtomicFunctions.hasSideEffect(functionName.getName());
+  }
+
+
+  /**
    * Creates formula for the given assignment.
    *
    * @param lhs the left-hand-side of the assignment
@@ -1638,7 +1655,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
 
-    if (!isRelevantLeftHandSide(lhsForChecking, Optional.of(rhs))) {
+    if (!isRelevantLeftHandSide(lhsForChecking, Optional.of(rhs)) && !hasSideEffect(rhs)) {
       // Optimization for unused variables and fields
       return bfmgr.makeTrue();
     }
