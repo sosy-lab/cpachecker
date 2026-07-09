@@ -115,7 +115,7 @@ public final class OrderingConsistencyState
     return guard;
   }
 
-  ImmutableList<Integer> getLastEventIds() {
+  public ImmutableList<Integer> getLastEventIds() {
     return lastEventIds;
   }
 

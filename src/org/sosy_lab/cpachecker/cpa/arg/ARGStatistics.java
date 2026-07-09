@@ -27,6 +27,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -434,14 +435,34 @@ public class ARGStatistics implements Statistics {
             || AbstractStates.extractStateByType(pReached.getFirstState(), PartitionState.class)
                 != null;
 
+    final ImmutableSet<ARGState> allRoots = ARGUtils.getRootStates(pReached);
     final Set<ARGState> rootStates =
         partitionedArg
-            ? ARGUtils.getRootStates(pReached)
+            ? allRoots
             : Collections.singleton(
                 AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class));
 
     for (ARGState rootState : rootStates) {
       exportARG0(rootState, pReached, BiPredicates.pairIn(allTargetPathEdges), pResult);
+    }
+
+    // A non-partitioned forest (e.g. the per-thread trees of the ordering-consistency analysis) has
+    // several roots that share no partition key, so the per-root writers above all target the same
+    // ARG file and only the last tree survives. Rewrite that file once over every reached state so
+    // the whole forest is shown. Single-root and partitioned analyses never enter this branch.
+    if (!partitionedArg && allRoots.size() > 1 && argFile != null) {
+      List<ARGState> allArgStates = new ArrayList<>();
+      for (AbstractState state : pReached) {
+        ARGState argState = AbstractStates.extractStateByType(state, ARGState.class);
+        if (argState != null) {
+          allArgStates.add(argState);
+        }
+      }
+      try (Writer w = IO.openOutputFile(argFile, Charset.defaultCharset())) {
+        ARGToDotWriter.write(w, allArgStates, "ARG");
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write ARG forest to file");
+      }
     }
   }
 

@@ -5098,6 +5098,16 @@ oc.dumpViolationModel = false
 oc.encoding = CLOCKS
   enum:     [REFINEMENT, CLOCKS]
 
+# file for the violation execution graph (DOT/graphviz)
+oc.executionGraphFile = "executionGraph.dot"
+
+# export the found violation as an execution graph in DOT/graphviz format
+oc.exportExecutionGraph = true
+
+# export the found violation as a sequentialized counterexample: the enabled
+# events in a consistent execution order, with their CFA edges
+oc.exportSequentializedCounterexample = true
+
 # give up when the loop bound exceeds this value; a negative value deepens
 # without bound
 oc.finalLoopBound = -1
@@ -5107,6 +5117,9 @@ oc.initialLoopBound = 5
 
 # loop bound increase between iterative-deepening rounds
 oc.loopBoundStep = 5
+
+# file for the sequentialized counterexample trace
+oc.sequentializedCounterexampleFile = "Counterexample.oc.txt"
 
 # Check for unsigned integer overflows
 overflow.checkUnsigned = false

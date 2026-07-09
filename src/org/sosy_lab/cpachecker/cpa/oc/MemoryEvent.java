@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.oc;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
@@ -43,6 +44,9 @@ import org.sosy_lab.java_smt.api.Formula;
  *     initialization of a zero-initialized or indeterminate aggregate/allocation): it provides one
  *     value at every offset, so any same-base access of the region reads from it regardless of
  *     offset. This lets one event stand in for an array of any size
+ * @param edge the CFA edge whose processing produced this event, or null for synthesized events
+ *     (aggregate/heap fill writes) that correspond to no single edge. Used to reconstruct a
+ *     sequentialized counterexample trace from the enabled events
  */
 public record MemoryEvent(
     int id,
@@ -58,7 +62,8 @@ public record MemoryEvent(
     @Nullable String regionId,
     @Nullable Formula addressTerm,
     @Nullable Formula offsetTerm,
-    boolean fill) {
+    boolean fill,
+    @Nullable CFAEdge edge) {
 
   public static final int NO_EVENT = -1;
   public static final int NO_INSTANCE = -1;

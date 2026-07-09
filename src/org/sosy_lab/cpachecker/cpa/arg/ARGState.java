@@ -185,7 +185,8 @@ public class ARGState extends AbstractSerializableSingleWrapperState
     // multiedges, it is guaranteed that there is exactly one path and no other
     // leaving edges from the parent to the child
     if (singleEdge == null) {
-      return AbstractStates.getEdgesToChild(this, pChild);
+      List<CFAEdge> edges = AbstractStates.getEdgesToChild(this, pChild);
+      return edges == null ? ImmutableList.of() : edges;
     } else {
       return Collections.singletonList(singleEdge);
     }

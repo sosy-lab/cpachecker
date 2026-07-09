@@ -20,6 +20,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.oc.ThreadInstance.InstanceKey;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -32,7 +33,16 @@ import org.sosy_lab.java_smt.api.Formula;
  */
 public final class OcExplorationRegistry {
 
+  /**
+   * A branch whose condition read produced an event. {@code condition} is the SSA formula of the
+   * {@code firstEdge} direction; evaluating it in a model tells which of the two assume edges was
+   * actually taken, so a counterexample can show the real direction instead of the (arbitrary) edge
+   * the shared condition read was attached to.
+   */
+  public record AssumeBranch(BooleanFormula condition, CFAEdge firstEdge, CFAEdge secondEdge) {}
+
   private final Map<Integer, MemoryEvent> events = new LinkedHashMap<>();
+  private final Map<Integer, AssumeBranch> assumeBranches = new HashMap<>();
   private final Map<Integer, ThreadInstance> instances = new LinkedHashMap<>();
   private final Map<InstanceKey, ThreadInstance> instancesByKey = new HashMap<>();
   private final List<BooleanFormula> pathConstraints = new ArrayList<>();
@@ -72,6 +82,23 @@ public final class OcExplorationRegistry {
     return nextCssaIndex;
   }
 
+  /** The id the next created event will receive. */
+  public int nextEventId() {
+    return events.size();
+  }
+
+  /** Records that the events with the given ids are condition reads of the given branch. */
+  public void registerAssumeBranch(int pFromEventId, int pToEventId, AssumeBranch pBranch) {
+    for (int id = pFromEventId; id < pToEventId; id++) {
+      assumeBranches.put(id, pBranch);
+    }
+  }
+
+  /** The branch a condition-read event belongs to, or null if the event is not a condition read. */
+  public @Nullable AssumeBranch getAssumeBranch(int pEventId) {
+    return assumeBranches.get(pEventId);
+  }
+
   /** Creates and stores the event with the next free id. */
   public MemoryEvent addEvent(
       int pInstanceId,
@@ -82,7 +109,8 @@ public final class OcExplorationRegistry {
       @Nullable String pCssaName,
       @Nullable Formula pVariable,
       @Nullable String pMutexId,
-      int pOtherInstanceId) {
+      int pOtherInstanceId,
+      @Nullable CFAEdge pEdge) {
     return addEvent(
         pInstanceId,
         pKind,
@@ -96,7 +124,8 @@ public final class OcExplorationRegistry {
         null,
         null,
         null,
-        false);
+        false,
+        pEdge);
   }
 
   /** Creates and stores an event of the aliasing regime (with region, base, and offset). */
@@ -113,7 +142,8 @@ public final class OcExplorationRegistry {
       @Nullable String pRegionId,
       @Nullable Formula pAddressTerm,
       @Nullable Formula pOffsetTerm,
-      boolean pFill) {
+      boolean pFill,
+      @Nullable CFAEdge pEdge) {
     MemoryEvent event =
         new MemoryEvent(
             events.size(),
@@ -129,7 +159,8 @@ public final class OcExplorationRegistry {
             pRegionId,
             pAddressTerm,
             pOffsetTerm,
-            pFill);
+            pFill,
+            pEdge);
     events.put(event.id(), event);
     if (pPoParentId != MemoryEvent.NO_EVENT) {
       poPredecessors.put(event.id(), pPoParentId);

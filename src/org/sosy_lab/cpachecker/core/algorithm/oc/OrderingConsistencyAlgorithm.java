@@ -8,34 +8,59 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.oc;
 
+import com.google.common.collect.ImmutableList;
+import java.io.IOException;
 import java.io.PrintStream;
+import java.math.BigInteger;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.oc.EventKind;
+import org.sosy_lab.cpachecker.cpa.oc.MemoryEvent;
 import org.sosy_lab.cpachecker.cpa.oc.OcExplorationRegistry;
 import org.sosy_lab.cpachecker.cpa.oc.OrderingConsistencyCPA;
+import org.sosy_lab.cpachecker.cpa.oc.OrderingConsistencyState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model;
@@ -71,6 +96,28 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
       secure = true,
       description = "log the enabled events and read-from choices of a found violation model")
   private boolean dumpViolationModel = false;
+
+  @Option(
+      secure = true,
+      description = "export the found violation as an execution graph in DOT/graphviz format")
+  private boolean exportExecutionGraph = true;
+
+  @Option(
+      secure = true,
+      description = "file for the violation execution graph (DOT/graphviz)")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path executionGraphFile = Path.of("executionGraph.dot");
+
+  @Option(
+      secure = true,
+      description =
+          "export the found violation as a sequentialized counterexample: the enabled events in a"
+              + " consistent execution order, with their CFA edges")
+  private boolean exportSequentializedCounterexample = true;
+
+  @Option(secure = true, description = "file for the sequentialized counterexample trace")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path sequentializedCounterexampleFile = Path.of("Counterexample.oc.txt");
 
   @Option(secure = true, description = "loop bound of the first exploration round")
   private int initialLoopBound = 5;
@@ -127,15 +174,17 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
 
       statistics.explorationTimer.start();
       try {
-        // the inner algorithm returns at every target state; drain the waitlist completely
+        // the inner algorithm returns at every target state; drain the waitlist completely, and
+        // between passes seed any newly created thread as a separate root (see seedThreadRoots)
         do {
           status = status.update(innerAlgorithm.run(pReachedSet));
+          seedThreadRoots(pReachedSet);
         } while (pReachedSet.hasWaitingState());
       } finally {
         statistics.explorationTimer.stop();
       }
 
-      RoundResult result = solveRound();
+      RoundResult result = solveRound(pReachedSet);
       if (result == RoundResult.VIOLATION) {
         logger.log(Level.INFO, "Ordering-consistency analysis found a consistent violation.");
         return status; // target states stay in the reached set
@@ -169,7 +218,8 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
     CUT
   }
 
-  private RoundResult solveRound() throws CPAException, InterruptedException {
+  private RoundResult solveRound(ReachedSet pReachedSet)
+      throws CPAException, InterruptedException {
     OcExplorationRegistry registry = ocCpa.getRegistry();
     statistics.eventCount = registry.getEvents().size();
     statistics.instanceCount = registry.getInstances().size();
@@ -221,6 +271,13 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
             if (dumpViolationModel) {
               dumpViolationModel(prover, encoder);
             }
+            if (exportExecutionGraph && executionGraphFile != null) {
+              exportExecutionGraph(prover, encoder);
+            }
+            if (exportSequentializedCounterexample && sequentializedCounterexampleFile != null) {
+              exportSequentializedCounterexample(prover, encoder);
+            }
+            attachCounterexample(pReachedSet, prover, encoder);
             return RoundResult.VIOLATION;
           }
         }
@@ -271,6 +328,21 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
         topCpa.getInitialState(entry, partition), topCpa.getInitialPrecision(entry, partition));
   }
 
+  /**
+   * Adds the roots of threads created during the last exploration pass to the reached set as
+   * separate parentless roots. A spawned thread has no CFA edge from its creator, so it is not a
+   * control-flow successor; making it a root keeps the reached set's ARG a clean forest (one tree
+   * per thread instance) and schedules the root for exploration in the next pass of the drain loop.
+   */
+  private void seedThreadRoots(ReachedSet pReachedSet) throws InterruptedException {
+    StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
+    OrderingConsistencyState root;
+    while ((root = ocCpa.pollPendingThreadRoot()) != null) {
+      CFANode location = root.getLocationNode();
+      pReachedSet.add(new ARGState(root, null), topCpa.getInitialPrecision(location, partition));
+    }
+  }
+
   /** Logs the enabled events (with clock values in CLOCKS mode) and read-from choices. */
   private void dumpViolationModel(ProverEnvironment pProver, OcEncoder pEncoder)
       throws SolverException, InterruptedException {
@@ -306,6 +378,386 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
       }
     }
     logger.log(Level.INFO, dump.toString());
+  }
+
+  /**
+   * Writes the found violating execution as a DOT/graphviz execution graph: one node per enabled
+   * event (grouped into a per-thread cluster), program-order edges, create/join cross edges, and the
+   * chosen read-from edges. The file goes to the regular output folder and is suppressed in
+   * benchmark mode (the {@link FileOption} path is nulled by {@code output.disable}).
+   */
+  private void exportExecutionGraph(ProverEnvironment pProver, OcEncoder pEncoder)
+      throws SolverException, InterruptedException {
+    var imgr = ocCpa.getSolver().getFormulaManager().getIntegerFormulaManager();
+    OcExplorationRegistry registry = ocCpa.getRegistry();
+    Map<Integer, String> instanceNames = new LinkedHashMap<>();
+    registry.getInstances().forEach(i -> instanceNames.put(i.getId(), i.getFunctionName()));
+
+    StringBuilder dot = new StringBuilder();
+    dot.append("digraph ExecutionGraph {\n");
+    dot.append("  rankdir=TB;\n");
+    dot.append("  node [shape=box, fontname=\"monospace\"];\n");
+
+    try (Model model = pProver.getModel()) {
+      Set<Integer> enabled = new LinkedHashSet<>();
+      Map<Integer, MemoryEvent> byId = new LinkedHashMap<>();
+      Map<Integer, List<MemoryEvent>> byInstance = new LinkedHashMap<>();
+      for (MemoryEvent event : pEncoder.getEvents()) {
+        if (Boolean.TRUE.equals(model.evaluate(pEncoder.getFullGuard(event)))) {
+          enabled.add(event.id());
+          byId.put(event.id(), event);
+          byInstance.computeIfAbsent(event.instanceId(), k -> new ArrayList<>()).add(event);
+        }
+      }
+
+      for (Map.Entry<Integer, List<MemoryEvent>> entry : byInstance.entrySet()) {
+        int instanceId = entry.getKey();
+        dot.append(String.format("  subgraph cluster_T%d {%n", instanceId));
+        dot.append(
+            String.format(
+                "    label=\"T%d %s\"; color=gray;%n",
+                instanceId, instanceNames.getOrDefault(instanceId, "")));
+        for (MemoryEvent event : entry.getValue()) {
+          dot.append(
+              String.format(
+                  "    e%d [label=\"%s\"%s];%n",
+                  event.id(), nodeLabel(event, model, imgr), nodeStyle(event)));
+        }
+        dot.append("  }\n");
+      }
+
+      for (int[] edge : pEncoder.getProgramOrderDagEdges()) {
+        if (enabled.contains(edge[0]) && enabled.contains(edge[1])) {
+          dot.append(String.format("  e%d -> e%d [label=\"po\"];%n", edge[0], edge[1]));
+        }
+      }
+      for (var cross : pEncoder.getCrossPoEdges()) {
+        if (enabled.contains(cross.from()) && enabled.contains(cross.to())) {
+          String kind =
+              byId.get(cross.from()).kind() == EventKind.CREATE ? "create" : "join";
+          dot.append(
+              String.format(
+                  "  e%d -> e%d [label=\"%s\", style=dashed, color=blue, constraint=false];%n",
+                  cross.from(), cross.to(), kind));
+        }
+      }
+      for (var rf : pEncoder.getRfPairs()) {
+        if (Boolean.TRUE.equals(model.evaluate(rf.variable()))) {
+          dot.append(
+              String.format(
+                  "  e%d -> e%d [label=\"rf\", color=red, constraint=false];%n",
+                  rf.write().id(), rf.read().id()));
+        }
+      }
+    }
+    dot.append("}\n");
+
+    try {
+      IO.writeFile(executionGraphFile, Charset.defaultCharset(), dot.toString());
+    } catch (IOException e) {
+      logger.logUserException(
+          Level.WARNING, e, "Could not write the execution graph to " + executionGraphFile);
+    }
+  }
+
+  /** A DOT node label: event id, thread, kind, clock (CLOCKS mode) and value/mutex/target. */
+  private String nodeLabel(MemoryEvent event, Model model, IntegerFormulaManagerView imgr) {
+    StringBuilder label =
+        new StringBuilder("e" + event.id() + " T" + event.instanceId() + "\\n" + event.kind());
+    if (encoding == EncodingMode.CLOCKS) {
+      label.append(" @").append(model.evaluate(imgr.makeVariable("__oc_clk_" + event.id())));
+    }
+    if (event.variable() != null) {
+      String name =
+          event.memoryLocation() != null
+              ? event.memoryLocation().toString()
+              : String.valueOf(event.cssaName());
+      Object value = model.evaluate(event.variable());
+      label.append("\\n").append(name);
+      if (value != null) {
+        // an unconstrained value (e.g. a fill-init of a never-read cell) has no model assignment
+        label.append(" = ").append(value);
+      }
+    } else if (event.mutexId() != null) {
+      label.append("\\n").append(event.mutexId());
+    } else if (event.otherInstanceId() != MemoryEvent.NO_INSTANCE) {
+      label.append("\\nT").append(event.otherInstanceId());
+    }
+    return label.toString();
+  }
+
+  /** Highlights the reached error event; other events use the default box style. */
+  private static String nodeStyle(MemoryEvent event) {
+    return event.kind() == EventKind.ERROR ? ", style=filled, fillcolor=orangered" : "";
+  }
+
+  /**
+   * Writes the found violation as a sequentialized counterexample: the enabled events in a
+   * consistent execution order, each with its thread, kind, value, and CFA edge. This is the
+   * violating execution flattened to a single interleaving — the CPAchecker-native counterexample
+   * for a model-based analysis that has no single ARG path. Suppressed in benchmark mode.
+   */
+  private void exportSequentializedCounterexample(ProverEnvironment pProver, OcEncoder pEncoder)
+      throws SolverException, InterruptedException {
+    StringBuilder trace = new StringBuilder();
+    try (Model model = pProver.getModel()) {
+      List<MemoryEvent> ordered = orderedViolationEvents(model, pEncoder);
+      trace.append(
+          String.format(
+              "Sequentialized ordering-consistency counterexample (%d events, encoding=%s):%n%n",
+              ordered.size(), encoding));
+      int step = 0;
+      for (MemoryEvent event : ordered) {
+        CFAEdge edge = event.edge() == null ? null : displayEdge(event, model);
+        String edgeText =
+            edge == null
+                ? ""
+                : String.format(
+                    "%s  %s",
+                    edge.getFileLocation(), edge.getDescription().replace('\n', ' ').strip());
+        trace.append(
+            String.format(
+                "  #%-3d T%-2d %-11s %-26s %s%n",
+                step, event.instanceId(), event.kind(), eventDetail(event, model), edgeText));
+        step++;
+      }
+    }
+    try {
+      IO.writeFile(sequentializedCounterexampleFile, Charset.defaultCharset(), trace.toString());
+    } catch (IOException e) {
+      logger.logUserException(
+          Level.WARNING,
+          e,
+          "Could not write the sequentialized counterexample to "
+              + sequentializedCounterexampleFile);
+    }
+  }
+
+  /**
+   * Replicates the standard CPAchecker counterexample mechanism so the violation flows through the
+   * existing infrastructure (counterexample export, report, ...). A regular analysis leaves a target
+   * state whose parent chain to the root is the error path; here the "path" is one interleaving of
+   * the whole execution, which crosses thread trees and so has no counterpart in the forest-shaped
+   * reached set. We therefore build a synthetic {@link ARGPath} — a fresh chain of location-wrapping
+   * ARG states linked by the ordered events' CFA edges — and attach it as a {@link
+   * CounterexampleInfo} to the reached target state, exactly as {@code getOnePathTo} would for a
+   * normal analysis. The explicit (non-null) edge list is the path's full path, which is what the
+   * export prints.
+   */
+  private void attachCounterexample(
+      ReachedSet pReachedSet, ProverEnvironment pProver, OcEncoder pEncoder)
+      throws SolverException, InterruptedException {
+    List<CFAEdge> edges = new ArrayList<>();
+    MemoryEvent errorEvent = null;
+    try (Model model = pProver.getModel()) {
+      CFAEdge previousEdge = null;
+      for (MemoryEvent event : orderedViolationEvents(model, pEncoder)) {
+        if (event.edge() != null) {
+          CFAEdge edge = displayEdge(event, model);
+          // collapse consecutive events that map to the same edge: one statement can produce several
+          // events (e.g. a[k]=5 is a read of k and a write of a[k]) and a shared branch-condition read
+          // can be tagged on several reads of the same assume edge
+          if (!edge.equals(previousEdge)) {
+            edges.add(edge);
+            previousEdge = edge;
+          }
+        }
+        if (event.kind() == EventKind.ERROR) {
+          errorEvent = event;
+        }
+      }
+    }
+    if (edges.isEmpty() || errorEvent == null) {
+      return;
+    }
+    // the reached target state that carries the enabled error event; it must be the last state of
+    // the path so CounterexampleInfo accepts it (getTargetState().isTarget())
+    ARGState target = null;
+    for (AbstractState reached : pReachedSet) {
+      OrderingConsistencyState ocState =
+          AbstractStates.extractStateByType(reached, OrderingConsistencyState.class);
+      if (reached instanceof ARGState argState
+          && ocState != null
+          && ocState.getLastEventIds().contains(errorEvent.id())) {
+        target = argState;
+        break;
+      }
+    }
+    if (target == null) {
+      return;
+    }
+    // a fresh linear chain of location states ending at the real target. Each state carries the
+    // successor node of its incoming edge, so the full-path iterator (which advances a state whenever
+    // the current edge's successor is that state's location) stays in lockstep with the edge list —
+    // even across thread-jumps, where the edges are not CFA-connected. The real target already sits
+    // at the error edge's successor (locationAt(pEdge.getSuccessor())), matching the last edge. It is
+    // only appended to the state list, never parent-linked, so the reached-set ARG is left untouched.
+    List<ARGState> states = new ArrayList<>();
+    ARGState previous = new ARGState(ocCpa.locationStateFor(edges.get(0).getPredecessor()), null);
+    states.add(previous);
+    for (int i = 1; i < edges.size(); i++) {
+      ARGState next = new ARGState(ocCpa.locationStateFor(edges.get(i - 1).getSuccessor()), previous);
+      states.add(next);
+      previous = next;
+    }
+    states.add(target);
+    target.addCounterexampleInformation(
+        CounterexampleInfo.feasibleImprecise(new ARGPath(states, ImmutableList.copyOf(edges))));
+  }
+
+  /**
+   * The enabled events of the violation model in a consistent execution order. In CLOCKS mode this
+   * is the exact sequentially-consistent order given by the integer clocks; in REFINEMENT mode it
+   * is a topological order of the happens-before relation (program order, thread create/join, and
+   * the chosen read-from edges), which is acyclic for a consistent violation.
+   */
+  private List<MemoryEvent> orderedViolationEvents(Model pModel, OcEncoder pEncoder) {
+    List<MemoryEvent> enabled = new ArrayList<>();
+    for (MemoryEvent event : pEncoder.getEvents()) {
+      if (Boolean.TRUE.equals(pModel.evaluate(pEncoder.getFullGuard(event)))) {
+        enabled.add(event);
+      }
+    }
+    if (encoding == EncodingMode.CLOCKS) {
+      var imgr = ocCpa.getSolver().getFormulaManager().getIntegerFormulaManager();
+      Map<Integer, BigInteger> clock = new HashMap<>();
+      for (MemoryEvent event : enabled) {
+        clock.put(event.id(), pModel.evaluate(imgr.makeVariable("__oc_clk_" + event.id())));
+      }
+      enabled.sort(
+          Comparator.comparing(
+                  (MemoryEvent e) -> clock.get(e.id()),
+                  Comparator.nullsFirst(Comparator.naturalOrder()))
+              .thenComparingInt(MemoryEvent::id));
+      return enabled;
+    }
+    return topologicalOrder(enabled, pEncoder, pModel);
+  }
+
+  /** A topological order of the happens-before relation over the enabled events (REFINEMENT mode). */
+  private static List<MemoryEvent> topologicalOrder(
+      List<MemoryEvent> pEnabled, OcEncoder pEncoder, Model pModel) {
+    Map<Integer, MemoryEvent> byId = new LinkedHashMap<>();
+    for (MemoryEvent event : pEnabled) {
+      byId.put(event.id(), event);
+    }
+    Map<Integer, Set<Integer>> successors = new LinkedHashMap<>();
+    Map<Integer, Integer> indegree = new HashMap<>();
+    for (Integer id : byId.keySet()) {
+      successors.put(id, new LinkedHashSet<>());
+      indegree.put(id, 0);
+    }
+    List<int[]> hbEdges = new ArrayList<>(pEncoder.getProgramOrderDagEdges());
+    for (var cross : pEncoder.getCrossPoEdges()) {
+      hbEdges.add(new int[] {cross.from(), cross.to()});
+    }
+    for (var rf : pEncoder.getRfPairs()) {
+      if (Boolean.TRUE.equals(pModel.evaluate(rf.variable()))) {
+        hbEdges.add(new int[] {rf.write().id(), rf.read().id()});
+      }
+    }
+    // coherence (write-serialization) and from-read edges make the linearization respect the order
+    // of same-cell writes, so a read never appears before a co-later write of the value it did not
+    // read. Restricted to scalar writes, where a write-serialization pair is unambiguously same-cell
+    // (region accesses would need the model's address equality, so they keep the happens-before-only
+    // order).
+    for (var ws : pEncoder.getWsPairs()) {
+      if (ws.write1().isRegionAccess()
+          || !byId.containsKey(ws.write1().id())
+          || !byId.containsKey(ws.write2().id())) {
+        continue;
+      }
+      MemoryEvent from = null;
+      MemoryEvent to = null;
+      if (Boolean.TRUE.equals(pModel.evaluate(ws.var12()))) {
+        from = ws.write1();
+        to = ws.write2();
+      } else if (Boolean.TRUE.equals(pModel.evaluate(ws.var21()))) {
+        from = ws.write2();
+        to = ws.write1();
+      }
+      if (from != null) {
+        hbEdges.add(new int[] {from.id(), to.id()});
+        for (var rf : pEncoder.getRfPairs()) {
+          if (rf.write().id() == from.id()
+              && byId.containsKey(rf.read().id())
+              && Boolean.TRUE.equals(pModel.evaluate(rf.variable()))) {
+            hbEdges.add(new int[] {rf.read().id(), to.id()});
+          }
+        }
+      }
+    }
+    for (int[] edge : hbEdges) {
+      if (byId.containsKey(edge[0])
+          && byId.containsKey(edge[1])
+          && successors.get(edge[0]).add(edge[1])) {
+        indegree.merge(edge[1], 1, Integer::sum);
+      }
+    }
+    // Kahn's algorithm; ties broken by event id so the trace is deterministic
+    PriorityQueue<Integer> ready = new PriorityQueue<>();
+    indegree.forEach(
+        (id, degree) -> {
+          if (degree == 0) {
+            ready.add(id);
+          }
+        });
+    List<MemoryEvent> ordered = new ArrayList<>();
+    while (!ready.isEmpty()) {
+      int id = ready.poll();
+      ordered.add(byId.get(id));
+      for (int next : successors.get(id)) {
+        if (indegree.merge(next, -1, Integer::sum) == 0) {
+          ready.add(next);
+        }
+      }
+    }
+    // a consistent violation is acyclic; if some events remain (unexpected cycle), append them by id
+    if (ordered.size() < pEnabled.size()) {
+      Set<Integer> placed = new HashSet<>();
+      for (MemoryEvent event : ordered) {
+        placed.add(event.id());
+      }
+      byId.values().stream()
+          .filter(event -> !placed.contains(event.id()))
+          .sorted(Comparator.comparingInt(MemoryEvent::id))
+          .forEach(ordered::add);
+    }
+    return ordered;
+  }
+
+  /**
+   * The CFA edge to show for an event. For a branch-condition read the stored edge is the (arbitrary)
+   * assume edge the shared read was attached to; the actual direction taken is recovered by
+   * evaluating the branch condition in the model, so the counterexample shows the real branch.
+   */
+  private CFAEdge displayEdge(MemoryEvent event, Model model) {
+    OcExplorationRegistry.AssumeBranch branch = ocCpa.getRegistry().getAssumeBranch(event.id());
+    if (branch != null) {
+      return Boolean.TRUE.equals(model.evaluate(branch.condition()))
+          ? branch.firstEdge()
+          : branch.secondEdge();
+    }
+    return event.edge();
+  }
+
+  /** One-line detail for a counterexample event: value for accesses, target for create/join, etc. */
+  private String eventDetail(MemoryEvent event, Model model) {
+    if (event.variable() != null) {
+      String name =
+          event.memoryLocation() != null
+              ? event.memoryLocation().toString()
+              : String.valueOf(event.cssaName());
+      Object value = model.evaluate(event.variable());
+      return value == null ? name : name + " = " + value;
+    }
+    if (event.mutexId() != null) {
+      return event.mutexId();
+    }
+    if (event.otherInstanceId() != MemoryEvent.NO_INSTANCE) {
+      return "-> T" + event.otherInstanceId();
+    }
+    return "";
   }
 
   /** Returns true if a consistent violating model exists. */
