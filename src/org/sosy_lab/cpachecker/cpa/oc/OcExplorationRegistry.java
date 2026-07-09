@@ -16,9 +16,11 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.SetMultimap;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.oc.ThreadInstance.InstanceKey;
@@ -43,6 +45,7 @@ public final class OcExplorationRegistry {
 
   private final Map<Integer, MemoryEvent> events = new LinkedHashMap<>();
   private final Map<Integer, AssumeBranch> assumeBranches = new HashMap<>();
+  private final Set<Integer> atomicAccessEventIds = new HashSet<>();
   private final Map<Integer, ThreadInstance> instances = new LinkedHashMap<>();
   private final Map<InstanceKey, ThreadInstance> instancesByKey = new HashMap<>();
   private final List<BooleanFormula> pathConstraints = new ArrayList<>();
@@ -97,6 +100,20 @@ public final class OcExplorationRegistry {
   /** The branch a condition-read event belongs to, or null if the event is not a condition read. */
   public @Nullable AssumeBranch getAssumeBranch(int pEventId) {
     return assumeBranches.get(pEventId);
+  }
+
+  /**
+   * Records that the given READ/WRITE event is an atomic access (its lvalue is {@code _Atomic}
+   * qualified). A data race needs at least one non-atomic access, so two atomic accesses of the
+   * same location in different threads never race (see the data-race check).
+   */
+  public void markAtomicAccess(int pEventId) {
+    atomicAccessEventIds.add(pEventId);
+  }
+
+  /** Whether the given access event is atomic (see {@link #markAtomicAccess}). */
+  public boolean isAtomicAccess(int pEventId) {
+    return atomicAccessEventIds.contains(pEventId);
   }
 
   /** Creates and stores the event with the next free id. */

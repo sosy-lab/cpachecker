@@ -712,6 +712,10 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
                 offsetTerm,
                 false,
                 pEdge);
+        if (access.type.isAtomic()) {
+          // an access to an _Atomic-qualified lvalue is atomic and cannot be one side of a data race
+          registry.markAtomicAccess(event.id());
+        }
         if (!anyEvent) {
           for (int i = 1; i < predecessors.size(); i++) {
             registry.addPoPredecessor(event.id(), predecessors.get(i));
@@ -1008,7 +1012,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
                 null,
                 null,
                 null,
-                MemoryEvent.NO_INSTANCE);
+                MemoryEvent.NO_INSTANCE,
+                null);
         for (int i = 1; i < pLastEventIds.size(); i++) {
           registry.addPoPredecessor(truncated.id(), pLastEventIds.get(i));
         }

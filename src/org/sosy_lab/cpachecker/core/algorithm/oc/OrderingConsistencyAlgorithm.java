@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -48,6 +49,9 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Property;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -91,6 +95,20 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
 
   @Option(secure = true, description = "how the ordering constraints are decided")
   private EncodingMode encoding = EncodingMode.CLOCKS;
+
+  /**
+   * The kind of safety property the analysis checks. Derived from the {@code --spec} property file
+   * (see {@link #targetPropertyOf}); with no specification it defaults to {@link #UNREACH_CALL},
+   * matching the historical behaviour of detecting calls to the error function.
+   */
+  private enum TargetProperty {
+    /** Reachability of a call to the error function (SV-COMP unreach-call). Always supported. */
+    UNREACH_CALL,
+    /** Two conflicting concurrent accesses (SV-COMP no-data-race). Requires the CLOCKS encoding. */
+    DATA_RACE,
+  }
+
+  private final TargetProperty targetProperty;
 
   @Option(
       secure = true,
@@ -145,11 +163,18 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      CFA pCfa)
+      CFA pCfa,
+      Specification pSpecification)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     if (loopBoundStep < 1) {
       throw new InvalidConfigurationException("oc.loopBoundStep must be positive");
+    }
+    targetProperty = targetPropertyOf(pSpecification);
+    if (targetProperty == TargetProperty.DATA_RACE && encoding != EncodingMode.CLOCKS) {
+      throw new InvalidConfigurationException(
+          "the ordering-consistency data-race check needs the CLOCKS encoding (set"
+              + " oc.encoding=CLOCKS)");
     }
     innerAlgorithm = pInnerAlgorithm;
     topCpa = pCpa;
@@ -159,6 +184,40 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
     cfa = pCfa;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
+  }
+
+  /**
+   * Maps the properties of the {@code --spec} specification to the built-in target the analysis can
+   * decide. The ordering-consistency analysis does not use specification automata; it interprets the
+   * property itself. An empty specification (no {@code --spec}) defaults to unreach-call. Properties
+   * the analysis cannot decide (overflow, memory safety/cleanup, deadlock, termination) are rejected
+   * rather than silently mis-verified, since an unsound "safe" verdict would be worse than an error.
+   */
+  private static TargetProperty targetPropertyOf(Specification pSpecification)
+      throws InvalidConfigurationException {
+    EnumSet<TargetProperty> targets = EnumSet.noneOf(TargetProperty.class);
+    for (Property property : pSpecification.getProperties()) {
+      if (property instanceof CommonVerificationProperty common) {
+        switch (common) {
+          case REACHABILITY, REACHABILITY_ERROR, REACHABILITY_LABEL -> targets.add(
+              TargetProperty.UNREACH_CALL);
+          case DATA_RACE -> targets.add(TargetProperty.DATA_RACE);
+          default ->
+              throw new InvalidConfigurationException(
+                  "the ordering-consistency analysis does not support the property '"
+                      + common
+                      + "'; supported: unreach-call, no-data-race");
+        }
+      } else {
+        throw new InvalidConfigurationException(
+            "the ordering-consistency analysis does not support the property '" + property + "'");
+      }
+    }
+    if (targets.size() > 1) {
+      throw new InvalidConfigurationException(
+          "the ordering-consistency analysis checks one property at a time, but got " + targets);
+    }
+    return targets.isEmpty() ? TargetProperty.UNREACH_CALL : targets.iterator().next();
   }
 
   @Override
@@ -224,11 +283,6 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
     statistics.eventCount = registry.getEvents().size();
     statistics.instanceCount = registry.getInstances().size();
     boolean truncated = registry.isTruncated();
-    boolean hasErrorEvents =
-        registry.getEvents().stream().anyMatch(e -> e.kind() == EventKind.ERROR);
-    if (!hasErrorEvents && !truncated) {
-      return RoundResult.SAFE;
-    }
 
     Solver solver = ocCpa.getSolver();
     BooleanFormulaManagerView bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
@@ -250,9 +304,26 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
       statistics.encodingTimer.stop();
     }
 
+    // the property-specific violation formula, and whether any candidate exists at all: without one
+    // and without a truncated path the round is trivially safe
+    boolean hasCandidates =
+        switch (targetProperty) {
+          case UNREACH_CALL ->
+              registry.getEvents().stream().anyMatch(e -> e.kind() == EventKind.ERROR);
+          case DATA_RACE -> !encoder.getRacePairs().isEmpty();
+        };
+    if (!hasCandidates && !truncated) {
+      return RoundResult.SAFE;
+    }
+    BooleanFormula violationConstraint =
+        switch (targetProperty) {
+          case UNREACH_CALL -> encoder.getErrorConstraint();
+          case DATA_RACE -> encoder.getDataRaceConstraint();
+        };
+
     statistics.solvingTimer.start();
     try {
-      if (hasErrorEvents) {
+      if (hasCandidates) {
         try (ProverEnvironment prover =
             solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
           for (BooleanFormula constraint : constraints) {
@@ -261,7 +332,7 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
           for (BooleanFormula constraint : encoder.getJoinConstraints()) {
             prover.addConstraint(constraint);
           }
-          prover.addConstraint(encoder.getErrorConstraint());
+          prover.addConstraint(violationConstraint);
           boolean violation =
               switch (encoding) {
                 case CLOCKS -> !prover.isUnsat();
@@ -547,9 +618,14 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
   private void attachCounterexample(
       ReachedSet pReachedSet, ProverEnvironment pProver, OcEncoder pEncoder)
       throws SolverException, InterruptedException {
-    List<CFAEdge> edges = new ArrayList<>();
-    MemoryEvent errorEvent = null;
     try (Model model = pProver.getModel()) {
+      List<CFAEdge> edges = new ArrayList<>();
+      // the event that ends the counterexample path (the reached error for unreach-call, the later
+      // of the two racing accesses for no-data-race); its reached state becomes the CEX target
+      MemoryEvent terminalEvent = terminalViolationEvent(model, pEncoder);
+      if (terminalEvent == null) {
+        return;
+      }
       CFAEdge previousEdge = null;
       for (MemoryEvent event : orderedViolationEvents(model, pEncoder)) {
         if (event.edge() != null) {
@@ -562,47 +638,115 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
             previousEdge = edge;
           }
         }
-        if (event.kind() == EventKind.ERROR) {
-          errorEvent = event;
+        if (event.id() == terminalEvent.id()) {
+          break; // the execution stops at the violating event
         }
       }
+      if (targetProperty == TargetProperty.DATA_RACE) {
+        // the exploration marks every syntactically reachable reach_error state as a target; those
+        // are irrelevant to the data-race property and would otherwise leak into the verdict. Drop
+        // them here, then mark the actual racing state below as the sole target.
+        TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
+      }
+      // the reached state that carries the terminal event; it must be the last state of the path so
+      // CounterexampleInfo accepts it (getTargetState().isTarget())
+      ARGState target = null;
+      for (AbstractState reached : pReachedSet) {
+        OrderingConsistencyState ocState =
+            AbstractStates.extractStateByType(reached, OrderingConsistencyState.class);
+        if (reached instanceof ARGState argState
+            && ocState != null
+            && ocState.getLastEventIds().contains(terminalEvent.id())) {
+          if (targetProperty == TargetProperty.DATA_RACE) {
+            // no exploration-time target exists for a race; mark this reached state so the verdict
+            // is FALSE (the reached set now contains a genuine target with a proper location)
+            ocState.markRaceTarget();
+          }
+          target = argState;
+          break;
+        }
+      }
+      if (target == null || edges.isEmpty()) {
+        return;
+      }
+      // a fresh linear chain of location states ending at the real target. Each state carries the
+      // successor node of its incoming edge, so the full-path iterator (which advances a state
+      // whenever the current edge's successor is that state's location) stays in lockstep with the
+      // edge list — even across thread-jumps, where the edges are not CFA-connected. The real target
+      // already sits at the terminal edge's successor, matching the last edge. It is only appended to
+      // the state list, never parent-linked, so the reached-set ARG is left untouched.
+      List<ARGState> states = new ArrayList<>();
+      ARGState previous = new ARGState(ocCpa.locationStateFor(edges.get(0).getPredecessor()), null);
+      states.add(previous);
+      for (int i = 1; i < edges.size(); i++) {
+        ARGState next =
+            new ARGState(ocCpa.locationStateFor(edges.get(i - 1).getSuccessor()), previous);
+        states.add(next);
+        previous = next;
+      }
+      states.add(target);
+      target.addCounterexampleInformation(
+          CounterexampleInfo.feasibleImprecise(new ARGPath(states, ImmutableList.copyOf(edges))));
     }
-    if (edges.isEmpty() || errorEvent == null) {
-      return;
-    }
-    // the reached target state that carries the enabled error event; it must be the last state of
-    // the path so CounterexampleInfo accepts it (getTargetState().isTarget())
-    ARGState target = null;
-    for (AbstractState reached : pReachedSet) {
-      OrderingConsistencyState ocState =
-          AbstractStates.extractStateByType(reached, OrderingConsistencyState.class);
-      if (reached instanceof ARGState argState
-          && ocState != null
-          && ocState.getLastEventIds().contains(errorEvent.id())) {
-        target = argState;
-        break;
+  }
+
+  /**
+   * The event that ends the counterexample path: the reached error event for unreach-call, or the
+   * later (higher-clock) of the two racing accesses for no-data-race. Returns null if none is found
+   * (the counterexample is then skipped, but the verdict already stands).
+   */
+  private MemoryEvent terminalViolationEvent(Model pModel, OcEncoder pEncoder) {
+    return switch (targetProperty) {
+      case UNREACH_CALL -> {
+        MemoryEvent errorEvent = null;
+        for (MemoryEvent event : pEncoder.getEvents()) {
+          if (event.kind() == EventKind.ERROR
+              && Boolean.TRUE.equals(pModel.evaluate(pEncoder.getFullGuard(event)))) {
+            errorEvent = event;
+          }
+        }
+        yield errorEvent;
+      }
+      case DATA_RACE -> {
+        OcEncoder.RacePair race = findRace(pModel, pEncoder);
+        if (race == null) {
+          yield null;
+        }
+        var imgr = ocCpa.getSolver().getFormulaManager().getIntegerFormulaManager();
+        BigInteger clock1 = pModel.evaluate(imgr.makeVariable("__oc_clk_" + race.access1().id()));
+        BigInteger clock2 = pModel.evaluate(imgr.makeVariable("__oc_clk_" + race.access2().id()));
+        yield clock1 != null && clock2 != null && clock1.compareTo(clock2) >= 0
+            ? race.access1()
+            : race.access2();
+      }
+    };
+  }
+
+  /**
+   * A conflicting cross-instance access pair that is enabled and at adjacent clock values in the
+   * model — i.e. the concrete data race the solver found — or null if none matches.
+   */
+  private OcEncoder.RacePair findRace(Model pModel, OcEncoder pEncoder) {
+    var imgr = ocCpa.getSolver().getFormulaManager().getIntegerFormulaManager();
+    for (OcEncoder.RacePair pair : pEncoder.getRacePairs()) {
+      if (!Boolean.TRUE.equals(pModel.evaluate(pEncoder.getFullGuard(pair.access1())))
+          || !Boolean.TRUE.equals(pModel.evaluate(pEncoder.getFullGuard(pair.access2())))) {
+        continue;
+      }
+      if (pair.access1().isRegionAccess()
+          && !Boolean.TRUE.equals(
+              pModel.evaluate(pEncoder.sameAddress(pair.access1(), pair.access2())))) {
+        continue;
+      }
+      BigInteger clock1 = pModel.evaluate(imgr.makeVariable("__oc_clk_" + pair.access1().id()));
+      BigInteger clock2 = pModel.evaluate(imgr.makeVariable("__oc_clk_" + pair.access2().id()));
+      if (clock1 != null
+          && clock2 != null
+          && clock1.subtract(clock2).abs().equals(BigInteger.ONE)) {
+        return pair;
       }
     }
-    if (target == null) {
-      return;
-    }
-    // a fresh linear chain of location states ending at the real target. Each state carries the
-    // successor node of its incoming edge, so the full-path iterator (which advances a state whenever
-    // the current edge's successor is that state's location) stays in lockstep with the edge list —
-    // even across thread-jumps, where the edges are not CFA-connected. The real target already sits
-    // at the error edge's successor (locationAt(pEdge.getSuccessor())), matching the last edge. It is
-    // only appended to the state list, never parent-linked, so the reached-set ARG is left untouched.
-    List<ARGState> states = new ArrayList<>();
-    ARGState previous = new ARGState(ocCpa.locationStateFor(edges.get(0).getPredecessor()), null);
-    states.add(previous);
-    for (int i = 1; i < edges.size(); i++) {
-      ARGState next = new ARGState(ocCpa.locationStateFor(edges.get(i - 1).getSuccessor()), previous);
-      states.add(next);
-      previous = next;
-    }
-    states.add(target);
-    target.addCounterexampleInformation(
-        CounterexampleInfo.feasibleImprecise(new ARGPath(states, ImmutableList.copyOf(edges))));
+    return null;
   }
 
   /**

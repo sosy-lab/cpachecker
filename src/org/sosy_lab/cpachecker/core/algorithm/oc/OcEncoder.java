@@ -198,6 +198,68 @@ final class OcEncoder {
   }
 
   /**
+   * An unordered pair of conflicting accesses of different thread instances to the same memory cell,
+   * at least one of them a write. These are the candidates for a data race; {@link
+   * #getDataRaceConstraint} asks whether any of them can occur without an ordering between them.
+   */
+  record RacePair(MemoryEvent access1, MemoryEvent access2) {}
+
+  /** All conflicting cross-instance access pairs (see {@link RacePair}). */
+  ImmutableList<RacePair> getRacePairs() {
+    List<MemoryEvent> accesses = new ArrayList<>();
+    for (MemoryEvent event : events) {
+      if (event.kind() == EventKind.READ || event.kind() == EventKind.WRITE) {
+        accesses.add(event);
+      }
+    }
+    ImmutableList.Builder<RacePair> result = ImmutableList.builder();
+    for (int i = 0; i < accesses.size(); i++) {
+      for (int j = i + 1; j < accesses.size(); j++) {
+        MemoryEvent a = accesses.get(i);
+        MemoryEvent b = accesses.get(j);
+        if (a.instanceId() != b.instanceId()
+            && (a.kind() == EventKind.WRITE || b.kind() == EventKind.WRITE)
+            && cellKey(a).equals(cellKey(b))
+            // a data race needs at least one non-atomic access; two _Atomic accesses never race
+            && !(registry.isAtomicAccess(a.id()) && registry.isAtomicAccess(b.id()))) {
+          result.add(new RacePair(a, b));
+        }
+      }
+    }
+    return result.build();
+  }
+
+  /**
+   * The data-race property (CLOCKS encoding only): some conflicting cross-instance pair (see {@link
+   * #getRacePairs}) can occur at adjacent clock values, i.e. with no event forced between them. Two
+   * conflicting accesses that must be ordered — because they are mutex- or atomic-block-protected
+   * (the critical-section constraints then push a LOCK/UNLOCK between them) or otherwise
+   * happens-before ordered — cannot become adjacent, so they are not flagged. Reads reading directly
+   * from a concurrent write, however, stay adjacent and are (correctly) a race. Asserted, together
+   * with the clock constraints, only for the violation check.
+   */
+  BooleanFormula getDataRaceConstraint() {
+    var imgr = fmgr.getIntegerFormulaManager();
+    IntegerFormula one = imgr.makeNumber(1);
+    List<BooleanFormula> disjuncts = new ArrayList<>();
+    for (RacePair pair : getRacePairs()) {
+      IntegerFormula clock1 = imgr.makeVariable("__oc_clk_" + pair.access1().id());
+      IntegerFormula clock2 = imgr.makeVariable("__oc_clk_" + pair.access2().id());
+      BooleanFormula adjacent =
+          bfmgr.or(
+              imgr.equal(clock1, imgr.add(clock2, one)),
+              imgr.equal(clock2, imgr.add(clock1, one)));
+      BooleanFormula both =
+          bfmgr.and(getFullGuard(pair.access1()), getFullGuard(pair.access2()));
+      if (pair.access1().isRegionAccess()) {
+        both = bfmgr.and(both, sameAddress(pair.access1(), pair.access2()));
+      }
+      disjuncts.add(bfmgr.and(both, adjacent));
+    }
+    return bfmgr.or(disjuncts);
+  }
+
+  /**
    * Guards of the loop-bound cut points; if none of them is feasible, no real execution was cut and
    * a safe verdict is sound despite the structural truncation (unwinding assertion).
    */

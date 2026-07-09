@@ -49,6 +49,8 @@ public final class OrderingConsistencyState
 
   private static final ImmutableSet<TargetInformation> TARGET_INFORMATION =
       SimpleTargetInformation.singleton("error function called");
+  private static final ImmutableSet<TargetInformation> RACE_TARGET_INFORMATION =
+      SimpleTargetInformation.singleton("data race");
 
   private final int instanceId;
   private final LocationState locationState;
@@ -69,6 +71,10 @@ public final class OrderingConsistencyState
   // set when this state was merged into another one; the stop operator then covers it so that
   // only the merged state continues (merge and stop must agree, else both copies explore)
   private boolean absorbed = false;
+
+  // set after the fact when this state carries a racing access of a found no-data-race violation;
+  // makes the state a target so the verdict is FALSE, mirroring the exploration-time error target
+  private boolean raceTarget = false;
 
   OrderingConsistencyState(
       int pInstanceId,
@@ -182,12 +188,17 @@ public final class OrderingConsistencyState
 
   @Override
   public boolean isTarget() {
-    return target;
+    return target || raceTarget;
+  }
+
+  /** Marks this state as the target of a found data-race violation (see {@link #raceTarget}). */
+  public void markRaceTarget() {
+    raceTarget = true;
   }
 
   @Override
   public ImmutableSet<TargetInformation> getTargetInformation() {
-    return TARGET_INFORMATION;
+    return raceTarget ? RACE_TARGET_INFORMATION : TARGET_INFORMATION;
   }
 
   @Override

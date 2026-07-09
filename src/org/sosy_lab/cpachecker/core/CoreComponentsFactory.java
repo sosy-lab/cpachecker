@@ -730,7 +730,8 @@ public class CoreComponentsFactory {
 
       if (useOC) {
         algorithm =
-            new OrderingConsistencyAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa);
+            new OrderingConsistencyAlgorithm(
+                algorithm, cpa, config, logger, shutdownNotifier, cfa, specification);
       }
 
       if (useIMC) {
@@ -984,6 +985,15 @@ public class CoreComponentsFactory {
         || analysisSequentializesCfa()) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
+    }
+
+    if (useOC) {
+      // The ordering-consistency analysis does its own, built-in target detection (it reads the
+      // property from the specification directly, see OrderingConsistencyAlgorithm). It has no
+      // CompositeCPA to hold a specification automaton, so the automata that a property file would
+      // otherwise contribute must not be inserted into its CPA; build it from the property-free
+      // specification, and let the algorithm interpret the property.
+      return cpaFactory.buildCPAs(cfa, Specification.alwaysSatisfied(), aggregatedReachedSets);
     }
 
     return cpaFactory.buildCPAs(cfa, pSpecification, aggregatedReachedSets);
