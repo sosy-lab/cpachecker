@@ -39,8 +39,8 @@
         - name: start
           type: "struct sll *"
       - definition:
-        "start->next != 0 && (start->next != start && ((start->next) @ (start) && (\\canAccess(start) && (\\canAccess(start->next) && pred_sll2(start->next)))))
-          || start->next == 0 && \\canAccess(start)"
+        "start != 0 && (start->next != 0 && (start->next != start && ((start->next) @ (start) && (\\canAccess(start) && (\\canAccess(start->next) && pred_sll2(start->next))))))
+          || start != 0 && (start->next == 0 && \\canAccess(start))"
     - invariant:
         type: "loop_invariant"
         location:
