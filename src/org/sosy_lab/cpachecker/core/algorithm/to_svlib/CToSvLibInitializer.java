@@ -88,8 +88,9 @@ import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 
 class CToSvLibInitializer {
 
-  // TODO change to option! Dont forget prefix!
-  // @Option(secure = true, description = "Use SV-COMP semantics for some extern functions.")
+  /*TODO change this to an option, add prefix @Options(prefix = "analysis.algorithm.toSvLib")
+  @Option(secure = true,
+      description = "Use SV-COMP conform semantics for transformation of external functions.")*/
   private ExternalFunctionsEncodingMode encodingModeForExternalFunctions =
       CToSvLibInitializer.ExternalFunctionsEncodingMode.SV_COMP;
 
