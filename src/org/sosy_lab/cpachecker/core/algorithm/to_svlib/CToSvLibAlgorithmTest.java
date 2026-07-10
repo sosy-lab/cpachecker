@@ -184,19 +184,19 @@ public class CToSvLibAlgorithmTest {
     String resultString = results.toString();
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testAndVerifySimpleDivision() throws Exception {
     Path inputFilePath = Path.of(examplesPathToSvLibTransformation(), "simple-division.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testAndVerifyWhileInfinite() throws Exception {
     Path inputFilePath = Path.of(examplesPathToSvLibTransformation(), "while-infinite.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testAndVerifyPointerWhile() throws Exception {
     Path inputFilePath = Path.of(examplesPathToSvLibTransformation(), "pointer-while.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
@@ -208,31 +208,31 @@ public class CToSvLibAlgorithmTest {
     return Path.of("test", "programs", "witnessValidation").toAbsolutePath().toString();
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testMax() throws Exception {
     Path inputFilePath = Path.of(examplesWitnessValidation(), "max.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testMultiVar() throws Exception {
     Path inputFilePath = Path.of(examplesWitnessValidation(), "multivar.i");
     testAndVerifyError(inputFilePath, Result.TRUE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testValueInvariant() throws Exception {
     Path inputFilePath = Path.of(examplesWitnessValidation(), "valueInvariant.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testWeekdays() throws Exception {
     Path inputFilePath = Path.of(examplesWitnessValidation(), "weekdays.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testWeekdaysNoTermination() throws Exception {
     Path inputFilePath = Path.of(examplesWitnessValidation(), "weekdays_no_termination.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
@@ -244,133 +244,133 @@ public class CToSvLibAlgorithmTest {
     return Path.of("test", "programs", "block_analysis").toAbsolutePath().toString();
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testAbstractionSafe() throws Exception {
     Path inputFilePath = Path.of(examplesBlockAnalysis(), "abstraction_safe.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testComplexLoopUnsafe() throws Exception {
     Path inputFilePath = Path.of(examplesBlockAnalysis(), "complex_loop_unsafe.c");
     testAndVerifyError(inputFilePath, Result.FALSE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testDoubleLoopSafe() throws Exception {
     Path inputFilePath = Path.of(examplesBlockAnalysis(), "double_loop_safe.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testFaultUnsafe() throws Exception {
     Path inputFilePath = Path.of(examplesBlockAnalysis(), "fault_unsafe.c");
     testAndVerifyError(inputFilePath, Result.FALSE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testForLoopSafe() throws Exception {
     Path inputFilePath = Path.of(examplesBlockAnalysis(), "for-loop_safe.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testHardLoopSafe() throws Exception {
     Path inputFilePath = Path.of(examplesBlockAnalysis(), "hard_loop_safe.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testGotoLoopUnsafe() throws Exception {
     Path inputFilePath = Path.of(examplesBlockAnalysis(), "goto_loop_unsafe.c");
     testAndVerifyError(inputFilePath, Result.FALSE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testInstantiateSafe() throws Exception {
     Path inputFilePath = Path.of(examplesBlockAnalysis(), "instantiate_safe.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testInstantiateUnsafe() throws Exception {
     Path inputFilePath = Path.of(examplesBlockAnalysis(), "instantiate_unsafe.c");
     testAndVerifyError(inputFilePath, Result.FALSE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testMultiplicationSafe() throws Exception {
     Path inputFilePath = Path.of(examplesBlockAnalysis(), "multiplication_safe.c");
     testAndVerifyError(inputFilePath, Result.FALSE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testSimpleArraySafe() throws Exception {
     Path inputFilePath = Path.of(examplesBlockAnalysis(), "simple_array_safe.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testSimpleArrayUnsafe() throws Exception {
     Path inputFilePath = Path.of(examplesBlockAnalysis(), "simple_array_unsafe.c");
     testAndVerifyError(inputFilePath, Result.FALSE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testSimpleCalculationsSafe() throws Exception {
     Path inputFilePath = Path.of(examplesBlockAnalysis(), "simple_calculations_safe.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testSimpleCalculationsUnsafe() throws Exception {
     Path inputFilePath = Path.of(examplesBlockAnalysis(), "simple_calculations_unsafe.c");
     testAndVerifyError(inputFilePath, Result.FALSE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testSimpleForSafe() throws Exception {
     Path inputFilePath = Path.of(examplesBlockAnalysis(), "simple_for_safe.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testSimpleFunctionCall() throws Exception {
     Path inputFilePath = Path.of(examplesBlockAnalysis(), "simple_function_call.c");
     testAndVerifyError(inputFilePath, Result.FALSE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testSimpleFunctionCalls() throws Exception {
     Path inputFilePath = Path.of(examplesBlockAnalysis(), "simple_function_calls.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testSimpleLoopDoubleSafe() throws Exception {
     Path inputFilePath = Path.of(examplesBlockAnalysis(), "simple_loop_double_safe.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
   }
 
-  @Test
+  @Test(timeout = 6000)
   public void testSimpleLoopSafe() throws Exception {
     Path inputFilePath = Path.of(examplesBlockAnalysis(), "simple_loop_safe.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testSimpleLoopUnsafe() throws Exception {
     Path inputFilePath = Path.of(examplesBlockAnalysis(), "simple_loop_unsafe.c");
     testAndVerifyError(inputFilePath, Result.FALSE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testSimpleNondetSafe() throws Exception {
     Path inputFilePath = Path.of(examplesBlockAnalysis(), "simple_nondet_safe.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testSimpleNondetUnsafe() throws Exception {
     Path inputFilePath = Path.of(examplesBlockAnalysis(), "simple_nondet_unsafe.c");
     testAndVerifyError(inputFilePath, Result.FALSE);
@@ -382,25 +382,25 @@ public class CToSvLibAlgorithmTest {
     return Path.of("test", "programs", "policyiteration").toAbsolutePath().toString();
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testFormulaFail() throws Exception {
     Path inputFilePath = Path.of(examplesPolicyiteration(), "formula_fail.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testInitial() throws Exception {
     Path inputFilePath = Path.of(examplesPolicyiteration(), "initial.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testPolicyIterationLoop() throws Exception {
     Path inputFilePath = Path.of(examplesPolicyiteration(), "loop.c");
     testAndVerifyError(inputFilePath, Result.FALSE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testTimeout() throws Exception {
     Path inputFilePath = Path.of(examplesPolicyiteration(), "timeout.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
@@ -412,31 +412,31 @@ public class CToSvLibAlgorithmTest {
     return Path.of("test", "programs", "program_slicing").toAbsolutePath().toString();
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testBranchBothRelevant() throws Exception {
     Path inputFilePath = Path.of(examplesProgramSlicing(), "branch_both_relevant.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testBranchNoneRelevant() throws Exception {
     Path inputFilePath = Path.of(examplesProgramSlicing(), "branch_none_relevant.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testBranchNoneRelevant2() throws Exception {
     Path inputFilePath = Path.of(examplesProgramSlicing(), "branch_none_relevant2.c");
     testAndVerifyError(inputFilePath, Result.FALSE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testBranchOnlyElseRelevant() throws Exception {
     Path inputFilePath = Path.of(examplesProgramSlicing(), "branch_only_else_relevant.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testBranchOnlyIfRelevant() throws Exception {
     Path inputFilePath = Path.of(examplesProgramSlicing(), "branch_only_if_relevant.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
@@ -448,25 +448,25 @@ public class CToSvLibAlgorithmTest {
     return Path.of("test", "programs", "simple").toAbsolutePath().toString();
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testSimpleZeroModulo() throws Exception {
     Path inputFilePath = Path.of(examplesSimple(), "zero-modulo-nondet.c");
     testAndVerifyError(inputFilePath, Result.FALSE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testNondetAssign() throws Exception {
     Path inputFilePath = Path.of(examplesSimple(), "explicit", "symbolic", "nondetAssign.c");
     testAndVerifyError(inputFilePath, Result.FALSE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testEndlessLoop() throws Exception {
     Path inputFilePath = Path.of(examplesSimple(), "explicit", "symbolic", "endlessLoop.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
   }
 
-  @Test
+  @Test(timeout = 1800)
   public void testNondetDeclaration1() throws Exception {
     Path inputFilePath = Path.of(examplesSimple(), "explicit", "symbolic", "nondetDeclaration-1.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
