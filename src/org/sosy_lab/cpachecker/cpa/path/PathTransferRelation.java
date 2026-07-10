@@ -44,13 +44,7 @@ public class PathTransferRelation extends SingleEdgeTransferRelation {
 
     if (nextPathIndex == pathState.activePath.size()) {
       // advance to next segment
-      int nextSegmentIndex = pathState.segmentIndex + 1;
-      if (nextSegmentIndex == pathState.paths.witness().size()) {
-        // last segment has been passed
-        return ImmutableList.of(new PathState(pathState.paths, nextSegmentIndex, null, 0));
-      }
-
-      return PathState.startSegment(pathState.paths, nextSegmentIndex).toList();
+      return PathState.startSegment(pathState.paths, pathState.segmentIndex + 1).toList();
 
     } else {
       return ImmutableList.of(

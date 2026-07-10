@@ -63,6 +63,15 @@ public class PathState implements AbstractState {
   }
 
   static FluentIterable<PathState> startSegment(ViolationWitness pPaths, int segment) {
+
+    if (segment == pPaths.witness().size()) {
+      return FluentIterable.of(new PathState(pPaths, segment, null, -1));
+    }
+
+    if (pPaths.witness().get(segment).isEmpty()) {
+      return startSegment(pPaths, segment + 1);
+    }
+
     return FluentIterable.from(pPaths.witness().get(segment))
         .transform(nextPath -> new PathState(pPaths, segment, nextPath, 0));
   }

@@ -38,10 +38,6 @@ public record ViolationWitness(ImmutableList<ImmutableSet<ImmutableList<String>>
             .transform(ViolationWitness::edgeToString)
             .toList();
 
-    if (newPath.isEmpty()) {
-      return this;
-    }
-
     return new ViolationWitness(Collections3.elementAndList(ImmutableSet.of(
         newPath), witness));
   }
@@ -70,12 +66,12 @@ public record ViolationWitness(ImmutableList<ImmutableSet<ImmutableList<String>>
       return first;
     }
 
-    ImmutableSet<ImmutableList<String>> allLastSegmentsMerged =
-        FluentIterable.from(toMerge).transformAndConcat(v -> v.witness.getLast()).toSet();
+    ImmutableSet<ImmutableList<String>> allFirstSegmentsMerged =
+        FluentIterable.from(toMerge).transformAndConcat(v -> v.witness.getFirst()).toSet();
 
     return new ViolationWitness(
-        Collections3.listAndElement(
-            first.witness.subList(0, first.witness.size() - 1), allLastSegmentsMerged));
+        Collections3.elementAndList(
+            allFirstSegmentsMerged, first.witness.subList(1, first.witness.size())));
   }
 
   public ViolationWitness transformEdges(Function<String, String> f) {
