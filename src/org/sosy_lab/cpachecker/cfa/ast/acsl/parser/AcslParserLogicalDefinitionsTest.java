@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSeparateMemoryConjunctionPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTypeVariableDeclaration;
@@ -663,52 +662,13 @@ public class AcslParserLogicalDefinitionsTest {
     testLogicalFunctionParsing(input, output);
   }
 
-  // Predicate for an SLL without any values that is null terminated and starts at the beginning of
-  // the list
+  // Parse predicate definition 'pred_sll'
+  // from witnesses 'sll_blank-32-valid-witness-v2--1.yml'
+  // and 'sll_blank-64-valid-witness-v2--1.yml'
+  // for program 'sll_blank.c' in ILP32 and LP64
   @Test
   @Ignore
-  public void memSafetySimpleSllPredicateTest() throws AcslParseException {
-    /*
-     * Abstraction predicate 'pred_sll' for a Singly-Linked-List (SLL) of type 'sll' defined as:
-     *
-     * struct sll {
-     *   struct sll *next;
-     * };
-     *
-     * With the following C code creating the list with the predicate (loop invariant) 'pred_sll':
-     *
-     * struct sll* create(void) {
-     *   struct sll *sll = alloc_and_zero();
-     *   struct sll *now = sll;
-     *   while(random()) {
-     *     now->next = alloc_and_zero();
-     *     now = now->next;
-     *   }
-     *   return sll;
-     * }
-     *
-     * // Case 1 is the end of list case, i.e. end address reached and next pointer is 0
-     * pred_sll(sll *start, sll *end, int size)
-     *   match size:
-     *     case 1: start != 0 && start->next == 0 && start == end && start != 0
-     *     case n + 1: start != 0 && start->next != start && start->next != 0 &&
-     *                 pred_sll(start->next, end, size - 1)
-     *
-     * Translates to:
-     * pred_sll(sll * start, sll * end, int size):
-     *   size == 1 ? start != 0 && start->next == 0 && start == end &&
-     *     canAccess(start) && canAccess(start->next) && canAccess(end)
-     *   : start != 0 && start->next != start && start->next != 0 &&
-     *     canAccess(start) && canAccess(start->next) &&
-     *     canAccess(end) && start @ start->next &&
-     *     pred_sll(start->next, end, size - 1)
-     *
-     * Needs to be called in our example above like this:
-     * pred_sll(now, sll, ?)
-     *
-     * Note: canAccess(end) in the recursive case is only needed because of the recursive function call
-     */
-
+  public void memSafetySllBlankPredicateTest() throws AcslParseException {
     CCompositeType sllCType =
         new CCompositeType(CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, "sll", "sll");
     CPointerType sllCPointerType = new CPointerType(CTypeQualifiers.NONE, sllCType);
@@ -729,7 +689,7 @@ public class AcslParserLogicalDefinitionsTest {
     CFieldReference startCNextFieldDeref =
         new CFieldReference(FileLocation.DUMMY, sllCType, "next", startCIdExpr, true);
     // start->next == 0
-    CBinaryExpression sllNextEqualsZero =
+    CBinaryExpression startNextEqualsZero =
         new CBinaryExpression(
             FileLocation.DUMMY,
             CNumericTypes.INT,
@@ -738,7 +698,7 @@ public class AcslParserLogicalDefinitionsTest {
             new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
             BinaryOperator.EQUALS);
     // start->next != 0
-    CBinaryExpression sllNextNotEqualsZero =
+    CBinaryExpression startNextNotEqualsZero =
         new CBinaryExpression(
             FileLocation.DUMMY,
             CNumericTypes.INT,
@@ -747,7 +707,7 @@ public class AcslParserLogicalDefinitionsTest {
             new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
             BinaryOperator.NOT_EQUALS);
     // start->next != start
-    CBinaryExpression sllNextNotEqualsStart =
+    CBinaryExpression startNextNotEqualsStart =
         new CBinaryExpression(
             FileLocation.DUMMY,
             CNumericTypes.INT,
@@ -764,6 +724,15 @@ public class AcslParserLogicalDefinitionsTest {
             startCIdExpr,
             endCIdExpr,
             BinaryOperator.EQUALS);
+    // start != end
+    CBinaryExpression startNotEqualsEnd =
+        new CBinaryExpression(
+            FileLocation.DUMMY,
+            CNumericTypes.INT,
+            sllCPointerType,
+            startCIdExpr,
+            endCIdExpr,
+            BinaryOperator.NOT_EQUALS);
     // start != 0 (pointer equality)
     CBinaryExpression startNotEqualsZero =
         new CBinaryExpression(
@@ -771,6 +740,16 @@ public class AcslParserLogicalDefinitionsTest {
             CNumericTypes.INT,
             sllCPointerType,
             startCIdExpr,
+            new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
+            BinaryOperator.NOT_EQUALS);
+
+    // end != 0 (pointer equality)
+    CBinaryExpression endNotEqualsZero =
+        new CBinaryExpression(
+            FileLocation.DUMMY,
+            CNumericTypes.INT,
+            sllCPointerType,
+            endCIdExpr,
             new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
             BinaryOperator.NOT_EQUALS);
 
@@ -786,57 +765,55 @@ public class AcslParserLogicalDefinitionsTest {
     AcslCIdExpression endAcslCIdExpr =
         new AcslCIdExpression(FileLocation.DUMMY, sllPointerAcslType, endCIdExpr);
 
-    AcslParameterDeclaration size =
-        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "size");
-
     AcslCLeftHandSideTerm startCNextFieldDerefTerm =
         new AcslCLeftHandSideTerm(
             FileLocation.DUMMY, startAcslCParamDecl.getType(), startCNextFieldDeref);
-    AcslCExpressionTerm sllNextEqualsZeroTerm =
+    // start->next == 0
+    AcslCExpressionTerm startNextEqualsZeroTerm =
         new AcslCExpressionTerm(
-            FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, sllNextEqualsZero);
-    AcslCExpressionTerm sllNextNotEqualsZeroTerm =
+            FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, startNextEqualsZero);
+    // start->next != 0
+    AcslCExpressionTerm startNextNotEqualsZeroTerm =
         new AcslCExpressionTerm(
-            FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, sllNextNotEqualsZero);
-    AcslCExpressionTerm sllNextNotEqualsStartTerm =
+            FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, startNextNotEqualsZero);
+    // start->next != start
+    AcslCExpressionTerm startNextNotEqualsStartTerm =
         new AcslCExpressionTerm(
-            FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, sllNextNotEqualsStart);
+            FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, startNextNotEqualsStart);
+    // start == end
     AcslCExpressionTerm startEqualsEndTerm =
         new AcslCExpressionTerm(FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, startEqualsEnd);
+    // start != end
+    AcslCExpressionTerm startNotEqualsEndTerm =
+        new AcslCExpressionTerm(
+            FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, startNotEqualsEnd);
+    // start != 0
     AcslCExpressionTerm startNotEqualsZeroTerm =
         new AcslCExpressionTerm(
             FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, startNotEqualsZero);
-
-    // Note on Acsl expressions vs C expressions here: Acsl is purely mathematical (i.e. unbounded
-    // integers), C expressions are bound to the C types. As long as there is no C bound upper limit
-    // to the list length, this does not really matter.
-    AcslIdTerm sizeIdTerm = new AcslIdTerm(FileLocation.DUMMY, size);
-    AcslBinaryTerm sizeMinusOne =
-        new AcslBinaryTerm(
-            FileLocation.DUMMY,
-            sizeIdTerm.getExpressionType(),
-            sizeIdTerm,
-            new AcslIntegerLiteralTerm(
-                FileLocation.DUMMY, sizeIdTerm.getExpressionType(), BigInteger.ONE),
-            AcslBinaryTermOperator.MINUS);
+    // end != 0
+    AcslCExpressionTerm endNotEqualsZeroTerm =
+        new AcslCExpressionTerm(FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, endNotEqualsZero);
 
     AcslPredicateDeclaration sllPredicateDeclaration =
         new AcslPredicateDeclaration(
             FileLocation.DUMMY,
             // Function type:
             new AcslPredicateType(
-                ImmutableList.of(
-                    startAcslCParamDecl.getType(), endAcslCParamDecl.getType(), size.getType()),
+                ImmutableList.of(startAcslCParamDecl.getType(), endAcslCParamDecl.getType()),
                 false),
             "pred_sll",
             "pred_sll",
             // We don't want polymorphic types for MemSafety
             ImmutableList.of(),
             // Parameters:
-            ImmutableList.of(startAcslCParamDecl, endAcslCParamDecl, size));
+            ImmutableList.of(startAcslCParamDecl, endAcslCParamDecl));
 
     AcslSeparateMemoryConjunctionPredicate startSepEndPredicate =
         new AcslSeparateMemoryConjunctionPredicate(FileLocation.DUMMY, startCIdExpr, endCIdExpr);
+    AcslSeparateMemoryConjunctionPredicate startNextSepStartPredicate =
+        new AcslSeparateMemoryConjunctionPredicate(
+            FileLocation.DUMMY, startCNextFieldDeref, startCIdExpr);
     AcslCanAccessPredicate canAccessStart =
         new AcslCanAccessPredicate(FileLocation.DUMMY, startCIdExpr);
     AcslCanAccessPredicate canAccessStartNext =
@@ -844,78 +821,85 @@ public class AcslParserLogicalDefinitionsTest {
     AcslCanAccessPredicate canAccessEnd =
         new AcslCanAccessPredicate(FileLocation.DUMMY, endCIdExpr);
 
-    AcslPredicate canAccessPredicates =
+    AcslPredicate canAccessPredicatesStartAndEnd =
         new AcslBinaryPredicate(
-            FileLocation.DUMMY,
-            new AcslBinaryPredicate(
-                FileLocation.DUMMY,
-                canAccessStart,
-                canAccessStartNext,
-                AcslBinaryPredicateOperator.AND),
-            canAccessEnd,
-            AcslBinaryPredicateOperator.AND);
-
-    AcslPredicate canAccessPredicatesWithSepConj =
-        new AcslBinaryPredicate(
-            FileLocation.DUMMY,
-            canAccessPredicates,
-            startSepEndPredicate,
-            AcslBinaryPredicateOperator.AND);
+            FileLocation.DUMMY, canAccessStart, canAccessEnd, AcslBinaryPredicateOperator.AND);
 
     AcslAstNode expectedOutput =
         new AcslLogicPredicateDefinition(
             FileLocation.DUMMY,
             // Function Declaration
             sllPredicateDeclaration,
-            // Function body
-            new AcslTernaryPredicate(
+            // Function body (a disjunction with 2 big predicates). The first is:
+            // start != 0 && (end != 0 && (start->next == 0 && (start == end &&
+            //     (\\canAccess(start) && \\canAccess(end)))))
+            new AcslBinaryPredicate(
                 FileLocation.DUMMY,
-                // ITE condition: size == 1
-                new AcslBinaryTermPredicate(
-                    FileLocation.DUMMY,
-                    new AcslIdTerm(FileLocation.DUMMY, size),
-                    new AcslIntegerLiteralTerm(
-                        FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE),
-                    AcslBinaryTermExpressionOperator.EQUALS),
-                // If branch: start->next == 0 && start == end && && start != 0 &&  canAccess(start)
-                //            && canAccess(end) && canAccess(start->next)
-                new AcslBinaryPredicate(
-                    FileLocation.DUMMY,
-                    new AcslPredicateTerm(sllNextEqualsZeroTerm),
-                    new AcslBinaryPredicate(
-                        FileLocation.DUMMY,
-                        new AcslPredicateTerm(startEqualsEndTerm),
-                        canAccessPredicates,
-                        AcslBinaryPredicateOperator.AND),
-                    AcslBinaryPredicateOperator.AND),
-                // Else branch: start != 0 && start->next != start && start->next != 0
-                //               && canAccess(start) && canAccess(start->next) && canAccess(end)
-                //               && start @ end && start != end && end != null
-                //               && pred_sll(start->next, end, size - 1)
                 new AcslBinaryPredicate(
                     FileLocation.DUMMY,
                     new AcslPredicateTerm(startNotEqualsZeroTerm),
                     new AcslBinaryPredicate(
-                        FileLocation.DUMMY, /* start->next != start */
-                        new AcslPredicateTerm(sllNextNotEqualsStartTerm),
+                        FileLocation.DUMMY,
+                        new AcslPredicateTerm(endNotEqualsZeroTerm),
                         new AcslBinaryPredicate(
-                            FileLocation.DUMMY, /* start->next != 0 */
+                            FileLocation.DUMMY,
+                            new AcslPredicateTerm(startNextEqualsZeroTerm),
                             new AcslBinaryPredicate(
                                 FileLocation.DUMMY,
-                                new AcslPredicateTerm(sllNextNotEqualsZeroTerm),
-                                canAccessPredicatesWithSepConj,
+                                new AcslPredicateTerm(startEqualsEndTerm),
+                                canAccessPredicatesStartAndEnd,
                                 AcslBinaryPredicateOperator.AND),
-                            /* pred_sll(start->next, end, size - 1) */
-                            new AcslPredicateApplicationPredicate(
-                                FileLocation.DUMMY,
-                                sllPredicateDeclaration,
-                                ImmutableList.of(
-                                    /*start->next*/ startCNextFieldDerefTerm,
-                                    /* end */ endAcslCIdExpr,
-                                    sizeMinusOne)),
                             AcslBinaryPredicateOperator.AND),
                         AcslBinaryPredicateOperator.AND),
-                    AcslBinaryPredicateOperator.AND)));
+                    AcslBinaryPredicateOperator.AND),
+                // second argument of || :
+                // start != 0 && (start != end && (start->next != start && (start->next != 0
+                // && (\\canAccess(start) && (\\canAccess(start->next) && (\\canAccess(end)
+                // && ((start)@(start->next) && ((start)@(end) && pred_sll(start->next, end)))))))))
+                new AcslBinaryPredicate(
+                    FileLocation.DUMMY,
+                    new AcslPredicateTerm(startNotEqualsZeroTerm),
+                    new AcslBinaryPredicate(
+                        FileLocation.DUMMY,
+                        new AcslPredicateTerm(startNotEqualsEndTerm),
+                        new AcslBinaryPredicate(
+                            FileLocation.DUMMY,
+                            new AcslPredicateTerm(startNextNotEqualsStartTerm),
+                            new AcslBinaryPredicate(
+                                FileLocation.DUMMY,
+                                new AcslPredicateTerm(startNextNotEqualsZeroTerm),
+                                new AcslBinaryPredicate(
+                                    FileLocation.DUMMY,
+                                    canAccessStart,
+                                    new AcslBinaryPredicate(
+                                        FileLocation.DUMMY,
+                                        canAccessStartNext,
+                                        new AcslBinaryPredicate(
+                                            FileLocation.DUMMY,
+                                            canAccessEnd,
+                                            new AcslBinaryPredicate(
+                                                FileLocation.DUMMY,
+                                                startNextSepStartPredicate,
+                                                new AcslBinaryPredicate(
+                                                    FileLocation.DUMMY,
+                                                    startSepEndPredicate,
+                                                    /* pred_sll(start->next, end) */
+                                                    new AcslPredicateApplicationPredicate(
+                                                        FileLocation.DUMMY,
+                                                        sllPredicateDeclaration,
+                                                        ImmutableList.of(
+                                                            /*start->next*/ startCNextFieldDerefTerm,
+                                                            /* end */ endAcslCIdExpr)),
+                                                    AcslBinaryPredicateOperator.AND),
+                                                AcslBinaryPredicateOperator.AND),
+                                            AcslBinaryPredicateOperator.AND),
+                                        AcslBinaryPredicateOperator.AND),
+                                    AcslBinaryPredicateOperator.AND),
+                                AcslBinaryPredicateOperator.AND),
+                            AcslBinaryPredicateOperator.AND),
+                        AcslBinaryPredicateOperator.AND),
+                    AcslBinaryPredicateOperator.AND),
+                AcslBinaryPredicateOperator.OR));
 
     String input = "TODO";
 
