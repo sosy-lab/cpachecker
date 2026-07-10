@@ -30,8 +30,9 @@
         - name: end
           type: "struct sll *"
       - definition:
-        "start != 0 && end != 0 && start->next == 0 && start == end && \\canAccess(start) && \\canAccess(end)
-          || start != 0 && start != end && start->next != start && start->next != 0 && \\canAccess(start) && \\canAccess(start->next) && \\canAccess(end) && (start)@(start->next) && (start)@(end) && pred_sll(start->next, end)"
+        "start != 0 && (end != 0 && (start->next == 0 && (start == end && (\\canAccess(start) && \\canAccess(end)))))
+          || start != 0 && (start != end && (start->next != start && (start->next != 0 && (\\canAccess(start) && (\\canAccess(start->next) 
+            && (\\canAccess(end) && ((start)@(start->next) && ((start)@(end) && pred_sll(start->next, end)))))))))"
     - inductive_predicate:
       - name: "pred_sll2"
       - params:
