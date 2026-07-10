@@ -145,11 +145,13 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator.BooleanAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 
 /*
  * Abstraction predicate 'pred_sll' for a Singly-Linked-List (SLL) of type 'sll' defined as:
@@ -170,11 +172,16 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
  *   return sll;
  * }
  *
- * Predicate to parse:
- * pred_sll(sll * start, sll * end, int size):
- *   size == 1 ? start != 0 && start->next == 0 && start == end
- *   : start != 0 && start->next != start && start->next != 0
- *  && pred_sll(start->next, end, size - 1)
+ * The invariant is called with 'pred_sll(sll, now)'.
+ *
+ * Predicate in definitions:
+ * pred_sll(sll * start, sll * end):
+ *  start != 0 && start->next == 0 && start == end
+ *    && \\canAccess(start) && \\canAccess(end)
+ *  || start != 0 && start->next != start && start->next != 0
+ *    && \\canAccess(start) && \\canAccess(end) && \\canAccess(start->next)
+ *    && (start)@(end) && (start->next)@(start)
+ *    && pred_sll(start->next, end)
  *
  *
  * Idea: we get the function call and its arguments first. We process the arguments
@@ -255,11 +262,22 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
     originCfaEdge = pCfaEdge;
   }
 
-  private void checkCanAccessMemory(SMGObject memory, Value offset, SMGState state) {
-    checkNotNull(memory);
-    checkNotNull(offset);
+  private BooleanAndSMGState checkCanAccessMemory(
+      CExpression exprLeadingToMemory,
+      SMGObject memoryObjAccessed,
+      Value accessOffsetInBits,
+      SMGState state)
+      throws CPATransferException {
+    checkNotNull(memoryObjAccessed);
+    checkNotNull(accessOffsetInBits);
     checkNotNull(state);
-    checkArgument(state.getMemoryModel().isObjectValid(memory));
+    checkArgument(!(memoryObjAccessed instanceof SMGSinglyLinkedListSegment));
+    return evaluator.checkMemoryAccess(
+        SMGCPAExpressionEvaluator.getCanonicalType(exprLeadingToMemory),
+        memoryObjAccessed,
+        accessOffsetInBits,
+        state,
+        originCfaEdge);
   }
 
   /**
@@ -285,6 +303,7 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
     // preprocessing for now
     // AcslPredicate preprocessedInvariant = preprocessInvariant(invariantToValidate);
     // TODO: problem: we read things before we allow it to set up ACSL stack frames!
+    // TODO: Marian says we don't need to check that. I am unsure.
     // SMGState preprocessedState = preprocessState(stateToValidateOn);
     // verify(!preprocessedState.hasMemoryErrors());
 
@@ -1001,7 +1020,6 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
 
     ImmutableSet.Builder<SMGState> resultStates = ImmutableSet.builder();
     for (SMGStateAndOptionalSMGObjectAndOffset targetMemory : targetMemories) {
-      resultStates.add(targetMemory.getSMGState());
       if (!targetMemory.hasSMGObjectAndOffset()) {
         // Invalid witness
         throw new IllegalArgumentException(
@@ -1009,10 +1027,18 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
         // TODO: switch to the return. I only put the exception there to see whether this happens.
         // return ImmutableSet.of();
       }
-      checkCanAccessMemory(
-          targetMemory.getSMGObject(),
-          targetMemory.getOffsetForObject(),
-          targetMemory.getSMGState());
+
+      BooleanAndSMGState accessResult =
+          checkCanAccessMemory(
+              exprTargetingMemory,
+              targetMemory.getSMGObject(),
+              targetMemory.getOffsetForObject(),
+              targetMemory.getSMGState());
+
+      if (!accessResult.getBoolean()) {
+        return ImmutableSet.of();
+      }
+      resultStates.add(checkNotNull(accessResult.getSMGState()));
     }
 
     return resultStates.build();
