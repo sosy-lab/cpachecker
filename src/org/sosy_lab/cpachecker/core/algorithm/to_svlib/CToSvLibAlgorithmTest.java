@@ -134,6 +134,12 @@ public class CToSvLibAlgorithmTest {
     testTransformationToSvLib(inputFilePath, encodeBitvectorsAsIntegersOption);
   }
 
+  @Test(timeout = 1800)
+  public void testFunctionReturnBitvectorEncoding() throws Exception {
+    Path inputFilePath = Path.of(examplesPathProgramTranslation(), "functionreturn.c");
+    testTransformationToSvLib(inputFilePath, encodeBitvectorsAsBitvectorsOption);
+  }
+
   // *********************************** Real C ***********************************
 
   private String examplesPathRealC() {
@@ -147,9 +153,21 @@ public class CToSvLibAlgorithmTest {
   }
 
   @Test(timeout = 1800)
+  public void testTestOrBitvectorEncoding() throws Exception {
+    Path inputFilePath = Path.of(examplesPathRealC(), "test-or.c");
+    testTransformationToSvLib(inputFilePath, encodeBitvectorsAsBitvectorsOption);
+  }
+
+  @Test(timeout = 1800)
   public void testRandom() throws Exception {
     Path inputFilePath = Path.of(examplesPathRealC(), "random.c");
     testTransformationToSvLib(inputFilePath, encodeBitvectorsAsIntegersOption);
+  }
+
+  @Test(timeout = 1800)
+  public void testRandomBitvectorEncoding() throws Exception {
+    Path inputFilePath = Path.of(examplesPathRealC(), "random.c");
+    testTransformationToSvLib(inputFilePath, encodeBitvectorsAsBitvectorsOption);
   }
 
   // **************************************** with property ****************************************
