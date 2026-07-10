@@ -449,7 +449,6 @@ class CToSvLibTransformation {
       return handleReturnValueAssignmentToHeap(pCallEdge, assignment, pEdgeToPointerTargetSet);
 
     } else if (functionCall instanceof CFunctionCallAssignmentStatement functionCallAssignment) {
-
       CIdExpression lhsIdExpression = (CIdExpression) functionCallAssignment.getLeftHandSide();
       PointerTargetSet pointerTargetSet = pEdgeToPointerTargetSet.buildOrThrow().get(pCallEdge);
       NavigableSet<PointerBase> pointerBases = pointerTargetSet.getBases().keySet();
@@ -464,7 +463,6 @@ class CToSvLibTransformation {
           pCallEdge, functionCallAssignment, lhsIdExpression, pEdgeToPointerTargetSet);
 
     } else if (functionCall instanceof CFunctionCallStatement callStatement) {
-
       SvLibProcedureDeclaration calledProcedure =
           scope.getProcedureDeclaration(pCallEdge.getFunctionEntry().getFunctionName());
       return createProcedureCallStatementWithDummyReturn(
@@ -670,8 +668,22 @@ class CToSvLibTransformation {
 
         term = innerTerm.getTerms().getFirst();
 
-      } else if ((inputParameter instanceof CBinaryExpression
-              || inputParameter instanceof CPointerExpression)
+      } else if (inputParameter instanceof CPointerExpression
+          && term instanceof SvLibSymbolApplicationTerm outerTerm
+          && outerTerm.getSymbol().getName().equals("not")
+          && outerTerm.getTerms().size() == 1
+          && outerTerm.getTerms().getFirst() instanceof SvLibSymbolApplicationTerm middleTerm
+          && middleTerm.getSymbol().getName().equals("=")
+          && middleTerm.getTerms().size() == 2
+          && middleTerm.getTerms().get(1) instanceof SvLibIntegerConstantTerm integerConstantTerm
+          && integerConstantTerm.getValue().equals(BigInteger.ZERO)
+          && middleTerm.getTerms().getFirst() instanceof SvLibSymbolApplicationTerm innerTerm
+          && innerTerm.getSymbol().getName().equals("select")
+          && innerTerm.getTerms().size() == 2) {
+
+        term = innerTerm.getTerms().get(1);
+
+      } else if (inputParameter instanceof CBinaryExpression
           && term instanceof SvLibSymbolApplicationTerm symbolApplicationTerm
           && symbolApplicationTerm.getSymbol().getName().equals("not")
           && symbolApplicationTerm.getTerms().size() == 1
@@ -704,6 +716,36 @@ class CToSvLibTransformation {
                 pCallEdge,
                 pProcedureDeclaration,
                 pEdgeToPointerTargetSet);
+
+      } else if (inputParameter instanceof CArraySubscriptExpression
+          && term instanceof SvLibSymbolApplicationTerm symbolApplicationTerm
+          && symbolApplicationTerm.getSymbol().getName().equals("not")
+          && symbolApplicationTerm.getTerms().size() == 1
+          && symbolApplicationTerm.getTerms().getFirst()
+              instanceof SvLibSymbolApplicationTerm middleTerm
+          && middleTerm.getSymbol().getName().equals("=")
+          && middleTerm.getTerms().size() == 2
+          && middleTerm.getTerms().get(1) instanceof SvLibIntegerConstantTerm integerConstantTerm
+          && integerConstantTerm.getValue().equals(BigInteger.ZERO)
+          && middleTerm.getTerms().getFirst() instanceof SvLibSymbolApplicationTerm innerTerm
+          && innerTerm.getSymbol().getName().equals("select")) {
+        term = innerTerm;
+
+      } else if (inputParameter instanceof CFieldReference
+          && term instanceof SvLibSymbolApplicationTerm outerTerm
+          && outerTerm.getSymbol().getName().equals("not")
+          && outerTerm.getTerms().size() == 1
+          && outerTerm.getTerms().getFirst() instanceof SvLibSymbolApplicationTerm middleTerm
+          && middleTerm.getSymbol().getName().equals("=")
+          && middleTerm.getTerms().size() == 2
+          && middleTerm.getTerms().get(1) instanceof SvLibIntegerConstantTerm integerConstantTerm
+          && integerConstantTerm.getValue().equals(BigInteger.ZERO)
+          && middleTerm.getTerms().getFirst() instanceof SvLibSymbolApplicationTerm innerTerm
+          && innerTerm.getSymbol().getName().equals("select")
+          && innerTerm.getTerms().size() == 2) {
+
+        term = innerTerm.getTerms().get(1);
+
       } else {
         throw new UnsupportedOperationException(
             "Failed to transform input "
