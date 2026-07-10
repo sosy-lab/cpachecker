@@ -358,6 +358,36 @@ public class CToSvLibAlgorithmTest {
     testAndVerifyError(inputFilePath, Result.FALSE);
   }
 
+  // ********** policy iteration **********
+
+  private String examplesPolicyiteration() {
+    return Path.of("test", "programs", "policyiteration").toAbsolutePath().toString();
+  }
+
+  @Test
+  public void testFormulaFail() throws Exception {
+    Path inputFilePath = Path.of(examplesPolicyiteration(), "formula_fail.c");
+    testAndVerifyError(inputFilePath, Result.TRUE);
+  }
+
+  @Test
+  public void testInitial() throws Exception {
+    Path inputFilePath = Path.of(examplesPolicyiteration(), "initial.c");
+    testAndVerifyError(inputFilePath, Result.TRUE);
+  }
+
+  @Test
+  public void testPolicyIterationLoop() throws Exception {
+    Path inputFilePath = Path.of(examplesPolicyiteration(), "loop.c");
+    testAndVerifyError(inputFilePath, Result.FALSE);
+  }
+
+  @Test
+  public void testTimeout() throws Exception {
+    Path inputFilePath = Path.of(examplesPolicyiteration(), "timeout.c");
+    testAndVerifyError(inputFilePath, Result.TRUE);
+  }
+
   // ********** program slicing **********
 
   private String examplesProgramSlicing() {
@@ -391,6 +421,36 @@ public class CToSvLibAlgorithmTest {
   @Test
   public void testBranchOnlyIfRelevant() throws Exception {
     Path inputFilePath = Path.of(examplesProgramSlicing(), "branch_only_if_relevant.c");
+    testAndVerifyError(inputFilePath, Result.TRUE);
+  }
+
+  // ********** simple **********
+
+  private String examplesSimple() {
+    return Path.of("test", "programs", "simple").toAbsolutePath().toString();
+  }
+
+  @Test
+  public void testSimpleZeroModulo() throws Exception {
+    Path inputFilePath = Path.of(examplesSimple(), "zero-modulo-nondet.c");
+    testAndVerifyError(inputFilePath, Result.FALSE);
+  }
+
+  @Test
+  public void testNondetAssign() throws Exception {
+    Path inputFilePath = Path.of(examplesSimple(), "explicit", "symbolic", "nondetAssign.c");
+    testAndVerifyError(inputFilePath, Result.FALSE);
+  }
+
+  @Test
+  public void testEndlessLoop() throws Exception {
+    Path inputFilePath = Path.of(examplesSimple(), "explicit", "symbolic", "endlessLoop.c");
+    testAndVerifyError(inputFilePath, Result.TRUE);
+  }
+
+  @Test
+  public void testNondetDeclaration1() throws Exception {
+    Path inputFilePath = Path.of(examplesSimple(), "explicit", "symbolic", "nondetDeclaration-1.c");
     testAndVerifyError(inputFilePath, Result.TRUE);
   }
 }
