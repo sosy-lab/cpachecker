@@ -106,6 +106,16 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
     if (specConstantContext.numeral() != null) {
       return new SvLibIntegerConstantTerm(
           new BigInteger(specConstantContext.numeral().getText()), fileLocationFromContext(ctx));
+    } else if (specConstantContext.hexadecimal() != null) {
+      return new SvLibBitVectorConstantTerm(
+          new BigInteger(specConstantContext.hexadecimal().getText().substring(2), 16),
+          (specConstantContext.hexadecimal().getText().length() - 2) * 4,
+          fileLocationFromContext(ctx));
+    } else if (specConstantContext.binary() != null) {
+      return new SvLibBitVectorConstantTerm(
+          new BigInteger(specConstantContext.binary().getText().substring(2), 2),
+          specConstantContext.binary().getText().length() - 2,
+          fileLocationFromContext(ctx));
     } else {
       throw new IllegalArgumentException(
           "The constant %s is currently not supported.".formatted(ctx.getText()));

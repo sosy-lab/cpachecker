@@ -317,11 +317,11 @@ Numeral
     ;
 
 Binary
-    : BinaryDigit+
+    : '#b' BinaryDigit+
     ;
 
 HexDecimal
-    : '#x' HexDigit HexDigit HexDigit HexDigit
+    : '#x' HexDigit+
     ;
 
 Decimal
