@@ -157,7 +157,34 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
           "memset", "memset");
 
   private static final ImmutableSet<String> SIDE_EFFECT_FUNCTIONS =
-      ImmutableSet.of("memcpy", "memmove", "memset");
+      ImmutableSet.of(
+          "memcpy",
+          "memmove",
+          "memset",
+          // Atomic builtins that write to the object their pointer argument designates.
+          // __atomic_load_n and the fences are deliberately excluded, as they have no side
+          // effect: cf. BuiltinAtomicFunctions.CAtomicOperationType.
+          "__atomic_load",
+          "__atomic_store_n",
+          "__atomic_store",
+          "__atomic_exchange_n",
+          "__atomic_exchange",
+          "__atomic_compare_exchange_n",
+          "__atomic_compare_exchange",
+          "__atomic_fetch_add",
+          "__atomic_fetch_sub",
+          "__atomic_fetch_and",
+          "__atomic_fetch_or",
+          "__atomic_fetch_xor",
+          "__atomic_fetch_nand",
+          "__atomic_add_fetch",
+          "__atomic_sub_fetch",
+          "__atomic_and_fetch",
+          "__atomic_or_fetch",
+          "__atomic_xor_fetch",
+          "__atomic_nand_fetch",
+          "__atomic_test_and_set",
+          "__atomic_clear");
 
   // names for special variables needed to deal with functions
   @Deprecated
@@ -240,9 +267,11 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
 
   protected boolean isRelevantLeftHandSide(
       final CLeftHandSide lhs, final Optional<CRightHandSide> rhs) {
-    if (rhs.isPresent() && hasSideEffect(rhs.orElseThrow())) {
-      // Function calls like memset or the atomic builtins have side effects beyond their return
-      // value, so we should not ignore them based on the LHS alone.
+    if (rhs.isPresent()
+        && rhs.orElseThrow() instanceof CFunctionCallExpression funcCall
+        && SIDE_EFFECT_FUNCTIONS.contains(funcCall.getFunctionNameExpression().toString())) {
+      // Extern function calls like memset have side effects, we should not ignore this based on
+      // LHS alone.
       return true;
     }
 
@@ -1611,21 +1640,6 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
       throws UnrecognizedCodeException, InterruptedException {
     // lhs is used twice, also as lhsForChecking!
     return makeAssignment(lhs, lhs, rhs, edge, function, ssa, pts, constraints, errorConditions);
-  }
-
-  /**
-   * Whether evaluating the right-hand side of an assignment writes to memory itself, in which case
-   * the assignment may not be dropped even if its left-hand side is irrelevant.
-   *
-   * <p>Most external functions are assumed to be pure, but {@link #SIDE_EFFECT_FUNCTIONS} like
-   * {@code memset} write through a pointer argument, and so do the atomic builtins encoded by
-   * {@link ExpressionToFormulaVisitor}, which update the object their pointer argument designates.
-   */
-  protected static boolean hasSideEffect(CRightHandSide rhs) {
-    return rhs instanceof CFunctionCallExpression call
-        && call.getFunctionNameExpression() instanceof CIdExpression functionName
-        && (SIDE_EFFECT_FUNCTIONS.contains(functionName.getName())
-            || BuiltinAtomicFunctions.hasSideEffect(functionName.getName()));
   }
 
   /**

@@ -407,24 +407,6 @@ public final class BuiltinAtomicFunctions {
     return CAtomicOperations.fromString(checkNotNull(pFunctionName)).isPresent();
   }
 
-  /**
-   * Whether a call to the given function writes to memory, and may therefore not be dropped even if
-   * its result is unused.
-   */
-  public static boolean hasSideEffect(String pFunctionName) {
-    return CAtomicOperations.fromString(pFunctionName)
-        .map(
-            operation ->
-                switch (operation.getOperationType()) {
-                  // the generic load is the only load that writes: it returns the value through a
-                  // pointer
-                  case LOAD -> operation.isGeneric();
-                  case FENCE -> false;
-                  case STORE, EXCHANGE, CMP_XCHG, FETCH_OP, OP_FETCH, TEST_AND_SET, CLEAR -> true;
-                })
-        .orElse(false);
-  }
-
   private static boolean matches(String pFunctionName, CAtomicOperationType pType) {
     return CAtomicOperations.fromString(pFunctionName)
         .map(operation -> operation.operationType == pType)
