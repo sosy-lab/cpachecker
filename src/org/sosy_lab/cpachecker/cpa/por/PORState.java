@@ -59,7 +59,12 @@ public class PORState
     implements AbstractState, AbstractStateWithLocations,
                AbstractStateWithThreads, Graphable {
 
-  private final Random random = new Random(0); // TODO remove seed
+  /**
+   * Shared by reference across every {@link PORState} of one analysis run (including across
+   * CEGAR refinement rounds), so successive shuffles draw fresh values instead of each state
+   * restarting the sequence; only the initial seed is fixed, for reproducibility.
+   */
+  private final Random random;
 
   private final CFA cfa;
 
@@ -81,16 +86,19 @@ public class PORState
       AbstractState pWrappedState,
       CFA pCfa,
       ImmutableMap<Integer, PORThreadState> pThreads,
-      ImmutableMap<String, Integer> pThreadHandles) {
+      ImmutableMap<String, Integer> pThreadHandles,
+      Random pRandom) {
     super(pWrappedState);
 
     cfa = pCfa;
     threads = pThreads;
     threadHandles = pThreadHandles;
+    random = pRandom;
   }
 
-  static PORState empty(AbstractState pWrappedInitialState, CFA pCfa) {
-    return new PORState(pWrappedInitialState, pCfa, ImmutableMap.of(), ImmutableMap.of());
+  static PORState empty(AbstractState pWrappedInitialState, CFA pCfa, Random pRandom) {
+    return new PORState(
+        pWrappedInitialState, pCfa, ImmutableMap.of(), ImmutableMap.of(), pRandom);
   }
 
   public ImmutableMap<Integer, PORThreadState> threads() {
@@ -132,7 +140,7 @@ public class PORState
             .putAll(threadHandles)
             .put(handle, newPid)
             .buildKeepingLast();
-    return new PORState(getWrappedState(), cfa, newThreads, newThreadHandles);
+    return new PORState(getWrappedState(), cfa, newThreads, newThreadHandles, random);
   }
 
   PORState joinThread(String handle) {
@@ -149,7 +157,7 @@ public class PORState
         threadHandles.entrySet().stream()
             .filter(e -> !e.getValue().equals(pidToRemove))
             .collect(ImmutableMap.toImmutableMap(Entry::getKey, Entry::getValue));
-    return new PORState(getWrappedState(), cfa, newThreads, newThreadHandles);
+    return new PORState(getWrappedState(), cfa, newThreads, newThreadHandles, random);
   }
 
   private Integer canJoin(String handle, boolean throwIfThreadNotFound) {
@@ -183,7 +191,8 @@ public class PORState
       }
     }
     newThreads.put(pPid, new PORThreadState(pNextLoc, pNextStack));
-    return new PORState(getWrappedState(), cfa, newThreads.buildKeepingLast(), threadHandles);
+    return new PORState(
+        getWrappedState(), cfa, newThreads.buildKeepingLast(), threadHandles, random);
   }
 
   public PORState exitThread(int pPid, LocationStateFactory pLocationStateFactory) {
@@ -210,7 +219,7 @@ public class PORState
   }
 
   PORState withWrappedState(AbstractState pWrappedState) {
-    return new PORState(pWrappedState, cfa, threads, threadHandles);
+    return new PORState(pWrappedState, cfa, threads, threadHandles, random);
   }
 
   /**

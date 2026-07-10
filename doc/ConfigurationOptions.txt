@@ -2561,6 +2561,13 @@ cpa.por.abstractionAware = false
 # in aMultiEdge, so that all concurrent thread interleavings are explored.
 cpa.por.aggregateBasicBlocks = false
 
+# Seed for the pseudo-random shuffling of the enabled threads in the
+# source-set heuristic. A single random-number generator is shared by
+# reference across all states of one analysis run, so successive shuffles
+# draw fresh values instead of every state restarting the same sequence; the
+# seed is fixed only to keep runs reproducible.
+cpa.por.randomSeed = 0
+
 # Whether to give up immediately if a very large array is encountered
 # (heuristic, often we would just waste time otherwise)
 cpa.predicate.abortOnLargeArrays = true

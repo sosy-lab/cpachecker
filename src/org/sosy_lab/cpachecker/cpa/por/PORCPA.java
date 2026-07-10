@@ -13,10 +13,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Functions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Random;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -46,6 +49,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * POR (Partial Order Reduction) CPA that manages thread interleaving in concurrent programs. This
@@ -76,8 +80,19 @@ public class PORCPA extends AbstractSingleWrapperCPA {
   )
   private boolean aggregateBasicBlocks = false;
 
+  @Option(
+      secure = true,
+      description = "Seed for the pseudo-random shuffling of the enabled threads in the "
+          + "source-set heuristic. A single random-number generator is shared by reference "
+          + "across all states of one analysis run, so successive shuffles draw fresh values "
+          + "instead of every state restarting the same sequence; the seed is fixed only to "
+          + "keep runs reproducible."
+  )
+  private long randomSeed = 0;
+
   private final PORTransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
+  private final ImmutableSet<MemoryLocation> crossThreadGlobals;
 
   @SuppressWarnings("unused")
   private PORCPA(
@@ -89,7 +104,11 @@ public class PORCPA extends AbstractSingleWrapperCPA {
     super(pCpa);
     pConfig.inject(this);
 
-    transferRelation = new PORTransferRelation(pCpa, pConfig, pCfa, aggregateBasicBlocks, pLogger);
+    crossThreadGlobals =
+        abstractionAware ? CrossThreadGlobalsCollector.collect(pCfa) : ImmutableSet.of();
+    transferRelation =
+        new PORTransferRelation(
+            pCpa, pConfig, pCfa, aggregateBasicBlocks, pLogger, new Random(randomSeed));
 
     final PrecisionAdjustment wrappedPrecisionAdjustment = pCpa.getPrecisionAdjustment();
     precisionAdjustment = (state, precision, states, stateProjection, fullState) -> {
@@ -141,6 +160,21 @@ public class PORCPA extends AbstractSingleWrapperCPA {
       ScopedRefinablePrecision scopedRefinablePrecision =
           Precisions.extractPrecisionByType(initialWrappedPrecision, ScopedRefinablePrecision.class);
       if (scopedRefinablePrecision != null) {
+        // A CEGAR-refined precision starts out empty, which would make canIgnoreVariable treat
+        // every global as ignorable at round 0. Since the persistent-set reduction can then
+        // eliminate the only interleaving that reaches a target, CEGAR would never see a
+        // counterexample to refine against. Seed genuine cross-thread conflicts up front so the
+        // initial reduction cannot ignore a variable that is actually racy.
+        ImmutableMultimap.Builder<CFANode, MemoryLocation> increment = ImmutableMultimap.builder();
+        for (MemoryLocation location : crossThreadGlobals) {
+          increment.put(pNode, location);
+        }
+        scopedRefinablePrecision = scopedRefinablePrecision.withIncrement(increment.build());
+        initialWrappedPrecision =
+            Precisions.replaceByType(
+                initialWrappedPrecision,
+                scopedRefinablePrecision,
+                Predicates.instanceOf(ScopedRefinablePrecision.class));
         variableManagers.add(new ScopedRefinablePrecisionVariableManager());
       }
 

@@ -55,12 +55,12 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
     CFAEdge currentEdge = edge;
     while (true) {
       var accesses = memoryAccessExtractor.extract(currentEdge);
-      if ((!accesses.getUses().isEmpty() ||
-          !accesses.getDefs().isEmpty() ||
-          !accesses.getPointeeDefs().isEmpty() ||
-          !accesses.getPointeeUses().isEmpty() ||
-          MutexFunctions.isLockCall(edge)) &&
-          !atomicBlockNodes.contains(PorEdgeCloner.getOriginalNode(currentEdge.getPredecessor()))) {
+      if ((!accesses.getUses().isEmpty()
+          || !accesses.getDefs().isEmpty()
+          || !accesses.getPointeeDefs().isEmpty()
+          || !accesses.getPointeeUses().isEmpty()
+          || MutexFunctions.isLockCall(edge))
+          && !atomicBlockNodes.contains(PorEdgeCloner.getOriginalNode(currentEdge.getPredecessor()))) {
         if (anyGlobalStatements) {
           return false;
         }
@@ -126,7 +126,7 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
   }
 
   private ImmutableCollection<CFANode> getAtomicBlockNodes(CFA pCFA) {
-    ImmutableSet.Builder<CFANode> atomicBlockNodes = ImmutableSet.builder();
+    ImmutableSet.Builder<CFANode> atomicBlockNodesBuilder = ImmutableSet.builder();
     for (CFAEdge edge : pCFA.edges()) {
       if (MutexFunctions.isAtomicBeginCall(edge)) {
         Set<CFANode> nodesToVisit = new LinkedHashSet<>();
@@ -134,7 +134,7 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
         while (!nodesToVisit.isEmpty()) {
           CFANode currentNode = nodesToVisit.iterator().next();
           nodesToVisit.remove(currentNode);
-          atomicBlockNodes.add(currentNode);
+          atomicBlockNodesBuilder.add(currentNode);
           for (CFAEdge leavingEdge : currentNode.getLeavingEdges()) {
             if (!MutexFunctions.isAtomicEndCall(leavingEdge)) {
               nodesToVisit.add(leavingEdge.getSuccessor());
@@ -143,7 +143,7 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
         }
       }
     }
-    return atomicBlockNodes.build();
+    return atomicBlockNodesBuilder.build();
   }
 
   private boolean isThreadStart(CFAEdge edge) {

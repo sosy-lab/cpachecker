@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -50,12 +51,15 @@ public class PORTransferRelation implements TransferRelation {
   private final boolean aggregateBasicBlocks;
   private final BasicBlockAggregator basicBlockAggregator;
 
+  private final Random random;
+
   public PORTransferRelation(
       ConfigurableProgramAnalysis wrappedCpa,
       Configuration pConfig,
       CFA pCfa,
       boolean pAggregateBasicBlocks,
-      LogManager pLogger)
+      LogManager pLogger,
+      Random pRandom)
       throws InvalidConfigurationException {
     wrappedTransferRelation = wrappedCpa.getTransferRelation();
     locationCPA = LocationCPA.create(pCfa, pConfig);
@@ -66,6 +70,8 @@ public class PORTransferRelation implements TransferRelation {
     aggregateBasicBlocks = pAggregateBasicBlocks;
     basicBlockAggregator =
         aggregateBasicBlocks ? new SingleGlobalStatementBlockAggregator(pCfa) : null;
+
+    random = pRandom;
   }
 
   @Override
@@ -80,7 +86,7 @@ public class PORTransferRelation implements TransferRelation {
     }
 
     Collection<CFAEdge> sourceSet = porState.getSourceSet(porPrecision, basicBlockAggregator);
-    ArrayList<AbstractState> allSuccessors = new ArrayList<>();
+    List<AbstractState> allSuccessors = new ArrayList<>();
     for (CFAEdge edge : sourceSet) {
       allSuccessors.addAll(getAbstractSuccessorsForEdge(state, precision, edge));
     }
@@ -251,7 +257,7 @@ public class PORTransferRelation implements TransferRelation {
   }
 
   PORState initial(AbstractState wrappedInitialState) {
-    return addNewThread(PORState.empty(wrappedInitialState, cfa), null, "main");
+    return addNewThread(PORState.empty(wrappedInitialState, cfa, random), null, "main");
   }
 
   PORState addNewThread(final PORState old, final String handle, final String functionName) {

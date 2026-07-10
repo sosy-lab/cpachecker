@@ -175,8 +175,8 @@ public class MutexState implements AbstractState {
     }
     ImmutableMap.Builder<MutexLock, ImmutableSet<Integer>> builder = ImmutableMap.builder();
     for (var entry : lockedMutexes.entrySet()) {
-      if (entry.getKey().equals(mutex) ||
-          (entry.getKey().handle().equals(mutex.handle()) && mutex.type() == MutexLockType.BOTH)) {
+      if (entry.getKey().equals(mutex)
+          || (entry.getKey().handle().equals(mutex.handle()) && mutex.type() == MutexLockType.BOTH)) {
         ImmutableSet<Integer> holders = entry.getValue();
         if (!holders.contains(holderPid)) {
           return this;
