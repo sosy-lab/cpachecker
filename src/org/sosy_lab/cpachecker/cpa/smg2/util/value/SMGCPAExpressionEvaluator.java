@@ -129,6 +129,93 @@ public class SMGCPAExpressionEvaluator {
     return currentState.getMemoryModel().isPointer(maybeAddress);
   }
 
+  public static class BooleanAndSMGState {
+    private final boolean bool;
+    private final SMGState state;
+
+    public BooleanAndSMGState(boolean pBool, SMGState pState) {
+      bool = pBool;
+      state = checkNotNull(pState);
+    }
+
+    public boolean getBoolean() {
+      return bool;
+    }
+
+    public SMGState getSMGState() {
+      return state;
+    }
+  }
+
+  /**
+   * Checks the validity of the given memory object in the given state, as well as the access
+   * (read/write) on it, starting from the offset, for the size of the given type (i.e. is your
+   * access within the bounds of the allocated and valid memory). This method automatically checks
+   * symbolic predicates using an SMT solver should the correct option be set (i.e. symbolic
+   * execution).
+   *
+   * @param accessType {@link CType} accessed in the memory object.
+   * @param memoryObjAccessed {@link SMGObject} accessed. Needs to be known to the SMG in the given
+   *     state.
+   * @param accessOffsetInBits offset of the access in the memory object.
+   * @param initialState {@link SMGState} holding the SMG and solver information to be used.
+   * @param cfaEdge {@link CFAEdge} used to derive this access from. Used for debugging/error
+   *     information.
+   * @return a {@link BooleanAndSMGState} with {@code true} for safe memory access, {@code false}
+   *     for unsafe memory access (violating valid-deref). The {@link SMGState} may be the initial
+   *     state, or may be updated with solver information, but should just replace the initial state
+   *     in all cases.
+   * @throws CPATransferException for critical solver or type errors.
+   */
+  public BooleanAndSMGState checkMemoryAccess(
+      CType accessType,
+      SMGObject memoryObjAccessed,
+      Value accessOffsetInBits,
+      final SMGState initialState,
+      CFAEdge cfaEdge)
+      throws CPATransferException {
+
+    if (!initialState.getMemoryModel().isObjectValid(memoryObjAccessed)) {
+      return new BooleanAndSMGState(false, initialState);
+    }
+
+    Value accessSizeInBits = getBitSizeof(initialState, accessType, cfaEdge);
+    Value objSize = memoryObjAccessed.getSize();
+    if (accessOffsetInBits instanceof NumericValue numAccessOffsetInBits
+        && objSize instanceof NumericValue numObjSize
+        && accessSizeInBits instanceof NumericValue numAccessSizeInBits) {
+      BigInteger bigIntAccessOffsetInBits = numAccessOffsetInBits.bigIntegerValue();
+      BigInteger bigIntAccessSizeInBits = numAccessSizeInBits.bigIntegerValue();
+      // Check that the access region is within the target region
+
+      boolean outOfRangeAccess =
+          memoryObjAccessed.getOffset().compareTo(bigIntAccessOffsetInBits) > 0
+              || numObjSize
+                      .bigIntegerValue()
+                      .compareTo(bigIntAccessSizeInBits.add(bigIntAccessOffsetInBits))
+                  < 0;
+      // outOfRangeAccess == true: Out of range access -> invalid deref
+      // outOfRangeAccess == false: MemSafety not violated. Access valid.
+      return new BooleanAndSMGState(!outOfRangeAccess, initialState);
+
+    } else if (options.trackErrorPredicates()) {
+      // Symbolic Execution
+      // Iff SAT -> memory-safety is violated. The model gives you the violating assignments.
+      SatisfiabilityAndSMGState memsafetyCheckAndState =
+          initialState.checkBoundariesOfMemoryAccessWithSolver(
+              memoryObjAccessed, accessOffsetInBits, accessSizeInBits, cfaEdge);
+      SMGState newState = memsafetyCheckAndState.getState();
+
+      // SAT: Out of range access -> invalid deref
+      // UNSAT: MemSafety not violated
+      return new BooleanAndSMGState(memsafetyCheckAndState.isUNSAT(), newState);
+
+    } else {
+      // Value Analysis with symbolic values -> overapproximate out of range access -> invalid deref
+      return new BooleanAndSMGState(false, initialState);
+    }
+  }
+
   /**
    * Transforms the entered {@link AddressExpression} into a non {@link AddressExpression} that is
    * either an UNKNOWN {@link Value} or a valid pointer with the offset of the {@link
