@@ -46,6 +46,7 @@ public final class OcExplorationRegistry {
   private final Map<Integer, MemoryEvent> events = new LinkedHashMap<>();
   private final Map<Integer, AssumeBranch> assumeBranches = new HashMap<>();
   private final Set<Integer> atomicAccessEventIds = new HashSet<>();
+  private final Set<Integer> readLockEventIds = new HashSet<>();
   private final Map<Integer, ThreadInstance> instances = new LinkedHashMap<>();
   private final Map<InstanceKey, ThreadInstance> instancesByKey = new HashMap<>();
   private final List<BooleanFormula> pathConstraints = new ArrayList<>();
@@ -114,6 +115,20 @@ public final class OcExplorationRegistry {
   /** Whether the given access event is atomic (see {@link #markAtomicAccess}). */
   public boolean isAtomicAccess(int pEventId) {
     return atomicAccessEventIds.contains(pEventId);
+  }
+
+  /**
+   * Records that the given LOCK event acquires a shared/read lock ({@code pthread_rwlock_rdlock}).
+   * Two read-locked critical sections of the same rwlock may overlap; only pairs involving a
+   * write-locked section must be ordered.
+   */
+  public void markReadLock(int pEventId) {
+    readLockEventIds.add(pEventId);
+  }
+
+  /** Whether the given LOCK event acquires a shared/read lock (see {@link #markReadLock}). */
+  public boolean isReadLock(int pEventId) {
+    return readLockEventIds.contains(pEventId);
   }
 
   /** Creates and stores the event with the next free id. */

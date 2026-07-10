@@ -733,6 +733,11 @@ final class OcEncoder {
             || s1.lock().instanceId() == s2.lock().instanceId()) {
           continue;
         }
+        if (registry.isReadLock(s1.lock().id()) && registry.isReadLock(s2.lock().id())) {
+          // two read-locked (rwlock rdlock) sections of the same lock may overlap; only pairs
+          // involving a write-locked section exclude each other
+          continue;
+        }
         // The selector atom names must include the section-END (unlock) ids, not just the
         // lock ids: a single lock can yield multiple mutually-exclusive Section objects (e.g.
         // an internal branch or an early error-exit before the matching unlock). If two such

@@ -24,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.logging.Level;
@@ -117,6 +118,11 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
 
   @Option(
       secure = true,
+      description = "log every collected memory event before solving (debugging aid)")
+  private boolean dumpEvents = false;
+
+  @Option(
+      secure = true,
       description = "export the found violation as an execution graph in DOT/graphviz format")
   private boolean exportExecutionGraph = true;
 
@@ -170,7 +176,14 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
     if (loopBoundStep < 1) {
       throw new InvalidConfigurationException("oc.loopBoundStep must be positive");
     }
-    targetProperty = targetPropertyOf(pSpecification);
+    Optional<TargetProperty> specTarget = targetPropertyOf(pSpecification);
+    if (specTarget.isEmpty()) {
+      pLogger.log(
+          Level.INFO,
+          "No property given; the ordering-consistency analysis checks unreach-call. Pass a"
+              + " --spec property file to check something else.");
+    }
+    targetProperty = specTarget.orElse(TargetProperty.UNREACH_CALL);
     if (targetProperty == TargetProperty.DATA_RACE && encoding != EncodingMode.CLOCKS) {
       throw new InvalidConfigurationException(
           "the ordering-consistency data-race check needs the CLOCKS encoding (set"
@@ -189,11 +202,11 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
   /**
    * Maps the properties of the {@code --spec} specification to the built-in target the analysis can
    * decide. The ordering-consistency analysis does not use specification automata; it interprets the
-   * property itself. An empty specification (no {@code --spec}) defaults to unreach-call. Properties
+   * property itself. An empty specification (no {@code --spec}) yields an empty result. Properties
    * the analysis cannot decide (overflow, memory safety/cleanup, deadlock, termination) are rejected
    * rather than silently mis-verified, since an unsound "safe" verdict would be worse than an error.
    */
-  private static TargetProperty targetPropertyOf(Specification pSpecification)
+  private static Optional<TargetProperty> targetPropertyOf(Specification pSpecification)
       throws InvalidConfigurationException {
     EnumSet<TargetProperty> targets = EnumSet.noneOf(TargetProperty.class);
     for (Property property : pSpecification.getProperties()) {
@@ -217,7 +230,7 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
       throw new InvalidConfigurationException(
           "the ordering-consistency analysis checks one property at a time, but got " + targets);
     }
-    return targets.isEmpty() ? TargetProperty.UNREACH_CALL : targets.iterator().next();
+    return targets.isEmpty() ? Optional.empty() : Optional.of(targets.iterator().next());
   }
 
   @Override
@@ -302,6 +315,24 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
       statistics.csCount = encoder.getCsPairs().size();
     } finally {
       statistics.encodingTimer.stop();
+    }
+    if (dumpEvents) {
+      StringBuilder dump = new StringBuilder("Collected memory events:");
+      for (MemoryEvent event : registry.getEvents()) {
+        dump.append(
+            String.format(
+                "%n  #%d T%d %s loc=%s cssa=%s mutex=%s region=%s fill=%s edge=%s",
+                event.id(),
+                event.instanceId(),
+                event.kind(),
+                event.memoryLocation(),
+                event.cssaName(),
+                event.mutexId(),
+                event.regionId(),
+                event.fill(),
+                event.edge() == null ? "-" : event.edge().getDescription().replace('\n', ' ')));
+      }
+      logger.log(Level.INFO, dump.toString());
     }
 
     // the property-specific violation formula, and whether any candidate exists at all: without one

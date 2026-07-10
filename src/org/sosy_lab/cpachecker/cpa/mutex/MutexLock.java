@@ -19,6 +19,14 @@ public record MutexLock(String handle, MutexLockType type) {
     BOTH,
   }
 
+  /**
+   * Whether this is a shared/read lock ({@code pthread_rwlock_rdlock}): read-locked sections of
+   * the same rwlock may overlap each other, they only exclude write-locked sections.
+   */
+  public boolean isReadLock() {
+    return type == MutexLockType.READ;
+  }
+
   ImmutableCollection<MutexLock> getBlockingLocks() {
     if (type == MutexLockType.READ) {
       return ImmutableList.of(

@@ -5091,6 +5091,9 @@ mpv.partitionOperator = no default value
 mpv.propertySeparator = FILE
   enum:     [FILE, AUTOMATON]
 
+# log every collected memory event before solving (debugging aid)
+oc.dumpEvents = false
+
 # log the enabled events and read-from choices of a found violation model
 oc.dumpViolationModel = false
 

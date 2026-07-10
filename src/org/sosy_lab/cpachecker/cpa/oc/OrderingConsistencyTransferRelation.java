@@ -23,6 +23,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -32,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
@@ -44,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -87,6 +90,9 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
 
   private static final ImmutableSet<String> PROGRAM_EXIT_FUNCTIONS =
       ImmutableSet.of("abort", "exit", "_exit", "_Exit", "__assert_fail");
+
+  /** Functions with this name prefix execute atomically per the SV-COMP convention. */
+  private static final String ATOMIC_FUNCTION_PREFIX = "__VERIFIER_atomic_";
 
   private final OrderingConsistencyCPA cpa;
   private final ShutdownNotifier shutdownNotifier;
@@ -218,10 +224,79 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       handleJoin(pState, pEdge, pSuccessors);
       return;
     }
+    if (pEdge instanceof CFunctionCallEdge
+        && callee != null
+        && callee.startsWith(ATOMIC_FUNCTION_PREFIX)) {
+      // SV-COMP semantics: the body of a __VERIFIER_atomic_* function executes atomically. Model
+      // the call as acquiring the global atomic-block pseudo-mutex; the matching release happens
+      // at the function-return edge below. A body that never returns (abort/error inside) keeps
+      // the section open to the path leaf, like an unclosed __VERIFIER_atomic_begin.
+      MemoryEvent lockEvent =
+          addEventAfter(
+              pState,
+              EventKind.LOCK,
+              null,
+              null,
+              null,
+              MemoryEvent.ATOMIC_BLOCK_MUTEX,
+              MemoryEvent.NO_INSTANCE,
+              null,
+              null,
+              pEdge);
+      handleRegularEdge(
+          withAtomicSection(pState, ImmutableList.of(lockEvent.id()), 1),
+          pPrecision,
+          pEdge,
+          pSuccessors);
+      return;
+    }
+    if (pEdge instanceof CFunctionReturnEdge
+        && pEdge.getPredecessor().getFunctionName().startsWith(ATOMIC_FUNCTION_PREFIX)) {
+      int firstNew = pSuccessors.size();
+      handleRegularEdge(pState, pPrecision, pEdge, pSuccessors);
+      for (int i = firstNew; i < pSuccessors.size(); i++) {
+        OrderingConsistencyState successor = (OrderingConsistencyState) pSuccessors.get(i);
+        MemoryEvent unlockEvent =
+            addEventAfter(
+                successor,
+                EventKind.UNLOCK,
+                null,
+                null,
+                null,
+                MemoryEvent.ATOMIC_BLOCK_MUTEX,
+                MemoryEvent.NO_INSTANCE,
+                null,
+                null,
+                pEdge);
+        pSuccessors.set(
+            i, withAtomicSection(successor, ImmutableList.of(unlockEvent.id()), -1));
+      }
+      return;
+    }
     if (handleMutex(pState, pEdge, pSuccessors)) {
       return;
     }
     handleRegularEdge(pState, pPrecision, pEdge, pSuccessors);
+  }
+
+  /**
+   * Copy of the state entering or leaving a {@code __VERIFIER_atomic_*} function: the last events
+   * point at the freshly added LOCK/UNLOCK event and the atomic-block lock depth is adjusted.
+   */
+  private OrderingConsistencyState withAtomicSection(
+      OrderingConsistencyState pState, ImmutableList<Integer> pLastEventIds, int pDepthDelta) {
+    return new OrderingConsistencyState(
+        pState.getInstanceId(),
+        pState.getLocationState(),
+        pState.getCallstackState(),
+        pState.getPathFormula(),
+        pState.getGuard(),
+        pLastEventIds,
+        pState.getCreateCounts(),
+        pState.getThreadHandles(),
+        pState.getLoopCounts(),
+        withLockDepth(pState.getLockDepths(), MemoryEvent.ATOMIC_BLOCK_MUTEX, pDepthDelta),
+        pState.isTarget());
   }
 
   private void addThreadExitEvent(OrderingConsistencyState pState, @Nullable CFAEdge pEdge) {
@@ -380,6 +455,49 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     return rootFormula;
   }
 
+  /**
+   * Resolves the mutex argument of a lock/unlock call to the identity of the mutex <em>object</em>.
+   * {@code &m} names the object directly. A plain pointer-typed id is sound only when it is a
+   * parameter of the current function: the context-sensitive callstack then determines the
+   * argument it was bound to at the call site, and the resolution recurses on that argument in the
+   * caller's frame. Using the syntactic name itself would wrongly identify different mutexes
+   * passed through the same parameter (goblint munge/funarg pattern) and mask races. Anything
+   * unresolvable is rejected rather than guessed.
+   */
+  private String resolveMutexObject(
+      @Nullable CExpression pExpression, @Nullable CallstackState pFrame, CFAEdge pEdge)
+      throws UnsupportedCodeException {
+    CExpression expression = pExpression == null ? null : stripCasts(pExpression);
+    if (expression instanceof CUnaryExpression unary
+        && unary.getOperator() == CUnaryExpression.UnaryOperator.AMPER
+        && unary.getOperand() instanceof CIdExpression id) {
+      return id.getName();
+    }
+    if (expression instanceof CIdExpression id
+        && id.getDeclaration() instanceof CParameterDeclaration parameter
+        && pFrame != null
+        && pFrame.getCallNode() != null) {
+      for (CFunctionCallEdge callEdge :
+          pFrame.getCallNode().getLeavingEdges().filter(CFunctionCallEdge.class)) {
+        FunctionEntryNode entry = callEdge.getSuccessor();
+        if (!entry.getFunctionName().equals(pFrame.getCurrentFunction())) {
+          continue;
+        }
+        List<? extends AParameterDeclaration> parameters = entry.getFunctionParameters();
+        List<? extends AExpression> arguments =
+            callEdge.getFunctionCall().getFunctionCallExpression().getParameterExpressions();
+        for (int i = 0; i < parameters.size() && i < arguments.size(); i++) {
+          if (parameters.get(i) instanceof CParameterDeclaration candidate
+              && candidate.getQualifiedName().equals(parameter.getQualifiedName())
+              && arguments.get(i) instanceof CExpression argument) {
+            return resolveMutexObject(argument, pFrame.getPreviousState(), pEdge);
+          }
+        }
+      }
+    }
+    throw new UnsupportedCodeException("mutex identity not recognized", pEdge);
+  }
+
   private static CExpression stripCasts(CExpression pExpression) {
     CExpression result = pExpression;
     while (result instanceof CCastExpression cast) {
@@ -421,9 +539,10 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
   /** Handles mutex and atomic-block edges; returns false if the edge is none of those. */
   private boolean handleMutex(
       OrderingConsistencyState pState, CFAEdge pEdge, List<AbstractState> pSuccessors)
-      throws UnsupportedCodeException {
+      throws CPATransferException {
     EventKind kind;
     String mutexId;
+    boolean readLock = false;
     if (MutexFunctions.isAtomicBeginCall(pEdge)) {
       kind = EventKind.LOCK;
       mutexId = MemoryEvent.ATOMIC_BLOCK_MUTEX;
@@ -435,16 +554,23 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       MutexLock unlock = MutexFunctions.getUnlockMutex(pEdge);
       if (lock != null) {
         kind = EventKind.LOCK;
-        mutexId = lock.handle();
+        readLock = lock.isReadLock();
       } else if (unlock != null) {
         kind = EventKind.UNLOCK;
-        mutexId = unlock.handle();
       } else {
         kind = null;
-        mutexId = null;
       }
-      if (kind != null && mutexId == null) {
-        throw new UnsupportedCodeException("mutex identity not recognized", pEdge);
+      if (kind != null) {
+        List<? extends AExpression> arguments = getCallParameters(pEdge);
+        mutexId =
+            resolveMutexObject(
+                arguments.isEmpty() || !(arguments.get(0) instanceof CExpression argument)
+                    ? null
+                    : argument,
+                pState.getCallstackState(),
+                pEdge);
+      } else {
+        mutexId = null;
       }
       if (kind == null) {
         String callee = MutexFunctions.getFunctionCallName(pEdge);
@@ -470,6 +596,9 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     MemoryEvent event =
         addEventAfter(
             pState, kind, null, null, null, mutexId, MemoryEvent.NO_INSTANCE, null, null, pEdge);
+    if (readLock) {
+      registry.markReadLock(event.id());
+    }
     ImmutableMap<String, Integer> lockDepths =
         withLockDepth(pState.getLockDepths(), mutexId, kind == EventKind.LOCK ? 1 : -1);
     addSuccessor(
@@ -513,6 +642,15 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       throw new UnsupportedCodeException(e.getMessage(), pEdge);
     }
     BooleanFormula formula = edgeFormula.getFormula();
+    // Converter-minted fresh symbols (malloc!N, nondet!N, ...) share one namespace across thread
+    // instances because every instance explores from an empty SSA context; prefix them with the
+    // instance id, otherwise e.g. two threads' mallocs are forced to return the same pointer,
+    // which contradicts heap-base distinctness and makes the whole violation query unsatisfiable.
+    formula =
+        fmgr.renameFreeVariablesAndUFs(
+            formula,
+            name ->
+                name.indexOf('!') >= 0 ? "T" + pState.getInstanceId() + "_" + name : name);
     if (!bfmgr.isTrue(formula)) {
       registry.addPathConstraint(bfmgr.implication(pState.getGuard(), formula));
     }
@@ -712,8 +850,9 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
                 offsetTerm,
                 false,
                 pEdge);
-        if (access.type.isAtomic()) {
-          // an access to an _Atomic-qualified lvalue is atomic and cannot be one side of a data race
+        if (access.type.getCanonicalType().isAtomic()) {
+          // an access to an _Atomic-qualified lvalue is atomic and cannot be one side of a data
+          // race; canonicalize because the qualifier may sit on a typedef'd real type (atomic_int)
           registry.markAtomicAccess(event.id());
         }
         if (!anyEvent) {
