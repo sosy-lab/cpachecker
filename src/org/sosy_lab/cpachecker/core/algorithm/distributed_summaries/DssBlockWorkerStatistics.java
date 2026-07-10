@@ -37,8 +37,12 @@ public class DssBlockWorkerStatistics implements Statistics {
 
   private @Nullable DssBlockAnalysisStatistics dcpaStatistics;
 
-  private final StatCounter messagesSent = new StatCounter("Messages Sent");
-  private final StatCounter messagesReceived = new StatCounter("Messages Received");
+  private final StatCounter analyzePreconditionCount = new StatCounter("Analyze Precondition");
+  private final StatCounter storePreconditionCount = new StatCounter("Store Precondition");
+  private final StatCounter analyzeViolationConditionCount =
+      new StatCounter("Analyze Violation Condition");
+  private final StatCounter storeViolationConditionCount =
+      new StatCounter("Store Violation Condition");
 
   public DssBlockWorkerStatistics(String pBlockId) {
     blockId = pBlockId;
@@ -64,12 +68,20 @@ public class DssBlockWorkerStatistics implements Statistics {
     dcpaStatistics = pDcpaStatistics;
   }
 
-  public StatCounter getMessagesSentCounter() {
-    return messagesSent;
+  public StatCounter getAnalyzePreconditionCounter() {
+    return analyzePreconditionCount;
   }
 
-  public StatCounter getMessagesReceivedCounter() {
-    return messagesReceived;
+  public StatCounter getStorePreconditionCounter() {
+    return storePreconditionCount;
+  }
+
+  public StatCounter getAnalyzeViolationConditionCounter() {
+    return analyzeViolationConditionCount;
+  }
+
+  public StatCounter getStoreViolationConditionCounter() {
+    return storeViolationConditionCount;
   }
 
   public @Nullable DssBlockAnalysisStatistics getDcpaStatistics() {
@@ -89,12 +101,14 @@ public class DssBlockWorkerStatistics implements Statistics {
       case DESERIALIZATION_TIME ->
           dcpaStatistics != null ? dcpaStatistics.getDeserializationTime().nanos() : 0;
       case PROCEED_TIME -> dcpaStatistics != null ? dcpaStatistics.getProceedTime().nanos() : 0;
+      case ANALYZE_PRECONDITION_COUNT -> analyzePreconditionCount.getUpdateCount();
       case ANALYZE_PRECONDITION_TIME -> analyzePreconditionTime.nanos();
+      case STORE_PRECONDITION_COUNT -> storePreconditionCount.getUpdateCount();
       case STORE_PRECONDITION_TIME -> storePreconditionTime.nanos();
+      case ANALYZE_VIOLATION_CONDITION_COUNT -> analyzeViolationConditionCount.getUpdateCount();
       case ANALYZE_VIOLATION_CONDITION_TIME -> analyzeViolationConditionTime.nanos();
+      case STORE_VIOLATION_CONDITION_COUNT -> storeViolationConditionCount.getUpdateCount();
       case STORE_VIOLATION_CONDITION_TIME -> storeViolationConditionTime.nanos();
-      case MESSAGES_SENT -> messagesSent.getUpdateCount();
-      case MESSAGES_RECEIVED -> messagesReceived.getUpdateCount();
     };
   }
 
@@ -129,19 +143,29 @@ public class DssBlockWorkerStatistics implements Statistics {
 
     writer
         .put(
+            StatisticsKey.ANALYZE_PRECONDITION_COUNT.getKey(),
+            analyzePreconditionCount.getUpdateCount())
+        .put(
             StatisticsKey.ANALYZE_PRECONDITION_TIME.getKey(),
             formatNanos(analyzePreconditionTime.nanos()))
+        .put(
+            StatisticsKey.STORE_PRECONDITION_COUNT.getKey(),
+            storePreconditionCount.getUpdateCount())
         .put(
             StatisticsKey.STORE_PRECONDITION_TIME.getKey(),
             formatNanos(storePreconditionTime.nanos()))
         .put(
+            StatisticsKey.ANALYZE_VIOLATION_CONDITION_COUNT.getKey(),
+            analyzeViolationConditionCount.getUpdateCount())
+        .put(
             StatisticsKey.ANALYZE_VIOLATION_CONDITION_TIME.getKey(),
             formatNanos(analyzeViolationConditionTime.nanos()))
         .put(
+            StatisticsKey.STORE_VIOLATION_CONDITION_COUNT.getKey(),
+            storeViolationConditionCount.getUpdateCount())
+        .put(
             StatisticsKey.STORE_VIOLATION_CONDITION_TIME.getKey(),
-            formatNanos(storeViolationConditionTime.nanos()))
-        .put(StatisticsKey.MESSAGES_SENT.getKey(), messagesSent.getUpdateCount())
-        .put(StatisticsKey.MESSAGES_RECEIVED.getKey(), messagesReceived.getUpdateCount());
+            formatNanos(storeViolationConditionTime.nanos()));
   }
 
   static String formatNanos(long nanos) {

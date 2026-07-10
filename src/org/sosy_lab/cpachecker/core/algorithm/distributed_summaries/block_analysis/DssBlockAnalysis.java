@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class DssBlockAnalysis {
@@ -128,6 +129,11 @@ public class DssBlockAnalysis {
   private final DssThreadCPUTimer analyzePreconditionTime;
   private final DssThreadCPUTimer storeViolationConditionTime;
   private final DssThreadCPUTimer analyzeViolationConditionTime;
+
+  private final StatCounter storePreconditionCount;
+  private final StatCounter analyzePreconditionCount;
+  private final StatCounter storeViolationConditionCount;
+  private final StatCounter analyzeViolationConditionCount;
 
   private AlgorithmStatus status;
   private boolean containsViolationInsideBlock;
@@ -184,6 +190,10 @@ public class DssBlockAnalysis {
     analyzePreconditionTime = pWorkerStats.getAnalyzePreconditionTimer();
     storeViolationConditionTime = pWorkerStats.getStoreViolationConditionTimer();
     analyzeViolationConditionTime = pWorkerStats.getAnalyzeViolationConditionTimer();
+    storePreconditionCount = pWorkerStats.getStorePreconditionCounter();
+    analyzePreconditionCount = pWorkerStats.getAnalyzePreconditionCounter();
+    storeViolationConditionCount = pWorkerStats.getStoreViolationConditionCounter();
+    analyzeViolationConditionCount = pWorkerStats.getAnalyzeViolationConditionCounter();
     // Register dcpa-level statistics with the worker stats object.
     if (dcpa instanceof DistributedARGCPA arg
         && arg.getWrappedCPA() instanceof DistributedCompositeCPA composite) {
@@ -587,6 +597,7 @@ public class DssBlockAnalysis {
       return processing;
     } finally {
       storePreconditionTime.stop();
+      storePreconditionCount.inc();
     }
   }
 
@@ -638,6 +649,7 @@ public class DssBlockAnalysis {
       return DssMessageProcessing.proceed();
     } finally {
       storeViolationConditionTime.stop();
+      storeViolationConditionCount.inc();
     }
   }
 
@@ -668,6 +680,7 @@ public class DssBlockAnalysis {
       return messages.build();
     } finally {
       analyzePreconditionTime.stop();
+      analyzePreconditionCount.inc();
     }
   }
 
@@ -702,6 +715,7 @@ public class DssBlockAnalysis {
       return messages.build();
     } finally {
       analyzeViolationConditionTime.stop();
+      analyzeViolationConditionCount.inc();
     }
   }
 

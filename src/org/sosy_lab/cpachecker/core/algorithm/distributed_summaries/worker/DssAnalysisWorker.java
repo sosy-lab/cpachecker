@@ -152,7 +152,6 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
 
   @Override
   public Collection<DssMessage> processMessage(DssMessage message) {
-    workerStats.getMessagesReceivedCounter().inc();
     return switch (message.getType()) {
       case POST_CONDITION -> {
         try {
@@ -215,7 +214,6 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   public void broadcast(Collection<DssMessage> pMessages) throws InterruptedException {
     DssMessageBroadcaster broadcaster = getConnection().getBroadcaster();
     for (DssMessage message : pMessages) {
-      workerStats.getMessagesSentCounter().inc();
       switch (message.getType()) {
         case POST_CONDITION -> {
           broadcaster.broadcastToObserver(message);

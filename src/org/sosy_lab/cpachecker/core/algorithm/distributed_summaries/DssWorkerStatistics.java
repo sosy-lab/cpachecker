@@ -31,11 +31,13 @@ public class DssWorkerStatistics implements Statistics {
     SERIALIZATION_TIME("time spent serializing states", true),
     DESERIALIZATION_TIME("time spent deserializing states", true),
     PROCEED_TIME("time spent processing states", true),
-    MESSAGES_SENT("number of messages sent", false),
-    MESSAGES_RECEIVED("number of messages received", false),
+    ANALYZE_PRECONDITION_COUNT("number of preconditions analyzed", false),
     ANALYZE_PRECONDITION_TIME("time spent in analyzing preconditions", true),
+    STORE_PRECONDITION_COUNT("number of preconditions stored", false),
     STORE_PRECONDITION_TIME("time spent in storing preconditions", true),
+    ANALYZE_VIOLATION_CONDITION_COUNT("number of violation conditions analyzed", false),
     ANALYZE_VIOLATION_CONDITION_TIME("time spent in analyzing violation conditions", true),
+    STORE_VIOLATION_CONDITION_COUNT("number of violation conditions stored", false),
     STORE_VIOLATION_CONDITION_TIME("time spent in storing violation conditions", true);
 
     private final String key;
