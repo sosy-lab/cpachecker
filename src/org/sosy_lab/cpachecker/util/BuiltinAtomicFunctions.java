@@ -8,9 +8,12 @@
 
 package org.sosy_lab.cpachecker.util;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import java.math.BigInteger;
-import java.util.Arrays;
 import java.util.Optional;
 import java.util.OptionalInt;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -355,6 +358,19 @@ public final class BuiltinAtomicFunctions {
       return minimumArgumentCount;
     }
 
+    /**
+     * The number of arguments above which a call to this builtin is malformed, i.e. the highest
+     * argument position used by this builtin (the {@code weak} flag or a memory order), plus one.
+     * None of the atomic builtins are variadic.
+     */
+    public int getMaximumArgumentCount() {
+      int max = Math.max(minimumArgumentCount, weakArgumentIndex.orElse(-1) + 1);
+      for (int memoryOrderIndex : memoryOrderIndices) {
+        max = Math.max(max, memoryOrderIndex + 1);
+      }
+      return max;
+    }
+
     /** Argument positions that hold a memory order and must therefore be {@code SEQ_CST}. */
     public ImmutableList<Integer> getMemoryOrderIndices() {
       return memoryOrderIndices;
@@ -378,17 +394,17 @@ public final class BuiltinAtomicFunctions {
       return operator;
     }
 
-    public static @Nullable CAtomicOperations fromString(String s) {
-      return Arrays.stream(values())
-          .filter(it -> it.representation.equals(s))
-          .findFirst()
-          .orElse(null);
+    private static final ImmutableMap<String, CAtomicOperations> BY_REPRESENTATION =
+        Maps.uniqueIndex(ImmutableList.copyOf(values()), CAtomicOperations::getRepresentation);
+
+    public static Optional<CAtomicOperations> fromString(String s) {
+      return Optional.ofNullable(BY_REPRESENTATION.get(s));
     }
   }
 
   /** Check whether a given function name identifies an atomic builtin that CPAchecker encodes. */
   public static boolean isBuiltinAtomicFunction(String pFunctionName) {
-    return pFunctionName != null && CAtomicOperations.fromString(pFunctionName) != null;
+    return CAtomicOperations.fromString(checkNotNull(pFunctionName)).isPresent();
   }
 
   /**
@@ -396,21 +412,23 @@ public final class BuiltinAtomicFunctions {
    * its result is unused.
    */
   public static boolean hasSideEffect(String pFunctionName) {
-    CAtomicOperations operation = CAtomicOperations.fromString(pFunctionName);
-    if (operation == null) {
-      return false;
-    }
-    return switch (operation.getOperationType()) {
-      // the generic load is the only load that writes: it returns the value through a pointer
-      case LOAD -> operation.isGeneric();
-      case FENCE -> false;
-      case STORE, EXCHANGE, CMP_XCHG, FETCH_OP, OP_FETCH, TEST_AND_SET, CLEAR -> true;
-    };
+    return CAtomicOperations.fromString(pFunctionName)
+        .map(
+            operation ->
+                switch (operation.getOperationType()) {
+                  // the generic load is the only load that writes: it returns the value through a
+                  // pointer
+                  case LOAD -> operation.isGeneric();
+                  case FENCE -> false;
+                  case STORE, EXCHANGE, CMP_XCHG, FETCH_OP, OP_FETCH, TEST_AND_SET, CLEAR -> true;
+                })
+        .orElse(false);
   }
 
   private static boolean matches(String pFunctionName, CAtomicOperationType pType) {
-    CAtomicOperations operation = CAtomicOperations.fromString(pFunctionName);
-    return operation != null && operation.operationType == pType;
+    return CAtomicOperations.fromString(pFunctionName)
+        .map(operation -> operation.operationType == pType)
+        .orElse(false);
   }
 
   public static boolean matchesStore(String pFunctionName) {
@@ -440,10 +458,6 @@ public final class BuiltinAtomicFunctions {
 
   /**
    * Return the object that an atomic builtin's pointer argument designates, i.e. {@code *pPointer}.
-   *
-   * <p>{@code &x} is folded back to {@code x} so that the common case does not needlessly go
-   * through pointer-alias handling; any other pointer-typed expression is wrapped in a {@link
-   * CPointerExpression}.
    *
    * @throws UnrecognizedCodeException if the argument is not a pointer.
    */
@@ -514,16 +528,17 @@ public final class BuiltinAtomicFunctions {
    * has to be derived from the call site.
    */
   public static Optional<CType> getType(String pFunctionName) {
-    CAtomicOperations operation = CAtomicOperations.fromString(pFunctionName);
-    if (operation == null) {
-      return Optional.empty();
-    }
-    return switch (operation.getOperationType()) {
-      // the generic load and exchange write their result through a pointer instead of returning it
-      case STORE, CLEAR, FENCE -> Optional.of(CVoidType.VOID);
-      case LOAD, EXCHANGE -> operation.isGeneric() ? Optional.of(CVoidType.VOID) : Optional.empty();
-      case CMP_XCHG, TEST_AND_SET -> Optional.of(CNumericTypes.BOOL);
-      case FETCH_OP, OP_FETCH -> Optional.empty();
-    };
+    return CAtomicOperations.fromString(pFunctionName)
+        .flatMap(
+            operation ->
+                switch (operation.getOperationType()) {
+                  // the generic load and exchange write their result through a pointer instead of
+                  // returning it
+                  case STORE, CLEAR, FENCE -> Optional.of(CVoidType.VOID);
+                  case LOAD, EXCHANGE ->
+                      operation.isGeneric() ? Optional.of(CVoidType.VOID) : Optional.empty();
+                  case CMP_XCHG, TEST_AND_SET -> Optional.of(CNumericTypes.BOOL);
+                  case FETCH_OP, OP_FETCH -> Optional.empty();
+                });
   }
 }

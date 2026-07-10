@@ -75,8 +75,7 @@ public class BuiltinFunctions {
     }
 
     if (BuiltinAtomicFunctions.isBuiltinAtomicFunction(pFunctionName)) {
-      return Objects.requireNonNullElse(
-          BuiltinAtomicFunctions.getType(pFunctionName).orElse(null), UNSPECIFIED_TYPE);
+      return BuiltinAtomicFunctions.getType(pFunctionName).orElse(UNSPECIFIED_TYPE);
     }
 
     if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(pFunctionName)) {

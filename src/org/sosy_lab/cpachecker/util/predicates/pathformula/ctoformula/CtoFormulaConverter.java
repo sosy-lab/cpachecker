@@ -240,11 +240,9 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
 
   protected boolean isRelevantLeftHandSide(
       final CLeftHandSide lhs, final Optional<CRightHandSide> rhs) {
-    if (rhs.isPresent()
-        && rhs.orElseThrow() instanceof CFunctionCallExpression funcCall
-        && SIDE_EFFECT_FUNCTIONS.contains(funcCall.getFunctionNameExpression().toString())) {
-      // Extern function calls like memset have side effects, we should not ignore this based on
-      // LHS alone.
+    if (rhs.isPresent() && hasSideEffect(rhs.orElseThrow())) {
+      // Function calls like memset or the atomic builtins have side effects beyond their return
+      // value, so we should not ignore them based on the LHS alone.
       return true;
     }
 
@@ -1619,18 +1617,16 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
    * Whether evaluating the right-hand side of an assignment writes to memory itself, in which case
    * the assignment may not be dropped even if its left-hand side is irrelevant.
    *
-   * <p>External functions are assumed to be pure, but the atomic builtins are encoded by {@link
-   * ExpressionToFormulaVisitor} and do update the object their pointer argument designates.
-   * 
-   * TODO: this must exist somehow already, but I cannot find it. 
-   * Adding it here, and the two CToFormulaConverters.
+   * <p>Most external functions are assumed to be pure, but {@link #SIDE_EFFECT_FUNCTIONS} like
+   * {@code memset} write through a pointer argument, and so do the atomic builtins encoded by
+   * {@link ExpressionToFormulaVisitor}, which update the object their pointer argument designates.
    */
   protected static boolean hasSideEffect(CRightHandSide rhs) {
     return rhs instanceof CFunctionCallExpression call
         && call.getFunctionNameExpression() instanceof CIdExpression functionName
-        && BuiltinAtomicFunctions.hasSideEffect(functionName.getName());
+        && (SIDE_EFFECT_FUNCTIONS.contains(functionName.getName())
+            || BuiltinAtomicFunctions.hasSideEffect(functionName.getName()));
   }
-
 
   /**
    * Creates formula for the given assignment.
@@ -1655,7 +1651,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
 
-    if (!isRelevantLeftHandSide(lhsForChecking, Optional.of(rhs)) && !hasSideEffect(rhs)) {
+    if (!isRelevantLeftHandSide(lhsForChecking, Optional.of(rhs))) {
       // Optimization for unused variables and fields
       return bfmgr.makeTrue();
     }
