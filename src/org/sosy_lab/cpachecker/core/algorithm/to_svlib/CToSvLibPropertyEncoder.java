@@ -9,12 +9,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.to_svlib;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Streams;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
@@ -39,8 +37,7 @@ class CToSvLibPropertyEncoder {
   void encodeProperty(ImmutableList.Builder<SvLibCommand> pCommandsCollector) {
     // Encode properties based on specification files, since currently specification.getProperties
     // is always null
-    ImmutableSet<Path> specificationFiles = specification.getFiles();
-    for (Path specificationFile : specificationFiles) {
+    for (Path specificationFile : specification.getFiles()) {
       if (specificationFile.toString().endsWith("ErrorLabel.spc")
           || specificationFile.toString().endsWith("sv-comp-errorlabel.spc")) {
         encodeReachabilityErrorLabel(pCommandsCollector);
@@ -62,8 +59,7 @@ class CToSvLibPropertyEncoder {
       }
     }
 
-    Set<Property> properties = specification.getProperties();
-    for (Property property : properties) {
+    for (Property property : specification.getProperties()) {
       switch (property) {
         case CommonVerificationProperty.REACHABILITY_LABEL ->
             encodeReachabilityErrorLabel(pCommandsCollector);
@@ -78,6 +74,10 @@ class CToSvLibPropertyEncoder {
                     + " is not supported in the transformation to SV-LIB.");
       }
     }
+
+    // FIXME specification.getProperties() always returns an empty set
+    //  as temporary workaround always encode reach_error
+    encodeReachabilityOfProcedure("reach_error", pCommandsCollector);
   }
 
   private void encodeReachabilityErrorLabel(
