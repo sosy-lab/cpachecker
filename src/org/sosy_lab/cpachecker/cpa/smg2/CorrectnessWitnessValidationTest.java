@@ -119,8 +119,7 @@ public abstract class CorrectnessWitnessValidationTest {
   }
 
   @Test
-  public void falseInvariantWitnessValidationTest()
-      throws CPATransferException, InterruptedException {
+  public void falseInvariantWitnessValidationTest() throws CPATransferException {
     // Trivial FALSE invariants are unsupported currently
     String functionName = "create";
     for (int i = 1; i < 10; i++) {
@@ -181,7 +180,7 @@ public abstract class CorrectnessWitnessValidationTest {
   }
 
   // TODO: add argument for used list type + argument for list type + argument(s) for next/prev
-  // TODO: add argument for list pointer offset (linux style lists)
+  // TODO: add argument for list pointer offset (Linux style lists)
   /**
    * Sets up an {@link SMGState} with two variables, 'sll' and 'now', as well as values/memory for
    * an SLL as if it were at the loop head below after 'length - 1' iterations. You can expect that
@@ -276,12 +275,11 @@ public abstract class CorrectnessWitnessValidationTest {
       sllObj = checkNotNull(state.getMemoryModel().getGlobalVariableToSmgObjectMap().get(sllName));
       nowObj = checkNotNull(state.getMemoryModel().getGlobalVariableToSmgObjectMap().get(nowName));
     } else {
-      // TODO: do we need to make the var names qualified?
-      // qualified names would be: "create::" + names
-      sllObj = SMGObject.of(0, sllVariableSizeValue, BigInteger.ZERO, sllName);
-      nowObj = SMGObject.of(0, nowVariableSizeValue, BigInteger.ZERO, nowName);
-      state = state.copyAndAddLocalVariable(sllObj, sllName, ptrToStructType);
-      state = state.copyAndAddLocalVariable(nowObj, nowName, ptrToStructType);
+      // qualified names would be current function name + :: + name, e.g.: "create::" + names
+      sllObj = SMGObject.of(0, sllVariableSizeValue, BigInteger.ZERO, sllQualifiedName);
+      nowObj = SMGObject.of(0, nowVariableSizeValue, BigInteger.ZERO, nowQualifiedName);
+      state = state.copyAndAddLocalVariable(sllObj, sllQualifiedName, ptrToStructType);
+      state = state.copyAndAddLocalVariable(nowObj, nowQualifiedName, ptrToStructType);
     }
 
     // Optional because so that we can easily handle "no list elements" and
@@ -408,10 +406,9 @@ public abstract class CorrectnessWitnessValidationTest {
       // abstracted for whatever reason (e.g. outside pointers)
       checkArgument(
           length >= smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold(),
-          "You can't abstract a list with length "
-              + length
-              + " if abstraction requires a minimal length of "
-              + smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold());
+          "You can't abstract a list with length %s if abstraction requires a minimal length of %s",
+          length,
+          smgOptions.getAbstractionOptions().getListAbstractionMinimumLengthThreshold());
       SMGCPAAbstractionManager absFinder =
           new SMGCPAAbstractionManager(
               state,
