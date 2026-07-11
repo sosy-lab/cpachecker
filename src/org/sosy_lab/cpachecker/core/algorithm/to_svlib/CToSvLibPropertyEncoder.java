@@ -51,6 +51,8 @@ class CToSvLibPropertyEncoder {
         encodeReachability_assert_fail(pCommandsCollector);
         encodeReachability_assert_func(pCommandsCollector);
         encodeReachabilityErrorLabel(pCommandsCollector);
+      } else if (specificationFile.toString().endsWith("unreach-call.prp")) {
+        encodeReachabilityOfProcedure("reach_error", pCommandsCollector);
       } else {
         throw new UnsupportedOperationException(
             "Encoding of the specification file "
@@ -74,10 +76,6 @@ class CToSvLibPropertyEncoder {
                     + " is not supported in the transformation to SV-LIB.");
       }
     }
-
-    // FIXME specification.getProperties() always returns an empty set
-    //  as temporary workaround always encode reach_error
-    encodeReachabilityOfProcedure("reach_error", pCommandsCollector);
   }
 
   private void encodeReachabilityErrorLabel(
