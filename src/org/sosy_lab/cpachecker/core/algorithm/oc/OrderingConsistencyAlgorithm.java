@@ -680,14 +680,18 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
         TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
       }
       // the reached state that carries the terminal event; it must be the last state of the path so
-      // CounterexampleInfo accepts it (getTargetState().isTarget())
+      // CounterexampleInfo accepts it (getTargetState().isTarget()). The terminal event need not
+      // itself be a state's lastEventIds: several accesses chained on one edge (e.g. both operands
+      // of `a != b`) share one successor state, and only the last of the chain is recorded there
+      // (see OcExplorationRegistry#chainTerminalEventId).
+      int terminalChainId = ocCpa.getRegistry().chainTerminalEventId(terminalEvent.id());
       ARGState target = null;
       for (AbstractState reached : pReachedSet) {
         OrderingConsistencyState ocState =
             AbstractStates.extractStateByType(reached, OrderingConsistencyState.class);
         if (reached instanceof ARGState argState
             && ocState != null
-            && ocState.getLastEventIds().contains(terminalEvent.id())) {
+            && ocState.getLastEventIds().contains(terminalChainId)) {
           if (targetProperty == TargetProperty.DATA_RACE) {
             // no exploration-time target exists for a race; mark this reached state so the verdict
             // is FALSE (the reached set now contains a genuine target with a proper location)

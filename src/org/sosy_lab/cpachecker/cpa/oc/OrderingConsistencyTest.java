@@ -63,6 +63,7 @@ public class OrderingConsistencyTest {
         Pair.of("oc_branch_create.c", Result.TRUE),
         Pair.of("oc_loop_safe.c", Result.TRUE),
         Pair.of("oc_array_safe.c", Result.TRUE),
+        Pair.of("array_handle_safe.c", Result.TRUE),
         Pair.of("two_threads_unsafe.c", Result.FALSE),
         Pair.of("three_threads_unsafe.c", Result.FALSE),
         Pair.of("mutex_unprotected_unsafe.c", Result.FALSE),
@@ -70,7 +71,8 @@ public class OrderingConsistencyTest {
         Pair.of("function.c", Result.FALSE),
         Pair.of("singleton.i", Result.FALSE),
         Pair.of("oc_array_index_unsafe.c", Result.FALSE),
-        Pair.of("oc_heap_struct_unsafe.c", Result.FALSE));
+        Pair.of("oc_heap_struct_unsafe.c", Result.FALSE),
+        Pair.of("array_handle_unsafe.c", Result.FALSE));
   }
 
   private static List<String> getUnknownTestCases() {

@@ -8,9 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.por;
 
-import static com.google.common.base.Preconditions.checkState;
-import static org.sosy_lab.cpachecker.cpa.por.ThreadFunctions.extractJoinHandle;
-
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -31,6 +28,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -50,6 +48,7 @@ import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexFunctions;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexLock;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexState;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -70,7 +69,19 @@ public class PORState
 
   private final ImmutableMap<Integer, PORThreadState> threads;
 
-  private final ImmutableMap<String, Integer> threadHandles;
+  /** Thread instances created so far along this path and not yet joined away. */
+  private final ImmutableSet<Integer> livePids;
+
+  /**
+   * Fast-path hint from a handle variable's qualified name to the pid it was last assigned by
+   * {@code pthread_create(&name, ...)}, for the common case where the handle is a plain variable
+   * (not an array element, struct field, ...). Excluded from {@link #equals}/{@link #hashCode} —
+   * it is pure optimization, never load-bearing for correctness (see {@link
+   * PORTransferRelation}'s join dispatch, which falls back to the general candidate-branching
+   * mechanism whenever no hint applies), so two states that agree on everything else may still
+   * merge/cover regardless of it.
+   */
+  private final ImmutableMap<String, Integer> handleHints;
 
   /**
    * Transient mapping from cloned outgoing edges to their originating thread PID.
@@ -86,27 +97,36 @@ public class PORState
       AbstractState pWrappedState,
       CFA pCfa,
       ImmutableMap<Integer, PORThreadState> pThreads,
-      ImmutableMap<String, Integer> pThreadHandles,
+      ImmutableSet<Integer> pLivePids,
+      ImmutableMap<String, Integer> pHandleHints,
       Random pRandom) {
     super(pWrappedState);
 
     cfa = pCfa;
     threads = pThreads;
-    threadHandles = pThreadHandles;
+    livePids = pLivePids;
+    handleHints = pHandleHints;
     random = pRandom;
   }
 
   static PORState empty(AbstractState pWrappedInitialState, CFA pCfa, Random pRandom) {
     return new PORState(
-        pWrappedInitialState, pCfa, ImmutableMap.of(), ImmutableMap.of(), pRandom);
+        pWrappedInitialState, pCfa, ImmutableMap.of(), ImmutableSet.of(), ImmutableMap.of(),
+        pRandom);
   }
 
   public ImmutableMap<Integer, PORThreadState> threads() {
     return threads;
   }
 
-  public ImmutableMap<String, Integer> threadHandles() {
-    return threadHandles;
+  public ImmutableSet<Integer> livePids() {
+    return livePids;
+  }
+
+  /** The fast-path candidate hint for a handle's qualified name, if any (see {@link
+   * #handleHints}), or null. */
+  public @Nullable Integer getHandleHint(String qualifiedName) {
+    return handleHints.get(qualifiedName);
   }
 
   /**
@@ -120,11 +140,20 @@ public class PORState
   }
 
   boolean canMerge(PORState other) {
-    return threads.equals(other.threads) && threadHandles.equals(other.threadHandles);
+    return threads.equals(other.threads) && livePids.equals(other.livePids);
   }
 
+  /**
+   * Adds a new thread instance. {@code pAddToLivePids} is false only for the main thread (created
+   * synthetically at analysis start, not via a real {@code pthread_create}): nothing can join it,
+   * so it was never made a join candidate under the old handle-name scheme either.
+   * {@code pHandleQualifiedName}, if given, records this pid as the fast-path join candidate for
+   * that variable (see {@link #handleHints}) — last write wins, matching ordinary variable
+   * semantics if the same storage is reused for a later create.
+   */
   PORState addNewThread(
-      String handle,
+      boolean pAddToLivePids,
+      @Nullable String pHandleQualifiedName,
       LocationState pInitialLoc,
       CallstackState pInitialStack) {
     final int newPid = threads.size();
@@ -133,50 +162,63 @@ public class PORState
             .putAll(threads)
             .put(newPid, new PORThreadState(pInitialLoc, pInitialStack))
             .buildKeepingLast();
-    final ImmutableMap<String, Integer> newThreadHandles =
-        handle == null
-        ? threadHandles
+    final ImmutableSet<Integer> newLivePids =
+        pAddToLivePids
+        ? ImmutableSet.<Integer>builder().addAll(livePids).add(newPid).build()
+        : livePids;
+    final ImmutableMap<String, Integer> newHandleHints =
+        pHandleQualifiedName == null
+        ? handleHints
         : ImmutableMap.<String, Integer>builder()
-            .putAll(threadHandles)
-            .put(handle, newPid)
+            .putAll(handleHints)
+            .put(pHandleQualifiedName, newPid)
             .buildKeepingLast();
-    return new PORState(getWrappedState(), cfa, newThreads, newThreadHandles, random);
+    return new PORState(getWrappedState(), cfa, newThreads, newLivePids, newHandleHints, random);
   }
 
-  PORState joinThread(String handle) {
-    final Integer pidToRemove = canJoin(handle, true);
-    if (pidToRemove == null) {
+  /**
+   * Joins the given candidate thread instance (one of {@link #livePids}), blocking (returning
+   * null) until it has finished. Which candidate a given {@code pthread_join} call actually
+   * targets is resolved by the transfer relation — either directly, via {@link #getHandleHint} for
+   * the common case of a plain handle variable, or by branching over every live candidate and
+   * keeping only the ones the wrapped analysis finds feasible (see PORTransferRelation's join
+   * dispatch) — not by this method.
+   */
+  PORState joinThread(int pPid) {
+    if (!canJoin(pPid)) {
       return null;
     }
 
     final ImmutableMap<Integer, PORThreadState> newThreads =
         threads.entrySet().stream()
-            .filter(e -> !e.getKey().equals(pidToRemove))
+            .filter(e -> e.getKey() != pPid)
             .collect(ImmutableMap.toImmutableMap(Entry::getKey, Entry::getValue));
-    final ImmutableMap<String, Integer> newThreadHandles =
-        threadHandles.entrySet().stream()
-            .filter(e -> !e.getValue().equals(pidToRemove))
-            .collect(ImmutableMap.toImmutableMap(Entry::getKey, Entry::getValue));
-    return new PORState(getWrappedState(), cfa, newThreads, newThreadHandles, random);
+    final ImmutableSet<Integer> newLivePids =
+        livePids.stream().filter(pid -> pid != pPid).collect(ImmutableSet.toImmutableSet());
+    return new PORState(getWrappedState(), cfa, newThreads, newLivePids, handleHints, random);
   }
 
-  private Integer canJoin(String handle, boolean throwIfThreadNotFound) {
-    final Integer pidToRemove = threadHandles.get(handle);
-    var threadState = pidToRemove != null ? threads.get(pidToRemove) : null;
-    if (pidToRemove == null || threadState == null) {
-      if (throwIfThreadNotFound) {
-        throw new IllegalArgumentException(
-            "No thread with handle " + handle + ". Undefined behavior or unsupported case.");
-      } else {
-        return null;
+  private boolean canJoin(int pPid) {
+    var threadState = threads.get(pPid);
+    return threadState != null && !threadState.pLocationState().getOutgoingEdges().iterator().hasNext();
+  }
+
+  /**
+   * Whether a {@code pthread_join} call could actually proceed from this state right now — must
+   * mirror {@link PORTransferRelation}'s join dispatch exactly (see the call site's comment).
+   */
+  private boolean isJoinCurrentlyEnabled(AFunctionCall pJoinCall) {
+    var params = pJoinCall.getFunctionCallExpression().getParameterExpressions();
+    if (!params.isEmpty() && params.get(0) instanceof CExpression handle) {
+      String handleKey = ThreadFunctions.canonicalHandleLvalueKey(handle);
+      if (handleKey != null) {
+        Integer hint = handleHints.get(handleKey);
+        if (hint != null && livePids.contains(hint)) {
+          return canJoin(hint);
+        }
       }
     }
-
-    if (threadState.pLocationState().getOutgoingEdges().iterator().hasNext()) {
-      return null;
-    }
-
-    return pidToRemove;
+    return livePids.stream().anyMatch(this::canJoin);
   }
 
   public PORState stepThread(
@@ -192,7 +234,7 @@ public class PORState
     }
     newThreads.put(pPid, new PORThreadState(pNextLoc, pNextStack));
     return new PORState(
-        getWrappedState(), cfa, newThreads.buildKeepingLast(), threadHandles, random);
+        getWrappedState(), cfa, newThreads.buildKeepingLast(), livePids, handleHints, random);
   }
 
   public PORState exitThread(int pPid, LocationStateFactory pLocationStateFactory) {
@@ -219,7 +261,7 @@ public class PORState
   }
 
   PORState withWrappedState(AbstractState pWrappedState) {
-    return new PORState(pWrappedState, cfa, threads, threadHandles, random);
+    return new PORState(pWrappedState, cfa, threads, livePids, handleHints, random);
   }
 
   /**
@@ -275,7 +317,14 @@ public class PORState
 
   @Override
   public Iterable<CFAEdge> getOutgoingEdges() {
-    return getAllThreadOutgoingEdges();
+    try {
+      return getAllThreadOutgoingEdges();
+    } catch (CPATransferException e) {
+      // getOutgoingEdges() is only used for post-hoc graph/witness display of states that were
+      // already successfully explored via getSourceSet(), so reaching an unsupported construct
+      // here would indicate a real bug rather than an expected occurrence.
+      throw new IllegalStateException(e);
+    }
   }
 
   @Override
@@ -379,16 +428,16 @@ public class PORState
       return false;
     }
     return Objects.equals(threads, other.threads)
-        && Objects.equals(threadHandles, other.threadHandles)
+        && Objects.equals(livePids, other.livePids)
         && Objects.equals(getWrappedState(), other.getWrappedState());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(threads, threadHandles, getWrappedState());
+    return Objects.hash(threads, livePids, getWrappedState());
   }
 
-  private ImmutableCollection<CFAEdge> getAllThreadOutgoingEdges() {
+  private ImmutableCollection<CFAEdge> getAllThreadOutgoingEdges() throws CPATransferException {
     MutexState mutexState = AbstractStates.extractStateByType(getWrappedState(), MutexState.class);
     edgePidMap.clear();
     ImmutableList.Builder<CFAEdge> ret = ImmutableList.builder();
@@ -415,25 +464,25 @@ public class PORState
           }
         }
 
-        // Shortcut for pthread_join: only include if the joined thread has terminated
+        // Shortcut for pthread_join: only include if it could actually proceed right now. This
+        // must be checked here, not just left to the transfer relation's join dispatch: the
+        // source-set/persistent-set reduction decides which edges are "enabled" from this list
+        // alone, before any edge is actually processed. A join edge that is offered here but
+        // turns out blocked makes the reduction pick it as a (spuriously) sufficient persistent
+        // set on its own, discarding the other threads' genuinely enabled edges from this state —
+        // a real interleaving is then lost, not just a schedule this edge happens not to take.
+        // Mirrors the transfer relation's join dispatch exactly: if the handle is a plain variable
+        // with a definite fast-path candidate (see PORState#handleHints), only that candidate's
+        // completion matters (the dispatch only ever tries that one, no fallback); otherwise any
+        // live candidate finishing is enough, matching the general candidate-branching path.
         if (cloned instanceof AStatementEdge statementEdge
             && statementEdge.getStatement() instanceof AFunctionCall functionCall
-            && functionCall
-            .getFunctionCallExpression()
-            .getFunctionNameExpression()
-            instanceof AIdExpression functionName
-            && "pthread_join".equals(functionName.getName())) {
-          final var params =
-              functionCall.getFunctionCallExpression().getParameterExpressions();
-          checkState(
-              params.size() == 2, "Malformed pthread_join (not 2 params): %s", functionCall);
-          final var handleName = extractJoinHandle(params);
-
-          if (canJoin(handleName, false) == null) {
-            continue;
-          }
+            && functionCall.getFunctionCallExpression().getFunctionNameExpression()
+                instanceof AIdExpression functionName
+            && ThreadFunctions.isJoinFunction(functionName.getName())
+            && !isJoinCurrentlyEnabled(functionCall)) {
+          continue;
         }
-
         edgePidMap.put(cloned, pid);
         ret.add(cloned);
       }
@@ -448,7 +497,8 @@ public class PORState
 
   // POR algorithm
 
-  Collection<CFAEdge> getSourceSet(PORPrecision precision, BasicBlockAggregator basicBlock) {
+  Collection<CFAEdge> getSourceSet(PORPrecision precision, BasicBlockAggregator basicBlock)
+      throws CPATransferException {
     if (sourceSet == null) {
       ImmutableCollection<CFAEdge> minimalSourceSet = ImmutableList.of();
       final var allOutgoingEdges = getAllThreadOutgoingEdges();

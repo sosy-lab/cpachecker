@@ -124,7 +124,7 @@ public class OrderingConsistencyCPA extends AbstractCPA implements AutoCloseable
               solver.getFormulaManager().getBooleanFormulaManager().makeTrue(),
               ImmutableList.of(),
               ImmutableMap.of(),
-              ImmutableMap.of(),
+              ImmutableSet.of(),
               ImmutableMap.of(),
               ImmutableMap.of(),
               false);
@@ -182,7 +182,7 @@ public class OrderingConsistencyCPA extends AbstractCPA implements AutoCloseable
         mergedGuard,
         lastEvents,
         s2.getCreateCounts(),
-        s2.getThreadHandles(),
+        s2.getLiveInstanceIds(),
         s2.getLoopCounts(),
         s2.getLockDepths(),
         false);

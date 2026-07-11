@@ -13,8 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Functions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -49,7 +47,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * POR (Partial Order Reduction) CPA that manages thread interleaving in concurrent programs. This
@@ -92,7 +89,6 @@ public class PORCPA extends AbstractSingleWrapperCPA {
 
   private final PORTransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
-  private final ImmutableSet<MemoryLocation> crossThreadGlobals;
 
   @SuppressWarnings("unused")
   private PORCPA(
@@ -104,8 +100,6 @@ public class PORCPA extends AbstractSingleWrapperCPA {
     super(pCpa);
     pConfig.inject(this);
 
-    crossThreadGlobals =
-        abstractionAware ? CrossThreadGlobalsCollector.collect(pCfa) : ImmutableSet.of();
     transferRelation =
         new PORTransferRelation(
             pCpa, pConfig, pCfa, aggregateBasicBlocks, pLogger, new Random(randomSeed));
@@ -160,21 +154,6 @@ public class PORCPA extends AbstractSingleWrapperCPA {
       ScopedRefinablePrecision scopedRefinablePrecision =
           Precisions.extractPrecisionByType(initialWrappedPrecision, ScopedRefinablePrecision.class);
       if (scopedRefinablePrecision != null) {
-        // A CEGAR-refined precision starts out empty, which would make canIgnoreVariable treat
-        // every global as ignorable at round 0. Since the persistent-set reduction can then
-        // eliminate the only interleaving that reaches a target, CEGAR would never see a
-        // counterexample to refine against. Seed genuine cross-thread conflicts up front so the
-        // initial reduction cannot ignore a variable that is actually racy.
-        ImmutableMultimap.Builder<CFANode, MemoryLocation> increment = ImmutableMultimap.builder();
-        for (MemoryLocation location : crossThreadGlobals) {
-          increment.put(pNode, location);
-        }
-        scopedRefinablePrecision = scopedRefinablePrecision.withIncrement(increment.build());
-        initialWrappedPrecision =
-            Precisions.replaceByType(
-                initialWrappedPrecision,
-                scopedRefinablePrecision,
-                Predicates.instanceOf(ScopedRefinablePrecision.class));
         variableManagers.add(new ScopedRefinablePrecisionVariableManager());
       }
 
@@ -238,8 +217,8 @@ public class PORCPA extends AbstractSingleWrapperCPA {
         ImmutableList.Builder<AbstractState> builder = ImmutableList.builder();
         for (AbstractState reachedState : reached) {
           if (reachedState instanceof PORState reachedPorState && Objects.equals(porState.threads(),
-              reachedPorState.threads()) && Objects.equals(porState.threadHandles(),
-              reachedPorState.threadHandles())) {
+              reachedPorState.threads()) && Objects.equals(porState.livePids(),
+              reachedPorState.livePids())) {
             builder.add(reachedPorState.getWrappedState());
           }
         }

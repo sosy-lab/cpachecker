@@ -12,11 +12,15 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -24,10 +28,22 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -38,8 +54,13 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.composite.BasicBlockAggregator;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.mutex.MutexState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
+import org.sosy_lab.cpachecker.util.refinement.ForgetfulState;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class PORTransferRelation implements TransferRelation {
   private final LocationCPA locationCPA;
@@ -52,6 +73,9 @@ public class PORTransferRelation implements TransferRelation {
   private final BasicBlockAggregator basicBlockAggregator;
 
   private final Random random;
+
+  private final EdgeDefUseData.Extractor defUseExtractor =
+      new EdgeDefUseData.CachingExtractor(EdgeDefUseData.createExtractor(true, true));
 
   public PORTransferRelation(
       ConfigurableProgramAnalysis wrappedCpa,
@@ -169,98 +193,307 @@ public class PORTransferRelation implements TransferRelation {
       CFAEdge cfaEdge,
       int pid,
       Collection<PORState> result) throws CPATransferException, InterruptedException {
-    // Call wrapped CPA transfer relation
     Collection<? extends AbstractState> wrappedSuccessors =
-        wrappedTransferRelation.getAbstractSuccessorsForEdge(
-            state.getWrappedState(),
-            precision.getWrappedPrecision(),
-            cfaEdge
-        );
-
+        applyEdgeWithForgetting(precision, state.getWrappedState(), cfaEdge, pid);
     if (wrappedSuccessors.isEmpty()) {
       return;
     }
 
-    PORState prevState = state;
+    String functionName = calledFunctionName(cfaEdge);
+    if (functionName != null) {
+      List<? extends AExpression> params = callParameters(cfaEdge);
 
-    if (cfaEdge instanceof AStatementEdge statementEdge) {
-      AStatement statement = statementEdge.getStatement();
-      if (statement instanceof AFunctionCall pAFunctionCall) {
-        AExpression functionNameExp =
-            pAFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
-        if (functionNameExp instanceof AIdExpression pFunctionName) {
-          final String functionName = pFunctionName.getName();
-          final var params =
-              pAFunctionCall.getFunctionCallExpression().getParameterExpressions();
+      if (ThreadFunctions.isCreateFunction(functionName)) {
+        ThreadFunctions.checkCreateParams(params);
+        String threadFunc = ThreadFunctions.extractCreateFunctionName(params);
+        int newPid = state.threads().size();
+        List<AbstractState> afterWrite = new ArrayList<>();
+        for (AbstractState wrapped : wrappedSuccessors) {
+          afterWrite.addAll(
+              applyEdgeWithForgetting(
+                  precision,
+                  wrapped,
+                  writeThreadHandleEdge((CExpression) params.get(0), newPid, cfaEdge),
+                  pid));
+        }
+        String handleName = ThreadFunctions.canonicalHandleAddressKey((CExpression) params.get(0));
+        finishEdge(
+            addNewThread(state, threadFunc, handleName), precision, cfaEdge, pid, afterWrite,
+            result);
+        return;
+      }
 
-          if (ThreadFunctions.isCreateFunction(functionName)) {
-            String handle = ThreadFunctions.extractCreateHandle(params);
-            String threadFunc = ThreadFunctions.extractCreateFunctionName(params);
-            prevState = addNewThread(prevState, handle, threadFunc);
+      if (ThreadFunctions.isJoinFunction(functionName)) {
+        ThreadFunctions.checkJoinParams(params);
+        CExpression handle = (CExpression) params.get(0);
 
-          } else if (ThreadFunctions.isJoinFunction(functionName)) {
-            String handle = ThreadFunctions.extractJoinHandle(params);
-            prevState = prevState.joinThread(handle);
-            if (prevState == null) {
-              return;
+        // Fast path for the common case: the handle expression's storage location can be
+        // determined purely syntactically (a plain variable, or a path to it through only literal
+        // array indices / non-pointer field accesses — see ThreadFunctions#canonicalHandleLvalueKey)
+        // and a single create
+        // call already unambiguously paired that same key with a pid (see PORState#handleHints).
+        // Joining directly here, without any synthetic assume edge, avoids polluting the wrapped
+        // analysis's own reasoning (and, for predicate abstraction, CEGAR's interpolation) with an
+        // identity fact about the handle that has nothing to do with the program's actual
+        // behavior — observed in practice to make refinement latch onto an irrelevant "handle !=
+        // other candidate's id" predicate instead of the real one, in one case even discarding a
+        // feasible schedule along with the spurious one it meant to exclude. The general
+        // candidate-branching path below remains the sound fallback for every case this fast path
+        // does not apply to (e.g. a runtime-computed array index).
+        String handleKey = ThreadFunctions.canonicalHandleLvalueKey(handle);
+        if (handleKey != null) {
+          Integer hint = state.getHandleHint(handleKey);
+          if (hint != null && state.livePids().contains(hint)) {
+            PORState joined = state.joinThread(hint);
+            if (joined != null) {
+              finishEdge(joined, precision, cfaEdge, pid, wrappedSuccessors, result);
             }
-          } else if (ThreadFunctions.isThreadExitFunction(functionName)) {
-            prevState = prevState.exitThread(pid, locationCPA.getStateFactory());
-            if (prevState == null) {
-              return;
-            }
+            return;
+          }
+        }
+
+        // Candidate-set branching: the handle expression is not resolved to a single instance
+        // statically (it may be an array element, a struct field, ...); instead every live
+        // thread instance is tried as a candidate, mirroring how POR already branches on the two
+        // arms of an if. A candidate branch survives only if (a) that instance has actually
+        // finished (joinThread returns non-null) and (b) the wrapped analysis finds "*handle ==
+        // candidate's synthetic id" feasible — a candidate whose handle cannot really alias this
+        // one is filtered out by the wrapped analysis's own semantics, no bespoke alias-checking
+        // needed here (and forgetting an ignorable handle value, same as any other edge, lets
+        // more than one candidate stay feasible when POR's reduction has no information yet).
+        for (int candidate : state.livePids()) {
+          PORState joined = state.joinThread(candidate);
+          if (joined == null) {
+            continue; // that candidate has not finished yet
+          }
+          List<AbstractState> filtered = new ArrayList<>();
+          for (AbstractState wrapped : wrappedSuccessors) {
+            filtered.addAll(
+                applyEdgeWithForgetting(
+                    precision,
+                    wrapped,
+                    assumeThreadHandleEqualsEdge(handle, candidate, cfaEdge),
+                    pid));
+          }
+          if (!filtered.isEmpty()) {
+            finishEdge(joined, precision, cfaEdge, pid, filtered, result);
+          }
+        }
+        return;
+      }
+
+      if (ThreadFunctions.isThreadExitFunction(functionName)) {
+        PORState exited = state.exitThread(pid, locationCPA.getStateFactory());
+        if (exited != null) {
+          finishEdge(exited, precision, cfaEdge, pid, wrappedSuccessors, result);
+        }
+        return;
+      }
+    }
+
+    finishEdge(state, precision, cfaEdge, pid, wrappedSuccessors, result);
+  }
+
+  /**
+   * Advances {@code pid}'s location/callstack past {@code cfaEdge} and combines every resulting
+   * POR successor with every given wrapped-analysis successor. Shared tail of {@link
+   * #getAbstractSuccessorsForEdge}, called once per candidate branch for a join and once
+   * otherwise.
+   */
+  private void finishEdge(
+      PORState old,
+      PORPrecision precision,
+      CFAEdge cfaEdge,
+      int pid,
+      Collection<? extends AbstractState> wrappedSuccessors,
+      Collection<PORState> result)
+      throws CPATransferException, InterruptedException {
+    final PORThreadState threadState = old.threads().get(pid);
+    if (threadState == null) {
+      throw new CPATransferException("Thread state not found for PID " + pid);
+    }
+    final var loc = threadState.pLocationState();
+    final var stack = threadState.pCallstackState();
+
+    final var nextLocs =
+        locationCPA.getTransferRelation().getAbstractSuccessorsForEdge(loc, precision, cfaEdge);
+    final var nextStacks =
+        callstackCPA
+            .getTransferRelation()
+            .getAbstractSuccessorsForEdge(stack, precision, cfaEdge);
+
+    List<PORState> successors =
+        nextLocs.stream()
+            .flatMap(
+                nextLoc ->
+                    nextStacks.stream()
+                        .map(
+                            nextStack ->
+                                old.stepThread(
+                                    pid, (LocationState) nextLoc, (CallstackState) nextStack)))
+            .toList();
+
+    for (PORState porSuccessor : successors) {
+      for (AbstractState wrappedSuccessor : wrappedSuccessors) {
+        result.add(porSuccessor.withWrappedState(wrappedSuccessor));
+      }
+    }
+  }
+
+  /**
+   * Runs {@code edge} through the wrapped transfer relation, first temporarily forgetting any
+   * value the reduction currently treats as ignorable (see {@link PORPrecision#canIgnoreVariable}):
+   * a domain that tracks concrete/precise values (e.g. ValueAnalysisCPA) could otherwise decide
+   * the edge's outcome (an assume's direction, in particular) from a value the reduction assumed
+   * did not need cross-thread ordering, silently baking in whichever single interleaving happened
+   * to be explored instead of exploring every possibility the way an analysis with no information
+   * at all would (e.g. predicate abstraction with no predicate on the variable). Forgetting makes
+   * every domain behave like the latter for precisely the variables POR is treating as
+   * independent.
+   *
+   * <p>Also registers {@code pid} as {@code edge}'s executing thread on any {@link MutexState}
+   * component: MutexCPA's transfer relation requires a PID for every edge it processes (see
+   * {@code MutexTransferRelation}), and a synthetic edge built on the fly (the thread-handle
+   * write/assume edges) is not one PORState's normal edge-enumeration already registered.
+   * Re-registering the real edge here too is a harmless no-op (same value it already has).
+   */
+  private Collection<? extends AbstractState> applyEdgeWithForgetting(
+      PORPrecision precision, AbstractState wrappedState, CFAEdge edge, int pid)
+      throws CPATransferException, InterruptedException {
+    MutexState mutexState = AbstractStates.extractStateByType(wrappedState, MutexState.class);
+    if (mutexState != null) {
+      mutexState.addEdgePids(new HashMap<>(Map.of(edge, pid)));
+    }
+    List<Runnable> restoreForgotten = new ArrayList<>();
+    Iterable<MemoryLocation> uses = defUseExtractor.extract(edge).getUses();
+    for (AbstractState component : AbstractStates.asIterable(wrappedState)) {
+      if (component instanceof ForgetfulState<?> forgetfulState) {
+        for (MemoryLocation location : uses) {
+          if (precision.canIgnoreVariable(location)
+              && forgetfulState.getTrackedMemoryLocations().contains(location)) {
+            restoreForgotten.add(forgetTemporarily(forgetfulState, location));
           }
         }
       }
     }
-
-    final PORState old = prevState;
-    final PORThreadState threadState = old.threads().get(pid);
-
-    if (threadState != null) {
-      final var loc = threadState.pLocationState();
-      final var stack = threadState.pCallstackState();
-
-      final var nextLocs =
-          locationCPA
-              .getTransferRelation()
-              .getAbstractSuccessorsForEdge(loc, precision, cfaEdge);
-      final var nextStacks =
-          callstackCPA
-              .getTransferRelation()
-              .getAbstractSuccessorsForEdge(stack, precision, cfaEdge);
-
-      List<PORState> successors =
-          nextLocs.stream()
-              .flatMap(
-                  nextLoc ->
-                      nextStacks.stream()
-                          .map(
-                              nextStack ->
-                                  old.stepThread(
-                                      pid,
-                                      (LocationState) nextLoc,
-                                      (CallstackState) nextStack)))
-              .toList();
-
-      // Combine POR successors with wrapped CPA successors
-      for (PORState porSuccessor : successors) {
-        for (AbstractState wrappedSuccessor : wrappedSuccessors) {
-          result.add(porSuccessor.withWrappedState(wrappedSuccessor));
-        }
-      }
-
-      return;
+    try {
+      return wrappedTransferRelation.getAbstractSuccessorsForEdge(
+          wrappedState, precision.getWrappedPrecision(), edge);
+    } finally {
+      restoreForgotten.forEach(Runnable::run);
     }
+  }
 
-    throw new CPATransferException("Thread state not found for PID " + pid);
+  /**
+   * Forgets {@code location} from {@code state} and returns a callback that restores it. The
+   * generic parameter is captured from the wildcard at the call site so the removed information
+   * can be handed back to {@link ForgetfulState#remember} with the right type.
+   */
+  private static <T> Runnable forgetTemporarily(
+      ForgetfulState<T> state, MemoryLocation location) {
+    T forgotten = state.forget(location);
+    return () -> state.remember(location, forgotten);
+  }
+
+  /** The called function's name, or null if {@code edge} is not a function-call statement. */
+  private static @Nullable String calledFunctionName(CFAEdge edge) {
+    if (edge instanceof AStatementEdge statementEdge
+        && statementEdge.getStatement() instanceof AFunctionCall call
+        && call.getFunctionCallExpression().getFunctionNameExpression()
+            instanceof AIdExpression functionName) {
+      return functionName.getName();
+    }
+    return null;
+  }
+
+  private static List<? extends AExpression> callParameters(CFAEdge edge) {
+    AFunctionCall call = (AFunctionCall) ((AStatementEdge) edge).getStatement();
+    return call.getFunctionCallExpression().getParameterExpressions();
+  }
+
+  /** The pointee type of an lvalue expected to be a pointer (a pthread_create/join handle). */
+  private static CType threadHandlePointeeType(CExpression handle, CFAEdge edge)
+      throws UnsupportedCodeException {
+    CType type = handle.getExpressionType().getCanonicalType();
+    if (type instanceof CPointerType pointerType) {
+      return pointerType.getType();
+    }
+    throw new UnsupportedCodeException("thread handle is not a pointer expression", edge);
+  }
+
+  /**
+   * The lvalue a pthread_create/join handle expression actually designates. When the handle is
+   * syntactically {@code &lvalue} (by far the common case, e.g. {@code &t} or {@code &t[i]}), that
+   * inner lvalue *is* the target — dereferencing it again ({@code *(&lvalue)}) is a pattern the C
+   * frontend never itself produces (it already folds {@code *&x} to {@code x}), so the wrapped
+   * analysis's own C-expression handling does not recognize it. Otherwise the handle is already
+   * pointer-typed (e.g. a {@code pthread_t*} parameter), and the lvalue is the ordinary
+   * dereference {@code *handle}.
+   */
+  private static CLeftHandSide threadHandleLvalue(CExpression handle, CFAEdge edge)
+      throws UnsupportedCodeException {
+    if (handle instanceof CUnaryExpression unary
+        && unary.getOperator() == CUnaryExpression.UnaryOperator.AMPER
+        && unary.getOperand() instanceof CLeftHandSide lvalue) {
+      return lvalue;
+    }
+    return new CPointerExpression(
+        FileLocation.DUMMY, threadHandlePointeeType(handle, edge), handle);
+  }
+
+  /**
+   * A synthetic {@code handleLvalue = id;} edge that writes a fresh literal identifying {@code
+   * pid} through the (arbitrary) lvalue naming the new thread's handle. Handed to the wrapped
+   * analysis exactly like any other edge, so whatever it already supports for regular lvalues
+   * (array elements, struct fields, ...) is all that is needed here — nothing POR-specific.
+   */
+  private static CFAEdge writeThreadHandleEdge(CExpression handle, int pid, CFAEdge edge)
+      throws UnsupportedCodeException {
+    CLeftHandSide lhs = threadHandleLvalue(handle, edge);
+    CIntegerLiteralExpression rhs =
+        new CIntegerLiteralExpression(
+            FileLocation.DUMMY, lhs.getExpressionType(), BigInteger.valueOf((long) pid + 1));
+    return new CStatementEdge(
+        "",
+        new CExpressionAssignmentStatement(FileLocation.DUMMY, lhs, rhs),
+        FileLocation.DUMMY,
+        edge.getPredecessor(),
+        edge.getSuccessor());
+  }
+
+  /**
+   * A synthetic {@code handle == id} assume for one join candidate; see {@link
+   * #getAbstractSuccessorsForEdge}'s join dispatch. Unlike pthread_create's handle, pthread_join's
+   * is passed <b>by value</b> (POSIX: {@code int pthread_join(pthread_t thread, void **retval)}),
+   * so it is compared directly, no dereference.
+   */
+  private static CFAEdge assumeThreadHandleEqualsEdge(CExpression handle, int candidatePid, CFAEdge edge) {
+    CIntegerLiteralExpression literal =
+        new CIntegerLiteralExpression(
+            FileLocation.DUMMY, handle.getExpressionType(), BigInteger.valueOf((long) candidatePid + 1));
+    CBinaryExpression identity =
+        new CBinaryExpression(
+            FileLocation.DUMMY,
+            CNumericTypes.INT,
+            handle.getExpressionType(),
+            handle,
+            literal,
+            CBinaryExpression.BinaryOperator.EQUALS);
+    return new CAssumeEdge(
+        "", FileLocation.DUMMY, edge.getPredecessor(), edge.getSuccessor(), identity, true);
   }
 
   PORState initial(AbstractState wrappedInitialState) {
-    return addNewThread(PORState.empty(wrappedInitialState, cfa, random), null, "main");
+    return addNewThreadNode(PORState.empty(wrappedInitialState, cfa, random), false, "main", null);
   }
 
-  PORState addNewThread(final PORState old, final String handle, final String functionName) {
+  PORState addNewThread(final PORState old, final String functionName, @Nullable String handleName) {
+    return addNewThreadNode(old, true, functionName, handleName);
+  }
+
+  private PORState addNewThreadNode(
+      final PORState old, boolean addToLivePids, final String functionName,
+      @Nullable String handleName) {
     CFANode functionCallNode =
         Preconditions.checkNotNull(
             cfa.getFunctionHead(functionName), "Function '%s' was not found.", functionName);
@@ -276,6 +509,6 @@ public class PORTransferRelation implements TransferRelation {
     LocationState initialLoc =
         locationCPA.getInitialState(clonedEntryNode, StateSpacePartition.getDefaultPartition());
 
-    return old.addNewThread(handle, initialLoc, initialStack);
+    return old.addNewThread(addToLivePids, handleName, initialLoc, initialStack);
   }
 }

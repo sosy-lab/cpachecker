@@ -162,7 +162,7 @@ public class MutexState implements AbstractState {
         ImmutableMap.<MutexLock, ImmutableSet<Integer>>builder()
             .putAll(lockedMutexes)
             .put(mutex, updatedHolders)
-            .build(),
+            .buildKeepingLast(),
         atomicHolder);
   }
 
@@ -191,12 +191,12 @@ public class MutexState implements AbstractState {
           }
         }
         ImmutableSet<Integer> updatedHolders = updatedHoldersBuilder.build();
-        builder.put(mutex, updatedHolders);
+        builder.put(entry.getKey(), updatedHolders);
       } else {
         builder.put(entry);
       }
     }
-    return new MutexState(initializedMutexes, builder.build(), atomicHolder);
+    return new MutexState(initializedMutexes, builder.buildKeepingLast(), atomicHolder);
   }
 
   /**

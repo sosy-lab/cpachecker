@@ -221,7 +221,11 @@ final class OcEncoder {
             && (a.kind() == EventKind.WRITE || b.kind() == EventKind.WRITE)
             && cellKey(a).equals(cellKey(b))
             // a data race needs at least one non-atomic access; two _Atomic accesses never race
-            && !(registry.isAtomicAccess(a.id()) && registry.isAtomicAccess(b.id()))) {
+            && !(registry.isAtomicAccess(a.id()) && registry.isAtomicAccess(b.id()))
+            // the synthetic thread-id bookkeeping for pthread_create/join handles is not program
+            // memory and must never be reported as a race candidate
+            && !registry.isThreadHandleAccess(a.id())
+            && !registry.isThreadHandleAccess(b.id())) {
           result.add(new RacePair(a, b));
         }
       }

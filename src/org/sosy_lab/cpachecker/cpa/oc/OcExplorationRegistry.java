@@ -44,9 +44,11 @@ public final class OcExplorationRegistry {
   public record AssumeBranch(BooleanFormula condition, CFAEdge firstEdge, CFAEdge secondEdge) {}
 
   private final Map<Integer, MemoryEvent> events = new LinkedHashMap<>();
+  private final Map<Integer, Integer> chainTerminalEventIds = new HashMap<>();
   private final Map<Integer, AssumeBranch> assumeBranches = new HashMap<>();
   private final Set<Integer> atomicAccessEventIds = new HashSet<>();
   private final Set<Integer> readLockEventIds = new HashSet<>();
+  private final Set<Integer> threadHandleAccessEventIds = new HashSet<>();
   private final Map<Integer, ThreadInstance> instances = new LinkedHashMap<>();
   private final Map<InstanceKey, ThreadInstance> instancesByKey = new HashMap<>();
   private final List<BooleanFormula> pathConstraints = new ArrayList<>();
@@ -91,6 +93,27 @@ public final class OcExplorationRegistry {
     return events.size();
   }
 
+  /**
+   * Records that the events {@code [pFirstEventId, pTerminalEventId]} were all created by one
+   * {@code chainAccessEvents} call, i.e. one CFA edge: several accesses on the same edge (e.g. both
+   * operands of {@code a != b}) are chained into a single event sequence, but only the last one
+   * becomes a reached state's {@code lastEventIds}. Earlier events in the chain need this mapping to
+   * be resolved back to the state that actually carries them (see {@link #chainTerminalEventId}).
+   */
+  public void registerChainTerminal(int pFirstEventId, int pTerminalEventId) {
+    for (int id = pFirstEventId; id <= pTerminalEventId; id++) {
+      chainTerminalEventIds.put(id, pTerminalEventId);
+    }
+  }
+
+  /**
+   * The id of the last event chained on the same CFA edge as the given event (identity if the event
+   * is not part of a recorded chain). See {@link #registerChainTerminal}.
+   */
+  public int chainTerminalEventId(int pEventId) {
+    return chainTerminalEventIds.getOrDefault(pEventId, pEventId);
+  }
+
   /** Records that the events with the given ids are condition reads of the given branch. */
   public void registerAssumeBranch(int pFromEventId, int pToEventId, AssumeBranch pBranch) {
     for (int id = pFromEventId; id < pToEventId; id++) {
@@ -115,6 +138,24 @@ public final class OcExplorationRegistry {
   /** Whether the given access event is atomic (see {@link #markAtomicAccess}). */
   public boolean isAtomicAccess(int pEventId) {
     return atomicAccessEventIds.contains(pEventId);
+  }
+
+  /**
+   * Records that the given READ/WRITE event is the synthetic thread-id bookkeeping for an
+   * arbitrary pthread_create/pthread_join handle expression (see
+   * OrderingConsistencyTransferRelation's writeThreadHandle/readThreadHandle). It must still
+   * participate in the normal read-from machinery (so a join's candidate-branch equality is only
+   * satisfiable when the handle genuinely aliases that candidate's create), but is not program
+   * memory and must never be reported as a data-race candidate.
+   */
+  public void markThreadHandleAccess(int pEventId) {
+    threadHandleAccessEventIds.add(pEventId);
+  }
+
+  /** Whether the given access event is thread-handle bookkeeping (see {@link
+   * #markThreadHandleAccess}). */
+  public boolean isThreadHandleAccess(int pEventId) {
+    return threadHandleAccessEventIds.contains(pEventId);
   }
 
   /**

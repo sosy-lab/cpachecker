@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -47,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -93,6 +95,18 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
 
   /** Functions with this name prefix execute atomically per the SV-COMP convention. */
   private static final String ATOMIC_FUNCTION_PREFIX = "__VERIFIER_atomic_";
+
+  /**
+   * External library functions that write to memory through a pointer argument. The generic
+   * path-formula converter has no body for these (they are undeclared/external) and assumes
+   * unknown external calls are pure, so a write through such a pointer is otherwise silently
+   * dropped: a race on the written memory would go undetected rather than reported (e.g. {@code
+   * scanf("%d", &global)} racing with a concurrent access to {@code global}). Rejecting calls that
+   * target a global is preferred over silently mis-verifying the race property as safe.
+   */
+  private static final ImmutableSet<String> WRITE_THROUGH_POINTER_FUNCTIONS =
+      ImmutableSet.of(
+          "scanf", "fscanf", "sscanf", "vscanf", "vfscanf", "vsscanf", "gets", "fgets", "getline");
 
   private final OrderingConsistencyCPA cpa;
   private final ShutdownNotifier shutdownNotifier;
@@ -273,10 +287,33 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       }
       return;
     }
+    if (callee != null
+        && WRITE_THROUGH_POINTER_FUNCTIONS.contains(callee)
+        && callsWithAddressOfGlobal(pEdge)) {
+      throw new UnsupportedCodeException(
+          callee + " writes to a global through a pointer argument, which the data-race analysis"
+              + " does not model",
+          pEdge);
+    }
     if (handleMutex(pState, pEdge, pSuccessors)) {
       return;
     }
     handleRegularEdge(pState, pPrecision, pEdge, pSuccessors);
+  }
+
+  /** Whether the call on this edge takes the address of a global variable as an argument. */
+  private static boolean callsWithAddressOfGlobal(CFAEdge pEdge) throws CPATransferException {
+    for (AExpression param : getCallParameters(pEdge)) {
+      CExpression argument = stripCasts((CExpression) param);
+      if (argument instanceof CUnaryExpression unary
+          && unary.getOperator() == CUnaryExpression.UnaryOperator.AMPER
+          && unary.getOperand() instanceof CIdExpression id
+          && id.getDeclaration() instanceof CVariableDeclaration decl
+          && decl.isGlobal()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -293,7 +330,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         pState.getGuard(),
         pLastEventIds,
         pState.getCreateCounts(),
-        pState.getThreadHandles(),
+        pState.getLiveInstanceIds(),
         pState.getLoopCounts(),
         withLockDepth(pState.getLockDepths(), MemoryEvent.ATOMIC_BLOCK_MUTEX, pDepthDelta),
         pState.isTarget());
@@ -328,7 +365,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
             pState.getGuard(),
             ImmutableList.of(event.id()),
             pState.getCreateCounts(),
-            pState.getThreadHandles(),
+            pState.getLiveInstanceIds(),
             pState.getLoopCounts(),
             pState.getLockDepths(),
             true));
@@ -338,15 +375,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       OrderingConsistencyState pState, CFAEdge pEdge, List<AbstractState> pSuccessors)
       throws CPATransferException, InterruptedException {
     List<? extends AExpression> params = getCallParameters(pEdge);
-    String function;
-    String handle;
-    try {
-      function = ThreadFunctions.extractCreateFunctionName(params);
-      handle = ThreadFunctions.extractCreateHandle(params);
-    } catch (IllegalStateException e) {
-      // e.g. thread handles stored in arrays
-      throw new UnsupportedCodeException(e.getMessage(), pEdge);
-    }
+    ThreadFunctions.checkCreateParams(params);
+    String function = ThreadFunctions.extractCreateFunctionName(params);
     int ordinal = pState.getCreateCounts().getOrDefault(function, 0);
 
     // the thread argument must be modeled, not ignored: a null constant carries no data, the
@@ -375,10 +405,19 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     boolean isNew = existing == null;
     ThreadInstance instance = isNew ? registry.newInstance(key) : existing;
 
-    MemoryEvent event =
+    MemoryEvent createEvent =
         addEventAfter(
             pState, EventKind.CREATE, null, null, null, null, instance.getId(), null, null, pEdge);
-    registry.addCreateEvent(instance.getId(), event.id());
+    registry.addCreateEvent(instance.getId(), createEvent.id());
+
+    // a fresh literal identifying this instance is written through the (arbitrary) handle pointer
+    // via the normal aliased-write pipeline, so e.g. &t[i] is handled exactly like any other array
+    // write (symbolic index included); pthread_join later recovers the instance by reading this
+    // location back and branching over candidates (see handleJoin), not by resolving a name
+    OrderingConsistencyState afterCreate =
+        withGuardAndEvents(pState, pState.getGuard(), ImmutableList.of(createEvent.id()));
+    ChainedEdge handleWrite =
+        writeThreadHandle(afterCreate, (CExpression) params.get(0), instance.getId(), pEdge);
 
     PathFormula rootFormula = pathFormulaManager.makeEmptyPathFormula();
     if (argTarget != null && !entry.getFunctionParameters().isEmpty()) {
@@ -390,11 +429,11 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         pState,
         pEdge.getSuccessor(),
         pState.getCallstackState(),
-        pState.getPathFormula(),
+        handleWrite.edgeFormula(),
         pState.getGuard(),
-        ImmutableList.of(event.id()),
+        handleWrite.lastEventIds(),
         withEntry(pState.getCreateCounts(), function, ordinal + 1),
-        withEntry(pState.getThreadHandles(), handle, instance.getId()),
+        withAdded(pState.getLiveInstanceIds(), instance.getId()),
         pState.getLockDepths());
 
     if (isNew) {
@@ -412,7 +451,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
               bfmgr.makeTrue(),
               ImmutableList.of(),
               ImmutableMap.of(),
-              ImmutableMap.of(),
+              ImmutableSet.of(),
               ImmutableMap.of(),
               ImmutableMap.of(),
               false));
@@ -506,34 +545,225 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     return result;
   }
 
+  /**
+   * A pthread_join's handle expression is not resolved to a single instance statically: it is
+   * branched over every thread instance created so far on this path as a candidate, mirroring how
+   * {@link #handleAssumePair} branches on the two arms of an {@code if} — each candidate gets its
+   * own synthetic {@code handle == candidate's id} assume edge, cloned and folded independently
+   * (like handleAssumePair's two arms, and unlike {@link #cloneAndChain}'s callers, the equality
+   * must not become an unconditional path constraint: it belongs in *this branch's own* guard, not
+   * asserted for every branch at once). Since every instance's id is a distinct literal, a
+   * candidate whose handle cannot really equal it is automatically unsatisfiable without any
+   * bespoke alias-checking code here — the existing SSA/converter machinery answers that question
+   * the same way it would for a real {@code if (handle == candidate) ...}. Passing the handle
+   * expression itself (not a pre-resolved value) also sidesteps the fact that a local, non-global
+   * handle variable (the overwhelmingly common case, e.g. {@code pthread_t t;}) never becomes an
+   * aliased {@link MemoryEvent} in the first place — {@link CollectingRenamer} only tracks
+   * globals/aliasable memory, and plain per-instance SSA already threads a local's value correctly
+   * within one instance's own path.
+   */
   private void handleJoin(
       OrderingConsistencyState pState, CFAEdge pEdge, List<AbstractState> pSuccessors)
-      throws CPATransferException {
+      throws CPATransferException, InterruptedException {
     List<? extends AExpression> params = getCallParameters(pEdge);
-    String handle;
+    ThreadFunctions.checkJoinParams(params);
+    CExpression handle = (CExpression) params.get(0);
+
+    for (int candidate : pState.getLiveInstanceIds()) {
+      CIntegerLiteralExpression literal =
+          new CIntegerLiteralExpression(
+              FileLocation.DUMMY,
+              handle.getExpressionType(),
+              BigInteger.valueOf((long) candidate + 1));
+      CBinaryExpression equalsCandidate =
+          new CBinaryExpression(
+              FileLocation.DUMMY,
+              CNumericTypes.INT,
+              handle.getExpressionType(),
+              handle,
+              literal,
+              CBinaryExpression.BinaryOperator.EQUALS);
+      CAssumeEdge assumeEdge =
+          new CAssumeEdge(
+              "", FileLocation.DUMMY, pEdge.getPredecessor(), pEdge.getSuccessor(),
+              equalsCandidate, true);
+
+      CollectingRenamer renamer = new CollectingRenamer();
+      CAssumeEdge rewritten;
+      try {
+        rewritten =
+            (CAssumeEdge) PorEdgeCloner.cloneSingleEdge(assumeEdge, pState.getInstanceId(), renamer);
+      } catch (GlobalAccessRenamer.UnsupportedAccessException e) {
+        throw new UnsupportedCodeException(e.getMessage(), pEdge);
+      }
+      PathFormula assumeFormula =
+          pathFormulaManager.makeAnd(
+              pathFormulaManager.makeEmptyPathFormulaWithContextFrom(pState.getPathFormula()),
+              rewritten);
+      int firstEventId = registry.nextEventId();
+      ImmutableList<Integer> lastEventIds = chainAccessEvents(pState, renamer, assumeFormula, pEdge);
+      for (int id = firstEventId; id < registry.nextEventId(); id++) {
+        registry.markThreadHandleAccess(id);
+      }
+
+      BooleanFormula branchGuard = bfmgr.and(pState.getGuard(), assumeFormula.getFormula());
+      OrderingConsistencyState branchState = withGuardAndEvents(pState, branchGuard, lastEventIds);
+      MemoryEvent joinEvent =
+          addEventAfter(
+              branchState, EventKind.JOIN, null, null, null, null, candidate, null, null, pEdge);
+      addSuccessor(
+          pSuccessors,
+          pState,
+          pEdge.getSuccessor(),
+          pState.getCallstackState(),
+          assumeFormula,
+          branchGuard,
+          ImmutableList.of(joinEvent.id()),
+          pState.getCreateCounts(),
+          pState.getLiveInstanceIds(),
+          pState.getLockDepths());
+    }
+  }
+
+  /** The pointee type of an lvalue expected to be a pointer (a pthread_create/join handle). */
+  private static CType threadHandlePointeeType(CExpression pHandle, CFAEdge pEdge)
+      throws UnsupportedCodeException {
+    CType type = pHandle.getExpressionType().getCanonicalType();
+    if (type instanceof CPointerType pointerType) {
+      return pointerType.getType();
+    }
+    throw new UnsupportedCodeException("thread handle is not a pointer expression", pEdge);
+  }
+
+  /**
+   * The lvalue a pthread_create/join handle expression actually designates. When the handle is
+   * syntactically {@code &lvalue} (by far the common case, e.g. {@code &t} or {@code &t[i]}), that
+   * inner lvalue *is* the target — dereferencing it again ({@code *(&lvalue)}) is a pattern the C
+   * frontend never itself produces (it already folds {@code *&x} to {@code x}), so the
+   * general-purpose lvalue analysis used by {@link #chainAccessEvents} does not recognize it.
+   * Otherwise the handle is already pointer-typed (e.g. a {@code pthread_t*} parameter), and the
+   * lvalue is the ordinary dereference {@code *handle}.
+   */
+  private static CLeftHandSide threadHandleLvalue(CExpression pHandle, CFAEdge pEdge)
+      throws UnsupportedCodeException {
+    if (pHandle instanceof CUnaryExpression unary
+        && unary.getOperator() == CUnaryExpression.UnaryOperator.AMPER
+        && unary.getOperand() instanceof CLeftHandSide lvalue) {
+      return lvalue;
+    }
+    return new CPointerExpression(
+        FileLocation.DUMMY, threadHandlePointeeType(pHandle, pEdge), pHandle);
+  }
+
+  /**
+   * Writes a fresh literal identifying {@code pInstanceId} through the (arbitrary) pointer
+   * expression that names the new thread's handle, via a synthetic {@code *handle = id;} edge run
+   * through the normal aliased-write pipeline ({@link #cloneAndChain}) — this is what makes e.g.
+   * {@code &t[i]} work: the existing symbolic-offset machinery in {@link CollectingRenamer}/{@link
+   * #chainAccessEvents} already handles array/struct lvalues with symbolic indices, nothing new is
+   * needed here. If the handle is a plain local variable (the common case), no event is created at
+   * all (locals never enter the aliasing regime — see {@link #handleJoin}'s note) and the write's
+   * effect lives purely in the returned edge formula's updated SSA, exactly like an ordinary local
+   * assignment; if it does create a (global/aliased) event, that event is tagged via {@link
+   * OcExplorationRegistry#markThreadHandleAccess} so it is excluded from data-race candidates.
+   */
+  private ChainedEdge writeThreadHandle(
+      OrderingConsistencyState pState, CExpression pHandle, int pInstanceId, CFAEdge pEdge)
+      throws CPATransferException, InterruptedException {
+    CLeftHandSide lhs = threadHandleLvalue(pHandle, pEdge);
+    CIntegerLiteralExpression rhs =
+        new CIntegerLiteralExpression(
+            FileLocation.DUMMY, lhs.getExpressionType(), BigInteger.valueOf((long) pInstanceId + 1));
+    CStatementEdge writeEdge =
+        new CStatementEdge(
+            "",
+            new CExpressionAssignmentStatement(FileLocation.DUMMY, lhs, rhs),
+            FileLocation.DUMMY,
+            pEdge.getPredecessor(),
+            pEdge.getSuccessor());
+    return markAsThreadHandleAccess(pState, writeEdge);
+  }
+
+  /** Runs {@link #cloneAndChain} and tags every event it produced as thread-handle bookkeeping
+   * (see {@link OcExplorationRegistry#markThreadHandleAccess}), so callers of {@link
+   * #writeThreadHandle} don't have to. */
+  private ChainedEdge markAsThreadHandleAccess(OrderingConsistencyState pState, CFAEdge pSyntheticEdge)
+      throws CPATransferException, InterruptedException {
+    int firstEventId = registry.nextEventId();
+    ChainedEdge chained = cloneAndChain(pState, pSyntheticEdge);
+    int lastEventId = chained.lastEventIds().isEmpty() ? firstEventId - 1 : chained.lastEventIds().get(0);
+    for (int id = firstEventId; id <= lastEventId; id++) {
+      registry.markThreadHandleAccess(id);
+    }
+    return chained;
+  }
+
+  /** A path formula and the chained READ/WRITE events produced by cloning one (possibly
+   * synthetic) CFA edge; see {@link #cloneAndChain}. */
+  private record ChainedEdge(PathFormula edgeFormula, ImmutableList<Integer> lastEventIds) {}
+
+  private ChainedEdge cloneAndChain(OrderingConsistencyState pState, CFAEdge pEdge)
+      throws CPATransferException, InterruptedException {
+    return cloneAndChain(pState, new CollectingRenamer(), pEdge);
+  }
+
+  /**
+   * Clones {@code pEdge} into {@code pState}'s instance (renaming locals, recording global/pointer
+   * accesses into {@code pRenamer}), folds it into the path formula, asserts the resulting
+   * constraint (instance-prefixing converter-minted fresh symbols so they stay distinct across
+   * instances — see {@link #handleRegularEdge}), and turns the recorded accesses into chained
+   * READ/WRITE events.
+   */
+  private ChainedEdge cloneAndChain(
+      OrderingConsistencyState pState, CollectingRenamer pRenamer, CFAEdge pEdge)
+      throws CPATransferException, InterruptedException {
+    PathFormula edgeFormula;
     try {
-      handle = ThreadFunctions.extractJoinHandle(params);
-    } catch (IllegalStateException e) {
-      // e.g. thread handles stored in arrays
+      CFAEdge rewritten = PorEdgeCloner.cloneSingleEdge(pEdge, pState.getInstanceId(), pRenamer);
+      edgeFormula =
+          pathFormulaManager.makeAnd(
+              pathFormulaManager.makeEmptyPathFormulaWithContextFrom(pState.getPathFormula()),
+              rewritten);
+    } catch (GlobalAccessRenamer.UnsupportedAccessException e) {
       throw new UnsupportedCodeException(e.getMessage(), pEdge);
     }
-    Integer joined = pState.getThreadHandles().get(handle);
-    if (joined == null) {
-      throw new UnsupportedCodeException("pthread_join with unknown thread handle", pEdge);
+    BooleanFormula formula = edgeFormula.getFormula();
+    // Converter-minted fresh symbols (malloc!N, nondet!N, ...) share one namespace across thread
+    // instances because every instance explores from an empty SSA context; prefix them with the
+    // instance id, otherwise e.g. two threads' mallocs are forced to return the same pointer,
+    // which contradicts heap-base distinctness and makes the whole violation query unsatisfiable.
+    formula =
+        fmgr.renameFreeVariablesAndUFs(
+            formula,
+            name -> name.indexOf('!') >= 0 ? "T" + pState.getInstanceId() + "_" + name : name);
+    if (!bfmgr.isTrue(formula)) {
+      registry.addPathConstraint(bfmgr.implication(pState.getGuard(), formula));
     }
-    MemoryEvent event =
-        addEventAfter(pState, EventKind.JOIN, null, null, null, null, joined, null, null, pEdge);
-    addSuccessor(
-        pSuccessors,
-        pState,
-        pEdge.getSuccessor(),
+    ImmutableList<Integer> lastEventIds = chainAccessEvents(pState, pRenamer, edgeFormula, pEdge);
+    return new ChainedEdge(edgeFormula, lastEventIds);
+  }
+
+  /** A copy of {@code pState} with a different guard and last-event chain, for building one
+   * candidate branch's temporary context (see {@link #handleJoin}) or advancing past a freshly
+   * added event (see {@link #handleCreate}) before delegating to {@link #cloneAndChain}. */
+  private static OrderingConsistencyState withGuardAndEvents(
+      OrderingConsistencyState pState, BooleanFormula pGuard, ImmutableList<Integer> pLastEventIds) {
+    return new OrderingConsistencyState(
+        pState.getInstanceId(),
+        pState.getLocationState(),
         pState.getCallstackState(),
         pState.getPathFormula(),
-        pState.getGuard(),
-        ImmutableList.of(event.id()),
+        pGuard,
+        pLastEventIds,
         pState.getCreateCounts(),
-        pState.getThreadHandles(),
-        pState.getLockDepths());
+        pState.getLiveInstanceIds(),
+        pState.getLoopCounts(),
+        pState.getLockDepths(),
+        false);
+  }
+
+  private static ImmutableSet<Integer> withAdded(ImmutableSet<Integer> pSet, int pValue) {
+    return ImmutableSet.<Integer>builder().addAll(pSet).add(pValue).build();
   }
 
   /** Handles mutex and atomic-block edges; returns false if the edge is none of those. */
@@ -586,7 +816,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
               pState.getGuard(),
               pState.getLastEventIds(),
               pState.getCreateCounts(),
-              pState.getThreadHandles(),
+              pState.getLiveInstanceIds(),
               pState.getLockDepths());
           return true;
         }
@@ -610,7 +840,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         pState.getGuard(),
         ImmutableList.of(event.id()),
         pState.getCreateCounts(),
-        pState.getThreadHandles(),
+        pState.getLiveInstanceIds(),
         lockDepths);
     return true;
   }
@@ -631,31 +861,10 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     CallstackState nextCallstack = (CallstackState) Iterables.getOnlyElement(callstackSuccessors);
 
     CollectingRenamer renamer = new CollectingRenamer();
-    PathFormula edgeFormula;
-    try {
-      CFAEdge rewritten = PorEdgeCloner.cloneSingleEdge(pEdge, pState.getInstanceId(), renamer);
-      edgeFormula =
-          pathFormulaManager.makeAnd(
-              pathFormulaManager.makeEmptyPathFormulaWithContextFrom(pState.getPathFormula()),
-              rewritten);
-    } catch (GlobalAccessRenamer.UnsupportedAccessException e) {
-      throw new UnsupportedCodeException(e.getMessage(), pEdge);
-    }
-    BooleanFormula formula = edgeFormula.getFormula();
-    // Converter-minted fresh symbols (malloc!N, nondet!N, ...) share one namespace across thread
-    // instances because every instance explores from an empty SSA context; prefix them with the
-    // instance id, otherwise e.g. two threads' mallocs are forced to return the same pointer,
-    // which contradicts heap-base distinctness and makes the whole violation query unsatisfiable.
-    formula =
-        fmgr.renameFreeVariablesAndUFs(
-            formula,
-            name ->
-                name.indexOf('!') >= 0 ? "T" + pState.getInstanceId() + "_" + name : name);
-    if (!bfmgr.isTrue(formula)) {
-      registry.addPathConstraint(bfmgr.implication(pState.getGuard(), formula));
-    }
-    ImmutableList<Integer> lastEventIds = chainAccessEvents(pState, renamer, edgeFormula, pEdge);
-    lastEventIds = handleMallocIfAny(pState, pEdge, renamer, edgeFormula, lastEventIds);
+    ChainedEdge chained = cloneAndChain(pState, renamer, pEdge);
+    PathFormula edgeFormula = chained.edgeFormula();
+    ImmutableList<Integer> lastEventIds =
+        handleMallocIfAny(pState, pEdge, renamer, edgeFormula, chained.lastEventIds());
 
     addSuccessor(
         pSuccessors,
@@ -666,7 +875,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         pState.getGuard(),
         lastEventIds,
         pState.getCreateCounts(),
-        pState.getThreadHandles(),
+        pState.getLiveInstanceIds(),
         pState.getLockDepths());
   }
 
@@ -719,7 +928,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         bfmgr.and(pState.getGuard(), firstFormula.getFormula()),
         sharedLastEventIds,
         pState.getCreateCounts(),
-        pState.getThreadHandles(),
+        pState.getLiveInstanceIds(),
         pState.getLockDepths());
     addSuccessor(
         pSuccessors,
@@ -730,7 +939,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         bfmgr.and(pState.getGuard(), secondFormula.getFormula()),
         sharedLastEventIds,
         pState.getCreateCounts(),
-        pState.getThreadHandles(),
+        pState.getLiveInstanceIds(),
         pState.getLockDepths());
   }
 
@@ -769,6 +978,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     ImmutableList<Integer> predecessors = pState.getLastEventIds();
     int lastEventId = predecessors.isEmpty() ? MemoryEvent.NO_EVENT : predecessors.get(0);
     boolean anyEvent = false;
+    int firstNewEventId = registry.nextEventId();
 
     for (CVariableDeclaration aggregate : pRenamer.aggregateDecls) {
       if (!aggregateInitEmitted.add(aggregate.getQualifiedName())) {
@@ -864,7 +1074,14 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         lastEventId = event.id();
       }
     }
-    return anyEvent ? ImmutableList.of(lastEventId) : pState.getLastEventIds();
+    if (anyEvent) {
+      // several accesses on one edge (e.g. both operands of `a != b`) chain into one event
+      // sequence, but only the last one becomes this state's lastEventIds; record how to resolve
+      // an earlier event in the chain back to this state (see OcExplorationRegistry#chainTerminalEventId).
+      registry.registerChainTerminal(firstNewEventId, lastEventId);
+      return ImmutableList.of(lastEventId);
+    }
+    return pState.getLastEventIds();
   }
 
   /** Brings a symbol that occurs in no formula into the SSA context via a trivial assumption. */
@@ -1132,7 +1349,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       BooleanFormula pGuard,
       ImmutableList<Integer> pLastEventIds,
       ImmutableMap<String, Integer> pCreateCounts,
-      ImmutableMap<String, Integer> pThreadHandles,
+      ImmutableSet<Integer> pLiveInstanceIds,
       ImmutableMap<String, Integer> pLockDepths) {
     ImmutableMap<CFANode, Integer> loopCounts = pState.getLoopCounts();
     if (pNextNode.isLoopStart()) {
@@ -1169,7 +1386,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
             pGuard,
             pLastEventIds,
             pCreateCounts,
-            pThreadHandles,
+            pLiveInstanceIds,
             loopCounts,
             pLockDepths,
             false));

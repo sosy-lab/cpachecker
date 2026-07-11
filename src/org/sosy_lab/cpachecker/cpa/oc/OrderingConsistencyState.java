@@ -43,7 +43,7 @@ public final class OrderingConsistencyState
       ImmutableList<String> callstack,
       ImmutableMap<CFANode, Integer> loopCounts,
       ImmutableMap<String, Integer> createCounts,
-      ImmutableMap<String, Integer> threadHandles,
+      ImmutableSet<Integer> liveInstanceIds,
       ImmutableMap<String, Integer> lockDepths,
       boolean target) {}
 
@@ -59,7 +59,7 @@ public final class OrderingConsistencyState
   private final BooleanFormula guard;
   private final ImmutableList<Integer> lastEventIds;
   private final ImmutableMap<String, Integer> createCounts;
-  private final ImmutableMap<String, Integer> threadHandles;
+  private final ImmutableSet<Integer> liveInstanceIds;
   private final ImmutableMap<CFANode, Integer> loopCounts;
   private final ImmutableMap<String, Integer> lockDepths;
   private final boolean target;
@@ -84,7 +84,7 @@ public final class OrderingConsistencyState
       BooleanFormula pGuard,
       ImmutableList<Integer> pLastEventIds,
       ImmutableMap<String, Integer> pCreateCounts,
-      ImmutableMap<String, Integer> pThreadHandles,
+      ImmutableSet<Integer> pLiveInstanceIds,
       ImmutableMap<CFANode, Integer> pLoopCounts,
       ImmutableMap<String, Integer> pLockDepths,
       boolean pTarget) {
@@ -95,7 +95,7 @@ public final class OrderingConsistencyState
     guard = pGuard;
     lastEventIds = pLastEventIds;
     createCounts = pCreateCounts;
-    threadHandles = pThreadHandles;
+    liveInstanceIds = pLiveInstanceIds;
     loopCounts = pLoopCounts;
     lockDepths = pLockDepths;
     target = pTarget;
@@ -129,8 +129,8 @@ public final class OrderingConsistencyState
     return createCounts;
   }
 
-  ImmutableMap<String, Integer> getThreadHandles() {
-    return threadHandles;
+  ImmutableSet<Integer> getLiveInstanceIds() {
+    return liveInstanceIds;
   }
 
   ImmutableMap<CFANode, Integer> getLoopCounts() {
@@ -171,7 +171,7 @@ public final class OrderingConsistencyState
         ImmutableList.copyOf(frames),
         loopCounts,
         createCounts,
-        threadHandles,
+        liveInstanceIds,
         lockDepths,
         target);
   }

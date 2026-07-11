@@ -250,21 +250,20 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
 
   /**
    * Returns the name used to refer to a thread of the POR analysis in the witness. The main thread
-   * always has PID 0 and is named "main" to match the thread IDs used during the export. Every other
-   * thread is identified by the handle (i.e. the pthread_t variable) it was created with.
+   * always has PID 0 and is named "main" to match the thread IDs used during the export. Every
+   * other thread is named by its PID: the handle it was created with is not necessarily a single
+   * variable (it may be an array element, a struct field, ...), so there is no general source-level
+   * name to recover here. This still yields one stable, unique name per thread, which is all the
+   * caller's name-to-witness-id map (see pThreadNameToId) needs.
    */
   private static Optional<String> getPorThreadName(PORState pState, int pPid) {
     if (pPid == 0) {
       return Optional.of("main");
     }
-
-    for (Map.Entry<String, Integer> entry : pState.threadHandles().entrySet()) {
-      if (entry.getValue() == pPid) {
-        return Optional.of(entry.getKey());
-      }
+    if (!pState.threads().containsKey(pPid) && !pState.livePids().contains(pPid)) {
+      return Optional.empty();
     }
-
-    return Optional.empty();
+    return Optional.of("T" + pPid);
   }
 
   private static OptionalInt getThreadIdIfExists(
