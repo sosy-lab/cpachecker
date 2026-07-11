@@ -266,6 +266,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     try {
       // svLibAnalysisConfiguration != null is already check in the constructor
       assert svLibAnalysisConfiguration != null;
+      logger.log(Level.INFO, svLibAnalysisConfiguration.toString());
       Configuration innerConfig =
           Configuration.builder().loadFromFile(svLibAnalysisConfiguration).build();
       logger.log(Level.INFO, "Inner configuration loaded.");
@@ -281,14 +282,11 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
       logger.log(Level.INFO, "New CoreComponentsFactory created.");
 
       Path innerSpecPath = Path.of("config", "specification", "correct-tags.spc");
-      logger.log(
-          Level.INFO,
-          innerSpecPath.toAbsolutePath().toString());
+      logger.log(Level.INFO, innerSpecPath.toAbsolutePath().toString());
 
       Specification svLibSpecification =
           Specification.fromFiles(
-              ImmutableList.of(
-                  innerSpecPath.toAbsolutePath()),
+              ImmutableList.of(innerSpecPath.toAbsolutePath()),
               newSvLibCfa,
               innerConfig,
               logger,
