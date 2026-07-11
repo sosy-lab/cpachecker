@@ -8,8 +8,11 @@
 
 package org.sosy_lab.cpachecker.cfa.transformation;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.hipparchus.linear.RealMatrix;
@@ -17,50 +20,70 @@ import org.matheclipse.core.eval.ExprEvaluator;
 import org.matheclipse.core.expression.F;
 import org.matheclipse.core.interfaces.IAST;
 import org.matheclipse.core.interfaces.IExpr;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 
 public class LoopAccelerationUtils {
 
   /**
-   * Calculate the closed form A^n = A * x + b of an affine loop.
-   * @param A square iteration matrix
-   * @param x array of variable names
-   * @param b array of integers
+   * Calculate the closed form of an affine loop A * x + b.
+   * @param pLoop the affine loop as AffineLoopRepresentation
    * @return closed form as a matrix of RowSummands
    */
-  public static Optional<ArrayList<ArrayList<RowSummand>>> closedFormAffine(Matrix A, int[] b, String[] x) {
-    assert (A.getRowNum() == A.getColumnNum()) : "Error: A is not a square matrix!";
-    assert (A.getRowNum() == b.length);
-    assert (b.length == x.length);
+  public static Optional<ArrayList<ArrayList<RowSummand>>> closedFormAffine(AffineLoopRepresentation pLoop) {
+    List<List<Integer>> A = (List<List<Integer>>) pLoop.getIteraionMatrix();
+    List<CIdExpression> x = pLoop.getVariables();
+    List<Integer> b = pLoop.getIterationConstants();
 
+    if (b.isEmpty()) return closedFormLinear(pLoop);
     ExprEvaluator util = new ExprEvaluator(false, (short) 100);
     try{
-      IExpr n = util.eval("n");
-      int d = A.getRowNum();
+      int d = A.size();
 
       // make A * x + b homogenous
-      IExpr x_fresh = util.eval("x_fresh");
-      int[][] Ahom = new int[d+1][d+1];
-      for(int i = 0; i < d; i++){
-        for(int j = 0; j < d; j++){
-          Ahom[i][j] = A.getElement(i, j);
-        }
-        Ahom[i][d] = b[i];
+      ImmutableList.Builder<ImmutableList<Integer>> Ahom = new ImmutableList.Builder<>();
+      for (int i = 0; i < d; i++) {
+        ImmutableList.Builder<Integer> newRow = new ImmutableList.Builder<>();
+        newRow.addAll(A.get(i));
+        newRow.add(b.get(i));
+        Ahom.add(newRow.build());
       }
-      Ahom[d][d] = 1;
-      String[] xhom = new String[d+1];
-      for(int i = 0; i < d; i++){
-        xhom[i] = x[i];
-      }
-      xhom[d] = "x_fresh";
+      ImmutableList.Builder<Integer> extraRow = new ImmutableList.Builder<>();
+      extraRow.addAll(Collections.nCopies(d, 0));
+      extraRow.add(1);
+      Ahom.add(extraRow.build());
 
-      Optional<ArrayList<ArrayList<RowSummand>>> closedFormOptional = closedFormLinear(Matrix.createMatrix(Ahom), xhom);
+
+      CIdExpression x_fresh = new CIdExpression(
+          FileLocation.DUMMY,
+          CNumericTypes.INT,
+          "x_fresh",
+          new CVariableDeclaration(
+              FileLocation.DUMMY,
+              true,
+              CStorageClass.AUTO,
+              CNumericTypes.INT,
+              "x_fresh",
+              "x_fresh",
+              "x_fresh",
+              null)
+      );
+      ImmutableList.Builder<CIdExpression> xhom = new ImmutableList.Builder<>();
+      xhom.addAll(x);
+      xhom.add(x_fresh);
+
+      Optional<ArrayList<ArrayList<RowSummand>>> closedFormOptional = closedFormLinear(new AffineLoopRepresentation(Ahom.build(), xhom.build(), ImmutableList.of()));
 
       if(closedFormOptional.isPresent()) {
         // drop the last row
@@ -70,8 +93,8 @@ public class LoopAccelerationUtils {
         for (ArrayList<RowSummand> row : closedForm) {
           row.replaceAll(
               (RowSummand summand) ->
-                  summand.variable.equals("x_fresh")
-                  ? new RowSummand(summand.coeff, "", summand.power, summand.lambda)
+                  summand.variable == x_fresh
+                  ? new RowSummand(summand.coeff, null, summand.power, summand.lambda)
                   : summand);
         }
 
@@ -86,29 +109,23 @@ public class LoopAccelerationUtils {
   }
 
   /**
-   * Calculate the closed form A^n = A * x of a linear loop.
-   * @param A square iteration matrix
-   * @param x array of variable names
+   * Calculate the closed form of a linear loop A * x.
+   * @param pLoop the linear loop as AffineLoopRepresentation with an empty iteration constants list
    * @return closed form as a matrix of RowSummands
    */
-  public static Optional<ArrayList<ArrayList<RowSummand>>> closedFormLinear(Matrix A, String[] x) {
-    assert (A.getRowNum() == A.getColumnNum()) : "Error: A is not a square matrix!";
-    assert (A.getRowNum() == x.length);
-
+  public static Optional<ArrayList<ArrayList<RowSummand>>> closedFormLinear(AffineLoopRepresentation pLoop) {
+    if (! pLoop.getIterationConstants().isEmpty()) return closedFormAffine(pLoop);
     ExprEvaluator util = new ExprEvaluator(false, (short) 100);
     try{
       IExpr n = util.eval("n");
 
       // 1. calculate the jordan form of the loop: A = P * J * Pinv
-      IExpr jordanForm = util.eval("JordanDecomposition(" + A + ")");
-      //assert (jordanForm.isListOfMatrices() && jordanForm.size() == 2) : "Error: jordan decomposition failed in LoopAccelerationProgramTransformation!";
-      Matrix P = Matrix.createMatrix(jordanForm.first().toIntMatrix());
-      Matrix J = Matrix.createMatrix(jordanForm.last().toIntMatrix());
-      RealMatrix Pinv = util.eval("Inverse("+P+")").toRealMatrix();
+      IExpr A = util.eval(pLoop.printMatrix());
+      IExpr jordanForm = util.eval(F.JordanDecomposition(A));
       IExpr P2 = jordanForm.first();
       IExpr J2 = jordanForm.last();
       IExpr Pinv2 = util.eval(F.Inverse(P2));
-      int d = A.getColumnNum();
+      int d = A.size();
       boolean negativeEigenvalue = false;
 
       // 2. compute information about every jordan block of J
@@ -188,7 +205,7 @@ public class LoopAccelerationUtils {
         for (int j = 0; j < d; j++) {
           List<Summand> acc = new ArrayList<>();
           for (int k = 0; k < d; k++) {
-            if (P.getElement(i,k) != 0) {
+            if (! getMatrixEntry(P2, i, k).isZero()) {
               List<Summand> JnSummand = Jn[k][j];
               for (Summand summand : JnSummand) {
                 if (!summand.coeff.isZero()) {
@@ -212,7 +229,7 @@ public class LoopAccelerationUtils {
         for (int j = 0; j < d; j++) {
           List<Summand> acc = new ArrayList<>();
           for (int k = 0; k < d; k++) {
-            if (Pinv.getEntry(k,j) != 0) {
+            if (! getMatrixEntry(Pinv2, k,j).isZero()) {
               List<Summand> JnSummand = M[i][k];
               for (Summand summand : JnSummand) {
                 if (!summand.coeff.isZero()) {
@@ -234,7 +251,7 @@ public class LoopAccelerationUtils {
             if (!summand.coeff.isZero()) {
               row.add(new RowSummand(
                   summand.coeff,
-                  x[j],
+                  pLoop.getVariables().get(j),
                   summand.power,
                   summand.lambda));
             }
@@ -277,7 +294,7 @@ public class LoopAccelerationUtils {
    */
   public record RowSummand (
       IExpr coeff,
-      String variable,
+      CIdExpression variable,
       int power,
       IExpr lambda
   ) {}
@@ -303,7 +320,7 @@ public class LoopAccelerationUtils {
    * @param rowSummand values from calculating the closed form
    * @return coefficient expression
    */
-  public static List<Coefficient> simplifyClosedFormAssignment(int n, List<RowSummand> rowSummand, CIdExpression[] variables) {
+  public static List<Coefficient> simplifyClosedFormAssignment(int n, List<RowSummand> rowSummand, List<CIdExpression> variables) {
     ArrayList<Coefficient> coefficients = new ArrayList<>();
     ArrayList<RowSummand> tmpList = new ArrayList<>();
     ExprEvaluator util = new ExprEvaluator(false, (short) 100);
@@ -323,11 +340,11 @@ public class LoopAccelerationUtils {
     }
 
     for (RowSummand summand : tmpList) {
-      if (summand.variable.isEmpty()) {
+      if (summand.variable == null) {
         coefficients.add(new Coefficient(summand.coeff.toIntDefault(), null));
       } else {
         for (CIdExpression variable : variables) {
-          if (variable.getName().equals(summand.variable)) {
+          if (variable == summand.variable) {
             coefficients.add(new Coefficient(summand.coeff.toIntDefault(), variable));
             break;
           }
