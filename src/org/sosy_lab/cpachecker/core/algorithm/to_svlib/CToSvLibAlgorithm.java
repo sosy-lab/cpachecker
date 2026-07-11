@@ -280,10 +280,15 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
               innerConfig, logger, shutdownNotifier, AggregatedReachedSets.empty(), newSvLibCfa);
       logger.log(Level.INFO, "New CoreComponentsFactory created.");
 
+      Path innerSpecPath = Path.of("config", "specification", "correct-tags.spc");
+      logger.log(
+          Level.INFO,
+          innerSpecPath.toAbsolutePath().toString());
+
       Specification svLibSpecification =
           Specification.fromFiles(
               ImmutableList.of(
-                  Path.of("config", "specification", "correct-tags.spc").toAbsolutePath()),
+                  innerSpecPath.toAbsolutePath()),
               newSvLibCfa,
               innerConfig,
               logger,
