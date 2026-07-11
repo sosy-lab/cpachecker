@@ -268,13 +268,17 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
       assert svLibAnalysisConfiguration != null;
       Configuration innerConfig =
           Configuration.builder().loadFromFile(svLibAnalysisConfiguration).build();
+      logger.log(Level.INFO, "Inner configuration loaded.");
 
       CFACreator cfaCreator = new CFACreator(innerConfig, logger, shutdownNotifier);
+      logger.log(Level.INFO, "New CFACreator created.");
       newSvLibCfa = cfaCreator.parseSourceAndCreateCFA(transformationResultScript.toASTString());
+      logger.log(Level.INFO, "CFA for SvLibScript created.");
 
       coreComponents =
           new CoreComponentsFactory(
               innerConfig, logger, shutdownNotifier, AggregatedReachedSets.empty(), newSvLibCfa);
+      logger.log(Level.INFO, "New CoreComponentsFactory created.");
 
       Specification svLibSpecification =
           Specification.fromFiles(
@@ -284,8 +288,10 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
               innerConfig,
               logger,
               shutdownNotifier);
+      logger.log(Level.INFO, "Specification correct-tags.spc loaded.");
 
       cpa = coreComponents.createCPA(svLibSpecification);
+      logger.log(Level.INFO, "CPA created.");
       if (cpa instanceof StatisticsProvider statisticsProvider) {
         statisticsProvider.collectStatistics(transformationStatistics.innerStatistics);
       }
