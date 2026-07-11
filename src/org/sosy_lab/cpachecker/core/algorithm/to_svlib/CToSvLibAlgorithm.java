@@ -75,12 +75,15 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
 
   @Option(
       secure = true,
-      description =
-          "Path to configuration file to be used for analysis of the transformed script. If no"
-              + " path has been specified, the configuration for predicate analysis for SV-LIB"
-              + " will be used as default.")
+      description = "Path to configuration file to be used for analysis of the transformed script.")
   @FileOption(Type.OPTIONAL_INPUT_FILE)
   private @Nullable Path svLibAnalysisConfiguration = null;
+
+  @Option(
+      secure = true,
+      description = "Path to specification file to be used for analysis of the transformed script.")
+  @FileOption(Type.OPTIONAL_INPUT_FILE)
+  private @Nullable Path svLibAnalysisSpecification = null;
 
   @Option(
       secure = true,
@@ -130,7 +133,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
       throw new InvalidConfigurationException(
           "Currently only C programs can be transformed to SV-LIB");
     }
-    if (runAnalysis && svLibAnalysisConfiguration == null) {
+    if (runAnalysis && (svLibAnalysisConfiguration == null || svLibAnalysisSpecification == null)) {
       throw new InvalidConfigurationException(
           "If runAnalysis is enabled, then a configuration for the analysis of the transformed"
               + " script has to be provided.");
@@ -266,7 +269,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     try {
       // svLibAnalysisConfiguration != null is already check in the constructor
       assert svLibAnalysisConfiguration != null;
-      logger.log(Level.INFO, svLibAnalysisConfiguration.toString());
+      logger.log(Level.INFO, "Inner config: " + svLibAnalysisConfiguration);
       Configuration innerConfig =
           Configuration.builder().loadFromFile(svLibAnalysisConfiguration).build();
       logger.log(Level.INFO, "Inner configuration loaded.");
@@ -281,12 +284,14 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
               innerConfig, logger, shutdownNotifier, AggregatedReachedSets.empty(), newSvLibCfa);
       logger.log(Level.INFO, "New CoreComponentsFactory created.");
 
-      Path innerSpecPath = Path.of("config", "specification", "correct-tags.spc");
-      logger.log(Level.INFO, innerSpecPath.toAbsolutePath().toString());
+      // Path innerSpecPath = Path.of("config", "specification", "correct-tags.spc");
+      // logger.log(Level.INFO, innerSpecPath.toAbsolutePath().toString());
 
+      assert svLibAnalysisSpecification != null;
+      logger.log(Level.INFO, "Inner specification: " + svLibAnalysisSpecification);
       Specification svLibSpecification =
           Specification.fromFiles(
-              ImmutableList.of(innerSpecPath.toAbsolutePath()),
+              ImmutableList.of(svLibAnalysisSpecification),
               newSvLibCfa,
               innerConfig,
               logger,

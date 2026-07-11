@@ -559,9 +559,12 @@ analysis.algorithm.toSvLib.runAnalysis = false
 analysis.algorithm.toSvLib.scriptPath = no default value
 
 # Path to configuration file to be used for analysis of the transformed
-# script. If no path has been specified, the configuration for predicate
-# analysis for SV-LIB will be used as default.
+# script.
 analysis.algorithm.toSvLib.svLibAnalysisConfiguration = no default value
+
+# Path to specification file to be used for analysis of the transformed
+# script.
+analysis.algorithm.toSvLib.svLibAnalysisSpecification = no default value
 
 # This algorithm transforms a C program to a SV-LIB script. 
 analysis.algorithm.transformToSvLib = false
