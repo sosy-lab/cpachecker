@@ -244,7 +244,6 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
         new AcslPredicateToFormulaVisitor(
             fmgr,
             this,
-            currentSsa,
             functionEntrySsa,
             ctoFormulaConverter,
             machineModel,
