@@ -94,6 +94,7 @@ public class LoopAccelerationProgramTransformation extends ProgramTransformation
     ImmutableList.Builder<CFAEdge> edges = ImmutableList.builder();
     CFANode newEntryNode = CFANode.newDummyCFANode(pNode.getFunctionName());
     CFANode newExitNode = CFANode.newDummyCFANode(pNode.getFunctionName());
+    nodes.add(newEntryNode, newExitNode);
 
     CFANode currentNode = newEntryNode;
     CFANode nextNode;
@@ -111,6 +112,8 @@ public class LoopAccelerationProgramTransformation extends ProgramTransformation
           currentNode,
           nextNode
       );
+      currentNode.addLeavingEdge(newEdge);
+      nextNode.addEnteringEdge(newEdge);
       edges.add(newEdge);
       currentNode = nextNode;
     }
@@ -148,7 +151,7 @@ public class LoopAccelerationProgramTransformation extends ProgramTransformation
           loopConditionEdge = edge;
           loopCondition = ((CAssumeEdge) edge).getExpression();
         } else {
-          nodeAfterLoop = edge.getPredecessor();
+          nodeAfterLoop = edge.getSuccessor();
         }
       }
       if (loopConditionEdge == null || nodeAfterLoop == null) {

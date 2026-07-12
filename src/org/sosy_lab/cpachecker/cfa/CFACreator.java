@@ -724,6 +724,12 @@ public class CFACreator {
 
     // (currently no such post-processings exist)
 
+    // TODO is this the right place?
+    // perform program transformations and insert the resulting subCFAs
+    if (! useProgramTransformations.isEmpty()) {
+      cfa = CFAProgramTransformer.applyTransformations(cfa, useProgramTransformations);
+    }
+
     // SIXTH, get information about the CFA,
     // the CFA should not be modified after this line.
 
@@ -902,13 +908,6 @@ public class CFACreator {
       // add global variables at the beginning of main
       insertGlobalDeclarations(cfa, globalDeclarations);
     }
-
-    // TODO is this the right place?
-    // perform program transformations and insert the resulting subCFAs
-    if (! useProgramTransformations.isEmpty()) {
-      cfa = CFAProgramTransformer.applyTransformations(cfa, useProgramTransformations);
-    }
-
     return cfa;
   }
 
