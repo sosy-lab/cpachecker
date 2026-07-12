@@ -126,7 +126,6 @@ public class AcslPredicateToFormulaVisitor
   protected AcslPredicateToFormulaVisitor(
       FormulaManagerView pFmgr,
       AcslTermToFormulaVisitor pTermVisitor,
-      SSAMapBuilder pCurrentSsa,
       Optional<SSAMap> oFunctionEntrySsa,
       CToFormulaConverterWithPointerAliasing pCtoFormulaConverter,
       MachineModel pMachineModel,
