@@ -116,9 +116,10 @@ public class AcslTypeHelper {
     };
   }
 
-  protected record BinaryTermData(Boolean signed, Formula f1, Formula f2){}
+  protected record BinaryTermData(Boolean signed, Formula f1, Formula f2) {}
 
-  protected BinaryTermData handleBinaryTerm(AcslType termType, AcslType operand1Type, AcslType operand2Type, Formula f1, Formula f2){
+  protected BinaryTermData handleBinaryTerm(
+      AcslType termType, AcslType operand1Type, AcslType operand2Type, Formula f1, Formula f2) {
     Formula convertedF1 = f1;
     Formula convertedF2 = f2;
 
@@ -131,12 +132,10 @@ public class AcslTypeHelper {
     boolean signed = true;
 
     // Bitvector case: signed is important
-    if (convertedF1 instanceof BitvectorFormula
-        && convertedF2 instanceof BitvectorFormula) {
+    if (convertedF1 instanceof BitvectorFormula && convertedF2 instanceof BitvectorFormula) {
       signed = isSigned(termType);
     }
 
     return new BinaryTermData(signed, convertedF1, convertedF2);
-
   }
 }
