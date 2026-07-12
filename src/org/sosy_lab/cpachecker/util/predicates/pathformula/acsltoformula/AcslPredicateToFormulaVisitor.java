@@ -39,12 +39,13 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula.AcslTypeHelper.BinaryTermData;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.QuantifiedFormulaManagerView;
-import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -58,11 +59,9 @@ public class AcslPredicateToFormulaVisitor
   private final CToFormulaConverterWithPointerAliasing ctoFormulaConverter;
   private final AcslTypeHelper typeHelper;
 
-  @SuppressWarnings("unused") // I suspect currentSsa will be needed at some point
-  private final SSAMapBuilder currentSsa;
-
   private final MachineModel machineModel;
   private final PointerTargetSetBuilder ptsb; // need to create an AcslTermToFormulaVisitor
+  private final Constraints constraints; // need to create an AcslTermToFormulaVisitor
   private final Optional<SSAMap>
       functionEntrySsa; // Optional SSA map for function-entry state (\old)
 
@@ -74,7 +73,8 @@ public class AcslPredicateToFormulaVisitor
       SSAMapBuilder pCurrentSsa,
       CToFormulaConverterWithPointerAliasing pCtoFormulaConverter,
       MachineModel pMachineModel,
-      PointerTargetSetBuilder pPtsb) {
+      PointerTargetSetBuilder pPtsb,
+      Constraints pConstraints) {
     checkNotNull(pFmgr);
     checkNotNull(pCurrentSsa);
     checkNotNull(pMachineModel);
@@ -82,13 +82,13 @@ public class AcslPredicateToFormulaVisitor
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.termVisitor =
         new AcslTermToFormulaVisitor(
-            pFmgr, pCurrentSsa, pCtoFormulaConverter, pMachineModel, pPtsb);
-    this.currentSsa = pCurrentSsa;
+            pFmgr, pCurrentSsa, pCtoFormulaConverter, pMachineModel, pPtsb, pConstraints);
     this.ctoFormulaConverter = pCtoFormulaConverter;
     this.functionEntrySsa = Optional.empty();
     this.machineModel = pMachineModel;
     this.ptsb = pPtsb;
     this.typeHelper = new AcslTypeHelper(pMachineModel, pFmgr, pCtoFormulaConverter);
+    this.constraints = pConstraints;
   }
 
   public AcslPredicateToFormulaVisitor(
@@ -97,7 +97,8 @@ public class AcslPredicateToFormulaVisitor
       SSAMap pFunctionEntrySsa,
       CToFormulaConverterWithPointerAliasing pCtoFormulaConverter,
       MachineModel pMachineModel,
-      PointerTargetSetBuilder pPtsb) {
+      PointerTargetSetBuilder pPtsb,
+      Constraints pConstraints) {
     checkNotNull(pFmgr);
     checkNotNull(pCurrentSsa);
     checkNotNull(pMachineModel);
@@ -105,13 +106,19 @@ public class AcslPredicateToFormulaVisitor
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.termVisitor =
         new AcslTermToFormulaVisitor(
-            pFmgr, pCurrentSsa, pFunctionEntrySsa, pCtoFormulaConverter, pMachineModel, pPtsb);
-    this.currentSsa = pCurrentSsa;
+            pFmgr,
+            pCurrentSsa,
+            pFunctionEntrySsa,
+            pCtoFormulaConverter,
+            pMachineModel,
+            pPtsb,
+            pConstraints);
     this.ctoFormulaConverter = pCtoFormulaConverter;
     this.functionEntrySsa = Optional.ofNullable(pFunctionEntrySsa);
     this.machineModel = pMachineModel;
     this.ptsb = pPtsb;
     this.typeHelper = new AcslTypeHelper(pMachineModel, pFmgr, pCtoFormulaConverter);
+    this.constraints = pConstraints;
   }
 
   // Constructor that should only be called by AcslTermToFormulaVisitor
@@ -123,19 +130,20 @@ public class AcslPredicateToFormulaVisitor
       Optional<SSAMap> oFunctionEntrySsa,
       CToFormulaConverterWithPointerAliasing pCtoFormulaConverter,
       MachineModel pMachineModel,
-      PointerTargetSetBuilder pPtsb) {
+      PointerTargetSetBuilder pPtsb,
+      Constraints pConstraints) {
     checkNotNull(pFmgr);
     checkNotNull(pTermVisitor);
     checkNotNull(pMachineModel);
     this.fmgr = pFmgr;
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.termVisitor = pTermVisitor;
-    this.currentSsa = pCurrentSsa;
     this.ctoFormulaConverter = pCtoFormulaConverter;
     this.functionEntrySsa = oFunctionEntrySsa;
     this.machineModel = pMachineModel;
     this.ptsb = pPtsb;
     this.typeHelper = new AcslTypeHelper(pMachineModel, pFmgr, pCtoFormulaConverter);
+    this.constraints = pConstraints;
   }
 
   @Override
@@ -170,23 +178,18 @@ public class AcslPredicateToFormulaVisitor
   public BooleanFormula visit(AcslBinaryTermPredicate pAcslBinaryTermPredicate) throws NoException {
     AcslType operand1Type = pAcslBinaryTermPredicate.getOperand1().getExpressionType();
     AcslType operand2Type = pAcslBinaryTermPredicate.getOperand2().getExpressionType();
+    AcslType termType = pAcslBinaryTermPredicate.getExpressionType();
 
     Formula operand1Formula = pAcslBinaryTermPredicate.getOperand1().accept(termVisitor);
     Formula operand2Formula = pAcslBinaryTermPredicate.getOperand2().accept(termVisitor);
 
-    boolean signed = true;
+    BinaryTermData result =
+        typeHelper.handleBinaryTerm(
+            termType, operand1Type, operand2Type, operand1Formula, operand2Formula);
 
-    // Bitvector case: signed is important
-    if (operand1Formula instanceof BitvectorFormula
-        && operand2Formula instanceof BitvectorFormula) {
-      signed = typeHelper.isSigned(pAcslBinaryTermPredicate.getOperand1().getExpressionType());
-    }
-
-    if (!fmgr.getFormulaType(operand1Formula).equals(fmgr.getFormulaType(operand2Formula))) {
-      AcslType commonType = AcslType.mostGeneralType(operand1Type, operand2Type);
-      operand1Formula = typeHelper.convertFormulaType(operand1Formula, commonType);
-      operand2Formula = typeHelper.convertFormulaType(operand2Formula, commonType);
-    }
+    Boolean signed = result.signed();
+    operand1Formula = result.f1();
+    operand2Formula = result.f2();
 
     return switch (pAcslBinaryTermPredicate.getOperator()) {
       case EQUALS -> fmgr.makeEqual(operand1Formula, operand2Formula);
@@ -212,7 +215,8 @@ public class AcslPredicateToFormulaVisitor
             functionEntrySsa.orElseThrow(),
             ctoFormulaConverter,
             machineModel,
-            ptsb);
+            ptsb,
+            constraints);
 
     return pAcslOldPredicate.getExpression().accept(oldVisitor);
   }

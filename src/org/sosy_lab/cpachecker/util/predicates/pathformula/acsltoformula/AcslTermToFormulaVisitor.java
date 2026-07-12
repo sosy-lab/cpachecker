@@ -47,13 +47,13 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula.AcslTypeHelper.BinaryTermData;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -72,13 +72,16 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
       ptsb; // needed for CRightHandSideVisitor to convert AcslCExpressions
   private final PointerTargetSet
       originalPts; // copy to ensure we do not accidentally modify the original pts
+  private final Constraints
+      constraints; // needed for CRightHandSideVisitor to convert AcslCExpressions
 
   public AcslTermToFormulaVisitor(
       FormulaManagerView pFmgr,
       SSAMapBuilder pCurrentSsa,
       CToFormulaConverterWithPointerAliasing pCtoFormulaConverter,
       MachineModel pMachineModel,
-      PointerTargetSetBuilder pPtsb) {
+      PointerTargetSetBuilder pPtsb,
+      Constraints pCon) {
     checkNotNull(pFmgr);
     checkNotNull(pCurrentSsa);
     checkNotNull(pMachineModel);
@@ -91,6 +94,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     this.typeHelper = new AcslTypeHelper(pMachineModel, pFmgr, pCtoFormulaConverter);
     this.ptsb = pPtsb;
     this.originalPts = pPtsb.build();
+    this.constraints = pCon;
   }
 
   public AcslTermToFormulaVisitor(
@@ -99,7 +103,8 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
       SSAMap pFunctionEntrySsa,
       CToFormulaConverterWithPointerAliasing pCtoFormulaConverter,
       MachineModel pMachineModel,
-      PointerTargetSetBuilder pPtsb) {
+      PointerTargetSetBuilder pPtsb,
+      Constraints pCon) {
     checkNotNull(pFmgr);
     checkNotNull(pCurrentSsa);
     checkNotNull(pMachineModel);
@@ -112,6 +117,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     this.typeHelper = new AcslTypeHelper(pMachineModel, pFmgr, pCtoFormulaConverter);
     this.ptsb = pPtsb;
     this.originalPts = pPtsb.build();
+    this.constraints = pCon;
   }
 
   @Override
@@ -159,25 +165,18 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
   public Formula visit(AcslBinaryTerm pAcslBinaryTerm) throws NoException {
     AcslType operand1Type = pAcslBinaryTerm.getOperand1().getExpressionType();
     AcslType operand2Type = pAcslBinaryTerm.getOperand2().getExpressionType();
+    AcslType termType = pAcslBinaryTerm.getExpressionType();
 
     Formula operand1Formula = pAcslBinaryTerm.getOperand1().accept(this);
     Formula operand2Formula = pAcslBinaryTerm.getOperand2().accept(this);
 
-    boolean signed = true;
+    BinaryTermData result =
+        typeHelper.handleBinaryTerm(
+            termType, operand1Type, operand2Type, operand1Formula, operand2Formula);
 
-    // Bitvector case: signed is important with some of the operators
-    if (operand1Formula instanceof BitvectorFormula
-        && operand2Formula instanceof BitvectorFormula) {
-      // TODO do I use the expression Type of the operand or of the whole term?
-      signed = typeHelper.isSigned(pAcslBinaryTerm.getOperand1().getExpressionType());
-    }
-
-    if (!fmgr.getFormulaType(operand1Formula).equals(fmgr.getFormulaType(operand2Formula))) {
-      AcslType commonType = AcslType.mostGeneralType(operand1Type, operand2Type);
-      // TODO right now typehelper can only updast from bitvector to int
-      operand1Formula = typeHelper.convertFormulaType(operand1Formula, commonType);
-      operand2Formula = typeHelper.convertFormulaType(operand2Formula, commonType);
-    }
+    Boolean signed = result.signed();
+    operand1Formula = result.f1();
+    operand2Formula = result.f2();
 
     return switch (pAcslBinaryTerm.getOperator()) {
       // TODO make sure that fmgr really does bitwise and, or etc. here as I suspect
@@ -223,7 +222,8 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
             functionEntrySsa.orElseThrow(),
             ctoFormulaConverter,
             machineModel,
-            ptsb);
+            ptsb,
+            constraints);
 
     return pAcslOldTerm.getTerm().accept(oldVisitor);
   }
@@ -242,7 +242,14 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
   public Formula visit(AcslTernaryTerm pAcslTernaryTerm) throws NoException {
     AcslPredicateToFormulaVisitor predicateVisitor =
         new AcslPredicateToFormulaVisitor(
-            fmgr, this, currentSsa, functionEntrySsa, ctoFormulaConverter, machineModel, ptsb);
+            fmgr,
+            this,
+            currentSsa,
+            functionEntrySsa,
+            ctoFormulaConverter,
+            machineModel,
+            ptsb,
+            constraints);
     BooleanFormula conditionFormula = pAcslTernaryTerm.getCondition().accept(predicateVisitor);
     Formula ifTrueFormula = pAcslTernaryTerm.getResultIfTrue().accept(this);
     Formula ifFalseFormula = pAcslTernaryTerm.getResultIfFalse().accept(this);
@@ -326,14 +333,13 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
             "Dummy Edge");
 
     ErrorConditions errorConditions = new ErrorConditions(bfmgr);
-    Constraints constraints = new Constraints(bfmgr);
 
     CRightHandSideVisitor<Formula, UnrecognizedCodeException> exprVisitor =
         ctoFormulaConverter.createCRightHandSideVisitor(
             dummyEdge, "dummy-function-name", currentSsa, pPts, constraints, errorConditions);
     Formula f = cExpr.accept(exprVisitor);
 
-    // TODO find a way to pass created constraints on arrays on
+    // TODO should the adding to the constraints really just be a side effect?
     return f;
   }
 }

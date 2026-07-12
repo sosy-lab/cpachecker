@@ -77,6 +77,7 @@ public class AcslToFormulaVisitorsTest {
   private Solver smtSolver;
   private FormulaManagerView fmgr;
   private AcslTestBuilder b;
+  private Constraints constraints;
 
   @Before
   public void setUp() throws InvalidConfigurationException {
@@ -86,6 +87,7 @@ public class AcslToFormulaVisitorsTest {
     smtSolver = Solver.create(config, logger, ShutdownNotifier.createDummy());
     fmgr = smtSolver.getFormulaManager();
     b = new AcslTestBuilder();
+    constraints = new Constraints(fmgr.getBooleanFormulaManager());
   }
 
   private BooleanFormula translate(AcslPredicate predicate) throws InvalidConfigurationException {
@@ -112,7 +114,8 @@ public class AcslToFormulaVisitorsTest {
     PointerTargetSetBuilder ptsb = createPointerTargetSetBuilder(converter);
 
     AcslPredicateToFormulaVisitor visitorP =
-        new AcslPredicateToFormulaVisitor(fmgr, ssaMapBuilder, converter, machineModel, ptsb);
+        new AcslPredicateToFormulaVisitor(
+            fmgr, ssaMapBuilder, converter, machineModel, ptsb, constraints);
 
     return predicate.accept(visitorP);
   }
@@ -465,7 +468,7 @@ public class AcslToFormulaVisitorsTest {
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 
-  // TODO there is still a bug in the translation of this
+  // TODO there is still a bug in the translation of this, why does a not always get an ssa index??
   @Ignore
   @Test
   public void testAcslPredicateOverArray()
@@ -511,7 +514,6 @@ public class AcslToFormulaVisitorsTest {
             Objects.requireNonNull(getCProgramScope().lookupVariable("a")),
             new CIdExpression(FileLocation.DUMMY, ci));
 
-    @SuppressWarnings("unused")
     AcslLogicPredicateDefinition defP =
         new AcslLogicPredicateDefinition(
             FileLocation.DUMMY,
@@ -540,13 +542,22 @@ public class AcslToFormulaVisitorsTest {
             ImmutableList.of(
                 new AcslIdTerm(FileLocation.DUMMY, a), new AcslIdTerm(FileLocation.DUMMY, index)));
 
-    BooleanFormula fDefinition = translate(b.equivalent(pai, defP.getBody()));
+    BooleanFormula fDefinition =
+        translate(
+            new AcslForallPredicate(
+                FileLocation.DUMMY, ImmutableList.of(a, index), b.equivalent(pai, defP.getBody())));
 
     AcslPredicateApplicationPredicate pa2 =
         new AcslPredicateApplicationPredicate(
             FileLocation.DUMMY,
             declP,
             ImmutableList.of(new AcslIdTerm(FileLocation.DUMMY, a), b.integer(2)));
+
+    AcslPredicateApplicationPredicate pa1 =
+        new AcslPredicateApplicationPredicate(
+            FileLocation.DUMMY,
+            declP,
+            ImmutableList.of(new AcslIdTerm(FileLocation.DUMMY, a), b.integer(1)));
 
     AcslPredicate pred =
         b.implies(
@@ -559,7 +570,10 @@ public class AcslToFormulaVisitorsTest {
     boolean unsat;
 
     try (ProverEnvironment prover = smtSolver.newProverEnvironment()) {
+      // TODO I just want some of these for testing purposes, remove some later
       prover.addConstraint(fDefinition);
+      prover.addConstraint(translate(pa2));
+      prover.addConstraint(translate(b.not(pa1)));
       prover.addConstraint(f);
       unsat = prover.isUnsat();
     }

@@ -115,4 +115,28 @@ public class AcslTypeHelper {
       case AcslSetType setType -> throw new UnsupportedOperationException("Not yet implemented");
     };
   }
+
+  protected record BinaryTermData(Boolean signed, Formula f1, Formula f2){}
+
+  protected BinaryTermData handleBinaryTerm(AcslType termType, AcslType operand1Type, AcslType operand2Type, Formula f1, Formula f2){
+    Formula convertedF1 = f1;
+    Formula convertedF2 = f2;
+
+    if (!fmgr.getFormulaType(f1).equals(fmgr.getFormulaType(f2))) {
+      AcslType commonType = AcslType.mostGeneralType(operand1Type, operand2Type);
+      convertedF1 = convertFormulaType(f1, commonType);
+      convertedF2 = convertFormulaType(f1, commonType);
+    }
+
+    boolean signed = true;
+
+    // Bitvector case: signed is important
+    if (convertedF1 instanceof BitvectorFormula
+        && convertedF2 instanceof BitvectorFormula) {
+      signed = isSigned(termType);
+    }
+
+    return new BinaryTermData(signed, convertedF1, convertedF2);
+
+  }
 }
