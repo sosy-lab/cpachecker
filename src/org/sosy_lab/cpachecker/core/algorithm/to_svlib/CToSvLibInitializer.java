@@ -539,6 +539,12 @@ class CToSvLibInitializer {
       // Therefore, dummy procedures with no parameters and (assert fail) as body are created for
       // these functions.
       return escapeExternalAssertWithString(pFunctionDeclaration);
+    } else if (CToSvLibTransformationConstants.NAMES_OF_UNSUPPORTED_STDLIB_EXTERNAL_FUNCTIONS
+        .contains(pFunctionDeclaration.getName())) {
+      return escapeExternalAssertWithString(pFunctionDeclaration);
+    } else if (CToSvLibTransformationConstants.NAMES_OF_UNSUPPORTED_NONDET_FUNCTIONS.contains(
+        pFunctionDeclaration.getName())) {
+      return escapeExternalAssertWithString(pFunctionDeclaration);
     } else {
       SvLibProcedureDeclaration externProcedureDeclaration =
           createProcedureDeclarationForExternFunction(pFunctionDeclaration);
