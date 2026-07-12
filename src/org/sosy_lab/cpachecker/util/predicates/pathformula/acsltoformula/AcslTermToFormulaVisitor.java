@@ -242,13 +242,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
   public Formula visit(AcslTernaryTerm pAcslTernaryTerm) throws NoException {
     AcslPredicateToFormulaVisitor predicateVisitor =
         new AcslPredicateToFormulaVisitor(
-            fmgr,
-            this,
-            functionEntrySsa,
-            ctoFormulaConverter,
-            machineModel,
-            ptsb,
-            constraints);
+            fmgr, this, functionEntrySsa, ctoFormulaConverter, machineModel, ptsb, constraints);
     BooleanFormula conditionFormula = pAcslTernaryTerm.getCondition().accept(predicateVisitor);
     Formula ifTrueFormula = pAcslTernaryTerm.getResultIfTrue().accept(this);
     Formula ifFalseFormula = pAcslTernaryTerm.getResultIfFalse().accept(this);
