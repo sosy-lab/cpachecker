@@ -18,7 +18,6 @@ import java.util.Optional;
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
@@ -35,7 +34,7 @@ public class LoopAccelerationTest {
   public void init() throws InvalidConfigurationException, IOException, ParserException,
                             InterruptedException {
     ConfigurationBuilder testConfig = TestDataTools.configurationForTest();
-    testConfig.setOption("cfa.useProgramTransformations", "true");
+    testConfig.setOption("cfa.useProgramTransformations", "LOOP_ACCELERATION, TAIL_RECURSION_ELIMINATION");
     Path program_path = Path.of("test/programs/program_transformation/loop_acceleration_simple.c");
     cfa =
         TestDataTools.makeCFA(

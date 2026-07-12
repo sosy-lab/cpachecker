@@ -9,28 +9,26 @@
 package org.sosy_lab.cpachecker.cfa.transformation;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import org.hipparchus.linear.RealMatrix;
 import org.matheclipse.core.eval.ExprEvaluator;
 import org.matheclipse.core.expression.F;
 import org.matheclipse.core.interfaces.IAST;
 import org.matheclipse.core.interfaces.IExpr;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.transformation.AffineLoopClosedFormRepresentation.RowSummand;
+import org.sosy_lab.cpachecker.cfa.transformation.AffineLoopClosedFormRepresentation.Summand;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 
@@ -41,7 +39,7 @@ public class LoopAccelerationUtils {
    * @param pLoop the affine loop as AffineLoopRepresentation
    * @return closed form as a matrix of RowSummands
    */
-  public static Optional<ArrayList<ArrayList<RowSummand>>> closedFormAffine(AffineLoopRepresentation pLoop) {
+  public static Optional<AffineLoopClosedFormRepresentation> closedFormAffine(AffineLoopRepresentation pLoop) {
     List<List<Integer>> A = (List<List<Integer>>) pLoop.getIteraionMatrix();
     List<CIdExpression> x = pLoop.getVariables();
     List<Integer> b = pLoop.getIterationConstants();
@@ -83,22 +81,12 @@ public class LoopAccelerationUtils {
       xhom.addAll(x);
       xhom.add(x_fresh);
 
-      Optional<ArrayList<ArrayList<RowSummand>>> closedFormOptional = closedFormLinear(new AffineLoopRepresentation(Ahom.build(), xhom.build(), ImmutableList.of()));
+      Optional<AffineLoopClosedFormRepresentation> closedFormOptional = closedFormLinear(new AffineLoopRepresentation(Ahom.build(), xhom.build(), ImmutableList.of()));
 
       if(closedFormOptional.isPresent()) {
-        // drop the last row
-        ArrayList<ArrayList<RowSummand>> closedForm = closedFormOptional.orElseThrow();
-        closedForm.removeLast();
-        // remove occurrences of x_fresh
-        for (ArrayList<RowSummand> row : closedForm) {
-          row.replaceAll(
-              (RowSummand summand) ->
-                  summand.variable == x_fresh
-                  ? new RowSummand(summand.coeff, null, summand.power, summand.lambda)
-                  : summand);
-        }
-
-        return Optional.of(closedForm);
+        // drop the last row & remove occurrences of x_fresh
+        AffineLoopClosedFormRepresentation closedForm = closedFormOptional.orElseThrow();
+        return Optional.of(closedForm.withoutVariable(x_fresh));
       } else {
         return Optional.empty();
       }
@@ -113,7 +101,7 @@ public class LoopAccelerationUtils {
    * @param pLoop the linear loop as AffineLoopRepresentation with an empty iteration constants list
    * @return closed form as a matrix of RowSummands
    */
-  public static Optional<ArrayList<ArrayList<RowSummand>>> closedFormLinear(AffineLoopRepresentation pLoop) {
+  public static Optional<AffineLoopClosedFormRepresentation> closedFormLinear(AffineLoopRepresentation pLoop) {
     if (! pLoop.getIterationConstants().isEmpty()) return closedFormAffine(pLoop);
     ExprEvaluator util = new ExprEvaluator(false, (short) 100);
     try{
@@ -125,7 +113,7 @@ public class LoopAccelerationUtils {
       IExpr P2 = jordanForm.first();
       IExpr J2 = jordanForm.last();
       IExpr Pinv2 = util.eval(F.Inverse(P2));
-      int d = A.size();
+      int d = pLoop.getVariables().size();
       boolean negativeEigenvalue = false;
 
       // 2. compute information about every jordan block of J
@@ -133,7 +121,7 @@ public class LoopAccelerationUtils {
       int m = 1;
       for (int i = 0; i < d; i = i + m) {
         IExpr lambda = util.eval(getMatrixEntry(J2, i, i));
-        if (lambda.less(util.eval("0")).isTrue()) {
+        if (lambda.lessThan(0).isTrue()) {
           negativeEigenvalue = true;
         }
         m = 1;
@@ -153,22 +141,15 @@ public class LoopAccelerationUtils {
       }
 
       // 4. Compute J^n
-      ArrayList<Summand>[][] Jn = (ArrayList<Summand>[][]) new ArrayList[d][d];
-      for (int i = 0; i < d; i++) {
-        for (int j = 0; j < d; j++) {
-          Jn[i][j] = new ArrayList<>();
-        }
-      }
+      AffineLoopClosedFormRepresentation.Builder closedFormBuilder = new AffineLoopClosedFormRepresentation.Builder(pLoop.getVariables());
       for (BlockInfo block : blockInfos) {
         for (int i = 0; i < block.blockSize; i++) {
           for (int j = 0; j < block.blockSize; j++) {
             int r = j - i;
             if (r >= 0) {
               IExpr poly;
-              if (r == 0) {
-                poly = util.eval("1");
-              } else {
-                poly = util.eval("1");
+              poly = util.eval("1");
+              if (r != 0) {
                 for (int k = 0; k < r; k++) {
                   poly = poly.times(n.subtract(util.eval(String.valueOf(k))));
                 }
@@ -178,90 +159,64 @@ public class LoopAccelerationUtils {
               // TODO check if this is correct
               int deg = r;
 
-              ArrayList<Summand> summands = new ArrayList<>();
               if (!block.lambda.isZero()) {
                 IExpr coeffList = util.eval(F.CoefficientList(poly, n));
                 for (int s = 0; s < deg + 1; s++) {
                   IExpr coeff = coeffList.getAt(s+1).multiply(block.lambda.pow(-1 * r));
                   if (!coeff.isZero()) {
-                    summands.add(new Summand(coeff, s, block.lambda));
+                    closedFormBuilder.addSummand(new Summand(coeff, s, block.lambda), block.startIndex + i, block.startIndex + j);
                   }
                 }
               }
-              Jn[block.startIndex + i][block.startIndex + j] = summands;
             }
           }
         }
       }
 
       // 5. Compute M = P * J^n
-      List<Summand>[][] M = (ArrayList<Summand>[][]) new ArrayList[d][d];
-      for (int i = 0; i < d; i++) {
-        for (int j = 0; j < d; j++) {
-          M[i][j] = new ArrayList<>();
-        }
-      }
+      closedFormBuilder.initTmpMatrix();
       for (int i = 0; i < d; i++) {
         for (int j = 0; j < d; j++) {
           List<Summand> acc = new ArrayList<>();
           for (int k = 0; k < d; k++) {
             if (! getMatrixEntry(P2, i, k).isZero()) {
-              List<Summand> JnSummand = Jn[k][j];
+              List<Summand> JnSummand = closedFormBuilder.getSummands(k, j);
               for (Summand summand : JnSummand) {
-                if (!summand.coeff.isZero()) {
-                  acc.add(new Summand(summand.coeff.multiply(getMatrixEntry(P2, i, k)), summand.power, summand.lambda));
+                if (!summand.coeff().isZero()) {
+                  acc.add(new Summand(summand.coeff().multiply(getMatrixEntry(P2, i, k)), summand.power(), summand.lambda()));
                 }
               }
             }
           }
-          M[i][j] = acc;
+          closedFormBuilder.setTmpSummands(acc, i, j);
         }
       }
+      closedFormBuilder.setTmpMatrix();
 
       // 6. Compute A^n = M * Pinv
-      List<Summand>[][] An = (ArrayList<Summand>[][]) new ArrayList[d][d];
-      for (int i = 0; i < d; i++) {
-        for (int j = 0; j < d; j++) {
-          An[i][j] = new ArrayList<>();
-        }
-      }
+      closedFormBuilder.initTmpMatrix();
       for (int i = 0; i < d; i++) {
         for (int j = 0; j < d; j++) {
           List<Summand> acc = new ArrayList<>();
           for (int k = 0; k < d; k++) {
             if (! getMatrixEntry(Pinv2, k,j).isZero()) {
-              List<Summand> JnSummand = M[i][k];
+              List<Summand> JnSummand = closedFormBuilder.getSummands(i, k);
               for (Summand summand : JnSummand) {
-                if (!summand.coeff.isZero()) {
-                  acc.add(new Summand(summand.coeff.multiply(getMatrixEntry(Pinv2, k, j)), summand.power, summand.lambda));
+                if (!summand.coeff().isZero()) {
+                  acc.add(new Summand(summand.coeff().multiply(getMatrixEntry(Pinv2, k, j)), summand.power(), summand.lambda()));
                 }
               }
             }
           }
-          An[i][j] = acc;
+          closedFormBuilder.setTmpSummands(acc, i, j);
         }
       }
+      closedFormBuilder.setTmpMatrix();
 
       // 7. compute row summands: A^n * x
-      ArrayList<ArrayList<RowSummand>> rowSummands = new ArrayList<>();
-      for (int i = 0; i < d; i++) {
-        ArrayList<RowSummand> row = new ArrayList<>();
-        for (int j = 0; j < d; j++) {
-          for (Summand summand : An[i][j]) {
-            if (!summand.coeff.isZero()) {
-              row.add(new RowSummand(
-                  summand.coeff,
-                  pLoop.getVariables().get(j),
-                  summand.power,
-                  summand.lambda));
-            }
-          }
-        }
-        rowSummands.add(row);
-      }
 
       // finished
-      return Optional.of(rowSummands);
+      return Optional.of(closedFormBuilder.build());
     } catch (Exception pE) {
       return Optional.empty();
     }
@@ -270,32 +225,6 @@ public class LoopAccelerationUtils {
   private record BlockInfo (
       int startIndex,
       int blockSize,
-      IExpr lambda
-  ) {}
-
-  /**
-   * Representation of a summand without variable: coeff * n^power * lambda^n
-   * @param coeff
-   * @param power
-   * @param lambda
-   */
-  private record Summand (
-      IExpr coeff,
-      int power,
-      IExpr lambda
-  ) {}
-
-  /**
-   * Representation of a summand with the corresponding variable: coeff * variable * n^power * lambda^n
-   * @param coeff
-   * @param variable
-   * @param power
-   * @param lambda
-   */
-  public record RowSummand (
-      IExpr coeff,
-      CIdExpression variable,
-      int power,
       IExpr lambda
   ) {}
 
@@ -317,42 +246,33 @@ public class LoopAccelerationUtils {
   /**
    * Calculate the exact value of a coefficient for n loop iterations.
    * @param n the number of loop iterations
-   * @param rowSummand values from calculating the closed form
-   * @return coefficient expression
+   * @param rowSummand list of RowSummands which get assigned to the same variable
+   * @return a list of Coefficients (int, variable)
    */
-  public static List<Coefficient> simplifyClosedFormAssignment(int n, List<RowSummand> rowSummand, List<CIdExpression> variables) {
-    ArrayList<Coefficient> coefficients = new ArrayList<>();
+  public static List<Coefficient> simplifyClosedFormAssignment(int n, List<RowSummand> rowSummand) {
+    ImmutableList.Builder<Coefficient> coefficients = new ImmutableList.Builder<>();
     ArrayList<RowSummand> tmpList = new ArrayList<>();
     ExprEvaluator util = new ExprEvaluator(false, (short) 100);
     for (RowSummand summand : rowSummand) {
-      IExpr coeff = summand.coeff.multiply((util.eval(String.valueOf(n)).pow(summand.power)).multiply(summand.lambda.pow(n)));
+      IExpr coeff = summand.coeff().multiply((util.eval(String.valueOf(n)).pow(summand.power())).multiply(summand.lambda().pow(n)));
       boolean alreadyPresent = false;
       for (RowSummand summand2 : tmpList) {
-        if (summand2.variable.equals(summand.variable)) {
-          tmpList.add(new RowSummand(summand2.coeff().plus(coeff), summand.variable, 0, null));
+        if (summand2.variable() == summand.variable()) {
+          tmpList.add(new RowSummand(summand2.coeff().plus(coeff), summand.variable(), 0, null));
           tmpList.remove(summand2);
           alreadyPresent = true;
         }
       }
       if (!alreadyPresent) {
-        tmpList.add(new RowSummand(coeff, summand.variable, 0, null));
+        tmpList.add(new RowSummand(coeff, summand.variable(), 0, null));
       }
     }
 
     for (RowSummand summand : tmpList) {
-      if (summand.variable == null) {
-        coefficients.add(new Coefficient(summand.coeff.toIntDefault(), null));
-      } else {
-        for (CIdExpression variable : variables) {
-          if (variable == summand.variable) {
-            coefficients.add(new Coefficient(summand.coeff.toIntDefault(), variable));
-            break;
-          }
-        }
-      }
+        coefficients.add(new Coefficient(summand.coeff().toIntDefault(), summand.variable()));
     }
 
-    return coefficients;
+    return coefficients.build();
   }
 
   /**

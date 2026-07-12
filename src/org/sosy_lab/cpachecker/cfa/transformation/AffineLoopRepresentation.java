@@ -13,7 +13,6 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
 public class AffineLoopRepresentation {
@@ -91,12 +90,12 @@ public class AffineLoopRepresentation {
     for (Map.Entry<CIdExpression, List<BigInteger>> entry : pIterationMatrix.entrySet()) {
       builder.addRow();
       builder.addVariable(entry.getKey());
-      for (BigInteger value : entry.getValue()) {
-        if (Objects.equals(entry.getValue().getLast(), value)) {
-          builder.addConstant(value.intValue());
-          continue;
+      for (int j = 0; j < entry.getValue().size(); j++) {
+        if (j == entry.getValue().size() - 1) {
+          builder.addConstant(entry.getValue().get(j).intValue());
+        } else {
+          builder.addElement(counter, entry.getValue().get(j).intValue());
         }
-        builder.addElement(counter, value.intValue());
       }
       counter++;
     }
