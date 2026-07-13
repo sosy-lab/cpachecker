@@ -1,0 +1,45 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+- entry_type: "invariant_set"
+  metadata:
+    format_version: "2.0"
+    uuid: "c66c3ee7-e0de-4bae-87f0-fd48fbla961e"
+    creation_time: "2055-11-21T10:29:38+01:00"
+    producer:
+      name: "Handcrafted"
+    task:
+      input_files:
+        - "./sll_blank.c"
+      input_file_hashes:
+        "./sll_blank.c": "7e09d23e5ceaecbd6130f3a55dff37778c1d9f359387860231aa337f850f6d2f"
+      specification: "G valid-free && G valid-deref && G valid-memtrack"
+      data_model: "ILP32"
+      language: "C"
+  content:
+    # (start->next)@(end) is wrong for the end of the list
+    - inductive_predicate:
+      - name: "pred_sll"
+      - params:
+        - name: start
+          type: "struct sll *"
+        - name: end
+          type: "struct sll *"
+      - definition:
+        "start != 0 && (end != 0 && (start->next == 0 && (start == end && (\\canAccess(start) && \\canAccess(end)))))
+          || start != 0 && (start != end && (start->next != start && (start->next != 0 && (\\canAccess(start) && (\\canAccess(start->next) 
+            && (\\canAccess(end) && ((start)@(start->next) && ((start)@(end) && ((start->next)@(end) && pred_sll(start->next, end))))))))))"
+    - invariant:
+        type: "loop_invariant"
+        location:
+          file_name: "./sll_blank.c"
+          line: 25
+          column: 3
+          function: "create"
+        value: "pred_sll(sll, now)"
+        format: "c_expression"
