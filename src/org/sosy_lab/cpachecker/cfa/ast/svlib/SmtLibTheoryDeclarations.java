@@ -133,6 +133,16 @@ public class SmtLibTheoryDeclarations {
 
   /* Boolean stuff */
 
+  public static SvLibFunctionDeclaration BOOL_EQUALITY =
+      new SvLibFunctionDeclaration(
+          FileLocation.DUMMY,
+          new SvLibFunctionType(
+              ImmutableList.of(SvLibSmtLibPredefinedType.BOOL, SvLibSmtLibPredefinedType.BOOL),
+              SvLibSmtLibPredefinedType.BOOL),
+          "=",
+          "=",
+          ImmutableList.of());
+
   public static SvLibFunctionDeclaration BOOL_NEGATION =
       new SvLibFunctionDeclaration(
           FileLocation.DUMMY,

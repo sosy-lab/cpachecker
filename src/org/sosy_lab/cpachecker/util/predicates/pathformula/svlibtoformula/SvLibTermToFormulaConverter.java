@@ -267,6 +267,14 @@ public class SvLibTermToFormulaConverter {
         Verify.verify(args.size() >= 2);
         return bmgr.or(args);
       }
+      case "=" -> {
+        Verify.verify(args.size() == 2);
+        return bmgr.equivalence(args.getFirst(), args.get(1));
+      }
+      case "=>" -> {
+        Verify.verify(args.size() == 2);
+        return bmgr.implication(args.getFirst(), args.get(1));
+      }
       default ->
           throw new IllegalStateException(
               "Unexpected value: '"

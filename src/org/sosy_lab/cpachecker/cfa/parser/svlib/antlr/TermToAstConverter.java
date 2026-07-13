@@ -226,6 +226,18 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
         Verify.verify(pArguments.size() == 3);
         return SmtLibTheoryDeclarations.ite(pArguments.get(1).getExpressionType());
       }
+      case "=" -> {
+        // Equality is part of the core theory only for booleans, for other types it is resolved
+        // in their respective theory below.
+        if (pArguments.size() == 2
+            && FluentIterable.from(pArguments)
+                .allMatch(
+                    term ->
+                        SvLibType.canBeCastTo(
+                            term.getExpressionType(), SvLibSmtLibPredefinedType.BOOL))) {
+          return SmtLibTheoryDeclarations.BOOL_EQUALITY;
+        }
+      }
     }
 
     // Match all array stuff
