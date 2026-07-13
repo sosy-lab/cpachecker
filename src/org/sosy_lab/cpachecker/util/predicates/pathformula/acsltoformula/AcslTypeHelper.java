@@ -126,7 +126,7 @@ public class AcslTypeHelper {
     if (!fmgr.getFormulaType(f1).equals(fmgr.getFormulaType(f2))) {
       AcslType commonType = AcslType.mostGeneralType(operand1Type, operand2Type);
       convertedF1 = convertFormulaType(f1, commonType);
-      convertedF2 = convertFormulaType(f1, commonType);
+      convertedF2 = convertFormulaType(f2, commonType);
     }
 
     boolean signed = true;
