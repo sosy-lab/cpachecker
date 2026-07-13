@@ -154,18 +154,13 @@ void *thr2(void *_) {
   return 0;
 }
 
-// currently not easily solved by CPAchecker, but the threads can be tested separately
-// int main() { 
-//   unsigned long int t1, t2;
-//   pthread_create(&t1, 0, thr1, 0);
-//   pthread_join(t1, 0);
-//   pthread_create(&t2, 0, thr2, 0);
-//   pthread_join(t2, 0);
-//   return 0;
-// }
-
-int main() {
-  thr1(0);
-  thr2(0);
+// interleaved threads here not easily solved by CPAchecker,
+// but the threads can be tested ordered sequentially
+int main() { 
+  unsigned long int t1, t2;
+  pthread_create(&t1, 0, thr1, 0);
+  pthread_join(t1, 0);
+  pthread_create(&t2, 0, thr2, 0);
+  pthread_join(t2, 0);
   return 0;
 }
