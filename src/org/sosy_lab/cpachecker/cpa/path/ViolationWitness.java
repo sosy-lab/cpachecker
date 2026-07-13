@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.path;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -38,8 +39,7 @@ public record ViolationWitness(ImmutableList<ImmutableSet<ImmutableList<String>>
             .transform(ViolationWitness::edgeToString)
             .toList();
 
-    return new ViolationWitness(Collections3.elementAndList(ImmutableSet.of(
-        newPath), witness));
+    return new ViolationWitness(Collections3.elementAndList(ImmutableSet.of(newPath), witness));
   }
 
   public static String edgeToString(CFAEdge edge) {
@@ -81,7 +81,7 @@ public record ViolationWitness(ImmutableList<ImmutableSet<ImmutableList<String>>
       ImmutableSet.Builder<ImmutableList<String>> newSegment =
           ImmutableSet.builderWithExpectedSize(segment.size());
       for (ImmutableList<String> path : segment) {
-        newSegment.add(FluentIterable.from(path).transform(f::apply).toList());
+        newSegment.add(transformedImmutableListCopy(path, f::apply));
       }
       newWitness.add(newSegment.build());
     }
