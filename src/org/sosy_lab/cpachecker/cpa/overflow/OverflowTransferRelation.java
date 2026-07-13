@@ -49,6 +49,20 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
       return ImmutableList.of();
     }
 
+    if (cfaEdge.getSuccessor().getNumLeavingEdges() == 0) {
+      // No edge follows, so there is no next statement whose overflow we could have to constrain.
+      // That is not the same as "this edge has no successor": the state after cfaEdge still exists
+      // and must be produced, or this transfer silently kills the path. Two things depend on it.
+      // First, an overflow is only reported one edge after it happens (hasOverflow() reads the
+      // PARENT's nextHasOverflow flag), so dropping the state here would lose an overflow committed
+      // by cfaEdge itself, e.g. in `return x + 1;`, whose successor is the function exit node.
+      // Second, and worse under a concurrency CPA: a thread's last edge ends at its function exit
+      // node, so killing that state means the thread never reaches its exit, never counts as
+      // terminated, and a pthread_join on it is never enabled -- everything after the join becomes
+      // unreachable and the analysis reports a silent, wrong TRUE.
+      return ImmutableList.of(new OverflowState(ImmutableSet.of(), prev.nextHasOverflow(), prev));
+    }
+
     ImmutableList.Builder<OverflowState> outStates = ImmutableList.builder();
 
     for (CFAEdge nextEdge : cfaEdge.getSuccessor().getLeavingEdges()) {

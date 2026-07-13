@@ -8,14 +8,19 @@
 
 package org.sosy_lab.cpachecker.cpa.mutex;
 
-import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -56,21 +61,74 @@ public final class MutexFunctions {
   }
 
   /**
-   * Extracts the mutex variable name from a function argument expression. Handles both {@code
-   * &mutex} (address-of) and plain {@code mutex} (pointer) argument styles.
+   * Extracts a canonical key for the storage location a mutex-function argument expression
+   * addresses. Handles both {@code &lvalue} (address-of) and plain {@code lvalue} (already a
+   * pointer) argument styles.
    *
-   * @return the mutex variable name, or {@code null} if the expression is not a recognized pattern
+   * <p>Beyond a plain variable, this also resolves array elements and struct fields reached
+   * through a chain of <b>literal</b> array indices and <b>non-pointer</b> field accesses (e.g.
+   * {@code &arr[0].field}), using the same canonical-key scheme as {@code
+   * ThreadFunctions#canonicalHandleLvalueKey} in {@code cpa.por} (duplicated here rather than
+   * shared: {@code cpa.por} already depends on {@code cpa.mutex}, so importing the other way
+   * would create a package cycle). Such a path denotes the same storage location on every
+   * evaluation, so two occurrences with the same key are provably the same mutex without needing
+   * runtime information. A path that goes through a runtime-computed index (a loop variable, say)
+   * or a pointer dereference (e.g. {@code s->mutex}, which could alias in ways this syntactic
+   * check cannot rule out) returns {@code null}: the mutex cannot be statically identified.
+   *
+   * <p>Callers must treat a {@code null} result as "this is not a resolvable mutex operation" and
+   * must NOT build a {@link MutexLock} with a null handle (see {@link
+   * #getMutexLockForFunctionSet}): the sound fallback for an unresolvable mutex expression is to
+   * not model the operation at all, so POR/OC lose some reduction power on this lock but never
+   * unsoundly prune a real interleaving.
+   *
+   * @return a canonical key for the mutex's storage location, or {@code null} if the expression
+   *     is not a recognized/statically-resolvable pattern
    */
-  public static String extractMutexName(AExpression expr) {
-    if (expr instanceof CUnaryExpression unary
-        && unary.getOperator() == UnaryOperator.AMPER
-        && unary.getOperand() instanceof CIdExpression id) {
-      return id.getName();
+  public static @Nullable String extractMutexName(AExpression expr) {
+    if (!(expr instanceof CExpression cExpr)) {
+      return null;
     }
-    if (expr instanceof CIdExpression id) {
-      return id.getName();
+    CExpression unwrapped = unwrapCasts(cExpr);
+    if (unwrapped instanceof CUnaryExpression unary
+        && unary.getOperator() == UnaryOperator.AMPER) {
+      CExpression operand = unwrapCasts(unary.getOperand());
+      return operand instanceof CLeftHandSide lvalue ? canonicalLvalueKey(lvalue) : null;
+    }
+    return unwrapped instanceof CLeftHandSide lvalue ? canonicalLvalueKey(lvalue) : null;
+  }
+
+  /**
+   * Canonical-key computation for lvalues whose storage location is statically known. Mirrors
+   * {@code ThreadFunctions#canonicalLvalueKey} in {@code cpa.por} exactly (see that method's
+   * javadoc for the full rationale); keep the two in sync if either changes.
+   */
+  private static @Nullable String canonicalLvalueKey(CLeftHandSide lvalue) {
+    if (lvalue instanceof CIdExpression id) {
+      return id.getDeclaration().getQualifiedName();
+    }
+    if (lvalue instanceof CArraySubscriptExpression subscript
+        && unwrapCasts(subscript.getArrayExpression()) instanceof CLeftHandSide array
+        && subscript.getSubscriptExpression() instanceof CIntegerLiteralExpression literal) {
+      String arrayKey = canonicalLvalueKey(array);
+      return arrayKey == null ? null : arrayKey + "[" + literal.getValue() + "]";
+    }
+    if (lvalue instanceof CFieldReference field
+        && !field.isPointerDereference()
+        && unwrapCasts(field.getFieldOwner()) instanceof CLeftHandSide owner) {
+      String ownerKey = canonicalLvalueKey(owner);
+      return ownerKey == null ? null : ownerKey + "." + field.getFieldName();
     }
     return null;
+  }
+
+  /** Strips any (possibly nested) {@link CCastExpression} wrapper(s) around {@code expr}. */
+  private static CExpression unwrapCasts(CExpression expr) {
+    CExpression current = expr;
+    while (current instanceof CCastExpression cast) {
+      current = cast.getOperand();
+    }
+    return current;
   }
 
   /**
@@ -163,7 +221,7 @@ public final class MutexFunctions {
     return null;
   }
 
-  private static MutexLock getMutexLockForFunctionSet(
+  private static @Nullable MutexLock getMutexLockForFunctionSet(
       CFAEdge edge, ImmutableMap<String, MutexLockType> functions) {
     if (edge instanceof AStatementEdge sEdge
         && sEdge.getStatement() instanceof AFunctionCall funcCall) {
@@ -174,7 +232,17 @@ public final class MutexFunctions {
         if (lockType != null) {
           var params = funcCall.getFunctionCallExpression().getParameterExpressions();
           if (!params.isEmpty()) {
-            return new MutexLock(extractMutexName(params.getFirst()), lockType);
+            String handle = extractMutexName(params.getFirst());
+            if (handle == null) {
+              // Sound fallback: the mutex expression's storage location could not be resolved
+              // statically (e.g. a symbolic array index, or a pointer dereference which could
+              // alias). Rather than building a MutexLock with a null handle, this edge is simply
+              // not modelled as a mutex operation at all. That costs some reduction power (POR/OC
+              // explore more interleavings than strictly necessary around this lock) but can
+              // never prune away a real interleaving.
+              return null;
+            }
+            return new MutexLock(handle, lockType);
           }
         }
       }

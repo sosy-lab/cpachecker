@@ -6,11 +6,15 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-// Thread handles stored in an array (pthread_create(&t[i], ...) /
-// pthread_join(t[i], ...)): the handle expression is not a plain variable, so
-// this exercises the general candidate-branching join resolution, not the
-// fast-path hint. Each thread only ever writes its own fixed array slot, so
-// the outcome is deterministic regardless of scheduling: this stays safe.
+// Thread handles stored in an array (pthread_create(&t[0], ...) /
+// pthread_join(t[0], ...)) rather than in plain variables. The indices are
+// literal, so ThreadFunctions#canonicalHandleLvalueKey still resolves each
+// handle to a definite storage location and the join takes the fast-path hint;
+// what this pins down is that a non-CIdExpression handle is accepted at all
+// (it used to be an UnsupportedCodeException) and that the create and join
+// sides agree on the key. Each thread only ever writes its own fixed array
+// slot, so the outcome is deterministic regardless of scheduling: this stays
+// safe.
 
 #include <pthread.h>
 

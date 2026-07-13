@@ -74,8 +74,14 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
       if (initializationPhaseNodes.contains(predecessor) && !anyGlobalStatements) {
         return true;
       }
-      assert predecessor.getEnteringEdges().size() == 1
-          : "Multi-edge component must be a straight line";
+      if (predecessor.getNumEnteringEdges() != 1) {
+        // Walking back from `edge` did not reach `startNode` along a straight line: `predecessor`
+        // is a merge point (or a function entry with no entering edge at all). A multi-edge block
+        // has a single entry by definition, so `edge` is not a component of the one starting at
+        // `startNode`. Branching inside an atomic block makes this reachable, so it must be a
+        // plain answer rather than an assertion.
+        return false;
+      }
       currentEdge = predecessor.getEnteringEdges().iterator().next();
     }
   }

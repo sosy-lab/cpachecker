@@ -8,11 +8,27 @@
 
 package org.sosy_lab.cpachecker.cpa.mutex;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 
+/**
+ * A specific mutex/rwlock operation: which lock ({@code handle}, a canonical storage-location key
+ * as computed by {@link MutexFunctions#extractMutexName}) and which kind of hold ({@code type}).
+ *
+ * <p>{@code handle} must never be {@code null}. Callers that cannot resolve a mutex expression to
+ * a canonical key (see {@link MutexFunctions#extractMutexName}) must not construct a {@code
+ * MutexLock} at all: treating the edge as an unrecognized/unmodelled mutex operation is the sound
+ * fallback, since it only costs reduction power (POR/OC then explore more interleavings than
+ * strictly necessary around that lock) and never hides a real interleaving.
+ */
 public record MutexLock(String handle, MutexLockType type) {
+  public MutexLock {
+    checkNotNull(handle);
+    checkNotNull(type);
+  }
+
   enum MutexLockType {
     READ,
     WRITE,

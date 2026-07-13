@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.por;
 
+import com.google.common.collect.MapMaker;
 import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
@@ -47,28 +48,39 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
  */
 final class PorCfaCloner {
 
-  private static final Map<Integer, PorCfaCloner> perThreadCache = new HashMap<>();
+  /**
+   * Thread cloners, scoped to the CFA they were cloned from. The CFA key is essential: several
+   * CPAchecker analyses can run in one JVM (the JUnit suites, and the restart/parallel algorithms),
+   * and a cache keyed on the thread ID alone would hand the second analysis the thread clones of
+   * the *first* analysis's program — silently verifying the wrong CFA. Keyed by identity (a CFA has
+   * no value equality) and weakly, so a finished analysis's clones become collectable with it
+   * rather than being retained for the life of the JVM.
+   */
+  private static final Map<CFA, Map<Integer, PorCfaCloner>> perCfaCache =
+      new MapMaker().weakKeys().makeMap();
 
   /**
-   * Global reverse node map across all thread cloners: cloned node -> original node. Used for
-   * dependency analysis which needs to traverse the original CFA.
+   * Reverse node map across all thread cloners: cloned node -> original node. Used for dependency
+   * analysis which needs to traverse the original CFA. Keyed by the cloned node, which is unique to
+   * one cloner, so entries of different analyses cannot collide; weak keys let them die with the
+   * cloner that owns them.
    */
-  private static final IdentityHashMap<CFANode, CFANode> globalReverseNodeMap =
-      new IdentityHashMap<>();
+  private static final Map<CFANode, CFANode> globalReverseNodeMap =
+      new MapMaker().weakKeys().makeMap();
 
   /**
-   * Global map across all thread cloners: cloned node -> thread ID it was cloned for. Used by the
-   * witness export and validation to recover which thread a cloned edge belongs to.
+   * Cloned node -> thread ID it was cloned for. Used by the witness export and validation to
+   * recover which thread a cloned edge belongs to.
    */
-  private static final IdentityHashMap<CFANode, Integer> globalNodeThreadIdMap =
-      new IdentityHashMap<>();
+  private static final Map<CFANode, Integer> globalNodeThreadIdMap =
+      new MapMaker().weakKeys().makeMap();
 
   /**
-   * Global reverse edge map across all thread cloners: cloned edge -> original edge. Used for
-   * dependency analysis which needs to extract variables from original edges.
+   * Reverse edge map across all thread cloners: cloned edge -> original edge. Used for dependency
+   * analysis which needs to extract variables from original edges.
    */
-  private static final IdentityHashMap<CFAEdge, CFAEdge> globalReverseEdgeMap =
-      new IdentityHashMap<>();
+  private static final Map<CFAEdge, CFAEdge> globalReverseEdgeMap =
+      new MapMaker().weakKeys().makeMap();
 
   /** Map from original node to cloned node. */
   private final IdentityHashMap<CFANode, CFANode> nodeMap = new IdentityHashMap<>();
@@ -88,17 +100,19 @@ final class PorCfaCloner {
   }
 
   /**
-   * Get or create the CFA clone for the given thread ID. The cloning is performed once per thread
-   * ID and then cached.
+   * Get or create the CFA clone of {@code pCfa} for the given thread ID. Cloning is performed once
+   * per (CFA, thread ID) pair and then cached.
    */
   static PorCfaCloner getOrCreate(int pThreadId, CFA pCfa) {
-    return perThreadCache.computeIfAbsent(
-        pThreadId,
-        pid -> {
-          PorCfaCloner cloner = new PorCfaCloner(pid);
-          cloner.cloneEntireCfa(pCfa);
-          return cloner;
-        });
+    return perCfaCache
+        .computeIfAbsent(pCfa, unused -> new HashMap<>())
+        .computeIfAbsent(
+            pThreadId,
+            pid -> {
+              PorCfaCloner cloner = new PorCfaCloner(pid);
+              cloner.cloneEntireCfa(pCfa);
+              return cloner;
+            });
   }
 
   /**

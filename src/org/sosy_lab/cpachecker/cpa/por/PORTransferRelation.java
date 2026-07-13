@@ -210,7 +210,7 @@ public class PORTransferRelation implements TransferRelation {
         List<AbstractState> afterWrite = new ArrayList<>();
         for (AbstractState wrapped : wrappedSuccessors) {
           afterWrite.addAll(
-              applyEdgeWithForgetting(
+              applyBookkeepingEdge(
                   precision,
                   wrapped,
                   writeThreadHandleEdge((CExpression) params.get(0), newPid, cfaEdge),
@@ -269,7 +269,7 @@ public class PORTransferRelation implements TransferRelation {
           List<AbstractState> filtered = new ArrayList<>();
           for (AbstractState wrapped : wrappedSuccessors) {
             filtered.addAll(
-                applyEdgeWithForgetting(
+                applyBookkeepingEdge(
                     precision,
                     wrapped,
                     assumeThreadHandleEqualsEdge(handle, candidate, cfaEdge),
@@ -338,6 +338,32 @@ public class PORTransferRelation implements TransferRelation {
         result.add(porSuccessor.withWrappedState(wrappedSuccessor));
       }
     }
+  }
+
+  /**
+   * Applies one of POR's own synthetic bookkeeping edges (the thread-handle write at a create, the
+   * handle-equality assume at a join) to {@code wrappedState}, keeping the state itself if the edge
+   * yields nothing.
+   *
+   * <p>These edges are not part of the program: they exist only so the wrapped analysis learns which
+   * instance a handle denotes. So they must never be able to <b>lose</b> a state. They can, because
+   * a CPA is allowed to report a violation by producing no successors at all — {@link
+   * org.sosy_lab.cpachecker.cpa.overflow.OverflowTransferRelation} does exactly that ("once we have
+   * an overflow there is no need to continue"). Feeding such an already-violating state through a
+   * bookkeeping edge would return an empty collection, POR would take that for "infeasible branch",
+   * and the violation would be silently dropped — a wrong TRUE on a program that really does
+   * overflow. When the state is already a target, keep it unchanged: exploration ends there anyway,
+   * so the handle value it never got told about cannot matter.
+   */
+  private Collection<? extends AbstractState> applyBookkeepingEdge(
+      PORPrecision precision, AbstractState wrappedState, CFAEdge edge, int pid)
+      throws CPATransferException, InterruptedException {
+    Collection<? extends AbstractState> successors =
+        applyEdgeWithForgetting(precision, wrappedState, edge, pid);
+    if (successors.isEmpty() && AbstractStates.isTargetState(wrappedState)) {
+      return ImmutableList.of(wrappedState);
+    }
+    return successors;
   }
 
   /**

@@ -175,6 +175,10 @@ public class MutexState implements AbstractState {
     }
     ImmutableMap.Builder<MutexLock, ImmutableSet<Integer>> builder = ImmutableMap.builder();
     for (var entry : lockedMutexes.entrySet()) {
+      // handle() is guaranteed non-null by MutexLock's compact constructor, so both handles
+      // being compared here are always non-null: MutexFunctions never constructs a MutexLock for
+      // a mutex expression it could not resolve to a canonical key, it just doesn't model that
+      // edge as a mutex operation (see MutexFunctions#getMutexLockForFunctionSet).
       if (entry.getKey().equals(mutex)
           || (entry.getKey().handle().equals(mutex.handle()) && mutex.type() == MutexLockType.BOTH)) {
         ImmutableSet<Integer> holders = entry.getValue();

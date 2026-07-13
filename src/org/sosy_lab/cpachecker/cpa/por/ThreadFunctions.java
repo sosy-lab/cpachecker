@@ -15,6 +15,7 @@ import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -22,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 /**
  * Utility class for detecting and extracting information from pthread-related C function calls
@@ -74,19 +76,40 @@ public final class ThreadFunctions {
    * @param params the parameter expressions of the {@code pthread_create} call (must have 4
    *               elements)
    * @return the simple name of the function to be started in the new thread
+   * @throws UnsupportedCodeException if the third parameter is not (optionally cast to some
+   *     function pointer type) a {@code &function} expression naming the entry point directly,
+   *     e.g. a function pointer computed at runtime
    */
-  public static String extractCreateFunctionName(List<? extends AExpression> params) {
+  public static String extractCreateFunctionName(List<? extends AExpression> params)
+      throws UnsupportedCodeException {
     checkCreateParams(params);
-    checkState(
-        params.get(2) instanceof CUnaryExpression cUnaryExpression
-            && cUnaryExpression.getOperator() == UnaryOperator.AMPER,
-        "Malformed pthread_create (Thread not unary expression with reference): %s",
-        params.get(2));
-    checkState(
-        ((CUnaryExpression) params.get(2)).getOperand() instanceof CIdExpression,
-        "Malformed pthread_create (Thread not CIdExpression): %s",
-        ((CUnaryExpression) params.get(2)).getOperand());
-    return ((CIdExpression) ((CUnaryExpression) params.get(2)).getOperand()).getName();
+    AExpression threadArg = stripCasts(params.get(2));
+    if (!(threadArg instanceof CUnaryExpression cUnaryExpression)
+        || cUnaryExpression.getOperator() != UnaryOperator.AMPER) {
+      throw new UnsupportedCodeException(
+          "Malformed pthread_create (Thread not unary expression with reference): "
+              + params.get(2),
+          null);
+    }
+    if (!(cUnaryExpression.getOperand() instanceof CIdExpression idExpression)) {
+      throw new UnsupportedCodeException(
+          "Malformed pthread_create (Thread not CIdExpression): " + cUnaryExpression.getOperand(),
+          null);
+    }
+    return idExpression.getName();
+  }
+
+  /**
+   * Strips any surrounding (possibly nested) {@link CCastExpression}s, e.g. so that {@code
+   * (void *(*)(void *))(&f)} is seen as {@code &f}. Grouping parentheses need no separate
+   * handling: CPAchecker's C frontend does not represent them as AST nodes.
+   */
+  private static AExpression stripCasts(AExpression expression) {
+    AExpression result = expression;
+    while (result instanceof CCastExpression cast) {
+      result = cast.getOperand();
+    }
+    return result;
   }
 
   /**

@@ -7,10 +7,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Two threads write to a shared variable, both created and joined through an
-// array of handles (pthread_create(&t[i], ...) / pthread_join(t[i], ...)),
-// exercising the general candidate-branching join resolution. Under some
-// interleaving, an error is reachable: after both threads finish, x could be
-// 1 if thread 1 runs before thread 0.
+// array of handles (pthread_create(&t[0], ...) / pthread_join(t[0], ...))
+// rather than through plain variables. The indices are literal, so the join
+// still resolves via the fast-path hint (see array_handle_safe.c); the point
+// here is that an array handle is accepted at all, on a program with a real
+// violation. Under some interleaving, an error is reachable: after both
+// threads finish, x could be 1 if thread 1 runs before thread 0.
 
 #include <pthread.h>
 
