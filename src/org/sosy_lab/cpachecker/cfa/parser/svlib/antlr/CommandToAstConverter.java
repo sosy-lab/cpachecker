@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibLogic;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
@@ -29,8 +30,10 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.Decl
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.DeclareFunCommandContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.DeclareSortCommandContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.DeclareVarContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.DefineFunCommandContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.DefineProcContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.DefineProcRecContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.Function_defContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.GetWitnessContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.OptionContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.ProcDeclarationArgumentsContext;
@@ -44,7 +47,9 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingParameterDeclara
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSmtFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSmtFunctionDefinition;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSortDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SmtLibDefineFunCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAnnotateTagCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAssertCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibCommand;
@@ -157,6 +162,46 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
     }
 
     return parameters.build();
+  }
+
+  @Override
+  public SvLibCommand visitDefineFunCommand(DefineFunCommandContext ctx) {
+    Function_defContext functionDefContext = ctx.cmd_defineFun().function_def();
+    String functionName = functionDefContext.symbol().getText();
+    SvLibSmtFunctionDefinition functionDeclaration =
+        new SvLibSmtFunctionDefinition(
+            fileLocationFromContext(ctx),
+            functionName,
+            FluentIterable.from(functionDefContext.sorted_var())
+                .transform(sortedVarContext -> Objects.requireNonNull(sortedVarContext).sort())
+                .transform(sortToAstTypeConverter::visit)
+                .toList(),
+            sortToAstTypeConverter.visit(functionDefContext.sort()),
+            FluentIterable.from(functionDefContext.sorted_var())
+                .transform(
+                    sortedVarContext ->
+                        new SvLibParsingParameterDeclaration(
+                            fileLocationFromContext(
+                                Objects.requireNonNull(sortedVarContext).symbol()),
+                            sortToAstTypeConverter.visit(sortedVarContext.sort()),
+                            sortedVarContext.symbol().getText(),
+                            functionName))
+                .toList());
+
+    scope.addVariable(
+        new SvLibParsingVariableDeclaration(
+            fileLocationFromContext(ctx),
+            true,
+            false,
+            functionDeclaration.getType(),
+            functionName,
+            functionName,
+            null));
+
+    return new SmtLibDefineFunCommand(
+        functionDeclaration,
+        termConverter.visit(functionDefContext.term()),
+        fileLocationFromContext(ctx));
   }
 
   @Override

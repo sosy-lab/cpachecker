@@ -12,16 +12,16 @@ import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
-import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSmtFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSmtFunctionDefinition;
 
 public final class SmtLibDefineFunCommand implements SmtLibCommand, SvLibCommand {
   @Serial private static final long serialVersionUID = 3049346957426478591L;
-  private final SvLibSmtFunctionDeclaration functionDeclaration;
+  private final SvLibSmtFunctionDefinition functionDeclaration;
   private final SvLibTerm body;
   private final FileLocation fileLocation;
 
   public SmtLibDefineFunCommand(
-      SvLibSmtFunctionDeclaration pFunctionDeclaration,
+      SvLibSmtFunctionDefinition pFunctionDeclaration,
       SvLibTerm pBody,
       FileLocation pFileLocation) {
     functionDeclaration = pFunctionDeclaration;
@@ -54,7 +54,7 @@ public final class SmtLibDefineFunCommand implements SmtLibCommand, SvLibCommand
         + ")";
   }
 
-  public SvLibSmtFunctionDeclaration getFunctionDeclaration() {
+  public SvLibSmtFunctionDefinition getFunctionDeclaration() {
     return functionDeclaration;
   }
 

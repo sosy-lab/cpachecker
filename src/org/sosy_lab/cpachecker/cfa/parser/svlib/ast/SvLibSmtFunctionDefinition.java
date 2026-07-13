@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.ast;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
@@ -21,23 +22,35 @@ import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
  * Corresponds to a mathematical function declaration i.e. as given in SMT-LIB. It has neither
  * parameters, nor a return variable, since this is handled by assumptions in SMT-LIB
  */
-public final class SvLibSmtFunctionDeclaration implements SvLibParsingDeclaration {
+public final class SvLibSmtFunctionDefinition implements SvLibParsingDeclaration {
 
-  @Serial private static final long serialVersionUID = 5745608767872283746L;
+  @Serial private static final long serialVersionUID = 8878814146461644214L;
   private final FileLocation fileLocation;
   private final String name;
   private final ImmutableList<SvLibType> inputTypes;
   private final SvLibType returnType;
+  private final List<SvLibParsingParameterDeclaration> parameters;
 
-  public SvLibSmtFunctionDeclaration(
+  public SvLibSmtFunctionDefinition(
       FileLocation pFileLocation,
       String pName,
       List<SvLibType> pInputTypes,
-      SvLibType pReturnType) {
+      SvLibType pReturnType,
+      List<SvLibParsingParameterDeclaration> pParameters) {
+    Preconditions.checkArgument(
+        pInputTypes.size() == pParameters.size(),
+        "Input types and parameters must have the same size");
+    for (int i = 0; i < pInputTypes.size(); i++) {
+      Preconditions.checkArgument(
+          pInputTypes.get(i).equals(pParameters.get(i).getType()),
+          "Input type and parameter type must match for parameter %s",
+          pParameters.get(i).getName());
+    }
     fileLocation = pFileLocation;
     name = pName;
     inputTypes = ImmutableList.copyOf(pInputTypes);
     returnType = pReturnType;
+    parameters = pParameters;
   }
 
   public String getName() {
@@ -50,16 +63,33 @@ public final class SvLibSmtFunctionDeclaration implements SvLibParsingDeclaratio
   }
 
   @Override
-  public SvLibFunctionType getType() {
+  public SvLibType getType() {
+    if (inputTypes.isEmpty()) {
+      return returnType;
+    }
+
     return new SvLibFunctionType(inputTypes, returnType);
+  }
+
+  public SvLibType getReturnType() {
+    return returnType;
+  }
+
+  public List<SvLibParsingParameterDeclaration> getParameters() {
+    return parameters;
   }
 
   @Override
   public SvLibFunctionDeclaration toSimpleDeclaration() {
-    throw new UnsupportedOperationException(
-        "Cannot transform a definition "
-            + "(which does not contain parameters) into a simple "
-            + "declaration requiring them. Look into using `SvLibSmtFunctionDefinition`.");
+    return new SvLibFunctionDeclaration(
+        fileLocation,
+        new SvLibFunctionType(inputTypes, returnType),
+        name,
+        name,
+        ImmutableList.copyOf(
+            parameters.stream()
+                .map(SvLibParsingParameterDeclaration::toSimpleDeclaration)
+                .toList()));
   }
 
   @Override
@@ -88,7 +118,7 @@ public final class SvLibSmtFunctionDeclaration implements SvLibParsingDeclaratio
       return true;
     }
 
-    return pO instanceof SvLibSmtFunctionDeclaration other
+    return pO instanceof SvLibSmtFunctionDefinition other
         && name.equals(other.name)
         && getType().equals(other.getType());
   }

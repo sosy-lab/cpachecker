@@ -9,7 +9,8 @@
 package org.sosy_lab.cpachecker.cfa.parser.svlib.ast;
 
 public sealed interface SvLibParsingDeclaration extends SvLibSimpleParsingDeclaration
-    permits SvLibSortDeclaration,
-        SvLibParsingVariableDeclaration,
+    permits SvLibParsingVariableDeclaration,
         SvLibProcedureDeclaration,
-        SvLibSmtFunctionDeclaration {}
+        SvLibSmtFunctionDeclaration,
+        SvLibSmtFunctionDefinition,
+        SvLibSortDeclaration {}

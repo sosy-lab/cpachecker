@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.svlibtoformula.SvLibToSmtConverterUtils.cleanVariableNameForJavaSMT;
 
 import com.google.common.base.Verify;
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.FormatMethod;
 import java.io.PrintStream;
 import java.util.List;
@@ -31,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclarationTuple;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibFunctionCallEdge;
@@ -38,11 +40,25 @@ import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibProcedureSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibStatementEdge;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSmtFunctionDefinition;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SmtLibCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SmtLibDefineFunCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SmtLibDefineFunRecCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SmtLibDefineFunsRecCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAssertCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibDeclareConstCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibDeclareFunCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibDeclareSortCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetInfoCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetLogicCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetOptionCommand;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.LanguageToSmtConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -67,12 +83,12 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
   private final FormulaManagerView fmgr;
   private final SvLibFormulaEncodingOptions options;
   private final Optional<VariableClassification> variableClassification;
+  private final List<SmtLibCommand> smtLibCommands;
   private final BooleanFormulaManagerView bfmgr;
 
   @SuppressWarnings("unused")
   private final BitvectorFormulaManagerView efmgr;
 
-  @SuppressWarnings("unused")
   private final FunctionFormulaManagerView ffmgr;
 
   private final LogManagerWithoutDuplicates logger;
@@ -85,11 +101,13 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
       FormulaManagerView pFmgr,
       Optional<VariableClassification> pVariableClassification,
       LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier) {
+      ShutdownNotifier pShutdownNotifier,
+      List<SmtLibCommand> pSmtLibCommands) {
 
     fmgr = pFmgr;
     options = pOptions;
     variableClassification = pVariableClassification;
+    smtLibCommands = pSmtLibCommands;
 
     bfmgr = fmgr.getBooleanFormulaManager();
     efmgr = fmgr.getBitvectorFormulaManager();
@@ -182,12 +200,100 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
     BooleanFormula newFormula = bfmgr.and(pOldFormula.getFormula(), edgeFormula);
     int newLength = pOldFormula.getLength() + 1;
 
+    // Now add all the smt-lib declarations into the formula
+    // TODO: Add them once as assumptions to the pathformula. IIRC Philipp implemented something for
+    //  this
+    for (SmtLibCommand smtLibCommand : smtLibCommands) {
+      newFormula =
+          switch (smtLibCommand) {
+            case SmtLibDefineFunCommand pSmtLibDefineFunCommand ->
+                bfmgr.and(newFormula, makeDefineFunAxiom(pSmtLibDefineFunCommand, ssa));
+            case SmtLibDefineFunRecCommand pSmtLibDefineFunRecCommand ->
+                throw new UnsupportedCodeException(
+                    "Define fun rec commands are not yet supported", pEdge);
+            case SmtLibDefineFunsRecCommand pSmtLibDefineFunsRecCommand ->
+                throw new UnsupportedCodeException(
+                    "Define fun rec commands are not yet supported", pEdge);
+            case SvLibAssertCommand pSvLibAssertCommand -> {
+              SvLibTerm term = pSvLibAssertCommand.getTerm();
+              yield bfmgr.and(
+                  newFormula,
+                  makePredicate(
+                      new SvLibAssumeEdge(
+                          term.toASTString(),
+                          FileLocation.DUMMY,
+                          CFANode.newDummyCFANode(),
+                          CFANode.newDummyCFANode(),
+                          term,
+                          true,
+                          false,
+                          false),
+                      "",
+                      ssa,
+                      constraints,
+                      pErrorConditions));
+            }
+            case SvLibDeclareConstCommand pSvLibDeclareConstCommand -> newFormula;
+            case SvLibDeclareFunCommand pSvLibDeclareFunCommand -> newFormula;
+            case SvLibDeclareSortCommand pSvLibDeclareSortCommand -> newFormula;
+            case SvLibSetInfoCommand pSvLibSetInfoCommand -> newFormula;
+            case SvLibSetLogicCommand pSvLibSetLogicCommand -> newFormula;
+            case SvLibSetOptionCommand pSvLibSetOptionCommand -> newFormula;
+          };
+    }
+
     @SuppressWarnings("deprecation")
     // This is an intended use, SvLibToFormulaConverter just does not have access to the constructor
     PathFormula result =
         PathFormula.createManually(
             newFormula, newSsa, pOldFormula.getPointerTargetSet(), newLength);
+
     return result;
+  }
+
+  /**
+   * Encode a {@code (define-fun name (params) sort body)} command as a boolean formula.
+   *
+   * <p>A definition without parameters defines a constant and is encoded as the equality {@code
+   * name = body}, with the constant encoded as a variable in the same way uses of it are encoded by
+   * {@link SvLibTermToFormulaConverter}. A definition with parameters is encoded as an
+   * uninterpreted function constrained by the axiom {@code forall params. name(params) = body}. The
+   * parameter variables are built exactly like {@link SvLibTermToFormulaConverter} encodes their
+   * uses inside the body, such that the quantifier binds the free variables of the body formula.
+   */
+  private BooleanFormula makeDefineFunAxiom(SmtLibDefineFunCommand pCommand, SSAMapBuilder ssa) {
+    SvLibTerm body = pCommand.getBody();
+    SvLibSmtFunctionDefinition functionDefinition = pCommand.getFunctionDeclaration();
+
+    Formula bodyFormula = SvLibTermToFormulaConverter.convertTerm(body, ssa, fmgr, this);
+
+    String functionName = cleanVariableNameForJavaSMT(functionDefinition.getName());
+    FormulaType<?> returnFormulaType =
+        ((SvLibSmtLibType) functionDefinition.getReturnType()).toFormulaType();
+
+    if (functionDefinition.getParameters().isEmpty()) {
+      int useIndex =
+          SvLibTermToFormulaConverter.getIndex(
+              functionName, functionDefinition.getReturnType(), ssa, this);
+      Formula constant = fmgr.makeVariable(returnFormulaType, functionName, useIndex);
+      return fmgr.makeEqual(constant, bodyFormula);
+    }
+
+    ImmutableList.Builder<Formula> parameterFormulas = ImmutableList.builder();
+    for (SvLibParsingParameterDeclaration parameter : functionDefinition.getParameters()) {
+      String parameterName = cleanVariableNameForJavaSMT(parameter.getQualifiedName());
+      int useIndex =
+          SvLibTermToFormulaConverter.getIndex(parameterName, parameter.getType(), ssa, this);
+      parameterFormulas.add(
+          fmgr.makeVariable(
+              ((SvLibSmtLibType) parameter.getType()).toFormulaType(), parameterName, useIndex));
+    }
+    ImmutableList<Formula> parameters = parameterFormulas.build();
+
+    Formula functionApplication =
+        ffmgr.declareAndCallUF(functionName, returnFormulaType, parameters);
+    BooleanFormula definition = fmgr.makeEqual(functionApplication, bodyFormula);
+    return fmgr.getQuantifiedFormulaManager().forall(parameters, definition);
   }
 
   protected BooleanFormula makePredicate(
