@@ -47,8 +47,7 @@ import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 public class SvLibTermToFormulaConverter {
 
-  private static final Pattern EXTRACT_PATTERN =
-      Pattern.compile("\\(_ extract (\\d+) (\\d+)\\)");
+  private static final Pattern EXTRACT_PATTERN = Pattern.compile("\\(_ extract (\\d+) (\\d+)\\)");
 
   /**
    * Compute by how many bits a zero_extend or sign_extend application extends its argument, based

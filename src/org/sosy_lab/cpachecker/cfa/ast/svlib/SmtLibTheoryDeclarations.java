@@ -296,8 +296,8 @@ public class SmtLibTheoryDeclarations {
 
   /**
    * The indexed SMT-LIB extract operation {@code (_ extract pMsb pLsb)}. The indices are part of
-   * the name of the declaration, since they are needed when encoding the operation as a formula
-   * and cannot be recovered from the argument and return types alone.
+   * the name of the declaration, since they are needed when encoding the operation as a formula and
+   * cannot be recovered from the argument and return types alone.
    */
   public static SvLibFunctionDeclaration bitVectorExtract(int pSourceSize, int pMsb, int pLsb) {
     Verify.verify(pSourceSize > pMsb && pMsb >= pLsb && pLsb >= 0);
@@ -472,8 +472,7 @@ public class SmtLibTheoryDeclarations {
     return new SvLibFunctionDeclaration(
         FileLocation.DUMMY,
         new SvLibFunctionType(
-            ImmutableList.of(new SvLibSmtLibBitVectorType(pSize)),
-            new SvLibSmtLibBitVectorType(1)),
+            ImmutableList.of(new SvLibSmtLibBitVectorType(pSize)), new SvLibSmtLibBitVectorType(1)),
         "redxor",
         "redxor",
         ImmutableList.of());
