@@ -258,7 +258,7 @@ public final class BuiltinAtomicFunctions {
     private final ImmutableList<Integer> memoryOrderIndices;
     private final OptionalInt weakArgumentIndex;
     private final @Nullable BinaryOperator operator;
-    private final boolean negated;
+    private final boolean bitwiseNegated;
 
     /** A builtin without a {@code weak} argument and without an arithmetic operation. */
     CAtomicOperations(
@@ -310,7 +310,7 @@ public final class BuiltinAtomicFunctions {
         String pRepresentation,
         CAtomicOperationType pOperationType,
         BinaryOperator pOperator,
-        boolean pNegated) {
+        boolean pBitwiseNegated) {
       this(
           pRepresentation,
           pOperationType,
@@ -319,7 +319,7 @@ public final class BuiltinAtomicFunctions {
           ImmutableList.of(2),
           OptionalInt.empty(),
           pOperator,
-          pNegated);
+          pBitwiseNegated);
     }
 
     CAtomicOperations(
@@ -330,7 +330,7 @@ public final class BuiltinAtomicFunctions {
         ImmutableList<Integer> pMemoryOrderIndices,
         OptionalInt pWeakArgumentIndex,
         @Nullable BinaryOperator pOperator,
-        boolean pNegated) {
+        boolean pBitwiseNegated) {
       representation = pRepresentation;
       operationType = pOperationType;
       generic = pGeneric;
@@ -338,7 +338,7 @@ public final class BuiltinAtomicFunctions {
       memoryOrderIndices = pMemoryOrderIndices;
       weakArgumentIndex = pWeakArgumentIndex;
       operator = pOperator;
-      negated = pNegated;
+      bitwiseNegated = pBitwiseNegated;
     }
 
     public String getRepresentation() {
@@ -385,9 +385,12 @@ public final class BuiltinAtomicFunctions {
       return weakArgumentIndex;
     }
 
-    /** Whether the result of {@link #getOperator} is bit-wise negated, as for the NAND builtins. */
-    public boolean isNegated() {
-      return negated;
+    /**
+     * Whether the result of {@link #getOperator} is bit-wise negated with {@code ~}, which only the
+     * NAND builtins are, cf. {@link #ATOMIC_FETCH_NAND}. 
+     */
+    public boolean isBitwiseNegated() {
+      return bitwiseNegated;
     }
 
     /** The arithmetic operation of a fetch builtin, or {@code null} for the other builtins. */
@@ -511,7 +514,7 @@ public final class BuiltinAtomicFunctions {
           pTarget);
     }
     CExpression result = pBuilder.buildBinaryExpression(pTarget, pValue, binaryOperator);
-    if (pOperation.isNegated()) {
+    if (pOperation.isBitwiseNegated()) {
       result =
           new CUnaryExpression(
               FileLocation.DUMMY, result.getExpressionType(), result, UnaryOperator.TILDE);
