@@ -14,6 +14,8 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.svlibtoformula
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBitVectorConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
@@ -44,6 +46,25 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 public class SvLibTermToFormulaConverter {
+
+  private static final Pattern EXTRACT_PATTERN =
+      Pattern.compile("\\(_ extract (\\d+) (\\d+)\\)");
+
+  /**
+   * Compute by how many bits a zero_extend or sign_extend application extends its argument, based
+   * on the difference between the size of the resulting bitvector and the size of the argument.
+   */
+  private static int getExtensionBits(
+      SvLibGeneralSymbolApplicationTerm pTerm,
+      BitvectorFormula pArgument,
+      BitvectorFormulaManagerView pBvmgr) {
+    Verify.verify(pTerm.getExpressionType() instanceof SvLibSmtLibBitVectorType);
+    int extensionBits =
+        ((SvLibSmtLibBitVectorType) pTerm.getExpressionType()).getSize()
+            - pBvmgr.getLength(pArgument);
+    Verify.verify(extensionBits >= 0);
+    return extensionBits;
+  }
 
   public static @NonNull Formula convertTerm(
       SvLibRelationalTerm pSvLibRelationalTerm,
@@ -268,7 +289,24 @@ public class SvLibTermToFormulaConverter {
             pSvLibGeneralSymbolApplicationTerm.getTerms(),
             term -> (BitvectorFormula) convertTerm(term, ssa, fmgr, pConverter));
     BitvectorFormulaManagerView bvmgr = fmgr.getBitvectorFormulaManager();
+
+    // The extract operation is an indexed identifier, whose indices are part of the name of its
+    // declaration, e.g. "(_ extract 31 31)".
+    Matcher extractMatcher = EXTRACT_PATTERN.matcher(functionName);
+    if (extractMatcher.matches()) {
+      Verify.verify(args.size() == 1);
+      return bvmgr.extract(
+          args.getFirst(),
+          Integer.parseInt(extractMatcher.group(1)),
+          Integer.parseInt(extractMatcher.group(2)));
+    }
+
     switch (functionName) {
+      case "concat" -> {
+        Verify.verify(args.size() == 2);
+        // In SMT-LIB the first argument of concat provides the high-order bits
+        return bvmgr.concat(args.getFirst(), args.get(1));
+      }
       case "extract" -> {
         Verify.verify(args.size() == 1);
         // FIXME replace hardcoded values
@@ -309,15 +347,34 @@ public class SvLibTermToFormulaConverter {
         return bvmgr.remainder(args.getFirst(), args.get(1), false);
       }
       case "bvshl" -> {
-        // TODO make sure that order of args is correct!
-        throw new IllegalArgumentException("TermToFormula for bvshl not yet implemented");
+        Verify.verify(args.size() == 2);
+        // In SMT-LIB (bvshl s t) shifts s to the left by t, which matches the argument order
+        // of JavaSMT's shiftLeft
+        return bvmgr.shiftLeft(args.getFirst(), args.get(1));
       }
       case "bvlshr" -> {
-        // TODO make sure that order of args is correct!
-        throw new IllegalArgumentException("TermToFormula for bvlshr not yet implemented");
+        Verify.verify(args.size() == 2);
+        // In SMT-LIB (bvlshr s t) shifts s to the right by t, which matches the argument order
+        // of JavaSMT's shiftRight
+        return bvmgr.shiftRight(args.getFirst(), args.get(1), false);
       }
 
       /* not in SMT-LIB FixedSizeBitVectors but used by solvers Z3 & MathSAT */
+      case "redxor" -> {
+        Verify.verify(args.size() == 1);
+        BitvectorFormula operand = args.getFirst();
+        BitvectorFormula result = bvmgr.extract(operand, 0, 0);
+        for (int i = 1; i < bvmgr.getLength(operand); i++) {
+          result = bvmgr.xor(result, bvmgr.extract(operand, i, i));
+        }
+        return result;
+      }
+      case "bvashr" -> {
+        Verify.verify(args.size() == 2);
+        // In SMT-LIB (bvashr s t) shifts s to the right by t, which matches the argument order
+        // of JavaSMT's shiftRight
+        return bvmgr.shiftRight(args.getFirst(), args.get(1), true);
+      }
       case "=" -> {
         Verify.verify(args.size() == 2);
         return bvmgr.equal(args.getFirst(), args.get(1));
@@ -369,13 +426,17 @@ public class SvLibTermToFormulaConverter {
       }
       case "zero_extend" -> {
         Verify.verify(args.size() == 1);
-        // FIXME replace constant
-        return bvmgr.extend(args.getFirst(), 16, false);
+        return bvmgr.extend(
+            args.getFirst(),
+            getExtensionBits(pSvLibGeneralSymbolApplicationTerm, args.getFirst(), bvmgr),
+            false);
       }
       case "sign_extend" -> {
         Verify.verify(args.size() == 1);
-        // FIXME replace constant
-        return bvmgr.extend(args.getFirst(), 16, true);
+        return bvmgr.extend(
+            args.getFirst(),
+            getExtensionBits(pSvLibGeneralSymbolApplicationTerm, args.getFirst(), bvmgr),
+            true);
       }
 
       default ->

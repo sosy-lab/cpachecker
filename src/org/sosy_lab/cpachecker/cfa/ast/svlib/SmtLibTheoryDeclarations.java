@@ -272,7 +272,35 @@ public class SmtLibTheoryDeclarations {
   }
 
   /** Bit Vector stuff */
-  // TODO concat
+  public static SvLibFunctionDeclaration bitVectorConcat(int pLeftSize, int pRightSize) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(
+                new SvLibSmtLibBitVectorType(pLeftSize), new SvLibSmtLibBitVectorType(pRightSize)),
+            new SvLibSmtLibBitVectorType(pLeftSize + pRightSize)),
+        "concat",
+        "concat",
+        ImmutableList.of());
+  }
+
+  /**
+   * The indexed SMT-LIB extract operation {@code (_ extract pMsb pLsb)}. The indices are part of
+   * the name of the declaration, since they are needed when encoding the operation as a formula
+   * and cannot be recovered from the argument and return types alone.
+   */
+  public static SvLibFunctionDeclaration bitVectorExtract(int pSourceSize, int pMsb, int pLsb) {
+    Verify.verify(pSourceSize > pMsb && pMsb >= pLsb && pLsb >= 0);
+    String name = "(_ extract %d %d)".formatted(pMsb, pLsb);
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(new SvLibSmtLibBitVectorType(pSourceSize)),
+            new SvLibSmtLibBitVectorType(pMsb - pLsb + 1)),
+        name,
+        name,
+        ImmutableList.of());
+  }
 
   public static SvLibFunctionDeclaration bitVectorExtract(int pSourceSize, int pTargetSize) {
     return new SvLibFunctionDeclaration(
@@ -416,6 +444,30 @@ public class SmtLibTheoryDeclarations {
   }
 
   /* Bit Vector stuff not in the SMT-LIB FixedSizeBitVector theory but used by Z3 */
+
+  public static SvLibFunctionDeclaration bitVectorArithmeticShiftRight(int pSize) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(
+                new SvLibSmtLibBitVectorType(pSize), new SvLibSmtLibBitVectorType(pSize)),
+            new SvLibSmtLibBitVectorType(pSize)),
+        "bvashr",
+        "bvashr",
+        ImmutableList.of());
+  }
+
+  /** Reduction xor as used by btor2 and Z3: xor of all bits of the argument. */
+  public static SvLibFunctionDeclaration bitVectorReductionXor(int pSize) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(new SvLibSmtLibBitVectorType(pSize)),
+            new SvLibSmtLibBitVectorType(1)),
+        "redxor",
+        "redxor",
+        ImmutableList.of());
+  }
 
   public static SvLibFunctionDeclaration bitVectorUnsignedLessEqual(int pSize) {
     return new SvLibFunctionDeclaration(

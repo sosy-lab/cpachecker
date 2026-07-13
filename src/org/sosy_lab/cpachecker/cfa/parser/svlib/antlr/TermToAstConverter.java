@@ -122,6 +122,30 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
     }
   }
 
+  @Override
+  public SvLibTerm visitApplicationTerm(ApplicationTermContext ctx) {
+    Qual_identiferContext functionSymbolContext = ctx.qual_identifer();
+    List<SvLibTerm> arguments =
+        transformedImmutableListCopy(
+            ctx.term(), termContext -> Objects.requireNonNull(termContext).accept(this));
+
+    SvLibFunctionDeclaration declaration;
+    if (functionSymbolContext.GRW_As() == null
+        && functionSymbolContext.identifier()
+            instanceof IdentifierUnderscoreContext pUnderscoreContext) {
+      declaration = getVariableDeclarationForIndexedSymbol(pUnderscoreContext, arguments);
+    } else {
+      declaration =
+          getVariableDeclarationForSymbol(
+              functionSymbolContext.getText(), scope.getLogics(), arguments);
+    }
+
+    return new SvLibSymbolApplicationTerm(
+        new SvLibIdTerm(declaration, fileLocationFromContext(functionSymbolContext)),
+        arguments,
+        fileLocationFromContext(ctx));
+  }
+
   private SvLibFunctionDeclaration getVariableDeclarationForSymbol(
       String pSymbol, Set<SmtLibLogic> pLogics, List<SvLibTerm> pArguments) {
 
@@ -234,7 +258,12 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
           transformedImmutableListCopy(pArguments, SvLibTerm::getExpressionType);
       switch (pSymbol) {
         case "concat" -> {
-          throw new IllegalArgumentException("concat not yet implemented");
+          Verify.verify(pArguments.size() == 2);
+          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
+          Verify.verify(argumentTypes.getLast() instanceof SvLibSmtLibBitVectorType);
+          return SmtLibTheoryDeclarations.bitVectorConcat(
+              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize(),
+              ((SvLibSmtLibBitVectorType) argumentTypes.getLast()).getSize());
         }
         case "extract" -> {
           Verify.verify(pArguments.size() == 1);
@@ -307,6 +336,19 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
         }
 
         /* not in SMT-LIB FixedSizeBitVectors but used by solvers Z3 & MathSAT */
+        case "redxor" -> {
+          Verify.verify(pArguments.size() == 1);
+          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
+          return SmtLibTheoryDeclarations.bitVectorReductionXor(
+              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
+        }
+        case "bvashr" -> {
+          Verify.verify(pArguments.size() == 2);
+          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
+          Verify.verify(argumentTypes.getFirst().equals(argumentTypes.getLast()));
+          return SmtLibTheoryDeclarations.bitVectorArithmeticShiftRight(
+              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
+        }
         case "=" -> {
           Verify.verify(pArguments.size() == 2);
           Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
@@ -412,18 +454,35 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
         "Unsupported logic for the resolution of symbol: " + pSymbol);
   }
 
-  @Override
-  public SvLibTerm visitApplicationTerm(ApplicationTermContext ctx) {
-    Qual_identiferContext functionSymbolContext = ctx.qual_identifer();
-    List<SvLibTerm> arguments =
-        transformedImmutableListCopy(
-            ctx.term(), termContext -> Objects.requireNonNull(termContext).accept(this));
-    return new SvLibSymbolApplicationTerm(
-        new SvLibIdTerm(
-            getVariableDeclarationForSymbol(
-                functionSymbolContext.getText(), scope.getLogics(), arguments),
-            fileLocationFromContext(functionSymbolContext)),
-        arguments,
-        fileLocationFromContext(ctx));
+  /** Resolves indexed identifiers like {@code (_ extract 31 31)} applied to arguments. */
+  private SvLibFunctionDeclaration getVariableDeclarationForIndexedSymbol(
+      IdentifierUnderscoreContext pCtx, List<SvLibTerm> pArguments) {
+    String symbol = pCtx.symbol().getText();
+    switch (symbol) {
+      case "extract" -> {
+        Verify.verify(pCtx.index().size() == 2);
+        Verify.verify(pArguments.size() == 1);
+        Verify.verify(
+            pArguments.getFirst().getExpressionType() instanceof SvLibSmtLibBitVectorType);
+        return SmtLibTheoryDeclarations.bitVectorExtract(
+            ((SvLibSmtLibBitVectorType) pArguments.getFirst().getExpressionType()).getSize(),
+            Integer.parseInt(pCtx.index(0).getText()),
+            Integer.parseInt(pCtx.index(1).getText()));
+      }
+      case "zero_extend", "sign_extend" -> {
+        Verify.verify(pCtx.index().size() == 1);
+        Verify.verify(pArguments.size() == 1);
+        Verify.verify(
+            pArguments.getFirst().getExpressionType() instanceof SvLibSmtLibBitVectorType);
+        int sourceSize =
+            ((SvLibSmtLibBitVectorType) pArguments.getFirst().getExpressionType()).getSize();
+        int targetSize = sourceSize + Integer.parseInt(pCtx.index(0).getText());
+        return symbol.equals("zero_extend")
+            ? SmtLibTheoryDeclarations.bitVectorZeroExtend(sourceSize, targetSize)
+            : SmtLibTheoryDeclarations.bitVectorSignExtend(sourceSize, targetSize);
+      }
+      default ->
+          throw new IllegalArgumentException("Unsupported indexed symbol: (_ " + symbol + " ...)");
+    }
   }
 }

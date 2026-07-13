@@ -196,10 +196,10 @@ public class SvLibStatementToCfaVisitor implements SvLibStatementVisitor<VisitRe
   public VisitResult visit(SvLibHavocStatement pSvLibHavocStatement) throws NoException {
     trackTagPropertiesForStatementStartingWithNode(pSvLibHavocStatement, currentStartingNode);
 
-    CFANode newNode = getNewNode();
     CFANode currentNode = currentStartingNode;
     // Rewrite this into a function call assignment with a special "havoc" function.
     for (SvLibSimpleParsingDeclaration variable : pSvLibHavocStatement.getVariables()) {
+      CFANode newNode = getNewNode();
       SvLibFunctionDeclaration havocFunctionDeclaration =
           SvLibFunctionDeclaration.nondetFunctionWithReturnType(variable.getType());
 
