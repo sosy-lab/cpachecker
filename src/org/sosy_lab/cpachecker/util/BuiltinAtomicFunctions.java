@@ -387,7 +387,7 @@ public final class BuiltinAtomicFunctions {
 
     /**
      * Whether the result of {@link #getOperator} is bit-wise negated with {@code ~}, which only the
-     * NAND builtins are, cf. {@link #ATOMIC_FETCH_NAND}. 
+     * NAND builtins are, cf. {@link #ATOMIC_FETCH_NAND}.
      */
     public boolean isBitwiseNegated() {
       return bitwiseNegated;

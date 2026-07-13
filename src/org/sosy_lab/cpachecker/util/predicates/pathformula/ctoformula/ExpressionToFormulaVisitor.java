@@ -1312,7 +1312,7 @@ public class ExpressionToFormulaVisitor
       checkSequentiallyConsistent(e, parameters, memoryOrderIndex, operation);
     }
 
-    CExpression pointerParam = parameters.get(0);
+    CExpression pointerParam = parameters.getFirst();
     return switch (operation.getOperationType()) {
       case LOAD ->
           atomicLoad(
