@@ -32,6 +32,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCType;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -378,7 +379,14 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
    */
   @Override
   public int getExistingOrNewIndex(String name, CType type, SSAMapBuilder ssa) {
-    checkSsaSavedType(name, type, (CType) ssa.getType(name));
+    // If the variable was registered in the SSA Map by the ACSL package, it might be stored as an
+    // AcslCType, so we need to unwrap it to compare the types
+    CType ssaType;
+    if (ssa.getType(name) instanceof AcslCType) {
+      ssaType = ((AcslCType) ssa.getType(name)).getType();
+    } else ssaType = (CType) ssa.getType(name);
+
+    checkSsaSavedType(name, type, ssaType);
     return super.getExistingOrNewIndex(name, type, ssa);
   }
 

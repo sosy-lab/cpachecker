@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class AcslToFormulaVisitorsTest {
@@ -468,12 +469,12 @@ public class AcslToFormulaVisitorsTest {
     assertThat(smtSolver.isUnsat(f)).isTrue();
   }
 
-  // TODO there is still a bug in the translation of this, why does a not always get an ssa index??
   @Ignore
   @Test
+  // TODO for some reason the solver just sets P to true and returns sat
   public void testAcslPredicateOverArray()
       throws InvalidConfigurationException, SolverException, InterruptedException {
-    // predicate P(int *a, integer i) = (i == 0) ? (a[0] == 0) : (P(a, i-1) && a[i] == 0);
+    // predicate P(int *a, integer i) = (i <= 0) ? (a[0] == 0) : (P(a, i-1) && a[i] == 0);
     // !(P(a, 2) => a[0] == 0 && a[1] == 0 && a[2] == 0) should be unsat
 
     AcslParameterDeclaration a =
@@ -484,13 +485,15 @@ public class AcslToFormulaVisitorsTest {
             "P");
 
     AcslParameterDeclaration index =
-        new AcslParameterDeclaration(FileLocation.DUMMY, new AcslCType(basicInt()), "i", "P");
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i", "P");
 
     AcslPredicateDeclaration declP =
         new AcslPredicateDeclaration(
             FileLocation.DUMMY,
-            // Function type
-            new AcslPredicateType(ImmutableList.of(a.getType(), index.getType()), false),
+            // Function type: use INTEGER, because AcslCType can be cast to it,
+            // AcslPredicateApplicationPredicate expects the most general type here
+            new AcslPredicateType(
+                ImmutableList.of(a.getType(), AcslBuiltinLogicType.INTEGER), false),
             "P",
             "P",
             // Polymorphic types
@@ -522,7 +525,7 @@ public class AcslToFormulaVisitorsTest {
             // Function body
             b.ite(
                 // if
-                b.eq(new AcslIdTerm(FileLocation.DUMMY, index), b.integer(0)),
+                b.leq(new AcslIdTerm(FileLocation.DUMMY, index), b.integer(0)),
                 // then
                 b.eq(a0, b.integer(0)),
                 // else
@@ -545,19 +548,13 @@ public class AcslToFormulaVisitorsTest {
     BooleanFormula fDefinition =
         translate(
             new AcslForallPredicate(
-                FileLocation.DUMMY, ImmutableList.of(a, index), b.equivalent(pai, defP.getBody())));
+                FileLocation.DUMMY, ImmutableList.of(index), b.equivalent(pai, defP.getBody())));
 
     AcslPredicateApplicationPredicate pa2 =
         new AcslPredicateApplicationPredicate(
             FileLocation.DUMMY,
             declP,
             ImmutableList.of(new AcslIdTerm(FileLocation.DUMMY, a), b.integer(2)));
-
-    AcslPredicateApplicationPredicate pa1 =
-        new AcslPredicateApplicationPredicate(
-            FileLocation.DUMMY,
-            declP,
-            ImmutableList.of(new AcslIdTerm(FileLocation.DUMMY, a), b.integer(1)));
 
     AcslPredicate pred =
         b.implies(
@@ -569,13 +566,11 @@ public class AcslToFormulaVisitorsTest {
 
     boolean unsat;
 
-    try (ProverEnvironment prover = smtSolver.newProverEnvironment()) {
-      // TODO I just want some of these for testing purposes, remove some later
+    try (ProverEnvironment prover = smtSolver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       prover.addConstraint(fDefinition);
-      prover.addConstraint(translate(pa2));
-      prover.addConstraint(translate(b.not(pa1)));
       prover.addConstraint(f);
       unsat = prover.isUnsat();
+      //For the model: System.out.println(prover.getModel());
     }
     assertThat(unsat).isTrue();
   }
