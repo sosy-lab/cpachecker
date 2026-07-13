@@ -8,8 +8,8 @@
 
 format_version: '1.0'
 
-input_files: 'example-atomic-store-n-false.c'
+input_files: 'example-atomic-and-fetch-false.c'
 
 properties:
-  - property_file: ../../config/properties/unreach-call.prp
+  - property_file: ../../../config/properties/unreach-call.prp
     expected_verdict: false

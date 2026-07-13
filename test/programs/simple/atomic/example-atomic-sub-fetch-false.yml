@@ -8,8 +8,8 @@
 
 format_version: '1.0'
 
-input_files: 'example-atomic-pointer-arithmetic.c'
+input_files: 'example-atomic-sub-fetch-false.c'
 
 properties:
-  - property_file: ../../config/properties/unreach-call.prp
-    expected_verdict: true
+  - property_file: ../../../config/properties/unreach-call.prp
+    expected_verdict: false

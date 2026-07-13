@@ -8,8 +8,8 @@
 
 format_version: '1.0'
 
-input_files: 'example-atomic-fetch-nand-false.c'
+input_files: 'example-atomic-irrelevant-lhs.c'
 
 properties:
-  - property_file: ../../config/properties/unreach-call.prp
-    expected_verdict: false
+  - property_file: ../../../config/properties/unreach-call.prp
+    expected_verdict: true
