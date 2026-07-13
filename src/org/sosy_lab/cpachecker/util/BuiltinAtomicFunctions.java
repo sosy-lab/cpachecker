@@ -12,8 +12,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.OptionalInt;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -22,7 +24,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -394,12 +395,41 @@ public final class BuiltinAtomicFunctions {
       return operator;
     }
 
+    /**
+     * Whether this builtin writes to the object that one of its pointer arguments designates, and
+     * thus has an effect that must not be dropped even if the result of the call is unused.
+     */
+    public boolean hasSideEffect() {
+      return switch (operationType) {
+        // __atomic_load_n returns the loaded value, while the generic __atomic_load writes it to
+        // the object designated by its second argument
+        case LOAD -> generic;
+        // under sequential consistency a fence constrains nothing
+        case FENCE -> false;
+        case STORE, EXCHANGE, CMP_XCHG, FETCH_OP, OP_FETCH, TEST_AND_SET, CLEAR -> true;
+      };
+    }
+
     private static final ImmutableMap<String, CAtomicOperations> BY_REPRESENTATION =
-        Maps.uniqueIndex(ImmutableList.copyOf(values()), CAtomicOperations::getRepresentation);
+        Maps.uniqueIndex(Arrays.asList(values()), CAtomicOperations::getRepresentation);
 
     public static Optional<CAtomicOperations> fromString(String s) {
       return Optional.ofNullable(BY_REPRESENTATION.get(s));
     }
+  }
+
+  private static final ImmutableSet<String> SIDE_EFFECT_FUNCTIONS =
+      Arrays.stream(CAtomicOperations.values())
+          .filter(CAtomicOperations::hasSideEffect)
+          .map(CAtomicOperations::getRepresentation)
+          .collect(ImmutableSet.toImmutableSet());
+
+  /**
+   * The names of the atomic builtins that have a side effect, cf. {@link
+   * CAtomicOperations#hasSideEffect}.
+   */
+  public static ImmutableSet<String> getSideEffectFunctionNames() {
+    return SIDE_EFFECT_FUNCTIONS;
   }
 
   /** Check whether a given function name identifies an atomic builtin that CPAchecker encodes. */
@@ -490,16 +520,11 @@ public final class BuiltinAtomicFunctions {
   }
 
   /** Cast {@code pExpression} to {@code pType} unless it already has that type. */
-  public static CExpression castTo(CExpression pExpression, CType pType) {
+  private static CExpression castTo(CExpression pExpression, CType pType) {
     if (pExpression.getExpressionType().getCanonicalType().equals(pType.getCanonicalType())) {
       return pExpression;
     }
     return new CCastExpression(FileLocation.DUMMY, pType, pExpression);
-  }
-
-  /** An integer literal of the given type, used to set and clear atomic flags. */
-  public static CIntegerLiteralExpression getLiteral(CType pType, BigInteger pValue) {
-    return new CIntegerLiteralExpression(FileLocation.DUMMY, pType, pValue);
   }
 
   /**

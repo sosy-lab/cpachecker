@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -1292,7 +1291,10 @@ public class ExpressionToFormulaVisitor
    * {@link BuiltinAtomicFunctions}; this method only turns those into formulas.
    */
   private Formula atomicOperation(
-      CFunctionCallExpression e, List<CExpression> parameters, CType returnType, CAtomicOperations operation)
+      CFunctionCallExpression e,
+      List<CExpression> parameters,
+      CType returnType,
+      CAtomicOperations operation)
       throws UnrecognizedCodeException {
     if (parameters.size() < operation.getMinimumArgumentCount()) {
       throw new UnrecognizedCodeException(
@@ -1332,7 +1334,6 @@ public class ExpressionToFormulaVisitor
       case CMP_XCHG ->
           atomicCompareExchange(
               e,
-              operation,
               pointerParam,
               parameters.get(1),
               valueOperand(operation, parameters, 2),
@@ -1430,7 +1431,6 @@ public class ExpressionToFormulaVisitor
    */
   private Formula atomicCompareExchange(
       CFunctionCallExpression e,
-      CAtomicOperations operation,
       CExpression pointerParam,
       CExpression expectedParam,
       CExpression desired,
@@ -1493,7 +1493,7 @@ public class ExpressionToFormulaVisitor
 
     // read the old value before the assignment assigns a fresh SSA index to the target
     Formula oldValue = processOperand(target, type, type);
-    atomicAssign(target, BuiltinAtomicFunctions.getLiteral(type, BigInteger.ONE));
+    atomicAssign(target, CIntegerLiteralExpression.createDummyLiteral(1, type));
 
     Formula zero = mgr.makeNumber(conv.getFormulaTypeFromType(type), 0);
     FormulaType<?> resultType = conv.getFormulaTypeFromType(returnType);
@@ -1507,7 +1507,7 @@ public class ExpressionToFormulaVisitor
   private void atomicClear(CExpression pointerParam) throws UnrecognizedCodeException {
     CLeftHandSide target = BuiltinAtomicFunctions.getPointerTarget(pointerParam);
     atomicAssign(
-        target, BuiltinAtomicFunctions.getLiteral(target.getExpressionType(), BigInteger.ZERO));
+        target, CIntegerLiteralExpression.createDummyLiteral(0, target.getExpressionType()));
   }
 
   /**
@@ -1527,9 +1527,7 @@ public class ExpressionToFormulaVisitor
    */
   private static Optional<CExpression> weakOperand(
       CAtomicOperations operation, List<CExpression> parameters) {
-    return operation
-        .getWeakArgumentIndex()
-        .stream()
+    return operation.getWeakArgumentIndex().stream()
         .filter(index -> parameters.size() > index)
         .mapToObj(parameters::get)
         .findFirst();
