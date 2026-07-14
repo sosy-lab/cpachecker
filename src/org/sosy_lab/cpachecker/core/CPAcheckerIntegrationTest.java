@@ -53,6 +53,10 @@ public class CPAcheckerIntegrationTest {
   // This is a dummy specification for SV-LIB programs, since the actual specification is inside
   // the program itself, as annotations.
   private static final String SPECIFICATION_SvLib = "config/specification/correct-annotations.spc";
+  private static final String PROPERTY_SvLib = "config/properties/correct-annotations.prp";
+  private static final String DEPRECATED_PROPERTY_SvLib =
+      "test/config/properties/correct-annotations.prp";
+
   // labels are removed in LLVM IR and assert_fail is renamed, so we need a different specification
   private static final String SPECIFICATION_LLVM = "config/specification/sv-comp-reachability.spc";
   private static final String SPECIFICATION_JAVA = "config/specification/JavaAssertion.spc";
@@ -173,6 +177,29 @@ public class CPAcheckerIntegrationTest {
   public void testRunForUnsafeSvLibProgram() throws Exception {
     Configuration config =
         getConfigWithOutputFiles(CONFIGURATION_FILE_SvLib, Language.SVLIB, SPECIFICATION_SvLib);
+    IntegrationTestResult result = IntegrationTestRunner.run(config, UNSAFE_PROGRAM_SvLib);
+    result.cpaCheckerResult().printStatistics(statisticsStream);
+    result.cpaCheckerResult().writeOutputFiles();
+
+    result.assertIsUnsafe();
+  }
+
+  @Test
+  public void testRunDeprecatedSpecificationForUnsafeSvLibProgram() throws Exception {
+    Configuration config =
+        getConfigWithOutputFiles(
+            CONFIGURATION_FILE_SvLib, Language.SVLIB, DEPRECATED_PROPERTY_SvLib);
+    IntegrationTestResult result = IntegrationTestRunner.run(config, UNSAFE_PROGRAM_SvLib);
+    result.cpaCheckerResult().printStatistics(statisticsStream);
+    result.cpaCheckerResult().writeOutputFiles();
+
+    result.assertIsUnsafe();
+  }
+
+  @Test
+  public void testRunPropertyFileForUnsafeSvLibProgram() throws Exception {
+    Configuration config =
+        getConfigWithOutputFiles(CONFIGURATION_FILE_SvLib, Language.SVLIB, PROPERTY_SvLib);
     IntegrationTestResult result = IntegrationTestRunner.run(config, UNSAFE_PROGRAM_SvLib);
     result.cpaCheckerResult().printStatistics(statisticsStream);
     result.cpaCheckerResult().writeOutputFiles();
