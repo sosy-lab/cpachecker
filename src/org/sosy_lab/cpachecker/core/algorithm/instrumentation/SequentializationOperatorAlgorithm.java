@@ -150,19 +150,20 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       }
     } else {
       mapNodesToLineNumbers = ImmutableMap.of(cfa.getMainFunction(), 0);
+      ImmutableMap<String, String> variablesWithTypes =
+          instrumentationProperty == InstrumentationProperty.DATA_RACE
+              ? getVariablesWithTypesFromFullCFA()
+              : ImmutableMap.of();
       if (!parsedInstrumentationAutomaton.isBlank()) {
         mapAutomataToLocations.put(
             0,
             new InstrumentationAutomaton(
-                parsedInstrumentationAutomaton,
-                getVariablesWithTypesFromFullCFA(),
-                ImmutableMap.of(),
-                0));
+                parsedInstrumentationAutomaton, variablesWithTypes, ImmutableMap.of(), 0));
       } else {
         mapAutomataToLocations.put(
             0,
             new InstrumentationAutomaton(
-                instrumentationProperty, getVariablesWithTypesFromFullCFA(), ImmutableMap.of(), 0));
+                instrumentationProperty, variablesWithTypes, ImmutableMap.of(), 0));
       }
     }
     // MAIN INSTRUMENTATION OPERATOR ALGORITHM
