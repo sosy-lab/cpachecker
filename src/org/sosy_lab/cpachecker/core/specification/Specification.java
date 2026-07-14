@@ -75,7 +75,7 @@ public final class Specification {
           .put(CommonVerificationProperty.DATA_RACE, "sv-comp-datarace")
           .put(CommonVerificationProperty.DEADLOCK, "deadlock")
           .put(CommonVerificationProperty.ASSERT, "JavaAssertion")
-          .put(CommonVerificationProperty.CORRECT_TAGS, "correct-tags")
+          .put(CommonVerificationProperty.CORRECT_TAGS, "correct-annotations")
           // .put(CommonPropertyType.TERMINATION, "none needed")
           .buildOrThrow();
 

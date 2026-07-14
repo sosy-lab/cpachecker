@@ -38,6 +38,6 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/svlib-benchmarks/CTranslated.set</includesfile>
     <includesfile>../programs/svlib-benchmarks/CoreValidation.set</includesfile>
     <includesfile>../programs/svlib-benchmarks/CoreVerification.set</includesfile>
-    <propertyfile>../programs/svlib-benchmarks/properties/correct-tags.prp</propertyfile>
+    <propertyfile>../programs/svlib-benchmarks/properties/correct-annotations.prp</propertyfile>
   </tasks>
 </benchmark>

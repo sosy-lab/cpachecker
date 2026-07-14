@@ -52,7 +52,7 @@ public class CPAcheckerIntegrationTest {
   private static final String SPECIFICATION_C = "config/specification/default.spc";
   // This is a dummy specification for SV-LIB programs, since the actual specification is inside
   // the program itself, as annotations.
-  private static final String SPECIFICATION_SvLib = "config/specification/correct-tags.spc";
+  private static final String SPECIFICATION_SvLib = "config/specification/correct-annotations.spc";
   // labels are removed in LLVM IR and assert_fail is renamed, so we need a different specification
   private static final String SPECIFICATION_LLVM = "config/specification/sv-comp-reachability.spc";
   private static final String SPECIFICATION_JAVA = "config/specification/JavaAssertion.spc";
