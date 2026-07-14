@@ -271,6 +271,8 @@ public record TailRecursionEliminationRecovery(
             argStateAfterTMPVarDeclaration);
     // add recursive function call to callstack state
     argStateAfterRecursiveFunctionCall = ProgramTransformationRecoveryUtils.addFunctionCall(argStateAfterRecursiveFunctionCall, AbstractStates.extractLocation(argStateAfterTMPVarDeclaration));
+    // if value state is present set it to the value state after all parameters have been assigned
+    argStateAfterRecursiveFunctionCall = ProgramTransformationRecoveryUtils.takeValueState(argStateAfterRecursiveFunctionCall, currentARGState);
     ARGState argStateAfterFSDummyEdge =
         ProgramTransformationRecoveryUtils.argStateWithLocation(
             argStateAfterRecursiveFunctionCall,
@@ -283,11 +285,11 @@ public record TailRecursionEliminationRecovery(
     // remove the marked states and add the new states
     reached.remove(pStateBeforeFirstParameter);
     pStateBeforeFirstParameter.removeFromARG();
-    //if (reached.contains(currentARGState)) {
-      reached.add(argStateBeforeTMPVarDeclaration, reached.getPrecision(currentARGState.getCoveringState()));
-      reached.add(argStateAfterTMPVarDeclaration, reached.getPrecision(currentARGState.getCoveringState()));
-      reached.add(argStateAfterRecursiveFunctionCall, reached.getPrecision(currentARGState.getCoveringState()));
-      reached.add(argStateAfterFSDummyEdge, reached.getPrecision(currentARGState.getCoveringState()));
+//    //if (reached.contains(currentARGState)) {
+    reached.add(argStateBeforeTMPVarDeclaration, reached.getPrecision(currentARGState));
+    reached.add(argStateAfterTMPVarDeclaration, reached.getPrecision(currentARGState));
+    reached.add(argStateAfterRecursiveFunctionCall, reached.getPrecision(currentARGState));
+    reached.add(argStateAfterFSDummyEdge, reached.getPrecision(currentARGState));
       reached.remove(currentARGState);
     //}
     currentARGState.replaceInARGWith(argStateAfterFSDummyEdge);

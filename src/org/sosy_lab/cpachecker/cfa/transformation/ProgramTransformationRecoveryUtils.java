@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 
 public class ProgramTransformationRecoveryUtils {
 
@@ -91,5 +92,15 @@ public class ProgramTransformationRecoveryUtils {
       }
     }
     return pARGState.forkWithReplacements(Collections.singleton(newCallStackState));
+  }
+
+  public static ARGState takeValueState(ARGState pNewARGState, ARGState pAfterParaAssignments) {
+    CompositeState currentCompositeState = ((CompositeState) pAfterParaAssignments.getWrappedState());
+    for (AbstractState wrappedState : currentCompositeState.getWrappedStates()) {
+      if (wrappedState instanceof ValueAnalysisState valueState) {
+        return pNewARGState.forkWithReplacements(Collections.singleton(valueState));
+      }
+    }
+    return pNewARGState;
   }
 }
