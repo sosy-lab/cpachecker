@@ -110,7 +110,7 @@ public interface Property {
     TERMINATION("F end"),
 
     ASSERT("G assert"),
-    CORRECT_TAGS("G correct-annotations");
+    CORRECT_ANNOTATIONS("G correct-annotations");
 
     private final String representation;
 

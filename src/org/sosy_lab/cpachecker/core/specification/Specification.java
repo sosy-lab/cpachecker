@@ -75,7 +75,7 @@ public final class Specification {
           .put(CommonVerificationProperty.DATA_RACE, "sv-comp-datarace")
           .put(CommonVerificationProperty.DEADLOCK, "deadlock")
           .put(CommonVerificationProperty.ASSERT, "JavaAssertion")
-          .put(CommonVerificationProperty.CORRECT_TAGS, "correct-annotations")
+          .put(CommonVerificationProperty.CORRECT_ANNOTATIONS, "correct-annotations")
           // .put(CommonPropertyType.TERMINATION, "none needed")
           .buildOrThrow();
 
@@ -175,7 +175,7 @@ public final class Specification {
         if (cfa.getLanguage() == Language.SVLIB && props.isEmpty()) {
           // We are inside of an SV-LIB verification task but no property was specified.
           // Default to checking the correctness of SV-LIB tags.
-          props = ImmutableSet.of(CommonVerificationProperty.CORRECT_TAGS);
+          props = ImmutableSet.of(CommonVerificationProperty.CORRECT_ANNOTATIONS);
         } else if (props.isEmpty()) {
           throw new InvalidConfigurationException(
               String.format("No properties specified in property file %s", specFile));

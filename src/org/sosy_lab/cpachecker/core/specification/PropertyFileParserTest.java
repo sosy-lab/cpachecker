@@ -100,7 +100,7 @@ public class PropertyFileParserTest {
             // Correct tags is an internal property and has no true representation in a property
             // file. This stems from the fact that for SV-LIB the properties are given as part of
             // the program file.
-            .append(CommonVerificationProperty.CORRECT_TAGS)
+            .append(CommonVerificationProperty.CORRECT_ANNOTATIONS)
             .toSet();
 
     expect
