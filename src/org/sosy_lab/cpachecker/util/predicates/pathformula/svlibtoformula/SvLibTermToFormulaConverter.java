@@ -376,6 +376,36 @@ public class SvLibTermToFormulaConverter {
         }
         return result;
       }
+      case "redor" -> {
+        Verify.verify(args.size() == 1);
+        BitvectorFormula operand = args.getFirst();
+        BitvectorFormula result = bvmgr.extract(operand, 0, 0);
+        for (int i = 1; i < bvmgr.getLength(operand); i++) {
+          result = bvmgr.or(result, bvmgr.extract(operand, i, i));
+        }
+        return result;
+      }
+      case "redand" -> {
+        Verify.verify(args.size() == 1);
+        BitvectorFormula operand = args.getFirst();
+        BitvectorFormula result = bvmgr.extract(operand, 0, 0);
+        for (int i = 1; i < bvmgr.getLength(operand); i++) {
+          result = bvmgr.and(result, bvmgr.extract(operand, i, i));
+        }
+        return result;
+      }
+      case "bvcomp" -> {
+        Verify.verify(args.size() == 2);
+        return fmgr.getBooleanFormulaManager()
+            .ifThenElse(
+                bvmgr.equal(args.getFirst(), args.get(1)),
+                bvmgr.makeBitvector(1, 1),
+                bvmgr.makeBitvector(1, 0));
+      }
+      case "bvxor" -> {
+        Verify.verify(args.size() == 2);
+        return bvmgr.xor(args.getFirst(), args.get(1));
+      }
       case "bvashr" -> {
         Verify.verify(args.size() == 2);
         // In SMT-LIB (bvashr s t) shifts s to the right by t, which matches the argument order

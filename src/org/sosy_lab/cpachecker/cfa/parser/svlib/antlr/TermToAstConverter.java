@@ -354,6 +354,32 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
           return SmtLibTheoryDeclarations.bitVectorReductionXor(
               ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
         }
+        case "redor" -> {
+          Verify.verify(pArguments.size() == 1);
+          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
+          return SmtLibTheoryDeclarations.bitVectorReductionOr(
+              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
+        }
+        case "redand" -> {
+          Verify.verify(pArguments.size() == 1);
+          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
+          return SmtLibTheoryDeclarations.bitVectorReductionAnd(
+              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
+        }
+        case "bvcomp" -> {
+          Verify.verify(pArguments.size() == 2);
+          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
+          Verify.verify(argumentTypes.getFirst().equals(argumentTypes.getLast()));
+          return SmtLibTheoryDeclarations.bitVectorComparison(
+              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
+        }
+        case "bvxor" -> {
+          Verify.verify(pArguments.size() == 2);
+          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
+          Verify.verify(argumentTypes.getFirst().equals(argumentTypes.getLast()));
+          return SmtLibTheoryDeclarations.bitVectorXor(
+              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
+        }
         case "bvashr" -> {
           Verify.verify(pArguments.size() == 2);
           Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);

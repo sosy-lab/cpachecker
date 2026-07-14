@@ -478,6 +478,53 @@ public class SmtLibTheoryDeclarations {
         ImmutableList.of());
   }
 
+  /** Reduction or as used by btor2 and Z3: or of all bits of the argument. */
+  public static SvLibFunctionDeclaration bitVectorReductionOr(int pSize) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(new SvLibSmtLibBitVectorType(pSize)), new SvLibSmtLibBitVectorType(1)),
+        "redor",
+        "redor",
+        ImmutableList.of());
+  }
+
+  /** Reduction and as used by btor2 and Z3: and of all bits of the argument. */
+  public static SvLibFunctionDeclaration bitVectorReductionAnd(int pSize) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(new SvLibSmtLibBitVectorType(pSize)), new SvLibSmtLibBitVectorType(1)),
+        "redand",
+        "redand",
+        ImmutableList.of());
+  }
+
+  /** Equality returning a bitvector of size 1 instead of a boolean. */
+  public static SvLibFunctionDeclaration bitVectorComparison(int pSize) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(
+                new SvLibSmtLibBitVectorType(pSize), new SvLibSmtLibBitVectorType(pSize)),
+            new SvLibSmtLibBitVectorType(1)),
+        "bvcomp",
+        "bvcomp",
+        ImmutableList.of());
+  }
+
+  public static SvLibFunctionDeclaration bitVectorXor(int pSize) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(
+                new SvLibSmtLibBitVectorType(pSize), new SvLibSmtLibBitVectorType(pSize)),
+            new SvLibSmtLibBitVectorType(pSize)),
+        "bvxor",
+        "bvxor",
+        ImmutableList.of());
+  }
+
   public static SvLibFunctionDeclaration bitVectorUnsignedLessEqual(int pSize) {
     return new SvLibFunctionDeclaration(
         FileLocation.DUMMY,
