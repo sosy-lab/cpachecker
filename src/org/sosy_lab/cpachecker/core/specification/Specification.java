@@ -174,7 +174,7 @@ public final class Specification {
         ImmutableSet<Property> props = parser.getProperties();
         if (cfa.getLanguage() == Language.SVLIB && props.isEmpty()) {
           // We are inside of an SV-LIB verification task but no property was specified.
-          // Default to checking the correctness of SV-LIB tags.
+          // Default to checking the correctness of SV-LIB annotations.
           props = ImmutableSet.of(CommonVerificationProperty.CORRECT_ANNOTATIONS);
         } else if (props.isEmpty()) {
           throw new InvalidConfigurationException(
