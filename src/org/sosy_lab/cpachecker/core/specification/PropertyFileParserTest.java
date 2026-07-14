@@ -12,7 +12,6 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -97,7 +96,7 @@ public class PropertyFileParserTest {
 
   @Test
   public void checkTestCompletness() {
-    Set<Property> allTestedProperties = FluentIterable.from(TEST_PROPERTIES.values()).toSet();
+    Set<Property> allTestedProperties = ImmutableSet.copyOf(TEST_PROPERTIES.values());
 
     expect
         .withMessage("Please add tests when adding new properties")
