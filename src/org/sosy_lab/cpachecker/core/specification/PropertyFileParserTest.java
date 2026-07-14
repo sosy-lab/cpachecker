@@ -163,7 +163,13 @@ public class PropertyFileParserTest {
             // "CHECK( init(()), LTL(G assert) )", TODO fix
             // "CHECK( init(m(ai)n()), LTL(G assert) )", TODO fix
             "CHECK( LTL(G assert) )",
-            VALID_ASSERT_PROPERTY + "\nCHECK( init(foo()), LTL(G assert) )");
+            VALID_ASSERT_PROPERTY + "\nCHECK( init(foo()), LTL(G assert) )",
+            // no white-space after comma
+            "CHECK(annotations,all)", // TODO accept missing whitespace?
+            // other options than CHECK(annotations,all) do not yet exist
+            "CHECK(annotations, safety)",
+            "CHECK(annotations, liveness)",
+            "CHECK(tags, all)");
 
     for (String fileContent : invalidFiles) {
       PropertyFileParser parser = new PropertyFileParser(CharSource.wrap(fileContent));
