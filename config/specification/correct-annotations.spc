@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-// all tags in a K3 program are valid
+// all annotations in a SV-LIB program are valid
 CONTROL AUTOMATON CorrectAnnotations
 
 INITIAL STATE Init;
