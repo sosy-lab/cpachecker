@@ -87,6 +87,8 @@ public class PropertyFileParserTest {
           .put(
               "CHECK( init(main()), LTL( F G (x = 1) ) )",
               new OtherLtlProperty(" F G (x = 1) ")) // TODO should trim
+          // SV-LIB properties
+          .put("CHECK(annotations, all)", CommonVerificationProperty.CORRECT_ANNOTATIONS)
           .buildOrThrow();
 
   private static final String VALID_ASSERT_PROPERTY = "CHECK( init(main()), LTL(G assert) )";
@@ -95,13 +97,7 @@ public class PropertyFileParserTest {
 
   @Test
   public void checkTestCompletness() {
-    Set<Property> allTestedProperties =
-        FluentIterable.from(TEST_PROPERTIES.values())
-            // Correct tags is an internal property and has no true representation in a property
-            // file. This stems from the fact that for SV-LIB the properties are given as part of
-            // the program file.
-            .append(CommonVerificationProperty.CORRECT_ANNOTATIONS)
-            .toSet();
+    Set<Property> allTestedProperties = FluentIterable.from(TEST_PROPERTIES.values()).toSet();
 
     expect
         .withMessage("Please add tests when adding new properties")
