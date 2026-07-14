@@ -15,9 +15,7 @@ import static org.sosy_lab.cpachecker.cfa.transformation.LoopAccelerationUtils.s
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSortedMap;
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -26,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -37,6 +36,10 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class LoopAccelerationProgramTransformation extends ProgramTransformation{
+
+  public LoopAccelerationProgramTransformation() {
+    super(ProgramTransformationEnum.LOOP_ACCELERATION);
+  }
 
   @Override
   public Optional<ProgramTransformationInformation> transform(CFA pCFA, CFANode pNode) {
@@ -116,6 +119,20 @@ public class LoopAccelerationProgramTransformation extends ProgramTransformation
       nextNode.addEnteringEdge(newEdge);
       edges.add(newEdge);
       currentNode = nextNode;
+    }
+
+    // catch empty loops, i.e. only blank edges in loop body
+    if (assignments.isEmpty()) {
+      BlankEdge emptyEdge = new BlankEdge(
+          "empty loop",
+          FileLocation.DUMMY,
+          newEntryNode,
+          newExitNode,
+          "loop has no assignments"
+      );
+      edges.add(emptyEdge);
+      newEntryNode.addLeavingEdge(emptyEdge);
+      newExitNode.addEnteringEdge(emptyEdge);
     }
 
     SubCFA subCFA = new SubCFA(

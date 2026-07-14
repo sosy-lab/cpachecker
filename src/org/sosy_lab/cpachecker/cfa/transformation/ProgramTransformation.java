@@ -14,6 +14,16 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public abstract class ProgramTransformation {
 
+  private final ProgramTransformationEnum identifier;
+
+  public ProgramTransformation(ProgramTransformationEnum pProgramTransformationEnum) {
+    identifier = pProgramTransformationEnum;
+  }
+
+  public ProgramTransformationEnum getIdentifier() {
+    return identifier;
+  }
+
   /**
    * Perform the program transformation on a given CFANode and return the resulting
    * ProgramTransformationInformation or Optional.empty.

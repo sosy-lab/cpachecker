@@ -10,8 +10,6 @@ package org.sosy_lab.cpachecker.cfa.transformation;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.graph.Traverser;
 import java.util.List;
 import java.util.Optional;
@@ -48,6 +46,8 @@ public class CFAProgramTransformer {
 
       for (CFANode currentNode : cfaNodeIterable) {
         for (ProgramTransformation transformation : programTransformations) {
+          // dont add duplicate program transformations
+          if (newProgramTransformations.build().stream().anyMatch(pti -> pti.subCFA().originalCFAEntryNode() == currentNode && pti.subCFA().programTransformationEnum() == transformation.getIdentifier())) continue;
           Optional<ProgramTransformationInformation> transformationResult =
               transformation.transform(pCFA, currentNode);
           if (transformationResult.isPresent()) {
