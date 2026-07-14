@@ -66,7 +66,7 @@ public class PropertyFileParser {
               + ")\\(\\)\\), LTL\\((.+)\\) \\)");
 
   private static final Pattern SV_LIB_PROPERTY_PATTERN =
-      Pattern.compile("CHECK\\(annotations,(.+)\\)");
+      Pattern.compile("CHECK\\(annotations, (.+)\\)");
 
   private static final Pattern COVERAGE_PATTERN =
       Pattern.compile(
