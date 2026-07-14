@@ -299,6 +299,7 @@ public class SvLibTermToFormulaConverter {
 
     // The extract operation is an indexed identifier, whose indices are part of the name of its
     // declaration, e.g. "(_ extract 31 31)".
+    // TODO: Fix this by improving the datastructure to keep track of the arguments
     Matcher extractMatcher = EXTRACT_PATTERN.matcher(functionName);
     if (extractMatcher.matches()) {
       Verify.verify(args.size() == 1);
@@ -313,12 +314,6 @@ public class SvLibTermToFormulaConverter {
         Verify.verify(args.size() == 2);
         // In SMT-LIB the first argument of concat provides the high-order bits
         return bvmgr.concat(args.getFirst(), args.get(1));
-      }
-      case "extract" -> {
-        Verify.verify(args.size() == 1);
-        // FIXME replace hardcoded values
-        // return bvmgr.extract(args.getFirst(), 7, 0);
-        throw new UnsupportedOperationException("'extract' is not yet supported");
       }
       case "bvnot" -> {
         Verify.verify(args.size() == 1);

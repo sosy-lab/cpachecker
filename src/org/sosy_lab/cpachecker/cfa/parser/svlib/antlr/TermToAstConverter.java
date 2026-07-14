@@ -277,13 +277,6 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
               ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize(),
               ((SvLibSmtLibBitVectorType) argumentTypes.getLast()).getSize());
         }
-        case "extract" -> {
-          Verify.verify(pArguments.size() == 1);
-          // FIXME replace constant
-          /*return SmtLibTheoryDeclarations.bitVectorExtract(
-          ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize(), 8);*/
-          // throw new IllegalArgumentException("extract not yet implemented");
-        }
         case "bvnot" -> {
           Verify.verify(pArguments.size() == 1);
           return SmtLibTheoryDeclarations.bitVectorBitwiseNegation(
@@ -471,20 +464,6 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
           return SmtLibTheoryDeclarations.bitVectorSubstraction(
               ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
         }
-        case "zero_extend" -> {
-          Verify.verify(pArguments.size() == 1);
-          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
-          // FIXME remove constant, use size of returned bit vector instead
-          return SmtLibTheoryDeclarations.bitVectorZeroExtend(
-              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize(), 32);
-        }
-        case "sign_extend" -> {
-          Verify.verify(pArguments.size() == 1);
-          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
-          // FIXME remove constant, use size of returned bit vector instead
-          return SmtLibTheoryDeclarations.bitVectorSignExtend(
-              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize(), 32);
-        }
       }
     }
 
@@ -502,6 +481,9 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
         Verify.verify(pArguments.size() == 1);
         Verify.verify(
             pArguments.getFirst().getExpressionType() instanceof SvLibSmtLibBitVectorType);
+        // TODO: This datastructure needs to be extended in order to contain the arguments of the
+        //  symbol instead of only having them as string. Since this currently only affects
+        //  `extract` I delegate this to later.
         return SmtLibTheoryDeclarations.bitVectorExtract(
             ((SvLibSmtLibBitVectorType) pArguments.getFirst().getExpressionType()).getSize(),
             Integer.parseInt(pCtx.index(0).getText()),
