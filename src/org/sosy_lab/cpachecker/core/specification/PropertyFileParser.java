@@ -65,6 +65,9 @@ public class PropertyFileParser {
               + CFACreator.VALID_JAVA_FUNCTION_NAME_PATTERN
               + ")\\(\\)\\), LTL\\((.+)\\) \\)");
 
+  private static final Pattern SV_LIB_PROPERTY_PATTERN =
+      Pattern.compile("CHECK\\(annotations,(.+)\\)");
+
   private static final Pattern COVERAGE_PATTERN =
       Pattern.compile(
           "COVER\\( init\\(("
@@ -117,10 +120,25 @@ public class PropertyFileParser {
     if (!matcher.matches() || matcher.groupCount() != 2) {
       matcher = COVERAGE_PATTERN.matcher(rawProperty);
       if (!matcher.matches() || matcher.groupCount() != 2) {
-        throw new InvalidPropertyFileException(
-            String.format("The property '%s' is not well-formed!", rawProperty));
+        matcher = SV_LIB_PROPERTY_PATTERN.matcher(rawProperty);
+        if (!matcher.matches() || matcher.groupCount() != 1) {
+          throw new InvalidPropertyFileException(
+              String.format("The property '%s' is not well-formed!", rawProperty));
+        } else {
+          String tagsToCheck = matcher.group(1);
+          if (tagsToCheck.equals("all")) {
+            return CommonVerificationProperty.CORRECT_ANNOTATIONS;
+          } else {
+            throw new InvalidPropertyFileException(
+                String.format(
+                    "Only checking all annotations is currently supported "
+                        + "through the keyword 'all', but '%s' was specified.",
+                    tagsToCheck));
+          }
+        }
+      } else {
+        propStringToProperty = AVAILABLE_COVERAGE_PROPERTIES;
       }
-      propStringToProperty = AVAILABLE_COVERAGE_PROPERTIES;
     }
 
     if (entryFunction == null) {
