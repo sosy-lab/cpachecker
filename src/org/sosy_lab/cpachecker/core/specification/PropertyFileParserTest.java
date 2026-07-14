@@ -194,7 +194,9 @@ public class PropertyFileParserTest {
             VALID_ASSERT_PROPERTY + "\n#",
             1,
             "#\n# Another comment\n",
-            0);
+            0,
+            VALID_ASSERT_PROPERTY + "\n" + "CHECK(annotations, all)",
+            2);
 
     for (Map.Entry<String, Integer> entry : validFiles.entrySet()) {
       String fileContent = entry.getKey();
