@@ -177,16 +177,14 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
                 .transform(sortToAstTypeConverter::visit)
                 .toList(),
             sortToAstTypeConverter.visit(functionDefContext.sort()),
-            FluentIterable.from(functionDefContext.sorted_var())
-                .transform(
-                    sortedVarContext ->
-                        new SvLibParsingParameterDeclaration(
-                            fileLocationFromContext(
-                                Objects.requireNonNull(sortedVarContext).symbol()),
-                            sortToAstTypeConverter.visit(sortedVarContext.sort()),
-                            sortedVarContext.symbol().getText(),
-                            functionName))
-                .toList());
+            transformedImmutableListCopy(
+                functionDefContext.sorted_var(),
+                sortedVarContext ->
+                    new SvLibParsingParameterDeclaration(
+                        fileLocationFromContext(Objects.requireNonNull(sortedVarContext).symbol()),
+                        sortToAstTypeConverter.visit(sortedVarContext.sort()),
+                        sortedVarContext.symbol().getText(),
+                        functionName)));
 
     scope.addVariable(
         new SvLibParsingVariableDeclaration(
