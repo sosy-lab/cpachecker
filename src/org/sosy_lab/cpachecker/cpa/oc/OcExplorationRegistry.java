@@ -52,7 +52,7 @@ public final class OcExplorationRegistry {
   private final Map<Integer, ThreadInstance> instances = new LinkedHashMap<>();
   private final Map<InstanceKey, ThreadInstance> instancesByKey = new HashMap<>();
   private final List<BooleanFormula> pathConstraints = new ArrayList<>();
-  private final List<Formula> addressBases = new ArrayList<>();
+  private final List<AddressBase> addressBases = new ArrayList<>();
   private final SetMultimap<Integer, Integer> poPredecessors = LinkedHashMultimap.create();
   private int nextCssaIndex;
   private boolean truncated = false;
@@ -198,6 +198,7 @@ public final class OcExplorationRegistry {
         null,
         null,
         false,
+        0,
         pEdge);
   }
 
@@ -216,6 +217,7 @@ public final class OcExplorationRegistry {
       @Nullable Formula pAddressTerm,
       @Nullable Formula pOffsetTerm,
       boolean pFill,
+      long pFillSize,
       @Nullable CFAEdge pEdge) {
     MemoryEvent event =
         new MemoryEvent(
@@ -233,6 +235,7 @@ public final class OcExplorationRegistry {
             pAddressTerm,
             pOffsetTerm,
             pFill,
+            pFillSize,
             pEdge);
     events.put(event.id(), event);
     if (pPoParentId != MemoryEvent.NO_EVENT) {
@@ -251,15 +254,22 @@ public final class OcExplorationRegistry {
     return ImmutableSetMultimap.copyOf(poPredecessors);
   }
 
+  /** One allocation base: its address term and the byte size of the object it heads. The size lets
+   * the encoder lay objects out in disjoint address ranges (a flat memory layout), so a full
+   * address {@code base + offset} identifies a cell uniquely across all objects and interior
+   * pointers ({@code &a[i]}, {@code &s.field}) alias exactly. */
+  public record AddressBase(Formula term, long size) {}
+
   /**
    * Registers the solver term of one allocation base (the address of an address-taken variable or
-   * of one heap allocation); all bases are pairwise distinct.
+   * of one heap allocation) together with the byte size of the object it heads, so the encoder can
+   * place it in an address range disjoint from every other object.
    */
-  public void addAddressBase(Formula pBase) {
-    addressBases.add(pBase);
+  public void addAddressBase(Formula pBase, long pSize) {
+    addressBases.add(new AddressBase(pBase, pSize));
   }
 
-  public ImmutableList<Formula> getAddressBases() {
+  public ImmutableList<AddressBase> getAddressBases() {
     return ImmutableList.copyOf(addressBases);
   }
 

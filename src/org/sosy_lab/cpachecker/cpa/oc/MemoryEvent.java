@@ -63,6 +63,7 @@ public record MemoryEvent(
     @Nullable Formula addressTerm,
     @Nullable Formula offsetTerm,
     boolean fill,
+    long fillSize,
     @Nullable CFAEdge edge) {
 
   public static final int NO_EVENT = -1;
@@ -71,8 +72,25 @@ public record MemoryEvent(
   /** Pseudo-mutex representing {@code __VERIFIER_atomic_begin/end} blocks. */
   public static final String ATOMIC_BLOCK_MUTEX = "__VERIFIER_atomic__";
 
+  /**
+   * Region id shared by all real (non-atomic-block) mutex lock/unlock events. They all live in one
+   * alias region and are told apart by their {@link #addressTerm} (the mutex object's flat
+   * address), so two lock/unlock operations act on the same mutex exactly when their addresses are
+   * equal — even when reached through different expressions (e.g. {@code &(p->lock)}).
+   */
+  public static final String MUTEX_REGION = "__oc_mutex__";
+
   /** Whether this access goes through the aliasing regime (address-equality read-from). */
   public boolean isRegionAccess() {
     return regionId != null;
+  }
+
+  /**
+   * The byte size covered by a {@link #fill} write: it stands for the whole object {@code [base,
+   * base + fillSize)}, so any access whose full byte address falls in that range reads from it.
+   * Only meaningful when {@link #fill} is true.
+   */
+  public long fillSizeBytes() {
+    return fillSize;
   }
 }

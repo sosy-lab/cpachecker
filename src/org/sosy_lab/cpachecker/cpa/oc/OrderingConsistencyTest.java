@@ -65,6 +65,15 @@ public class OrderingConsistencyTest {
         Pair.of("oc_array_safe.c", Result.TRUE),
         Pair.of("array_handle_safe.c", Result.TRUE),
         Pair.of("loop_handle_safe.c", Result.TRUE),
+        // a local of main whose address escapes into a spawned thread: the thread's write through
+        // the pointer must alias main's local (per-instance base identity for an addressed local)
+        Pair.of("escaping_local_safe.c", Result.TRUE),
+        // a thread writes a struct field through an interior pointer (&g.b) main stored: the
+        // flat-address model must make base+offset alias main's direct g.b access
+        Pair.of("interior_pointer_safe.c", Result.TRUE),
+        // two threads lock the SAME mutex reached through a pointer field &(ps->lock); serialized
+        // only if the mutex is identified by its flat address (address-based mutex identity)
+        Pair.of("pointer_field_mutex_safe.c", Result.TRUE),
         Pair.of("two_threads_unsafe.c", Result.FALSE),
         Pair.of("three_threads_unsafe.c", Result.FALSE),
         Pair.of("mutex_unprotected_unsafe.c", Result.FALSE),
@@ -74,7 +83,16 @@ public class OrderingConsistencyTest {
         Pair.of("oc_array_index_unsafe.c", Result.FALSE),
         Pair.of("oc_heap_struct_unsafe.c", Result.FALSE),
         Pair.of("array_handle_unsafe.c", Result.FALSE),
-        Pair.of("loop_handle_unsafe.c", Result.FALSE));
+        Pair.of("loop_handle_unsafe.c", Result.FALSE),
+        // sibling of escaping_local_safe: the error is reachable exactly because the escaped
+        // local's write is seen by main after the join
+        Pair.of("escaping_local_unsafe.c", Result.FALSE),
+        // sibling of interior_pointer_safe: the interior pointer must hit g.b (not the object base
+        // g.a), so the error on g.b == 1 is reachable
+        Pair.of("interior_pointer_unsafe.c", Result.FALSE),
+        // two threads lock DIFFERENT mutexes (distinct addresses): they must NOT be serialized, so
+        // a lost update is reachable — guards that address-based identity does not over-serialize
+        Pair.of("distinct_mutexes_unsafe.c", Result.FALSE));
   }
 
   private static List<String> getUnknownTestCases() {

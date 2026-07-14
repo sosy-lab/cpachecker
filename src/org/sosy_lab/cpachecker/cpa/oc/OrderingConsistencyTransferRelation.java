@@ -166,6 +166,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
             pAddressTerm,
             null,
             false,
+            0,
             pEdge);
     for (int i = 1; i < predecessors.size(); i++) {
       registry.addPoPredecessor(event.id(), predecessors.get(i));
@@ -380,14 +381,14 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     int ordinal = pState.getCreateCounts().getOrDefault(function, 0);
 
     // the thread argument must be modeled, not ignored: a null constant carries no data, the
-    // address of a global is bound to that global's allocation base, anything else is unsupported
+    // address of an object (global, or a local of the creating thread that thereby escapes to the
+    // new one) is bound to that object's allocation base, anything else is unsupported
     CVariableDeclaration argTarget = null;
     CExpression argument = stripCasts((CExpression) params.get(3));
     if (argument instanceof CUnaryExpression unary
         && unary.getOperator() == CUnaryExpression.UnaryOperator.AMPER
         && unary.getOperand() instanceof CIdExpression id
-        && id.getDeclaration() instanceof CVariableDeclaration decl
-        && decl.isGlobal()) {
+        && id.getDeclaration() instanceof CVariableDeclaration decl) {
       argTarget = decl;
     } else if (!(argument instanceof CIntegerLiteralExpression literal
         && literal.getValue().signum() == 0)) {
@@ -459,9 +460,12 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
   }
 
   /**
-   * Constrains the created thread's parameter to the address of the global whose address is passed.
+   * Constrains the created thread's parameter to the address of the object whose address is passed.
    * The parameter symbol is indexed in the returned root context, so the thread's own reads use the
-   * same SSA index as the binding (built identically for every create site of the instance).
+   * same SSA index as the binding (built identically for every create site of the instance). When
+   * the object is a local of the creating thread, its base is the creator's per-instance base (see
+   * {@link #baseNameFor(CVariableDeclaration, int)}) — {@code pState.getInstanceId()} — so the new
+   * thread's reads through the parameter alias the creator's own accesses to that escaped local.
    */
   private PathFormula bindThreadArgument(
       OrderingConsistencyState pState,
@@ -473,7 +477,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     var parameter = pEntry.getFunctionParameters().get(0);
     String argName = "T" + pInstance.getId() + "_" + parameter.getQualifiedName();
     CType argType = (CType) parameter.getType();
-    String baseName = baseNameFor(pArgTarget.getQualifiedName());
+    String baseName = baseNameFor(pArgTarget, pState.getInstanceId());
     CType baseType = new CPointerType(CTypeQualifiers.NONE, pArgTarget.getType());
 
     PathFormula rootFormula =
@@ -487,54 +491,11 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     Formula argTerm = resolve(resolution, argName, argType, pEdge);
     Formula baseTerm = resolve(resolution, baseName, baseType, pEdge);
     if (registeredBases.add(baseName)) {
-      registry.addAddressBase(baseTerm);
+      registry.addAddressBase(baseTerm, objectSizeBytes(pArgTarget.getType()));
     }
     registry.addPathConstraint(
         bfmgr.implication(pState.getGuard(), fmgr.makeEqual(argTerm, baseTerm)));
     return rootFormula;
-  }
-
-  /**
-   * Resolves the mutex argument of a lock/unlock call to the identity of the mutex <em>object</em>.
-   * {@code &m} names the object directly. A plain pointer-typed id is sound only when it is a
-   * parameter of the current function: the context-sensitive callstack then determines the
-   * argument it was bound to at the call site, and the resolution recurses on that argument in the
-   * caller's frame. Using the syntactic name itself would wrongly identify different mutexes
-   * passed through the same parameter (goblint munge/funarg pattern) and mask races. Anything
-   * unresolvable is rejected rather than guessed.
-   */
-  private String resolveMutexObject(
-      @Nullable CExpression pExpression, @Nullable CallstackState pFrame, CFAEdge pEdge)
-      throws UnsupportedCodeException {
-    CExpression expression = pExpression == null ? null : stripCasts(pExpression);
-    if (expression instanceof CUnaryExpression unary
-        && unary.getOperator() == CUnaryExpression.UnaryOperator.AMPER
-        && unary.getOperand() instanceof CIdExpression id) {
-      return id.getName();
-    }
-    if (expression instanceof CIdExpression id
-        && id.getDeclaration() instanceof CParameterDeclaration parameter
-        && pFrame != null
-        && pFrame.getCallNode() != null) {
-      for (CFunctionCallEdge callEdge :
-          pFrame.getCallNode().getLeavingEdges().filter(CFunctionCallEdge.class)) {
-        FunctionEntryNode entry = callEdge.getSuccessor();
-        if (!entry.getFunctionName().equals(pFrame.getCurrentFunction())) {
-          continue;
-        }
-        List<? extends AParameterDeclaration> parameters = entry.getFunctionParameters();
-        List<? extends AExpression> arguments =
-            callEdge.getFunctionCall().getFunctionCallExpression().getParameterExpressions();
-        for (int i = 0; i < parameters.size() && i < arguments.size(); i++) {
-          if (parameters.get(i) instanceof CParameterDeclaration candidate
-              && candidate.getQualifiedName().equals(parameter.getQualifiedName())
-              && arguments.get(i) instanceof CExpression argument) {
-            return resolveMutexObject(argument, pFrame.getPreviousState(), pEdge);
-          }
-        }
-      }
-    }
-    throw new UnsupportedCodeException("mutex identity not recognized", pEdge);
   }
 
   private static CExpression stripCasts(CExpression pExpression) {
@@ -588,7 +549,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
               "", FileLocation.DUMMY, pEdge.getPredecessor(), pEdge.getSuccessor(),
               equalsCandidate, true);
 
-      CollectingRenamer renamer = new CollectingRenamer();
+      CollectingRenamer renamer = new CollectingRenamer(pState.getInstanceId());
       CAssumeEdge rewritten;
       try {
         rewritten =
@@ -704,7 +665,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
 
   private ChainedEdge cloneAndChain(OrderingConsistencyState pState, CFAEdge pEdge)
       throws CPATransferException, InterruptedException {
-    return cloneAndChain(pState, new CollectingRenamer(), pEdge);
+    return cloneAndChain(pState, new CollectingRenamer(pState.getInstanceId()), pEdge);
   }
 
   /**
@@ -769,10 +730,15 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
   /** Handles mutex and atomic-block edges; returns false if the edge is none of those. */
   private boolean handleMutex(
       OrderingConsistencyState pState, CFAEdge pEdge, List<AbstractState> pSuccessors)
-      throws CPATransferException {
+      throws CPATransferException, InterruptedException {
     EventKind kind;
+    // nesting key (pairs a lock with its unlock within one thread); cross-thread identity is by
+    // address. An atomic block has no address and its own pseudo-mutex id.
     String mutexId;
     boolean readLock = false;
+    @Nullable String regionId = null;
+    @Nullable Formula addressTerm = null;
+    ImmutableList<Integer> lastEventIds = pState.getLastEventIds();
     if (MutexFunctions.isAtomicBeginCall(pEdge)) {
       kind = EventKind.LOCK;
       mutexId = MemoryEvent.ATOMIC_BLOCK_MUTEX;
@@ -780,30 +746,14 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       kind = EventKind.UNLOCK;
       mutexId = MemoryEvent.ATOMIC_BLOCK_MUTEX;
     } else {
-      MutexLock lock = MutexFunctions.getLockMutex(pEdge);
-      MutexLock unlock = MutexFunctions.getUnlockMutex(pEdge);
-      if (lock != null) {
+      String callee = MutexFunctions.getFunctionCallName(pEdge);
+      if (callee != null && MutexFunctions.isLockFunction(callee)) {
         kind = EventKind.LOCK;
-        readLock = lock.isReadLock();
-      } else if (unlock != null) {
+        readLock = MutexFunctions.isReadLockFunction(callee);
+      } else if (callee != null && MutexFunctions.isUnlockFunction(callee)) {
         kind = EventKind.UNLOCK;
       } else {
-        kind = null;
-      }
-      if (kind != null) {
-        List<? extends AExpression> arguments = getCallParameters(pEdge);
-        mutexId =
-            resolveMutexObject(
-                arguments.isEmpty() || !(arguments.get(0) instanceof CExpression argument)
-                    ? null
-                    : argument,
-                pState.getCallstackState(),
-                pEdge);
-      } else {
-        mutexId = null;
-      }
-      if (kind == null) {
-        String callee = MutexFunctions.getFunctionCallName(pEdge);
+        // a mutex init/destroy is a no-op for ordering; any other call is not ours
         if (callee != null
             && (MutexFunctions.isInitFunction(callee)
                 || MutexFunctions.isDestroyFunction(callee))) {
@@ -822,10 +772,31 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         }
         return false;
       }
+      // resolve the mutex by its flat address, exactly like ordinary memory: two lock/unlock
+      // operations act on the same mutex iff their addresses coincide, so `&(p->lock)`, `&arr[i]`
+      // and aliased mutexes are all handled without a bespoke name-resolution step
+      List<? extends AExpression> arguments = getCallParameters(pEdge);
+      if (arguments.isEmpty() || !(arguments.get(0) instanceof CExpression argument)) {
+        throw new UnsupportedCodeException("mutex call without a mutex argument", pEdge);
+      }
+      MutexAddress mutexAddress = evaluateMutexAddress(pState, argument, pEdge);
+      mutexId = mutexNestingKey(argument);
+      regionId = MemoryEvent.MUTEX_REGION;
+      addressTerm = mutexAddress.term();
+      lastEventIds = mutexAddress.lastEventIds();
     }
     MemoryEvent event =
         addEventAfter(
-            pState, kind, null, null, null, mutexId, MemoryEvent.NO_INSTANCE, null, null, pEdge);
+            withGuardAndEvents(pState, pState.getGuard(), lastEventIds),
+            kind,
+            null,
+            null,
+            null,
+            mutexId,
+            MemoryEvent.NO_INSTANCE,
+            regionId,
+            addressTerm,
+            pEdge);
     if (readLock) {
       registry.markReadLock(event.id());
     }
@@ -860,7 +831,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     }
     CallstackState nextCallstack = (CallstackState) Iterables.getOnlyElement(callstackSuccessors);
 
-    CollectingRenamer renamer = new CollectingRenamer();
+    CollectingRenamer renamer = new CollectingRenamer(pState.getInstanceId());
     ChainedEdge chained = cloneAndChain(pState, renamer, pEdge);
     PathFormula edgeFormula = chained.edgeFormula();
     ImmutableList<Integer> lastEventIds =
@@ -889,7 +860,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       CAssumeEdge pSecond,
       List<AbstractState> pSuccessors)
       throws CPATransferException, InterruptedException {
-    CollectingRenamer renamer = new CollectingRenamer();
+    CollectingRenamer renamer = new CollectingRenamer(pState.getInstanceId());
     CAssumeEdge rewrittenFirst;
     try {
       rewrittenFirst =
@@ -971,7 +942,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         resolution = indexSymbol(resolution, base.name(), base.type(), pEdge);
       }
       if (registeredBases.add(base.name())) {
-        registry.addAddressBase(resolve(resolution, base.name(), base.type(), pEdge));
+        registry.addAddressBase(
+            resolve(resolution, base.name(), base.type(), pEdge), pointeeSizeBytes(base.type()));
       }
     }
 
@@ -984,14 +956,14 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       if (!aggregateInitEmitted.add(aggregate.getQualifiedName())) {
         continue;
       }
-      String baseName = baseNameFor(aggregate.getQualifiedName());
+      String baseName = baseNameFor(aggregate, pState.getInstanceId());
       CType baseType = new CPointerType(CTypeQualifiers.NONE, aggregate.getType());
       if (!resolution.getSsa().containsVariable(baseName)) {
         resolution = indexSymbol(resolution, baseName, baseType, pEdge);
       }
       Formula baseTerm = resolve(resolution, baseName, baseType, pEdge);
       if (registeredBases.add(baseName)) {
-        registry.addAddressBase(baseTerm);
+        registry.addAddressBase(baseTerm, objectSizeBytes(aggregate.getType()));
       }
       for (AggregateCell cell : aggregateInitCells(aggregate, pEdge)) {
         String initName = registry.freshCssaName("__oc_agginit");
@@ -1021,6 +993,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
                 baseTerm,
                 offsetTerm,
                 cell.fill(),
+                cell.fill() ? objectSizeBytes(aggregate.getType()) : 0,
                 pEdge);
         if (!anyEvent) {
           for (int i = 1; i < predecessors.size(); i++) {
@@ -1059,6 +1032,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
                 addressTerm,
                 offsetTerm,
                 false,
+                0,
                 pEdge);
         if (access.type.getCanonicalType().isAtomic()) {
           // an access to an _Atomic-qualified lvalue is atomic and cannot be one side of a data
@@ -1140,6 +1114,66 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     return resolve(bound, name, type, pEdge);
   }
 
+  /** The flat address of a mutex object, plus the events its evaluation chained. */
+  private record MutexAddress(Formula term, ImmutableList<Integer> lastEventIds) {}
+
+  /**
+   * The flat address of the mutex object a lock/unlock argument designates, evaluated through the
+   * same renamer used for ordinary memory: {@code &m} becomes the object's address, {@code
+   * &(p->lock)} becomes p's value plus the field offset, a bare {@code pthread_mutex_t*} becomes its
+   * value. Any base the address minted (e.g. {@code &globalMutex}) is registered for the layout, and
+   * the binding is asserted so the returned term carries the value. The reads the evaluation itself
+   * performs (of the pointer sub-expressions) are marked as bookkeeping so they are not data-race
+   * candidates; the lock/unlock event is chained after them.
+   */
+  private MutexAddress evaluateMutexAddress(
+      OrderingConsistencyState pState, CExpression pArg, CFAEdge pEdge)
+      throws CPATransferException, InterruptedException {
+    CType pointerType = pArg.getExpressionType();
+    String name = registry.freshCssaName("__oc_mtxaddr");
+    // a fresh LOCAL id, so cloning instance-prefixes it to a name we can predict and resolve (a
+    // global id would instead be renamed to an unpredictable fresh name by the global renamer)
+    CVariableDeclaration declaration =
+        new CVariableDeclaration(
+            FileLocation.DUMMY, false, CStorageClass.AUTO, pointerType, name, name, name, null);
+    CIdExpression freshId = new CIdExpression(FileLocation.DUMMY, pointerType, name, declaration);
+    CBinaryExpression binding =
+        new CBinaryExpression(
+            FileLocation.DUMMY,
+            CNumericTypes.INT,
+            pointerType,
+            freshId,
+            pArg,
+            CBinaryExpression.BinaryOperator.EQUALS);
+    CAssumeEdge bindingEdge =
+        new CAssumeEdge(
+            "", FileLocation.DUMMY, pEdge.getPredecessor(), pEdge.getSuccessor(), binding, true);
+    int firstEventId = registry.nextEventId();
+    ChainedEdge chained =
+        cloneAndChain(pState, new CollectingRenamer(pState.getInstanceId()), bindingEdge);
+    for (int id = firstEventId; id < registry.nextEventId(); id++) {
+      registry.markThreadHandleAccess(id); // mutex bookkeeping: not a real memory access to race on
+    }
+    String clonedName = "T" + pState.getInstanceId() + "_" + name;
+    return new MutexAddress(
+        resolve(chained.edgeFormula(), clonedName, pointerType, pEdge), chained.lastEventIds());
+  }
+
+  /**
+   * A per-thread syntactic key that pairs a lock with its matching unlock for nesting-depth tracking
+   * (a critical section's static extent). Cross-thread mutex identity — whether two sections exclude
+   * each other — is decided by the mutex address, not by this key, so a purely syntactic key is
+   * enough here and never has to be rejected.
+   */
+  private static String mutexNestingKey(CExpression pArg) {
+    CExpression expression = stripCasts(pArg);
+    if (expression instanceof CUnaryExpression unary
+        && unary.getOperator() == CUnaryExpression.UnaryOperator.AMPER) {
+      return unary.getOperand().toASTString();
+    }
+    return expression.toASTString();
+  }
+
   /** Binds the freshly written pointer of a {@code lhs = malloc(...)} to a distinct heap base. */
   private ImmutableList<Integer> handleMallocIfAny(
       OrderingConsistencyState pState,
@@ -1184,7 +1218,9 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
 
     Formula lhsTerm = resolve(resolution, lhsName, lhsType, pEdge);
     Formula baseTerm = resolve(resolution, baseName, lhsType, pEdge);
-    registry.addAddressBase(baseTerm);
+    // a heap allocation's size is not statically known (it may be an array of the pointee type),
+    // so reserve a whole default-sized range to keep it disjoint from every other object
+    registry.addAddressBase(baseTerm, DEFAULT_OBJECT_SIZE);
     registry.addPathConstraint(
         bfmgr.implication(pState.getGuard(), fmgr.makeEqual(lhsTerm, baseTerm)));
 
@@ -1211,6 +1247,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
               baseTerm,
               null,
               true,
+              DEFAULT_OBJECT_SIZE,
               pEdge);
       for (int i = 1; i < lastEventIds.size(); i++) {
         registry.addPoPredecessor(initialWrite.id(), lastEventIds.get(i));
@@ -1436,9 +1473,23 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
 
   /** Collects one pending READ/WRITE record per renamed access, in callback order. */
   private final class CollectingRenamer implements GlobalAccessRenamer {
+    // the instance whose edge is being cloned; addressed locals get a per-instance base (see
+    // baseNameFor(CVariableDeclaration, int)), so this must be the base of every local address here
+    private final int instanceId;
     private final List<PendingAccess> accesses = new ArrayList<>();
     private final List<PendingBase> mintedBases = new ArrayList<>();
     private final List<CVariableDeclaration> aggregateDecls = new ArrayList<>();
+
+    private CollectingRenamer(int pInstanceId) {
+      instanceId = pInstanceId;
+    }
+
+    @Override
+    public boolean treatsLocalAsRegion(CVariableDeclaration pLocal) {
+      // an address-taken local joins the aliasing regime, so a pointer or a thread the local
+      // escaped to reaches the same memory (see baseNameFor(CVariableDeclaration, int))
+      return cpa.getAddressedVariables().contains(pLocal.getQualifiedName());
+    }
 
     @Override
     public String freshName(CVariableDeclaration pDeclaration, boolean pIsWrite) {
@@ -1463,7 +1514,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       if (cpa.getAddressedVariables().contains(qualifiedName)) {
         // a pointer may also reach this variable, so it takes part in address-equality read-from
         access.regionId = regionOf(pDeclaration.getType());
-        access.addressName = baseNameFor(qualifiedName);
+        access.addressName = baseNameFor(pDeclaration, instanceId);
         access.addressType = new CPointerType(CTypeQualifiers.NONE, pDeclaration.getType());
         mintedBases.add(new PendingBase(access.addressName, access.addressType));
       }
@@ -1472,18 +1523,48 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     }
 
     @Override
-    public CExpression replaceAddressOf(CUnaryExpression pOriginalAddressOf) {
-      CExpression operand = pOriginalAddressOf.getOperand();
-      if (operand instanceof CIdExpression id) {
-        if (id.getExpressionType().getCanonicalType() instanceof CFunctionType) {
-          return null; // function designators keep the default cloning
+    public CExpression replaceAddressOf(
+        CUnaryExpression pOriginalAddressOf, UnaryOperator<CExpression> pSubCloner) {
+      CExpression operand = stripCasts(pOriginalAddressOf.getOperand());
+      if (operand instanceof CIdExpression id
+          && id.getExpressionType().getCanonicalType() instanceof CFunctionType) {
+        return null; // function designators keep the default cloning
+      }
+      if (operand instanceof CIdExpression id
+          && id.getDeclaration() instanceof CVariableDeclaration decl) {
+        // the address of a whole named object: a shared base for a global, a per-instance base for
+        // a local (an escaped local reaches the same base in the spawned thread, see
+        // bindThreadArgument). Offset zero, so the base term is the address.
+        String baseName = baseNameFor(decl, instanceId);
+        CType baseType = new CPointerType(CTypeQualifiers.NONE, decl.getType());
+        mintedBases.add(new PendingBase(baseName, baseType));
+        return syntheticIdExpression(baseName, baseType);
+      }
+      // the address of an interior lvalue (&a[i], &s.field, &p->field): its byte address is the
+      // object's base plus the accumulated offset. In the flat memory layout a full address
+      // base + offset is a first-class value, so a pointer holding it aliases a direct access to
+      // the same cell exactly (see OcEncoder.sameAddress). Reuse analyzeLvalue to resolve the base
+      // and offset, then hand back base + offset as one pointer value.
+      if (operand instanceof CLeftHandSide lvalue) {
+        PendingAccess offsetHolder =
+            new PendingAccess(null, "", false, lvalue.getExpressionType());
+        BaseInfo base = analyzeLvalue(lvalue, offsetHolder, pSubCloner);
+        CExpression baseValue = syntheticIdExpression(base.name(), base.type());
+        if (offsetHolder.offsetExpr == null) {
+          return baseValue;
         }
-        if (id.getDeclaration() instanceof CVariableDeclaration decl && decl.isGlobal()) {
-          String baseName = baseNameFor(decl.getQualifiedName());
-          CType baseType = new CPointerType(CTypeQualifiers.NONE, decl.getType());
-          mintedBases.add(new PendingBase(baseName, baseType));
-          return syntheticIdExpression(baseName, baseType);
-        }
+        CType charPtr = new CPointerType(CTypeQualifiers.NONE, CNumericTypes.CHAR);
+        CExpression byteBase = new CCastExpression(FileLocation.DUMMY, charPtr, baseValue);
+        CExpression address =
+            new CBinaryExpression(
+                FileLocation.DUMMY,
+                charPtr,
+                charPtr,
+                byteBase,
+                offsetHolder.offsetExpr,
+                CBinaryExpression.BinaryOperator.PLUS);
+        return new CCastExpression(
+            FileLocation.DUMMY, pOriginalAddressOf.getExpressionType(), address);
       }
       throw new UnsupportedAccessException(
           "unsupported address-of expression: " + pOriginalAddressOf.toASTString());
@@ -1520,10 +1601,10 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         CExpression pLvalue, PendingAccess pAccess, UnaryOperator<CExpression> pSubCloner) {
       CExpression lvalue = stripCasts(pLvalue);
       if (lvalue instanceof CIdExpression id) {
-        if (id.getDeclaration() instanceof CVariableDeclaration decl && decl.isGlobal()) {
-          return mintObjectBase(decl.getQualifiedName(), decl.getType());
+        if (id.getDeclaration() instanceof CVariableDeclaration decl) {
+          return mintObjectBase(baseNameFor(decl, instanceId), decl.getType());
         }
-        return null; // local object base
+        return null; // a parameter or other non-object base; handled elsewhere
       }
       if (lvalue instanceof CPointerExpression deref) {
         return pointerBase(deref.getOperand(), pSubCloner);
@@ -1570,12 +1651,11 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       throw new UnsupportedAccessException("unsupported pointer base: " + pPointer.toASTString());
     }
 
-    /** A distinct base constant for a global object of the given qualified name and type. */
-    private BaseInfo mintObjectBase(String pQualifiedName, CType pObjectType) {
-      String baseName = baseNameFor(pQualifiedName);
+    /** A distinct base constant of the given (already global-or-instance-scoped) name and type. */
+    private BaseInfo mintObjectBase(String pBaseName, CType pObjectType) {
       CType baseType = new CPointerType(CTypeQualifiers.NONE, pObjectType);
-      mintedBases.add(new PendingBase(baseName, baseType));
-      return new BaseInfo(baseName, baseType);
+      mintedBases.add(new PendingBase(pBaseName, baseType));
+      return new BaseInfo(pBaseName, baseType);
     }
   }
 
@@ -1584,6 +1664,36 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
 
   private long sizeofBytes(CType pType) {
     return machineModel.getSizeof(pType.getCanonicalType()).longValueExact();
+  }
+
+  /**
+   * Fallback object size (bytes) for the flat memory layout when the exact size is unavailable — an
+   * incomplete type, a variable-length array, or a heap allocation of statically unknown size.
+   * Large enough that no realistic single object exceeds it (so ranges stay disjoint) yet small
+   * enough that many objects still fit the address space; mirrors the role of {@code
+   * FormulaEncodingWithPointerAliasingOptions.defaultAllocationSize}.
+   */
+  private static final long DEFAULT_OBJECT_SIZE = 1L << 20;
+
+  /**
+   * Byte size of the object an allocation base heads, for laying it out disjointly from other
+   * objects. Returns {@link #DEFAULT_OBJECT_SIZE} when the type has no known constant size.
+   */
+  private long objectSizeBytes(CType pType) {
+    CType canonical = pType.getCanonicalType();
+    if (!canonical.hasKnownConstantSize()) {
+      return DEFAULT_OBJECT_SIZE;
+    }
+    long size = machineModel.getSizeof(canonical).longValueExact();
+    return size <= 0 ? DEFAULT_OBJECT_SIZE : size;
+  }
+
+  /** Byte size of the object a {@code T*} base term points at (its pointee), for the layout. */
+  private long pointeeSizeBytes(CType pPointerType) {
+    CType canonical = pPointerType.getCanonicalType();
+    return canonical instanceof CPointerType pointer
+        ? objectSizeBytes(pointer.getType())
+        : DEFAULT_OBJECT_SIZE;
   }
 
   private long fieldOffsetBytes(CCompositeType pComposite, String pField) {
@@ -1663,6 +1773,21 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
 
   private static String baseNameFor(String pQualifiedName) {
     return "__oc_base_" + pQualifiedName;
+  }
+
+  /**
+   * Base name for an address-taken object. A global names one shared object, so its base is keyed
+   * on the qualified name alone. A local (or the array/struct it lives in) is a <em>distinct</em>
+   * object per thread instance — two threads running the same function have separate copies — so
+   * its base is additionally keyed on the owning instance id. The same per-instance name is what a
+   * spawned thread binds its parameter to when a creator passes {@code &local} (see {@link
+   * #bindThreadArgument}), which is how an escaped local is recognized as one shared object across
+   * the two threads.
+   */
+  private static String baseNameFor(CVariableDeclaration pDecl, int pInstanceId) {
+    return pDecl.isGlobal()
+        ? baseNameFor(pDecl.getQualifiedName())
+        : "__oc_base_T" + pInstanceId + "_" + pDecl.getQualifiedName();
   }
 
   private static String regionOf(CType pType) {

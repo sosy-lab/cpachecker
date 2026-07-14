@@ -283,19 +283,22 @@ class PorAstCloner {
    */
   private CSimpleDeclaration createNewDeclaration(CSimpleDeclaration cDecl, boolean pIsWrite) {
     FileLocation loc = cDecl.getFileLocation();
-    if (cDecl instanceof CVariableDeclaration decl && decl.isGlobal()) {
-      if (globalRenamer == null) {
-        return decl;
-      }
+    if (cDecl instanceof CVariableDeclaration decl
+        && globalRenamer != null
+        && (decl.isGlobal() || globalRenamer.treatsLocalAsRegion(decl))) {
+      // globals, and address-taken locals the renamer wants in the aliasing regime, get a fresh
+      // per-access name so every access becomes its own tracked memory event
       return new CVariableDeclaration(
           loc,
-          true,
+          decl.isGlobal(),
           decl.getCStorageClass(),
           decl.getType(),
           decl.getName(),
           decl.getOrigName(),
           globalRenamer.freshName(decl, pIsWrite),
           null);
+    } else if (cDecl instanceof CVariableDeclaration decl && decl.isGlobal()) {
+      return decl; // no renamer: globals keep their original name
     } else if (cDecl instanceof CVariableDeclaration decl) {
       CVariableDeclaration newDecl =
           new CVariableDeclaration(
@@ -353,7 +356,8 @@ class PorAstCloner {
     @Override
     public CExpression visit(CUnaryExpression exp) {
       if (globalRenamer != null && exp.getOperator() == CUnaryExpression.UnaryOperator.AMPER) {
-        CExpression replacement = globalRenamer.replaceAddressOf(exp);
+        CExpression replacement =
+            globalRenamer.replaceAddressOf(exp, PorAstCloner.this::cloneRvalue);
         if (replacement != null) {
           return replacement;
         }

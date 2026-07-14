@@ -32,11 +32,27 @@ public interface GlobalAccessRenamer {
   String freshName(CVariableDeclaration pDeclaration, boolean pIsWrite);
 
   /**
-   * Offers to replace a whole address-of expression (called with the ORIGINAL, un-cloned expression
-   * before its operand is cloned). Returning null keeps the default cloning.
+   * Offers to replace a whole address-of expression (called with the ORIGINAL, un-cloned
+   * expression before its operand is cloned), given a sub-cloner that clones an rvalue
+   * sub-expression with the same renaming — so a compound operand such as {@code &p->field} or
+   * {@code &a[i]} can have its pointer/index sub-parts cloned while the object base and byte offset
+   * are resolved separately and combined into a single address. Returning null keeps the default
+   * cloning.
    */
-  default @Nullable CExpression replaceAddressOf(CUnaryExpression pOriginalAddressOf) {
+  default @Nullable CExpression replaceAddressOf(
+      CUnaryExpression pOriginalAddressOf, UnaryOperator<CExpression> pSubCloner) {
     return null;
+  }
+
+  /**
+   * Whether accesses to this <b>local</b> variable should be routed through {@link #freshName} (the
+   * same path globals take) instead of the plain per-thread rename. A renamer that models an
+   * aliasing regime returns {@code true} for an address-taken local, so that a pointer — or another
+   * thread the local's address escaped to — reaches the same memory as the local's own accesses.
+   * Globals always go through {@link #freshName}; this only concerns locals.
+   */
+  default boolean treatsLocalAsRegion(CVariableDeclaration pLocal) {
+    return false;
   }
 
   /**

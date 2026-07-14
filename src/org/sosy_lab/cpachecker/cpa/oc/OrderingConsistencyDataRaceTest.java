@@ -8,10 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.oc;
 
-import static org.junit.Assume.assumeFalse;
 import static org.sosy_lab.cpachecker.util.test.TestUtils.configurationForTest;
 
-import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.List;
 import org.junit.Test;
@@ -49,24 +47,6 @@ public class OrderingConsistencyDataRaceTest {
   // The data-race check requires the CLOCKS encoding; REFINEMENT is rejected at configuration time.
   private static final String ENCODING = "CLOCKS";
 
-  /**
-   * Known false alarm of the arbitrary-thread-handle feature: OC reports a spurious data race on a
-   * race-free program whose thread handles are created and joined through a <b>symbolic</b> array
-   * index ({@code tids[i]} in a loop). The join branches over the live thread candidates and orders
-   * only one of them, but the value read back from {@code tids[i]} is not tied to the id written at
-   * {@code pthread_create(&tids[i], ...)} — the {@code &tids[i]} write and the {@code tids[i]} read
-   * record their base/offset terms asymmetrically, so no read-from pair constrains them — so the
-   * branch in which both loop iterations resolve to the same candidate survives and leaves the other
-   * thread unordered before main's read. The all-literal-index path (fast-path handle key) resolves
-   * each handle exactly and is unaffected.
-   *
-   * <p>Skipped rather than asserted so the suite stays green; delete this entry to make the test run
-   * (and fail) once the encoder gap is filed/fixed. The unsafe sibling below is NOT skipped: it
-   * guards that a genuine race through the same symbolic-index path is still detected.
-   */
-  private static final ImmutableSet<String> KNOWN_SYMBOLIC_HANDLE_FALSE_ALARM =
-      ImmutableSet.of("loop_handle_datarace_safe.c");
-
   private static Configuration getConfig() throws InvalidConfigurationException, IOException {
     return configurationForTest()
         .loadFromFile(CONFIG_FILE)
@@ -100,9 +80,9 @@ public class OrderingConsistencyDataRaceTest {
             // what the name refers to and what OrderingConsistencyTest checks.) Kept precisely
             // because it shows the two properties are independent.
             Pair.of("mutex_protected_safe.c", Result.FALSE),
-            // Thread pool created and joined through a symbolic array index, race-free. OC wrongly
-            // reports a race here (see KNOWN_SYMBOLIC_HANDLE_FALSE_ALARM) so it is skipped; the
-            // unsafe sibling immediately below is a real race and must stay FALSE.
+            // Thread pool created and joined through a symbolic array index (tids[i] in a loop),
+            // race-free: exercises per-instance base identity for a local handle array. Its unsafe
+            // sibling is a genuine race through the same path and must stay FALSE.
             Pair.of("loop_handle_datarace_safe.c", Result.TRUE),
             Pair.of("loop_handle_datarace_unsafe.c", Result.FALSE));
 
@@ -119,10 +99,6 @@ public class OrderingConsistencyDataRaceTest {
 
   @Test
   public void testDataRace() throws Exception {
-    assumeFalse(
-        "KNOWN false alarm: symbolic-index thread handle, see KNOWN_SYMBOLIC_HANDLE_FALSE_ALARM",
-        KNOWN_SYMBOLIC_HANDLE_FALSE_ALARM.contains(fileName));
-
     IntegrationTestResult results = IntegrationTestRunner.run(getConfig(), TEST_DIR + fileName);
     results.assertIs(expectedResult);
   }

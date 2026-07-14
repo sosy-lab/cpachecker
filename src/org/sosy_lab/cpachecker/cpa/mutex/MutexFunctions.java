@@ -162,6 +162,30 @@ public final class MutexFunctions {
   }
 
   /**
+   * Returns {@code true} if the given function name is a mutex/rwlock lock function (regardless of
+   * whether its mutex argument can be resolved to a concrete object).
+   */
+  public static boolean isLockFunction(String functionName) {
+    return LOCK_FUNCTIONS.containsKey(functionName);
+  }
+
+  /**
+   * Returns {@code true} if the given function name is a mutex/rwlock unlock function (regardless of
+   * whether its mutex argument can be resolved to a concrete object).
+   */
+  public static boolean isUnlockFunction(String functionName) {
+    return UNLOCK_FUNCTIONS.containsKey(functionName);
+  }
+
+  /**
+   * Returns {@code true} if the given lock function name takes a <em>read</em> (shared) lock, such
+   * as {@code pthread_rwlock_rdlock}; read-locked sections of one lock may overlap each other.
+   */
+  public static boolean isReadLockFunction(String functionName) {
+    return LOCK_FUNCTIONS.get(functionName) == MutexLock.MutexLockType.READ;
+  }
+
+  /**
    * Returns {@code true} if the given function name is a mutex init function.
    */
   public static boolean isInitFunction(String functionName) {

@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cpa.oc.EventKind;
 import org.sosy_lab.cpachecker.cpa.oc.MemoryEvent;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import java.math.BigInteger;
 import org.sosy_lab.java_smt.api.Model;
 
 /**
@@ -119,7 +120,7 @@ final class ConsistencyChecker {
     }
 
     ImmutableListMultimap<Integer, MemoryEvent> sameCellWrites = sameCellWrites();
-    Object[] addressValues = evaluateAddresses(pModel);
+    BigInteger[] addressValues = evaluateAddresses(pModel);
 
     boolean changed = true;
     while (changed) {
@@ -273,30 +274,52 @@ final class ConsistencyChecker {
     return result.build();
   }
 
-  /** The model's (base, offset) value of every region event's address, by event id (else null). */
-  private Object[] evaluateAddresses(Model pModel) {
-    Object[] values = new Object[eventCount];
+  /**
+   * The model's full byte address ({@code base + offset}) of every region event, by event id, or
+   * null if it did not evaluate to a concrete integer. This mirrors {@link OcEncoder#sameAddress}:
+   * in the flat memory layout a cell is identified by one address, so an interior access whose
+   * address is a combined {@code base + offset} is compared on the same footing as a base/offset
+   * pair.
+   */
+  private BigInteger[] evaluateAddresses(Model pModel) {
+    BigInteger[] values = new BigInteger[eventCount];
     for (MemoryEvent event : encoder.getEvents()) {
       if (event.isRegionAccess()) {
         Object base = pModel.evaluate(event.addressTerm());
         Object offset = event.offsetTerm() == null ? null : pModel.evaluate(event.offsetTerm());
-        values[event.id()] = List.of(base == null ? "?" : base, offset == null ? 0 : offset);
+        if (base instanceof BigInteger baseValue) {
+          BigInteger offsetValue = offset instanceof BigInteger o ? o : BigInteger.ZERO;
+          values[event.id()] = baseValue.add(offsetValue);
+        }
       }
     }
     return values;
   }
 
   /**
-   * Whether two region writes touch the same cell in the model: equal object base, and equal offset
-   * unless one of them is a fill write (which covers every offset of its base).
+   * Whether two region writes touch the same cell in the model. A fill write stands for the whole
+   * object {@code [base, base + fillSize)}, so it is the same cell as any access whose full address
+   * falls in that range; two ordinary accesses match iff their full addresses are equal.
    */
-  private boolean sameCellInModel(MemoryEvent pFirst, MemoryEvent pSecond, Object[] pAddresses) {
-    List<?> a = (List<?>) pAddresses[pFirst.id()];
-    List<?> b = (List<?>) pAddresses[pSecond.id()];
-    if (a == null || b == null || !a.get(0).equals(b.get(0))) {
-      return false; // different base
+  private boolean sameCellInModel(MemoryEvent pFirst, MemoryEvent pSecond, BigInteger[] pAddresses) {
+    BigInteger a = pAddresses[pFirst.id()];
+    BigInteger b = pAddresses[pSecond.id()];
+    if (a == null || b == null) {
+      return false;
     }
-    return pFirst.fill() || pSecond.fill() || a.get(1).equals(b.get(1));
+    if (pFirst.fill()) {
+      return covers(a, pFirst.fillSizeBytes(), b);
+    }
+    if (pSecond.fill()) {
+      return covers(b, pSecond.fillSizeBytes(), a);
+    }
+    return a.equals(b);
+  }
+
+  /** Whether {@code pAddress} is in the fill's covered range {@code [fillBase, fillBase + size)}. */
+  private static boolean covers(BigInteger pFillBase, long pSize, BigInteger pAddress) {
+    return pAddress.compareTo(pFillBase) >= 0
+        && pAddress.compareTo(pFillBase.add(BigInteger.valueOf(pSize))) < 0;
   }
 
   private static boolean isTrue(Boolean pValue) {

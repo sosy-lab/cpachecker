@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 /**
@@ -42,6 +43,18 @@ import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
  * constraints, mutual-exclusion constraints for critical sections, and the error property.
  */
 final class OcEncoder {
+
+  /**
+   * Upper bound on every object's end address in the flat memory layout (see the base-address
+   * constraints in {@code getBaseConstraints}). Chosen well below the signed-overflow point of the
+   * pointer type on every supported machine model (2^31 for a 32-bit pointer), and applied to the
+   * <em>base</em> (as {@code base <= LAYOUT_CEILING - size}) rather than to {@code base + size} —
+   * bounding the sum directly would be useless, since a wrapped-around negative sum still compares
+   * below the ceiling. With the base bounded, {@code base + size} cannot overflow, so the layout
+   * genuinely keeps objects in disjoint ranges. Still leaves room for far more objects than any
+   * realistic program has.
+   */
+  private static final long LAYOUT_CEILING = 1L << 30;
 
   /** A read-from pair with its Boolean selector variable. */
   record RfPair(MemoryEvent write, MemoryEvent read, BooleanFormula variable) {}
@@ -304,12 +317,27 @@ final class OcEncoder {
       }
     }
 
-    // all allocation bases (address-taken variables, heap cells) are pairwise distinct
-    ImmutableList<Formula> bases = registry.getAddressBases();
-    for (int i = 0; i < bases.size(); i++) {
-      for (int j = i + 1; j < bases.size(); j++) {
-        constraints.add(bfmgr.not(fmgr.makeEqual(bases.get(i), bases.get(j))));
-      }
+    // Flat memory layout: every object (address-taken variable, heap cell) occupies a byte range
+    // [base, base + size) and the ranges are laid out consecutively and disjointly, so a full
+    // address `base + offset` (offset < size) identifies a cell uniquely across all objects and an
+    // interior pointer (&a[i], &s.field) aliases exactly. Same idea as
+    // PointerTargetSetManager.makeBaseAddressConstraints, but as a bounded ascending chain: objects
+    // are placed one after another starting just above address 0, and every range end is kept below
+    // LAYOUT_CEILING, itself well below the signed-overflow point. The ceiling is what makes this
+    // sound on bitvector addresses -- without it the solver could pick a base near the maximum so
+    // that `base + size` wraps around, spuriously satisfying disjointness and colliding two objects.
+    ImmutableList<OcExplorationRegistry.AddressBase> bases = registry.getAddressBases();
+    Formula previousEnd = null;
+    for (OcExplorationRegistry.AddressBase base : bases) {
+      Formula term = base.term();
+      FormulaType<Formula> type = fmgr.getFormulaType(term);
+      // this object begins at or after the end of the previous one (the first just above address 0)
+      Formula start = previousEnd == null ? fmgr.makeNumber(type, 1L) : previousEnd;
+      constraints.add(fmgr.makeGreaterOrEqual(term, start, true));
+      // and its base is bounded so that base + size stays below the ceiling and cannot overflow
+      constraints.add(
+          fmgr.makeLessOrEqual(term, fmgr.makeNumber(type, LAYOUT_CEILING - base.size()), true));
+      previousEnd = fmgr.makePlus(term, fmgr.makeNumber(type, base.size()));
     }
 
     if (withOrderingBooleans) {
@@ -324,20 +352,28 @@ final class OcEncoder {
         constraints.add(bfmgr.implication(bothEnabled, bfmgr.or(ws.var12(), ws.var21())));
       }
       for (CsPair cs : csPairs) {
+        // the two sections exclude each other only when they are the same mutex (equal addresses)
+        BooleanFormula same = sameMutex(cs.section1().lock(), cs.section2().lock());
         constraints.add(
             bfmgr.implication(
                 cs.var12(),
                 bfmgr.and(
-                    getFullGuard(cs.section1().unlock()), getFullGuard(cs.section2().lock()))));
+                    getFullGuard(cs.section1().unlock()),
+                    getFullGuard(cs.section2().lock()),
+                    same)));
         constraints.add(
             bfmgr.implication(
                 cs.var21(),
                 bfmgr.and(
-                    getFullGuard(cs.section2().unlock()), getFullGuard(cs.section1().lock()))));
+                    getFullGuard(cs.section2().unlock()),
+                    getFullGuard(cs.section1().lock()),
+                    same)));
         constraints.add(
             bfmgr.implication(
                 bfmgr.and(
-                    getFullGuard(cs.section1().unlock()), getFullGuard(cs.section2().unlock())),
+                    getFullGuard(cs.section1().unlock()),
+                    getFullGuard(cs.section2().unlock()),
+                    same),
                 bfmgr.or(cs.var12(), cs.var21())));
       }
     }
@@ -387,9 +423,13 @@ final class OcEncoder {
     }
 
     for (CsPair cs : csPairs) {
+      // the two sections must not overlap only when they are the same mutex (equal addresses)
       constraints.add(
           bfmgr.implication(
-              bfmgr.and(getFullGuard(cs.section1().unlock()), getFullGuard(cs.section2().unlock())),
+              bfmgr.and(
+                  getFullGuard(cs.section1().unlock()),
+                  getFullGuard(cs.section2().unlock()),
+                  sameMutex(cs.section1().lock(), cs.section2().lock())),
               bfmgr.or(
                   imgr.lessThan(
                       clocks[cs.section1().unlock().id()], clocks[cs.section2().lock().id()]),
@@ -616,17 +656,68 @@ final class OcEncoder {
   }
 
   /**
-   * Same-cell test of two events of the same region: equal object base and equal byte offset. Bases
-   * are pairwise distinct so base equality is exact; region events always carry a concrete offset
-   * (zero when the access has none), so both components are compared directly.
+   * Same-cell test of two events of the same region, in the flat memory layout: their full byte
+   * addresses {@code base + offset} are equal. Because objects occupy disjoint address ranges (see
+   * the base constraints), two accesses with different bases collide only if one reaches out of its
+   * object's bounds, and for in-bounds accesses this is exact — including an interior pointer whose
+   * value is {@code base + k} aliasing a direct access at offset {@code k} of the same object. A
+   * fill write covers its whole object {@code [base, base + size)}, so any access with the same base
+   * is covered; base equality is the exact test there.
    */
   BooleanFormula sameAddress(MemoryEvent pFirst, MemoryEvent pSecond) {
-    BooleanFormula sameBase = fmgr.makeEqual(pFirst.addressTerm(), pSecond.addressTerm());
-    if (pFirst.fill() || pSecond.fill()) {
-      // a fill write covers every offset of its base, so only the base has to match
-      return sameBase;
+    if (pFirst.fill() && pSecond.fill()) {
+      // two whole-object fills alias iff they are the same object, i.e. share a base
+      return fmgr.makeEqual(pFirst.addressTerm(), pSecond.addressTerm());
     }
-    return bfmgr.and(sameBase, fmgr.makeEqual(pFirst.offsetTerm(), pSecond.offsetTerm()));
+    if (pFirst.fill()) {
+      return covers(pFirst, fullAddress(pSecond));
+    }
+    if (pSecond.fill()) {
+      return covers(pSecond, fullAddress(pFirst));
+    }
+    return fmgr.makeEqual(fullAddress(pFirst), fullAddress(pSecond));
+  }
+
+  /** The full byte address of a region access: its object base plus its byte offset (if any). */
+  private Formula fullAddress(MemoryEvent pEvent) {
+    Formula base = pEvent.addressTerm();
+    Formula offset = pEvent.offsetTerm();
+    return offset == null ? base : fmgr.makePlus(base, offset);
+  }
+
+  /**
+   * Whether {@code pAddress} falls inside the object a fill write covers, {@code [base, base +
+   * size)}. A fill stands for the whole object, so it aliases any access into it — including one
+   * reached through an interior pointer, whose address is the combined {@code base + offset} rather
+   * than a base/offset pair, which a plain base equality would miss.
+   */
+  private BooleanFormula covers(MemoryEvent pFill, Formula pAddress) {
+    Formula base = pFill.addressTerm();
+    FormulaType<Formula> type = fmgr.getFormulaType(base);
+    Formula end = fmgr.makePlus(base, fmgr.makeNumber(type, pFill.fillSizeBytes()));
+    return bfmgr.and(
+        fmgr.makeLessOrEqual(base, pAddress, true), fmgr.makeLessThan(pAddress, end, true));
+  }
+
+  /**
+   * Whether two lock events could ever be the same mutex (a cheap static filter used when building
+   * critical-section pairs). Real mutexes share one alias region and are distinguished by address,
+   * so any two of them are candidates; an atomic-block pseudo-mutex matches only by its id.
+   */
+  private static boolean canBeSameMutex(MemoryEvent pFirst, MemoryEvent pSecond) {
+    if (pFirst.isRegionAccess() && pSecond.isRegionAccess()) {
+      return cellKey(pFirst).equals(cellKey(pSecond));
+    }
+    return pFirst.mutexId().equals(pSecond.mutexId());
+  }
+
+  /**
+   * The condition under which two lock events act on the same mutex: equal addresses for real
+   * mutexes (so {@code &(p->lock)} in two threads is the same mutex exactly when {@code p} agrees),
+   * unconditionally true for the atomic-block pseudo-mutex (which has no address).
+   */
+  private BooleanFormula sameMutex(MemoryEvent pFirst, MemoryEvent pSecond) {
+    return pFirst.isRegionAccess() ? sameAddress(pFirst, pSecond) : bfmgr.makeTrue();
   }
 
   private ImmutableListMultimap<Object, MemoryEvent> writesByCell() {
@@ -733,8 +824,7 @@ final class OcEncoder {
       for (int j = i + 1; j < sections.size(); j++) {
         Section s1 = sections.get(i);
         Section s2 = sections.get(j);
-        if (!s1.lock().mutexId().equals(s2.lock().mutexId())
-            || s1.lock().instanceId() == s2.lock().instanceId()) {
+        if (s1.lock().instanceId() == s2.lock().instanceId() || !canBeSameMutex(s1.lock(), s2.lock())) {
           continue;
         }
         if (registry.isReadLock(s1.lock().id()) && registry.isReadLock(s2.lock().id())) {
