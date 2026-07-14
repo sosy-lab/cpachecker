@@ -417,7 +417,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
   private ImmutableMap<String, String> getVariablesWithTypesFromFullCFA() {
     ImmutableMap.Builder<String, String> builder = new ImmutableMap.Builder<>();
     for (String variable :
-        cfa.getMetadata().getLiveVariables().get().getAllLiveVariables().stream()
+        cfa.getMetadata().getLiveVariables().orElseThrow().getAllLiveVariables().stream()
             .map(e -> e.getName())
             .toList()) {
       if (cProgramScope.variableNameInUse(variable)) {
