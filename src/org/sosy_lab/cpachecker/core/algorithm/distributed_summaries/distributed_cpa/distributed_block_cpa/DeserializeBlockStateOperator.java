@@ -13,6 +13,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -57,7 +58,7 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
         blockNode,
         BlockStateType.INITIAL,
         ImmutableList.of(),
-        history,
+        BlockGraphPath.of(history),
         finalWitness);
   }
 }

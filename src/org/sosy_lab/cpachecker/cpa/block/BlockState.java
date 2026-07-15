@@ -24,6 +24,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.ViolationConditionReportingState;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -52,7 +53,7 @@ public class BlockState
   private final CFANode node;
   private final BlockStateType type;
   private final BlockNode blockNode;
-  private ImmutableList<String> history;
+  private BlockGraphPath history;
   private List<? extends AbstractState> violationConditions;
   private final ViolationWitness witness;
 
@@ -63,7 +64,7 @@ public class BlockState
       BlockNode pTargetNode,
       BlockStateType pType,
       List<? extends AbstractState> pViolationConditions,
-      List<String> pHistory,
+      BlockGraphPath pHistory,
       ViolationWitness pWitness,
       PathState pWitnessCheckPathState) {
     Preconditions.checkArgument(
@@ -73,7 +74,7 @@ public class BlockState
     type = pType;
     blockNode = pTargetNode;
     violationConditions = ImmutableList.copyOf(pViolationConditions);
-    history = ImmutableList.copyOf(pHistory);
+    history = pHistory;
     witness = pWitness;
     witnessCheckPathState = Optional.ofNullable(pWitnessCheckPathState);
   }
@@ -83,20 +84,20 @@ public class BlockState
       BlockNode pTargetNode,
       BlockStateType pType,
       List<? extends AbstractState> pViolationConditions,
-      List<String> pHistory,
+      BlockGraphPath pHistory,
       ViolationWitness pWitness) {
     this(pNode, pTargetNode, pType, pViolationConditions, pHistory, pWitness, null);
   }
 
   public void addHistory(BlockNode pBlockNode) {
-    history = listAndElement(history, pBlockNode.getId());
+    history = new BlockGraphPath(listAndElement(history.path(), pBlockNode.getId()));
   }
 
   public ViolationWitness getWitness() {
     return witness;
   }
 
-  public ImmutableList<String> getHistory() {
+  public BlockGraphPath getHistory() {
     return history;
   }
 

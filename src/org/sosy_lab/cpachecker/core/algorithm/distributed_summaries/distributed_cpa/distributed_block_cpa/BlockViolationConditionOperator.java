@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -58,7 +59,9 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
     }
     List<String> previousHistory =
         pPreviousCondition
-            .map(state -> AbstractStates.extractStateByType(state, BlockState.class).getHistory())
+            .map(
+                state ->
+                    AbstractStates.extractStateByType(state, BlockState.class).getHistory().path())
             .orElse(ImmutableList.of());
     BlockState withHistory =
         new BlockState(
@@ -66,7 +69,7 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
             topMost.getBlockNode(),
             topMost.getType(),
             topMost.getViolationConditions(),
-            listAndElement(previousHistory, topMost.getBlockNode().getId()),
+            BlockGraphPath.of(listAndElement(previousHistory, topMost.getBlockNode().getId())),
             currentWitness);
     return Optional.of(withHistory);
   }
