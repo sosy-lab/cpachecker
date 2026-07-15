@@ -24,6 +24,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.ViolationConditionReportingState;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -33,6 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.path.PathState;
 import org.sosy_lab.cpachecker.cpa.path.ViolationWitness;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -51,7 +53,7 @@ public class BlockState
   private final CFANode node;
   private final BlockStateType type;
   private final BlockNode blockNode;
-  private ImmutableList<String> history;
+  private BlockGraphPath history;
   private List<? extends AbstractState> violationConditions;
   private final ViolationWitness witness;
 
@@ -62,7 +64,7 @@ public class BlockState
       BlockNode pTargetNode,
       BlockStateType pType,
       List<? extends AbstractState> pViolationConditions,
-      List<String> pHistory,
+      BlockGraphPath pHistory,
       ViolationWitness pWitness,
       PathState pWitnessCheckPathState) {
     Preconditions.checkArgument(
@@ -71,8 +73,8 @@ public class BlockState
     node = pNode;
     type = pType;
     blockNode = pTargetNode;
-    violationConditions = pViolationConditions;
-    history = ImmutableList.copyOf(pHistory);
+    violationConditions = ImmutableList.copyOf(pViolationConditions);
+    history = pHistory;
     witness = pWitness;
     witnessCheckPathState = Optional.ofNullable(pWitnessCheckPathState);
   }
@@ -82,20 +84,20 @@ public class BlockState
       BlockNode pTargetNode,
       BlockStateType pType,
       List<? extends AbstractState> pViolationConditions,
-      List<String> pHistory,
+      BlockGraphPath pHistory,
       ViolationWitness pWitness) {
     this(pNode, pTargetNode, pType, pViolationConditions, pHistory, pWitness, null);
   }
 
   public void addHistory(BlockNode pBlockNode) {
-    history = listAndElement(history, pBlockNode.getId());
+    history = new BlockGraphPath(listAndElement(history.path(), pBlockNode.getId()));
   }
 
   public ViolationWitness getWitness() {
     return witness;
   }
 
-  public ImmutableList<String> getHistory() {
+  public BlockGraphPath getHistory() {
     return history;
   }
 
@@ -162,6 +164,8 @@ public class BlockState
 
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
+    final BooleanFormulaManagerView bfmgr = manager.getBooleanFormulaManager();
+
     if (isTarget()) {
       ImmutableList.Builder<BooleanFormula> combined = ImmutableList.builder();
       for (AbstractState violationCondition : violationConditions) {
@@ -169,11 +173,11 @@ public class BlockState
             AbstractStates.asIterable(violationCondition)
                 .filter(ViolationConditionReportingState.class)
                 .transform(s -> s.getViolationCondition(manager));
-        combined.add(manager.getBooleanFormulaManager().and(approximations.toList()));
+        combined.add(bfmgr.and(approximations.toList()));
       }
-      return manager.getBooleanFormulaManager().or(combined.build());
+      return bfmgr.or(combined.build());
     }
-    return manager.getBooleanFormulaManager().makeTrue();
+    return bfmgr.makeTrue();
   }
 
   @Override

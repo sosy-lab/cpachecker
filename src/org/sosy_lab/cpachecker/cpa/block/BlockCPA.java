@@ -13,6 +13,7 @@ import com.google.errorprone.annotations.concurrent.LazyInit;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -44,7 +45,7 @@ public class BlockCPA extends AbstractCPA {
         blockNode,
         BlockStateType.INITIAL,
         ImmutableList.of(),
-        ImmutableList.of(),
+        BlockGraphPath.of(),
         ViolationWitness.EMPTY);
   }
 

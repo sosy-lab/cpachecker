@@ -49,6 +49,8 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPostConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath.PathCase;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
@@ -112,7 +114,7 @@ public class DssBlockAnalysis {
 
   private final DistributedConfigurableProgramAnalysis dcpa;
   private final DssMessageFactory messageFactory;
-  private final Multimap<String, @NonNull StateAndPrecision> preconditions;
+  private final Multimap<BlockGraphPath, @NonNull StateAndPrecision> preconditions;
   private final Multimap<String, @NonNull StateAndPrecision> violationConditions;
 
   private final BlockNode block;
@@ -126,9 +128,10 @@ public class DssBlockAnalysis {
   private boolean containsViolationInsideBlock;
 
   private final boolean resetPrecisionsForEveryRun;
+
   private final boolean combineByHash;
 
-  private final List<StateAndPrecision> relevant = new ArrayList<>();
+  private final List<BlockGraphPath> pathsToAnalyze = new ArrayList<>();
 
   public DssBlockAnalysis(
       LogManager pLogger,
@@ -167,6 +170,11 @@ public class DssBlockAnalysis {
     assert dcpa != null : "Distribution of " + cpa.getClass().getSimpleName() + " not implemented.";
 
     preconditions = ArrayListMultimap.create();
+    for (String predecessorId : block.getPredecessorIds()) {
+      preconditions.put(
+          BlockGraphPath.of(predecessorId),
+          new StateAndPrecision(makeStartState(), makeStartPrecision()));
+    }
     violationConditions = ArrayListMultimap.create();
     resetPrecisionsForEveryRun = pOptions.resetPrecisionsForEveryRun();
 
@@ -401,11 +409,21 @@ public class DssBlockAnalysis {
 
     status = status.update(result.getStatus());
 
-    if (result.getAllViolations().isEmpty()) {
-      return ImmutableList.of();
+    final ImmutableList.Builder<DssMessage> initialMessages = ImmutableList.builder();
+
+    if (!result.getFinalLocationStates().isEmpty()) {
+      initialMessages.addAll(
+          reportPostconditions(
+              transformedImmutableListCopy(
+                  result.getFinalLocationStates(),
+                  state -> new StateAndPrecision(state, reachedSet.getPrecision(state)))));
     }
 
-    return reportFirstViolationConditions(result.getAllViolations());
+    if (!result.getAllViolations().isEmpty()) {
+      initialMessages.addAll(reportFirstViolationConditions(result.getAllViolations()));
+    }
+
+    return initialMessages.build();
   }
 
   /**
@@ -422,7 +440,7 @@ public class DssBlockAnalysis {
    */
   public DssMessageProcessing storePrecondition(DssPostConditionMessage pReceived)
       throws InterruptedException, SolverException, CPAException {
-    relevant.clear();
+    pathsToAnalyze.clear();
     logger.log(Level.INFO, "Running forward analysis with new precondition");
     resetStates();
     ImmutableList<@NonNull StateAndPrecision> deserializedStatesAndPrecisions =
@@ -447,78 +465,104 @@ public class DssBlockAnalysis {
                     .add(unifiedPrecision)
                     .build());
 
+    // group incoming states by block graph path
+    ImmutableListMultimap.Builder<BlockGraphPath, StateAndPrecision> newPreconditionsBuilder =
+        ImmutableListMultimap.builder();
     for (StateAndPrecision dsap : deserializedStatesAndPrecisions) {
-      AbstractStates.extractStateByType(dsap.state(), BlockState.class).addHistory(block);
+      newPreconditionsBuilder.put(dsap.getBlockGraphPath(), dsap);
     }
 
-    if (preconditions.get(pReceived.getSenderId()).isEmpty()) {
-      preconditions.putAll(pReceived.getSenderId(), deserializedStatesAndPrecisions);
-      relevant.addAll(deserializedStatesAndPrecisions);
-      return processing;
-    }
-    for (StateAndPrecision newStateAndPrecision : deserializedStatesAndPrecisions) {
-      boolean isCovered = false;
-      for (StateAndPrecision oldStateAndPrecision :
-          ImmutableSet.copyOf(preconditions.get(pReceived.getSenderId()))) {
-        if (isNotPrefixedBy(oldStateAndPrecision.state(), newStateAndPrecision.state())
-            && isNotPrefixedBy(newStateAndPrecision.state(), oldStateAndPrecision.state())) {
-          continue;
-        }
-        boolean oldIsTop = dcpa.isMostGeneralBlockEntryState(oldStateAndPrecision.state());
-        boolean newIsTop = dcpa.isMostGeneralBlockEntryState(newStateAndPrecision.state());
-        boolean newLeqOld =
-            oldIsTop
-                || dcpa.getCoverageOperator()
-                    .isSubsumed(
-                        dcpa.reset(newStateAndPrecision.state()), oldStateAndPrecision.state());
-        boolean oldLeqNew;
-        if (dcpa.getCoverageOperator().isBasedOnEquality()) {
-          oldLeqNew = newLeqOld;
-        } else {
-          oldLeqNew =
-              newIsTop
-                  || dcpa.getCoverageOperator()
-                      .isSubsumed(
-                          oldStateAndPrecision.state(), dcpa.reset(newStateAndPrecision.state()));
-        }
-        if (newLeqOld || oldLeqNew) {
-          preconditions.remove(pReceived.getSenderId(), oldStateAndPrecision);
-        }
-        isCovered |= newLeqOld;
+    ImmutableListMultimap<BlockGraphPath, StateAndPrecision> newPreconditions =
+        newPreconditionsBuilder.build();
+
+    ImmutableList.Builder<BlockGraphPath> removeBuilder = new ImmutableList.Builder<>();
+    ImmutableList.Builder<BlockGraphPath> addBuilder = new ImmutableList.Builder<>();
+    boolean fixPointReached = true;
+    for (BlockGraphPath newPath : newPreconditions.keySet()) {
+      ImmutableListMultimap.Builder<PathCase, BlockGraphPath> caseBuilder =
+          ImmutableListMultimap.builder();
+      for (BlockGraphPath oldPath : preconditions.keySet()) {
+        caseBuilder.put(newPath.getFirstMatchingCase(oldPath), oldPath);
       }
-      if (!isCovered) {
-        relevant.add(newStateAndPrecision);
+      ImmutableListMultimap<PathCase, BlockGraphPath> cases = caseBuilder.build();
+      if (cases.containsKey(PathCase.SUFFIX_OR_EQUAL)) {
+        boolean allowedToStop = false;
+        for (BlockGraphPath oldPathForCase : cases.get(PathCase.SUFFIX_OR_EQUAL)) {
+          if (!allowedToStop
+              && isCoveredBy(newPreconditions.get(newPath), preconditions.get(oldPathForCase))) {
+            allowedToStop = true;
+          }
+          removeBuilder.add(oldPathForCase);
+        }
+        addBuilder.add(newPath);
+        fixPointReached &= allowedToStop;
+        // ABC (existing)
+        //  BCCC (incoming)
+      } else if (cases.containsKey(PathCase.OVERLAP)) {
+        removeBuilder.addAll(cases.get(PathCase.OVERLAP));
+        addBuilder.add(newPath);
+        fixPointReached = false;
+      } else if (cases.containsKey(PathCase.REAL_PREFIX)) {
+        boolean allowedToStop = false;
+        for (BlockGraphPath oldPathForCase : cases.get(PathCase.REAL_PREFIX)) {
+          if (isCoveredBy(newPreconditions.get(newPath), preconditions.get(oldPathForCase))) {
+            allowedToStop = true;
+            break;
+          }
+        }
+        if (!allowedToStop) {
+          addBuilder.add(newPath);
+        }
+      } else {
+        Preconditions.checkState(cases.containsKey(PathCase.OTHER));
+        addBuilder.add(newPath);
+        boolean covered = false;
+        for (BlockGraphPath oldPathForOther : cases.get(PathCase.OTHER)) {
+          if (isCoveredBy(newPreconditions.get(newPath), preconditions.get(oldPathForOther))) {
+            covered = true;
+            break;
+          }
+        }
+        fixPointReached &= covered;
       }
-      preconditions.put(pReceived.getSenderId(), newStateAndPrecision);
     }
-    if (relevant.isEmpty()) {
+
+    for (StateAndPrecision dsap : deserializedStatesAndPrecisions) {
+      dsap.getBlockState().addHistory(block);
+    }
+
+    removeBuilder.build().forEach(preconditions::removeAll);
+    addBuilder.build().forEach(path -> preconditions.putAll(path, newPreconditions.get(path)));
+
+    if (fixPointReached) {
       return DssMessageProcessing.stop();
     }
+
+    pathsToAnalyze.clear();
+    pathsToAnalyze.addAll(preconditions.keySet());
+
     return processing;
   }
 
-  private boolean isNotPrefixedBy(AbstractState oldState, AbstractState newState) {
-
-    BlockState newBlockState = AbstractStates.extractStateByType(newState, BlockState.class);
-    BlockState oldBlockState = AbstractStates.extractStateByType(oldState, BlockState.class);
-
-    Preconditions.checkNotNull(newBlockState);
-    Preconditions.checkNotNull(oldBlockState);
-
-    ImmutableList<String> newHistory = newBlockState.getHistory();
-    ImmutableList<String> oldHistory = oldBlockState.getHistory();
-
-    if (newHistory.size() < oldHistory.size()) {
-      return true;
-    }
-
-    for (int i = 0; i < oldHistory.size(); i++) {
-      if (!newHistory.get(i).equals(oldHistory.get(i))) {
-        return true;
+  private boolean isCoveredBy(
+      Collection<@NonNull StateAndPrecision> newStates,
+      Collection<@NonNull StateAndPrecision> oldStates)
+      throws CPAException, InterruptedException {
+    // TODO rather inefficient
+    for (StateAndPrecision newState : newStates) {
+      boolean isCovered = false;
+      for (StateAndPrecision oldState : oldStates) {
+        // TODO
+        if (dcpa.getCoverageOperator().areStatesEqual(newState.state(), oldState.state())) {
+          isCovered = true;
+          break;
+        }
+      }
+      if (!isCovered) {
+        return false;
       }
     }
-
-    return false;
+    return true;
   }
 
   private ViolationWitness extractWitnessFromState(AbstractState state) {
@@ -566,12 +610,8 @@ public class DssBlockAnalysis {
         || equal == deserializedStates.size()) {
       return DssMessageProcessing.stop();
     }
-    relevant.clear();
-    if (preconditions.isEmpty()) {
-      relevant.add(new StateAndPrecision(makeStartState(), makeStartPrecision()));
-    } else {
-      relevant.addAll(preconditions.values());
-    }
+    pathsToAnalyze.clear();
+    pathsToAnalyze.addAll(preconditions.keySet());
     return DssMessageProcessing.proceed();
   }
 
@@ -641,39 +681,34 @@ public class DssBlockAnalysis {
     ImmutableList.Builder<StateAndPrecision> summaries = ImmutableList.builder();
     ImmutableSet.Builder<ArgPathAndCondition> vcs = ImmutableSet.builder();
 
-    boolean analyzedTrivial = false;
-    for (StateAndPrecision stateAndPrecision : relevant) {
-      boolean isTrivial = dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state());
-      if (isTrivial && analyzedTrivial) {
-        continue;
-      }
-      analyzedTrivial = analyzedTrivial || isTrivial;
-      resetStates();
-      reachedSet.clear();
-      reachedSet.add(
-          stateAndPrecision.state(),
-          resetPrecisionsForEveryRun || isTrivial ? makeStartPrecision() : unifiedPrecision);
-      BlockState blockState =
-          Objects.requireNonNull(
-              AbstractStates.extractStateByType(stateAndPrecision.state(), BlockState.class));
-      blockState.setViolationConditions(
-          transformedImmutableListCopy(
-              sender.map(violationConditions::get).orElse(violationConditions.values()),
-              sap -> sap.state()));
+    for (BlockGraphPath path : pathsToAnalyze) {
+      for (StateAndPrecision stateAndPrecision : ImmutableList.copyOf(preconditions.get(path))) {
+        boolean isTrivial = dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state());
+        resetStates();
+        reachedSet.clear();
+        reachedSet.add(
+            stateAndPrecision.state(),
+            resetPrecisionsForEveryRun || isTrivial ? makeStartPrecision() : unifiedPrecision);
+        BlockState blockState = stateAndPrecision.getBlockState();
+        blockState.setViolationConditions(
+            transformedImmutableListCopy(
+                sender.map(violationConditions::get).orElse(violationConditions.values()),
+                sap -> sap.state()));
 
-      DssBlockAnalysisResult result = DssBlockAnalyses.runAlgorithm(algorithm, reachedSet, block);
+        DssBlockAnalysisResult result = DssBlockAnalyses.runAlgorithm(algorithm, reachedSet, block);
 
-      status = status.update(result.getStatus());
+        status = status.update(result.getStatus());
 
-      if (!preconditions.isEmpty() || block.isRoot()) {
-        for (ARGState summary : result.getFinalLocationStates()) {
-          summaries.add(new StateAndPrecision(summary, reachedSet.getPrecision(summary)));
+        if (!preconditions.isEmpty() || block.isRoot()) {
+          for (ARGState summary : result.getFinalLocationStates()) {
+            summaries.add(new StateAndPrecision(summary, reachedSet.getPrecision(summary)));
+          }
         }
-      }
 
-      if (!result.getAllViolations().isEmpty()) {
-        vcs.addAll(computeViolationConditionStates(result.getViolationConditionViolations()));
-        vcs.addAll(computeViolationConditionStatesFromOrigin(result.getTargetStates()));
+        if (!result.getAllViolations().isEmpty()) {
+          vcs.addAll(computeViolationConditionStates(result.getViolationConditionViolations()));
+          vcs.addAll(computeViolationConditionStatesFromOrigin(result.getTargetStates()));
+        }
       }
     }
 
@@ -700,7 +735,8 @@ public class DssBlockAnalysis {
    * ARGState without any parent.
    */
   private void resetStates() {
-    for (Entry<String, StateAndPrecision> entry : ImmutableList.copyOf(preconditions.entries())) {
+    for (Entry<BlockGraphPath, StateAndPrecision> entry :
+        ImmutableList.copyOf(preconditions.entries())) {
       preconditions.remove(entry.getKey(), entry.getValue());
       preconditions.put(
           entry.getKey(),

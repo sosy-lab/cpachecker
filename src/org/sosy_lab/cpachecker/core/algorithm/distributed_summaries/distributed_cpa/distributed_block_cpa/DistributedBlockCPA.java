@@ -15,6 +15,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
@@ -70,7 +71,7 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
                 pNode,
                 BlockStateType.INITIAL,
                 ImmutableList.of(),
-                ImmutableList.of(),
+                BlockGraphPath.of(),
                 ViolationWitness.EMPTY);
 
     serializeOperator = new SerializeBlockStateOperator();
