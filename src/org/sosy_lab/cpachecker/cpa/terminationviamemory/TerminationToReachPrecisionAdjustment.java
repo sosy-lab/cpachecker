@@ -8,6 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
+import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.CURR2_KEYWORD;
+import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.CURR_KEYWORD;
+import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.PREV_KEYWORD;
+import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.getSubMap;
+
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -65,9 +70,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private final ImmutableSet<ExpressionTreeLocationInvariant> candidateInvariants;
   private final boolean validation;
 
-  private final String PREV_KEYWORD = "__TransInv@1";
-  private final String CURR_KEYWORD = "__TransInv@2";
-  private final String CURR2_KEYWORD = "__TransInv@3";
   private final String DUMMY_PREFIX = "";
   private static final long MAX_INT = 4294967295L;
   private static final long MIN_INT = -4294967295L;
@@ -245,6 +247,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
             interpolant =
                 collectCandidateTransitionInvariants(
                     location, terminationState.getPathFormulasForIteration().get(keyPair));
+            interpolant = translateVarsFromWitness(interpolant);
           } else {
             try {
               // If BMC check is UNSAT, try to overapproximate the transition invariant
@@ -446,5 +449,30 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       comparingFormulas.put(savedVariables.getKey(), comparingFormula);
     }
     return comparingFormulas.buildOrThrow();
+  }
+
+  /**
+   * This method translates the variables from the formula parsed from witness. The parser, names
+   * the previous variables with __CPACHECKER_x__PREV, we need to translate them to the names used
+   * in this analysis. Therefore, this method translates __CPACHECKER_x__PREV -> x__TransInv
+   */
+  private BooleanFormula translateVarsFromWitness(BooleanFormula formula) {
+    ImmutableSet<Formula> parsedPrevVariables =
+        fmgr.extractVariables(formula).entrySet().stream()
+            .filter(e -> e.getKey().contains("__CPACHECKER"))
+            .map(e -> e.getValue())
+            .collect(ImmutableSet.toImmutableSet());
+    ImmutableMap<Formula, Formula> subMapPrev =
+        getSubMap(parsedPrevVariables, "", TransitionInvariantUtils.PREV_KEYWORD, fmgr);
+    ImmutableSet<Formula> parsedCurrVariables =
+        fmgr.extractVariables(formula).entrySet().stream()
+            .filter(e -> !e.getKey().contains("__CPACHECKER"))
+            .map(e -> e.getValue())
+            .collect(ImmutableSet.toImmutableSet());
+    ImmutableMap<Formula, Formula> subMapCurr =
+        getSubMap(parsedCurrVariables, "", TransitionInvariantUtils.CURR_KEYWORD, fmgr);
+    formula = fmgr.substitute(formula, subMapPrev);
+    formula = fmgr.substitute(formula, subMapCurr);
+    return formula;
   }
 }

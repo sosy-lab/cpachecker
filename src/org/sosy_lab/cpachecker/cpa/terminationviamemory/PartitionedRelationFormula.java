@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
-import com.google.common.collect.ImmutableMap;
+import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.getSubMap;
+
 import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,6 +34,20 @@ public class PartitionedRelationFormula {
     formula = pFormula;
     fmgr = pFmgr;
     instantiateVariablesPartition();
+  }
+
+  public void extendPrevVarsWithPrefixSuffix(String prefix, String suffix) {
+    formula = fmgr.substitute(formula, getSubMap(prevVariables, prefix, suffix, fmgr));
+    instantiateThePrevVariables();
+  }
+
+  public void extendCurrVarsWithPrefixSuffix(String prefix, String suffix) {
+    formula = fmgr.substitute(formula, getSubMap(currVariables, prefix, suffix, fmgr));
+    instantiateTheCurrVariables();
+  }
+
+  public BooleanFormula getFormula() {
+    return formula;
   }
 
   /** Instantiates the map for the previous variables s for the relation formula T(s,s') */
@@ -113,34 +128,5 @@ public class PartitionedRelationFormula {
 
   private int getSSAIndex(String pFormula) {
     return FormulaManagerView.parseName(pFormula).getSecond().orElse(-2);
-  }
-
-  private ImmutableMap<Formula, Formula> getSubMap(
-      ImmutableSet<Formula> variables, String prefix, String suffix) {
-    return variables.stream()
-        .collect(
-            ImmutableMap.toImmutableMap(
-                var -> var,
-                var ->
-                    fmgr.makeVariable(
-                        fmgr.getFormulaType(var),
-                        prefix
-                            + TransitionInvariantUtils.removeTransInvKeyWord(
-                                fmgr.uninstantiate(var).toString())
-                            + suffix)));
-  }
-
-  public void extendPrevVarsWithPrefixSuffix(String prefix, String suffix) {
-    formula = fmgr.substitute(formula, getSubMap(prevVariables, prefix, suffix));
-    instantiateThePrevVariables();
-  }
-
-  public void extendCurrVarsWithPrefixSuffix(String prefix, String suffix) {
-    formula = fmgr.substitute(formula, getSubMap(currVariables, prefix, suffix));
-    instantiateTheCurrVariables();
-  }
-
-  public BooleanFormula getFormula() {
-    return formula;
   }
 }

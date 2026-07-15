@@ -54,8 +54,13 @@ public class TransitionInvariantUtils {
   }
 
   public static final String TRANS_INV_KEYWORD = "__TransInv";
+  public static final String PREV_KEYWORD = "__TransInv@1";
+  public static final String CURR_KEYWORD = "__TransInv@2";
+  public static final String CURR2_KEYWORD = "__TransInv@3";
 
   public static String removeTransInvKeyWord(String pFormula) {
+    pFormula = pFormula.replace("__CPACHECKER_", "");
+    pFormula = pFormula.replace("__PREV", "");
     return pFormula.replace(TRANS_INV_KEYWORD, "");
   }
 
@@ -193,6 +198,21 @@ public class TransitionInvariantUtils {
       }
     }
     return equivalence;
+  }
+
+  public static ImmutableMap<Formula, Formula> getSubMap(
+      ImmutableSet<Formula> variables, String prefix, String suffix, FormulaManagerView fmgr) {
+    return variables.stream()
+        .collect(
+            ImmutableMap.toImmutableMap(
+                var -> var,
+                var ->
+                    fmgr.makeVariable(
+                        fmgr.getFormulaType(var),
+                        prefix
+                            + TransitionInvariantUtils.removeTransInvKeyWord(
+                                fmgr.uninstantiate(var).toString())
+                            + suffix)));
   }
 
   public static String removeFunctionFromVarsName(String pFormula) {
