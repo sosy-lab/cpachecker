@@ -13,13 +13,17 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssBlockAnalysisStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -31,12 +35,15 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 
-public class DistributedCompositeCPA implements ForwardingDistributedConfigurableProgramAnalysis {
+public class DistributedCompositeCPA
+    implements ForwardingDistributedConfigurableProgramAnalysis, WrapperCPA {
 
+  private final LogManager logger;
   private final CompositeCPA compositeCPA;
   private final SerializeOperator serialize;
   private final DeserializeOperator deserialize;
@@ -48,12 +55,14 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
   private final SerializeCompositePrecisionOperator serializePrecisionOperator;
   private final ViolationConditionOperator verificationConditionOperator;
   private final CoverageOperator coverageOperator;
-  private final CombineOperator combineOperator;
+  private final CombinePreconditionsOperator combinePreconditionsOperator;
+  private final CombineViolationConditionsOperator combineViolationConditionOperator;
   private final CombinePrecisionOperator combinePrecisionOperator;
 
   private final ImmutableList<ConfigurableProgramAnalysis> wrappedCpas;
 
   public DistributedCompositeCPA(
+      LogManager pLogger,
       CompositeCPA pCompositeCPA,
       BlockNode pNode,
       ImmutableMap<
@@ -69,6 +78,7 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
     }
     wrappedCpas = wrappedCpasBuilder.build();
 
+    logger = pLogger;
     statistics = new DssBlockAnalysisStatistics("DCPA-" + pNode.getId());
     compositeCPA = pCompositeCPA;
     serialize = new SerializeCompositeStateOperator(wrappedCpas, statistics);
@@ -78,7 +88,11 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
     deserializePrecisionOperator = new DeserializeCompositePrecisionOperator(wrappedCpas, pNode);
     verificationConditionOperator = new CompositeViolationConditionOperator(wrappedCpas);
     coverageOperator = new CompositeStateCoverageOperator(wrappedCpas);
-    combineOperator = new CombineCompositeStateOperator(wrappedCpas);
+    combinePreconditionsOperator =
+        new CombineCompositeStatePreconditionsOperator(wrappedCpas, pNode.getInitialLocation());
+    combineViolationConditionOperator =
+        new CombineCompositeStateViolationConditionOperator(
+            wrappedCpas, pNode.getInitialLocation());
     combinePrecisionOperator = new CombineCompositePrecisionOperator(wrappedCpas);
   }
 
@@ -147,8 +161,8 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
   }
 
   @Override
-  public CombineOperator getCombineOperator() {
-    return combineOperator;
+  public CombinePreconditionsOperator getCombineOperator() {
+    return combinePreconditionsOperator;
   }
 
   @Override
@@ -164,6 +178,11 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
   @Override
   public CombinePrecisionOperator getCombinePrecisionOperator() {
     return combinePrecisionOperator;
+  }
+
+  @Override
+  public CombineViolationConditionsOperator getCombineViolationConditionsOperator() {
+    return combineViolationConditionOperator;
   }
 
   @Override
@@ -221,5 +240,58 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
       }
     }
     return cpasAndStates.build();
+  }
+
+  @Override
+  public @Nullable <T extends ConfigurableProgramAnalysis> T retrieveWrappedCpa(Class<T> type) {
+    if (type.isAssignableFrom(getClass())) {
+      return type.cast(this);
+    } else {
+      for (ConfigurableProgramAnalysis cpa : wrappedCpas) {
+        if (type.isAssignableFrom(cpa.getClass())) {
+          return type.cast(cpa);
+        } else if (cpa instanceof WrapperCPA wrapperCPA) {
+          T result = wrapperCPA.retrieveWrappedCpa(type);
+          if (result != null) {
+            return result;
+          }
+        }
+      }
+    }
+    if (compositeCPA.retrieveWrappedCpa(type) != null) {
+      logger.log(
+          Level.FINE,
+          "Requested to retrieve CPA type "
+              + type
+              + " from "
+              + this.getClass()
+              + " but does not exist in distributed versions of CPAs.");
+    }
+    return null;
+  }
+
+  @Override
+  public Iterable<ConfigurableProgramAnalysis> getWrappedCPAs() {
+    // The 'wrappedCpas' may contain some CPAs that were locally adjusted for DSS by wrapping them
+    // in their corresponding Distributed*CPA version. For example, if compositeCPA contains a
+    // PredicateCPA, then wrappedCpas will contain a DistributedPredicateCPA that wraps that
+    // instance of the PredicateCPA. These Distributed*CPA versions may manage additional resources
+    // that must be closed. So we can not delegate to compositeCPA to get the wrapped CPAs; instead,
+    // we need to make sure to return the Distributed*CPA versions.
+    return wrappedCpas;
+  }
+
+  @Override
+  public int computeProgramPointHash(AbstractState pAbstractState) {
+    CompositeState composite = (CompositeState) pAbstractState;
+    Preconditions.checkArgument(composite.getWrappedStates().size() == wrappedCpas.size());
+    int hash = 0;
+    for (CpaAndState cpaAndState : zip(wrappedCpas, composite)) {
+      if (cpaAndState.cpa() instanceof DistributedConfigurableProgramAnalysis dcpa) {
+        Preconditions.checkState(dcpa.doesOperateOn(cpaAndState.state().getClass()));
+        hash = 31 * hash + dcpa.computeProgramPointHash(cpaAndState.state());
+      }
+    }
+    return hash;
   }
 }

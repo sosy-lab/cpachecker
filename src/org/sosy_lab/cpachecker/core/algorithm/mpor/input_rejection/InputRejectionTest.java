@@ -15,7 +15,6 @@ import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -31,7 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class InputRejectionTest {
 
@@ -96,6 +95,13 @@ public class InputRejectionTest {
   }
 
   @Test
+  public void testRejectDuplicateStructMemberNames() throws Exception {
+    Path inputFilePath =
+        Path.of("./test/programs/mpor/input_rejections/duplicate-struct-member-names.c");
+    testExpectedRejection(inputFilePath, InputRejectionMessage.DUPLICATE_STRUCT_MEMBER_NAMES);
+  }
+
+  @Test
   public void testRejectNotParallel() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/sequential-program.c");
     testExpectedRejection(inputFilePath, InputRejectionMessage.NOT_CONCURRENT);
@@ -112,15 +118,14 @@ public class InputRejectionTest {
   @Test
   public void testRejectPthreadArrayIdentifiers() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/pthread_t-array.c");
-    testExpectedRejection(inputFilePath, InputRejectionMessage.NO_PTHREAD_OBJECT_ARRAYS);
+    testExpectedRejection(inputFilePath, InputRejectionMessage.PTHREAD_OBJECT_ARRAY);
   }
 
-  @Ignore
   @Test
   public void testRejectPthreadReturnValue() throws Exception {
     Path inputFilePath =
         Path.of("./test/programs/mpor/input_rejections/pthread-function-return-value.c");
-    testExpectedRejection(inputFilePath, InputRejectionMessage.PTHREAD_RETURN_VALUE);
+    testExpectedRejection(inputFilePath, InputRejectionMessage.PTHREAD_FUNCTION_RETURN_VALUE);
   }
 
   @Test
@@ -147,7 +152,7 @@ public class InputRejectionTest {
         Path.of("./test/programs/mpor/input_rejections/function-pointer-assignment.c");
     testExpectedRejectionWhenBuildingProgram(
         MPOROptions.getDefaultTestInstance(),
-        TestDataTools.configurationForTest().build(),
+        TestUtils.configurationForTest().build(),
         inputFilePath,
         InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT);
   }
@@ -158,9 +163,9 @@ public class InputRejectionTest {
         Path.of("./test/programs/mpor/input_rejections/function-pointer-parameter.c");
     testExpectedRejectionWhenBuildingProgram(
         MPOROptions.getDefaultTestInstance(),
-        TestDataTools.configurationForTest().build(),
+        TestUtils.configurationForTest().build(),
         inputFilePath,
-        InputRejectionMessage.FUNCTION_POINTER_PARAMETER);
+        InputRejectionMessage.FUNCTION_POINTER_ASSIGNMENT);
   }
 
   @Test
@@ -168,7 +173,7 @@ public class InputRejectionTest {
     Path inputFilePath = Path.of("./test/programs/mpor/input_rejections/pointer-write.c");
     // create test config and MPOROptions instance
     Configuration config =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .setOption("analysis.algorithm.MPOR.allowPointerWrites", "false")
             .build();
     MPOROptions customOptions = new MPOROptions(config);
@@ -182,7 +187,7 @@ public class InputRejectionTest {
         Path.of("./test/programs/mpor/input_rejections/pointer-write-binary-expression.c");
     testExpectedRejectionWhenBuildingProgram(
         MPOROptions.getDefaultTestInstance(),
-        TestDataTools.configurationForTest().build(),
+        TestUtils.configurationForTest().build(),
         inputFilePath,
         InputRejectionMessage.POINTER_WRITE_BINARY_EXPRESSION);
   }

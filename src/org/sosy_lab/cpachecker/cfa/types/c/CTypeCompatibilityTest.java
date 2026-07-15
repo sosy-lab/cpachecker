@@ -274,7 +274,7 @@ public class CTypeCompatibilityTest {
   }
 
   @Test
-  @Ignore // https://gitlab.com/sosy-lab/software/cpachecker/-/issues/348#note_2709463414
+  @Ignore("cf. https://gitlab.com/sosy-lab/software/cpachecker/-/issues/348#note_2709463414")
   public void testEnumCompatibility() {
     // C11 § 6.7.2.2 (4)
     assertAreAllCompatible(ENUM_TYPE_CHAR, ENUM_TYPE_CHAR.getCompatibleType(), CHAR);
@@ -562,7 +562,7 @@ public class CTypeCompatibilityTest {
   }
 
   @Test
-  @Ignore // cf. #1035
+  @Ignore("cf. issue #1035")
   public void testBrokenAssignmentCheck() {
     assertThat(POINTER_TO_VOID.canBeAssignedFrom(INT)).isFalse();
     assertThat(POINTER_TO_VOID.canBeAssignedFrom(ENUM_TYPE_CHAR)).isFalse();

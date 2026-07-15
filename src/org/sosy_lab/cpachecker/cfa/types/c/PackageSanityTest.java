@@ -33,10 +33,8 @@ public class PackageSanityTest extends AbstractPackageSanityTests {
     ignoreClasses(Predicates.equalTo(CBitFieldType.class));
   }
 
-  @Ignore
+  @Ignore(
+      "equals methods of CTypes are not testable with PackageSanityTest because of field origName")
   @Override
-  public void testEquals() {
-    // equals methods of CTypes are not testable with PackageSanityTest
-    // because of field origName
-  }
+  public void testEquals() {}
 }

@@ -48,21 +48,21 @@ import org.sosy_lab.java_smt.api.Formula;
 public interface PointerTargetSetBuilder {
 
   void addNextBaseAddressConstraints(
-      String newBase,
+      PointerBase newBase,
       @Nullable CType type,
       @Nullable Formula allocationSize,
       boolean isDynamicAllocation,
       Constraints constraints);
 
-  void prepareBase(String name, CType type);
+  void prepareBase(PointerBase base, CType type);
 
-  void shareBase(String name, CType type);
+  void shareBase(PointerBase base, CType type);
 
   /**
    * Adds the newly allocated base of the given type for tracking along with all its tracked
    * (sub)fields (if it's a structure/union) or all its elements (if it's an array).
    */
-  void addBase(String name, CType type);
+  void addBase(PointerBase base, CType type);
 
   boolean tracksField(CompositeField field);
 
@@ -71,29 +71,29 @@ public interface PointerTargetSetBuilder {
   void addEssentialFields(final List<CompositeField> fields);
 
   void addTemporaryDeferredAllocation(
-      boolean isZeroed, Optional<CIntegerLiteralExpression> size, String base);
+      boolean isZeroed, Optional<CIntegerLiteralExpression> size, PointerBase base);
 
-  void addDeferredAllocationPointer(String newPointer, String originalPointer);
+  void addDeferredAllocationPointer(PointerBase newPointer, PointerBase originalPointer);
 
-  ImmutableSet<DeferredAllocation> removeDeferredAllocationPointer(String pointer);
+  ImmutableSet<DeferredAllocation> removeDeferredAllocationPointer(PointerBase pointer);
 
-  boolean canRemoveDeferredAllocationPointer(String pointer);
+  boolean canRemoveDeferredAllocationPointer(PointerBase pointer);
 
-  ImmutableSet<DeferredAllocation> removeDeferredAllocations(String pointer);
+  ImmutableSet<DeferredAllocation> removeDeferredAllocations(PointerBase pointer);
 
-  ImmutableSet<String> getDeferredAllocationPointers();
+  ImmutableSet<PointerBase> getDeferredAllocationPointers();
 
-  boolean isTemporaryDeferredAllocationPointer(String pointer);
+  boolean isTemporaryDeferredAllocationPointer(PointerBase pointer);
 
-  boolean isDeferredAllocationPointer(String pointer);
+  boolean isDeferredAllocationPointer(PointerBase pointer);
 
-  boolean isActualBase(String name);
+  boolean isActualBase(PointerBase base);
 
-  boolean isPreparedBase(String name);
+  boolean isPreparedBase(PointerBase name);
 
-  boolean isBase(String name, CType type);
+  boolean isBase(PointerBase name, CType type);
 
-  NavigableSet<String> getAllBases();
+  NavigableSet<PointerBase> getAllBases();
 
   PersistentList<PointerTarget> getAllTargets(MemoryRegion region);
 
@@ -124,9 +124,9 @@ public interface PointerTargetSetBuilder {
     private final MemoryRegionManager regionMgr;
 
     // These fields all exist in PointerTargetSet and are documented there.
-    private PersistentSortedMap<String, CType> bases;
+    private PersistentSortedMap<PointerBase, CType> bases;
     private PersistentSortedMap<CompositeField, Boolean> fields;
-    private PersistentList<Pair<String, DeferredAllocation>> deferredAllocations;
+    private PersistentList<Pair<PointerBase, DeferredAllocation>> deferredAllocations;
     private PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
     private PersistentList<Formula> highestAllocatedAddresses;
     private int allocationCount;
@@ -172,30 +172,30 @@ public interface PointerTargetSetBuilder {
      *
      * <p>Note: The recursion doesn't proceed on unused (untracked) (sub)fields.
      *
-     * @param name The name of the newly allocated base variable
+     * @param base The base representing the newly allocated base variable
      * @param type The type of the allocated base or the next added pointer target
      */
-    private void addTargets(final String name, CType type) {
+    private void addTargets(final PointerBase base, CType type) {
       if (options.useArraysForHeap()) {
         return;
       }
 
-      targets = ptsMgr.addToTargets(name, null, type, null, 0, 0, targets, fields);
+      targets = ptsMgr.addToTargets(base, null, type, null, 0, 0, targets, fields);
     }
 
     /**
      * Prepare the newly allocated base of the given type for tracking later on.
      *
-     * <p>Make sure to call {@link #addNextBaseAddressConstraints(String, CType, Formula, boolean,
-     * Constraints)} before calling this method!
+     * <p>Make sure to call {@link #addNextBaseAddressConstraints(PointerBase, CType, Formula,
+     * boolean, Constraints)} before calling this method!
      *
-     * @param name The name of the variable.
+     * @param base The base representing the variable.
      * @param type The type of the variable.
      */
     @Override
-    public void prepareBase(final String name, CType type) {
+    public void prepareBase(final PointerBase base, CType type) {
       checkIsSimplified(type);
-      if (bases.containsKey(name)) {
+      if (bases.containsKey(base)) {
         // The base has already been added
         return;
       }
@@ -203,17 +203,17 @@ public interface PointerTargetSetBuilder {
       // Add base to prevent adding spurious targets when merging.
       // If size is not known, we can use a dummy size because it is only used for the fake base.
       long size = type.hasKnownConstantSize() ? typeHandler.getExactSizeof(type) : 0;
-      bases = bases.putAndCopy(name, PointerTargetSetManager.getFakeBaseType(size));
+      bases = bases.putAndCopy(base, PointerTargetSetManager.getFakeBaseType(size));
     }
 
     /**
      * Shares a base of a pointer.
      *
-     * @param name The variable name.
+     * @param base The base
      * @param type The type of the variable.
      */
     @Override
-    public void shareBase(final String name, CType type) {
+    public void shareBase(final PointerBase base, CType type) {
       checkIsSimplified(type);
       // checkArgument(bases.containsKey(name),
       //     "The base should be prepared before with prepareBase()");
@@ -226,33 +226,33 @@ public interface PointerTargetSetBuilder {
         // so we don't add targets.
 
       } else {
-        addTargets(name, type);
+        addTargets(base, type);
       }
 
-      bases = bases.putAndCopy(name, type);
+      bases = bases.putAndCopy(base, type);
     }
 
     /**
      * Adds the newly allocated base of the given type for tracking along with all its tracked
      * (sub)fields (if it is a structure/union) or all its elements (if it is an array).
      *
-     * <p>Make sure to call {@link #addNextBaseAddressConstraints(String, CType, Formula, boolean,
-     * Constraints)} before calling this method, but not if this was a deferred allocation and the
-     * method was called before!
+     * <p>Make sure to call {@link #addNextBaseAddressConstraints(PointerBase, CType, Formula,
+     * boolean, Constraints)} before calling this method, but not if this was a deferred allocation
+     * and the method was called before!
      *
-     * @param name The name of the base
+     * @param base The base
      * @param type The type of the base
      */
     @Override
-    public void addBase(final String name, CType type) {
+    public void addBase(final PointerBase base, CType type) {
       checkIsSimplified(type);
-      if (bases.containsKey(name)) {
+      if (bases.containsKey(base)) {
         // The base has already been added
         return;
       }
 
-      addTargets(name, type);
-      bases = bases.putAndCopy(name, type);
+      addTargets(base, type);
+      bases = bases.putAndCopy(base, type);
     }
 
     /**
@@ -272,7 +272,7 @@ public interface PointerTargetSetBuilder {
      */
     @Override
     public void addNextBaseAddressConstraints(
-        final String newBase,
+        final PointerBase newBase,
         final @Nullable CType type,
         final @Nullable Formula allocationSize,
         final boolean isDynamicAllocation,
@@ -316,7 +316,7 @@ public interface PointerTargetSetBuilder {
      * @param field The newly used field.
      */
     private void addTargets(
-        final String base,
+        final PointerBase base,
         final CType cType,
         final long properOffset,
         final long containerOffset,
@@ -384,7 +384,7 @@ public interface PointerTargetSetBuilder {
       verify(!options.useArraysForHeap()); // tracksField() should always return true otherwise
 
       final PersistentSortedMap<String, PersistentList<PointerTarget>> oldTargets = targets;
-      for (final Map.Entry<String, CType> baseEntry : bases.entrySet()) {
+      for (final Map.Entry<PointerBase, CType> baseEntry : bases.entrySet()) {
         addTargets(baseEntry.getKey(), baseEntry.getValue(), 0, 0, field);
       }
       fields = fields.putAndCopy(field, true);
@@ -494,8 +494,8 @@ public interface PointerTargetSetBuilder {
      * yet unknown type to be allocated. This version is specifically for temporary variables used
      * in between allocation in the RHS and (possibly) revealing the type from the LHS.
      *
-     * <p>Make sure to call {@link #addNextBaseAddressConstraints(String, CType, Formula, boolean,
-     * Constraints)} before calling this method!
+     * <p>Make sure to call {@link #addNextBaseAddressConstraints(PointerBase, CType, Formula,
+     * boolean, Constraints)} before calling this method!
      *
      * @param isZeroed A flag indicating if the allocated object is zeroed (e.g. allocated with
      *     kzalloc).
@@ -505,9 +505,11 @@ public interface PointerTargetSetBuilder {
      */
     @Override
     public void addTemporaryDeferredAllocation(
-        final boolean isZeroed, final Optional<CIntegerLiteralExpression> size, final String base) {
+        final boolean isZeroed,
+        final Optional<CIntegerLiteralExpression> size,
+        final PointerBase base) {
       verify(options.revealAllocationTypeFromLHS() || options.deferUntypedAllocations());
-      final Pair<String, DeferredAllocation> p =
+      final Pair<PointerBase, DeferredAllocation> p =
           Pair.of(base, new DeferredAllocation(base, size, isZeroed));
 
       // This base needs to be fresh!
@@ -520,7 +522,7 @@ public interface PointerTargetSetBuilder {
     /**
      * Makes {@code newPointer} alias of all the objects (possibly) addressed by the {@code
      * originalPointer}. This is intended to be used for assignments (after an appropriate call to
-     * {@link PointerTargetSetBuilder#removeDeferredAllocationPointer(String)}} if the LHS is a
+     * {@link PointerTargetSetBuilder#removeDeferredAllocationPointer(PointerBase)}} if the LHS is a
      * variable).
      *
      * @param newPointer The new alias pointer variable or field.
@@ -528,13 +530,13 @@ public interface PointerTargetSetBuilder {
      */
     @Override
     public void addDeferredAllocationPointer(
-        final String newPointer, final String originalPointer) {
-      final Set<Pair<String, DeferredAllocation>> cache = new HashSet<>(deferredAllocations);
+        final PointerBase newPointer, final PointerBase originalPointer) {
+      final Set<Pair<PointerBase, DeferredAllocation>> cache = new HashSet<>(deferredAllocations);
       deferredAllocations.stream()
           .filter(p -> p.getFirst().equals(originalPointer))
           .forEachOrdered(
               p -> {
-                final Pair<String, DeferredAllocation> pp = Pair.of(newPointer, p.getSecond());
+                final Pair<PointerBase, DeferredAllocation> pp = Pair.of(newPointer, p.getSecond());
                 if (!cache.contains(pp)) {
                   deferredAllocations = deferredAllocations.with(pp);
                 }
@@ -546,7 +548,7 @@ public interface PointerTargetSetBuilder {
      * <b>exclusively</b> by the given pointer. Otherwise, returns {@code true}.
      */
     @Override
-    public boolean canRemoveDeferredAllocationPointer(final String pointer) {
+    public boolean canRemoveDeferredAllocationPointer(final PointerBase pointer) {
       final Set<DeferredAllocation> result =
           deferredAllocations.stream()
               .filter(p -> p.getFirst().equals(pointer))
@@ -576,7 +578,8 @@ public interface PointerTargetSetBuilder {
      *     than the removed one)
      */
     @Override
-    public ImmutableSet<DeferredAllocation> removeDeferredAllocationPointer(final String pointer) {
+    public ImmutableSet<DeferredAllocation> removeDeferredAllocationPointer(
+        final PointerBase pointer) {
       final Set<DeferredAllocation> result =
           deferredAllocations.stream()
               .filter(p -> p.getFirst().equals(pointer))
@@ -600,7 +603,7 @@ public interface PointerTargetSetBuilder {
      * @return The resulting set of removed objects.
      */
     @Override
-    public ImmutableSet<DeferredAllocation> removeDeferredAllocations(final String pointer) {
+    public ImmutableSet<DeferredAllocation> removeDeferredAllocations(final PointerBase pointer) {
       final ImmutableSet<DeferredAllocation> result =
           from(deferredAllocations)
               .filter(p -> p.getFirst().equals(pointer))
@@ -619,7 +622,7 @@ public interface PointerTargetSetBuilder {
      * @return The set of pointers.
      */
     @Override
-    public ImmutableSet<String> getDeferredAllocationPointers() {
+    public ImmutableSet<PointerBase> getDeferredAllocationPointers() {
       return transformedImmutableSetCopy(deferredAllocations, Pair::getFirst);
     }
 
@@ -631,7 +634,7 @@ public interface PointerTargetSetBuilder {
      *     otherwise.
      */
     @Override
-    public boolean isTemporaryDeferredAllocationPointer(final String pointer) {
+    public boolean isTemporaryDeferredAllocationPointer(final PointerBase pointer) {
       return deferredAllocations.stream()
           .anyMatch(p -> p.getFirst().equals(pointer) && p.getSecond().getBase().equals(pointer));
     }
@@ -644,43 +647,43 @@ public interface PointerTargetSetBuilder {
      *     otherwise.
      */
     @Override
-    public boolean isDeferredAllocationPointer(final String pointer) {
+    public boolean isDeferredAllocationPointer(final PointerBase pointer) {
       return deferredAllocations.stream().anyMatch(p -> p.getFirst().equals(pointer));
     }
 
     /**
      * Returns, if a variable is the actual base of a pointer.
      *
-     * @param name The name of the variable.
+     * @param base The base.
      * @return True, if the variable is an actual base, false otherwise.
      */
     @Override
-    public boolean isActualBase(final String name) {
-      return bases.containsKey(name) && !PointerTargetSetManager.isFakeBaseType(bases.get(name));
+    public boolean isActualBase(final PointerBase base) {
+      return bases.containsKey(base) && !PointerTargetSetManager.isFakeBaseType(bases.get(base));
     }
 
     /**
      * Returns, if a variable name is a prepared base.
      *
-     * @param name The name of the variable.
+     * @param base The base.
      * @return True, if the variable is a prepared base, false otherwise.
      */
     @Override
-    public boolean isPreparedBase(final String name) {
-      return bases.containsKey(name);
+    public boolean isPreparedBase(final PointerBase base) {
+      return bases.containsKey(base);
     }
 
     /**
      * Checks, if a variable is a base of a pointer.
      *
-     * @param name The name of the variable.
+     * @param base The base.
      * @param type The type of the variable.
      * @return True, if the variable is a base, false otherwise.
      */
     @Override
-    public boolean isBase(final String name, CType type) {
+    public boolean isBase(final PointerBase base, CType type) {
       checkIsSimplified(type);
-      final CType baseType = bases.get(name);
+      final CType baseType = bases.get(base);
       return baseType != null && baseType.equals(type);
     }
 
@@ -690,7 +693,7 @@ public interface PointerTargetSetBuilder {
      * @return A set of all pointer bases.
      */
     @Override
-    public NavigableSet<String> getAllBases() {
+    public NavigableSet<PointerBase> getAllBases() {
       return bases.keySet();
     }
 
@@ -772,7 +775,7 @@ public interface PointerTargetSetBuilder {
 
     @Override
     public void addNextBaseAddressConstraints(
-        String pNewBase,
+        PointerBase pNewBase,
         @Nullable CType pType,
         @Nullable Formula pAllocationSize,
         boolean isDynamicAllocation,
@@ -781,17 +784,17 @@ public interface PointerTargetSetBuilder {
     }
 
     @Override
-    public void prepareBase(String pName, CType pType) {
+    public void prepareBase(PointerBase pBase, CType pType) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public void shareBase(String pName, CType pType) {
+    public void shareBase(PointerBase pBase, CType pType) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public void addBase(String pName, CType pType) {
+    public void addBase(PointerBase pBase, CType pType) {
       throw new UnsupportedOperationException();
     }
 
@@ -812,57 +815,58 @@ public interface PointerTargetSetBuilder {
 
     @Override
     public void addTemporaryDeferredAllocation(
-        boolean pIsZeroed, Optional<CIntegerLiteralExpression> pSize, String pBase) {
+        boolean pIsZeroed, Optional<CIntegerLiteralExpression> pSize, PointerBase pBase) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public void addDeferredAllocationPointer(String pNewPointer, String pOriginalPointer) {
+    public void addDeferredAllocationPointer(
+        PointerBase pNewPointer, PointerBase pOriginalPointer) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public ImmutableSet<DeferredAllocation> removeDeferredAllocationPointer(String pPointer) {
+    public ImmutableSet<DeferredAllocation> removeDeferredAllocationPointer(PointerBase pPointer) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public ImmutableSet<DeferredAllocation> removeDeferredAllocations(String pPointer) {
+    public ImmutableSet<DeferredAllocation> removeDeferredAllocations(PointerBase pPointer) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public ImmutableSet<String> getDeferredAllocationPointers() {
+    public ImmutableSet<PointerBase> getDeferredAllocationPointers() {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean isTemporaryDeferredAllocationPointer(String pPointerVariable) {
+    public boolean isTemporaryDeferredAllocationPointer(PointerBase pPointerVariable) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean isDeferredAllocationPointer(String pPointerVariable) {
+    public boolean isDeferredAllocationPointer(PointerBase pPointerVariable) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean isActualBase(String pName) {
+    public boolean isActualBase(PointerBase pBase) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean isPreparedBase(String pName) {
+    public boolean isPreparedBase(PointerBase pBase) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean isBase(String pName, CType pType) {
+    public boolean isBase(PointerBase pBase, CType pType) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public NavigableSet<String> getAllBases() {
+    public NavigableSet<PointerBase> getAllBases() {
       throw new UnsupportedOperationException();
     }
 
@@ -894,7 +898,7 @@ public interface PointerTargetSetBuilder {
     }
 
     @Override
-    public boolean canRemoveDeferredAllocationPointer(String pPointer) {
+    public boolean canRemoveDeferredAllocationPointer(PointerBase pPointer) {
       throw new UnsupportedOperationException();
     }
   }
