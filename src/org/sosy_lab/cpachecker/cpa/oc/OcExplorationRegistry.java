@@ -48,6 +48,7 @@ public final class OcExplorationRegistry {
   private final Map<Integer, AssumeBranch> assumeBranches = new HashMap<>();
   private final Set<Integer> atomicAccessEventIds = new HashSet<>();
   private final Set<Integer> readLockEventIds = new HashSet<>();
+  private final Set<Integer> ambiguousUnlockEventIds = new HashSet<>();
   private final Set<Integer> threadHandleAccessEventIds = new HashSet<>();
   private final Map<Integer, ThreadInstance> instances = new LinkedHashMap<>();
   private final Map<InstanceKey, ThreadInstance> instancesByKey = new HashMap<>();
@@ -170,6 +171,24 @@ public final class OcExplorationRegistry {
   /** Whether the given LOCK event acquires a shared/read lock (see {@link #markReadLock}). */
   public boolean isReadLock(int pEventId) {
     return readLockEventIds.contains(pEventId);
+  }
+
+  /**
+   * Records that the given UNLOCK event releases a mutex reached through an expression whose target
+   * object is not statically fixed (a bare pointer value, a dereference, or {@code &arr[symbolic]}).
+   * Such an unlock can release a lock held under a <em>different</em> syntactic name, so the critical
+   * section it closes must be resolved by address, not by the syntactic nesting key (see {@code
+   * OcEncoder.buildCsPairs}). Without this, an aliased unlock never closes the section it truly
+   * releases, leaving a later unsynchronized access wrongly inside the section (a missed data race).
+   */
+  public void markAmbiguousUnlock(int pEventId) {
+    ambiguousUnlockEventIds.add(pEventId);
+  }
+
+  /** Whether the given UNLOCK event has a non-static target object (see {@link
+   * #markAmbiguousUnlock}). */
+  public boolean isAmbiguousUnlock(int pEventId) {
+    return ambiguousUnlockEventIds.contains(pEventId);
   }
 
   /** Creates and stores the event with the next free id. */

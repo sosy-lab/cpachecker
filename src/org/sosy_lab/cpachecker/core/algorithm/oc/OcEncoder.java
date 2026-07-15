@@ -66,8 +66,16 @@ final class OcEncoder {
   /**
    * A critical section: a LOCK event and its end — the matching UNLOCK event below it, or the last
    * event of a path that ends (e.g. at the error location) while still holding the lock.
+   *
+   * <p>{@code closeCondition} is the extra premise under which this particular end is the real end
+   * of the section. It is {@code true} for a section closed by a syntactically matching unlock. When
+   * an ambiguous unlock (one whose target object is not statically fixed, see {@code
+   * OcExplorationRegistry#isAmbiguousUnlock}) might release this lock, the BFS forks: one section
+   * ends at that unlock guarded by {@code address(unlock) == address(lock)}, and the continuation
+   * (and any later end) carries the negation, so exactly one of them is the true section on each
+   * path. Callers must add this condition to the section-exclusion premise.
    */
-  record Section(MemoryEvent lock, MemoryEvent unlock) {}
+  record Section(MemoryEvent lock, MemoryEvent unlock, BooleanFormula closeCondition) {}
 
   /**
    * Two same-mutex sections of different instances; {@code var12} orders section 1 completely
@@ -353,13 +361,18 @@ final class OcEncoder {
       }
       for (CsPair cs : csPairs) {
         // the two sections exclude each other only when they are the same mutex (equal addresses)
+        // and each section really ends where its Section says (closeCondition — non-trivial only
+        // when an ambiguous unlock made the end address-conditional)
         BooleanFormula same = sameMutex(cs.section1().lock(), cs.section2().lock());
+        BooleanFormula closes =
+            bfmgr.and(cs.section1().closeCondition(), cs.section2().closeCondition());
         constraints.add(
             bfmgr.implication(
                 cs.var12(),
                 bfmgr.and(
                     getFullGuard(cs.section1().unlock()),
                     getFullGuard(cs.section2().lock()),
+                    closes,
                     same)));
         constraints.add(
             bfmgr.implication(
@@ -367,12 +380,14 @@ final class OcEncoder {
                 bfmgr.and(
                     getFullGuard(cs.section2().unlock()),
                     getFullGuard(cs.section1().lock()),
+                    closes,
                     same)));
         constraints.add(
             bfmgr.implication(
                 bfmgr.and(
                     getFullGuard(cs.section1().unlock()),
                     getFullGuard(cs.section2().unlock()),
+                    closes,
                     same),
                 bfmgr.or(cs.var12(), cs.var21())));
       }
@@ -423,12 +438,16 @@ final class OcEncoder {
     }
 
     for (CsPair cs : csPairs) {
-      // the two sections must not overlap only when they are the same mutex (equal addresses)
+      // the two sections must not overlap only when they are the same mutex (equal addresses) and
+      // each section really ends where its Section says (closeCondition — non-trivial only when an
+      // ambiguous unlock made the end address-conditional)
       constraints.add(
           bfmgr.implication(
               bfmgr.and(
                   getFullGuard(cs.section1().unlock()),
                   getFullGuard(cs.section2().unlock()),
+                  cs.section1().closeCondition(),
+                  cs.section2().closeCondition(),
                   sameMutex(cs.section1().lock(), cs.section2().lock())),
               bfmgr.or(
                   imgr.lessThan(
@@ -781,39 +800,59 @@ final class OcEncoder {
       // DAG; a path that ends while still holding the lock keeps it to its last event. Nesting
       // depth at a DAG node is path-independent (states with different lock depths never merge),
       // so a plain visited set (one visit per node) suffices instead of per-path revisits.
-      record Item(MemoryEvent event, int depth) {}
+      //
+      // `cond` accumulates the address-alias case-split of ambiguous unlocks passed on the way (see
+      // below); it is TRUE on a path that has not passed any. For a lock with an internal branch
+      // whose ambiguous unlocks reconverge, the first visit's `cond` wins — a conservative
+      // approximation that at worst falls back to the old (section-extends) behaviour, never adding
+      // a serialization that could hide a real race.
+      record Item(MemoryEvent event, int depth, BooleanFormula cond) {}
       Deque<Item> queue = new ArrayDeque<>();
       Set<Integer> visited = new HashSet<>();
       for (MemoryEvent child : pChildren.get(lock.id())) {
         if (visited.add(child.id())) {
-          queue.addLast(new Item(child, 1));
+          queue.addLast(new Item(child, 1, bfmgr.makeTrue()));
         }
       }
       if (pChildren.get(lock.id()).isEmpty()) {
-        sections.add(new Section(lock, lock));
+        sections.add(new Section(lock, lock, bfmgr.makeTrue()));
       }
       while (!queue.isEmpty()) {
         Item item = queue.pollFirst();
         int depth = item.depth();
         MemoryEvent event = item.event();
+        BooleanFormula cond = item.cond();
         if (lock.mutexId().equals(event.mutexId())) {
           if (event.kind() == EventKind.LOCK) {
             depth++;
           } else if (event.kind() == EventKind.UNLOCK) {
             depth--;
             if (depth == 0) {
-              sections.add(new Section(lock, event));
+              sections.add(new Section(lock, event, cond));
               continue; // this branch is done
             }
           }
+        } else if (event.kind() == EventKind.UNLOCK
+            && depth == 1
+            && registry.isAmbiguousUnlock(event.id())
+            && lock.isRegionAccess()
+            && event.isRegionAccess()) {
+          // An unlock through a non-static target (e.g. unlock(m) or unlock(&arr[i])) whose
+          // syntactic nesting key differs from this lock's may still release THIS lock, on the
+          // paths where their addresses coincide. Fork: this lock's section ends here when the
+          // addresses agree; otherwise the lock stays held and the section continues to its real
+          // (matching-key or leaf) end. Exactly one of the two is the true section on each path.
+          BooleanFormula aliases = sameAddress(lock, event);
+          sections.add(new Section(lock, event, bfmgr.and(cond, aliases)));
+          cond = bfmgr.and(cond, bfmgr.not(aliases));
         }
         List<MemoryEvent> children = pChildren.get(event.id());
         if (children.isEmpty()) {
-          sections.add(new Section(lock, event));
+          sections.add(new Section(lock, event, cond));
         }
         for (MemoryEvent child : children) {
           if (visited.add(child.id())) {
-            queue.addLast(new Item(child, depth));
+            queue.addLast(new Item(child, depth, cond));
           }
         }
       }

@@ -55,11 +55,17 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 
 /**
- * AST cloner for POR. Locals and parameters are always renamed to {@code
- * T{threadId}_{qualifiedName}}. Globals keep their original name unless a {@link
+ * AST cloner for POR. Locals, parameters and {@code __thread} variables are always renamed to
+ * {@code T{threadId}_{qualifiedName}}. Ordinary globals keep their original name unless a {@link
  * GlobalAccessRenamer} is supplied, in which case every single access to a global variable is
  * instead renamed to a fresh, access-specific name ("concurrent SSA"); with no renamer, cloning is
  * bit-identical to the plain thread-ID renaming.
+ *
+ * <p>A {@code __thread} variable is deliberately renamed like a local despite living at file scope:
+ * each thread has its own copy, so it is not shared state. Privatizing it here is only half of the
+ * story — a spawned thread never runs the file-scope declaration edge, so both analyses inject the
+ * per-thread initialization at each {@code pthread_create} (see {@link
+ * ThreadFunctions#threadLocalGlobals}).
  */
 class PorAstCloner {
 
@@ -285,9 +291,12 @@ class PorAstCloner {
     FileLocation loc = cDecl.getFileLocation();
     if (cDecl instanceof CVariableDeclaration decl
         && globalRenamer != null
-        && (decl.isGlobal() || globalRenamer.treatsLocalAsRegion(decl))) {
+        && ((decl.isGlobal() && !decl.isThreadLocal()) || globalRenamer.treatsLocalAsRegion(decl))) {
       // globals, and address-taken locals the renamer wants in the aliasing regime, get a fresh
-      // per-access name so every access becomes its own tracked memory event
+      // per-access name so every access becomes its own tracked memory event. A __thread global
+      // is excluded here despite decl.isGlobal(): each thread has its own private copy, so it must
+      // fall through to the local-renaming branch below like an ordinary local, never becoming a
+      // shared/aliased access.
       return new CVariableDeclaration(
           loc,
           decl.isGlobal(),
@@ -297,8 +306,10 @@ class PorAstCloner {
           decl.getOrigName(),
           globalRenamer.freshName(decl, pIsWrite),
           null);
-    } else if (cDecl instanceof CVariableDeclaration decl && decl.isGlobal()) {
-      return decl; // no renamer: globals keep their original name
+    } else if (cDecl instanceof CVariableDeclaration decl
+        && decl.isGlobal()
+        && !decl.isThreadLocal()) {
+      return decl; // no renamer: non-thread-local globals keep their original name
     } else if (cDecl instanceof CVariableDeclaration decl) {
       CVariableDeclaration newDecl =
           new CVariableDeclaration(
@@ -322,11 +333,12 @@ class PorAstCloner {
   }
 
   /**
-   * Renames a local variable or parameter with a thread-ID prefix. Never called for globals: those
-   * are either left unchanged or renamed via {@link #globalRenamer} instead.
+   * Renames a local variable, parameter, or {@code __thread} variable with a thread-ID prefix.
+   * Never called for an ordinary global: those are either left unchanged or renamed via {@link
+   * #globalRenamer} instead.
    */
   private String changeQualifiedName(CSimpleDeclaration decl) {
-    return "T%d_%s".formatted(threadId, decl.getQualifiedName());
+    return ThreadFunctions.perThreadName(threadId, decl.getQualifiedName());
   }
 
   private class CExpressionCloner extends DefaultCExpressionVisitor<CExpression, RuntimeException> {

@@ -10,19 +10,36 @@ package org.sosy_lab.cpachecker.cpa.por;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 /**
@@ -154,6 +171,94 @@ public final class ThreadFunctions {
       return canonicalLvalueKey(lvalue);
     }
     return null;
+  }
+
+  /**
+   * The name a thread's private copy of {@code pQualifiedName} gets. Single definition of the
+   * per-thread renaming scheme: {@code PorAstCloner} renames every local, parameter and {@code
+   * __thread} variable through here, and the transfer relations synthesize their per-thread
+   * initializations against the very same name (see {@link #threadLocalGlobals}). The two must
+   * agree exactly, or a thread would initialize a copy nobody ever reads.
+   */
+  public static String perThreadName(int pThreadId, String pQualifiedName) {
+    return "T%d_%s".formatted(pThreadId, pQualifiedName);
+  }
+
+  /**
+   * Every {@code __thread}/{@code _Thread_local} variable declared in {@code pCfa}, in declaration
+   * order. Each of these lives at file scope but has one private copy per thread, so both
+   * concurrent analyses privatize it (see {@link #perThreadName}) and must then initialize the
+   * copy of every thread they spawn: a spawned thread starts at its start routine's entry and
+   * never executes the file-scope declaration edge, which only exists in the main thread's clone,
+   * so without an injected initialization its copy would be indeterminate rather than zero.
+   *
+   * <p>Scanning the CFA is the only way to find these: no analysis has a ready accessor for global
+   * declarations. Callers are expected to do this once and cache it, never per edge.
+   */
+  public static ImmutableList<CVariableDeclaration> threadLocalGlobals(CFA pCfa) {
+    // the same declaration is reachable through several edges (and appears in every function's
+    // clone), so deduplicate on the qualified name, which names the object
+    Map<String, CVariableDeclaration> byName = new LinkedHashMap<>();
+    for (CFAEdge edge : pCfa.edges()) {
+      if (edge instanceof CDeclarationEdge declarationEdge
+          && declarationEdge.getDeclaration() instanceof CVariableDeclaration declaration
+          && declaration.isGlobal()
+          && declaration.isThreadLocal()) {
+        byName.putIfAbsent(declaration.getQualifiedName(), declaration);
+      }
+    }
+    return ImmutableList.copyOf(byName.values());
+  }
+
+  /**
+   * The value a freshly spawned thread's private copy of {@code pDeclaration} starts out with: the
+   * declaration's own initializer, or the type's zero when it has none (C zero-initializes static
+   * storage, §6.7.9 (10) — which is what makes {@code __thread int data = 0;} and {@code __thread
+   * int data;} behave identically, and what the spurious-race benchmark relies on).
+   *
+   * <p>Only a scalar with a literal initializer is supported. An aggregate is rejected rather than
+   * approximated: its copy would be a whole memory region, not one value symbol, so the
+   * single-assignment injection the callers perform could not initialize it and would silently
+   * leave it indeterminate — reporting a violation that cannot happen, or worse, missing one.
+   *
+   * @throws UnsupportedCodeException if the declaration is an aggregate, has an incomplete type, is
+   *     {@code extern}, or its initializer is not a literal
+   */
+  public static CExpression threadLocalInitValue(
+      CVariableDeclaration pDeclaration, MachineModel pMachineModel, @Nullable CFAEdge pEdge)
+      throws UnsupportedCodeException {
+    CType type = pDeclaration.getType();
+    if (!isScalar(type)) {
+      throw new UnsupportedCodeException(
+          "thread-local variable of non-scalar type: " + pDeclaration.getQualifiedName(), pEdge);
+    }
+    CInitializer initializer = pDeclaration.getInitializer();
+    if (initializer == null) {
+      if (pDeclaration.getCStorageClass() == CStorageClass.EXTERN) {
+        // defined in another translation unit: its initial value is whatever that definition says,
+        // which is not necessarily zero, so it must not be invented here
+        throw new UnsupportedCodeException(
+            "extern thread-local variable with unknown initial value: "
+                + pDeclaration.getQualifiedName(),
+            pEdge);
+      }
+      initializer = CDefaults.forType(pMachineModel, type, pDeclaration.getFileLocation());
+    }
+    if (initializer instanceof CInitializerExpression initializerExpression
+        && stripCasts(initializerExpression.getExpression()) instanceof CLiteralExpression) {
+      return initializerExpression.getExpression();
+    }
+    throw new UnsupportedCodeException(
+        "thread-local variable with a non-literal initializer: " + pDeclaration.getQualifiedName(),
+        pEdge);
+  }
+
+  /** Whether an object of this type is one value, as opposed to a region of several cells. */
+  private static boolean isScalar(CType pType) {
+    CType canonical = pType.getCanonicalType();
+    return !(canonical instanceof CArrayType
+        || canonical instanceof CCompositeType
+        || canonical instanceof CElaboratedType);
   }
 
   private static @Nullable String canonicalLvalueKey(CLeftHandSide lvalue) {

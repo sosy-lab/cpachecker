@@ -114,6 +114,13 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final MachineModel machineModel;
+
+  /**
+   * The program's {@code __thread} variables, scanned once: every spawned instance's private copy
+   * of each of them has to be seeded in its root context (see {@link #initializeThreadLocals}).
+   */
+  private final ImmutableList<CVariableDeclaration> threadLocalGlobals;
+
   private final Set<String> registeredBases = new HashSet<>();
   private final Set<String> aggregateInitEmitted = new HashSet<>();
   private OcExplorationRegistry registry;
@@ -128,6 +135,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     fmgr = pCpa.getSolver().getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     machineModel = pCpa.getCfa().getMachineModel();
+    threadLocalGlobals = ThreadFunctions.threadLocalGlobals(pCpa.getCfa());
   }
 
   /** Starts collecting into a fresh registry (one iterative-deepening round). */
@@ -296,6 +304,9 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
               + " does not model",
           pEdge);
     }
+    if (handleTrylock(pState, pEdge, pSuccessors)) {
+      return;
+    }
     if (handleMutex(pState, pEdge, pSuccessors)) {
       return;
     }
@@ -424,6 +435,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     if (argTarget != null && !entry.getFunctionParameters().isEmpty()) {
       rootFormula = bindThreadArgument(pState, pEdge, instance, entry, argTarget);
     }
+    rootFormula = initializeThreadLocals(pState, pEdge, instance, rootFormula);
 
     addSuccessor(
         pSuccessors,
@@ -495,6 +507,67 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     }
     registry.addPathConstraint(
         bfmgr.implication(pState.getGuard(), fmgr.makeEqual(argTerm, baseTerm)));
+    return rootFormula;
+  }
+
+  /**
+   * Seeds the created instance's private copy of every {@code __thread} variable with its initial
+   * value, in the instance's own root context, and returns the extended context.
+   *
+   * <p>A {@code __thread} variable is privatized to {@code T{instance}_x} exactly like a local (see
+   * {@link org.sosy_lab.cpachecker.cpa.por.PorAstCloner}), which is what stops it from being read
+   * as shared state — but a spawned instance explores from its start routine's entry and so never
+   * folds in the file-scope declaration edge that carries the initializer; only the main instance
+   * does. Without this the copy would be an unconstrained symbol, i.e. an arbitrary value, and an
+   * {@code assert(x == 0)} would report a violation the program cannot exhibit.
+   *
+   * <p>Like {@link #bindThreadArgument}, the constraint is guarded by the <em>creator's</em> guard
+   * (the instance only exists on paths that reach the create) and indexed in the root context, so
+   * the instance's own first read resolves the same SSA index this write assigns.
+   *
+   * @throws UnsupportedCodeException if the address of a {@code __thread} variable is taken
+   *     anywhere: it then lives in the aliasing regime as a memory region keyed on its declaration
+   *     — one region shared by all instances, and not seedable by the single value assignment made
+   *     here — so both its per-instance identity and this initialization would be wrong
+   */
+  private PathFormula initializeThreadLocals(
+      OrderingConsistencyState pState,
+      CFAEdge pEdge,
+      ThreadInstance pInstance,
+      PathFormula pRootFormula)
+      throws CPATransferException, InterruptedException {
+    PathFormula rootFormula = pRootFormula;
+    for (CVariableDeclaration threadLocal : threadLocalGlobals) {
+      String qualifiedName = threadLocal.getQualifiedName();
+      if (cpa.getAddressedVariables().contains(qualifiedName)) {
+        throw new UnsupportedCodeException(
+            "address of thread-local variable " + qualifiedName + " is taken", pEdge);
+      }
+      CExpression value = ThreadFunctions.threadLocalInitValue(threadLocal, machineModel, pEdge);
+      CType type = threadLocal.getType();
+      CIdExpression copy =
+          syntheticIdExpression(
+              ThreadFunctions.perThreadName(pInstance.getId(), qualifiedName), type);
+      // an assume rather than a statement: it indexes the copy in the root context and yields the
+      // equality as its formula in one step, exactly like indexSymbol's identity assumption does
+      CBinaryExpression initialized =
+          new CBinaryExpression(
+              FileLocation.DUMMY,
+              CNumericTypes.INT,
+              type,
+              copy,
+              value,
+              CBinaryExpression.BinaryOperator.EQUALS);
+      CAssumeEdge initEdge =
+          new CAssumeEdge(
+              "", FileLocation.DUMMY, pEdge.getPredecessor(), pEdge.getSuccessor(), initialized,
+              true);
+      rootFormula =
+          pathFormulaManager.makeAnd(
+              pathFormulaManager.makeEmptyPathFormulaWithContextFrom(rootFormula), initEdge);
+      registry.addPathConstraint(
+          bfmgr.implication(pState.getGuard(), rootFormula.getFormula()));
+    }
     return rootFormula;
   }
 
@@ -736,6 +809,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     // address. An atomic block has no address and its own pseudo-mutex id.
     String mutexId;
     boolean readLock = false;
+    boolean ambiguousUnlock = false;
     @Nullable String regionId = null;
     @Nullable Formula addressTerm = null;
     ImmutableList<Integer> lastEventIds = pState.getLastEventIds();
@@ -781,6 +855,10 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       }
       MutexAddress mutexAddress = evaluateMutexAddress(pState, argument, pEdge);
       mutexId = mutexNestingKey(argument);
+      // An unlock whose target object is not statically fixed (a bare pointer value or a symbolic
+      // index, as opposed to `&globalMutex`) can release a lock held under a different syntactic
+      // name; its critical section must then be closed by address, not by the nesting key.
+      ambiguousUnlock = kind == EventKind.UNLOCK && isAmbiguousMutexTarget(argument);
       regionId = MemoryEvent.MUTEX_REGION;
       addressTerm = mutexAddress.term();
       lastEventIds = mutexAddress.lastEventIds();
@@ -800,6 +878,9 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     if (readLock) {
       registry.markReadLock(event.id());
     }
+    if (ambiguousUnlock) {
+      registry.markAmbiguousUnlock(event.id());
+    }
     ImmutableMap<String, Integer> lockDepths =
         withLockDepth(pState.getLockDepths(), mutexId, kind == EventKind.LOCK ? 1 : -1);
     addSuccessor(
@@ -813,6 +894,133 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         pState.getCreateCounts(),
         pState.getLiveInstanceIds(),
         lockDepths);
+    return true;
+  }
+
+  /**
+   * Models a non-blocking / timed lock-acquisition call (e.g. {@code __CPAchecker_TMP =
+   * pthread_mutex_trylock(&m)}) as a two-way branch: a SUCCESS successor that acquires the lock and
+   * pins the returned value to 0, and a FAILURE successor that acquires nothing and pins it to
+   * non-zero. The assume-pair the front-end emits on that return value (e.g. from {@code
+   * while (pthread_mutex_trylock(&m)) {}}) then keeps only the consistent control-flow branch, so
+   * the loop correctly exits holding the lock. This is purely additive — it never removes an
+   * interleaving — so it cannot turn a real violation into an unsound TRUE; without it the lock is
+   * simply never modelled and the guarded region is missed (a spurious data race). Returns false if
+   * the edge is not a recognized try/timed-lock call.
+   */
+  private boolean handleTrylock(
+      OrderingConsistencyState pState, CFAEdge pEdge, List<AbstractState> pSuccessors)
+      throws CPATransferException, InterruptedException {
+    String callee = MutexFunctions.getFunctionCallName(pEdge);
+    if (callee == null || !MutexFunctions.isTrylockFunction(callee)) {
+      return false;
+    }
+    List<? extends AExpression> arguments = getCallParameters(pEdge);
+    if (arguments.isEmpty() || !(arguments.get(0) instanceof CExpression mutexArg)) {
+      throw new UnsupportedCodeException("try-lock call without a mutex argument", pEdge);
+    }
+    // the assigned result variable (0 == acquired), or null when the result is discarded
+    CLeftHandSide retLhs = null;
+    if (pEdge instanceof AStatementEdge sEdge
+        && sEdge.getStatement() instanceof CFunctionCallAssignmentStatement assign) {
+      retLhs = assign.getLeftHandSide();
+    }
+
+    // Pin the returned value: 0 on the success branch, non-zero on the failure branch. Both branches
+    // share one rewritten condition (like handleAssumePair) so their guards stay mutually exclusive
+    // and the reads of the result variable are counted once. A discarded result leaves both branches
+    // unconstrained, which is still sound.
+    BooleanFormula successCond = bfmgr.makeTrue();
+    BooleanFormula failureCond = bfmgr.makeTrue();
+    PathFormula successFormula = pState.getPathFormula();
+    PathFormula failureFormula = pState.getPathFormula();
+    ImmutableList<Integer> sharedLastEventIds = pState.getLastEventIds();
+    if (retLhs != null) {
+      CBinaryExpression retIsZero =
+          new CBinaryExpression(
+              FileLocation.DUMMY,
+              CNumericTypes.INT,
+              CNumericTypes.INT,
+              retLhs,
+              CIntegerLiteralExpression.ZERO,
+              CBinaryExpression.BinaryOperator.EQUALS);
+      CAssumeEdge successEdge =
+          new CAssumeEdge(
+              "", FileLocation.DUMMY, pEdge.getPredecessor(), pEdge.getSuccessor(), retIsZero, true);
+      CollectingRenamer renamer = new CollectingRenamer(pState.getInstanceId());
+      CAssumeEdge rewritten;
+      try {
+        rewritten =
+            (CAssumeEdge) PorEdgeCloner.cloneSingleEdge(successEdge, pState.getInstanceId(), renamer);
+      } catch (GlobalAccessRenamer.UnsupportedAccessException e) {
+        throw new UnsupportedCodeException(e.getMessage(), pEdge);
+      }
+      successFormula =
+          pathFormulaManager.makeAnd(
+              pathFormulaManager.makeEmptyPathFormulaWithContextFrom(pState.getPathFormula()),
+              rewritten);
+      sharedLastEventIds = chainAccessEvents(pState, renamer, successFormula, pEdge);
+      CAssumeEdge failureEdge =
+          new CAssumeEdge(
+              rewritten.getRawStatement(),
+              FileLocation.DUMMY,
+              pEdge.getPredecessor(),
+              pEdge.getSuccessor(),
+              rewritten.getExpression(),
+              false);
+      failureFormula =
+          pathFormulaManager.makeAnd(
+              pathFormulaManager.makeEmptyPathFormulaWithContextFrom(pState.getPathFormula()),
+              failureEdge);
+      successCond = successFormula.getFormula();
+      failureCond = failureFormula.getFormula();
+    }
+
+    // SUCCESS: acquire the lock (chained after the result reads and the address bookkeeping).
+    BooleanFormula successGuard = bfmgr.and(pState.getGuard(), successCond);
+    MutexAddress mutexAddress =
+        evaluateMutexAddress(
+            withGuardAndEvents(pState, successGuard, sharedLastEventIds), mutexArg, pEdge);
+    String mutexId = mutexNestingKey(mutexArg);
+    MemoryEvent lockEvent =
+        addEventAfter(
+            withGuardAndEvents(pState, successGuard, mutexAddress.lastEventIds()),
+            EventKind.LOCK,
+            null,
+            null,
+            null,
+            mutexId,
+            MemoryEvent.NO_INSTANCE,
+            MemoryEvent.MUTEX_REGION,
+            mutexAddress.term(),
+            pEdge);
+    if (MutexFunctions.isReadTrylockFunction(callee)) {
+      registry.markReadLock(lockEvent.id());
+    }
+    addSuccessor(
+        pSuccessors,
+        pState,
+        pEdge.getSuccessor(),
+        pState.getCallstackState(),
+        successFormula,
+        successGuard,
+        ImmutableList.of(lockEvent.id()),
+        pState.getCreateCounts(),
+        pState.getLiveInstanceIds(),
+        withLockDepth(pState.getLockDepths(), mutexId, 1));
+
+    // FAILURE: nothing is acquired.
+    addSuccessor(
+        pSuccessors,
+        pState,
+        pEdge.getSuccessor(),
+        pState.getCallstackState(),
+        failureFormula,
+        bfmgr.and(pState.getGuard(), failureCond),
+        sharedLastEventIds,
+        pState.getCreateCounts(),
+        pState.getLiveInstanceIds(),
+        pState.getLockDepths());
     return true;
   }
 
@@ -1172,6 +1380,21 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       return unary.getOperand().toASTString();
     }
     return expression.toASTString();
+  }
+
+  /**
+   * Whether a mutex argument's target object is <em>not</em> statically fixed. {@code
+   * &staticallyResolvableLvalue} (e.g. {@code &m}, {@code &arr[0]}, {@code &p.lock}) always denotes
+   * the same object, so it is unambiguous; a bare pointer value ({@code m}), a dereference, or {@code
+   * &arr[symbolic]} may point at different objects on different paths and is therefore ambiguous.
+   * Used to decide whether an unlock must be paired with its lock by address rather than by the
+   * syntactic nesting key (see {@link #mutexNestingKey} and {@code OcEncoder.buildCsPairs}).
+   */
+  private static boolean isAmbiguousMutexTarget(CExpression pArg) {
+    CExpression expression = stripCasts(pArg);
+    return !(expression instanceof CUnaryExpression unary
+        && unary.getOperator() == CUnaryExpression.UnaryOperator.AMPER
+        && MutexFunctions.extractMutexName(unary) != null);
   }
 
   /** Binds the freshly written pointer of a {@code lhs = malloc(...)} to a distinct heap base. */

@@ -48,6 +48,24 @@ public final class MutexFunctions {
           "pthread_rwlock_unlock", MutexLockType.BOTH
       );
 
+  /**
+   * Non-blocking / timed lock-acquisition functions. Each either acquires the lock and returns 0, or
+   * fails to acquire it (lock busy, or timeout) and returns a non-zero error code. Modelling them
+   * requires branching on that outcome, which is why they are kept separate from {@link
+   * #LOCK_FUNCTIONS} (whose members unconditionally acquire).
+   */
+  private static final ImmutableMap<String, MutexLockType> TRYLOCK_FUNCTIONS =
+      ImmutableMap.of(
+          "pthread_mutex_trylock", MutexLockType.BOTH,
+          "pthread_mutex_timedlock", MutexLockType.BOTH,
+          "mtx_trylock", MutexLockType.BOTH,
+          "mtx_timedlock", MutexLockType.BOTH,
+          "pthread_rwlock_tryrdlock", MutexLockType.READ,
+          "pthread_rwlock_timedrdlock", MutexLockType.READ,
+          "pthread_rwlock_trywrlock", MutexLockType.WRITE,
+          "pthread_rwlock_timedwrlock", MutexLockType.WRITE
+      );
+
   private static final ImmutableSet<String> INIT_FUNCTIONS =
       ImmutableSet.of("pthread_mutex_init", "mtx_init");
 
@@ -183,6 +201,22 @@ public final class MutexFunctions {
    */
   public static boolean isReadLockFunction(String functionName) {
     return LOCK_FUNCTIONS.get(functionName) == MutexLock.MutexLockType.READ;
+  }
+
+  /**
+   * Returns {@code true} if the given function name is a non-blocking/timed lock-acquisition
+   * function (e.g. {@code pthread_mutex_trylock}), which acquires the lock only when it returns 0.
+   */
+  public static boolean isTrylockFunction(String functionName) {
+    return TRYLOCK_FUNCTIONS.containsKey(functionName);
+  }
+
+  /**
+   * Returns {@code true} if the given try/timed lock-acquisition function takes a <em>read</em>
+   * (shared) lock, such as {@code pthread_rwlock_tryrdlock}.
+   */
+  public static boolean isReadTrylockFunction(String functionName) {
+    return TRYLOCK_FUNCTIONS.get(functionName) == MutexLock.MutexLockType.READ;
   }
 
   /**

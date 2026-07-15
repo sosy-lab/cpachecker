@@ -453,6 +453,20 @@ class ASTTypeConverter {
     return false;
   }
 
+  /**
+   * Check whether this AST node has an attribute that was added by the preprocessor as a
+   * replacement for {@code __thread} / {@code _Thread_local} (CDT models no thread-local storage
+   * class of its own). Cf. {@link EclipseCdtWrapper#THREAD_LOCAL_ATTRIBUTE}.
+   */
+  boolean hasCPAcheckerAttributeForThreadLocal(IASTAttributeOwner ao) {
+    for (IASTAttribute attr : ao.getAttributes()) {
+      if (String.valueOf(attr.getName()).equals(EclipseCdtWrapper.THREAD_LOCAL_ATTRIBUTE)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   boolean hasUnexpectedCPAcheckerAttributeForAtomic(IASTAttributeOwner ao) {
     for (IASTAttribute attr : ao.getAttributes()) {
       if (String.valueOf(attr.getName()).equals(EclipseCdtWrapper.ATOMIC_ATTRIBUTE)) {

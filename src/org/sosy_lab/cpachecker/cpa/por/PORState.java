@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -690,7 +691,15 @@ public class PORState
     }
 
     final var startedThreadEdges = new ArrayList<CFAEdge>();
-    for (final var leavingEdge : allLeavingEdges) {
+    // The started thread's body must be reachable from the create edge ITSELF, not only from an
+    // edge whose successor performs the create. Checking just the leaving edges misses exactly one
+    // case -- the edge the traversal STARTS at -- and that is the case that matters: the influenced
+    // set of a `pthread_create` edge (getInfluencedGlobalVars) then comes back EMPTY, so the create
+    // looks independent of everything the spawned thread touches. POR concludes it never has to
+    // interpose the create between two conflicting accesses of another thread, and silently drops
+    // every schedule in which the new thread races with them (a real wrong-TRUE: pthread-theta
+    // unwind2, where f2's `limit = lim` must fall between f1's `limit = lim` and `bound = limit`).
+    for (final var leavingEdge : Iterables.concat(ImmutableList.of(edge), allLeavingEdges)) {
       if (leavingEdge instanceof AStatementEdge statementEdge) {
         if (statementEdge.getStatement() instanceof AFunctionCall functionCall) {
           if (functionCall

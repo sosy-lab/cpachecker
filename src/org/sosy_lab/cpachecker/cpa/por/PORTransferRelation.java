@@ -32,10 +32,12 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -74,6 +76,13 @@ public class PORTransferRelation implements TransferRelation {
 
   private final Random random;
 
+  /**
+   * The program's {@code __thread} variables, scanned once: every spawned thread's private copy of
+   * each of them has to be initialized at its {@code pthread_create} (see {@link
+   * #initializeThreadLocals}).
+   */
+  private final ImmutableList<CVariableDeclaration> threadLocalGlobals;
+
   private final EdgeDefUseData.Extractor defUseExtractor =
       new EdgeDefUseData.CachingExtractor(EdgeDefUseData.createExtractor(true, true));
 
@@ -90,6 +99,7 @@ public class PORTransferRelation implements TransferRelation {
     callstackCPA = new CallstackCPA(pConfig, pLogger);
 
     cfa = pCfa;
+    threadLocalGlobals = ThreadFunctions.threadLocalGlobals(pCfa);
 
     aggregateBasicBlocks = pAggregateBasicBlocks;
     basicBlockAggregator =
@@ -216,6 +226,7 @@ public class PORTransferRelation implements TransferRelation {
                   writeThreadHandleEdge((CExpression) params.get(0), newPid, cfaEdge),
                   pid));
         }
+        afterWrite = initializeThreadLocals(precision, afterWrite, newPid, cfaEdge, pid);
         String handleName = ThreadFunctions.canonicalHandleAddressKey((CExpression) params.get(0));
         finishEdge(
             addNewThread(state, threadFunc, handleName), precision, cfaEdge, pid, afterWrite,
@@ -482,6 +493,70 @@ public class PORTransferRelation implements TransferRelation {
     return new CStatementEdge(
         "",
         new CExpressionAssignmentStatement(FileLocation.DUMMY, lhs, rhs),
+        FileLocation.DUMMY,
+        edge.getPredecessor(),
+        edge.getSuccessor());
+  }
+
+  /**
+   * Initializes the thread being created at {@code cfaEdge}: applies one synthetic assignment per
+   * {@code __thread} variable, writing that variable's initial value to the <b>child's</b> private
+   * copy. Returns the states resulting from applying all of them in sequence to {@code pStates}.
+   *
+   * <p>Without this, privatizing a {@code __thread} variable (see {@link PorAstCloner}) would make
+   * things worse rather than better: the child's copy is a variable no edge on its path ever
+   * assigns, so the wrapped analysis treats it as indeterminate and an {@code assert(data == 0)}
+   * fails on a value the child can never actually hold. Only the main thread's clone contains the
+   * file-scope declaration edge that carries the initializer; a spawned thread enters at its start
+   * routine and never passes it.
+   *
+   * <p>The assignments happen on the <b>creating</b> thread's edge (as {@code pid}'s bookkeeping),
+   * which is sound precisely because the target is private to the child: no other thread can
+   * observe it, so where in the schedule the write lands cannot matter.
+   */
+  private List<AbstractState> initializeThreadLocals(
+      PORPrecision precision,
+      List<AbstractState> pStates,
+      int newPid,
+      CFAEdge cfaEdge,
+      int pid)
+      throws CPATransferException, InterruptedException {
+    List<AbstractState> states = pStates;
+    for (CVariableDeclaration threadLocal : threadLocalGlobals) {
+      CFAEdge initEdge = threadLocalInitEdge(threadLocal, newPid, cfaEdge);
+      List<AbstractState> next = new ArrayList<>(states.size());
+      for (AbstractState wrapped : states) {
+        next.addAll(applyBookkeepingEdge(precision, wrapped, initEdge, pid));
+      }
+      states = next;
+    }
+    return states;
+  }
+
+  /**
+   * A synthetic {@code T{pid}_x = <initial value>;} edge for one {@code __thread} variable. The
+   * left-hand side is built as the very declaration {@link PorAstCloner} renames {@code pDecl} to
+   * for thread {@code pid} — same qualified name, same non-global flag — so that this write and the
+   * child's own reads of the variable are the same symbol to the wrapped analysis.
+   */
+  private CFAEdge threadLocalInitEdge(CVariableDeclaration pDecl, int pid, CFAEdge edge)
+      throws UnsupportedCodeException {
+    CExpression value = ThreadFunctions.threadLocalInitValue(pDecl, cfa.getMachineModel(), edge);
+    CVariableDeclaration childCopy =
+        new CVariableDeclaration(
+            pDecl.getFileLocation(),
+            false,
+            pDecl.getCStorageClass(),
+            pDecl.getType(),
+            pDecl.getName(),
+            pDecl.getOrigName(),
+            ThreadFunctions.perThreadName(pid, pDecl.getQualifiedName()),
+            null);
+    CIdExpression lhs =
+        new CIdExpression(pDecl.getFileLocation(), pDecl.getType(), pDecl.getName(), childCopy);
+    return new CStatementEdge(
+        "",
+        new CExpressionAssignmentStatement(FileLocation.DUMMY, lhs, value),
         FileLocation.DUMMY,
         edge.getPredecessor(),
         edge.getSuccessor());
