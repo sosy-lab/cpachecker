@@ -18,6 +18,7 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -63,10 +64,22 @@ class AutomatonASTComparator {
       "CPAchecker_AutomatonAnalysis_JokerExpression_Num";
   private static final Pattern JOKER_PATTERN = Pattern.compile("\\$(\\d+|\\?)");
 
-  static ASTMatcher generatePatternAST(String pPattern, CParser parser, Scope scope)
+  static ASTMatcher generatePatternAST(
+      String pPattern, CParser parser, Scope scope, Language pLanguage)
       throws InvalidAutomatonException, NoException, InterruptedException {
-    return CParserUtils.parseSingleStatement(replaceJokersInPattern(pPattern), parser, scope)
-        .accept(ASTMatcherGenerator.INSTANCE);
+    try {
+      return CParserUtils.parseSingleStatement(replaceJokersInPattern(pPattern), parser, scope)
+          .accept(ASTMatcherGenerator.INSTANCE);
+    } catch (Exception e) {
+      if (pLanguage != Language.C) {
+        throw new InvalidAutomatonException(
+            "Automaton patterns are only supported for C programs, but the program is in "
+                + pLanguage
+                + ".",
+            e);
+      }
+      throw e;
+    }
   }
 
   @VisibleForTesting
