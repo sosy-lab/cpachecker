@@ -421,7 +421,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
           // check if we could prove the program to be safe
           if (status.isSound()
               && !from(currentReached)
-              .anyMatch(or(AbstractStates::isTargetState, AbstractStates::hasAssumptions))) {
+                  .anyMatch(or(AbstractStates::isTargetState, AbstractStates::hasAssumptions))) {
             if (supplyReached) {
               updateOrAddReachedSetToReachedSetManager(oldReached, currentReached);
             }
@@ -556,9 +556,9 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
       return (status.isPrecise() && from(reached).anyMatch(AbstractStates::isTargetState))
           || ((status.isSound() || !status.wasPropertyChecked())
-          && !reached.hasWaitingState()
-          && !from(reached)
-          .anyMatch(or(AbstractStates::hasAssumptions, AbstractStates::isTargetState)));
+              && !reached.hasWaitingState()
+              && !from(reached)
+                  .anyMatch(or(AbstractStates::hasAssumptions, AbstractStates::isTargetState)));
     }
 
     @Nullable ReachedSet getReached() {
