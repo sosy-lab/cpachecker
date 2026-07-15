@@ -69,7 +69,6 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.ConfigReadingProofCheckAlgorit
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAndExtractCIRequirementsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.programtransformation.ProgramTransformationARGRecoveryAlgorithm.ProgramTransformationARGRecoveryAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.programtransformation.ProgramTransformationCEGARAlgorithm.ProgramTransformationCEGARAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ConditionalVerifierAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAfterAnalysisAlgorithm;
@@ -787,9 +786,6 @@ public class CoreComponentsFactory {
         algorithm =
             new ProgramTransformationCEGARAlgorithmFactory(
                 algorithm, cpa, logger, config, shutdownNotifier, cfa)
-                .newInstance();
-        algorithm =
-            new ProgramTransformationARGRecoveryAlgorithmFactory(algorithm, cpa, logger, cfa)
                 .newInstance();
       }
 

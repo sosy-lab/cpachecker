@@ -23,16 +23,12 @@ public interface ProgramTransformationRecovery {
    * pAfterProgramTransformation remains.
    *
    * @param pBeforeState the state before entering the program transformation
-   * @param pInitialState the first state in the program transformation
-   * @param pBeforeProgramTransformation the SubCFA belonging to the previous program transformation
    * @param pAfterProgramTransformation the SubCFA of the entered program transformation
    * @param reached the ReachedSet/ARG after ProgramTransformationCEGARAlgorithm
    * @param pLocationStateFactory used for access to LocationStates
    */
   public void revertProgramTransformation(
       AbstractState pBeforeState,
-      AbstractState pInitialState,
-      SubCFA pBeforeProgramTransformation,
       SubCFA pAfterProgramTransformation,
       ReachedSet reached,
       LocationStateFactory pLocationStateFactory);

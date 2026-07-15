@@ -39,18 +39,16 @@ public record TailRecursionEliminationRecovery(
   @Override
   public void revertProgramTransformation(
       AbstractState pPreviousState,
-      AbstractState pCurrentARGState,
-      SubCFA pBeforeProgramTransformation,
       SubCFA pAfterProgramTransformation,
       ReachedSet reached,
       LocationStateFactory pLocationStateFactory) {
 
     ARGState previousARGState = (ARGState) pPreviousState;
-    ARGState currentARGState = (ARGState) pCurrentARGState;
+    ARGState currentARGState = previousARGState.getChildren().getFirst();
     TailRecursionState initialFunctionState = TailRecursionState.FUNCTION_START;
 
     if (pAfterProgramTransformation.subCFAEntryNode()
-        == AbstractStates.extractLocation(pCurrentARGState)) {
+        == AbstractStates.extractLocation(currentARGState)) {
       // remove the initial ARGState in the program transformation
       currentARGState = ProgramTransformationRecoveryUtils.handleEntry(previousARGState, currentARGState, reached);
       // in tail recursion elimination we must have only one child state, i.e. a Function start dummy edge
@@ -205,18 +203,7 @@ public record TailRecursionEliminationRecovery(
     LocationState newLocationState =
         pLocationStateFactory.getState(
             nodeMap.get(AbstractStates.extractLocation(pCurrentARGState)));
-
-    CompositeState currentCompositeState = ((CompositeState) pCurrentARGState.getWrappedState());
-    List<AbstractState> newWrappedStates =
-        new ArrayList<>(currentCompositeState.getWrappedStates().size());
-    for (AbstractState wrappedState : currentCompositeState.getWrappedStates()) {
-      if (wrappedState instanceof LocationState) {
-        newWrappedStates.add(newLocationState);
-      } else {
-        newWrappedStates.add(wrappedState);
-      }
-    }
-    ARGState newARGState = new ARGState(new CompositeState(newWrappedStates), pPreviousARGState);
+    ARGState newARGState = ProgramTransformationRecoveryUtils.argStateWithLocation(pCurrentARGState, newLocationState, pPreviousARGState);
     if (reached.contains(pCurrentARGState)) {
       reached.add(newARGState, reached.getPrecision(pCurrentARGState));
       reached.remove(pCurrentARGState);
