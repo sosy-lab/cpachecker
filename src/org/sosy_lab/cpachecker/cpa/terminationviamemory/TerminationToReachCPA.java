@@ -11,9 +11,11 @@ package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -22,6 +24,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -31,9 +34,13 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
+import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor.InvalidWitnessException;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -47,6 +54,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
  */
 @Options(prefix = "cpa.terminationviamemory")
 public class TerminationToReachCPA extends AbstractCPA implements StatisticsProvider {
+  private final Optional<Path> witnessPath;
   private Solver solver;
   private InterpolationManager itpMgr;
   private PathFormulaManager pfmgr;
@@ -65,11 +73,17 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
       description = "Allows the analysis to also check for infinite loops caused by recursion.")
   private boolean considerRecursion = false;
 
+  @Option(
+      secure = true,
+      description = "Enables the TerminationToSafety analysis to be used as a validator.")
+  private boolean validation = false;
+
   public TerminationToReachCPA(
       LogManager pLogger,
       Configuration pConfiguration,
       ShutdownNotifier pShutdownNotifier,
-      CFA pCFA)
+      CFA pCFA,
+      Specification pSpecification)
       throws InvalidConfigurationException {
     super("sep", "sep", null);
     pConfiguration.inject(this);
@@ -91,13 +105,24 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
       }
     }
     possiblyNonTerminatingLoops = builder.build();
+
+    if (validation) {
+      witnessPath =
+          Optional.of(
+              pSpecification.getPathToSpecificationAutomata().keySet().stream()
+                  .findAny()
+                  .orElseThrow());
+    } else {
+      witnessPath = Optional.empty();
+    }
   }
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(TerminationToReachCPA.class);
   }
 
-  public void setSolver(PredicateCPA pCPA) throws InvalidConfigurationException {
+  public void setSolver(PredicateCPA pCPA)
+      throws CPAException, InterruptedException, InvalidConfigurationException {
     solver = pCPA.getSolver();
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
@@ -112,9 +137,23 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
             shutdownNotifier,
             logger,
             false);
+
+    ImmutableSet<ExpressionTreeLocationInvariant> candidateInvariants =
+        validation ? collectCandidateTransitionInvariants() : ImmutableSet.of();
+
     precisionAdjustment =
         new TerminationToReachPrecisionAdjustment(
-            solver, statistics, logger, cfa, bfmgr, fmgr, itpMgr, configuration);
+            solver,
+            statistics,
+            logger,
+            cfa,
+            bfmgr,
+            fmgr,
+            itpMgr,
+            pfmgr,
+            configuration,
+            validation,
+            candidateInvariants);
     statistics.setFormulaManager(fmgr);
     statistics.setBooleanFormulaManager(bfmgr);
   }
@@ -146,5 +185,19 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
+  }
+
+  private ImmutableSet<ExpressionTreeLocationInvariant> collectCandidateTransitionInvariants()
+      throws CPAException, InterruptedException, InvalidConfigurationException {
+    Set<ExpressionTreeLocationInvariant> invariants;
+    try {
+      WitnessInvariantsExtractor invariantsExtractor =
+          new WitnessInvariantsExtractor(
+              configuration, logger, cfa, shutdownNotifier, witnessPath.orElseThrow());
+      invariants = invariantsExtractor.extractInvariantsFromReachedSet();
+    } catch (InvalidWitnessException e) {
+      throw new CPAException("Invalid witness:\n" + e.getMessage(), e);
+    }
+    return invariants.stream().collect(ImmutableSet.toImmutableSet());
   }
 }

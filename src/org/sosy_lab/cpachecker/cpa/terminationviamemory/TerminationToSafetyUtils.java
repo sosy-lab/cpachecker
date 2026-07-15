@@ -13,12 +13,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 
 public class TerminationToSafetyUtils {
 
   public static void shareTheSolverBetweenCPAs(ConfigurableProgramAnalysis pCpa)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     checkNotNull(pCpa);
 
     TerminationToReachCPA terminationCPA =

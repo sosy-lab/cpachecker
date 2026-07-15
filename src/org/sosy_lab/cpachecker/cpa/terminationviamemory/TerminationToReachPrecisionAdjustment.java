@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -34,14 +35,18 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.ExpressionTreeLocationTransitionInvariant;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -53,9 +58,12 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private final BooleanFormulaManagerView bfmgr;
   private final FormulaManagerView fmgr;
   private final InterpolationManager itpMgr;
+  private final PathFormulaManager pthfmgr;
   private final TerminationToReachStatistics statistics;
   private final CFA cfa;
   private final LogManager logger;
+  private final ImmutableSet<ExpressionTreeLocationInvariant> candidateInvariants;
+  private final boolean validation;
 
   private final String PREV_KEYWORD = "__TransInv@1";
   private final String CURR_KEYWORD = "__TransInv@2";
@@ -98,7 +106,10 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       BooleanFormulaManagerView pBfmgr,
       FormulaManagerView pFmgr,
       InterpolationManager pItpMgr,
-      Configuration pConfiguration)
+      PathFormulaManager pPfmgr,
+      Configuration pConfiguration,
+      boolean pValidation,
+      ImmutableSet<ExpressionTreeLocationInvariant> pCandidateInvariants)
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
     solver = pSolver;
@@ -108,6 +119,9 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     fmgr = pFmgr;
     logger = plogger;
     itpMgr = pItpMgr;
+    pthfmgr = pPfmgr;
+    candidateInvariants = pCandidateInvariants;
+    validation = pValidation;
   }
 
   @Override
@@ -227,22 +241,28 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           BooleanFormula interpolant;
           candidateTransInv.extendPrevVarsWithPrefixSuffix(DUMMY_PREFIX, PREV_KEYWORD);
           candidateTransInv.extendCurrVarsWithPrefixSuffix(DUMMY_PREFIX, CURR_KEYWORD);
-          try {
-            // If BMC check is UNSAT, try to overapproximate the transition invariant
-            BooleanFormula firstStep =
-                isOverapproximating
-                    ? candidateTransInv.getFormula()
-                    : prefixPathFormula.getFormula();
+          if (validation) {
             interpolant =
-                itpMgr
-                    .interpolate(
-                        ImmutableList.of(
-                            bfmgr.and(firstStep, iterationFormula.getFormula()),
-                            latestSameStateFormula))
-                    .orElseThrow()
-                    .getFirst();
-          } catch (CPAException e) {
-            break;
+                collectCandidateTransitionInvariants(
+                    location, terminationState.getPathFormulasForIteration().get(keyPair));
+          } else {
+            try {
+              // If BMC check is UNSAT, try to overapproximate the transition invariant
+              BooleanFormula firstStep =
+                  isOverapproximating
+                      ? candidateTransInv.getFormula()
+                      : prefixPathFormula.getFormula();
+              interpolant =
+                  itpMgr
+                      .interpolate(
+                          ImmutableList.of(
+                              bfmgr.and(firstStep, iterationFormula.getFormula()),
+                              latestSameStateFormula))
+                      .orElseThrow()
+                      .getFirst();
+            } catch (CPAException e) {
+              break;
+            }
           }
 
           // Instantiate the new interpolant to T(x__PREV, x__CURR)
@@ -269,6 +289,31 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       }
     }
     return Optional.of(result);
+  }
+
+  private BooleanFormula collectCandidateTransitionInvariants(
+      CFANode pLocation, PathFormula pIterationFormula) throws InterruptedException {
+    BooleanFormula candidateTransitionInvariant = bfmgr.makeTrue();
+    for (ExpressionTreeLocationInvariant invariant : candidateInvariants) {
+      if (!(invariant instanceof ExpressionTreeLocationTransitionInvariant)) {
+        continue;
+      }
+
+      if (invariant.getLocation().equals(pLocation)) {
+        BooleanFormula invariantFormula;
+        try {
+          if (invariant.asExpressionTree().equals(ExpressionTrees.getTrue())) {
+            invariantFormula = bfmgr.makeTrue();
+          } else {
+            invariantFormula = invariant.getFormula(fmgr, pthfmgr, pIterationFormula);
+          }
+        } catch (CPATransferException e) {
+          invariantFormula = bfmgr.makeTrue();
+        }
+        candidateTransitionInvariant = bfmgr.and(candidateTransitionInvariant, invariantFormula);
+      }
+    }
+    return candidateTransitionInvariant;
   }
 
   private boolean isSound(Formula pFormula) {
