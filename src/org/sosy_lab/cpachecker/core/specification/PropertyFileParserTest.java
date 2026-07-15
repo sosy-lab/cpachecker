@@ -194,6 +194,8 @@ public class PropertyFileParserTest {
             1,
             "#\n# Another comment\n",
             0,
+            // This is a syntactically valid property but semantically
+            // meaningless, since it combines C and SV-LIB properties.
             VALID_ASSERT_PROPERTY + "\n" + "CHECK(annotations, all)",
             2);
 
