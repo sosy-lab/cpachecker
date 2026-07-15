@@ -24,6 +24,8 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.Uninterruptibles;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -90,6 +92,11 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
               + " or ::supply-reached-refinable for both.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<AnnotatedValue<Path>> configFiles;
+
+  @Option(
+      secure = true,
+      description = "which options should never be overwritten from the global config")
+  private List<String> keepOptionsFromGlobalConfig = ImmutableList.of();
 
   @Option(
       secure = true,
@@ -414,7 +421,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
           // check if we could prove the program to be safe
           if (status.isSound()
               && !from(currentReached)
-                  .anyMatch(or(AbstractStates::isTargetState, AbstractStates::hasAssumptions))) {
+              .anyMatch(or(AbstractStates::isTargetState, AbstractStates::hasAssumptions))) {
             if (supplyReached) {
               updateOrAddReachedSetToReachedSetManager(oldReached, currentReached);
             }
@@ -476,10 +483,25 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       ConfigurationBuilder singleConfigBuilder = Configuration.builder();
       singleConfigBuilder.copyFrom(globalConfig);
       singleConfigBuilder.clearOption("parallelAlgorithm.configFiles");
+      singleConfigBuilder.clearOption("parallelAlgorithm.keepOptionsFromGlobalConfig");
       singleConfigBuilder.clearOption("analysis.useParallelAnalyses");
-      singleConfigBuilder.loadFromFile(singleConfigFileName);
 
+      Path configFile = singleConfigFileName;
+      if (!keepOptionsFromGlobalConfig.isEmpty()) {
+        ConfigurationBuilder subAnalysisConfig =
+            Configuration.builder().loadFromFile(singleConfigFileName);
+        keepOptionsFromGlobalConfig.forEach(subAnalysisConfig::clearOption);
+        String tmpConfigContent = subAnalysisConfig.build().asPropertiesString();
+        Path tempConfigFile =
+            Files.createTempFile(
+                Path.of(System.getProperty("java.io.tmpdir")), "parallel-analysis-", ".properties");
+        Files.writeString(tempConfigFile, tmpConfigContent, StandardCharsets.UTF_8);
+        configFile = tempConfigFile;
+      }
+
+      singleConfigBuilder.loadFromFile(configFile);
       Configuration singleConfig = singleConfigBuilder.build();
+
       NestingAlgorithm.checkConfigs(globalConfig, singleConfig, singleConfigFileName, logger);
       return singleConfig;
 
@@ -534,9 +556,9 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
       return (status.isPrecise() && from(reached).anyMatch(AbstractStates::isTargetState))
           || ((status.isSound() || !status.wasPropertyChecked())
-              && !reached.hasWaitingState()
-              && !from(reached)
-                  .anyMatch(or(AbstractStates::hasAssumptions, AbstractStates::isTargetState)));
+          && !reached.hasWaitingState()
+          && !from(reached)
+          .anyMatch(or(AbstractStates::hasAssumptions, AbstractStates::isTargetState)));
     }
 
     @Nullable ReachedSet getReached() {
