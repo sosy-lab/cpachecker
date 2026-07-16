@@ -10,11 +10,9 @@ package org.sosy_lab.cpachecker.cfa.transformation;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.SequencedCollection;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -141,49 +139,20 @@ public record TailRecursionEliminationRecovery(
               revertSingleState(
                   pPreviousARGState, pCurrentARGState, reached, pLocationStateFactory);
         };
-    // handle child states; not in a loop for concurrency’s sake
-    SequencedCollection<ARGState> children = newARGState.getChildren();
-    switch (children.size()) {
-      case 0:
-        break;
-      case 1:
-        if (pNodes.contains(AbstractStates.extractLocation(children.getFirst()))) {
-          recoverARG(
-              newARGState,
-              children.getFirst(),
-              setNewFunctionState(newARGState, children.getFirst(), pCurrentFunctionState),
-              pNodes,
-              pExitNode,
-              reached,
-              pLocationStateFactory);
-        }
-        break;
-      case 2:
-        ARGState child1 = children.getFirst();
-        ARGState child2 = children.getLast();
-        if (pNodes.contains(AbstractStates.extractLocation(child1))) {
-          recoverARG(
-              newARGState,
-              child1,
-              setNewFunctionState(newARGState, child1, pCurrentFunctionState),
-              pNodes,
-              pExitNode,
-              reached,
-              pLocationStateFactory);
-        }
-        if (pNodes.contains(AbstractStates.extractLocation(child2))) {
-          recoverARG(
-              newARGState,
-              child2,
-              setNewFunctionState(newARGState, child2, pCurrentFunctionState),
-              pNodes,
-              pExitNode,
-              reached,
-              pLocationStateFactory);
-        }
-        break;
-      default:
-        throw new RuntimeException("More than two successor ARGStates!");
+    // handle child states
+    ImmutableList<ARGState> children = ImmutableList.copyOf(newARGState.getChildren());
+    for (int i = 0; i < children.size(); i++) {
+      ARGState child = children.get(i);
+      if (pNodes.contains(AbstractStates.extractLocation(child))) {
+        recoverARG(
+            newARGState,
+            child,
+            setNewFunctionState(newARGState, child, pCurrentFunctionState),
+            pNodes,
+            pExitNode,
+            reached,
+            pLocationStateFactory);
+      }
     }
   }
 
