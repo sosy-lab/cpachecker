@@ -26,19 +26,6 @@ public final class TopologicalTraversalTest {
     return ImmutableList.copyOf(TopologicalTraversal.traverse(root, edges));
   }
 
-  /**
-   * Asserts only what the topological-order contract actually guarantees: that {@code predecessor}
-   * appears before {@code successor}. Does not assume any particular order among nodes that are not
-   * related by a path.
-   */
-  private static void assertPrecedes(List<String> order, String predecessor, String successor) {
-    int predecessorIndex = order.indexOf(predecessor);
-    int successorIndex = order.indexOf(successor);
-    assertThat(predecessorIndex).isAtLeast(0);
-    assertThat(successorIndex).isAtLeast(0);
-    assertThat(predecessorIndex).isLessThan(successorIndex);
-  }
-
   @Test
   public void singleNodeWithoutSuccessors_returnsOnlyRoot() {
     Multimap<String, String> adjacency = ImmutableListMultimap.of();
@@ -76,10 +63,10 @@ public final class TopologicalTraversalTest {
     // B and C are not ordered relative to each other by the graph, so only assert what the
     // topological contract guarantees: A first, D last, both B and C in between.
     assertThat(result).containsExactly("A", "B", "C", "D");
-    assertPrecedes(result, "A", "B");
-    assertPrecedes(result, "A", "C");
-    assertPrecedes(result, "B", "D");
-    assertPrecedes(result, "C", "D");
+    assertThat(result).containsAtLeast("A", "B").inOrder();
+    assertThat(result).containsAtLeast("A", "C").inOrder();
+    assertThat(result).containsAtLeast("B", "D").inOrder();
+    assertThat(result).containsAtLeast("C", "D").inOrder();
   }
 
   @Test
@@ -184,10 +171,10 @@ public final class TopologicalTraversalTest {
     // Several interleavings of the B- and C-subtrees are valid topological orders, so only
     // assert the node set plus the precedence constraints implied by the edges.
     assertThat(result).containsExactly("A", "B", "C", "D", "E", "F");
-    assertPrecedes(result, "A", "B");
-    assertPrecedes(result, "A", "C");
-    assertPrecedes(result, "B", "D");
-    assertPrecedes(result, "B", "E");
-    assertPrecedes(result, "C", "F");
+    assertThat(result).containsAtLeast("A", "B").inOrder();
+    assertThat(result).containsAtLeast("A", "C").inOrder();
+    assertThat(result).containsAtLeast("B", "D").inOrder();
+    assertThat(result).containsAtLeast("B", "E").inOrder();
+    assertThat(result).containsAtLeast("C", "F").inOrder();
   }
 }

@@ -13,7 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Objects;
-import java.util.Set;
+import java.util.SequencedSet;
 
 /**
  * Represents a strongly connected component (SCC) of a graph: a maximal set of nodes such that
@@ -25,8 +25,7 @@ public class StronglyConnectedComponent<T> {
 
   private final T root;
 
-  // LinkedHashSet to preserve discovery order.
-  private final Set<T> nodes = new LinkedHashSet<>();
+  private final SequencedSet<T> nodes = new LinkedHashSet<>();
 
   protected StronglyConnectedComponent(T pRoot) {
     root = checkNotNull(pRoot);
@@ -44,8 +43,8 @@ public class StronglyConnectedComponent<T> {
   }
 
   /** Returns an unmodifiable view of all nodes belonging to this SCC, including the root. */
-  public final Set<T> getNodes() {
-    return Collections.unmodifiableSet(nodes);
+  public final SequencedSet<T> getNodes() {
+    return Collections.unmodifiableSequencedSet(nodes);
   }
 
   @Override
