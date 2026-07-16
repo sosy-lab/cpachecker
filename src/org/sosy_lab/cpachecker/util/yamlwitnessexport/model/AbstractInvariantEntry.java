@@ -62,7 +62,9 @@ public abstract class AbstractInvariantEntry extends AbstractInformationRecord {
         case "loop_invariant",
             "location_invariant",
             "loop_transition_invariant",
-            "location_transition_invariant" ->
+            "location_transition_invariant",
+            "loop_memory_invariant",
+            "location_memory_invariant" ->
             InvariantEntry.class;
         default -> throw new IllegalArgumentException("Unknown invariant type: " + type);
       };
