@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options
@@ -70,14 +69,17 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
               + "cpa.predicate.targetStateSatCheck=true.")
   private boolean checkTargetStates = true;
 
-  // Option copied from PathChecker, keep in sync (and hopefully remove at some point)
+  // Option copied from AbstractBMCAlgorithm, keep in sync (and hopefully remove at some point)
+  //
+  // Only here for backwards compatibility purposes, since the option in AbstractBMCAlgorithms has
+  // the prefix "bmc".
   @Option(
       name = "counterexample.export.allowImpreciseCounterexamples",
       secure = true,
       description =
           "An imprecise counterexample of the Predicate CPA is usually a bug,"
               + " but expected in some configurations. Should it be treated as a bug or accepted?")
-  private boolean allowImpreciseCounterexamples = false;
+  private boolean allowImpreciseCounterexamplesBmc = false;
 
   @Option(
       name = "bmc.invariantsExport",
@@ -116,6 +118,9 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         false /* no invariant generator */,
         pAggregatedReachedSets);
     pConfig.inject(this);
+    // Only here for backwards compatibility purposes, since the option in AbstractBMCAlgorithms has
+    // the prefix "bmc".
+    allowImpreciseCounterexamples |= allowImpreciseCounterexamplesBmc;
 
     config = pConfig;
     cfa = pCFA;
@@ -156,28 +161,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
 
     return super.boundedModelCheck(pReachedSet, pProver, pInductionProblem);
-  }
-
-  @Override
-  protected void analyzeCounterexample(
-      final BooleanFormula pCounterexampleFormula,
-      final ReachedSet pReachedSet,
-      final BasicProverEnvironment<?> pProver)
-      throws CPATransferException, InterruptedException {
-
-    analyzeCounterexample0(pCounterexampleFormula, pReachedSet, pProver)
-        .ifPresentOrElse(
-            cex -> cex.getTargetState().addCounterexampleInformation(cex),
-            () -> {
-              if (!allowImpreciseCounterexamples) {
-                throw new AssertionError(
-                    "Found imprecise counterexample with BMC. "
-                        + "If this is expected for this configuration "
-                        + "(e.g., because of UF-based heap encoding), "
-                        + "set counterexample.export.allowImpreciseCounterexamples=true. "
-                        + "Otherwise please report this as a bug.");
-              }
-            });
   }
 
   @Override

@@ -145,6 +145,15 @@ abstract class AbstractBMCAlgorithm
         != ReachabilityState.IRRELEVANT_TO_TARGET;
   }
 
+  // Option copied from PathChecker, keep in sync (and hopefully remove at some point)
+  @Option(
+      name = "counterexample.export.allowImpreciseCounterexamples",
+      secure = true,
+      description =
+          "An imprecise counterexample of the Predicate CPA is usually a bug,"
+              + " but expected in some configurations. Should it be treated as a bug or accepted?")
+  protected boolean allowImpreciseCounterexamples = false;
+
   @Option(
       secure = true,
       description =
@@ -877,7 +886,18 @@ abstract class AbstractBMCAlgorithm
     // Subclasses can perform their own violation handling (e.g., allow imprecise counterexamples)
     // by overriding this method, and call analyzeCounterexample0() to find satisfying assignments
     analyzeCounterexample0(pCounterexample, pReachedSet, pProver)
-        .ifPresent(cex -> cex.getTargetState().addCounterexampleInformation(cex));
+        .ifPresentOrElse(
+            cex -> cex.getTargetState().addCounterexampleInformation(cex),
+            () -> {
+              if (!allowImpreciseCounterexamples) {
+                throw new AssertionError(
+                    "Found imprecise counterexample with BMC. "
+                        + "If this is expected for this configuration "
+                        + "(e.g., because of UF-based heap encoding), "
+                        + "set counterexample.export.allowImpreciseCounterexamples=true. "
+                        + "Otherwise please report this as a bug.");
+              }
+            });
   }
 
   /**

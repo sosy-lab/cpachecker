@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
@@ -680,21 +679,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     } finally {
       stats.bmcUnrolling.stop();
     }
-  }
-
-  @Override
-  protected void analyzeCounterexample(
-      final BooleanFormula pCounterexampleFormula,
-      final ReachedSet pReachedSet,
-      final BasicProverEnvironment<?> pProver)
-      throws CPATransferException, InterruptedException {
-
-    analyzeCounterexample0(pCounterexampleFormula, pReachedSet, pProver)
-        .ifPresentOrElse(
-            cex -> cex.getTargetState().addCounterexampleInformation(cex),
-            () -> {
-              throw new AssertionError("Found imprecise counterexample with IMC.");
-            });
   }
 
   /**

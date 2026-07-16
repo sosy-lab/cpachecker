@@ -1032,6 +1032,10 @@ bmc.boundingAssertionsSlicing = false
 # discovered, which is done if cpa.predicate.targetStateSatCheck=true.
 bmc.checkTargetStates = true
 
+# An imprecise counterexample of the Predicate CPA is usually a bug, but
+# expected in some configurations. Should it be treated as a bug or accepted?
+bmc.counterexample.export.allowImpreciseCounterexamples = false
+
 # try using induction to verify programs with loops
 bmc.induction = false
 
