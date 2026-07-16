@@ -49,6 +49,8 @@ public class SvLibTermToFormulaConverter {
 
   private static final Pattern EXTRACT_PATTERN = Pattern.compile("\\(_ extract (\\d+) (\\d+)\\)");
 
+  private static final Pattern REPEAT_PATTERN = Pattern.compile("\\(_ repeat (\\d+)\\)");
+
   /**
    * Compute by how many bits a zero_extend or sign_extend application extends its argument, based
    * on the difference between the size of the resulting bitvector and the size of the argument.
@@ -309,6 +311,21 @@ public class SvLibTermToFormulaConverter {
           Integer.parseInt(extractMatcher.group(2)));
     }
 
+    // The repeat operation is an indexed identifier just like extract, and concatenates the
+    // given amount of copies of its argument.
+    Matcher repeatMatcher = REPEAT_PATTERN.matcher(functionName);
+    if (repeatMatcher.matches()) {
+      Verify.verify(args.size() == 1);
+      int count = Integer.parseInt(repeatMatcher.group(1));
+      Verify.verify(count > 0);
+      BitvectorFormula operand = args.getFirst();
+      BitvectorFormula result = operand;
+      for (int i = 1; i < count; i++) {
+        result = bvmgr.concat(result, operand);
+      }
+      return result;
+    }
+
     switch (functionName) {
       case "concat" -> {
         Verify.verify(args.size() == 2);
@@ -400,6 +417,10 @@ public class SvLibTermToFormulaConverter {
       case "bvxor" -> {
         Verify.verify(args.size() == 2);
         return bvmgr.xor(args.getFirst(), args.get(1));
+      }
+      case "bvxnor" -> {
+        Verify.verify(args.size() == 2);
+        return bvmgr.not(bvmgr.xor(args.getFirst(), args.get(1)));
       }
       case "bvashr" -> {
         Verify.verify(args.size() == 2);

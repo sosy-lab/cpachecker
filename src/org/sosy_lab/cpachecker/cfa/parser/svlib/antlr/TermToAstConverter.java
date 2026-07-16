@@ -373,6 +373,13 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
           return SmtLibTheoryDeclarations.bitVectorXor(
               ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
         }
+        case "bvxnor" -> {
+          Verify.verify(pArguments.size() == 2);
+          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
+          Verify.verify(argumentTypes.getFirst().equals(argumentTypes.getLast()));
+          return SmtLibTheoryDeclarations.bitVectorXnor(
+              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
+        }
         case "bvashr" -> {
           Verify.verify(pArguments.size() == 2);
           Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
@@ -488,6 +495,15 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
             ((SvLibSmtLibBitVectorType) pArguments.getFirst().getExpressionType()).getSize(),
             Integer.parseInt(pCtx.index(0).getText()),
             Integer.parseInt(pCtx.index(1).getText()));
+      }
+      case "repeat" -> {
+        Verify.verify(pCtx.index().size() == 1);
+        Verify.verify(pArguments.size() == 1);
+        Verify.verify(
+            pArguments.getFirst().getExpressionType() instanceof SvLibSmtLibBitVectorType);
+        return SmtLibTheoryDeclarations.bitVectorRepeat(
+            ((SvLibSmtLibBitVectorType) pArguments.getFirst().getExpressionType()).getSize(),
+            Integer.parseInt(pCtx.index(0).getText()));
       }
       case "zero_extend", "sign_extend" -> {
         Verify.verify(pCtx.index().size() == 1);

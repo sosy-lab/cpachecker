@@ -513,6 +513,36 @@ public class SmtLibTheoryDeclarations {
         ImmutableList.of());
   }
 
+  public static SvLibFunctionDeclaration bitVectorXnor(int pSize) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(
+                new SvLibSmtLibBitVectorType(pSize), new SvLibSmtLibBitVectorType(pSize)),
+            new SvLibSmtLibBitVectorType(pSize)),
+        "bvxnor",
+        "bvxnor",
+        ImmutableList.of());
+  }
+
+  /**
+   * The indexed SMT-LIB repeat operation {@code (_ repeat pCount)}, which concatenates {@code
+   * pCount} copies of its argument. The count is part of the name of the declaration, analogous to
+   * {@link #bitVectorExtract(int, int, int)}.
+   */
+  public static SvLibFunctionDeclaration bitVectorRepeat(int pSourceSize, int pCount) {
+    Verify.verify(pSourceSize > 0 && pCount > 0);
+    String name = "(_ repeat %d)".formatted(pCount);
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(new SvLibSmtLibBitVectorType(pSourceSize)),
+            new SvLibSmtLibBitVectorType(pSourceSize * pCount)),
+        name,
+        name,
+        ImmutableList.of());
+  }
+
   public static SvLibFunctionDeclaration bitVectorXor(int pSize) {
     return new SvLibFunctionDeclaration(
         FileLocation.DUMMY,

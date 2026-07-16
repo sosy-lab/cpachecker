@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
@@ -48,6 +49,25 @@ public sealed interface SvLibConstantTerm extends SvLibTerm
             throw new UnsupportedOperationException(
                 "Cannot create constant expression for type: " + pSvLibSmtLibPredefinedType);
       };
+    }
+
+    if (pType instanceof SvLibSmtLibBitVectorType bitVectorType) {
+      BigInteger value;
+      if (pValue instanceof BigInteger bigInt) {
+        value = bigInt;
+      } else if (pValue instanceof Integer val) {
+        value = BigInteger.valueOf(val);
+      } else if (pValue instanceof Long val) {
+        value = BigInteger.valueOf(val);
+      } else {
+        throw new IllegalArgumentException(
+            "Expected numeric value for bitvector type, but got: " + pValue);
+      }
+      if (value.signum() < 0) {
+        // Normalize values of a signed interpretation into [0, 2^size)
+        value = value.add(BigInteger.ONE.shiftLeft(bitVectorType.getSize()));
+      }
+      return new SvLibBitVectorConstantTerm(value, bitVectorType.getSize(), FileLocation.DUMMY);
     }
 
     throw new UnsupportedOperationException("Cannot create constant expression for type: " + pType);
