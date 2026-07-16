@@ -13,13 +13,15 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.svlibtoformula
 
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
-import java.util.regex.Matcher;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBitVectorConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibGeneralSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
@@ -46,10 +48,6 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 public class SvLibTermToFormulaConverter {
-
-  private static final Pattern EXTRACT_PATTERN = Pattern.compile("\\(_ extract (\\d+) (\\d+)\\)");
-
-  private static final Pattern REPEAT_PATTERN = Pattern.compile("\\(_ repeat (\\d+)\\)");
 
   /**
    * Compute by how many bits a zero_extend or sign_extend application extends its argument, based
@@ -290,9 +288,9 @@ public class SvLibTermToFormulaConverter {
       SSAMapBuilder ssa,
       FormulaManagerView fmgr,
       SvLibToFormulaConverter pConverter) {
-    String functionName =
-        cleanVariableNameForJavaSMT(
-            pSvLibGeneralSymbolApplicationTerm.getSymbol().getDeclaration().getQualifiedName());
+    SvLibSimpleDeclaration symbolDeclaration =
+        pSvLibGeneralSymbolApplicationTerm.getSymbol().getDeclaration();
+    String functionName = cleanVariableNameForJavaSMT(symbolDeclaration.getQualifiedName());
     List<BitvectorFormula> args =
         transformedImmutableListCopy(
             pSvLibGeneralSymbolApplicationTerm.getTerms(),
@@ -301,22 +299,32 @@ public class SvLibTermToFormulaConverter {
 
     // The extract operation is an indexed identifier, whose indices are part of the name of its
     // declaration, e.g. "(_ extract 31 31)".
-    // TODO: Fix this by improving the datastructure to keep track of the arguments
-    Matcher extractMatcher = EXTRACT_PATTERN.matcher(functionName);
-    if (extractMatcher.matches()) {
+    if (symbolDeclaration instanceof SvLibFunctionDeclaration pFunctionDeclaration
+        && Pattern.compile("\\(_ extract (\\d+) (\\d+)\\)").matcher(functionName).matches()) {
       Verify.verify(args.size() == 1);
+      Optional<ImmutableList<Integer>> functionSymbolUnderscoreTerms =
+          pFunctionDeclaration.getFunctionSymbolUnderscoreTerms();
+
+      Verify.verify(functionSymbolUnderscoreTerms.isPresent());
+      Verify.verify(functionSymbolUnderscoreTerms.orElseThrow().size() == 2);
       return bvmgr.extract(
           args.getFirst(),
-          Integer.parseInt(extractMatcher.group(1)),
-          Integer.parseInt(extractMatcher.group(2)));
+          functionSymbolUnderscoreTerms.orElseThrow().get(0),
+          functionSymbolUnderscoreTerms.orElseThrow().get(1));
     }
 
     // The repeat operation is an indexed identifier just like extract, and concatenates the
     // given amount of copies of its argument.
-    Matcher repeatMatcher = REPEAT_PATTERN.matcher(functionName);
-    if (repeatMatcher.matches()) {
+    if (symbolDeclaration instanceof SvLibFunctionDeclaration pFunctionDeclaration
+        && Pattern.compile("\\(_ repeat (\\d+)\\)").matcher(functionName).matches()) {
       Verify.verify(args.size() == 1);
-      int count = Integer.parseInt(repeatMatcher.group(1));
+      Optional<ImmutableList<Integer>> functionSymbolUnderscoreTerms =
+          pFunctionDeclaration.getFunctionSymbolUnderscoreTerms();
+
+      Verify.verify(functionSymbolUnderscoreTerms.isPresent());
+      Verify.verify(functionSymbolUnderscoreTerms.orElseThrow().size() == 1);
+
+      int count = functionSymbolUnderscoreTerms.orElseThrow().get(0);
       Verify.verify(count > 0);
       BitvectorFormula operand = args.getFirst();
       BitvectorFormula result = operand;

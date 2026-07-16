@@ -8,9 +8,11 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibAnyType;
@@ -20,6 +22,10 @@ import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 public final class SvLibFunctionDeclaration extends AFunctionDeclaration
     implements SvLibDeclaration {
   @Serial private static final long serialVersionUID = -7637229289026207373L;
+
+  // If the function symbol contains an underscore, this contains the terms which are parameters of
+  // the underscore symbol
+  private final Optional<ImmutableList<Integer>> functionSymbolUnderscoreTerms;
 
   public static SvLibFunctionDeclaration nondetFunctionWithReturnType(SvLibType pType) {
     return new SvLibFunctionDeclaration(
@@ -46,6 +52,22 @@ public final class SvLibFunctionDeclaration extends AFunctionDeclaration
       String pOrigName,
       List<SvLibParameterDeclaration> pParameters) {
     super(pFileLocation, pType, pName, pOrigName, pParameters);
+    functionSymbolUnderscoreTerms = Optional.empty();
+  }
+
+  public SvLibFunctionDeclaration(
+      FileLocation pFileLocation,
+      SvLibFunctionType pType,
+      String pName,
+      String pOrigName,
+      List<Integer> pFunctionSymbolUnderscoreTerms,
+      List<SvLibParameterDeclaration> pParameters) {
+    super(pFileLocation, pType, pName, pOrigName, pParameters);
+    functionSymbolUnderscoreTerms =
+        Optional.of(ImmutableList.copyOf(pFunctionSymbolUnderscoreTerms));
+    Preconditions.checkArgument(
+        !pFunctionSymbolUnderscoreTerms.isEmpty() || pName.contains("_"),
+        "Function name must contain an underscore");
   }
 
   @SuppressWarnings("unchecked")
@@ -62,5 +84,9 @@ public final class SvLibFunctionDeclaration extends AFunctionDeclaration
   @Override
   public <R, X extends Exception> R accept(SvLibAstNodeVisitor<R, X> v) throws X {
     return v.accept(this);
+  }
+
+  public Optional<ImmutableList<Integer>> getFunctionSymbolUnderscoreTerms() {
+    return functionSymbolUnderscoreTerms;
   }
 }

@@ -309,6 +309,7 @@ public class SmtLibTheoryDeclarations {
             new SvLibSmtLibBitVectorType(pMsb - pLsb + 1)),
         name,
         name,
+        ImmutableList.of(pMsb, pLsb),
         ImmutableList.of());
   }
 
@@ -540,6 +541,7 @@ public class SmtLibTheoryDeclarations {
             new SvLibSmtLibBitVectorType(pSourceSize * pCount)),
         name,
         name,
+        ImmutableList.of(pCount),
         ImmutableList.of());
   }
 
