@@ -8,12 +8,15 @@
 
 package org.sosy_lab.cpachecker.cpa.value;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigInteger;
@@ -32,7 +35,9 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
@@ -64,7 +69,6 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
-import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -810,28 +814,38 @@ public final class ValueAnalysisState
     return this;
   }
 
-  private Optional<CExpression> buildConstraint(CExpression pVar, CType pCType, NumericValue pNum) {
+  /**
+   * Builds a {@link CBinaryExpression} expressing the equality of the variable given as {@link
+   * CExpression} with the given {@link NumericValue} (may be any numeric value, including {@link
+   * FloatValue}). The given {@link NumericValue} is expected to have the {@link CType} given.
+   * Currently only {@link CSimpleType}s and {@link CEnumType}s are resolved. All other types return
+   * a {@link Optional#empty()}. This is due to more complex types taking a long time with little
+   * benefit.
+   */
+  private Optional<CBinaryExpression> buildAssignmentFrom(
+      CExpression pVariable, CType pCType, NumericValue pNumericValueAssigned) {
     // TODO: Refactor the whole code to also handle JExpressions i.e. change CExpression to
     //  AExpression
     // TODO: Get real logger
     CBinaryExpressionBuilder builder =
         new CBinaryExpressionBuilder(machineModel, LogManager.createNullLogManager());
-    FileLocation loc = pVar.getFileLocation();
+    FileLocation loc = pVariable.getFileLocation();
     CExpression val = null;
     if (pCType instanceof CSimpleType simpleType) {
       if (simpleType.getType().isIntegerType()) {
-        BigInteger value = getBigIntFromIntegerNumber(pNum.getNumber());
+        BigInteger value = pNumericValueAssigned.bigIntegerValue();
         val = new CIntegerLiteralExpression(loc, simpleType, value);
       } else if (simpleType.getType().isFloatingPointType()) {
         FloatValue.Format precision = FloatValue.Format.fromCType(machineModel, simpleType);
         val =
             new CFloatLiteralExpression(
-                loc, machineModel, simpleType, pNum.floatingPointValue(precision));
+                loc, machineModel, simpleType, pNumericValueAssigned.floatingPointValue(precision));
       } else {
         throw new AssertionError("Unexpected type: " + simpleType);
       }
+
     } else if (pCType instanceof CEnumType enumType) {
-      BigInteger value = getBigIntFromIntegerNumber(pNum.getNumber());
+      BigInteger value = pNumericValueAssigned.bigIntegerValue();
       for (CEnumerator enumerator : enumType.getEnumerators()) {
         if (value.equals(enumerator.getValue())) {
           val = new CIdExpression(loc, enumerator);
@@ -841,6 +855,7 @@ public final class ValueAnalysisState
       if (val == null) {
         val = new CIntegerLiteralExpression(loc, enumType, value);
       }
+
     } else {
       // disabled since this blocks too many programs for which plenty other information
       // would be available, so just skip the current variable
@@ -849,21 +864,16 @@ public final class ValueAnalysisState
 
       return Optional.empty();
     }
-    return Optional.of(builder.buildBinaryExpressionUnchecked(pVar, val, BinaryOperator.EQUALS));
+
+    checkNotNull(val); // Would be indicative of a bug!
+    return Optional.of(
+        builder.buildBinaryExpressionUnchecked(pVariable, val, BinaryOperator.EQUALS));
   }
 
-  private BigInteger getBigIntFromIntegerNumber(Number pNum) {
-    if (pNum instanceof BigInteger bigInteger) {
-      return bigInteger;
-    } else {
-      return BigInteger.valueOf(pNum.longValue());
-    }
-  }
-
-  private ExpressionTree<Object> getFormulaApproximation(
+  private ExpressionTree<Object> buildVariableAssignmentsFor(
       FunctionEntryNode pFunctionScope,
       CFANode pLocation,
-      Function<String, Boolean> variableNameIScope,
+      Function<String, Boolean> qualifiedVariableNameInScope,
       Function<String, String> variableRenamingFunction)
       throws TranslationToExpressionTreeFailedException {
     if (machineModel == null) {
@@ -871,34 +881,42 @@ public final class ValueAnalysisState
     }
 
     List<ExpressionTree<Object>> result = new ArrayList<>();
+    String functionName = pFunctionScope.getFunctionName();
 
+    // TODO: make the constantMap a Stack Frame and only export the current frame
     for (Entry<MemoryLocation, ValueAndType> entry : constantsMap.entrySet()) {
-      Value valueOfEntry = entry.getValue().getValue();
-      if (valueOfEntry instanceof EnumConstantValue) {
-        continue;
-      }
-      NumericValue num = valueOfEntry.asNumericValue();
-      if (num != null) {
+      ValueAndType entryValueAndType = entry.getValue();
+      Value valueOfEntry = entryValueAndType.getValue();
+      if (valueOfEntry instanceof NumericValue numericValueOfEntry) {
         MemoryLocation memoryLocation = entry.getKey();
-        Type type = entry.getValue().getType();
+        Type type = entryValueAndType.getType();
+
         if (!memoryLocation.isReference()
-            && memoryLocation.isOnFunctionStack(pFunctionScope.getFunctionName())
+            && memoryLocation.isOnFunctionStack(functionName)
             && type instanceof CType cType
             && CTypes.isArithmeticType((CType) type)) {
+
+          // TODO: this unwrapping is insufficient!
           if (cType instanceof CBitFieldType) {
             cType = ((CBitFieldType) cType).getType();
           }
+
           if (cType instanceof CElaboratedType) {
             cType = ((CElaboratedType) cType).getRealType();
           }
-          assert cType != null && CTypes.isArithmeticType(cType);
-          String id = memoryLocation.getIdentifier();
-          if (variableNameIScope.apply(id)) {
+
+          if (qualifiedVariableNameInScope.apply(memoryLocation.getQualifiedName())) {
             FileLocation loc =
                 pLocation.getNumEnteringEdges() > 0
                     ? pLocation.getEnteringEdge(0).getFileLocation()
                     : pFunctionScope.getFileLocation();
-            String newVariableName = variableRenamingFunction.apply(id);
+
+            // We rename the identifier, i.e. the "name", without the qualification part
+            String newVariableName = variableRenamingFunction.apply(memoryLocation.getIdentifier());
+            // The new qualified name construction below is wrong for global variables
+            checkArgument(memoryLocation.isOnFunctionStack());
+            String newQualifiedVariableName =
+                memoryLocation.getFunctionName() + "::" + newVariableName;
             CVariableDeclaration decl =
                 new CVariableDeclaration(
                     loc,
@@ -907,10 +925,11 @@ public final class ValueAnalysisState
                     cType,
                     newVariableName,
                     newVariableName,
-                    memoryLocation.getExtendedQualifiedName(),
+                    newQualifiedVariableName,
                     null);
             CExpression var = new CIdExpression(loc, decl);
-            Optional<CExpression> constraint = buildConstraint(var, cType, num);
+            Optional<CBinaryExpression> constraint =
+                buildAssignmentFrom(var, cType, numericValueOfEntry);
             if (constraint.isPresent()) {
               result.add(LeafExpression.of(constraint.orElseThrow()));
             }
@@ -925,13 +944,24 @@ public final class ValueAnalysisState
   public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
       FunctionEntryNode pFunctionScope, CFANode pLocation)
       throws TranslationToExpressionTreeFailedException {
-    return getFormulaApproximation(
-        pFunctionScope,
-        pLocation,
-        varName ->
-            pFunctionScope.getReturnVariable().isEmpty()
-                || !varName.equals(pFunctionScope.getReturnVariable().get().getName()),
-        Function.identity());
+
+    // Note: most of the time we don't export information in v2 witnesses at all locations,
+    // but certain pointers like loop-heads. Hence, we return information for a bunch of variables.
+
+    // This returns all assignments for variables in the current function-scope (including
+    // parameters and CPAchecker internal variables), excluding return variables
+    if (pFunctionScope.getReturnVariable().isEmpty()) {
+      String forbiddenQualifiedName =
+          pFunctionScope.getReturnVariable().orElseThrow().getQualifiedName();
+      buildVariableAssignmentsFor(
+          pFunctionScope,
+          pLocation,
+          qualifiedVarName -> !qualifiedVarName.equals(forbiddenQualifiedName),
+          Function.identity());
+    }
+
+    return buildVariableAssignmentsFor(
+        pFunctionScope, pLocation, qualifiedVarName -> true, Function.identity());
   }
 
   @Override
@@ -944,17 +974,32 @@ public final class ValueAnalysisState
           ReportingMethodNotImplementedException,
           TranslationToExpressionTreeFailedException {
 
-    return getFormulaApproximation(
+    // Note: most of the time we don't export information in v2 witnesses at all locations,
+    // but certain pointers like loop-heads. Hence, we return information for a bunch of variables.
+
+    // This returns all assignments for variables in the current function-scope (including
+    // parameters), excluding return variables and CPAchecker internal variables
+    FluentIterable<AbstractSimpleDeclaration> variablesToExportIter =
+        pAstCfaRelation.getVariablesAndParametersInScope(pLocation).orElse(FluentIterable.of());
+    variablesToExportIter =
+        variablesToExportIter.filter(v -> !v.getQualifiedName().contains("__CPAchecker_"));
+    if (!pFunctionScope.getReturnVariable().isEmpty()) {
+      variablesToExportIter =
+          variablesToExportIter.filter(
+              v ->
+                  !pFunctionScope
+                      .getReturnVariable()
+                      .orElseThrow()
+                      .getQualifiedName()
+                      .equals(v.getQualifiedName()));
+    }
+    ImmutableSet<String> variablesToExport =
+        variablesToExportIter.transform(decl -> decl.getQualifiedName()).toSet();
+
+    return buildVariableAssignmentsFor(
         pFunctionScope,
         pLocation,
-        varName ->
-            (pFunctionScope.getReturnVariable().isEmpty()
-                    || !varName.equals(pFunctionScope.getReturnVariable().get().getName()))
-                && pAstCfaRelation
-                    .getVariablesAndParametersInScope(pLocation)
-                    .orElseThrow()
-                    .anyMatch(v -> v.getName().equals(varName))
-                && !varName.contains("__CPAchecker_"),
+        qualifiedVarName -> !variablesToExport.contains(qualifiedVarName),
         varName -> useOldKeywordForVariables ? "\\old(" + varName + ")" : varName);
   }
 
@@ -962,47 +1007,59 @@ public final class ValueAnalysisState
   public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
       FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
       throws TranslationToExpressionTreeFailedException {
+    // Note: most of the time we don't export information in v2 witnesses at all locations,
+    // but certain pointers like loop-heads. Hence, we return information for a bunch of variables.
     if (machineModel == null) {
       throw new TranslationToExpressionTreeFailedException("MachineModel is not available.");
     }
 
-    ExpressionTree<Object> result = ExpressionTrees.getTrue();
+    return getAssignmentForReturnVariable(
+        pFunctionScope, pFunctionReturnVariable, ExpressionTrees.getTrue());
+  }
 
-    for (Entry<MemoryLocation, ValueAndType> entry : constantsMap.entrySet()) {
-      Value valueOfEntry = entry.getValue().getValue();
-      if (valueOfEntry instanceof EnumConstantValue) {
-        continue;
-      }
-      NumericValue num = valueOfEntry.asNumericValue();
-      if (num != null) {
-        MemoryLocation memoryLocation = entry.getKey();
-        Type type = entry.getValue().getType();
-        if (!memoryLocation.isReference()
-            && memoryLocation.isOnFunctionStack(pFunctionScope.getFunctionName())
-            && type instanceof CType cType
-            && CTypes.isArithmeticType((CType) type)) {
+  /**
+   * Returns the assignment for the return variable of the current function as a {@link
+   * CBinaryExpression} wrapped in the {@link ExpressionTree} argument, iff there is a return
+   * value/variable with a concrete assignment. If there is no viable return variable or value, the
+   * original {@link ExpressionTree} is returned.
+   */
+  private ExpressionTree<Object> getAssignmentForReturnVariable(
+      final FunctionEntryNode pFunctionScope,
+      final AIdExpression pFunctionReturnVariable,
+      final ExpressionTree<Object> initialExpressionTree) {
+
+    if (pFunctionScope.getReturnVariable().isPresent()
+        && pFunctionReturnVariable instanceof CIdExpression pCIdExpressionForFunReturnVar) {
+      MemoryLocation returnVariableMemoryLoc =
+          MemoryLocation.forDeclaration(pCIdExpressionForFunReturnVar.getDeclaration());
+      ValueAndType maybeKnownVariable = constantsMap.get(returnVariableMemoryLoc);
+      if (maybeKnownVariable != null
+          && maybeKnownVariable.getValue() instanceof NumericValue numericValueOfEntry) {
+        // TODO: allow this "disallowed MemoryLocation reference" thing in a sensible way! For
+        // example pointers to structs can be 0, and we should export such cases!
+        if (maybeKnownVariable.getType() instanceof CType cType
+            && CTypes.isArithmeticType(cType)
+            && !returnVariableMemoryLoc.isReference()) {
+
+          // TODO: this is insufficient unwrapping!
           if (cType instanceof CBitFieldType) {
             cType = ((CBitFieldType) cType).getType();
           }
           if (cType instanceof CElaboratedType) {
             cType = ((CElaboratedType) cType).getRealType();
           }
-          assert cType != null && CTypes.isArithmeticType(cType);
-          String id = memoryLocation.getIdentifier();
-          if (pFunctionScope.getReturnVariable().isPresent()
-              && id.equals(pFunctionScope.getReturnVariable().orElseThrow().getName())
-              && pFunctionReturnVariable instanceof CIdExpression var) {
-            Optional<CExpression> constraint = buildConstraint(var, cType, num);
-            if (constraint.isPresent()) {
-              result = LeafExpression.of(constraint.orElseThrow());
-              break;
-            }
+
+          Optional<CBinaryExpression> constraint =
+              buildAssignmentFrom(pCIdExpressionForFunReturnVar, cType, numericValueOfEntry);
+
+          if (constraint.isPresent()) {
+            return LeafExpression.of(constraint.orElseThrow());
           }
         }
       }
     }
 
-    return result;
+    return initialExpressionTree;
   }
 
   public static class ValueAndType implements Serializable {
