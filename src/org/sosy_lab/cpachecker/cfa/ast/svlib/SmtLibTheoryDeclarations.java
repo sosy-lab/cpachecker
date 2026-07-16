@@ -267,6 +267,21 @@ public class SmtLibTheoryDeclarations {
         ImmutableList.of());
   }
 
+  /**
+   * The qualified constant array identifier {@code (as const (Array K V))}, which maps every index
+   * to the given default element.
+   */
+  public static SvLibFunctionDeclaration arrayConst(
+      SvLibSmtLibType indexType, SvLibSmtLibType elementType) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(elementType), new SvLibSmtLibArrayType(indexType, elementType)),
+        "const",
+        "const",
+        ImmutableList.of());
+  }
+
   public static SvLibFunctionDeclaration arrayEquality(
       SvLibSmtLibType indexType, SvLibSmtLibType elementType) {
     return new SvLibFunctionDeclaration(

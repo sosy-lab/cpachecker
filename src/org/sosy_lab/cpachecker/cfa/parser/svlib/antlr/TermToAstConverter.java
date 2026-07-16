@@ -134,6 +134,22 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
         && functionSymbolContext.identifier()
             instanceof IdentifierUnderscoreContext pUnderscoreContext) {
       declaration = getVariableDeclarationForIndexedSymbol(pUnderscoreContext, arguments);
+    } else if (functionSymbolContext.GRW_As() != null
+        && functionSymbolContext.identifier().getText().equals("const")) {
+      // The qualified identifier (as const (Array K V)) applied to a default element denotes a
+      // constant array.
+      SvLibType sort = new SvLibSortToAstTypeConverter(scope).visit(functionSymbolContext.sort());
+      Verify.verify(
+          sort instanceof SvLibSmtLibArrayType,
+          "The sort of a constant array must be an array sort, but was: %s",
+          sort);
+      SvLibSmtLibArrayType arrayType = (SvLibSmtLibArrayType) sort;
+      Verify.verify(arguments.size() == 1);
+      Verify.verify(
+          SvLibType.canBeCastTo(
+              arguments.getFirst().getExpressionType(), arrayType.getValuesType()));
+      declaration =
+          SmtLibTheoryDeclarations.arrayConst(arrayType.getKeysType(), arrayType.getValuesType());
     } else {
       declaration =
           getVariableDeclarationForSymbol(
@@ -262,6 +278,16 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
             (SvLibSmtLibType) pArguments.get(1).getExpressionType(),
             (SvLibSmtLibType) pArguments.get(2).getExpressionType());
       }
+      case "=" -> {
+        // Equality is only handled here if the arguments are arrays, other types are resolved
+        // in their respective theory.
+        if (pArguments.size() == 2
+            && pArguments.getFirst().getExpressionType()
+                instanceof SvLibSmtLibArrayType arrayType) {
+          return SmtLibTheoryDeclarations.arrayEquality(
+              arrayType.getKeysType(), arrayType.getValuesType());
+        }
+      }
     }
 
     // Match all the bitvector stuff
@@ -388,11 +414,13 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
               ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
         }
         case "=" -> {
-          Verify.verify(pArguments.size() == 2);
-          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
-          Verify.verify(argumentTypes.getFirst().equals(argumentTypes.getLast()));
-          return SmtLibTheoryDeclarations.bitVectorEquality(
-              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
+          // Equality is only handled here if the arguments are bitvectors, other types are
+          // resolved in their respective theory.
+          if (pArguments.size() == 2
+              && argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType bitVectorType
+              && argumentTypes.getFirst().equals(argumentTypes.getLast())) {
+            return SmtLibTheoryDeclarations.bitVectorEquality(bitVectorType.getSize());
+          }
         }
         case "bvule" -> {
           Verify.verify(pArguments.size() == 2);

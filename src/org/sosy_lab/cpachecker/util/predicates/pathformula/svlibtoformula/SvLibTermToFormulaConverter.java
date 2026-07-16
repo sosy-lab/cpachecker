@@ -45,6 +45,7 @@ import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 public class SvLibTermToFormulaConverter {
@@ -63,6 +64,18 @@ public class SvLibTermToFormulaConverter {
             - pBvmgr.getLength(pArgument);
     Verify.verify(extensionBits >= 0);
     return extensionBits;
+  }
+
+  /** Create a constant array of the given type mapping every index to the default element. */
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  private static @NonNull Formula makeConstArray(
+      SvLibSmtLibArrayType pArrayType, Formula pDefaultElement, FormulaManagerView pFmgr) {
+    return pFmgr
+        .getArrayFormulaManager()
+        .makeArray(
+            (FormulaType) pArrayType.getKeysType().toFormulaType(),
+            (FormulaType) pArrayType.getValuesType().toFormulaType(),
+            pDefaultElement);
   }
 
   public static @NonNull Formula convertTerm(
@@ -135,6 +148,19 @@ public class SvLibTermToFormulaConverter {
     if (pSvLibGeneralSymbolApplicationTerm instanceof SvLibSymbolApplicationTerm pTerm
         && isArrayAccess(pTerm)) {
       return convertArrayAccess(pTerm, ssa, fmgr, pConverter);
+    } else if (pSvLibGeneralSymbolApplicationTerm instanceof SvLibSymbolApplicationTerm pTerm
+        && pTerm.getSymbol().getName().equals("=")
+        && pTerm.getTerms().size() == 2
+        && pTerm.getTerms().getFirst().getExpressionType() instanceof SvLibSmtLibArrayType) {
+      Formula lhs = convertTerm(pTerm.getTerms().getFirst(), ssa, fmgr, pConverter);
+      Formula rhs = convertTerm(pTerm.getTerms().get(1), ssa, fmgr, pConverter);
+      return fmgr.makeEqual(lhs, rhs);
+    } else if (pSvLibGeneralSymbolApplicationTerm instanceof SvLibSymbolApplicationTerm pTerm
+        && pTerm.getSymbol().getName().equals("const")
+        && pTerm.getTerms().size() == 1
+        && pTerm.getExpressionType() instanceof SvLibSmtLibArrayType arrayType) {
+      return makeConstArray(
+          arrayType, convertTerm(pTerm.getTerms().getFirst(), ssa, fmgr, pConverter), fmgr);
     } else if (pSvLibGeneralSymbolApplicationTerm instanceof SvLibSymbolApplicationTerm pTerm
         && pTerm.getTerms().size() == 3
         // canBeCastTo instead of equals?
