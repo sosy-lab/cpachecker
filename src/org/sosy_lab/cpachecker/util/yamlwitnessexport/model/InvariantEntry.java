@@ -65,6 +65,8 @@ public class InvariantEntry extends AbstractInvariantEntry {
     TRANSITION_LOOP_INVARIANT("loop_transition_invariant"),
     TRANSITION_LOCATION_INVARIANT("location_transition_invariant"),
     LOCATION_INVARIANT("location_invariant"),
+    LOOP_MEMORY_INVARIANT("loop_memory_invariant"),
+    LOCATION_MEMORY_INVARIANT("location_memory_invariant"),
     UNKNOWN("unknown");
 
     private static final Map<String, InvariantRecordType> map;
