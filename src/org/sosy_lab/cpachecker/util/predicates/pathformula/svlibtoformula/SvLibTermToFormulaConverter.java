@@ -309,7 +309,7 @@ public class SvLibTermToFormulaConverter {
       Verify.verify(functionSymbolUnderscoreTerms.orElseThrow().size() == 2);
       return bvmgr.extract(
           args.getFirst(),
-          functionSymbolUnderscoreTerms.orElseThrow().get(0),
+          functionSymbolUnderscoreTerms.orElseThrow().getFirst(),
           functionSymbolUnderscoreTerms.orElseThrow().get(1));
     }
 
@@ -324,7 +324,7 @@ public class SvLibTermToFormulaConverter {
       Verify.verify(functionSymbolUnderscoreTerms.isPresent());
       Verify.verify(functionSymbolUnderscoreTerms.orElseThrow().size() == 1);
 
-      int count = functionSymbolUnderscoreTerms.orElseThrow().get(0);
+      int count = functionSymbolUnderscoreTerms.orElseThrow().getFirst();
       Verify.verify(count > 0);
       BitvectorFormula operand = args.getFirst();
       BitvectorFormula result = operand;
