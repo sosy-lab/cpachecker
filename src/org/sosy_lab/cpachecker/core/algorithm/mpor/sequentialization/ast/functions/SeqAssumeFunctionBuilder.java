@@ -26,9 +26,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
@@ -63,7 +63,7 @@ public final class SeqAssumeFunctionBuilder {
       new CFunctionDeclaration(
           FileLocation.DUMMY,
           ASSUME_FUNCTION_TYPE,
-          "__MPOR__assume",
+          Sequentialization.MPOR_PREFIX + "assume",
           ImmutableList.of(COND_PARAMETER_ASSUME),
           ImmutableSet.of());
 
@@ -115,7 +115,7 @@ public final class SeqAssumeFunctionBuilder {
     CBinaryExpression condEqualsZeroExpression =
         pBinaryExpressionBuilder.buildBinaryExpression(
             SeqAssumeFunctionBuilder.COND_ID_EXPRESSION,
-            SeqIntegerLiteralExpressions.INT_0,
+            CIntegerLiteralExpression.ZERO,
             BinaryOperator.EQUALS);
     CExpressionWrapper ifCondition = new CExpressionWrapper(condEqualsZeroExpression);
     // build the 'if (cond == 0) { abort(); }' statement
@@ -173,7 +173,7 @@ public final class SeqAssumeFunctionBuilder {
     if (pIsSigned) {
       CBinaryExpression nextThreadGreaterOrEqualZero =
           pBinaryExpressionBuilder.buildBinaryExpression(
-              SeqIntegerLiteralExpressions.INT_0,
+              CIntegerLiteralExpression.ZERO,
               SeqIdExpressions.NEXT_THREAD,
               BinaryOperator.LESS_EQUAL);
       return buildAssumeFunctionCallStatement(

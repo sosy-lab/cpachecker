@@ -88,6 +88,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinAtomicFunctions;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.StandardFunctions;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
@@ -157,7 +158,12 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
           "memset", "memset");
 
   private static final ImmutableSet<String> SIDE_EFFECT_FUNCTIONS =
-      ImmutableSet.of("memcpy", "memmove", "memset");
+      ImmutableSet.<String>builder()
+          .add("memcpy", "memmove", "memset")
+          // the atomic builtins that write to the object their pointer argument designates,
+          // i.e. all of them except __atomic_load_n and the fences
+          .addAll(BuiltinAtomicFunctions.getSideEffectFunctionNames())
+          .build();
 
   // names for special variables needed to deal with functions
   @Deprecated
@@ -315,7 +321,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
               // https://en.wikipedia.org/wiki/Long_double#Implementations
               // The x87 extended precision has 15+63 bits:
               // https://en.wikipedia.org/wiki/Extended_precision#x86_extended_precision_format
-              return FormulaType.getFloatingPointType(15, 63);
+              return FormulaType.getFloatingPointTypeFromSizesWithoutHiddenBit(15, 63);
             } else {
               throw new AssertionError(
                   "Missing implementation of long double for machine model " + machineModel);
@@ -324,7 +330,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
           return FormulaType.getDoublePrecisionFloatingPointType();
         }
         case FLOAT128 -> {
-          return FormulaType.getFloatingPointType(15, 112);
+          return FormulaType.getFloatingPointTypeFromSizesWithoutHiddenBit(15, 112);
         }
         default -> {}
       }
@@ -1977,7 +1983,10 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
     String result = null;
     if (UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
       result = UNSUPPORTED_FUNCTIONS.get(functionName);
-    } else if (functionName.startsWith("__atomic_")) {
+    } else if (functionName.startsWith("__atomic_")
+        && !BuiltinAtomicFunctions.isBuiltinAtomicFunction(functionName)) {
+      // Atomic builtins we do not encode must be rejected rather than treated as pure external
+      // functions: silently ignoring an atomic store would yield a wrong verdict.
       result = "atomic operations";
     } else if (StandardFunctions.C11_MATH_H_FUNCTIONS.contains(functionName)) {
       // Some of these functions are actually supported, but handled before this check here.

@@ -33,7 +33,7 @@ public record MPORThread(
     CFunctionDeclaration startRoutine,
     Optional<CFAEdgeForThread> startRoutineCall,
     Optional<CIdExpression> startRoutineExitVariable,
-    ImmutableListMultimap<CVariableDeclaration, Optional<CFAEdgeForThread>> localVariables,
+    ImmutableListMultimap<CVariableDeclaration, SeqCallContext> localVariables,
     CFAForThread cfa) {
 
   public boolean isMain() {
@@ -65,8 +65,7 @@ public record MPORThread(
                 CFunctionDeclaration pStartRoutine,
                 Optional<CFAEdgeForThread> pStartRoutineCall,
                 Optional<CIdExpression> pStartRoutineExitVariable,
-                ImmutableListMultimap<CVariableDeclaration, Optional<CFAEdgeForThread>>
-                    pLocalVariables,
+                ImmutableListMultimap<CVariableDeclaration, SeqCallContext> pLocalVariables,
                 CFAForThread pCfa)
         && id == pId
         && threadObject.equals(pThreadObject)

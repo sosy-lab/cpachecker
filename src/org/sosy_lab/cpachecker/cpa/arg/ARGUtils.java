@@ -1331,7 +1331,7 @@ public class ARGUtils {
    * @param states the set of target states to collect path to
    * @return A collection of all possible ARG paths from the root(s) of the ARG to the targets.
    */
-  public static Collection<ARGPath> collectAllArgPaths(Set<@NonNull ARGState> states) {
+  public static Collection<ARGPath> collectAllArgPaths(Iterable<@NonNull ARGState> states) {
     ImmutableList.Builder<ARGPath> builder = ImmutableList.builder();
     for (ARGState state : states) {
       builder.addAll(allArgPathsFromState(state));

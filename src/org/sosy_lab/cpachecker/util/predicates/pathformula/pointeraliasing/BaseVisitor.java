@@ -67,10 +67,10 @@ class BaseVisitor extends DefaultCExpressionVisitor<Variable, UnrecognizedCodeEx
 
     final Variable base = e.getFieldOwner().accept(this);
     if (base != null) {
-      return Variable.create(
-          getFieldAccessName(base.getName(), e),
+      return new Variable(
+          getFieldAccessName(base.name(), e),
           typeHandler.getSimplifiedType(e),
-          base.getCallStackDepth());
+          base.callStackDepth());
     } else {
       return null;
     }
@@ -82,7 +82,7 @@ class BaseVisitor extends DefaultCExpressionVisitor<Variable, UnrecognizedCodeEx
     PointerBase base =
         new PointerBase(e.getDeclaration(), pts.getCallstackDepth(e.getDeclaration(), cfaEdge));
     if (!pts.isActualBase(base) && !CTypeUtils.containsArray(type, e.getDeclaration())) {
-      lastBase = Variable.create(base.name(), type, base.callStackDepth());
+      lastBase = new Variable(base.name(), type, base.callStackDepth());
       return lastBase;
     } else {
       return null;

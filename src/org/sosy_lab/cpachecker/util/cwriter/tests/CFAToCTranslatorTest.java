@@ -21,11 +21,12 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.TempFile;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 import org.sosy_lab.cpachecker.util.test.ToCTranslationTest;
 
 /** Tests for {@link CFAToCTranslator}. */
@@ -47,7 +48,7 @@ public class CFAToCTranslatorTest extends ToCTranslationTest {
             .create()
             .toAbsolutePath(),
         /* pVerdict= */ pVerdict,
-        /* pCheckerConfig= */ TestDataTools.configurationForTest()
+        /* pCheckerConfig= */ TestUtils.configurationForTest()
             .loadFromResource(CFAToCTranslatorTest.class, "predicateAnalysis.properties")
             .build());
 
@@ -66,9 +67,7 @@ public class CFAToCTranslatorTest extends ToCTranslationTest {
 
   private CFAToCTranslator getTranslator() throws InvalidConfigurationException {
     return new CFAToCTranslator(
-        TestDataTools.configurationForTest()
-            .setOption("cpa.arg.export.code.header", "false")
-            .build());
+        TestUtils.configurationForTest().setOption("cpa.arg.export.code.header", "false").build());
   }
 
   private CFA parseProgram(final Path pProgram)
@@ -77,7 +76,8 @@ public class CFAToCTranslatorTest extends ToCTranslationTest {
     final ShutdownNotifier shutdown = ShutdownNotifier.createDummy();
     final Configuration parseConfig =
         Configuration.builder().setOption("analysis.useLoopStructure", "false").build();
-    final CFACreator cfaCreator = new CFACreator(parseConfig, logger, shutdown);
+    final CFACreator cfaCreator =
+        new CFACreator(parseConfig, LogManager.createTestLogManager(), shutdown);
 
     return cfaCreator.parseFileAndCreateCFA(ImmutableList.of(pProgram.toString()));
   }

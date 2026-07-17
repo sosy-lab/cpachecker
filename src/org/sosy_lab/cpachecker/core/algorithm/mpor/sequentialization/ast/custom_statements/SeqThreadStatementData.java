@@ -67,6 +67,10 @@ public class SeqThreadStatementData {
         pType, ImmutableSet.of(pSubstituteEdge), pThreadId, pPcLeftHandSide);
   }
 
+  public SeqThreadStatementData withType(SeqThreadStatementType pType) {
+    return new SeqThreadStatementData(pType, substituteEdges, threadId, pcLeftHandSide);
+  }
+
   public SeqThreadStatementType getType() {
     return type;
   }

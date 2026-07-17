@@ -9,6 +9,7 @@
 arrayAsPointer/array*.yml
 atexit/memsafety*.yml
 atexit/reach*.yml
+atomic/*.yml
 bitvectors/*.yml
 cast_to_union/*.yml
 pointer_aliasing/*.yml

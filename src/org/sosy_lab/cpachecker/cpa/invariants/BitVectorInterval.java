@@ -25,7 +25,7 @@ import java.util.Objects;
  *
  * <p>All instances of this class are immutable.
  */
-public class BitVectorInterval implements BitVectorType {
+public final class BitVectorInterval implements BitVectorType {
 
   /** The lower bound of the interval. */
   private final BigInteger lowerBound;

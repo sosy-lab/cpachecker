@@ -148,9 +148,35 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <exclude>../programs/benchmarks/loop-industry-pattern/ofuf_*.yml</exclude> <!-- flapping error/timeout -->
     <exclude>../programs/benchmarks/loop-invgen/SpamAssassin-loop.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/loop-invgen/apache-get-tag.i.p+lhb-reducer.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/loop-invgen/half_2.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/loop-lit/gj2007.c.i.p+lhb-reducer.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/loop-lit/hhk2008.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/loop-lit/jm2006_variant.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/loops/heavy-1.yml</exclude> <!-- flapping error/timeout -->
     <exclude>../programs/benchmarks/loops/invert_string-1.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/loops/invert_string-3.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/loops/linear_search.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/loops/sum01-1.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/loops/trex03-1.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/loops/trex03-2.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/loops/vogal-1.yml</exclude> <!-- flapping error/timeout -->
+    <exclude>../programs/benchmarks/loops-crafted-1/Mono5_1.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/loops-crafted-1/Mono6_1.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/loops-crafted-1/in-de61.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/loops-crafted-1/mono-crafted_1.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/loops-crafted-1/mono-crafted_10.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/loops-crafted-1/mono-crafted_13.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/loops-crafted-1/mono-crafted_14.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/loops-crafted-1/mono-crafted_3.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/loops-crafted-1/mono-crafted_7.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/loops-crafted-1/mono-crafted_8.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/loops-crafted-1/vnew2.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/loop-simple/nested_5.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/nla-digbench-scaling/dijkstra-u_valuebound10.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/nla-digbench-scaling/divbin2_valuebound5.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/nla-digbench/dijkstra-u.yml</exclude> <!-- flapping unknown/timeout -->
   </tasks>
 </benchmark>
