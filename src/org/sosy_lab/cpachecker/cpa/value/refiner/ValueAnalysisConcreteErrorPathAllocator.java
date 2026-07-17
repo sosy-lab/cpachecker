@@ -258,6 +258,7 @@ public class ValueAnalysisConcreteErrorPathAllocator
     }
   }
 
+  // Offsets in the used MemoryLocation are ignored on purpose!
   private static IDExpression createBaseIdExpresssion(MemoryLocation pLoc) {
 
     if (!pLoc.isOnFunctionStack()) {
