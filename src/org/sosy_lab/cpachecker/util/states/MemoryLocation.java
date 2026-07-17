@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 public final class MemoryLocation implements Comparable<MemoryLocation>, Serializable {
 
   @Serial private static final long serialVersionUID = -8910967707373729034L;
+
   private final @Nullable String functionName;
   private final String identifier;
   private final @Nullable Long offset;
@@ -149,11 +150,28 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
   }
 
   /**
-   * Return a string that represents the full information of this class. This string should be used
-   * as an opaque identifier and only be passed to {@link #parseExtendedQualifiedName(String)}.
+   * Checks whether this {@link MemoryLocation} describes exactly the variable declared in the given
+   * {@link ASimpleDeclaration}.
+   *
+   * @param pDeclarationToCompare some {@link ASimpleDeclaration}. Must not be null.
+   * @return {@code true} if this {@link MemoryLocation} describes exactly the given declaration.
+   *     {@code false} else.
+   */
+  public boolean equalsVariableDeclaredIn(ASimpleDeclaration pDeclarationToCompare) {
+    return getExtendedQualifiedName()
+        .equals(checkNotNull(pDeclarationToCompare).getQualifiedName());
+  }
+
+  /**
+   * Return a string that represents the full information of this instance, consisting of the
+   * function name (if present), the variable name, and the offset (if present). This string should
+   * be used as an opaque identifier and only be passed to {@link
+   * #parseExtendedQualifiedName(String)}. Comparing whether instances of this class describe a
+   * variable must be done via {@link #equalsVariableDeclaredIn(ASimpleDeclaration)} or {@link
+   * #equals(Object)}.
    */
   public String getExtendedQualifiedName() {
-    String variableName = getQualifiedName();
+    String variableName = isOnFunctionStack() ? (functionName + "::" + identifier) : identifier;
     if (offset == null) {
       return variableName;
     }
@@ -162,14 +180,11 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
 
   /**
    * Returns the qualified name consisting of the function name if present and the identifier. Note:
-   * MemoryLocation consists of more than just those Strings!
+   * MemoryLocation consists of more than just those Strings! Ignoring the offset is wrong in most
+   * cases. Use {@link #getReferenceStart()} to strip the offset from if you really want the
    *
    * @return a String representing the qualified name consisting of function name and identifier.
    */
-  public String getQualifiedName() {
-    return isOnFunctionStack() ? (functionName + "::" + identifier) : identifier;
-  }
-
   public boolean isOnFunctionStack() {
     return functionName != null;
   }
@@ -182,14 +197,24 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
     return functionName != null && pFunctionName.equals(functionName);
   }
 
+  /**
+   * Returns the name of the function this {@link MemoryLocation} is on. Check {@link
+   * #isOnFunctionStack()} before calling this! Throws if it is a global variable.
+   */
   public String getFunctionName() {
     return checkNotNull(functionName);
   }
 
+  /**
+   * Returns the name of the variable without offset or function name. Do not use this method unless
+   * absolutely necessary and you know what you are doing! Use either {@link
+   * #getExtendedQualifiedName()} instead!
+   */
   public String getIdentifier() {
     return identifier;
   }
 
+  /** True if an offset (potentially zero!) is present. */
   public boolean isReference() {
     return offset != null;
   }
