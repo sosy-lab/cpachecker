@@ -346,7 +346,7 @@ public class SMGTransferRelation
           Optional<SMGObject> maybeKnownMemory =
               currentState
                   .getMemoryModel()
-                  .getObjectForVisibleVariable(locationInPrevStackFrame.getQualifiedName());
+                  .getObjectForVisibleVariable(locationInPrevStackFrame.getExtendedQualifiedName());
           if (maybeKnownMemory.isEmpty()) {
             throw new SMGException("Usage of unknown variable in function " + returnEdge);
           }
@@ -790,7 +790,7 @@ public class SMGTransferRelation
             currentState
                 .getMemoryModel()
                 .getObjectForVisibleVariableFromPreviousStackframe(
-                    locationInPrevStackFrame.getQualifiedName());
+                    locationInPrevStackFrame.getExtendedQualifiedName());
 
         if (maybeKnownMemory.isEmpty()) {
           throw new SMGException("Usage of unknown variable in function " + callEdge);

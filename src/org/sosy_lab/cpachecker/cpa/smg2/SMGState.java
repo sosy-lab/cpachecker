@@ -711,7 +711,8 @@ public class SMGState
    * @return whether the memory location exists as a variable.
    */
   public boolean isLocalOrGlobalVariablePresent(MemoryLocation memLoc) {
-    String qualifiedName = memLoc.getQualifiedName();
+    String qualifiedName = memLoc.getExtendedQualifiedName();
+    checkArgument(!memLoc.isReference());
     return isGlobalVariablePresent(qualifiedName) || isLocalVariablePresentAnywhere(qualifiedName);
   }
 
@@ -755,7 +756,7 @@ public class SMGState
     Value valueToWrite = valueAndSize.getValue();
     checkArgument(!valueToWrite.isUnknown());
     CType typeOfUnknown = null;
-    CType simpleType = variableTypeMap.get(memLoc.getQualifiedName());
+    CType simpleType = variableTypeMap.get(memLoc.getExtendedQualifiedName());
     if (simpleType != null && simpleType.getCanonicalType() instanceof CSimpleType) {
       typeOfUnknown = simpleType;
     }
@@ -808,7 +809,8 @@ public class SMGState
     // And remember the offset. Offset + size from ValueAndValueSize are the
     // SMGHasValueEdge information besides the mapping, which is either a new mapping
     // or an old one found in the current mapping
-    String qualifiedName = memLoc.getQualifiedName();
+    checkArgument(!memLoc.isReference());
+    String qualifiedName = memLoc.getExtendedQualifiedName();
     if (!isLocalOrGlobalVariablePresent(memLoc)) {
       // Create the variable first
       Value sizeInBits = variableNameToMemorySizeInBits.get(qualifiedName);
@@ -835,7 +837,7 @@ public class SMGState
     CType typeOfUnknown = null;
     // Write (easier then inserting everything on its own, and guaranteed to succeed as it's a copy
     // from the original state)
-    CType simpleType = variableTypeMap.get(memLoc.getQualifiedName());
+    CType simpleType = variableTypeMap.get(memLoc.getExtendedQualifiedName());
     if (simpleType != null && simpleType.getCanonicalType() instanceof CSimpleType) {
       typeOfUnknown = simpleType;
     }
@@ -898,7 +900,10 @@ public class SMGState
   /* public for debugging purposes in interpolation only! */
   public Value getValueToVerify(MemoryLocation variableAndOffset, ValueAndValueSize valueAndSize)
       throws SMGException {
-    String variableName = variableAndOffset.getQualifiedName();
+    // TODO: we usually don't allow offsets in MemoryLocation in SMG2. Look into this once path
+    // interpolation works
+    checkArgument(!variableAndOffset.isReference());
+    String variableName = variableAndOffset.getExtendedQualifiedName();
     BigInteger offsetInBits = BigInteger.valueOf(variableAndOffset.getOffset());
     // Null for new interpolants, return unknown
     @Nullable BigInteger sizeOfReadInBits = valueAndSize.getSizeInBits();
@@ -7824,9 +7829,10 @@ public class SMGState
    * @return a new state with the variables SMGObject invalid.
    */
   public SMGState invalidateVariable(MemoryLocation variable, boolean deleteDanglingPointers) {
+    checkArgument(!variable.isReference());
     if (isLocalOrGlobalVariablePresent(variable)) {
       Optional<SMGObject> maybeVariableObject =
-          memoryModel.getObjectForVisibleVariable(variable.getQualifiedName());
+          memoryModel.getObjectForVisibleVariable(variable.getExtendedQualifiedName());
       if (maybeVariableObject.isPresent()) {
         // Get objects present outside the current scope
         Set<SMGObject> otherPresentObjects = memoryModel.getObjectsValidInOtherStackFrames();
@@ -8034,7 +8040,8 @@ public class SMGState
   }
 
   public boolean hasPointer(MemoryLocation memLoc) {
-    String qualifiedName = memLoc.getQualifiedName();
+    checkArgument(!memLoc.isReference());
+    String qualifiedName = memLoc.getExtendedQualifiedName();
     BigInteger offsetInBits = BigInteger.valueOf(memLoc.getOffset());
     SMGObject memory;
     if (qualifiedName.contains("::__retval__")) {

@@ -339,7 +339,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       // less live
       if (!onlyBlankEdgesEntering) {
         for (MemoryLocation variable : pState.getTrackedMemoryLocations()) {
-          String qualifiedVarName = variable.getQualifiedName();
+          String qualifiedVarName = variable.getExtendedQualifiedName();
           if (!liveVariables
               .orElseThrow()
               .isVariableLive(qualifiedVarName, location.getLocationNode())) {

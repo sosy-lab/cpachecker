@@ -307,7 +307,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
             : "interpolants mismatch in " + entry.getKey();
       }
       newAssignment = newAssignment.putAndCopy(entry.getKey(), entry.getValue());
-      String thisEntryQualName = entry.getKey().getQualifiedName();
+      String thisEntryQualName = entry.getKey().getExtendedQualifiedName();
       variableNameToMemorySizeInBits.put(
           thisEntryQualName, other.variableNameToMemorySizeInBits.get(thisEntryQualName));
       variableToTypeMap.put(thisEntryQualName, other.variableToTypeMap.get(thisEntryQualName));
@@ -493,7 +493,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     for (MemoryLocation current : nonHeapAssignments.keySet()) {
       if (!toRetain.contains(current.getExtendedQualifiedName())) {
         weakenedAssignments = weakenedAssignments.removeAndCopy(current);
-        variableNameToMemorySizeInBits.remove(current.getQualifiedName());
+        variableNameToMemorySizeInBits.remove(current.getExtendedQualifiedName());
         // We don't delete types out of variableToTypeMap because in for example arrays we have
         // multiple entries, one for each offset. We don't want to delete the type because of that.
         // If it were to change it would be overridden.

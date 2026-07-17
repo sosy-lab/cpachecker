@@ -4669,7 +4669,7 @@ public class SymbolicProgramConfiguration {
   }
 
   public CType getTypeOfVariable(MemoryLocation memLoc) {
-    return variableToTypeMap.get(memLoc.getQualifiedName());
+    return variableToTypeMap.get(memLoc.getExtendedQualifiedName());
   }
 
   public PersistentMap<String, CType> getVariableTypeMap() {
@@ -5098,7 +5098,7 @@ public class SymbolicProgramConfiguration {
           }
           builder.append("\n");
           builder
-              .append(memLoc.getQualifiedName())
+              .append(memLoc.getExtendedQualifiedName())
               .append(": ")
               .append(value)
               .append("(")

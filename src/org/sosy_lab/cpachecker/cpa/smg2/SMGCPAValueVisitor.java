@@ -1164,7 +1164,9 @@ public class SMGCPAValueVisitor
         // Struct/Unions on the stack/global; return the memory location in a
         // SymbolicIdentifier. This is then used as interpretation such that the Value
         // of the memory location (on the stack) is used. This is used by assignments only as far as
-        // I know, i.e. when assigning a complete struct to a new variable.
+        // I know, i.e. when assigning a complete struct to a new variable. The MemoryLocation with
+        // offset should never end up in the saved variables, and should only ever by used as an
+        // identifier to signal full struct copy.
         finalStatesBuilder.add(
             ValueAndSMGState.of(
                 SymbolicValueFactory.getInstance()
