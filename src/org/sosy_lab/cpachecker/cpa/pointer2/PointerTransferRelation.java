@@ -758,7 +758,8 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     LocationSet targets = pPointerState.getPointsToSet(memoryLocation);
     if (targets instanceof ExplicitLocationSet explicitTargets) {
       for (MemoryLocation target : explicitTargets) {
-        if (target.getIdentifier().equals(pCallstackState.getCurrentFunction())) {
+        if (target.isOnFunctionStack()
+            && target.getFunctionName().equals(pCallstackState.getCurrentFunction())) {
           return Collections.singleton(pPointerState);
         }
       }
