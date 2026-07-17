@@ -993,6 +993,7 @@ public final class ValueAnalysisState
       forbiddenQualifiedNames =
           ImmutableSet.of(pFunctionScope.getReturnVariable().orElseThrow().getQualifiedName());
     }
+    // TODO: switch to using the solution of #976 once it is implemented!
     ImmutableSet<String> forbiddenSubStrings = ImmutableSet.of("__CPAchecker_");
     ImmutableSet<String> qualifiedVariableNamesToExport =
         getSetOfWantedVariableNames(
