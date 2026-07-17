@@ -979,9 +979,7 @@ public final class ValueAnalysisState
       CFANode pLocation,
       AstCfaRelation pAstCfaRelation,
       boolean useOldKeywordForVariables)
-      throws InterruptedException,
-          ReportingMethodNotImplementedException,
-          TranslationToExpressionTreeFailedException {
+      throws TranslationToExpressionTreeFailedException {
 
     // Note: most of the time we don't export information in v2 witnesses at all locations,
     // but certain pointers like loop-heads. Hence, we return information for a bunch of variables.
