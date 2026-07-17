@@ -110,17 +110,22 @@ public abstract class LanguageToSmtConverter<T extends Type> {
         // since they may be used further up in the call-stack, and we may need to reset them
         // then.
         final SSAMapBuilder functionReturnSsaBuilder = newSsa.builder();
-        final SSAMap callerSsa;
         if (oldFormula.getSsaStack().size() == 1) {
           // This can happen if the analysis starts in the middle of a CFA, and the first edge
           // is a return edge.
+          //
           // In this case, we just use an empty SSA, which means that we do not have any
           // information about the caller function, which means we are overapproximating
           // the state of the caller function, but this is the best we can do in this case.
-          callerSsa = SSAMap.emptySSAMap();
-        } else {
-          callerSsa = oldFormula.getSsaStack().popAndCopy().peek();
+          //
+          // We reset to the caller SSA, but we do not pop anything, because we do not have the
+          // information about the caller function.
+          final PersistentStack<SSAMap> callerStack =
+              PersistentStack.<SSAMap>of().pushAndCopy(functionReturnSsaBuilder.build());
+          yield callerStack;
         }
+
+        final SSAMap callerSsa = oldFormula.getSsaStack().popAndCopy().peek();
 
         for (String var : callerSsa.allVariables()) {
           if (
@@ -160,20 +165,13 @@ public abstract class LanguageToSmtConverter<T extends Type> {
           }
         }
 
-        final PersistentStack<SSAMap> callerStack;
-        if (oldFormula.getSsaStack().size() == 1) {
-          // We reset to the caller SSA, but we do not pop anything, because we do not have the
-          // information about the caller function.
-          callerStack = PersistentStack.<SSAMap>of().pushAndCopy(functionReturnSsaBuilder.build());
-        } else {
-          // Now the current state of the caller is the new ssa
-          callerStack =
-              oldFormula
-                  .getSsaStack()
-                  .popAndCopy()
-                  .popAndCopy()
-                  .pushAndCopy(functionReturnSsaBuilder.build());
-        }
+        // Now the current state of the caller is the new ssa
+        final PersistentStack<SSAMap> callerStack =
+            oldFormula
+                .getSsaStack()
+                .popAndCopy()
+                .popAndCopy()
+                .pushAndCopy(functionReturnSsaBuilder.build());
 
         yield callerStack;
       }
