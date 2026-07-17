@@ -1224,7 +1224,9 @@ public class InvariantsState
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
-      final FunctionEntryNode pFunctionEntryNode, final CFANode pReferenceNode)
+      final FunctionEntryNode pFunctionEntryNode,
+      AstCfaRelation pAstCfaRelation,
+      final CFANode pReferenceNode)
       throws TranslationToExpressionTreeFailedException {
 
     Predicate<NumeralFormula<CompoundInterval>> isInvalidVarFormulaApproximation =

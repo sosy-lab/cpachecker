@@ -47,6 +47,7 @@ public interface ExpressionTreeReportingState extends AbstractState {
    * Returns an ExpressionTree over-approximating the state.
    *
    * @param pFunctionScope the function scope as a function entry node.
+   * @param pAstCfaRelation the relation between the AST and the CFA.
    * @param pLocation the formula should at least try to approximate variables referenced by
    *     entering edges
    * @throws InterruptedException if the computation is interrupted
@@ -54,7 +55,7 @@ public interface ExpressionTreeReportingState extends AbstractState {
    *     failed
    */
   ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
-      FunctionEntryNode pFunctionScope, CFANode pLocation)
+      FunctionEntryNode pFunctionScope, AstCfaRelation pAstCfaRelation, CFANode pLocation)
       throws InterruptedException, TranslationToExpressionTreeFailedException;
 
   /**

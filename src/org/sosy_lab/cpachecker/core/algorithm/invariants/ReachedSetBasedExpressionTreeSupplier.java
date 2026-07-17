@@ -76,7 +76,9 @@ public class ReachedSetBasedExpressionTreeSupplier implements ExpressionTreeSupp
         try {
           expressionTree =
               expressionTreeReportingState.getFormulaApproximationAllVariablesInFunctionScope(
-                  cfa.getFunctionHead(pLocation.getFunctionName()), pLocation);
+                  cfa.getFunctionHead(pLocation.getFunctionName()),
+                  cfa.getAstCfaRelation(),
+                  pLocation);
         } catch (TranslationToExpressionTreeFailedException e) {
           // Keep consistency with the previous implementation
           expressionTree = ExpressionTrees.getTrue();
@@ -109,7 +111,9 @@ public class ReachedSetBasedExpressionTreeSupplier implements ExpressionTreeSupp
           try {
             expressionTree =
                 state.getFormulaApproximationAllVariablesInFunctionScope(
-                    cfa.getFunctionHead(pLocation.getFunctionName()), pLocation);
+                    cfa.getFunctionHead(pLocation.getFunctionName()),
+                    cfa.getAstCfaRelation(),
+                    pLocation);
           } catch (TranslationToExpressionTreeFailedException e) {
             // Keep consistency with the previous implementation
             expressionTree = ExpressionTrees.getTrue();
