@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
@@ -421,7 +422,10 @@ public class SymbolicValueAnalysisRefiner
   }
 
   private CIdExpression getCorrespondingIdExpression(MemoryLocation pMemLoc, CType pType) {
-    boolean isGlobal = pMemLoc.isOnFunctionStack();
+    // If the memory location is actually referencing something, a simple IdExpr is not sufficient,
+    // and the extended qualified name would be wrong.
+    checkArgument(!pMemLoc.isReference());
+    boolean isGlobal = !pMemLoc.isOnFunctionStack();
     String varName = pMemLoc.getIdentifier();
     CSimpleDeclaration idDeclaration =
         new CVariableDeclaration(
@@ -431,7 +435,7 @@ public class SymbolicValueAnalysisRefiner
             pType,
             varName,
             varName,
-            varName,
+            pMemLoc.getExtendedQualifiedName(),
             null);
     CIdExpression idExpression =
         new CIdExpression(FileLocation.DUMMY, pType, varName, idDeclaration);
