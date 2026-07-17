@@ -207,8 +207,8 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
 
   /**
    * Returns the name of the variable without offset or function name. Do not use this method unless
-   * absolutely necessary and you know what you are doing! Use either {@link
-   * #getExtendedQualifiedName()} instead!
+   * absolutely necessary and you know what you are doing! For checking whether a variable is equal
+   * to a {@link MemoryLocation}, use {@link #equalsVariableDeclaredIn(ASimpleDeclaration)} instead.
    */
   public String getIdentifier() {
     return identifier;
