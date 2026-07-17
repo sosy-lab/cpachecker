@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import com.google.common.base.Verify;
-import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.PrintStream;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -35,7 +34,6 @@ public abstract class LanguageToSmtConverter<T extends Type> {
   private static final int VARIABLE_FIRST_ASSIGNMENT = 2;
 
   /** Produces a fresh new SSA index for an assignment and updates the SSA map. */
-  @CanIgnoreReturnValue
   protected int makeFreshIndex(String name, T type, SSAMapBuilder ssa) {
     int idx = getFreshIndex(name, type, ssa);
     ssa.setIndex(name, type, idx);
