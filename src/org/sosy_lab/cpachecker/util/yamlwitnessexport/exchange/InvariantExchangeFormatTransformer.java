@@ -185,9 +185,6 @@ public class InvariantExchangeFormatTransformer {
     while (matcher.find()) {
       String prevVariable = matcher.group(PREV_VARS_GROUP_INDEX);
       CSimpleDeclaration currDeclaration = scope.lookupVariable(prevVariable);
-      if (currDeclaration == null) {
-        continue;
-      }
       prevVariable = "__CPACHECKER_" + prevVariable + "__PREV";
 
       // We want to declare each PREV variable only once
@@ -195,8 +192,21 @@ public class InvariantExchangeFormatTransformer {
         continue;
       }
       alreadyDeclaredVariables.add(prevVariable);
-
-      CDeclaration prevDeclaration =
+      CDeclaration prevDeclaration;
+      CFANode locationNode =
+          cfa.getAstCfaRelation()
+              .getNodeForStatementLocation(
+                  pInvariantEntry.getLocation().getLine(),
+                  pInvariantEntry.getLocation().getColumn().orElseThrow())
+              .orElseThrow();
+      if (currDeclaration == null) {
+        currDeclaration =
+            (CVariableDeclaration)
+                cfa.getAstCfaRelation().getAstLocalVariablesInScopeByCfaNode(locationNode).stream()
+                    .findAny()
+                    .orElseThrow();
+      }
+      prevDeclaration =
           new CVariableDeclaration(
               cfa.getMainFunction().getFileLocation(),
               false,
@@ -205,7 +215,7 @@ public class InvariantExchangeFormatTransformer {
               prevVariable,
               prevVariable,
               // The scope is not relevant as these variables are not in the original program
-              "main::" + prevVariable,
+              locationNode.getFunctionName() + "::" + prevVariable,
               null);
       // TODO: Add also the original variable into the scope?
       cfa.getMainFunction().addOutOfScopeVariables(Collections.singleton(prevDeclaration));
