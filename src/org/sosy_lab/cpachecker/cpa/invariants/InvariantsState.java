@@ -1254,12 +1254,9 @@ public class InvariantsState
                         .orElseThrow()
                         .anyMatch(
                             variableDeclaration ->
-                                variableDeclaration
-                                    .getQualifiedName()
-                                    .equals(
-                                        ((Variable<?>) pFormula)
-                                            .getMemoryLocation()
-                                            .getQualifiedName())));
+                                ((Variable<?>) pFormula)
+                                    .getMemoryLocation()
+                                    .equalsVariableDeclaredIn(variableDeclaration)));
 
     return getFormulaApproximation(
         pFunctionScope,
@@ -1269,18 +1266,14 @@ public class InvariantsState
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
-      FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
-      throws InterruptedException,
-          ReportingMethodNotImplementedException,
-          TranslationToExpressionTreeFailedException {
+      FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable) {
     Predicate<NumeralFormula<CompoundInterval>> isInvalidVarFormulaApproximation =
         pFormula ->
             pFormula instanceof Variable
                 && (!isExportable(((Variable<?>) pFormula).getMemoryLocation(), pFunctionScope)
-                    || !pFunctionReturnVariable
-                        .getDeclaration()
-                        .getQualifiedName()
-                        .equals(((Variable<?>) pFormula).getMemoryLocation().getQualifiedName()));
+                    || !((Variable<?>) pFormula)
+                        .getMemoryLocation()
+                        .equalsVariableDeclaredIn(pFunctionReturnVariable.getDeclaration()));
 
     return getFormulaApproximation(
         pFunctionScope, isInvalidVarFormulaApproximation, Function.identity());
