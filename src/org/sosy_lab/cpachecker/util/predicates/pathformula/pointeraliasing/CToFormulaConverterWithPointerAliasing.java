@@ -1348,8 +1348,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     Preconditions.checkArgument(!(pType instanceof CFunctionType));
 
     final Formula address;
-    final PointerBase base =
-        new PointerBase(pVarName, pContextPTS.getCallStackDepth(null, pVarName));
+    final PointerBase base = new PointerBase(pVarName, pContextPTS.getCallStackDepth(pVarName));
 
     if (forcePointerDereference) {
       address = fmgr.makeVariable(getFormulaTypeFromType(CTypeUtils.getBaseType(pType)), pVarName);
@@ -1378,8 +1377,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     final Formula formula;
     final SSAMapBuilder ssa = pContextSSA.builder();
 
-    final PointerBase base =
-        new PointerBase(pVarName, pContextPTS.getCallStackDepth(null, pVarName));
+    final PointerBase base = new PointerBase(pVarName, pContextPTS.getCallStackDepth(pVarName));
     if (pContextPTS.isActualBase(base) || CTypeUtils.containsArrayOutsideFunctionParameter(pType)) {
 
       final Formula address = makeBaseAddress(base, pType);

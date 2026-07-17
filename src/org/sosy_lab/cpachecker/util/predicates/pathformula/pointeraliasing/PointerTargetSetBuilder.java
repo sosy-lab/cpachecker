@@ -80,7 +80,7 @@ public interface PointerTargetSetBuilder {
    */
   Integer getCallstackDepth(String pFunctionName);
 
-  OptionalInt getCallstackDepth(CFAEdge pEdge, String pVariableName);
+  OptionalInt getCallstackDepth(CFAEdge pEdge, String pQualifiedVariableName);
 
   OptionalInt getCallstackDepth(CSimpleDeclaration pDeclaration, CFAEdge pEdge);
 
@@ -835,8 +835,8 @@ public interface PointerTargetSetBuilder {
     }
 
     @Override
-    public OptionalInt getCallstackDepth(CFAEdge pEdge, String pVariableName) {
-      if (!pVariableName.contains("::")) {
+    public OptionalInt getCallstackDepth(CFAEdge pEdge, String pQualifiedVariableName) {
+      if (!pQualifiedVariableName.contains("::")) {
         return OptionalInt.empty();
       }
 
@@ -995,7 +995,7 @@ public interface PointerTargetSetBuilder {
     }
 
     @Override
-    public OptionalInt getCallstackDepth(CFAEdge pEdge, String pVariableName) {
+    public OptionalInt getCallstackDepth(CFAEdge pEdge, String pQualifiedVariableName) {
       throw new UnsupportedOperationException();
     }
 

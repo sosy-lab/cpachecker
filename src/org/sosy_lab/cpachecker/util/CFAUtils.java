@@ -13,6 +13,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.elementAndList;
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableCollection;
@@ -571,6 +572,21 @@ public class CFAUtils {
     // produces them.
     String prefix = checkNotNull(function) + "::";
     return Collections3.subSetWithPrefix(variables, prefix);
+  }
+
+  /**
+   * Returns from the function name of the function in which the variable is declared if it is
+   * inside one. Keep in sync with {@link #filterVariablesOfFunction(NavigableSet, String)}
+   *
+   * @param qualifiedName the qualified name of the variable
+   * @return the function name if the variable is declared inside one, otherwise an empty Optional
+   */
+  public static Optional<String> getFunctionName(String qualifiedName) {
+    if (qualifiedName.contains("::")) {
+      return Splitter.on("::").splitToList(qualifiedName).stream().findFirst();
+    }
+
+    return Optional.empty();
   }
 
   /**

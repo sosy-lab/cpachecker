@@ -23,12 +23,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.OptionalInt;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -218,12 +220,12 @@ public final class PointerTargetSet implements Serializable {
     return callStackDepth;
   }
 
-  public OptionalInt getCallStackDepth(String functionName, String variableName) {
-    if (variableName.contains("::")) {
+  public OptionalInt getCallStackDepth(String qualifiedVariableName) {
+    Optional<String> functionName = CFAUtils.getFunctionName(qualifiedVariableName);
+    if (functionName.isEmpty()) {
       return OptionalInt.empty();
     }
-
-    return OptionalInt.of(Objects.requireNonNull(callStackDepth.get(functionName)));
+    return OptionalInt.of(Objects.requireNonNull(callStackDepth.get(functionName.orElseThrow())));
   }
 
   /**

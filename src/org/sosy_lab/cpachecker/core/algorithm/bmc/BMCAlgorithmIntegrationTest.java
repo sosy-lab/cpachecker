@@ -31,7 +31,8 @@ public class BMCAlgorithmIntegrationTest {
 
   @Test(timeout = 3000)
   public void count_local() throws Exception {
-    IntegrationTestResult results = IntegrationTestRunner.run(getConfiguration(), getProgramPath("countup_local.c"));
+    IntegrationTestResult results =
+        IntegrationTestRunner.run(getConfiguration(), getProgramPath("countup_local.c"));
     results.assertIsSafe();
   }
 
@@ -67,7 +68,8 @@ public class BMCAlgorithmIntegrationTest {
   @Test(timeout = 3000)
   public void count_local_pointer_wrong() throws Exception {
     IntegrationTestResult results =
-        IntegrationTestRunner.run(getConfiguration(), getProgramPath("countup_local_pointer_wrong.c"));
+        IntegrationTestRunner.run(
+            getConfiguration(), getProgramPath("countup_local_pointer_wrong.c"));
     results.assertIsUnsafe();
   }
 
@@ -82,40 +84,46 @@ public class BMCAlgorithmIntegrationTest {
   @Test(timeout = 3000)
   public void count_local_pointer_correct() throws Exception {
     IntegrationTestResult results =
-        IntegrationTestRunner.run(getConfiguration(), getProgramPath("countup_local_pointer_correct.c"));
+        IntegrationTestRunner.run(
+            getConfiguration(), getProgramPath("countup_local_pointer_correct.c"));
     results.assertIsSafe();
   }
 
   @Test(timeout = 3000)
   public void fib_correct() throws Exception {
-    IntegrationTestResult results = IntegrationTestRunner.run(getConfiguration(), getProgramPath("fib-correct.c"));
+    IntegrationTestResult results =
+        IntegrationTestRunner.run(getConfiguration(), getProgramPath("fib-correct.c"));
     results.assertIsSafe();
   }
 
   @Test(timeout = 3000)
   public void fib_wrong() throws Exception {
-    IntegrationTestResult results = IntegrationTestRunner.run(getConfiguration(), getProgramPath("fib-wrong.c"));
+    IntegrationTestResult results =
+        IntegrationTestRunner.run(getConfiguration(), getProgramPath("fib-wrong.c"));
     results.assertIsUnsafe();
   }
 
   @Test(timeout = 3000)
   public void mutually_recursive_wrong1() throws Exception {
     IntegrationTestResult results =
-        IntegrationTestRunner.run(getConfiguration(), getProgramPath("mutually-recursive-wrong1.c"));
+        IntegrationTestRunner.run(
+            getConfiguration(), getProgramPath("mutually-recursive-wrong1.c"));
     results.assertIsUnsafe();
   }
 
   @Test(timeout = 3000)
   public void mutually_recursive_wrong2() throws Exception {
     IntegrationTestResult results =
-        IntegrationTestRunner.run(getConfiguration(), getProgramPath("mutually-recursive-wrong2.c"));
+        IntegrationTestRunner.run(
+            getConfiguration(), getProgramPath("mutually-recursive-wrong2.c"));
     results.assertIsUnsafe();
   }
 
   @Test(timeout = 3000)
   public void mutually_recursive_correct() throws Exception {
     IntegrationTestResult results =
-        IntegrationTestRunner.run(getConfiguration(), getProgramPath("mutually-recursive-correct.c"));
+        IntegrationTestRunner.run(
+            getConfiguration(), getProgramPath("mutually-recursive-correct.c"));
     results.assertIsSafe();
   }
 }

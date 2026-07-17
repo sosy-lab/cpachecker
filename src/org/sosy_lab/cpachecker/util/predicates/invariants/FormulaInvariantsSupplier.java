@@ -114,7 +114,8 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
       // We need to check whether this is such a case and if yes, replace it.
       PointerTargetSet pointerTargetSet = context.getPointerTargetSet();
       PointerBase base =
-          new PointerBase(varName, pointerTargetSet.getCallStackDepth(varName, functionName));
+          new PointerBase(
+              varName, pointerTargetSet.getCallStackDepth(functionName + "::" + varName));
       if (pointerTargetSet.isActualBase(base)) {
         return pfgmr.makeFormulaForUninstantiatedVariable(
             varName, pointerTargetSet.getBases().get(base), pointerTargetSet, false, functionName);
