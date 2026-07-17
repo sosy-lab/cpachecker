@@ -9,11 +9,13 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import com.google.common.base.Verify;
+import com.google.common.collect.ImmutableSortedSet;
 import java.io.PrintStream;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
@@ -125,7 +127,9 @@ public abstract class LanguageToSmtConverter<T extends Type> {
           // Only reset the variables of the caller function, which we can identify
           // by the variable name starting with the function name of the caller function (which
           // is the successor function of the return edge).
-          var.startsWith(pEdge.getSuccessor().getFunctionName() + "::")
+          CFAUtils.filterVariablesOfFunction(
+                      ImmutableSortedSet.of(var), pEdge.getSuccessor().getFunctionName())
+                  .contains(var)
               // In case a variable is being written by the return value, i.e., the
               // return has the form `a = f();`, then we dont't need to update the
               // local variable `a`. This can be read seen by comparing the SSAMap
