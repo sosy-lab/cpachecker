@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerBase;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
@@ -144,7 +145,15 @@ public abstract class LanguageToSmtConverter<T extends Type> {
               && newSsa.getIndex(var) == oldFormula.getTopmostStackSsa().getIndex(var)
               // If we are not in a recursive call, then we do not need to reset the index, we know
               // this since if the same variable has not been written we are not in a recursive call
-              && newSsa.getIndex(var) != callerSsa.getIndex(var)) {
+              && newSsa.getIndex(var) != callerSsa.getIndex(var)
+              // The reset is only sound for the plain SSA copy of a variable. A variable whose
+              // address has been taken lives in the memory encoding instead, where the callee may
+              // legitimately have changed it through a pointer into the caller's frame, so its
+              // memory contents must not be equated across the call. Its base is registered with
+              // the call stack depth of the caller's frame, which newPts holds again after leaving
+              // the callee. (Reaching this point implies a recursive call, so the caller function
+              // is still on the call stack of newPts.)
+              && !newPts.isActualBase(new PointerBase(var, newPts.getCallStackDepth(var)))) {
 
             // The SSAMap is not polymorphic so it does not know that it should only contain a T.
             @SuppressWarnings("unchecked")
@@ -156,10 +165,11 @@ public abstract class LanguageToSmtConverter<T extends Type> {
 
             makeFreshIndex(var, varType, functionReturnSsaBuilder);
             // Now make it such that the new variable is equal to the old one
+            // Both sides use newPts: the variable belongs to the caller, so both formulas must be
+            // built with the caller's view of the pointer target set.
             pConstraints.addConstraint(
                 fmgr.makeEqual(
-                    makeFormulaForVariable(
-                        callerSsa, oldFormula.getPointerTargetSet(), var, varType),
+                    makeFormulaForVariable(callerSsa, newPts, var, varType),
                     makeFormulaForVariable(
                         functionReturnSsaBuilder.build(), newPts, var, varType)));
           }
