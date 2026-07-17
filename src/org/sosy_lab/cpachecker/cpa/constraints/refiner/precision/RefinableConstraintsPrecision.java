@@ -226,7 +226,7 @@ public class RefinableConstraintsPrecision implements ConstraintsPrecision {
             pTrackedLocationVariables.put(location, memoryLocation.getExtendedQualifiedName());
           }
         } else if (scopeSelector.equals("*")) { // * represents global scope
-          pTrackedGlobalVariables.add(memoryLocation.getQualifiedName());
+          pTrackedGlobalVariables.add(memoryLocation.getExtendedQualifiedName());
         } else { // in function scope
           pTrackedFunctionsVariables.put(scopeSelector, memoryLocation.getExtendedQualifiedName());
         }
