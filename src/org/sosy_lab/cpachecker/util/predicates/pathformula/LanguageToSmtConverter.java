@@ -119,8 +119,8 @@ public abstract class LanguageToSmtConverter<T extends Type> {
           // information about the caller function, which means we are overapproximating
           // the state of the caller function, but this is the best we can do in this case.
           //
-          // We reset to the caller SSA, but we do not pop anything, because we do not have the
-          // information about the caller function.
+          // We generate a new SSAMap for the caller, but we do not pop anything, because we do not
+          // have the information about the caller function.
           final PersistentStack<SSAMap> callerStack =
               PersistentStack.<SSAMap>of().pushAndCopy(functionReturnSsaBuilder.build());
           yield callerStack;
