@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.arrayabstraction;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
@@ -90,12 +91,16 @@ class VariableGenerator {
     checkNotNull(pType);
     checkNotNull(pMemoryLocation);
 
+    // If MemoryLocation is a reference, getExtendedQualifiedName() returns a wrong/invalid name
+    // below!
+    checkArgument(!pMemoryLocation.isReference());
+
     String variableName = pMemoryLocation.getIdentifier();
 
     CVariableDeclaration variableDeclaration =
         new CVariableDeclaration(
             FileLocation.DUMMY,
-            false,
+            !pMemoryLocation.isOnFunctionStack(),
             CStorageClass.AUTO,
             pType,
             variableName,
