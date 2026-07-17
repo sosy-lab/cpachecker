@@ -110,7 +110,6 @@ public abstract class LanguageToSmtConverter<T extends Type> {
         // Note that we need to keep track of all local variables which were not reset
         // since they may be used further up in the call-stack, and we may need to reset them
         // then.
-        final SSAMapBuilder functionReturnSsaBuilder = newSsa.builder();
         if (oldFormula.getSsaStack().size() == 1) {
           // This can happen if the analysis starts in the middle of a CFA, and the first edge
           // is a return edge.
@@ -122,10 +121,10 @@ public abstract class LanguageToSmtConverter<T extends Type> {
           // We generate a new SSAMap for the caller, but we do not pop anything, because we do not
           // have the information about the caller function.
           final PersistentStack<SSAMap> callerStack =
-              PersistentStack.<SSAMap>of().pushAndCopy(functionReturnSsaBuilder.build());
+              PersistentStack.<SSAMap>of().pushAndCopy(SSAMap.emptySSAMap());
           yield callerStack;
         }
-
+        final SSAMapBuilder functionReturnSsaBuilder = newSsa.builder();
         final SSAMap callerSsa = oldFormula.getSsaStack().popAndCopy().peek();
 
         for (String var : callerSsa.allVariables()) {
