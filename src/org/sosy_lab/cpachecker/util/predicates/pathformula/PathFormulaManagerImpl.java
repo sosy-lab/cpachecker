@@ -472,7 +472,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       PathFormula pContext, String pVarName, CType pType, String pFunctionName) {
     // TODO: This needs to be properly cleaned up to be polymorphic. The problem
     //    is that the type is only known at runtime
-    // TODO: Think if we should delete this method since it is unused
+    // This method should be kept even if unused to keep it available to not confuse it with
+    // `makeFormulaForUninstantiatedVariable`.
+    //
+    // See also:
+    // https://gitlab.com/sosy-lab/software/cpachecker/-/merge_requests/497#note_3446584649
     return ((LanguageToSmtConverter<CType>) converter)
         .makeFormulaForVariable(
             pContext.getTopmostStackSsa(), pContext.getPointerTargetSet(), pVarName, pType);
