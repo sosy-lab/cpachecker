@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.value;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -892,7 +892,6 @@ public final class ValueAnalysisState
         Type type = entryValueAndType.getType();
 
         if (!memoryLocation.isReference()
-            && memoryLocation.isOnFunctionStack(functionName)
             && type instanceof CType cType
             && CTypes.isArithmeticType((CType) type)) {
 
@@ -913,21 +912,30 @@ public final class ValueAnalysisState
 
             // We rename the identifier, i.e. the "name", without the qualification part
             String newVariableName = variableRenamingFunction.apply(memoryLocation.getIdentifier());
-            // The new qualified name construction below is wrong for global variables
-            checkArgument(memoryLocation.isOnFunctionStack());
-            String newQualifiedVariableName =
-                memoryLocation.getFunctionName() + "::" + newVariableName;
+
+            // Re-add the function name if needed
+            MemoryLocation memoryLocWithNewName;
+            if (memoryLocation.isOnFunctionStack()) {
+              // 'functionName' is derived from the FunctionEntryNode and needs to match!
+              checkState(functionName.equals(memoryLocation.getFunctionName()));
+              memoryLocWithNewName = MemoryLocation.forLocalVariable(functionName, newVariableName);
+            } else {
+              // Global variable
+              memoryLocWithNewName = MemoryLocation.forIdentifier(newVariableName);
+            }
+
             CVariableDeclaration decl =
                 new CVariableDeclaration(
                     loc,
-                    false,
+                    !memoryLocation.isOnFunctionStack(),
                     CStorageClass.AUTO,
                     cType,
                     newVariableName,
                     newVariableName,
-                    newQualifiedVariableName,
+                    memoryLocWithNewName.getQualifiedName(),
                     null);
             CExpression var = new CIdExpression(loc, decl);
+
             Optional<CBinaryExpression> constraint =
                 buildAssignmentFrom(var, cType, numericValueOfEntry);
             if (constraint.isPresent()) {
