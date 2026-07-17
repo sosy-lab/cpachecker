@@ -35,7 +35,6 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -873,7 +872,7 @@ public final class ValueAnalysisState
   private ExpressionTree<Object> buildVariableAssignmentsFor(
       FunctionEntryNode pFunctionScope,
       CFANode pLocation,
-      Function<String, Boolean> qualifiedVariableNameInScope,
+      ImmutableSet<String> qualifiedVariableNamesInScope,
       Function<String, String> variableRenamingFunction)
       throws TranslationToExpressionTreeFailedException {
     if (machineModel == null) {
@@ -883,7 +882,9 @@ public final class ValueAnalysisState
     List<ExpressionTree<Object>> result = new ArrayList<>();
     String functionName = pFunctionScope.getFunctionName();
 
-    // TODO: make the constantMap a Stack Frame and only export the current frame
+    // TODO: make the constantMap a Stack Frame and only export the current frame.
+    // Note: we can not calculate whether its cheaper to traverse the entire map or use get(), since
+    // getting the size of the map traverses the entire map anyways.
     for (Entry<MemoryLocation, ValueAndType> entry : constantsMap.entrySet()) {
       ValueAndType entryValueAndType = entry.getValue();
       Value valueOfEntry = entryValueAndType.getValue();
@@ -904,7 +905,7 @@ public final class ValueAnalysisState
             cType = ((CElaboratedType) cType).getRealType();
           }
 
-          if (qualifiedVariableNameInScope.apply(memoryLocation.getQualifiedName())) {
+          if (qualifiedVariableNamesInScope.contains(memoryLocation.getQualifiedName())) {
             FileLocation loc =
                 pLocation.getNumEnteringEdges() > 0
                     ? pLocation.getEnteringEdge(0).getFileLocation()
@@ -950,7 +951,7 @@ public final class ValueAnalysisState
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
-      FunctionEntryNode pFunctionScope, CFANode pLocation)
+      FunctionEntryNode pFunctionScope, AstCfaRelation pAstCfaRelation, CFANode pLocation)
       throws TranslationToExpressionTreeFailedException {
 
     // Note: most of the time we don't export information in v2 witnesses at all locations,
@@ -958,18 +959,18 @@ public final class ValueAnalysisState
 
     // This returns all assignments for variables in the current function-scope (including
     // parameters and CPAchecker internal variables), excluding return variables
-    if (pFunctionScope.getReturnVariable().isEmpty()) {
-      String forbiddenQualifiedName =
-          pFunctionScope.getReturnVariable().orElseThrow().getQualifiedName();
-      buildVariableAssignmentsFor(
-          pFunctionScope,
-          pLocation,
-          qualifiedVarName -> !qualifiedVarName.equals(forbiddenQualifiedName),
-          Function.identity());
+
+    ImmutableSet<String> forbiddenQualifiedNames = ImmutableSet.of();
+    if (pFunctionScope.getReturnVariable().isPresent()) {
+      forbiddenQualifiedNames =
+          ImmutableSet.of(pFunctionScope.getReturnVariable().orElseThrow().getQualifiedName());
     }
+    ImmutableSet<String> qualifiedVariableNamesToExport =
+        getSetOfWantedVariableNames(
+            pAstCfaRelation, pLocation, forbiddenQualifiedNames, ImmutableSet.of());
 
     return buildVariableAssignmentsFor(
-        pFunctionScope, pLocation, qualifiedVarName -> true, Function.identity());
+        pFunctionScope, pLocation, qualifiedVariableNamesToExport, Function.identity());
   }
 
   @Override
@@ -987,28 +988,57 @@ public final class ValueAnalysisState
 
     // This returns all assignments for variables in the current function-scope (including
     // parameters), excluding return variables and CPAchecker internal variables
-    FluentIterable<AbstractSimpleDeclaration> variablesToExportIter =
-        pAstCfaRelation.getVariablesAndParametersInScope(pLocation).orElse(FluentIterable.of());
-    variablesToExportIter =
-        variablesToExportIter.filter(v -> !v.getQualifiedName().contains("__CPAchecker_"));
-    if (!pFunctionScope.getReturnVariable().isEmpty()) {
-      variablesToExportIter =
-          variablesToExportIter.filter(
-              v ->
-                  !pFunctionScope
-                      .getReturnVariable()
-                      .orElseThrow()
-                      .getQualifiedName()
-                      .equals(v.getQualifiedName()));
+    ImmutableSet<String> forbiddenQualifiedNames = ImmutableSet.of();
+    if (pFunctionScope.getReturnVariable().isPresent()) {
+      forbiddenQualifiedNames =
+          ImmutableSet.of(pFunctionScope.getReturnVariable().orElseThrow().getQualifiedName());
     }
-    ImmutableSet<String> variablesToExport =
-        variablesToExportIter.transform(decl -> decl.getQualifiedName()).toSet();
+    ImmutableSet<String> forbiddenSubStrings = ImmutableSet.of("__CPAchecker_");
+    ImmutableSet<String> qualifiedVariableNamesToExport =
+        getSetOfWantedVariableNames(
+            pAstCfaRelation, pLocation, forbiddenQualifiedNames, forbiddenSubStrings);
 
     return buildVariableAssignmentsFor(
         pFunctionScope,
         pLocation,
-        qualifiedVarName -> !variablesToExport.contains(qualifiedVarName),
+        qualifiedVariableNamesToExport,
         varName -> useOldKeywordForVariables ? "\\old(" + varName + ")" : varName);
+  }
+
+  /**
+   * Retrieves all variables (in the CFA) that are in the scope of the location node given. This
+   * includes global variables, as well as local variables, including parameters and CPAchecker
+   * internal ones. The set of variables is then filtered by the 2 sets defined as forbidden,
+   * removing them from the final set of variables.
+   *
+   * @param pAstCfaRelation used to retrieve the variables (global, local, current function
+   *     parameters etc.).
+   * @param pLocation the current location node that defines the actual scope.
+   * @param forbiddenQualifiedNames names that are forbidden to be part of the final set. This is
+   *     checked using {@link String#equals}.
+   * @param disallowedSubStrings sub-Strings that are forbidden from being part of any variable
+   *     name. Any variable with a matching sub-string is removed from the final set.
+   */
+  public static ImmutableSet<String> getSetOfWantedVariableNames(
+      AstCfaRelation pAstCfaRelation,
+      CFANode pLocation,
+      Set<String> forbiddenQualifiedNames,
+      Set<String> disallowedSubStrings) {
+    FluentIterable<String> variablesToExportIter =
+        pAstCfaRelation
+            .getVariablesAndParametersInScope(pLocation)
+            .orElseThrow()
+            .transform(decl -> decl.getQualifiedName());
+
+    for (String forbiddenQualifiedName : forbiddenQualifiedNames) {
+      variablesToExportIter = variablesToExportIter.filter(v -> !v.equals(forbiddenQualifiedName));
+    }
+
+    for (String disallowedSubString : disallowedSubStrings) {
+      variablesToExportIter = variablesToExportIter.filter(v -> !v.contains(disallowedSubString));
+    }
+
+    return variablesToExportIter.toSet();
   }
 
   @Override
