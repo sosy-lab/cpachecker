@@ -334,11 +334,7 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
 
   @Override
   public Formula makeFormulaForVariable(
-      SSAMap pSsa,
-      PointerTargetSet pPointerTargetSet,
-      String pVarName,
-      SvLibType pType,
-      String pFunctionName) {
+      SSAMap pSsa, PointerTargetSet pPointerTargetSet, String pVarName, SvLibType pType) {
     throw new RuntimeException("Not implemented yet");
   }
 
@@ -347,8 +343,7 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
       String pVarName,
       SvLibType pType,
       PointerTargetSet pContextPTS,
-      boolean pForcePointerDereference,
-      String pFunctionName) {
+      boolean pForcePointerDereference) {
     throw new RuntimeException("Not implemented yet");
   }
 

@@ -483,11 +483,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
    */
   @Override
   public Formula makeFormulaForUninstantiatedVariable(
-      String pVarName,
-      CType pType,
-      PointerTargetSet pContextPTS,
-      boolean forcePointerDereference,
-      String pFunctionName) {
+      String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference) {
     // Need to call fmgr.makeVariable directly instead of makeConstant,
     // because otherwise the variable gets marked as "never needs an SSA index"
     return fmgr.makeVariable(getFormulaTypeFromType(pType), pVarName);
@@ -506,11 +502,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
    */
   @Override
   public Formula makeFormulaForVariable(
-      SSAMap pContextSSA,
-      PointerTargetSet pContextPTS,
-      String pVarName,
-      CType pType,
-      String pFunctionName) {
+      SSAMap pContextSSA, PointerTargetSet pContextPTS, String pVarName, CType pType) {
     SSAMapBuilder ssa = pContextSSA.builder();
     Formula formula = makeVariable(pVarName, pType, ssa);
 

@@ -150,17 +150,9 @@ public abstract class LanguageToSmtConverter<T extends Type> {
             pConstraints.addConstraint(
                 fmgr.makeEqual(
                     makeFormulaForVariable(
-                        callerSsa,
-                        oldFormula.getPointerTargetSet(),
-                        var,
-                        varType,
-                        pEdge.getPredecessor().getFunctionName()),
+                        callerSsa, oldFormula.getPointerTargetSet(), var, varType),
                     makeFormulaForVariable(
-                        functionReturnSsaBuilder.build(),
-                        newPts,
-                        var,
-                        varType,
-                        pEdge.getPredecessor().getFunctionName())));
+                        functionReturnSsaBuilder.build(), newPts, var, varType)));
           }
         }
 
@@ -200,18 +192,10 @@ public abstract class LanguageToSmtConverter<T extends Type> {
       throws InterruptedException;
 
   public abstract Formula makeFormulaForVariable(
-      SSAMap pSsa,
-      PointerTargetSet pPointerTargetSet,
-      String pVarName,
-      T pType,
-      String pFunctionName);
+      SSAMap pSsa, PointerTargetSet pPointerTargetSet, String pVarName, T pType);
 
   public abstract Formula makeFormulaForUninstantiatedVariable(
-      String pVarName,
-      T pType,
-      PointerTargetSet pContextPTS,
-      boolean pForcePointerDereference,
-      String pFunctionName);
+      String pVarName, T pType, PointerTargetSet pContextPTS, boolean pForcePointerDereference);
 
   public abstract Formula buildTermFromPathFormula(
       PathFormula pFormula, CIdExpression pExpr, CFAEdge pEdge) throws UnrecognizedCodeException;

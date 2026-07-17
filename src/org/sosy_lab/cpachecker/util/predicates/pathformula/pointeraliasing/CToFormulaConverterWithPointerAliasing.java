@@ -1344,11 +1344,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   /** {@inheritDoc} */
   @Override
   public Formula makeFormulaForUninstantiatedVariable(
-      String pVarName,
-      CType pType,
-      PointerTargetSet pContextPTS,
-      boolean forcePointerDereference,
-      String pFunctionName) {
+      String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference) {
     Preconditions.checkArgument(!(pType instanceof CFunctionType));
 
     final Formula address;
@@ -1364,7 +1360,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     } else {
       return super.makeFormulaForUninstantiatedVariable(
-          pVarName, pType, pContextPTS, forcePointerDereference, pFunctionName);
+          pVarName, pType, pContextPTS, forcePointerDereference);
     }
 
     checkIsSimplified(pType);
@@ -1377,11 +1373,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   /** {@inheritDoc} */
   @Override
   public Formula makeFormulaForVariable(
-      SSAMap pContextSSA,
-      PointerTargetSet pContextPTS,
-      String pVarName,
-      CType pType,
-      String pFunctionName) {
+      SSAMap pContextSSA, PointerTargetSet pContextPTS, String pVarName, CType pType) {
     Preconditions.checkArgument(!(pType instanceof CFunctionType));
     final Formula formula;
     final SSAMapBuilder ssa = pContextSSA.builder();

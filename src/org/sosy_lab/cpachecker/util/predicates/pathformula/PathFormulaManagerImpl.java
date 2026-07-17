@@ -475,11 +475,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     // TODO: Think if we should delete this method since it is unused
     return ((LanguageToSmtConverter<CType>) converter)
         .makeFormulaForVariable(
-            pContext.getTopmostStackSsa(),
-            pContext.getPointerTargetSet(),
-            pVarName,
-            pType,
-            pFunctionName);
+            pContext.getTopmostStackSsa(), pContext.getPointerTargetSet(), pVarName, pType);
   }
 
   /** {@inheritDoc} */
@@ -497,7 +493,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     //  provide two methods which delegate to the converter depending on the type
     return ((LanguageToSmtConverter<CType>) converter)
         .makeFormulaForUninstantiatedVariable(
-            pVarName, pType, pContextPTS, forcePointerDereference, pFunctionName);
+            pVarName, pType, pContextPTS, forcePointerDereference);
   }
 
   /**
