@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableSortedSet;
 import java.io.PrintStream;
+import java.util.NavigableSet;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -107,44 +108,55 @@ public abstract class LanguageToSmtConverter<T extends Type> {
         // indices of "x", then we would have the SSA index of "x" from the f_new call,
         // and not the ones for f_old.
         //
-        // Note that we need to keep track of all local variables which were not reset
-        // since they may be used further up in the call-stack, and we may need to reset them
-        // then.
-        if (oldFormula.getSsaStack().size() == 1) {
-          // This can happen if the analysis starts in the middle of a CFA, and the first edge
-          // is a return edge.
-          //
-          // In this case, we just use an empty SSA, which means that we do not have any
-          // information about the caller function, which means we are overapproximating
-          // the state of the caller function, but this is the best we can do in this case.
-          //
-          // We generate a new SSAMap for the caller, but we do not pop anything, because we do not
-          // have the information about the caller function.
-          final PersistentStack<SSAMap> callerStack =
-              PersistentStack.<SSAMap>of().pushAndCopy(SSAMap.emptySSAMap());
-          yield callerStack;
-        }
+        // All other variables (globals and locals of other functions) keep the indices they got
+        // during the callee's execution. In particular the local variables of functions further
+        // up in the call stack are not touched here, since they may need to be reset when
+        // returning from their frames later on.
         final SSAMapBuilder functionReturnSsaBuilder = newSsa.builder();
-        final SSAMap callerSsa = oldFormula.getSsaStack().popAndCopy().peek();
 
-        for (String var : callerSsa.allVariables()) {
-          if (
-          // Only reset the variables of the caller function, which we can identify
-          // by the variable name starting with the function name of the caller function (which
-          // is the successor function of the return edge).
-          CFAUtils.filterVariablesOfFunction(
-                      ImmutableSortedSet.of(var), pEdge.getSuccessor().getFunctionName())
-                  .contains(var)
-              // In case a variable is being written by the return value, i.e., the
-              // return has the form `a = f();`, then we dont't need to update the
-              // local variable `a`. This can be read seen by comparing the SSAMap
-              // of the old pathformula with the current SSAMap, and if this variable
-              // was updated between them, then we don't need to reset it to its
-              // caller value
-              && newSsa.getIndex(var) == oldFormula.getTopmostStackSsa().getIndex(var)
-              // If we are not in a recursive call, then we do not need to reset the index, we know
-              // this since if the same variable has not been written we are not in a recursive call
-              && newSsa.getIndex(var) != callerSsa.getIndex(var)
+        // If the analysis starts in the middle of a CFA, the first edge can be a return edge
+        // while the stack does not contain a frame for the caller. In this case we do not know
+        // the values the caller's variables had before the call, so instead of resetting them we
+        // give them fresh unconstrained indices, which overapproximates the state of the caller
+        // function. The same applies to variables the caller has no entry for because they were
+        // only created inside the (recursive) callee.
+        final boolean hasCallerFrame = oldFormula.getSsaStack().size() > 1;
+        final SSAMap callerSsa =
+            hasCallerFrame ? oldFormula.getSsaStack().popAndCopy().peek() : SSAMap.emptySSAMap();
+
+        final NavigableSet<String> knownVariables =
+            ImmutableSortedSet.<String>naturalOrder()
+                .addAll(callerSsa.allVariables())
+                .addAll(newSsa.allVariables())
+                .build();
+
+        // Only the variables of the caller function are reset or havocked, which we can identify
+        // by the variable name starting with the function name of the caller function (which
+        // is the successor function of the return edge).
+        for (String var :
+            CFAUtils.filterVariablesOfFunction(
+                knownVariables, pEdge.getSuccessor().getFunctionName())) {
+          if (newSsa.getIndex(var) != oldFormula.getTopmostStackSsa().getIndex(var)) {
+            // The variable was written while handling the return, i.e., it was assigned the
+            // return value in a statement like `a = f();`. Then it already holds the correct
+            // value for the caller and must not be reset.
+            continue;
+          }
+
+          if (!callerSsa.containsVariable(var)) {
+            // The caller has no information about this variable, so we cannot reset it to its
+            // value from before the call. Instead we give it a fresh index without adding any
+            // constraint, so a later use in the caller reads an unconstrained value. We must not
+            // delete the variable instead: that would restart its index counter, and a later
+            // assignment could then reuse indices that already occur in the formulas of the
+            // frames we returned from, wrongly equating unrelated values.
+            @SuppressWarnings("unchecked")
+            T varType = (T) newSsa.getType(var);
+            makeFreshIndex(var, varType, functionReturnSsaBuilder);
+          } else if (
+          // If we are not in a recursive call, then we do not need to reset the index, we know
+          // this since if the same variable has not been written we are not in a recursive call
+          newSsa.getIndex(var) != callerSsa.getIndex(var)
               // The reset is only sound for the plain SSA copy of a variable. A variable whose
               // address has been taken lives in the memory encoding instead, where the callee may
               // legitimately have changed it through a pointer into the caller's frame, so its
@@ -174,15 +186,30 @@ public abstract class LanguageToSmtConverter<T extends Type> {
           }
         }
 
-        // Now the current state of the caller is the new ssa
-        final PersistentStack<SSAMap> callerStack =
-            oldFormula
-                .getSsaStack()
-                .popAndCopy()
-                .popAndCopy()
-                .pushAndCopy(functionReturnSsaBuilder.build());
+        // It is not necessary to update the variables of the callee, since if the program is a
+        // valid C program does need to be written before being read, since reading from an
+        // unitialized variable is undefined behavior.
+        // However, we still do this to be safer against bugs.
+        if (!pEdge
+            .getPredecessor()
+            .getFunctionName()
+            .equals(pEdge.getSuccessor().getFunctionName())) {
+          for (String var :
+              CFAUtils.filterVariablesOfFunction(
+                  knownVariables, pEdge.getPredecessor().getFunctionName())) {
+            @SuppressWarnings("unchecked")
+            T varType = (T) newSsa.getType(var);
+            makeFreshIndex(var, varType, functionReturnSsaBuilder);
+          }
+        }
 
-        yield callerStack;
+        // Now the current state of the caller is the rebuilt SSA map. Pop the callee frame and
+        // the stale caller frame (if present) and replace them with it.
+        final PersistentStack<SSAMap> remainingStack =
+            hasCallerFrame
+                ? oldFormula.getSsaStack().popAndCopy().popAndCopy()
+                : PersistentStack.of();
+        yield remainingStack.pushAndCopy(functionReturnSsaBuilder.build());
       }
       default -> oldFormula.getSsaStack().popAndCopy().pushAndCopy(newSsa);
     };
