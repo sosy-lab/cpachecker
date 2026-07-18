@@ -416,84 +416,88 @@ class AssignmentHandler {
     }
     final SliceExpression rhs = assignment.rhs.orElseThrow();
 
-    // Since we are on the right hand of an assignment, we need to check if we are
-    // entering/returning
-    // from a function and adapt accordingly. We know that the pointer target set already correctly
-    // entered/exited the function, so we only need to exit to get the correct left hand side call
-    // stack if we entered the function
-    if (edge instanceof CFunctionCallEdge pCallEdge) {
-      pts.leaveFunction(pCallEdge.getSuccessor().getFunctionName());
-    } else if (edge instanceof CFunctionReturnEdge pReturnEdge) {
-      pts.enterFunction(pReturnEdge.getPredecessor().getFunctionName());
-    }
-
-    // Correctly identify the function for the RHS of the assignment
-    String rhsFunction;
-    if (edge instanceof CFunctionCallEdge || edge instanceof CFunctionReturnEdge) {
-      rhsFunction = edge.getPredecessor().getFunctionName();
-    } else {
-      rhsFunction = function;
-    }
-
-    // resolve RHS base using visitor
-    final CRightHandSide rhsBase = rhs.base();
-    final CExpressionVisitorWithPointerAliasing rhsBaseVisitor =
-        new CExpressionVisitorWithPointerAliasing(
-            conv, edge, rhsFunction, ssa, constraints, errorConditions, pts, regionMgr);
-    final ResolvedSlice resolvedRhsBase = resolveBase(rhsBase, rhsBaseVisitor);
-
-    // add initialized and used fields of RHS to pointer-target set as essential
-    // this is only needed for UF heap
-    pts.addEssentialFields(rhsBaseVisitor.getInitializedFields());
-    pts.addEssentialFields(rhsBaseVisitor.getUsedFields());
-
-    // prepare to add addressed fields of RHS to pointer-target set after assignment
-    // this is only needed for UF heap
-    rhsAddressedFields.addAll(rhsBaseVisitor.getAddressedFields());
-
-    // add RHS to resolution map
-    rhsBaseResolutionMap.put(rhsBase, resolvedRhsBase);
-
-    // Now reset the pointer target set if we entered a function, so the visitor for RHS will have
-    // the correct pointer target set for the current function; we have to do it after resolving LHS
-    // base, otherwise, we would not have the correct resolution for LHS base
-    if (edge instanceof CFunctionCallEdge pCallEdge) {
-      pts.enterFunction(pCallEdge.getSuccessor().getFunctionName());
-    } else if (edge instanceof CFunctionReturnEdge pReturnEdge) {
-      pts.leaveFunction(pReturnEdge.getPredecessor().getFunctionName());
-    }
-
-    // apply the deferred memory handler: if there is a malloc with void* type, the allocation
-    // can be deferred until the assignment that uses the value; the allocation type can then be
-    // inferred from assignment lhs type
-    if (conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) {
-
-      // the deferred memory handler does not care about actual subscript values, so we can use
-      // dummy resolved expressions; it is necessary that there are no modifiers after
-      // CFunctionCallExpression base in assignments
-      final CRightHandSide lhsDummy = assignment.lhs.getDummyResolvedExpression();
-      final CRightHandSide rhsDummy = rhs.getDummyResolvedExpression();
-      CType lhsType = typeHandler.getSimplifiedType(lhsDummy);
-
-      if (assignmentOptions.forcePointerAssignmentOrArrayAttachment()) {
-        // lhsType may be an array, but we have to interpret it as a pointer instead
-        lhsType = CTypes.adjustFunctionOrArrayType(lhsType);
+    try {
+      // Since we are on the right hand of an assignment, we need to check if we are
+      // entering/returning
+      // from a function and adapt accordingly. We know that the pointer target set already
+      // correctly
+      // entered/exited the function, so we only need to exit to get the correct left hand side call
+      // stack if we entered the function
+      if (edge instanceof CFunctionCallEdge pCallEdge) {
+        pts.leaveFunction(pCallEdge.getSuccessor().getFunctionName());
+      } else if (edge instanceof CFunctionReturnEdge pReturnEdge) {
+        pts.enterFunction(pReturnEdge.getPredecessor().getFunctionName());
       }
 
-      // we have everything we need, call memory handler
-      // rhs expression is only used when rhs is CFunctionCallExpression which can have no
-      // modifiers in assignments
-      // so we can substitute resolvedRhsBase.expression()
-      final DynamicMemoryHandler memoryHandler =
-          new DynamicMemoryHandler(
-              conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
-      memoryHandler.handleDeferredAllocationsInAssignment(
-          (CLeftHandSide) lhsDummy,
-          rhsDummy,
-          resolvedRhsBase.expression(),
-          lhsType,
-          lhsBaseVisitor.getLearnedPointerTypes(),
-          rhsBaseVisitor.getLearnedPointerTypes());
+      // Correctly identify the function for the RHS of the assignment
+      String rhsFunction;
+      if (edge instanceof CFunctionCallEdge || edge instanceof CFunctionReturnEdge) {
+        rhsFunction = edge.getPredecessor().getFunctionName();
+      } else {
+        rhsFunction = function;
+      }
+
+      // resolve RHS base using visitor
+      final CRightHandSide rhsBase = rhs.base();
+      final CExpressionVisitorWithPointerAliasing rhsBaseVisitor =
+          new CExpressionVisitorWithPointerAliasing(
+              conv, edge, rhsFunction, ssa, constraints, errorConditions, pts, regionMgr);
+      final ResolvedSlice resolvedRhsBase = resolveBase(rhsBase, rhsBaseVisitor);
+
+      // add initialized and used fields of RHS to pointer-target set as essential
+      // this is only needed for UF heap
+      pts.addEssentialFields(rhsBaseVisitor.getInitializedFields());
+      pts.addEssentialFields(rhsBaseVisitor.getUsedFields());
+
+      // prepare to add addressed fields of RHS to pointer-target set after assignment
+      // this is only needed for UF heap
+      rhsAddressedFields.addAll(rhsBaseVisitor.getAddressedFields());
+
+      // add RHS to resolution map
+      rhsBaseResolutionMap.put(rhsBase, resolvedRhsBase);
+
+      // apply the deferred memory handler: if there is a malloc with void* type, the allocation
+      // can be deferred until the assignment that uses the value; the allocation type can then be
+      // inferred from assignment lhs type
+      if (conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) {
+
+        // the deferred memory handler does not care about actual subscript values, so we can use
+        // dummy resolved expressions; it is necessary that there are no modifiers after
+        // CFunctionCallExpression base in assignments
+        final CRightHandSide lhsDummy = assignment.lhs.getDummyResolvedExpression();
+        final CRightHandSide rhsDummy = rhs.getDummyResolvedExpression();
+        CType lhsType = typeHandler.getSimplifiedType(lhsDummy);
+
+        if (assignmentOptions.forcePointerAssignmentOrArrayAttachment()) {
+          // lhsType may be an array, but we have to interpret it as a pointer instead
+          lhsType = CTypes.adjustFunctionOrArrayType(lhsType);
+        }
+
+        // we have everything we need, call memory handler
+        // rhs expression is only used when rhs is CFunctionCallExpression which can have no
+        // modifiers in assignments
+        // so we can substitute resolvedRhsBase.expression()
+        final DynamicMemoryHandler memoryHandler =
+            new DynamicMemoryHandler(
+                conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
+        memoryHandler.handleDeferredAllocationsInAssignment(
+            (CLeftHandSide) lhsDummy,
+            rhsDummy,
+            resolvedRhsBase.expression(),
+            lhsType,
+            lhsBaseVisitor.getLearnedPointerTypes(),
+            rhsBaseVisitor.getLearnedPointerTypes());
+      }
+    } finally {
+      // Now reset the pointer target set if we entered a function, so the visitor for RHS will have
+      // the correct pointer target set for the current function; we have to do it after resolving
+      // LHS
+      // base, otherwise, we would not have the correct resolution for LHS base
+      if (edge instanceof CFunctionCallEdge pCallEdge) {
+        pts.enterFunction(pCallEdge.getSuccessor().getFunctionName());
+      } else if (edge instanceof CFunctionReturnEdge pReturnEdge) {
+        pts.leaveFunction(pReturnEdge.getPredecessor().getFunctionName());
+      }
     }
   }
 
