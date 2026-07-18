@@ -30,9 +30,11 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
@@ -41,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -225,6 +228,16 @@ public class PORTransferRelation implements TransferRelation {
                   wrapped,
                   writeThreadHandleEdge((CExpression) params.get(0), newPid, cfaEdge),
                   pid));
+        }
+        CFAEdge argumentInitEdge =
+            threadArgumentInitEdge(threadFunc, (CExpression) params.get(3), newPid, cfaEdge);
+        if (argumentInitEdge != null) {
+          List<AbstractState> afterArgumentInit = new ArrayList<>(afterWrite.size());
+          for (AbstractState wrapped : afterWrite) {
+            afterArgumentInit.addAll(
+                applyBookkeepingEdge(precision, wrapped, argumentInitEdge, pid));
+          }
+          afterWrite = afterArgumentInit;
         }
         afterWrite = initializeThreadLocals(precision, afterWrite, newPid, cfaEdge, pid);
         String handleName = ThreadFunctions.canonicalHandleAddressKey((CExpression) params.get(0));
@@ -531,6 +544,53 @@ public class PORTransferRelation implements TransferRelation {
       states = next;
     }
     return states;
+  }
+
+  /**
+   * A synthetic {@code T{newPid}_startRoutine::param = <4th pthread_create argument>;} edge
+   * binding the spawned thread's start-routine parameter to the argument the creator passes.
+   * Without it the child's parameter is a variable no edge on any path ever assigns, so the
+   * wrapped analysis treats it as indeterminate — sound, but any property that hinges on the
+   * pointed-to data (e.g. {@code *((int *) arg)} staying in a known range) then admits spurious
+   * counterexamples, observed as wrong FALSE verdicts on tasks passing {@code &local} through
+   * {@code pthread_create} (goblint-regression escape_* / container_of families).
+   *
+   * <p>The argument expression comes from the creator's already-cloned call edge, so it is
+   * evaluated in the creator's namespace — exactly where the concrete semantics evaluate it. The
+   * parameter is private to the child, so writing it on the creating thread's bookkeeping edge is
+   * sound for the same reason as {@link #threadLocalInitEdge}. Returns {@code null} when the start
+   * routine declares no parameter (binding is then meaningless and the old behavior — an unbound
+   * parameter — remains).
+   */
+  private @Nullable CFAEdge threadArgumentInitEdge(
+      String pThreadFunc, CExpression pArgument, int pNewPid, CFAEdge pEdge) {
+    FunctionEntryNode entry = cfa.getFunctionHead(pThreadFunc);
+    if (entry == null || entry.getFunctionParameters().isEmpty()) {
+      return null;
+    }
+    if (!(entry.getFunctionParameters().get(0) instanceof CParameterDeclaration origParam)) {
+      return null;
+    }
+    CParameterDeclaration childParam =
+        new CParameterDeclaration(
+            origParam.getFileLocation(), origParam.getType(), origParam.getName());
+    childParam.setQualifiedName(
+        ThreadFunctions.perThreadName(pNewPid, origParam.getQualifiedName()));
+    CIdExpression lhs =
+        new CIdExpression(
+            origParam.getFileLocation(), origParam.getType(), origParam.getName(), childParam);
+    CExpression rhs = pArgument;
+    if (!rhs.getExpressionType()
+        .getCanonicalType()
+        .equals(origParam.getType().getCanonicalType())) {
+      rhs = new CCastExpression(FileLocation.DUMMY, origParam.getType(), pArgument);
+    }
+    return new CStatementEdge(
+        "",
+        new CExpressionAssignmentStatement(FileLocation.DUMMY, lhs, rhs),
+        FileLocation.DUMMY,
+        pEdge.getPredecessor(),
+        pEdge.getSuccessor());
   }
 
   /**

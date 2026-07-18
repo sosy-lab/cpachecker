@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -183,6 +184,20 @@ public final class ThreadFunctions {
   public static String perThreadName(int pThreadId, String pQualifiedName) {
     return "T%d_%s".formatted(pThreadId, pQualifiedName);
   }
+
+  /**
+   * Inverse of {@link #perThreadName}: strips the thread-ID prefix, returning the qualified name
+   * the variable had before per-thread renaming. Returns the input unchanged if it does not carry
+   * a thread-ID prefix. Needed wherever a renamed variable must be looked up in information that
+   * was computed on the original CFA before cloning (e.g. the {@code addressedVariables} of the
+   * variable classification, which decides whether the formula encoding places a variable in the
+   * aliased/heap regime).
+   */
+  public static String originalName(String pPossiblyRenamedQualifiedName) {
+    return PER_THREAD_NAME_PREFIX.matcher(pPossiblyRenamedQualifiedName).replaceFirst("");
+  }
+
+  private static final Pattern PER_THREAD_NAME_PREFIX = Pattern.compile("^T\\d+_");
 
   /**
    * Every {@code __thread}/{@code _Thread_local} variable declared in {@code pCfa}, in declaration

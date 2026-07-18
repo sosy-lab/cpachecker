@@ -79,6 +79,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.cpa.por.ThreadFunctions;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -397,11 +398,18 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @return Whether the variable declaration is addressed or not.
    */
   private boolean isAddressedVariable(CDeclaration var) {
-    return !variableClassification.isPresent()
-        || variableClassification
-            .orElseThrow()
-            .getAddressedVariables()
-            .contains(var.getQualifiedName());
+    if (!variableClassification.isPresent()) {
+      return true;
+    }
+    Set<String> addressedVariables = variableClassification.orElseThrow().getAddressedVariables();
+    String qualifiedName = var.getQualifiedName();
+    // The variable classification is computed on the original CFA, but the POR analysis lazily
+    // clones thread functions with per-thread renamed locals (T0_main::i for main::i). Missing
+    // such a variable here would split its accesses between the direct and the aliased regime:
+    // its initialization would go to the direct variable while dereferences of its address read
+    // the (unconstrained) heap.
+    return addressedVariables.contains(qualifiedName)
+        || addressedVariables.contains(ThreadFunctions.originalName(qualifiedName));
   }
 
   /**

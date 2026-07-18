@@ -100,7 +100,14 @@ interface PrecisionVariableManager {
             "PrecisionVariableManager not initialized with a precision");
       }
 
-      return precision.getRawPrecision().contains(pMemoryLocation);
+      boolean result = precision.getRawPrecision().contains(pMemoryLocation);
+      if (System.getenv("POR_X") != null
+          && pMemoryLocation.getExtendedQualifiedName().equals("x")) {
+        System.err.println("[POR_X] contains(x)=" + result
+            + " precSize=" + precision.getRawPrecision().size()
+            + " rawSample=" + precision.getRawPrecision().stream().limit(12).toList());
+      }
+      return result;
     }
   }
 
