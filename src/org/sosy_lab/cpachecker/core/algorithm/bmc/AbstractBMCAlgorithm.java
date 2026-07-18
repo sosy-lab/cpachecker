@@ -129,7 +129,7 @@ import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
-@Options(prefix = "bmc")
+@Options
 abstract class AbstractBMCAlgorithm
     implements StatisticsProvider, ConditionAdjustmentEventSubscriber {
 
@@ -159,7 +159,7 @@ abstract class AbstractBMCAlgorithm
       description =
           "File with predicate precisions "
               + "that should be used as candidate invariants in k-induction",
-      name = "kinduction.predicatePrecisionFile")
+      name = "bmc.kinduction.predicatePrecisionFile")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPredicatePrecisionFile = null;
 
@@ -169,7 +169,7 @@ abstract class AbstractBMCAlgorithm
           "Correctness witness in 2.x format (for previous program version) "
               + "that should be used in regression verification"
               + "to get candidate invariants for k-induction",
-      name = "kinduction.regression.witnessFile")
+      name = "bmc.kinduction.regression.witnessFile")
   @FileOption(value = Type.OPTIONAL_INPUT_FILE)
   private @Nullable Path witnessFileForRegressionVerification = null;
 
@@ -178,20 +178,28 @@ abstract class AbstractBMCAlgorithm
       description =
           "If BMC did not find a bug, check whether "
               + "the bounding did actually remove parts of the state space "
-              + "(this is similar to CBMC's unwinding assertions).")
+              + "(this is similar to CBMC's unwinding assertions).",
+      name = "bmc.boundingAssertions")
   private boolean boundingAssertions = true;
 
   @Option(
       secure = true,
       description =
           "If BMC did not find a bug, check which parts of the boundary actually reachable"
-              + "and prevent them from being unrolled any further.")
+              + "and prevent them from being unrolled any further.",
+      name = "bmc.boundingAssertionsSlicing")
   private boolean boundingAssertionsSlicing = false;
 
-  @Option(secure = true, description = "try using induction to verify programs with loops")
+  @Option(
+      secure = true,
+      description = "try using induction to verify programs with loops",
+      name = "bmc.induction")
   private boolean induction = false;
 
-  @Option(secure = true, description = "Strategy for generating auxiliary invariants")
+  @Option(
+      secure = true,
+      description = "Strategy for generating auxiliary invariants",
+      name = "bmc.invariantGenerationStrategy")
   private InvariantGeneratorFactory invariantGenerationStrategy =
       InvariantGeneratorFactory.REACHED_SET;
 
@@ -199,7 +207,8 @@ abstract class AbstractBMCAlgorithm
       secure = true,
       description =
           "Controls how long the invariant generator is allowed to run before the k-induction"
-              + " procedure starts.")
+              + " procedure starts.",
+      name = "bmc.invariantGeneratorHeadStartStrategy")
   private InvariantGeneratorHeadStartFactories invariantGeneratorHeadStartStrategy =
       InvariantGeneratorHeadStartFactories.NONE;
 
@@ -207,23 +216,29 @@ abstract class AbstractBMCAlgorithm
       secure = true,
       description =
           "k-induction configuration to be used as an invariant generator for k-induction"
-              + " (ki-ki(-ai)).")
+              + " (ki-ki(-ai)).",
+      name = "bmc.invariantGeneratorConfig")
   @FileOption(value = Type.OPTIONAL_INPUT_FILE)
   private @Nullable Path invariantGeneratorConfig = null;
 
-  @Option(secure = true, description = "Propagates the interrupts of the invariant generator.")
+  @Option(
+      secure = true,
+      description = "Propagates the interrupts of the invariant generator.",
+      name = "bmc.propagateInvGenInterrupts")
   private boolean propagateInvGenInterrupts = false;
 
   @Option(
       secure = true,
-      description = "Use generalized counterexamples to induction as candidate invariants.")
+      description = "Use generalized counterexamples to induction as candidate invariants.",
+      name = "bmc.usePropertyDirection")
   private boolean usePropertyDirection = false;
 
   @Option(
       secure = true,
       description =
           "Try to simplify the structure of formulas for the sat check of BMC. "
-              + "The improvement depends on the underlying SMT solver.")
+              + "The improvement depends on the underlying SMT solver.",
+      name = "bmc.simplifyBooleanFormula")
   private boolean simplifyBooleanFormula = false;
 
   protected final BMCStatistics stats;

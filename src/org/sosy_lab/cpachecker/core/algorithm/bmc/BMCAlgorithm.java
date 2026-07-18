@@ -69,18 +69,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
               + "cpa.predicate.targetStateSatCheck=true.")
   private boolean checkTargetStates = true;
 
-  // Option copied from AbstractBMCAlgorithm, keep in sync (and hopefully remove at some point)
-  //
-  // Only here for backwards compatibility purposes, since the option in AbstractBMCAlgorithms has
-  // the prefix "bmc".
-  @Option(
-      name = "counterexample.export.allowImpreciseCounterexamples",
-      secure = true,
-      description =
-          "An imprecise counterexample of the Predicate CPA is usually a bug,"
-              + " but expected in some configurations. Should it be treated as a bug or accepted?")
-  private boolean allowImpreciseCounterexamplesBmc = false;
-
   @Option(
       name = "bmc.invariantsExport",
       secure = true,
@@ -118,9 +106,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         false /* no invariant generator */,
         pAggregatedReachedSets);
     pConfig.inject(this);
-    // Only here for backwards compatibility purposes, since the option in AbstractBMCAlgorithms has
-    // the prefix "bmc".
-    allowImpreciseCounterexamples |= allowImpreciseCounterexamplesBmc;
 
     config = pConfig;
     cfa = pCFA;
