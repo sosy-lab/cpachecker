@@ -12,9 +12,12 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -30,10 +33,12 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.ApplicationTermContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.IdentifierUnderscoreContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.LetTermContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.QualIdentifierTermContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.Qual_identiferContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.SpecConstantTermContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.Spec_constantContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.Var_bindingContext;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibAnyType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
@@ -42,12 +47,27 @@ import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
 class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
+
+  /**
+   * The currently visible let bindings, innermost frame last. Bound variables are replaced by their
+   * bound term during conversion, so let expressions never appear in the resulting AST.
+   */
+  private final Deque<ImmutableMap<String, SvLibTerm>> letBindings = new ArrayDeque<>();
+
   public TermToAstConverter(SvLibScope pScope, Path pFilePath) {
     super(pScope, pFilePath);
   }
 
   public TermToAstConverter(SvLibScope pScope) {
     super(pScope);
+  }
+
+  /** Symbols may be quoted with vertical bars, which are not part of the symbol itself. */
+  private static String unquoteSymbol(String pSymbol) {
+    if (pSymbol.length() >= 2 && pSymbol.startsWith("|") && pSymbol.endsWith("|")) {
+      return pSymbol.substring(1, pSymbol.length() - 1);
+    }
+    return pSymbol;
   }
 
   @Override
@@ -69,8 +89,34 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
       return visitIdentifierUnderscore(pUnderscoreContext);
     }
 
+    // Let-bound variables shadow declared variables and are replaced by their bound term
+    String symbolName = unquoteSymbol(identifier);
+    for (ImmutableMap<String, SvLibTerm> frame : letBindings) {
+      SvLibTerm boundTerm = frame.get(symbolName);
+      if (boundTerm != null) {
+        return boundTerm;
+      }
+    }
+
     // We now handle the general case of a variable
     return new SvLibIdTerm(scope.getVariable(identifier).toSimpleDeclaration(), fileLocation);
+  }
+
+  @Override
+  public SvLibTerm visitLetTerm(LetTermContext ctx) {
+    // All bound terms are evaluated in the environment outside the let, since in SMT-LIB the
+    // bindings of a single let are simultaneous and may not refer to each other.
+    ImmutableMap.Builder<String, SvLibTerm> frameBuilder = ImmutableMap.builder();
+    for (Var_bindingContext binding : ctx.var_binding()) {
+      String name = unquoteSymbol(Objects.requireNonNull(binding).symbol().getText());
+      frameBuilder.put(name, binding.term().accept(this));
+    }
+    letBindings.push(frameBuilder.buildOrThrow());
+    try {
+      return ctx.term().accept(this);
+    } finally {
+      letBindings.pop();
+    }
   }
 
   @Override
