@@ -92,6 +92,13 @@ public class PORState
 
   private Collection<CFAEdge> sourceSet = null;
 
+  /**
+   * Env-gated debugging (same pattern as POR_X in PrecisionVariableManager): with POR_SS set, every
+   * source-set computation prints thread locations, enabled edges, and the chosen set. This is what
+   * located the aggregator's fused-scheduling-point bugs on the pthread-wmm family.
+   */
+  private static final boolean DEBUG_SOURCE_SETS = System.getenv("POR_SS") != null;
+
   PORState(
       AbstractState pWrappedState,
       CFA pCfa,
@@ -510,6 +517,22 @@ public class PORState
         }
       }
       sourceSet = minimalSourceSet;
+      if (DEBUG_SOURCE_SETS) {
+        StringBuilder sb = new StringBuilder("[POR_SS] locs={");
+        threads.keySet().stream().sorted().forEach(
+            p -> sb.append(p).append(":")
+                .append(threads.get(p).pLocationState().getLocationNode()).append(" "));
+        sb.append("} enabled=[");
+        for (CFAEdge e : allOutgoingEdges) {
+          sb.append(edgePidMap.get(e)).append(":L").append(e.getLineNumber()).append(" ");
+        }
+        sb.append("] chosen=[");
+        for (CFAEdge e : sourceSet) {
+          sb.append(edgePidMap.get(e)).append(":L").append(e.getLineNumber()).append(" ");
+        }
+        sb.append("]");
+        System.err.println(sb);
+      }
     } else {
       MutexState mutexState =
           AbstractStates.extractStateByType(getWrappedState(), MutexState.class);

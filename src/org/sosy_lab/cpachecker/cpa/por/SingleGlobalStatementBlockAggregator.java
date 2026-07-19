@@ -54,12 +54,35 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
     boolean anyGlobalStatements = false;
     CFAEdge currentEdge = edge;
     while (true) {
+      // A block must never extend past the end of a critical section: the node after an
+      // atomic_end/unlock is a scheduling point where other threads may interleave, and the POR
+      // dependence computation scopes a transition's footprint to at most one critical section
+      // (see PORState#getUsedGlobalVars). Fusing `atomic_end; atomic_begin` into one step makes
+      // two adjacent atomic blocks one atomic transition, silently removing the interleavings at
+      // the boundary (wrong TRUE on the pthread-wmm litmus family, e.g. safe034: another thread's
+      // z-write must fall between main's two atomic blocks to violate the assertion). The end
+      // edge itself may close a block; anything walking back OVER an end edge is out.
+      if (currentEdge != edge && MutexFunctions.isUnlockCall(currentEdge)) {
+        return false;
+      }
+      // The same barrier applies to thread create/join edges anywhere along the walk, not only as
+      // the candidate (line above the loop): the node after a pthread_create is a scheduling point
+      // where the new thread is runnable. Fusing `pthread_create(P); atomic { guard = cnt == N }`
+      // into one step removes every schedule in which the spawned threads run between the create
+      // and the guard read — on the pthread-wmm tasks main's cnt==3 check then always fails, main
+      // always aborts, and the assertion is unreachable on every explored path (wrong TRUE).
+      if (currentEdge != edge && (isThreadStart(currentEdge) || isThreadJoin(currentEdge))) {
+        return false;
+      }
       var accesses = memoryAccessExtractor.extract(currentEdge);
       if ((!accesses.getUses().isEmpty()
           || !accesses.getDefs().isEmpty()
           || !accesses.getPointeeDefs().isEmpty()
           || !accesses.getPointeeUses().isEmpty()
-          || MutexFunctions.isLockCall(edge))
+          // The walked edge (not the constant candidate) must be tested: a lock/atomic_begin
+          // anywhere in the chain consumes the single-global-statement budget, so a block can
+          // contain at most one critical-section entry and no global statement besides it.
+          || MutexFunctions.isLockCall(currentEdge))
           && !atomicBlockNodes.contains(PorEdgeCloner.getOriginalNode(currentEdge.getPredecessor()))) {
         if (anyGlobalStatements) {
           return false;
