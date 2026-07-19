@@ -74,6 +74,17 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
       if (currentEdge != edge && (isThreadStart(currentEdge) || isThreadJoin(currentEdge))) {
         return false;
       }
+      // A lock/atomic_begin may only be the FIRST edge of a block: PORState#getUsedGlobalVars
+      // extends a step's dependence footprint through the acquired critical section only when the
+      // step STARTS with the lock call. A block like [blank; lock(G); ...] executes the
+      // acquisition but carries the blank edge's empty footprint, so the reduction treats it as
+      // independent of every other thread and prunes the schedules that interleave before the
+      // acquisition (wrong TRUE on 28-race_reach_45-escape_racing: main's assert block must run
+      // between t_fun's unlock(G) after (*p)++ and its re-lock of G before (*p)--).
+      if (MutexFunctions.isLockCall(currentEdge)
+          && !startNode.equals(currentEdge.getPredecessor())) {
+        return false;
+      }
       var accesses = memoryAccessExtractor.extract(currentEdge);
       if ((!accesses.getUses().isEmpty()
           || !accesses.getDefs().isEmpty()
