@@ -318,6 +318,13 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
           return SmtLibTheoryDeclarations.bitVectorAnd(
               ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
         }
+        case "bvnand" -> {
+          Verify.verify(pArguments.size() == 2);
+          Verify.verify(argumentTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
+          Verify.verify(argumentTypes.getFirst().equals(argumentTypes.getLast()));
+          return SmtLibTheoryDeclarations.bitVectorNand(
+              ((SvLibSmtLibBitVectorType) argumentTypes.getFirst()).getSize());
+        }
         case "bvor" -> {
           Verify.verify(pArguments.size() == 2);
           return SmtLibTheoryDeclarations.bitVectorOr(

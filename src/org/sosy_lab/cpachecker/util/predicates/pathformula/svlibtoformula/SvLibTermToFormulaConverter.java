@@ -378,6 +378,10 @@ public class SvLibTermToFormulaConverter {
         Verify.verify(args.size() == 2);
         return bvmgr.and(args.getFirst(), args.get(1));
       }
+      case "bvnand" -> {
+        Verify.verify(args.size() == 2);
+        return bvmgr.not(bvmgr.and(args.getFirst(), args.get(1)));
+      }
       case "bvor" -> {
         Verify.verify(args.size() == 2);
         return bvmgr.or(args.getFirst(), args.get(1));

@@ -385,6 +385,18 @@ public class SmtLibTheoryDeclarations {
         ImmutableList.of());
   }
 
+  public static SvLibFunctionDeclaration bitVectorNand(int pSize) {
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(
+                new SvLibSmtLibBitVectorType(pSize), new SvLibSmtLibBitVectorType(pSize)),
+            new SvLibSmtLibBitVectorType(pSize)),
+        "bvnand",
+        "bvnand",
+        ImmutableList.of());
+  }
+
   public static SvLibFunctionDeclaration bitVectorOr(int pSize) {
     return new SvLibFunctionDeclaration(
         FileLocation.DUMMY,
