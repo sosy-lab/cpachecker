@@ -474,8 +474,15 @@ public class AssignmentToPathAllocator {
       memory.put(heapName, heap);
     }
 
-    Address address =
-        Address.valueOf(Iterables.getOnlyElement(pFunctionAssignment.getArgumentsInterpretation()));
+    ImmutableList<Object> indices = pFunctionAssignment.getArgumentsInterpretation();
+    Address address;
+    if (indices.size() == 1) {
+      address = Address.valueOf(Iterables.getOnlyElement(indices));
+    } else {
+      // A select on a nested array (e.g. a matrix) has one index per dimension. Such a composite
+      // index has no single concrete address, so we represent the full index vector symbolically.
+      address = Address.valueOf(indices);
+    }
 
     Object value = pFunctionAssignment.getValue();
     heap.put(address, value);
