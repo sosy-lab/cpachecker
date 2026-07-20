@@ -62,8 +62,7 @@ final class ConsistencyChecker {
 
   /** Returns the reasons of all inconsistencies of the model, or an empty list if consistent. */
   static List<BooleanFormula> findConflicts(
-      OcEncoder pEncoder, Model pModel, BooleanFormulaManagerView pBfmgr)
-      throws InterruptedException {
+      OcEncoder pEncoder, Model pModel, BooleanFormulaManagerView pBfmgr) {
     ConsistencyChecker checker = new ConsistencyChecker(pEncoder, pBfmgr);
     return checker.run(pModel);
   }

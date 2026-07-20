@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.por;
 
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 
@@ -16,21 +15,5 @@ public record PORThreadState(LocationState pLocationState, CallstackState pCalls
   @Override
   public String toString() {
     return "(loc=%s, callstack=%s)".formatted(pLocationState, pCallstackState);
-  }
-
-  @Override
-  public boolean equals(Object pO) {
-    if (!(pO
-        instanceof
-        PORThreadState(LocationState pPLocationState, CallstackState pPCallstackState))) {
-      return false;
-    }
-    return Objects.equals(pLocationState, pPLocationState)
-        && Objects.equals(pCallstackState, pPCallstackState);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(pLocationState, pCallstackState);
   }
 }

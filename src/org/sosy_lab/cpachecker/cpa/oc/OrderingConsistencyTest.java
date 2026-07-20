@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.oc;
 import static com.google.common.truth.Truth.assertThat;
 import static org.sosy_lab.cpachecker.util.test.TestUtils.configurationForTest;
 
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,7 +51,7 @@ public class OrderingConsistencyTest {
   }
 
   private static List<Pair<String, Result>> getTestCases() {
-    return List.of(
+    return ImmutableList.of(
         Pair.of("single_thread_safe.c", Result.TRUE),
         Pair.of("local_vars_only_safe.c", Result.TRUE),
         Pair.of("two_threads_safe.c", Result.TRUE),
@@ -96,7 +97,7 @@ public class OrderingConsistencyTest {
   }
 
   private static List<String> getUnknownTestCases() {
-    return List.of("bigshot_s.i", "28-race_reach_83-list2_racing1.i");
+    return ImmutableList.of("bigshot_s.i", "28-race_reach_83-list2_racing1.i");
   }
 
   // suite-wide default bounds: a finite final bound so programs with unbounded
@@ -108,7 +109,7 @@ public class OrderingConsistencyTest {
   @Parameters(name = "{0} [{1}]")
   public static List<Object[]> testData() {
     List<Object[]> data = new ArrayList<>();
-    for (String encoding : List.of("REFINEMENT", "CLOCKS")) {
+    for (String encoding : ImmutableList.of("REFINEMENT", "CLOCKS")) {
       for (Pair<String, Result> testCase : getTestCases()) {
         data.add(
             new Object[] {

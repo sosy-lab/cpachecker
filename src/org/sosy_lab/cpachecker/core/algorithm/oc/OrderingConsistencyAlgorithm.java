@@ -447,7 +447,7 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
 
   /** Logs the enabled events (with clock values in CLOCKS mode) and read-from choices. */
   private void dumpViolationModel(ProverEnvironment pProver, OcEncoder pEncoder)
-      throws SolverException, InterruptedException {
+      throws SolverException {
     var imgr = ocCpa.getSolver().getFormulaManager().getIntegerFormulaManager();
     StringBuilder dump = new StringBuilder("violation model:");
     try (Model model = pProver.getModel()) {
@@ -489,7 +489,7 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
    * benchmark mode (the {@link FileOption} path is nulled by {@code output.disable}).
    */
   private void exportExecutionGraph(ProverEnvironment pProver, OcEncoder pEncoder)
-      throws SolverException, InterruptedException {
+      throws SolverException {
     var imgr = ocCpa.getSolver().getFormulaManager().getIntegerFormulaManager();
     OcExplorationRegistry registry = ocCpa.getRegistry();
     Map<Integer, String> instanceNames = new LinkedHashMap<>();
@@ -599,7 +599,7 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
    * for a model-based analysis that has no single ARG path. Suppressed in benchmark mode.
    */
   private void exportSequentializedCounterexample(ProverEnvironment pProver, OcEncoder pEncoder)
-      throws SolverException, InterruptedException {
+      throws SolverException {
     StringBuilder trace = new StringBuilder();
     try (Model model = pProver.getModel()) {
       List<MemoryEvent> ordered = orderedViolationEvents(model, pEncoder);
@@ -647,7 +647,7 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
    */
   private void attachCounterexample(
       ReachedSet pReachedSet, ProverEnvironment pProver, OcEncoder pEncoder)
-      throws SolverException, InterruptedException {
+      throws SolverException {
     try (Model model = pProver.getModel()) {
       List<CFAEdge> edges = new ArrayList<>();
       // the event that ends the counterexample path (the reached error for unreach-call, the later
@@ -863,7 +863,7 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
         from = ws.write2();
         to = ws.write1();
       }
-      if (from != null) {
+      if (from != null && to != null) {
         hbEdges.add(new int[] {from.id(), to.id()});
         for (var rf : pEncoder.getRfPairs()) {
           if (rf.write().id() == from.id()

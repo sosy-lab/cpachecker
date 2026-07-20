@@ -288,10 +288,8 @@ public class MutexState implements AbstractState {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof MutexState other)) {
-      return false;
-    }
-    return Objects.equals(initializedMutexes, other.initializedMutexes)
+    return o instanceof MutexState other
+        && Objects.equals(initializedMutexes, other.initializedMutexes)
         && Objects.equals(lockedMutexes, other.lockedMutexes)
         && Objects.equals(atomicHolder, other.atomicHolder);
   }

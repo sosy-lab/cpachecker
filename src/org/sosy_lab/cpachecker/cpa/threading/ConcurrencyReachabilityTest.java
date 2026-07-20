@@ -12,6 +12,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assume.assumeTrue;
 import static org.sosy_lab.cpachecker.util.test.TestUtils.configurationForTest;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.List;
@@ -89,9 +90,9 @@ public class ConcurrencyReachabilityTest {
 
   @Parameters(name = "{0} [{1}]")
   public static List<Object[]> testData() {
-    List<String> configs = List.of(PREDICATE, VALUE, BMC, BDD, SEQUENTIALIZATION);
+    List<String> configs = ImmutableList.of(PREDICATE, VALUE, BMC, BDD, SEQUENTIALIZATION);
     List<Pair<String, Result>> testCases =
-        List.of(
+        ImmutableList.of(
             Pair.of("array_handle_safe.c", Result.TRUE),
             Pair.of("array_handle_unsafe.c", Result.FALSE),
             Pair.of("loop_handle_safe.c", Result.TRUE),

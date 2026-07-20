@@ -52,6 +52,7 @@ public interface AbstractStateWithLocations extends AbstractState {
   /** same as {@link #getOutgoingEdges()}, but swap "incoming" and "outgoing" */
   Iterable<CFAEdge> getIncomingEdges();
 
+  @SuppressWarnings("unused")
   default @Nullable List<CFAEdge> getEdgesToChild(AbstractStateWithLocations pChild) {
     return null;
   }

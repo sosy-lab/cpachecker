@@ -203,9 +203,4 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
             instanceof AIdExpression functionName
         && name.equals(functionName.getName());
   }
-
-  private boolean isFunctionCall(CFAEdge edge) {
-    return edge instanceof AStatementEdge statementEdge
-        && statementEdge.getStatement() instanceof AFunctionCall;
-  }
 }

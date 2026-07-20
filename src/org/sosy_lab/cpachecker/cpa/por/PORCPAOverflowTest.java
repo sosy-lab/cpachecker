@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.por;
 import static org.junit.Assume.assumeTrue;
 import static org.sosy_lab.cpachecker.util.test.TestUtils.configurationForTest;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.List;
@@ -65,9 +66,10 @@ public class PORCPAOverflowTest {
   @Parameters(name = "{0} [{1}]")
   public static List<Object[]> testData() {
     List<String> configs =
-        List.of("config/por-value-overflow.properties", "config/por-pred-overflow.properties");
+        ImmutableList.of(
+            "config/por-value-overflow.properties", "config/por-pred-overflow.properties");
     List<Pair<String, Boolean>> testCases =
-        List.of(
+        ImmutableList.of(
             Pair.of("overflow_safe.c", true),
             Pair.of("overflow_unsafe.c", false),
             Pair.of("overflow_after_join_unsafe.c", false),

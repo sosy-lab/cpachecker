@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.oc.ThreadInstance.InstanceKey;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
@@ -149,9 +148,10 @@ public class OrderingConsistencyCPA extends AbstractCPA implements AutoCloseable
    * already expanded state: its suffix would be explored a second time with overlapping guards
    * (duplicated events); a missed merge only falls back to tree-shaped, sound exploration.
    */
+  @SuppressWarnings("unused") // pPrecision required by the MergeOperator functional interface
   private AbstractState mergeStates(
       AbstractState pState1, AbstractState pState2, Precision pPrecision)
-      throws CPAException, InterruptedException {
+      throws InterruptedException {
     OrderingConsistencyState s1 = (OrderingConsistencyState) pState1;
     OrderingConsistencyState s2 = (OrderingConsistencyState) pState2;
     if (s1 == s2

@@ -38,6 +38,7 @@ public interface GlobalAccessRenamer {
    * pointer/index sub-parts cloned while the object base and byte offset are resolved separately
    * and combined into a single address. Returning null keeps the default cloning.
    */
+  @SuppressWarnings("unused")
   default @Nullable CExpression replaceAddressOf(
       CUnaryExpression pOriginalAddressOf, UnaryOperator<CExpression> pSubCloner) {
     return null;
@@ -50,6 +51,7 @@ public interface GlobalAccessRenamer {
    * thread the local's address escaped to — reaches the same memory as the local's own accesses.
    * Globals always go through {@link #freshName}; this only concerns locals.
    */
+  @SuppressWarnings("unused")
   default boolean treatsLocalAsRegion(CVariableDeclaration pLocal) {
     return false;
   }
@@ -60,6 +62,7 @@ public interface GlobalAccessRenamer {
    * sub-expression with the same renaming (so the renamer can decide, per sub-part, whether to
    * clone it or treat it as an object base/offset). Returning null keeps the default cloning.
    */
+  @SuppressWarnings("unused")
   default @Nullable CIdExpression replaceAliasedAccess(
       CExpression pOriginalAccess, boolean pIsWrite, UnaryOperator<CExpression> pSubCloner) {
     return null;

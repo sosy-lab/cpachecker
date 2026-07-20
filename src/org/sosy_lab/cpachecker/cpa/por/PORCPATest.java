@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.por;
 import static com.google.common.truth.Truth.assertThat;
 import static org.sosy_lab.cpachecker.util.test.TestUtils.configurationForTest;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
@@ -45,7 +46,7 @@ public class PORCPATest {
   }
 
   private static List<String> getConfigs() {
-    return List.of(
+    return ImmutableList.of(
         "config/por-pred.properties",
         "config/por-pred-aa.properties",
         //        "config/por-pred-z3.properties",
@@ -59,7 +60,7 @@ public class PORCPATest {
   }
 
   private static List<Pair<String, Boolean>> getTestCases() {
-    return List.of(
+    return ImmutableList.of(
         Pair.of("two_threads_safe.c", true),
         Pair.of("two_threads_join_safe.c", true),
         Pair.of("single_thread_safe.c", true),

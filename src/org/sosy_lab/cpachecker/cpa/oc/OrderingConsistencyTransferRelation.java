@@ -67,7 +67,6 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexFunctions;
 import org.sosy_lab.cpachecker.cpa.oc.ThreadInstance.InstanceKey;
 import org.sosy_lab.cpachecker.cpa.por.GlobalAccessRenamer;
-import org.sosy_lab.cpachecker.cpa.por.GlobalAccessRenamer.UnsupportedAccessException;
 import org.sosy_lab.cpachecker.cpa.por.PorEdgeCloner;
 import org.sosy_lab.cpachecker.cpa.por.ThreadFunctions;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -436,7 +435,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     InstanceKey key = new InstanceKey(pState.getInstanceId(), function, ordinal);
     ThreadInstance existing = registry.getInstance(key);
     boolean isNew = existing == null;
-    ThreadInstance instance = isNew ? registry.newInstance(key) : existing;
+    ThreadInstance instance = existing != null ? existing : registry.newInstance(key);
 
     MemoryEvent createEvent =
         addEventAfter(
@@ -536,7 +535,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
    * value, in the instance's own root context, and returns the extended context.
    *
    * <p>A {@code __thread} variable is privatized to {@code T{instance}_x} exactly like a local (see
-   * {@link org.sosy_lab.cpachecker.cpa.por.PorAstCloner}), which is what stops it from being read
+   * {@code org.sosy_lab.cpachecker.cpa.por.PorAstCloner}), which is what stops it from being read
    * as shared state — but a spawned instance explores from its start routine's entry and so never
    * folds in the file-scope declaration edge that carries the initializer; only the main instance
    * does. Without this the copy would be an unconstrained symbol, i.e. an arbitrary value, and an

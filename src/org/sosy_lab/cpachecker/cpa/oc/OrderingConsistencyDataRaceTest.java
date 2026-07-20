@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.oc;
 
 import static org.sosy_lab.cpachecker.util.test.TestUtils.configurationForTest;
 
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.List;
 import org.junit.Test;
@@ -63,7 +64,7 @@ public class OrderingConsistencyDataRaceTest {
   @Parameters(name = "{0}")
   public static List<Object[]> testData() {
     List<Pair<String, Result>> testCases =
-        List.of(
+        ImmutableList.of(
             // Concurrent writes through an `_Atomic float *`: the pointee is atomic, so these are
             // not a race. Covers atomicity resolved through a dereference, and a non-integer
             // atomic.

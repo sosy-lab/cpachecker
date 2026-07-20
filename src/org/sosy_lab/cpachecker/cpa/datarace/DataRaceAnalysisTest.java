@@ -12,6 +12,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assume.assumeTrue;
 import static org.sosy_lab.cpachecker.util.test.TestUtils.configurationForTest;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.List;
@@ -64,7 +65,7 @@ public class DataRaceAnalysisTest {
   @Parameters(name = "{0}")
   public static List<Object[]> testData() {
     List<Pair<String, Result>> testCases =
-        List.of(
+        ImmutableList.of(
             // Concurrent writes THROUGH an `_Atomic float *`: the pointee is atomic, no race.
             Pair.of("atomic_float_ptr_safe.c", Result.TRUE),
             // The same declaration, but writing the (non-atomic) POINTER itself: a real race.

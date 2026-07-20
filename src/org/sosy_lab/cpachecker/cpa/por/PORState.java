@@ -26,6 +26,7 @@ import java.util.Random;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
@@ -326,14 +327,7 @@ public class PORState extends AbstractSingleWrapperState
 
   @Override
   public Iterable<CFAEdge> getOutgoingEdges() {
-    try {
-      return getAllThreadOutgoingEdges();
-    } catch (CPATransferException e) {
-      // getOutgoingEdges() is only used for post-hoc graph/witness display of states that were
-      // already successfully explored via getSourceSet(), so reaching an unsupported construct
-      // here would indicate a real bug rather than an expected occurrence.
-      throw new IllegalStateException(e);
-    }
+    return getAllThreadOutgoingEdges();
   }
 
   @Override
@@ -386,7 +380,7 @@ public class PORState extends AbstractSingleWrapperState
         }
       }
 
-      if (parentThreadState == null) {
+      if (parentThreadState == null || childThreadState == null) {
         if (threads.keySet().equals(child.threads().keySet())) {
           return ImmutableList.of();
         } else {
@@ -433,10 +427,8 @@ public class PORState extends AbstractSingleWrapperState
     if (this == o) {
       return true;
     }
-    if (!(o instanceof PORState other)) {
-      return false;
-    }
-    return Objects.equals(threads, other.threads)
+    return o instanceof PORState other
+        && Objects.equals(threads, other.threads)
         && Objects.equals(livePids, other.livePids)
         && Objects.equals(getWrappedState(), other.getWrappedState());
   }
@@ -446,7 +438,7 @@ public class PORState extends AbstractSingleWrapperState
     return Objects.hash(threads, livePids, getWrappedState());
   }
 
-  private ImmutableCollection<CFAEdge> getAllThreadOutgoingEdges() throws CPATransferException {
+  private ImmutableCollection<CFAEdge> getAllThreadOutgoingEdges() {
     MutexState mutexState = AbstractStates.extractStateByType(getWrappedState(), MutexState.class);
     edgePidMap.clear();
     ImmutableList.Builder<CFAEdge> ret = ImmutableList.builder();
@@ -521,25 +513,7 @@ public class PORState extends AbstractSingleWrapperState
       }
       sourceSet = minimalSourceSet;
       if (DEBUG_SOURCE_SETS) {
-        StringBuilder sb = new StringBuilder("[POR_SS] locs={");
-        threads.keySet().stream()
-            .sorted()
-            .forEach(
-                p ->
-                    sb.append(p)
-                        .append(":")
-                        .append(threads.get(p).pLocationState().getLocationNode())
-                        .append(" "));
-        sb.append("} enabled=[");
-        for (CFAEdge e : allOutgoingEdges) {
-          sb.append(edgePidMap.get(e)).append(":L").append(e.getLineNumber()).append(" ");
-        }
-        sb.append("] chosen=[");
-        for (CFAEdge e : sourceSet) {
-          sb.append(edgePidMap.get(e)).append(":L").append(e.getLineNumber()).append(" ");
-        }
-        sb.append("]");
-        System.err.println(sb);
+        dumpSourceSet(allOutgoingEdges);
       }
     } else {
       MutexState mutexState =
@@ -549,6 +523,29 @@ public class PORState extends AbstractSingleWrapperState
       }
     }
     return sourceSet;
+  }
+
+  @SuppressForbidden("debug dump, gated behind the POR_SS environment variable")
+  private void dumpSourceSet(Collection<CFAEdge> pAllOutgoingEdges) {
+    StringBuilder sb = new StringBuilder("[POR_SS] locs={");
+    threads.keySet().stream()
+        .sorted()
+        .forEach(
+            p ->
+                sb.append(p)
+                    .append(":")
+                    .append(threads.get(p).pLocationState().getLocationNode())
+                    .append(" "));
+    sb.append("} enabled=[");
+    for (CFAEdge e : pAllOutgoingEdges) {
+      sb.append(edgePidMap.get(e)).append(":L").append(e.getLineNumber()).append(" ");
+    }
+    sb.append("] chosen=[");
+    for (CFAEdge e : sourceSet) {
+      sb.append(edgePidMap.get(e)).append(":L").append(e.getLineNumber()).append(" ");
+    }
+    sb.append("]");
+    System.err.println(sb);
   }
 
   private ImmutableCollection<ImmutableCollection<CFAEdge>> getSourceSetFirstActions(
