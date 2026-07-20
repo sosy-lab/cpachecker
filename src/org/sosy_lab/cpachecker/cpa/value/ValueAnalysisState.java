@@ -964,7 +964,8 @@ public final class ValueAnalysisState
     // but certain pointers like loop-heads. Hence, we return information for a bunch of variables.
 
     // This returns all assignments for variables that are always within the scope of the
-    // current function; i.e. parameters and global variables. (Return variables should not be returned, as they are not in scope all the time!)
+    // current function; i.e. parameters and global variables.
+    // (Return variables should not be returned!)
 
     ImmutableSet<String> forbiddenQualifiedNames = ImmutableSet.of();
     if (pFunctionScope.getReturnVariable().isPresent()) {
@@ -973,7 +974,7 @@ public final class ValueAnalysisState
     }
     ImmutableSet<String> qualifiedVariableNamesToExport =
         getSetOfWantedVariableNames(
-            pAstCfaRelation, pLocation, forbiddenQualifiedNames, ImmutableSet.of());
+            pAstCfaRelation, pFunctionScope, forbiddenQualifiedNames, ImmutableSet.of());
 
     return buildVariableAssignmentsFor(
         pFunctionScope, pLocation, qualifiedVariableNamesToExport, Function.identity());
