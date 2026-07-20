@@ -54,7 +54,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
  */
 @Options(prefix = "cpa.terminationviamemory")
 public class TerminationToReachCPA extends AbstractCPA implements StatisticsProvider {
-  private final Optional<Path> witnessPath;
+  private Optional<Path> witnessPath;
+  private boolean validation;
   private Solver solver;
   private InterpolationManager itpMgr;
   private PathFormulaManager pfmgr;
@@ -72,11 +73,6 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
       secure = true,
       description = "Allows the analysis to also check for infinite loops caused by recursion.")
   private boolean considerRecursion = false;
-
-  @Option(
-      secure = true,
-      description = "Enables the TerminationToSafety analysis to be used as a validator.")
-  private boolean validation = false;
 
   public TerminationToReachCPA(
       LogManager pLogger,
@@ -106,15 +102,8 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
     }
     possiblyNonTerminatingLoops = builder.build();
 
-    if (validation) {
-      witnessPath =
-          Optional.of(
-              pSpecification.getPathToSpecificationAutomata().keySet().stream()
-                  .findAny()
-                  .orElseThrow());
-    } else {
-      witnessPath = Optional.empty();
-    }
+    witnessPath = pSpecification.getPathToSpecificationAutomata().keySet().stream().findAny();
+    validation = witnessPath.isPresent();
   }
 
   public static CPAFactory factory() {
