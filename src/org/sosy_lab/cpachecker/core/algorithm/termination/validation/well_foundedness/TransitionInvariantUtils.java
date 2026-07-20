@@ -125,10 +125,6 @@ public class TransitionInvariantUtils {
     try {
       for (String variable : fmgr.extractVariables(pFormula).keySet()) {
         String varWithoutFunc = removeFunctionFromVarsName(variable);
-        System.out.println(varWithoutFunc);
-        if (pScope.variableNameInUse(varWithoutFunc)) {
-          System.out.println(pScope.lookupVariable(varWithoutFunc));
-        }
         if (pScope.variableNameInUse(varWithoutFunc)
             && pScope.lookupVariable(varWithoutFunc).toString().contains("*")) {
           return true;
