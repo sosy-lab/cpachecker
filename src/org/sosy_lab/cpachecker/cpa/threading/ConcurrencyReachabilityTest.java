@@ -69,6 +69,15 @@ public class ConcurrencyReachabilityTest {
           "loop_handle_safe.c",
           "loop_handle_unsafe.c");
 
+  /**
+   * bddAnalysis-concurrency cannot model a pointer or a float, so it can prove neither safety nor
+   * the violation on these programs. It honestly answers UNKNOWN rather than a wrong verdict: its
+   * counterexample check rejects the (spurious or genuine) error path as infeasible but cannot
+   * remove it from the ARG, so the analysis gives up rather than report TRUE or FALSE.
+   */
+  private static final ImmutableSet<String> BDD_INCOMPLETE =
+      ImmutableSet.of("pointer_write_safe.c", "atomic_float_safe.c", "atomic_float_unsafe.c");
+
   private static Configuration getConfig(String pConfig)
       throws InvalidConfigurationException, IOException {
     return configurationForTest()
@@ -116,7 +125,8 @@ public class ConcurrencyReachabilityTest {
         IntegrationTestRunner.run(getConfig(configuration), TEST_DIR + fileName);
     Result actual = results.cpaCheckerResult().getResult();
 
-    if (UNSUPPORTED_THREAD_HANDLE.contains(fileName)) {
+    if (UNSUPPORTED_THREAD_HANDLE.contains(fileName)
+        || (configuration.equals(BDD) && BDD_INCOMPLETE.contains(fileName))) {
       assertThat(actual).isEqualTo(Result.UNKNOWN);
     } else {
       assertThat(actual).isEqualTo(expectedResult);

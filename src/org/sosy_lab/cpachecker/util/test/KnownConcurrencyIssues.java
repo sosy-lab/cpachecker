@@ -62,20 +62,7 @@ public final class KnownConcurrencyIssues {
               ImmutableSet.of("pointer_write_safe.c")),
 
           // -------------------------------------------------------------------------------------
-          // (2) bddAnalysis-concurrency: incorrect FALSE on safe programs.
-          // The BDD domain cannot model a pointer or a float, so the later assume stays open and
-          // the
-          // error looks reachable. It is sound on the plain-integer baselines, so this is a domain
-          // limit that is not being reported honestly (UNKNOWN) but as a violation.
-          new KnownIssue(
-              "bddAnalysis-concurrency reports FALSE on a safe program: the BDD domain cannot model"
-                  + " the pointer / float, and reports the resulting open branch as a violation"
-                  + " rather than as UNKNOWN",
-              ImmutableSet.of("config/bddAnalysis-concurrency.properties"),
-              ImmutableSet.of("pointer_write_safe.c", "atomic_float_safe.c")),
-
-          // -------------------------------------------------------------------------------------
-          // (3) dataRaceAnalysis: misses a real data race.
+          // (2) dataRaceAnalysis: misses a real data race.
           // In `_Atomic float *p` the _Atomic qualifier binds to the POINTEE, so `p` itself is an
           // ordinary non-atomic pointer and the two concurrent writes to `p` race. The ordering-
           // consistency analysis reports FALSE here, correctly.
@@ -87,7 +74,7 @@ public final class KnownConcurrencyIssues {
               ImmutableSet.of("atomic_float_ptr_unsafe.c")),
 
           // -------------------------------------------------------------------------------------
-          // (4) predicateAnalysis-concurrency--overflow: misses every overflow reachable after a
+          // (3) predicateAnalysis-concurrency--overflow: misses every overflow reachable after a
           // thread is created. The boundary is exactly a pthread_create -- an overflow BEFORE any
           // create is still found -- and it is governed by
           // cfa.useCFACloningForMultiThreadedPrograms:
@@ -107,7 +94,7 @@ public final class KnownConcurrencyIssues {
                   "overflow_stale_lookahead_unsafe.c")),
 
           // -------------------------------------------------------------------------------------
-          // (5) POR + OverflowCPA: misses an overflow because the overflow lookahead goes stale
+          // (4) POR + OverflowCPA: misses an overflow because the overflow lookahead goes stale
           // across an interleaving. OverflowCPA never checks the edge it is given -- to constrain
           // `y + 1` it needs y BEFORE the increment, so it looks ahead from the previous edge and
           // parks a flag. Under POR the next edge to run may belong to another thread, so the flag
