@@ -243,29 +243,29 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           BooleanFormula interpolant;
           candidateTransInv.extendPrevVarsWithPrefixSuffix(DUMMY_PREFIX, PREV_KEYWORD);
           candidateTransInv.extendCurrVarsWithPrefixSuffix(DUMMY_PREFIX, CURR_KEYWORD);
+          BooleanFormula invariantFromWitness = bfmgr.makeTrue();
           if (validation) {
-            interpolant =
+            invariantFromWitness =
                 collectCandidateTransitionInvariants(
                     location, terminationState.getPathFormulasForIteration().get(keyPair));
-            interpolant = translateVarsFromWitness(interpolant);
-          } else {
-            try {
-              // If BMC check is UNSAT, try to overapproximate the transition invariant
-              BooleanFormula firstStep =
-                  isOverapproximating
-                      ? candidateTransInv.getFormula()
-                      : prefixPathFormula.getFormula();
-              interpolant =
-                  itpMgr
-                      .interpolate(
-                          ImmutableList.of(
-                              bfmgr.and(firstStep, iterationFormula.getFormula()),
-                              latestSameStateFormula))
-                      .orElseThrow()
-                      .getFirst();
-            } catch (CPAException e) {
-              break;
-            }
+            invariantFromWitness = translateVarsFromWitness(invariantFromWitness);
+          }
+          try {
+            // If BMC check is UNSAT, try to overapproximate the transition invariant
+            BooleanFormula firstStep =
+                isOverapproximating
+                    ? candidateTransInv.getFormula()
+                    : prefixPathFormula.getFormula();
+            interpolant =
+                itpMgr
+                    .interpolate(
+                        ImmutableList.of(
+                            bfmgr.and(firstStep, iterationFormula.getFormula()),
+                            latestSameStateFormula))
+                    .orElseThrow()
+                    .getFirst();
+          } catch (CPAException e) {
+            break;
           }
 
           // Instantiate the new interpolant to T(x__PREV, x__CURR)
@@ -273,6 +273,12 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
               new PartitionedRelationFormula(interpolant, fmgr);
           newInterpolant.extendPrevVarsWithPrefixSuffix(DUMMY_PREFIX, PREV_KEYWORD);
           newInterpolant.extendCurrVarsWithPrefixSuffix(DUMMY_PREFIX, CURR_KEYWORD);
+          PartitionedRelationFormula partitionedInvariantFromWitness =
+              new PartitionedRelationFormula(invariantFromWitness, fmgr);
+          partitionedInvariantFromWitness.extendPrevVarsWithPrefixSuffix(
+              DUMMY_PREFIX, PREV_KEYWORD);
+          partitionedInvariantFromWitness.extendCurrVarsWithPrefixSuffix(
+              DUMMY_PREFIX, CURR_KEYWORD);
           try {
             if (containsOnlyIrrelevantVariables(interpolant, callstackState)
                 || solver.implies(newInterpolant.getFormula(), candidateTransInv.getFormula())) {
@@ -286,7 +292,10 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           // We can also strengthen the candidate transition invariant with the prefix formula
           candidateTransInv =
               new PartitionedRelationFormula(
-                  bfmgr.or(candidateTransInv.getFormula(), newInterpolant.getFormula()), fmgr);
+                  bfmgr.and(
+                      partitionedInvariantFromWitness.getFormula(),
+                      bfmgr.or(candidateTransInv.getFormula(), newInterpolant.getFormula())),
+                  fmgr);
           isOverapproximating = true;
         }
       }
