@@ -35,6 +35,7 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -1032,21 +1033,23 @@ public final class ValueAnalysisState
       CFANode pLocation,
       Set<String> forbiddenQualifiedNames,
       Set<String> disallowedSubStrings) {
-    FluentIterable<String> variablesToExportIter =
-        pAstCfaRelation
-            .getVariablesAndParametersInScope(pLocation)
-            .orElseThrow()
-            .transform(decl -> decl.getQualifiedName());
+    FluentIterable<AbstractSimpleDeclaration> declToExportIter =
+        pAstCfaRelation.getVariablesAndParametersInScope(pLocation).orElseThrow();
 
-    for (String forbiddenQualifiedName : forbiddenQualifiedNames) {
-      variablesToExportIter = variablesToExportIter.filter(v -> !v.equals(forbiddenQualifiedName));
+    ImmutableSet.Builder<String> qualVarNamesWanted = ImmutableSet.builder();
+
+    for (AbstractSimpleDeclaration declInScope : declToExportIter) {
+      String qualVarName = declInScope.getQualifiedName();
+      if (!forbiddenQualifiedNames.contains(qualVarName)) {
+        for (String disallowedSubString : disallowedSubStrings) {
+          if (!qualVarName.contains(disallowedSubString)) {
+            qualVarNamesWanted.add(qualVarName);
+          }
+        }
+      }
     }
 
-    for (String disallowedSubString : disallowedSubStrings) {
-      variablesToExportIter = variablesToExportIter.filter(v -> !v.contains(disallowedSubString));
-    }
-
-    return variablesToExportIter.toSet();
+    return qualVarNamesWanted.build();
   }
 
   @Override
