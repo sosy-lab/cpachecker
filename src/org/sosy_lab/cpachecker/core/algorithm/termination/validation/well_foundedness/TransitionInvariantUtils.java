@@ -102,10 +102,13 @@ public class TransitionInvariantUtils {
   }
 
   public static String transformFormulaToStringWithTrivialReplacement(
-      BooleanFormula pFormula, BooleanFormulaManagerView bfmgr, FormulaManagerView fmgr)
+      BooleanFormula pFormula,
+      BooleanFormulaManagerView bfmgr,
+      FormulaManagerView fmgr,
+      Scope pScope)
       throws CPAException {
     FormulaToCExpressionConverter converter = new FormulaToCExpressionConverter(fmgr);
-    if (bfmgr.isTrue(pFormula)) {
+    if (bfmgr.isTrue(pFormula) || containsPointerVariables(pFormula, fmgr, pScope)) {
       return "1";
     } else if (bfmgr.isFalse(pFormula)) {
       return "0";
@@ -115,6 +118,26 @@ public class TransitionInvariantUtils {
     } catch (SolverException | InterruptedException e) {
       throw new CPAException("It was not possible to translate invariant to CExpression.");
     }
+  }
+
+  private static boolean containsPointerVariables(
+      BooleanFormula pFormula, FormulaManagerView fmgr, Scope pScope) {
+    try {
+      for (String variable : fmgr.extractVariables(pFormula).keySet()) {
+        String varWithoutFunc = removeFunctionFromVarsName(variable);
+        System.out.println(varWithoutFunc);
+        if (pScope.variableNameInUse(varWithoutFunc)) {
+          System.out.println(pScope.lookupVariable(varWithoutFunc));
+        }
+        if (pScope.variableNameInUse(varWithoutFunc)
+            && pScope.lookupVariable(varWithoutFunc).toString().contains("*")) {
+          return true;
+        }
+      }
+    } catch (NullPointerException e) {
+      return false;
+    }
+    return false;
   }
 
   /**

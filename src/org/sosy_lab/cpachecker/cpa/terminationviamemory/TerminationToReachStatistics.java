@@ -26,8 +26,10 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -76,6 +78,7 @@ public class TerminationToReachStatistics extends ARGStatistics implements Stati
   private FormulaManagerView fmgr;
   private BooleanFormulaManagerView bfmgr;
   private CounterexampleToWitnessV2 nonterminationWitnessExporter;
+  private Scope scope;
 
   public TerminationToReachStatistics(
       Configuration pConfig, LogManager pLogger, CFA pCFA, ConfigurableProgramAnalysis pCPA)
@@ -88,6 +91,7 @@ public class TerminationToReachStatistics extends ARGStatistics implements Stati
             .withAdditionalProperties(ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
         pCFA);
     pConfig.inject(this);
+    scope = new CProgramScope(pCFA, pLogger);
     terminationWitnessExporter =
         new TerminationYAMLWitnessExporter(
             pConfig,
@@ -169,7 +173,7 @@ public class TerminationToReachStatistics extends ARGStatistics implements Stati
       try {
         transitionInvariantAsC =
             TransitionInvariantUtils.transformFormulaToStringWithTrivialReplacement(
-                    formula.getFormula(), bfmgr, fmgr)
+                    formula.getFormula(), bfmgr, fmgr, scope)
                 .replace("::at", "\\at");
         transitionInvariantAsC =
             TransitionInvariantUtils.removeFunctionFromVarsName(transitionInvariantAsC);
