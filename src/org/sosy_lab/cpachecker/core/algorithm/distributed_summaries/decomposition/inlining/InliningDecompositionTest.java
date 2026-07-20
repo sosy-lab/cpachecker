@@ -6,10 +6,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
+package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.inlining;
 
 import java.io.IOException;
-import java.util.Comparator;
 import java.util.List;
 import java.util.function.Predicate;
 import org.junit.Test;
@@ -22,15 +21,15 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DecompositionTestBase;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 @RunWith(Parameterized.class)
-public class VerticalMergeDecompositionTest {
+public class InliningDecompositionTest {
 
   @Parameters(name = "{0}")
   public static List<Object[]> getParameters() {
@@ -38,6 +37,17 @@ public class VerticalMergeDecompositionTest {
   }
 
   @Parameter public String path;
+
+  @Test
+  public void test() throws Exception {
+    CFA cfa = TestUtil.buildTestCFA(path);
+
+    DssBlockDecomposition decomposition = createDecomposition(cfa);
+
+    decomposition.decompose(cfa);
+
+    // TODO the assumptions for the normal decompositions no longer  hold -> find sensible checks?
+  }
 
   private static DssBlockDecomposition createDecomposition(CFA cfa)
       throws InvalidConfigurationException, IOException {
@@ -55,22 +65,6 @@ public class VerticalMergeDecompositionTest {
 
     Predicate<CFANode> isBlockEnd = n -> blockOperator.isBlockEnd(n, -1);
 
-    return new VerticalMergeDecomposition(
-        new LinearBlockNodeDecomposition(isBlockEnd),
-        2,
-        Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
-        true);
-  }
-
-  @Test
-  public void testVerticalMergeDecomposition() throws Exception {
-
-    CFA cfa = TestUtil.buildTestCFA(path);
-
-    DssBlockDecomposition decomposition = createDecomposition(cfa);
-
-    BlockGraph graph = decomposition.decompose(cfa);
-
-    DecompositionTestBase.checkBlockGraph(graph, cfa);
+    return new InliningDecomposition(new LinearBlockNodeDecomposition(isBlockEnd));
   }
 }

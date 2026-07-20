@@ -46,7 +46,8 @@ public class BlockState
   private final BlockNode blockNode;
   private final ImmutableList<String> history;
   private List<? extends AbstractState> violationConditions;
-  private final ImmutableList<String> witness;
+  private final ViolationWitness witness;
+  private boolean topSummaryFromNonTrivialState;
 
   public BlockState(
       CFANode pNode,
@@ -54,17 +55,27 @@ public class BlockState
       BlockStateType pType,
       List<? extends AbstractState> pViolationConditions,
       List<String> pHistory,
-      List<String> pWitness) {
+      ViolationWitness pWitness,
+      boolean pTopSummaryFromNonTrivialState) {
     node = pNode;
     type = pType;
     blockNode = pTargetNode;
     violationConditions = ImmutableList.copyOf(pViolationConditions);
     history = ImmutableList.copyOf(pHistory);
-    witness = ImmutableList.copyOf(pWitness);
+    witness = pWitness;
+    topSummaryFromNonTrivialState = pTopSummaryFromNonTrivialState;
   }
 
-  public ImmutableList<String> getWitness() {
+  public void setTopSummaryFromNonTrivialState(boolean pStemsFromTopState) {
+    topSummaryFromNonTrivialState = pStemsFromTopState;
+  }
+
+  public ViolationWitness getWitness() {
     return witness;
+  }
+
+  public boolean hasNonTrivialSummaryForEachPredecessor() {
+    return topSummaryFromNonTrivialState;
   }
 
   public ImmutableList<String> getHistory() {
