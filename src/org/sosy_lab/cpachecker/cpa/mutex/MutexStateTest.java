@@ -58,10 +58,10 @@ public class MutexStateTest {
   }
 
   /**
-   * Builds a fresh AST for {@code &arrayDecl[index].fieldName}: a new set of expression nodes
-   * every call, as two separate occurrences of the same source text (e.g. at a lock call site and
-   * an unlock call site) would each get their own parsed argument expression, referencing the
-   * same underlying array variable declaration.
+   * Builds a fresh AST for {@code &arrayDecl[index].fieldName}: a new set of expression nodes every
+   * call, as two separate occurrences of the same source text (e.g. at a lock call site and an
+   * unlock call site) would each get their own parsed argument expression, referencing the same
+   * underlying array variable declaration.
    */
   private static CExpression addressOfArrayFieldAccess(
       CVariableDeclaration arrayDecl, int index, String fieldName) {
@@ -86,8 +86,8 @@ public class MutexStateTest {
 
   /**
    * Same as {@link #addressOfArrayFieldAccess}, but the array index is itself a variable (e.g. a
-   * loop counter) instead of an integer literal, so the accessed storage location can differ
-   * across evaluations and no single canonical key can describe it.
+   * loop counter) instead of an integer literal, so the accessed storage location can differ across
+   * evaluations and no single canonical key can describe it.
    */
   private static CExpression addressOfSymbolicIndexArrayFieldAccess(
       CVariableDeclaration arrayDecl, CVariableDeclaration indexDecl, String fieldName) {

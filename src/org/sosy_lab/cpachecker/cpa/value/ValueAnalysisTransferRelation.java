@@ -237,8 +237,7 @@ public class ValueAnalysisTransferRelation
                 + " use cases, e.g., when using value analysis for concurrent programs where"
                 + " multiple threads can execute the same function. Then, the thread ID must also"
                 + " be included in the qualified name, which is only possible if the qualified name"
-                + " is used."
-    )
+                + " is used.")
     private boolean alwaysUseQualifiedNames = false;
 
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {

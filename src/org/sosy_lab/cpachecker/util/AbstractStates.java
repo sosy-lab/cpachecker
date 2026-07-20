@@ -44,8 +44,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 /** Helper class that provides several useful methods for handling AbstractStates. */
 public final class AbstractStates {
 
-  private AbstractStates() {
-  }
+  private AbstractStates() {}
 
   /**
    * Retrieve one of the wrapped abstract states by type. If the hierarchy of (wrapped) abstract
@@ -57,9 +56,9 @@ public final class AbstractStates {
    * <p>If you want to get all wrapped states with this type, use <code>
    * asIterable(pState).filter(pType)</code>.
    *
-   * @param <T>    The type of the wrapped state.
+   * @param <T> The type of the wrapped state.
    * @param pState An abstract state
-   * @param pType  The class object of the type of the wrapped state.
+   * @param pType The class object of the type of the wrapped state.
    * @return An instance of an state with type T or null if there is none.
    */
   @Nullable
@@ -87,8 +86,7 @@ public final class AbstractStates {
             }
           }
         }
-        case null /*TODO check if null is necessary*/, default -> {
-        }
+        case null /*TODO check if null is necessary*/, default -> {}
       }
     }
 
@@ -106,7 +104,7 @@ public final class AbstractStates {
    *
    * @param states an <code>Iterable</code> over all the states <code>
    *               extractStateByType(AbstractState, Class)</code> should be applied on
-   * @param pType  the type to use in each call of <code>extractStateByType(AbstractState, Class)
+   * @param pType the type to use in each call of <code>extractStateByType(AbstractState, Class)
    *               </code>
    * @return an <code>Iterable</code> over all the returned states without <code>null</code> values
    */
@@ -124,8 +122,8 @@ public final class AbstractStates {
       AbstractState pState) {
     CallstackState callstack = extractStateByType(pState, CallstackState.class);
     return callstack == null
-           ? Optional.empty()
-           : Optional.of(new CallstackStateEqualsWrapper(callstack));
+        ? Optional.empty()
+        : Optional.of(new CallstackStateEqualsWrapper(callstack));
   }
 
   public static Iterable<CFANode> extractLocations(AbstractState pState) {
@@ -157,8 +155,7 @@ public final class AbstractStates {
   }
 
   private static List<CFAEdge> getEdgesToChildWithLocation(
-      AbstractState pParent,
-      AbstractState pChild) {
+      AbstractState pParent, AbstractState pChild) {
     var parent = extractStateByType(pParent, AbstractStateWithLocation.class);
     var child = extractStateByType(pChild, AbstractStateWithLocation.class);
     if (parent == null || child == null) {
@@ -168,8 +165,7 @@ public final class AbstractStates {
   }
 
   private static List<CFAEdge> getEdgesToChildWithLocations(
-      AbstractState pParent,
-      AbstractState pChild) {
+      AbstractState pParent, AbstractState pChild) {
     var parent = extractStateByType(pParent, AbstractStateWithLocations.class);
     var child = extractStateByType(pChild, AbstractStateWithLocations.class);
     if (parent == null || child == null) {
@@ -224,7 +220,7 @@ public final class AbstractStates {
    * @param pType the type to use in the call of <code>extractStateByType(AbstractState, Class)
    *              </code> for parameter <code>Class</code>
    * @return a <code>Function</code> for <code>extractStateByType(AbstractState, Class)</code> using
-   * the given type
+   *     the given type
    */
   public static <T extends AbstractState> Function<AbstractState, T> toState(final Class<T> pType) {
 
@@ -252,7 +248,7 @@ public final class AbstractStates {
    *
    * @param as the root state
    * @return a <code>FluentIterable</code> over the given root state and all states that are wrapped
-   * in it, recursively
+   *     in it, recursively
    */
   public static FluentIterable<AbstractState> asIterable(final AbstractState as) {
     return FluentIterable.from(

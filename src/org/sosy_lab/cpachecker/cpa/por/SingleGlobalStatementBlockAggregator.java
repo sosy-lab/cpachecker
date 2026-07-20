@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.por;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
 import java.util.LinkedHashSet;
@@ -87,14 +89,15 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
       }
       var accesses = memoryAccessExtractor.extract(currentEdge);
       if ((!accesses.getUses().isEmpty()
-          || !accesses.getDefs().isEmpty()
-          || !accesses.getPointeeDefs().isEmpty()
-          || !accesses.getPointeeUses().isEmpty()
-          // The walked edge (not the constant candidate) must be tested: a lock/atomic_begin
-          // anywhere in the chain consumes the single-global-statement budget, so a block can
-          // contain at most one critical-section entry and no global statement besides it.
-          || MutexFunctions.isLockCall(currentEdge))
-          && !atomicBlockNodes.contains(PorEdgeCloner.getOriginalNode(currentEdge.getPredecessor()))) {
+              || !accesses.getDefs().isEmpty()
+              || !accesses.getPointeeDefs().isEmpty()
+              || !accesses.getPointeeUses().isEmpty()
+              // The walked edge (not the constant candidate) must be tested: a lock/atomic_begin
+              // anywhere in the chain consumes the single-global-statement budget, so a block can
+              // contain at most one critical-section entry and no global statement besides it.
+              || MutexFunctions.isLockCall(currentEdge))
+          && !atomicBlockNodes.contains(
+              PorEdgeCloner.getOriginalNode(currentEdge.getPredecessor()))) {
         if (anyGlobalStatements) {
           return false;
         }
@@ -160,9 +163,8 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
       }
     }
 
-    return nodesBeforeAnyThreadStart.stream()
-        .map(node -> PorEdgeCloner.getClonedNode(node, 0, pCFA))
-        .collect(ImmutableSet.toImmutableSet());
+    return transformedImmutableSetCopy(
+        nodesBeforeAnyThreadStart, node -> PorEdgeCloner.getClonedNode(node, 0, pCFA));
   }
 
   private ImmutableCollection<CFANode> getAtomicBlockNodes(CFA pCFA) {
@@ -197,8 +199,8 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
   private boolean isFunctionCall(CFAEdge edge, String name) {
     return edge instanceof AStatementEdge statementEdge
         && statementEdge.getStatement() instanceof AFunctionCall functionCall
-        && functionCall.getFunctionCallExpression()
-        .getFunctionNameExpression() instanceof AIdExpression functionName
+        && functionCall.getFunctionCallExpression().getFunctionNameExpression()
+            instanceof AIdExpression functionName
         && name.equals(functionName.getName());
   }
 

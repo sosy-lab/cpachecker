@@ -38,9 +38,9 @@ import org.sosy_lab.cpachecker.util.test.KnownConcurrencyIssues;
  *   <li>{@code OverflowTransferRelation} returned <b>no successors at all</b> at a node with no
  *       leaving edges (it built its result inside the loop over those edges). A thread's last edge
  *       ends at its function exit node, so the thread's final state was killed, the thread never
- *       reached its exit, {@code canJoin} was never satisfied, and every {@code pthread_join} stayed
- *       disabled forever — silently making everything after a join unreachable. Guarded by {@code
- *       overflow_after_join_unsafe.c}.
+ *       reached its exit, {@code canJoin} was never satisfied, and every {@code pthread_join}
+ *       stayed disabled forever — silently making everything after a join unreachable. Guarded by
+ *       {@code overflow_after_join_unsafe.c}.
  *   <li>POR applies synthetic bookkeeping edges of its own (the handle write at a create, the
  *       handle-equality assume at a join). Feeding an already-<i>violating</i> state through one of
  *       them returned an empty collection — OverflowCPA reports a violation precisely by producing

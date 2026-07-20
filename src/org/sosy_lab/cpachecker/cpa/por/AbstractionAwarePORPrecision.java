@@ -16,8 +16,7 @@ class AbstractionAwarePORPrecision extends PORPrecision {
   private final PrecisionVariableManager variableManager;
 
   AbstractionAwarePORPrecision(
-      PrecisionVariableManager pVariableManager,
-      Precision wrappedPrecision) {
+      PrecisionVariableManager pVariableManager, Precision wrappedPrecision) {
     super(wrappedPrecision);
     variableManager = pVariableManager;
     variableManager.setNewPrecision(wrappedPrecision);

@@ -71,8 +71,7 @@ public class ConcurrencyOverflowTest {
     return configs.stream()
         .flatMap(
             config ->
-                testCases.stream()
-                    .map(t -> new Object[] {t.getFirst(), config, t.getSecond()}))
+                testCases.stream().map(t -> new Object[] {t.getFirst(), config, t.getSecond()}))
         .toList();
   }
 

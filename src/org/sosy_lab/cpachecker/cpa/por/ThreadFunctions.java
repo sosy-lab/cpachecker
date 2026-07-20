@@ -53,26 +53,19 @@ public final class ThreadFunctions {
   private static final ImmutableSet<String> JOIN_FUNCTIONS = ImmutableSet.of("pthread_join");
   private static final ImmutableSet<String> THREAD_EXIT_FUNCTIONS = ImmutableSet.of("pthread_exit");
 
-  private ThreadFunctions() {
-  }
+  private ThreadFunctions() {}
 
-  /**
-   * Returns {@code true} if the given function name is a thread creation function.
-   */
+  /** Returns {@code true} if the given function name is a thread creation function. */
   public static boolean isCreateFunction(String functionName) {
     return CREATE_FUNCTIONS.contains(functionName);
   }
 
-  /**
-   * Returns {@code true} if the given function name is a thread join function.
-   */
+  /** Returns {@code true} if the given function name is a thread join function. */
   public static boolean isJoinFunction(String functionName) {
     return JOIN_FUNCTIONS.contains(functionName);
   }
 
-  /**
-   * Returns {@code true} if the given function name is a thread exit function.
-   */
+  /** Returns {@code true} if the given function name is a thread exit function. */
   public static boolean isThreadExitFunction(String functionName) {
     return THREAD_EXIT_FUNCTIONS.contains(functionName);
   }
@@ -92,11 +85,11 @@ public final class ThreadFunctions {
    * Extracts the started function's name from a {@code pthread_create} call's parameter list.
    *
    * @param params the parameter expressions of the {@code pthread_create} call (must have 4
-   *               elements)
+   *     elements)
    * @return the simple name of the function to be started in the new thread
    * @throws UnsupportedCodeException if the third parameter is not (optionally cast to some
-   *     function pointer type) a {@code &function} expression naming the entry point directly,
-   *     e.g. a function pointer computed at runtime
+   *     function pointer type) a {@code &function} expression naming the entry point directly, e.g.
+   *     a function pointer computed at runtime
    */
   public static String extractCreateFunctionName(List<? extends AExpression> params)
       throws UnsupportedCodeException {
@@ -105,8 +98,7 @@ public final class ThreadFunctions {
     if (!(threadArg instanceof CUnaryExpression cUnaryExpression)
         || cUnaryExpression.getOperator() != UnaryOperator.AMPER) {
       throw new UnsupportedCodeException(
-          "Malformed pthread_create (Thread not unary expression with reference): "
-              + params.get(2),
+          "Malformed pthread_create (Thread not unary expression with reference): " + params.get(2),
           null);
     }
     if (!(cUnaryExpression.getOperand() instanceof CIdExpression idExpression)) {
@@ -118,9 +110,9 @@ public final class ThreadFunctions {
   }
 
   /**
-   * Strips any surrounding (possibly nested) {@link CCastExpression}s, e.g. so that {@code
-   * (void *(*)(void *))(&f)} is seen as {@code &f}. Grouping parentheses need no separate
-   * handling: CPAchecker's C frontend does not represent them as AST nodes.
+   * Strips any surrounding (possibly nested) {@link CCastExpression}s, e.g. so that {@code (void
+   * *(*)(void *))(&f)} is seen as {@code &f}. Grouping parentheses need no separate handling:
+   * CPAchecker's C frontend does not represent them as AST nodes.
    */
   private static AExpression stripCasts(AExpression expression) {
     AExpression result = expression;
@@ -133,8 +125,8 @@ public final class ThreadFunctions {
   /**
    * Checks that a {@code pthread_join} call has the expected 2 arguments. As with {@link
    * #checkCreateParams}, the handle argument (params.get(0)) itself is unrestricted: which thread
-   * instance it identifies is resolved by candidate-set branching over the live thread instances
-   * at the join site, not by statically resolving a variable name here.
+   * instance it identifies is resolved by candidate-set branching over the live thread instances at
+   * the join site, not by statically resolving a variable name here.
    */
   public static void checkJoinParams(List<? extends AExpression> params) {
     checkState(params.size() == 2, "Malformed pthread_join (not 2 params): %s", params);
@@ -145,9 +137,9 @@ public final class ThreadFunctions {
    * handle addresses, or null if that cannot be determined purely syntactically. Used by both
    * {@link PORTransferRelation} (to populate/consult the fast-path join hint) and {@link
    * PORState#isJoinCurrentlyEnabled} (which must decide, consistently with the transfer relation,
-   * whether a join is actually enabled without introducing any synthetic branching) — the two
-   * call sites must agree on what counts as a resolvable handle, or a join could be offered by one
-   * and rejected by the other, silently dropping every schedule that reaches that state (see git
+   * whether a join is actually enabled without introducing any synthetic branching) — the two call
+   * sites must agree on what counts as a resolvable handle, or a join could be offered by one and
+   * rejected by the other, silently dropping every schedule that reaches that state (see git
    * history for the resulting soundness bug this exact mismatch caused).
    *
    * <p>Beyond a plain variable ({@code t}), this also resolves array elements and struct fields
@@ -162,7 +154,8 @@ public final class ThreadFunctions {
     return handle instanceof CLeftHandSide lvalue ? canonicalLvalueKey(lvalue) : null;
   }
 
-  /** Same as {@link #canonicalHandleLvalueKey}, but for a {@code pthread_create} handle, which is
+  /**
+   * Same as {@link #canonicalHandleLvalueKey}, but for a {@code pthread_create} handle, which is
    * syntactically {@code &lvalue} (the lvalue itself, not the address-of expression, is the key).
    */
   public static @Nullable String canonicalHandleAddressKey(CExpression handle) {
@@ -187,9 +180,9 @@ public final class ThreadFunctions {
 
   /**
    * Inverse of {@link #perThreadName}: strips the thread-ID prefix, returning the qualified name
-   * the variable had before per-thread renaming. Returns the input unchanged if it does not carry
-   * a thread-ID prefix. Needed wherever a renamed variable must be looked up in information that
-   * was computed on the original CFA before cloning (e.g. the {@code addressedVariables} of the
+   * the variable had before per-thread renaming. Returns the input unchanged if it does not carry a
+   * thread-ID prefix. Needed wherever a renamed variable must be looked up in information that was
+   * computed on the original CFA before cloning (e.g. the {@code addressedVariables} of the
    * variable classification, which decides whether the formula encoding places a variable in the
    * aliased/heap regime).
    */
@@ -202,10 +195,10 @@ public final class ThreadFunctions {
   /**
    * Every {@code __thread}/{@code _Thread_local} variable declared in {@code pCfa}, in declaration
    * order. Each of these lives at file scope but has one private copy per thread, so both
-   * concurrent analyses privatize it (see {@link #perThreadName}) and must then initialize the
-   * copy of every thread they spawn: a spawned thread starts at its start routine's entry and
-   * never executes the file-scope declaration edge, which only exists in the main thread's clone,
-   * so without an injected initialization its copy would be indeterminate rather than zero.
+   * concurrent analyses privatize it (see {@link #perThreadName}) and must then initialize the copy
+   * of every thread they spawn: a spawned thread starts at its start routine's entry and never
+   * executes the file-scope declaration edge, which only exists in the main thread's clone, so
+   * without an injected initialization its copy would be indeterminate rather than zero.
    *
    * <p>Scanning the CFA is the only way to find these: no analysis has a ready accessor for global
    * declarations. Callers are expected to do this once and cache it, never per edge.
@@ -286,7 +279,8 @@ public final class ThreadFunctions {
       String arrayKey = canonicalLvalueKey(array);
       return arrayKey == null ? null : arrayKey + "[" + literal.getValue() + "]";
     }
-    if (lvalue instanceof CFieldReference field && !field.isPointerDereference()
+    if (lvalue instanceof CFieldReference field
+        && !field.isPointerDereference()
         && field.getFieldOwner() instanceof CLeftHandSide owner) {
       String ownerKey = canonicalLvalueKey(owner);
       return ownerKey == null ? null : ownerKey + "." + field.getFieldName();

@@ -12,13 +12,13 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -34,9 +34,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -113,8 +113,7 @@ public class PORTransferRelation implements TransferRelation {
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(
-      AbstractState state, Precision precision)
-      throws CPATransferException, InterruptedException {
+      AbstractState state, Precision precision) throws CPATransferException, InterruptedException {
     if (!(state instanceof PORState porState)) {
       throw new CPATransferException("State is not a PORState.");
     }
@@ -201,11 +200,8 @@ public class PORTransferRelation implements TransferRelation {
   }
 
   private void getAbstractSuccessorsForEdge(
-      PORState state,
-      PORPrecision precision,
-      CFAEdge cfaEdge,
-      int pid,
-      Collection<PORState> result) throws CPATransferException, InterruptedException {
+      PORState state, PORPrecision precision, CFAEdge cfaEdge, int pid, Collection<PORState> result)
+      throws CPATransferException, InterruptedException {
     Collection<? extends AbstractState> wrappedSuccessors =
         applyEdgeWithForgetting(precision, state.getWrappedState(), cfaEdge, pid);
     if (wrappedSuccessors.isEmpty()) {
@@ -242,7 +238,11 @@ public class PORTransferRelation implements TransferRelation {
         afterWrite = initializeThreadLocals(precision, afterWrite, newPid, cfaEdge, pid);
         String handleName = ThreadFunctions.canonicalHandleAddressKey((CExpression) params.get(0));
         finishEdge(
-            addNewThread(state, threadFunc, handleName), precision, cfaEdge, pid, afterWrite,
+            addNewThread(state, threadFunc, handleName),
+            precision,
+            cfaEdge,
+            pid,
+            afterWrite,
             result);
         return;
       }
@@ -253,7 +253,8 @@ public class PORTransferRelation implements TransferRelation {
 
         // Fast path for the common case: the handle expression's storage location can be
         // determined purely syntactically (a plain variable, or a path to it through only literal
-        // array indices / non-pointer field accesses — see ThreadFunctions#canonicalHandleLvalueKey)
+        // array indices / non-pointer field accesses — see
+        // ThreadFunctions#canonicalHandleLvalueKey)
         // and a single create
         // call already unambiguously paired that same key with a pid (see PORState#handleHints).
         // Joining directly here, without any synthetic assume edge, avoids polluting the wrapped
@@ -319,10 +320,9 @@ public class PORTransferRelation implements TransferRelation {
   }
 
   /**
-   * Advances {@code pid}'s location/callstack past {@code cfaEdge} and combines every resulting
-   * POR successor with every given wrapped-analysis successor. Shared tail of {@link
-   * #getAbstractSuccessorsForEdge}, called once per candidate branch for a join and once
-   * otherwise.
+   * Advances {@code pid}'s location/callstack past {@code cfaEdge} and combines every resulting POR
+   * successor with every given wrapped-analysis successor. Shared tail of {@link
+   * #getAbstractSuccessorsForEdge}, called once per candidate branch for a join and once otherwise.
    */
   private void finishEdge(
       PORState old,
@@ -342,9 +342,7 @@ public class PORTransferRelation implements TransferRelation {
     final var nextLocs =
         locationCPA.getTransferRelation().getAbstractSuccessorsForEdge(loc, precision, cfaEdge);
     final var nextStacks =
-        callstackCPA
-            .getTransferRelation()
-            .getAbstractSuccessorsForEdge(stack, precision, cfaEdge);
+        callstackCPA.getTransferRelation().getAbstractSuccessorsForEdge(stack, precision, cfaEdge);
 
     List<PORState> successors =
         nextLocs.stream()
@@ -369,9 +367,9 @@ public class PORTransferRelation implements TransferRelation {
    * handle-equality assume at a join) to {@code wrappedState}, keeping the state itself if the edge
    * yields nothing.
    *
-   * <p>These edges are not part of the program: they exist only so the wrapped analysis learns which
-   * instance a handle denotes. So they must never be able to <b>lose</b> a state. They can, because
-   * a CPA is allowed to report a violation by producing no successors at all — {@link
+   * <p>These edges are not part of the program: they exist only so the wrapped analysis learns
+   * which instance a handle denotes. So they must never be able to <b>lose</b> a state. They can,
+   * because a CPA is allowed to report a violation by producing no successors at all — {@link
    * org.sosy_lab.cpachecker.cpa.overflow.OverflowTransferRelation} does exactly that ("once we have
    * an overflow there is no need to continue"). Feeding such an already-violating state through a
    * bookkeeping edge would return an empty collection, POR would take that for "infeasible branch",
@@ -391,28 +389,27 @@ public class PORTransferRelation implements TransferRelation {
   }
 
   /**
-   * Runs {@code edge} through the wrapped transfer relation, first temporarily forgetting any
-   * value the reduction currently treats as ignorable (see {@link PORPrecision#canIgnoreVariable}):
-   * a domain that tracks concrete/precise values (e.g. ValueAnalysisCPA) could otherwise decide
-   * the edge's outcome (an assume's direction, in particular) from a value the reduction assumed
-   * did not need cross-thread ordering, silently baking in whichever single interleaving happened
-   * to be explored instead of exploring every possibility the way an analysis with no information
-   * at all would (e.g. predicate abstraction with no predicate on the variable). Forgetting makes
-   * every domain behave like the latter for precisely the variables POR is treating as
-   * independent.
+   * Runs {@code edge} through the wrapped transfer relation, first temporarily forgetting any value
+   * the reduction currently treats as ignorable (see {@link PORPrecision#canIgnoreVariable}): a
+   * domain that tracks concrete/precise values (e.g. ValueAnalysisCPA) could otherwise decide the
+   * edge's outcome (an assume's direction, in particular) from a value the reduction assumed did
+   * not need cross-thread ordering, silently baking in whichever single interleaving happened to be
+   * explored instead of exploring every possibility the way an analysis with no information at all
+   * would (e.g. predicate abstraction with no predicate on the variable). Forgetting makes every
+   * domain behave like the latter for precisely the variables POR is treating as independent.
    *
    * <p>Also registers {@code pid} as {@code edge}'s executing thread on any {@link MutexState}
-   * component: MutexCPA's transfer relation requires a PID for every edge it processes (see
-   * {@code MutexTransferRelation}), and a synthetic edge built on the fly (the thread-handle
-   * write/assume edges) is not one PORState's normal edge-enumeration already registered.
-   * Re-registering the real edge here too is a harmless no-op (same value it already has).
+   * component: MutexCPA's transfer relation requires a PID for every edge it processes (see {@code
+   * MutexTransferRelation}), and a synthetic edge built on the fly (the thread-handle write/assume
+   * edges) is not one PORState's normal edge-enumeration already registered. Re-registering the
+   * real edge here too is a harmless no-op (same value it already has).
    */
   private Collection<? extends AbstractState> applyEdgeWithForgetting(
       PORPrecision precision, AbstractState wrappedState, CFAEdge edge, int pid)
       throws CPATransferException, InterruptedException {
     MutexState mutexState = AbstractStates.extractStateByType(wrappedState, MutexState.class);
     if (mutexState != null) {
-      mutexState.addEdgePids(new HashMap<>(Map.of(edge, pid)));
+      mutexState.addEdgePids(new HashMap<>(ImmutableMap.of(edge, pid)));
     }
     List<Runnable> restoreForgotten = new ArrayList<>();
     Iterable<MemoryLocation> uses = defUseExtractor.extract(edge).getUses();
@@ -436,11 +433,10 @@ public class PORTransferRelation implements TransferRelation {
 
   /**
    * Forgets {@code location} from {@code state} and returns a callback that restores it. The
-   * generic parameter is captured from the wildcard at the call site so the removed information
-   * can be handed back to {@link ForgetfulState#remember} with the right type.
+   * generic parameter is captured from the wildcard at the call site so the removed information can
+   * be handed back to {@link ForgetfulState#remember} with the right type.
    */
-  private static <T> Runnable forgetTemporarily(
-      ForgetfulState<T> state, MemoryLocation location) {
+  private static <T> Runnable forgetTemporarily(ForgetfulState<T> state, MemoryLocation location) {
     T forgotten = state.forget(location);
     return () -> state.remember(location, forgotten);
   }
@@ -477,8 +473,8 @@ public class PORTransferRelation implements TransferRelation {
    * inner lvalue *is* the target — dereferencing it again ({@code *(&lvalue)}) is a pattern the C
    * frontend never itself produces (it already folds {@code *&x} to {@code x}), so the wrapped
    * analysis's own C-expression handling does not recognize it. Otherwise the handle is already
-   * pointer-typed (e.g. a {@code pthread_t*} parameter), and the lvalue is the ordinary
-   * dereference {@code *handle}.
+   * pointer-typed (e.g. a {@code pthread_t*} parameter), and the lvalue is the ordinary dereference
+   * {@code *handle}.
    */
   private static CLeftHandSide threadHandleLvalue(CExpression handle, CFAEdge edge)
       throws UnsupportedCodeException {
@@ -492,10 +488,10 @@ public class PORTransferRelation implements TransferRelation {
   }
 
   /**
-   * A synthetic {@code handleLvalue = id;} edge that writes a fresh literal identifying {@code
-   * pid} through the (arbitrary) lvalue naming the new thread's handle. Handed to the wrapped
-   * analysis exactly like any other edge, so whatever it already supports for regular lvalues
-   * (array elements, struct fields, ...) is all that is needed here — nothing POR-specific.
+   * A synthetic {@code handleLvalue = id;} edge that writes a fresh literal identifying {@code pid}
+   * through the (arbitrary) lvalue naming the new thread's handle. Handed to the wrapped analysis
+   * exactly like any other edge, so whatever it already supports for regular lvalues (array
+   * elements, struct fields, ...) is all that is needed here — nothing POR-specific.
    */
   private static CFAEdge writeThreadHandleEdge(CExpression handle, int pid, CFAEdge edge)
       throws UnsupportedCodeException {
@@ -528,11 +524,7 @@ public class PORTransferRelation implements TransferRelation {
    * observe it, so where in the schedule the write lands cannot matter.
    */
   private List<AbstractState> initializeThreadLocals(
-      PORPrecision precision,
-      List<AbstractState> pStates,
-      int newPid,
-      CFAEdge cfaEdge,
-      int pid)
+      PORPrecision precision, List<AbstractState> pStates, int newPid, CFAEdge cfaEdge, int pid)
       throws CPATransferException, InterruptedException {
     List<AbstractState> states = pStates;
     for (CVariableDeclaration threadLocal : threadLocalGlobals) {
@@ -547,13 +539,13 @@ public class PORTransferRelation implements TransferRelation {
   }
 
   /**
-   * A synthetic {@code T{newPid}_startRoutine::param = <4th pthread_create argument>;} edge
-   * binding the spawned thread's start-routine parameter to the argument the creator passes.
-   * Without it the child's parameter is a variable no edge on any path ever assigns, so the
-   * wrapped analysis treats it as indeterminate — sound, but any property that hinges on the
-   * pointed-to data (e.g. {@code *((int *) arg)} staying in a known range) then admits spurious
-   * counterexamples, observed as wrong FALSE verdicts on tasks passing {@code &local} through
-   * {@code pthread_create} (goblint-regression escape_* / container_of families).
+   * A synthetic {@code T{newPid}_startRoutine::param = <4th pthread_create argument>;} edge binding
+   * the spawned thread's start-routine parameter to the argument the creator passes. Without it the
+   * child's parameter is a variable no edge on any path ever assigns, so the wrapped analysis
+   * treats it as indeterminate — sound, but any property that hinges on the pointed-to data (e.g.
+   * {@code *((int *) arg)} staying in a known range) then admits spurious counterexamples, observed
+   * as wrong FALSE verdicts on tasks passing {@code &local} through {@code pthread_create}
+   * (goblint-regression escape_* / container_of families).
    *
    * <p>The argument expression comes from the creator's already-cloned call edge, so it is
    * evaluated in the creator's namespace — exactly where the concrete semantics evaluate it. The
@@ -628,10 +620,13 @@ public class PORTransferRelation implements TransferRelation {
    * is passed <b>by value</b> (POSIX: {@code int pthread_join(pthread_t thread, void **retval)}),
    * so it is compared directly, no dereference.
    */
-  private static CFAEdge assumeThreadHandleEqualsEdge(CExpression handle, int candidatePid, CFAEdge edge) {
+  private static CFAEdge assumeThreadHandleEqualsEdge(
+      CExpression handle, int candidatePid, CFAEdge edge) {
     CIntegerLiteralExpression literal =
         new CIntegerLiteralExpression(
-            FileLocation.DUMMY, handle.getExpressionType(), BigInteger.valueOf((long) candidatePid + 1));
+            FileLocation.DUMMY,
+            handle.getExpressionType(),
+            BigInteger.valueOf((long) candidatePid + 1));
     CBinaryExpression identity =
         new CBinaryExpression(
             FileLocation.DUMMY,
@@ -648,12 +643,15 @@ public class PORTransferRelation implements TransferRelation {
     return addNewThreadNode(PORState.empty(wrappedInitialState, cfa, random), false, "main", null);
   }
 
-  PORState addNewThread(final PORState old, final String functionName, @Nullable String handleName) {
+  PORState addNewThread(
+      final PORState old, final String functionName, @Nullable String handleName) {
     return addNewThreadNode(old, true, functionName, handleName);
   }
 
   private PORState addNewThreadNode(
-      final PORState old, boolean addToLivePids, final String functionName,
+      final PORState old,
+      boolean addToLivePids,
+      final String functionName,
       @Nullable String handleName) {
     CFANode functionCallNode =
         Preconditions.checkNotNull(

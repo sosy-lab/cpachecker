@@ -113,7 +113,8 @@ public abstract class VariableTrackingPrecision implements Precision {
    * @param location the location of the variable
    * @return whether the variable has to be tracked
    */
-  public abstract boolean isTracking(MemoryLocation variable, Type pType, @Nullable CFANode location);
+  public abstract boolean isTracking(
+      MemoryLocation variable, Type pType, @Nullable CFANode location);
 
   /**
    * This method refines the precision with the given increment.

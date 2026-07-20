@@ -34,8 +34,8 @@ import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestRe
  *
  * <p>The property must be selected by a <b>{@code .prp} property file</b>. The OC algorithm derives
  * its target from {@code Specification#getProperties()}, which an automaton {@code .spc} file does
- * not contribute to — passing {@code specification/datarace.spc} instead would silently fall back to
- * checking reachability and report a meaningless TRUE.
+ * not contribute to — passing {@code specification/datarace.spc} instead would silently fall back
+ * to checking reachability and report a meaningless TRUE.
  */
 @RunWith(Parameterized.class)
 public class OrderingConsistencyDataRaceTest {
@@ -65,7 +65,8 @@ public class OrderingConsistencyDataRaceTest {
     List<Pair<String, Result>> testCases =
         List.of(
             // Concurrent writes through an `_Atomic float *`: the pointee is atomic, so these are
-            // not a race. Covers atomicity resolved through a dereference, and a non-integer atomic.
+            // not a race. Covers atomicity resolved through a dereference, and a non-integer
+            // atomic.
             Pair.of("atomic_float_ptr_safe.c", Result.TRUE),
             // The same declaration, but writing the POINTER itself, which is *not* atomic — a real
             // race, and the trap a name-based atomicity check would fall into.

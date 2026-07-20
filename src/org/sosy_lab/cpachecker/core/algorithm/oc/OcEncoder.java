@@ -68,8 +68,8 @@ final class OcEncoder {
    * event of a path that ends (e.g. at the error location) while still holding the lock.
    *
    * <p>{@code closeCondition} is the extra premise under which this particular end is the real end
-   * of the section. It is {@code true} for a section closed by a syntactically matching unlock. When
-   * an ambiguous unlock (one whose target object is not statically fixed, see {@code
+   * of the section. It is {@code true} for a section closed by a syntactically matching unlock.
+   * When an ambiguous unlock (one whose target object is not statically fixed, see {@code
    * OcExplorationRegistry#isAmbiguousUnlock}) might release this lock, the BFS forks: one section
    * ends at that unlock guarded by {@code address(unlock) == address(lock)}, and the continuation
    * (and any later end) carries the negation, so exactly one of them is the true section on each
@@ -219,8 +219,8 @@ final class OcEncoder {
   }
 
   /**
-   * An unordered pair of conflicting accesses of different thread instances to the same memory cell,
-   * at least one of them a write. These are the candidates for a data race; {@link
+   * An unordered pair of conflicting accesses of different thread instances to the same memory
+   * cell, at least one of them a write. These are the candidates for a data race; {@link
    * #getDataRaceConstraint} asks whether any of them can occur without an ordering between them.
    */
   record RacePair(MemoryEvent access1, MemoryEvent access2) {}
@@ -259,9 +259,9 @@ final class OcEncoder {
    * #getRacePairs}) can occur at adjacent clock values, i.e. with no event forced between them. Two
    * conflicting accesses that must be ordered — because they are mutex- or atomic-block-protected
    * (the critical-section constraints then push a LOCK/UNLOCK between them) or otherwise
-   * happens-before ordered — cannot become adjacent, so they are not flagged. Reads reading directly
-   * from a concurrent write, however, stay adjacent and are (correctly) a race. Asserted, together
-   * with the clock constraints, only for the violation check.
+   * happens-before ordered — cannot become adjacent, so they are not flagged. Reads reading
+   * directly from a concurrent write, however, stay adjacent and are (correctly) a race. Asserted,
+   * together with the clock constraints, only for the violation check.
    */
   BooleanFormula getDataRaceConstraint() {
     var imgr = fmgr.getIntegerFormulaManager();
@@ -272,10 +272,8 @@ final class OcEncoder {
       IntegerFormula clock2 = imgr.makeVariable("__oc_clk_" + pair.access2().id());
       BooleanFormula adjacent =
           bfmgr.or(
-              imgr.equal(clock1, imgr.add(clock2, one)),
-              imgr.equal(clock2, imgr.add(clock1, one)));
-      BooleanFormula both =
-          bfmgr.and(getFullGuard(pair.access1()), getFullGuard(pair.access2()));
+              imgr.equal(clock1, imgr.add(clock2, one)), imgr.equal(clock2, imgr.add(clock1, one)));
+      BooleanFormula both = bfmgr.and(getFullGuard(pair.access1()), getFullGuard(pair.access2()));
       if (pair.access1().isRegionAccess()) {
         both = bfmgr.and(both, sameAddress(pair.access1(), pair.access2()));
       }
@@ -333,7 +331,8 @@ final class OcEncoder {
     // are placed one after another starting just above address 0, and every range end is kept below
     // LAYOUT_CEILING, itself well below the signed-overflow point. The ceiling is what makes this
     // sound on bitvector addresses -- without it the solver could pick a base near the maximum so
-    // that `base + size` wraps around, spuriously satisfying disjointness and colliding two objects.
+    // that `base + size` wraps around, spuriously satisfying disjointness and colliding two
+    // objects.
     ImmutableList<OcExplorationRegistry.AddressBase> bases = registry.getAddressBases();
     Formula previousEnd = null;
     for (OcExplorationRegistry.AddressBase base : bases) {
@@ -520,9 +519,9 @@ final class OcEncoder {
    * other instance's real program-order DAG, not just one of them: a DAG merge can be missed (the
    * merge operator never merges into an already-expanded state, so two branches that reconverge at
    * the same program point after unequal exploration depths — e.g. the arms of a nested ternary —
-   * can end up as siblings instead of merging), leaving the instance with several mutually exclusive
-   * terminal (or initial) events. Anchoring the cross edge on a single, arbitrarily chosen
-   * linearization endpoint (as opposed to all of them) would silently drop the ordering edge
+   * can end up as siblings instead of merging), leaving the instance with several mutually
+   * exclusive terminal (or initial) events. Anchoring the cross edge on a single, arbitrarily
+   * chosen linearization endpoint (as opposed to all of them) would silently drop the ordering edge
    * whenever a model's actually-enabled root/sink is a different one: the checker builds its
    * happens-before graph only from enabled events, so with no edge at all from the created/joined
    * instance to the create/join event, a required order (e.g. "the joined thread's write happens
@@ -588,7 +587,7 @@ final class OcEncoder {
         continue;
       }
       if (instance.getCreateEventIds().size() == 1) {
-        int createEventId = instance.getCreateEventIds().get(0);
+        int createEventId = instance.getCreateEventIds().getFirst();
         for (MemoryEvent root : instanceEvents) {
           if (predecessors.get(root.id()).isEmpty()) {
             edges.add(new int[] {createEventId, root.id()});
@@ -680,8 +679,8 @@ final class OcEncoder {
    * the base constraints), two accesses with different bases collide only if one reaches out of its
    * object's bounds, and for in-bounds accesses this is exact — including an interior pointer whose
    * value is {@code base + k} aliasing a direct access at offset {@code k} of the same object. A
-   * fill write covers its whole object {@code [base, base + size)}, so any access with the same base
-   * is covered; base equality is the exact test there.
+   * fill write covers its whole object {@code [base, base + size)}, so any access with the same
+   * base is covered; base equality is the exact test there.
    */
   BooleanFormula sameAddress(MemoryEvent pFirst, MemoryEvent pSecond) {
     if (pFirst.fill() && pSecond.fill()) {
@@ -766,8 +765,7 @@ final class OcEncoder {
   private ImmutableList<WsPair> buildWsPairs() {
     ImmutableListMultimap<Object, MemoryEvent> writes = writesByCell();
     ImmutableList.Builder<WsPair> result = ImmutableList.builder();
-    for (Map.Entry<Object, List<MemoryEvent>> entry : Multimaps.asMap(writes).entrySet()) {
-      List<MemoryEvent> sameLocation = entry.getValue();
+    for (List<MemoryEvent> sameLocation : Multimaps.asMap(writes).values()) {
       for (int i = 0; i < sameLocation.size(); i++) {
         for (int j = i + 1; j < sameLocation.size(); j++) {
           MemoryEvent w1 = sameLocation.get(i);
@@ -863,7 +861,8 @@ final class OcEncoder {
       for (int j = i + 1; j < sections.size(); j++) {
         Section s1 = sections.get(i);
         Section s2 = sections.get(j);
-        if (s1.lock().instanceId() == s2.lock().instanceId() || !canBeSameMutex(s1.lock(), s2.lock())) {
+        if (s1.lock().instanceId() == s2.lock().instanceId()
+            || !canBeSameMutex(s1.lock(), s2.lock())) {
           continue;
         }
         if (registry.isReadLock(s1.lock().id()) && registry.isReadLock(s2.lock().id())) {

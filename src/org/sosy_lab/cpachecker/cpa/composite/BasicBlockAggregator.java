@@ -17,9 +17,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  */
 public interface BasicBlockAggregator {
 
-  /**
-   * This method checks if the given node is a valid start for a dynamic MultiEdge.
-   */
+  /** This method checks if the given node is a valid start for a dynamic MultiEdge. */
   boolean isValidMultiEdgeStart(CFANode node);
 
   /**

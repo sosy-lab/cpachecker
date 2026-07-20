@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.oc;
 
 import com.google.common.collect.ImmutableListMultimap;
+import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -25,7 +26,6 @@ import org.sosy_lab.cpachecker.cpa.oc.EventKind;
 import org.sosy_lab.cpachecker.cpa.oc.MemoryEvent;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import java.math.BigInteger;
 import org.sosy_lab.java_smt.api.Model;
 
 /**
@@ -301,7 +301,8 @@ final class ConsistencyChecker {
    * object {@code [base, base + fillSize)}, so it is the same cell as any access whose full address
    * falls in that range; two ordinary accesses match iff their full addresses are equal.
    */
-  private boolean sameCellInModel(MemoryEvent pFirst, MemoryEvent pSecond, BigInteger[] pAddresses) {
+  private boolean sameCellInModel(
+      MemoryEvent pFirst, MemoryEvent pSecond, BigInteger[] pAddresses) {
     BigInteger a = pAddresses[pFirst.id()];
     BigInteger b = pAddresses[pSecond.id()];
     if (a == null || b == null) {
@@ -316,7 +317,9 @@ final class ConsistencyChecker {
     return a.equals(b);
   }
 
-  /** Whether {@code pAddress} is in the fill's covered range {@code [fillBase, fillBase + size)}. */
+  /**
+   * Whether {@code pAddress} is in the fill's covered range {@code [fillBase, fillBase + size)}.
+   */
   private static boolean covers(BigInteger pFillBase, long pSize, BigInteger pAddress) {
     return pAddress.compareTo(pFillBase) >= 0
         && pAddress.compareTo(pFillBase.add(BigInteger.valueOf(pSize))) < 0;

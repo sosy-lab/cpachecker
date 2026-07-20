@@ -119,12 +119,13 @@ public interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
       // The POR analysis does not use a ThreadingCPA and its PORState is not a sibling of the
       // witness automaton (it wraps the composite). However, POR clones the CFA per thread, so the
-      // successor node of the (cloned) edge uniquely identifies the thread that just moved. Its PID,
+      // successor node of the (cloned) edge uniquely identifies the thread that just moved. Its
+      // PID,
       // assigned in creation order with the main thread having PID 0, matches the thread ID used in
       // the witness.
       OptionalInt porThreadId = PORState.getThreadIdForClonedNode(pEdge.getSuccessor());
       if (porThreadId.isPresent()) {
-        if (porThreadId.getAsInt() != threadId.orElseThrow()) {
+        if (porThreadId.orElseThrow() != threadId.orElseThrow()) {
           return Optional.of(CONST_FALSE);
         }
         return Optional.empty();

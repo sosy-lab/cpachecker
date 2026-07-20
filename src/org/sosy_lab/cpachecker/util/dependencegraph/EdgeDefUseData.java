@@ -122,8 +122,8 @@ public final class EdgeDefUseData {
 
     boolean mergedPartialDefs = partialDefs || other.partialDefs;
 
-    return new EdgeDefUseData(mergedDefs, mergedUses, mergedPointeeDefs, mergedPointeeUses,
-        mergedPartialDefs);
+    return new EdgeDefUseData(
+        mergedDefs, mergedUses, mergedPointeeDefs, mergedPointeeUses, mergedPartialDefs);
   }
 
   public static EdgeDefUseData empty() {
@@ -136,8 +136,7 @@ public final class EdgeDefUseData {
   }
 
   public static EdgeDefUseData.Extractor createExtractor(
-      boolean pConsiderPointees,
-      boolean pOnlyGlobals) {
+      boolean pConsiderPointees, boolean pOnlyGlobals) {
 
     return new Extractor() {
 
@@ -454,8 +453,8 @@ public final class EdgeDefUseData {
 
       CSimpleDeclaration declaration = pIastIdExpression.getDeclaration();
 
-      if ((declaration instanceof CVariableDeclaration cVariableDeclaration && (!onlyGlobals
-          || cVariableDeclaration.isGlobal()))
+      if ((declaration instanceof CVariableDeclaration cVariableDeclaration
+              && (!onlyGlobals || cVariableDeclaration.isGlobal()))
           || (!onlyGlobals && declaration instanceof CParameterDeclaration)) {
 
         MemoryLocation memLoc = MemoryLocation.forDeclaration(declaration);

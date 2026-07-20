@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 /**
  * This interface represents abstract states that somehow store information about concurrent
- * threads. The interface is intended to provide information about the active threads in the
- * current state.
+ * threads. The interface is intended to provide information about the active threads in the current
+ * state.
  */
 public interface AbstractStateWithThreads extends AbstractState {
 

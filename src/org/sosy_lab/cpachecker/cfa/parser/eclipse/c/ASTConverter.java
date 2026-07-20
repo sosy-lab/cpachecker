@@ -1988,7 +1988,8 @@ class ASTConverter {
     CType type = specifier.getSecond();
     // __thread / _Thread_local arrives as a preprocessor-inserted attribute on the decl specifier,
     // because CDT has no thread-local storage class of its own (see EclipseCdtWrapper)
-    boolean isThreadLocal = typeConverter.hasCPAcheckerAttributeForThreadLocal(d.getDeclSpecifier());
+    boolean isThreadLocal =
+        typeConverter.hasCPAcheckerAttributeForThreadLocal(d.getDeclSpecifier());
 
     IASTDeclarator[] declarators = d.getDeclarators();
     List<CDeclaration> result = new ArrayList<>();

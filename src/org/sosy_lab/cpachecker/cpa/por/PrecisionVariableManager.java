@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.por;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.core.defaults.precision.ConfigurablePrecision;
@@ -28,7 +30,8 @@ interface PrecisionVariableManager {
 
     private final ImmutableCollection<PrecisionVariableManager> variableManagers;
 
-    CompositePrecisionVariableManager(ImmutableCollection<PrecisionVariableManager> pVariableManagers) {
+    CompositePrecisionVariableManager(
+        ImmutableCollection<PrecisionVariableManager> pVariableManagers) {
       variableManagers = pVariableManagers;
     }
 
@@ -68,10 +71,7 @@ interface PrecisionVariableManager {
 
     @Override
     public boolean contains(MemoryLocation pMemoryLocation) {
-      if (precision == null) {
-        throw new IllegalStateException(
-            "PrecisionVariableManager not initialized with a precision");
-      }
+      checkState(precision != null, "PrecisionVariableManager not initialized with a precision");
 
       return precision.isTracking(pMemoryLocation);
     }
@@ -95,17 +95,18 @@ interface PrecisionVariableManager {
 
     @Override
     public boolean contains(MemoryLocation pMemoryLocation) {
-      if (precision == null) {
-        throw new IllegalStateException(
-            "PrecisionVariableManager not initialized with a precision");
-      }
+      checkState(precision != null, "PrecisionVariableManager not initialized with a precision");
 
       boolean result = precision.getRawPrecision().contains(pMemoryLocation);
       if (System.getenv("POR_X") != null
           && pMemoryLocation.getExtendedQualifiedName().equals("x")) {
-        System.err.println("[POR_X] contains(x)=" + result
-            + " precSize=" + precision.getRawPrecision().size()
-            + " rawSample=" + precision.getRawPrecision().stream().limit(12).toList());
+        System.err.println(
+            "[POR_X] contains(x)="
+                + result
+                + " precSize="
+                + precision.getRawPrecision().size()
+                + " rawSample="
+                + precision.getRawPrecision().stream().limit(12).toList());
       }
       return result;
     }

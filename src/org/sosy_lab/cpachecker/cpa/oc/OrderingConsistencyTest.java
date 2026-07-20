@@ -117,7 +117,7 @@ public class OrderingConsistencyTest {
               DEFAULT_INITIAL_BOUND,
               DEFAULT_STEP,
               DEFAULT_FINAL_BOUND,
-              testCase.getSecond()
+              testCase.getSecond(),
             });
       }
     }
@@ -130,7 +130,7 @@ public class OrderingConsistencyTest {
           DEFAULT_INITIAL_BOUND,
           DEFAULT_STEP,
           DEFAULT_FINAL_BOUND,
-          Result.FALSE
+          Result.FALSE,
         });
     // safe up to the bound, but the infinite loop is always truncated: the default
     // final bound of 15 is reached without proving the unwinding assertion
@@ -141,7 +141,7 @@ public class OrderingConsistencyTest {
           DEFAULT_INITIAL_BOUND,
           DEFAULT_STEP,
           DEFAULT_FINAL_BOUND,
-          null
+          null,
         });
     data.add(
         new Object[] {
@@ -150,12 +150,12 @@ public class OrderingConsistencyTest {
           DEFAULT_INITIAL_BOUND,
           DEFAULT_STEP,
           DEFAULT_FINAL_BOUND,
-          null
+          null,
         });
     for (String fileName : getUnknownTestCases()) {
       data.add(
           new Object[] {
-            fileName, "REFINEMENT", DEFAULT_INITIAL_BOUND, DEFAULT_STEP, DEFAULT_FINAL_BOUND, null
+            fileName, "REFINEMENT", DEFAULT_INITIAL_BOUND, DEFAULT_STEP, DEFAULT_FINAL_BOUND, null,
           });
     }
     return data;

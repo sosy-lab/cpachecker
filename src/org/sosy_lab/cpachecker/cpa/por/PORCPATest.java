@@ -28,9 +28,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 
-/**
- * Integration tests for the POR CPA using the {@code por.properties} configuration.
- */
+/** Integration tests for the POR CPA using the {@code por.properties} configuration. */
 @RunWith(Parameterized.class)
 public class PORCPATest {
 
@@ -38,10 +36,7 @@ public class PORCPATest {
 
   private static Configuration getConfig(String config, Map<String, String> extra)
       throws InvalidConfigurationException, IOException {
-    return configurationForTest()
-        .loadFromFile(config)
-        .setOptions(extra)
-        .build();
+    return configurationForTest().loadFromFile(config).setOptions(extra).build();
   }
 
   private static Configuration getConfig(String config)
@@ -53,14 +48,14 @@ public class PORCPATest {
     return List.of(
         "config/por-pred.properties",
         "config/por-pred-aa.properties",
-//        "config/por-pred-z3.properties",
-//        "config/por-pred-aa-z3.properties",
+        //        "config/por-pred-z3.properties",
+        //        "config/por-pred-aa-z3.properties",
         "config/por-value.properties",
         "config/por-value-aa.properties",
         "config/por-value-cegar.properties",
         "config/por-value-cegar-aa.properties"
-//        "config/por-value-z3.properties"
-    );
+        //        "config/por-value-z3.properties"
+        );
   }
 
   private static List<Pair<String, Boolean>> getTestCases() {
@@ -84,8 +79,7 @@ public class PORCPATest {
         Pair.of("loop_handle_unsafe.c", false),
         Pair.of("atomic_float_safe.c", true),
         Pair.of("atomic_float_unsafe.c", false),
-        Pair.of("pointer_write_safe.c", true)
-    );
+        Pair.of("pointer_write_safe.c", true));
   }
 
   @Parameters(name = "{0} [{1}]")
@@ -117,19 +111,18 @@ public class PORCPATest {
 
   /**
    * A genuinely racy write/write test (the target is reachable only under one of two unordered,
-   * unconditional writes to a shared variable, checked well after both writes with no
-   * intervening branch on the racy variable itself). Abstraction-aware POR is intentionally
-   * allowed to ignore a variable no predicate/tracked-value refers to yet (that is the entire
-   * point of the reduction); {@code por-value-cegar-aa} then correctly makes the wrapped value
-   * analysis take both directions of the later assume instead of trusting a concrete value the
-   * reduction never promised to order (see PORTransferRelation's forget/remember around ignorable
-   * uses). For the two- and three-writer siblings of this test, one extra CEGAR round (which
-   * tracks the racy variable once its assume is found spuriously infeasible, letting the
-   * reduction stop ignoring it) is enough to construct the racing schedule and confirm the
-   * violation outright. These particular files do not converge that way within the configured
-   * refinement budget, so the honest answer stays UNKNOWN rather than a silently wrong TRUE.
-   * Since the underlying program has a real data race, pinning down one specific interleaving's
-   * reachability answer is not a meaningful check to begin with.
+   * unconditional writes to a shared variable, checked well after both writes with no intervening
+   * branch on the racy variable itself). Abstraction-aware POR is intentionally allowed to ignore a
+   * variable no predicate/tracked-value refers to yet (that is the entire point of the reduction);
+   * {@code por-value-cegar-aa} then correctly makes the wrapped value analysis take both directions
+   * of the later assume instead of trusting a concrete value the reduction never promised to order
+   * (see PORTransferRelation's forget/remember around ignorable uses). For the two- and
+   * three-writer siblings of this test, one extra CEGAR round (which tracks the racy variable once
+   * its assume is found spuriously infeasible, letting the reduction stop ignoring it) is enough to
+   * construct the racing schedule and confirm the violation outright. These particular files do not
+   * converge that way within the configured refinement budget, so the honest answer stays UNKNOWN
+   * rather than a silently wrong TRUE. Since the underlying program has a real data race, pinning
+   * down one specific interleaving's reachability answer is not a meaningful check to begin with.
    *
    * <p>Note that {@code loop_handle_unsafe.c} — the same racy write/write program, but joined
    * through {@code t[i]} with a loop variable — is deliberately NOT in this set: it reports FALSE
@@ -211,8 +204,7 @@ public class PORCPATest {
     } else if (configuration.equals(VALUE_CEGAR_CONFIG)
         && CEX_CHECK_UNRELIABLE_UNSAFE_TESTS.contains(fileName)) {
       // The one thing that must hold: an unsafe program is never reported safe.
-      assertThat(results.cpaCheckerResult().getResult())
-          .isNotEqualTo(CPAcheckerResult.Result.TRUE);
+      assertThat(results.cpaCheckerResult().getResult()).isNotEqualTo(CPAcheckerResult.Result.TRUE);
     } else {
       results.assertIsUnsafe();
     }

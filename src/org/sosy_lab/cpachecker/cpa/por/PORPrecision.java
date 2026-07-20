@@ -46,8 +46,7 @@ abstract class PORPrecision implements WrapperPrecision {
 
   @Override
   public @Nullable Precision replaceWrappedPrecision(
-      Precision newPrecision,
-      Predicate<? super Precision> replaceType) {
+      Precision newPrecision, Predicate<? super Precision> replaceType) {
     if (replaceType.apply(this)) {
       return newPrecision;
     }

@@ -291,7 +291,8 @@ class PorAstCloner {
     FileLocation loc = cDecl.getFileLocation();
     if (cDecl instanceof CVariableDeclaration decl
         && globalRenamer != null
-        && ((decl.isGlobal() && !decl.isThreadLocal()) || globalRenamer.treatsLocalAsRegion(decl))) {
+        && ((decl.isGlobal() && !decl.isThreadLocal())
+            || globalRenamer.treatsLocalAsRegion(decl))) {
       // globals, and address-taken locals the renamer wants in the aliasing regime, get a fresh
       // per-access name so every access becomes its own tracked memory event. A __thread global
       // is excluded here despite decl.isGlobal(): each thread has its own private copy, so it must

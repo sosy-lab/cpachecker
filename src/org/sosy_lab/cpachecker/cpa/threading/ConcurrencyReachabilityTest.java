@@ -39,26 +39,24 @@ import org.sosy_lab.cpachecker.util.test.KnownConcurrencyIssues;
  *
  * <p>Where an analysis is merely <i>incomplete</i> it is expected to say so (UNKNOWN) — that is
  * sound and is asserted as such. Where an analysis produces a <b>wrong</b> verdict, the case is
- * listed in {@link KnownConcurrencyIssues} and skipped, with the reason recorded: those are pre-existing
- * defects in analyses this change does not touch, and fixing them is out of scope.
+ * listed in {@link KnownConcurrencyIssues} and skipped, with the reason recorded: those are
+ * pre-existing defects in analyses this change does not touch, and fixing them is out of scope.
  */
 @RunWith(Parameterized.class)
 public class ConcurrencyReachabilityTest {
 
   private static final String TEST_DIR = "test/programs/por/";
-  private static final String REACHABILITY_SPEC =
-      "config/specification/sv-comp-reachability.spc";
+  private static final String REACHABILITY_SPEC = "config/specification/sv-comp-reachability.spc";
 
   private static final String PREDICATE = "config/predicateAnalysis-concurrency.properties";
   private static final String VALUE = "config/valueAnalysis-concurrency.properties";
   private static final String BMC = "config/bmc-concurrency.properties";
   private static final String BDD = "config/bddAnalysis-concurrency.properties";
-  private static final String SEQUENTIALIZATION =
-      "config/sequentialization-concurrency.properties";
+  private static final String SEQUENTIALIZATION = "config/sequentialization-concurrency.properties";
 
   /**
-   * Thread handles that are not plain variables — {@code pthread_create(&t[0], ...)} and
-   * {@code pthread_join(t[i], ...)}. Every analysis here is built on {@link ThreadingCPA}, or on
+   * Thread handles that are not plain variables — {@code pthread_create(&t[0], ...)} and {@code
+   * pthread_join(t[i], ...)}. Every analysis here is built on {@link ThreadingCPA}, or on
    * sequentialization, and all of them reject such a handle outright ("Unrecognized C code
    * (unsupported thread assignment): t[0]") and answer UNKNOWN. That is sound, and it is exactly
    * the restriction the POR and OC analyses lifted — they verify these same programs — so pinning
@@ -96,8 +94,7 @@ public class ConcurrencyReachabilityTest {
     return configs.stream()
         .flatMap(
             config ->
-                testCases.stream()
-                    .map(t -> new Object[] {t.getFirst(), config, t.getSecond()}))
+                testCases.stream().map(t -> new Object[] {t.getFirst(), config, t.getSecond()}))
         .toList();
   }
 

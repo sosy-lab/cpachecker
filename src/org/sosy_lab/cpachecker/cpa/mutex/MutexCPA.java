@@ -8,15 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.mutex;
 
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 
 /**
@@ -34,8 +31,7 @@ public class MutexCPA extends AbstractCPA {
   }
 
   @SuppressWarnings("unused")
-  public MutexCPA()
-      throws InvalidConfigurationException {
+  public MutexCPA() throws InvalidConfigurationException {
     super("sep", "sep", new MutexTransferRelation());
   }
 

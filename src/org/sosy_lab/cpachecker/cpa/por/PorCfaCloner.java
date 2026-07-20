@@ -146,8 +146,8 @@ final class PorCfaCloner {
   }
 
   /**
-   * Returns the original CFA node corresponding to the given (potentially cloned) node. If the
-   * node is not a cloned node, it is returned as-is.
+   * Returns the original CFA node corresponding to the given (potentially cloned) node. If the node
+   * is not a cloned node, it is returned as-is.
    */
   static CFANode getOriginalNode(CFANode pNode) {
     CFANode original = globalReverseNodeMap.get(pNode);
@@ -164,8 +164,8 @@ final class PorCfaCloner {
   }
 
   /**
-   * Returns the original CFA edge corresponding to the given (potentially cloned) edge. If the
-   * edge is not a cloned edge, it is returned as-is.
+   * Returns the original CFA edge corresponding to the given (potentially cloned) edge. If the edge
+   * is not a cloned edge, it is returned as-is.
    */
   static CFAEdge getOriginalEdge(CFAEdge pEdge) {
     CFAEdge original = globalReverseEdgeMap.get(pEdge);
@@ -294,9 +294,7 @@ final class PorCfaCloner {
 
       // Clone the return variable if present
       Optional<CVariableDeclaration> clonedReturnVar =
-          entryNode
-              .getReturnVariable()
-              .map(retVar -> astCloner.cloneAstLeftSide(retVar));
+          entryNode.getReturnVariable().map(retVar -> astCloner.cloneAstLeftSide(retVar));
 
       // We need to create exit node first if it exists, but we'll wire it later via the map
       // For now, pass null for exit node - we'll set it afterward
@@ -346,16 +344,17 @@ final class PorCfaCloner {
   }
 
   /**
-   * After all nodes are created, wire up FunctionEntryNode ↔ FunctionExitNode references.
-   * This is called at the end of cloneAllNodes but we handle it during cloneAllEdges
-   * since we need all nodes to be created first.
+   * After all nodes are created, wire up FunctionEntryNode ↔ FunctionExitNode references. This is
+   * called at the end of cloneAllNodes but we handle it during cloneAllEdges since we need all
+   * nodes to be created first.
    */
   private void wireEntryExitNodes() {
     for (Map.Entry<CFANode, CFANode> entry : nodeMap.entrySet()) {
       CFANode original = entry.getKey();
       CFANode cloned = entry.getValue();
 
-      if (original instanceof CFunctionEntryNode origEntry && cloned instanceof CFunctionEntryNode clonedEntry) {
+      if (original instanceof CFunctionEntryNode origEntry
+          && cloned instanceof CFunctionEntryNode clonedEntry) {
         origEntry
             .getExitNode()
             .ifPresent(
@@ -386,8 +385,7 @@ final class PorCfaCloner {
           cloneReturnStatementEdge(originalEdge, rawStatement, loc, clonedPred, clonedSucc);
       case FunctionCallEdge ->
           cloneFunctionCallEdge(originalEdge, rawStatement, loc, clonedPred, clonedSucc);
-      case FunctionReturnEdge ->
-          cloneFunctionReturnEdge(originalEdge, loc, clonedPred, clonedSucc);
+      case FunctionReturnEdge -> cloneFunctionReturnEdge(originalEdge, loc, clonedPred, clonedSucc);
       case CallToReturnEdge ->
           cloneCallToReturnEdge(originalEdge, rawStatement, loc, clonedPred, clonedSucc);
     };

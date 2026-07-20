@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Streams;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -24,7 +25,6 @@ import java.util.OptionalInt;
 import java.util.Random;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -52,15 +52,13 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class PORState
-    extends AbstractSingleWrapperState
-    implements AbstractState, AbstractStateWithLocations,
-               AbstractStateWithThreads, Graphable {
+public class PORState extends AbstractSingleWrapperState
+    implements AbstractState, AbstractStateWithLocations, AbstractStateWithThreads, Graphable {
 
   /**
-   * Shared by reference across every {@link PORState} of one analysis run (including across
-   * CEGAR refinement rounds), so successive shuffles draw fresh values instead of each state
-   * restarting the sequence; only the initial seed is fixed, for reproducibility.
+   * Shared by reference across every {@link PORState} of one analysis run (including across CEGAR
+   * refinement rounds), so successive shuffles draw fresh values instead of each state restarting
+   * the sequence; only the initial seed is fixed, for reproducibility.
    */
   private final Random random;
 
@@ -74,17 +72,14 @@ public class PORState
   /**
    * Fast-path hint from a handle variable's qualified name to the pid it was last assigned by
    * {@code pthread_create(&name, ...)}, for the common case where the handle is a plain variable
-   * (not an array element, struct field, ...). Excluded from {@link #equals}/{@link #hashCode} —
-   * it is pure optimization, never load-bearing for correctness (see {@link
-   * PORTransferRelation}'s join dispatch, which falls back to the general candidate-branching
-   * mechanism whenever no hint applies), so two states that agree on everything else may still
-   * merge/cover regardless of it.
+   * (not an array element, struct field, ...). Excluded from {@link #equals}/{@link #hashCode} — it
+   * is pure optimization, never load-bearing for correctness (see {@link PORTransferRelation}'s
+   * join dispatch, which falls back to the general candidate-branching mechanism whenever no hint
+   * applies), so two states that agree on everything else may still merge/cover regardless of it.
    */
   private final ImmutableMap<String, Integer> handleHints;
 
-  /**
-   * Transient mapping from cloned outgoing edges to their originating thread PID.
-   */
+  /** Transient mapping from cloned outgoing edges to their originating thread PID. */
   private final IdentityHashMap<CFAEdge, Integer> edgePidMap = new IdentityHashMap<>();
 
   private final EdgeDefUseData.Extractor memoryAccessExtractor =
@@ -117,7 +112,11 @@ public class PORState
 
   static PORState empty(AbstractState pWrappedInitialState, CFA pCfa, Random pRandom) {
     return new PORState(
-        pWrappedInitialState, pCfa, ImmutableMap.of(), ImmutableSet.of(), ImmutableMap.of(),
+        pWrappedInitialState,
+        pCfa,
+        ImmutableMap.of(),
+        ImmutableSet.of(),
+        ImmutableMap.of(),
         pRandom);
   }
 
@@ -129,8 +128,10 @@ public class PORState
     return livePids;
   }
 
-  /** The fast-path candidate hint for a handle's qualified name, if any (see {@link
-   * #handleHints}), or null. */
+  /**
+   * The fast-path candidate hint for a handle's qualified name, if any (see {@link #handleHints}),
+   * or null.
+   */
   public @Nullable Integer getHandleHint(String qualifiedName) {
     return handleHints.get(qualifiedName);
   }
@@ -152,10 +153,10 @@ public class PORState
   /**
    * Adds a new thread instance. {@code pAddToLivePids} is false only for the main thread (created
    * synthetically at analysis start, not via a real {@code pthread_create}): nothing can join it,
-   * so it was never made a join candidate under the old handle-name scheme either.
-   * {@code pHandleQualifiedName}, if given, records this pid as the fast-path join candidate for
-   * that variable (see {@link #handleHints}) — last write wins, matching ordinary variable
-   * semantics if the same storage is reused for a later create.
+   * so it was never made a join candidate under the old handle-name scheme either. {@code
+   * pHandleQualifiedName}, if given, records this pid as the fast-path join candidate for that
+   * variable (see {@link #handleHints}) — last write wins, matching ordinary variable semantics if
+   * the same storage is reused for a later create.
    */
   PORState addNewThread(
       boolean pAddToLivePids,
@@ -170,25 +171,25 @@ public class PORState
             .buildKeepingLast();
     final ImmutableSet<Integer> newLivePids =
         pAddToLivePids
-        ? ImmutableSet.<Integer>builder().addAll(livePids).add(newPid).build()
-        : livePids;
+            ? ImmutableSet.<Integer>builder().addAll(livePids).add(newPid).build()
+            : livePids;
     final ImmutableMap<String, Integer> newHandleHints =
         pHandleQualifiedName == null
-        ? handleHints
-        : ImmutableMap.<String, Integer>builder()
-            .putAll(handleHints)
-            .put(pHandleQualifiedName, newPid)
-            .buildKeepingLast();
+            ? handleHints
+            : ImmutableMap.<String, Integer>builder()
+                .putAll(handleHints)
+                .put(pHandleQualifiedName, newPid)
+                .buildKeepingLast();
     return new PORState(getWrappedState(), cfa, newThreads, newLivePids, newHandleHints, random);
   }
 
   /**
-   * Joins the given candidate thread instance (one of {@link #livePids}), blocking (returning
-   * null) until it has finished. Which candidate a given {@code pthread_join} call actually
-   * targets is resolved by the transfer relation — either directly, via {@link #getHandleHint} for
-   * the common case of a plain handle variable, or by branching over every live candidate and
-   * keeping only the ones the wrapped analysis finds feasible (see PORTransferRelation's join
-   * dispatch) — not by this method.
+   * Joins the given candidate thread instance (one of {@link #livePids}), blocking (returning null)
+   * until it has finished. Which candidate a given {@code pthread_join} call actually targets is
+   * resolved by the transfer relation — either directly, via {@link #getHandleHint} for the common
+   * case of a plain handle variable, or by branching over every live candidate and keeping only the
+   * ones the wrapped analysis finds feasible (see PORTransferRelation's join dispatch) — not by
+   * this method.
    */
   PORState joinThread(int pPid) {
     if (!canJoin(pPid)) {
@@ -206,7 +207,8 @@ public class PORState
 
   private boolean canJoin(int pPid) {
     var threadState = threads.get(pPid);
-    return threadState != null && !threadState.pLocationState().getOutgoingEdges().iterator().hasNext();
+    return threadState != null
+        && !threadState.pLocationState().getOutgoingEdges().iterator().hasNext();
   }
 
   /**
@@ -227,10 +229,7 @@ public class PORState
     return livePids.stream().anyMatch(this::canJoin);
   }
 
-  public PORState stepThread(
-      int pPid,
-      LocationState pNextLoc,
-      CallstackState pNextStack) {
+  public PORState stepThread(int pPid, LocationState pNextLoc, CallstackState pNextStack) {
     assert threads.containsKey(pPid) : "threads must contain pid to step " + pPid;
     final ImmutableMap.Builder<Integer, PORThreadState> newThreads = ImmutableMap.builder();
     for (Entry<Integer, PORThreadState> entry : threads.entrySet()) {
@@ -251,17 +250,22 @@ public class PORState
     CFANode originalCurrentNode = PorEdgeCloner.getOriginalNode(currentNode);
     String function = originalCurrentNode.getFunctionName();
 
-    CFANode originalExitNode = cfa.nodes().stream().filter(
-        n -> n instanceof FunctionExitNode && function.equals(n.getFunctionName())
-            && n.getNumLeavingEdges() == 0).findAny().orElseThrow();
+    CFANode originalExitNode =
+        cfa.nodes().stream()
+            .filter(
+                n ->
+                    n instanceof FunctionExitNode
+                        && function.equals(n.getFunctionName())
+                        && n.getNumLeavingEdges() == 0)
+            .findAny()
+            .orElseThrow();
     // Get the cloned exit node for this thread
     CFANode clonedExitNode = PorEdgeCloner.getClonedNode(originalExitNode, pPid, cfa);
     LocationState exitLocationState = pLocationStateFactory.getState(clonedExitNode);
 
     CFANode clonedFunctionHead =
         PorEdgeCloner.getClonedNode(cfa.getFunctionHead(function), pPid, cfa);
-    CallstackState exitCallstackState =
-        new CallstackState(null, function, clonedFunctionHead);
+    CallstackState exitCallstackState = new CallstackState(null, function, clonedFunctionHead);
 
     return stepThread(pPid, exitLocationState, exitCallstackState);
   }
@@ -291,8 +295,7 @@ public class PORState
     CFAEdge cloned = leavingEdges.get(0);
     edgePidMap.put(cloned, pid);
 
-    MutexState mutexState =
-        AbstractStates.extractStateByType(getWrappedState(), MutexState.class);
+    MutexState mutexState = AbstractStates.extractStateByType(getWrappedState(), MutexState.class);
     if (mutexState != null) {
       mutexState.addEdgePids(edgePidMap);
     }
@@ -355,9 +358,9 @@ public class PORState
         PORThreadState currentChildState = child.threads().get(threadId);
         if (currentChildState != null
             && !currentParentState
-            .pLocationState()
-            .getLocationNode()
-            .equals(currentChildState.pLocationState().getLocationNode())) {
+                .pLocationState()
+                .getLocationNode()
+                .equals(currentChildState.pLocationState().getLocationNode())) {
           if (parentThreadState != null) {
             // Multiple threads changed: collect edges from all changed threads
             ImmutableList.Builder<CFAEdge> allEdges = ImmutableList.builder();
@@ -366,8 +369,10 @@ public class PORState
               PORThreadState pState = entry2.getValue();
               PORThreadState cState = child.threads().get(tid);
               if (cState != null
-                  && !pState.pLocationState().getLocationNode()
-                  .equals(cState.pLocationState().getLocationNode())) {
+                  && !pState
+                      .pLocationState()
+                      .getLocationNode()
+                      .equals(cState.pLocationState().getLocationNode())) {
                 var edges = pState.pLocationState().getEdgesToChild(cState.pLocationState());
                 if (edges != null) {
                   allEdges.addAll(edges);
@@ -402,9 +407,7 @@ public class PORState
         }
       }
 
-      return parentThreadState
-          .pLocationState()
-          .getEdgesToChild(childThreadState.pLocationState());
+      return parentThreadState.pLocationState().getEdgesToChild(childThreadState.pLocationState());
     }
     return null;
   }
@@ -413,9 +416,9 @@ public class PORState
   public String toDOTLabel() {
     return "["
         + threads.keySet().stream()
-        .sorted()
-        .map(e -> e + ": " + threads.get(e).pLocationState().getLocationNode())
-        .collect(Collectors.joining(", "))
+            .sorted()
+            .map(e -> e + ": " + threads.get(e).pLocationState().getLocationNode())
+            .collect(Collectors.joining(", "))
         + ((CompositeState) getWrappedState()).toDOTLabel()
         + "]";
   }
@@ -519,9 +522,14 @@ public class PORState
       sourceSet = minimalSourceSet;
       if (DEBUG_SOURCE_SETS) {
         StringBuilder sb = new StringBuilder("[POR_SS] locs={");
-        threads.keySet().stream().sorted().forEach(
-            p -> sb.append(p).append(":")
-                .append(threads.get(p).pLocationState().getLocationNode()).append(" "));
+        threads.keySet().stream()
+            .sorted()
+            .forEach(
+                p ->
+                    sb.append(p)
+                        .append(":")
+                        .append(threads.get(p).pLocationState().getLocationNode())
+                        .append(" "));
         sb.append("} enabled=[");
         for (CFAEdge e : allOutgoingEdges) {
           sb.append(edgePidMap.get(e)).append(":L").append(e.getLineNumber()).append(" ");
@@ -547,7 +555,7 @@ public class PORState
       Iterable<CFAEdge> allOutgoingEdges) {
     MutexState mutexState = AbstractStates.extractStateByType(getWrappedState(), MutexState.class);
     final var enabledThreads =
-        StreamSupport.stream(allOutgoingEdges.spliterator(), false)
+        Streams.stream(allOutgoingEdges)
             .map(e -> edgePidMap.get(e))
             .distinct()
             .collect(Collectors.toCollection(ArrayList::new));
@@ -562,13 +570,14 @@ public class PORState
         }
       }
       boolean allBlocked =
-          !firstActions.isEmpty() && mutexState != null
+          !firstActions.isEmpty()
+              && mutexState != null
               && firstActions.stream()
-              .allMatch(
-                  e -> {
-                    MutexLock lockMutex = MutexFunctions.getLockMutex(e);
-                    return lockMutex != null && mutexState.isMutexBlockedFor(lockMutex, pid);
-                  });
+                  .allMatch(
+                      e -> {
+                        MutexLock lockMutex = MutexFunctions.getLockMutex(e);
+                        return lockMutex != null && mutexState.isMutexBlockedFor(lockMutex, pid);
+                      });
       if (!allBlocked) {
         sourceSetFirstActions.add(ImmutableList.copyOf(firstActions));
       }
@@ -580,7 +589,8 @@ public class PORState
       ImmutableCollection<CFAEdge> allOutgoingEdges,
       ImmutableCollection<CFAEdge> firstActions,
       PORPrecision precision,
-      BasicBlockAggregator basicBlock) throws CPATransferException {
+      BasicBlockAggregator basicBlock)
+      throws CPATransferException {
     final var currentSourceSet = new ArrayList<CFAEdge>();
     final var otherEdges = new ArrayList<CFAEdge>();
     for (final var edge : allOutgoingEdges) {
@@ -622,10 +632,8 @@ public class PORState
   }
 
   private boolean dependent(
-      CFAEdge sourceSetEdge,
-      CFAEdge edge,
-      PORPrecision precision,
-      BasicBlockAggregator basicBlock) throws CPATransferException {
+      CFAEdge sourceSetEdge, CFAEdge edge, PORPrecision precision, BasicBlockAggregator basicBlock)
+      throws CPATransferException {
     if (edgePidMap.get(sourceSetEdge).equals(edgePidMap.get(edge))) {
       return true;
     }
@@ -662,19 +670,20 @@ public class PORState
       final MutexState finalCurrentInitialMutexState = currentInitialMutexState;
       final Integer pid = getEdgePid(edge);
       final Predicate<CFAEdge> originalGoFurther = goFurther;
-      goFurther = new Predicate<>() {
+      goFurther =
+          new Predicate<>() {
 
-        private MutexState mutexState = finalCurrentInitialMutexState;
+            private MutexState mutexState = finalCurrentInitialMutexState;
 
-        @Override
-        public boolean test(CFAEdge pCFAEdge) {
-          mutexState = mutexState.update(pCFAEdge, pid);
-          return (mutexState != null
-                  && (!mutexState.getLockedMutexes().isEmpty()
-                      || mutexState.getAtomicHolder() != null))
-              || originalGoFurther.test(pCFAEdge);
-        }
-      };
+            @Override
+            public boolean test(CFAEdge pCFAEdge) {
+              mutexState = mutexState.update(pCFAEdge, pid);
+              return (mutexState != null
+                      && (!mutexState.getLockedMutexes().isEmpty()
+                          || mutexState.getAtomicHolder() != null))
+                  || originalGoFurther.test(pCFAEdge);
+            }
+          };
     }
 
     return getVarsWithTraversal(edge, goFurther, false);
@@ -685,12 +694,11 @@ public class PORState
   }
 
   private EdgeDefUseData getVarsWithTraversal(
-      CFAEdge startEdge,
-      Predicate<CFAEdge> goFurther,
-      boolean visitStartedThreadFunction) throws CPATransferException {
+      CFAEdge startEdge, Predicate<CFAEdge> goFurther, boolean visitStartedThreadFunction)
+      throws CPATransferException {
     var uses = EdgeDefUseData.empty();
     final var exploredEdges = new ArrayList<CFAEdge>();
-    final var edgesToExplore = new ArrayList<>(List.of(startEdge));
+    final var edgesToExplore = new ArrayList<>(ImmutableList.of(startEdge));
     while (!edgesToExplore.isEmpty()) {
       final var edge = edgesToExplore.removeFirst();
       exploredEdges.add(edge);
@@ -725,18 +733,13 @@ public class PORState
     for (final var leavingEdge : Iterables.concat(ImmutableList.of(edge), allLeavingEdges)) {
       if (leavingEdge instanceof AStatementEdge statementEdge) {
         if (statementEdge.getStatement() instanceof AFunctionCall functionCall) {
-          if (functionCall
-              .getFunctionCallExpression()
-              .getFunctionNameExpression()
+          if (functionCall.getFunctionCallExpression().getFunctionNameExpression()
               instanceof AIdExpression functionName) {
             if ("pthread_create".equals(functionName.getName())) {
-              final var params =
-                  functionCall.getFunctionCallExpression().getParameterExpressions();
+              final var params = functionCall.getFunctionCallExpression().getParameterExpressions();
               final String startedFunctionName = ThreadFunctions.extractCreateFunctionName(params);
               final CFANode initialNode = cfa.getFunctionHead(startedFunctionName);
-              for (CFAEdge initialEdge : initialNode.getLeavingEdges()) {
-                startedThreadEdges.add(initialEdge);
-              }
+              initialNode.getLeavingEdges().copyInto(startedThreadEdges);
             }
           }
         }
@@ -746,9 +749,7 @@ public class PORState
   }
 
   private boolean intersect(
-      EdgeDefUseData access1,
-      EdgeDefUseData access2,
-      PORPrecision precision) {
+      EdgeDefUseData access1, EdgeDefUseData access2, PORPrecision precision) {
     if (access1.getDefs().isEmpty()
         && access1.getPointeeDefs().isEmpty()
         && access2.getDefs().isEmpty()
@@ -767,9 +768,7 @@ public class PORState
   }
 
   private boolean intersect(
-      Iterable<MemoryLocation> access1,
-      Iterable<MemoryLocation> access2,
-      PORPrecision precision) {
+      Iterable<MemoryLocation> access1, Iterable<MemoryLocation> access2, PORPrecision precision) {
     for (var o1 : access1) {
       for (var o2 : access2) {
         if (o1.getExtendedQualifiedName().equals(o2.getExtendedQualifiedName())

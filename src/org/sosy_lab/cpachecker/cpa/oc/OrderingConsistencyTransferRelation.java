@@ -23,7 +23,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -36,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -67,7 +65,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexFunctions;
-import org.sosy_lab.cpachecker.cpa.mutex.MutexLock;
 import org.sosy_lab.cpachecker.cpa.oc.ThreadInstance.InstanceKey;
 import org.sosy_lab.cpachecker.cpa.por.GlobalAccessRenamer;
 import org.sosy_lab.cpachecker.cpa.por.GlobalAccessRenamer.UnsupportedAccessException;
@@ -98,11 +95,11 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
 
   /**
    * External library functions that write to memory through a pointer argument. The generic
-   * path-formula converter has no body for these (they are undeclared/external) and assumes
-   * unknown external calls are pure, so a write through such a pointer is otherwise silently
-   * dropped: a race on the written memory would go undetected rather than reported (e.g. {@code
-   * scanf("%d", &global)} racing with a concurrent access to {@code global}). Rejecting calls that
-   * target a global is preferred over silently mis-verifying the race property as safe.
+   * path-formula converter has no body for these (they are undeclared/external) and assumes unknown
+   * external calls are pure, so a write through such a pointer is otherwise silently dropped: a
+   * race on the written memory would go undetected rather than reported (e.g. {@code scanf("%d",
+   * &global)} racing with a concurrent access to {@code global}). Rejecting calls that target a
+   * global is preferred over silently mis-verifying the race property as safe.
    */
   private static final ImmutableSet<String> WRITE_THROUGH_POINTER_FUNCTIONS =
       ImmutableSet.of(
@@ -163,7 +160,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         registry.addEvent(
             pState.getInstanceId(),
             pKind,
-            predecessors.isEmpty() ? MemoryEvent.NO_EVENT : predecessors.get(0),
+            predecessors.isEmpty() ? MemoryEvent.NO_EVENT : predecessors.getFirst(),
             pState.getGuard(),
             pMemoryLocation,
             pCssaName,
@@ -206,7 +203,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
 
     List<AbstractState> successors = new ArrayList<>();
     if (leavingEdges.size() == 2
-        && leavingEdges.get(0) instanceof CAssumeEdge first
+        && leavingEdges.getFirst() instanceof CAssumeEdge first
         && leavingEdges.get(1) instanceof CAssumeEdge second) {
       handleAssumePair(state, first, second, successors);
     } else {
@@ -235,7 +232,15 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     if (callee != null && PROGRAM_EXIT_FUNCTIONS.contains(callee)) {
       // the whole program dies here; the event blocks any pthread_join of this instance
       addEventAfter(
-          pState, EventKind.ABORT, null, null, null, null, MemoryEvent.NO_INSTANCE, null, null,
+          pState,
+          EventKind.ABORT,
+          null,
+          null,
+          null,
+          null,
+          MemoryEvent.NO_INSTANCE,
+          null,
+          null,
           pEdge);
       return;
     }
@@ -291,8 +296,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
                 null,
                 null,
                 pEdge);
-        pSuccessors.set(
-            i, withAtomicSection(successor, ImmutableList.of(unlockEvent.id()), -1));
+        pSuccessors.set(i, withAtomicSection(successor, ImmutableList.of(unlockEvent.id()), -1));
       }
       return;
     }
@@ -300,7 +304,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         && WRITE_THROUGH_POINTER_FUNCTIONS.contains(callee)
         && callsWithAddressOfGlobal(pEdge)) {
       throw new UnsupportedCodeException(
-          callee + " writes to a global through a pointer argument, which the data-race analysis"
+          callee
+              + " writes to a global through a pointer argument, which the data-race analysis"
               + " does not model",
           pEdge);
     }
@@ -350,7 +355,15 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
 
   private void addThreadExitEvent(OrderingConsistencyState pState, @Nullable CFAEdge pEdge) {
     addEventAfter(
-        pState, EventKind.THREAD_EXIT, null, null, null, null, MemoryEvent.NO_INSTANCE, null, null,
+        pState,
+        EventKind.THREAD_EXIT,
+        null,
+        null,
+        null,
+        null,
+        MemoryEvent.NO_INSTANCE,
+        null,
+        null,
         pEdge);
   }
 
@@ -366,7 +379,15 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       OrderingConsistencyState pState, CFAEdge pEdge, List<AbstractState> pSuccessors) {
     MemoryEvent event =
         addEventAfter(
-            pState, EventKind.ERROR, null, null, null, null, MemoryEvent.NO_INSTANCE, null, null,
+            pState,
+            EventKind.ERROR,
+            null,
+            null,
+            null,
+            null,
+            MemoryEvent.NO_INSTANCE,
+            null,
+            null,
             pEdge);
     pSuccessors.add(
         new OrderingConsistencyState(
@@ -560,13 +581,16 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
               CBinaryExpression.BinaryOperator.EQUALS);
       CAssumeEdge initEdge =
           new CAssumeEdge(
-              "", FileLocation.DUMMY, pEdge.getPredecessor(), pEdge.getSuccessor(), initialized,
+              "",
+              FileLocation.DUMMY,
+              pEdge.getPredecessor(),
+              pEdge.getSuccessor(),
+              initialized,
               true);
       rootFormula =
           pathFormulaManager.makeAnd(
               pathFormulaManager.makeEmptyPathFormulaWithContextFrom(rootFormula), initEdge);
-      registry.addPathConstraint(
-          bfmgr.implication(pState.getGuard(), rootFormula.getFormula()));
+      registry.addPathConstraint(bfmgr.implication(pState.getGuard(), rootFormula.getFormula()));
     }
     return rootFormula;
   }
@@ -619,14 +643,19 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
               CBinaryExpression.BinaryOperator.EQUALS);
       CAssumeEdge assumeEdge =
           new CAssumeEdge(
-              "", FileLocation.DUMMY, pEdge.getPredecessor(), pEdge.getSuccessor(),
-              equalsCandidate, true);
+              "",
+              FileLocation.DUMMY,
+              pEdge.getPredecessor(),
+              pEdge.getSuccessor(),
+              equalsCandidate,
+              true);
 
       CollectingRenamer renamer = new CollectingRenamer(pState.getInstanceId());
       CAssumeEdge rewritten;
       try {
         rewritten =
-            (CAssumeEdge) PorEdgeCloner.cloneSingleEdge(assumeEdge, pState.getInstanceId(), renamer);
+            (CAssumeEdge)
+                PorEdgeCloner.cloneSingleEdge(assumeEdge, pState.getInstanceId(), renamer);
       } catch (GlobalAccessRenamer.UnsupportedAccessException e) {
         throw new UnsupportedCodeException(e.getMessage(), pEdge);
       }
@@ -635,7 +664,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
               pathFormulaManager.makeEmptyPathFormulaWithContextFrom(pState.getPathFormula()),
               rewritten);
       int firstEventId = registry.nextEventId();
-      ImmutableList<Integer> lastEventIds = chainAccessEvents(pState, renamer, assumeFormula, pEdge);
+      ImmutableList<Integer> lastEventIds =
+          chainAccessEvents(pState, renamer, assumeFormula, pEdge);
       for (int id = firstEventId; id < registry.nextEventId(); id++) {
         registry.markThreadHandleAccess(id);
       }
@@ -707,7 +737,9 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     CLeftHandSide lhs = threadHandleLvalue(pHandle, pEdge);
     CIntegerLiteralExpression rhs =
         new CIntegerLiteralExpression(
-            FileLocation.DUMMY, lhs.getExpressionType(), BigInteger.valueOf((long) pInstanceId + 1));
+            FileLocation.DUMMY,
+            lhs.getExpressionType(),
+            BigInteger.valueOf((long) pInstanceId + 1));
     CStatementEdge writeEdge =
         new CStatementEdge(
             "",
@@ -718,22 +750,28 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     return markAsThreadHandleAccess(pState, writeEdge);
   }
 
-  /** Runs {@link #cloneAndChain} and tags every event it produced as thread-handle bookkeeping
-   * (see {@link OcExplorationRegistry#markThreadHandleAccess}), so callers of {@link
-   * #writeThreadHandle} don't have to. */
-  private ChainedEdge markAsThreadHandleAccess(OrderingConsistencyState pState, CFAEdge pSyntheticEdge)
+  /**
+   * Runs {@link #cloneAndChain} and tags every event it produced as thread-handle bookkeeping (see
+   * {@link OcExplorationRegistry#markThreadHandleAccess}), so callers of {@link #writeThreadHandle}
+   * don't have to.
+   */
+  private ChainedEdge markAsThreadHandleAccess(
+      OrderingConsistencyState pState, CFAEdge pSyntheticEdge)
       throws CPATransferException, InterruptedException {
     int firstEventId = registry.nextEventId();
     ChainedEdge chained = cloneAndChain(pState, pSyntheticEdge);
-    int lastEventId = chained.lastEventIds().isEmpty() ? firstEventId - 1 : chained.lastEventIds().get(0);
+    int lastEventId =
+        chained.lastEventIds().isEmpty() ? firstEventId - 1 : chained.lastEventIds().getFirst();
     for (int id = firstEventId; id <= lastEventId; id++) {
       registry.markThreadHandleAccess(id);
     }
     return chained;
   }
 
-  /** A path formula and the chained READ/WRITE events produced by cloning one (possibly
-   * synthetic) CFA edge; see {@link #cloneAndChain}. */
+  /**
+   * A path formula and the chained READ/WRITE events produced by cloning one (possibly synthetic)
+   * CFA edge; see {@link #cloneAndChain}.
+   */
   private record ChainedEdge(PathFormula edgeFormula, ImmutableList<Integer> lastEventIds) {}
 
   private ChainedEdge cloneAndChain(OrderingConsistencyState pState, CFAEdge pEdge)
@@ -777,11 +815,15 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     return new ChainedEdge(edgeFormula, lastEventIds);
   }
 
-  /** A copy of {@code pState} with a different guard and last-event chain, for building one
+  /**
+   * A copy of {@code pState} with a different guard and last-event chain, for building one
    * candidate branch's temporary context (see {@link #handleJoin}) or advancing past a freshly
-   * added event (see {@link #handleCreate}) before delegating to {@link #cloneAndChain}. */
+   * added event (see {@link #handleCreate}) before delegating to {@link #cloneAndChain}.
+   */
   private static OrderingConsistencyState withGuardAndEvents(
-      OrderingConsistencyState pState, BooleanFormula pGuard, ImmutableList<Integer> pLastEventIds) {
+      OrderingConsistencyState pState,
+      BooleanFormula pGuard,
+      ImmutableList<Integer> pLastEventIds) {
     return new OrderingConsistencyState(
         pState.getInstanceId(),
         pState.getLocationState(),
@@ -901,9 +943,9 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
    * Models a non-blocking / timed lock-acquisition call (e.g. {@code __CPAchecker_TMP =
    * pthread_mutex_trylock(&m)}) as a two-way branch: a SUCCESS successor that acquires the lock and
    * pins the returned value to 0, and a FAILURE successor that acquires nothing and pins it to
-   * non-zero. The assume-pair the front-end emits on that return value (e.g. from {@code
-   * while (pthread_mutex_trylock(&m)) {}}) then keeps only the consistent control-flow branch, so
-   * the loop correctly exits holding the lock. This is purely additive — it never removes an
+   * non-zero. The assume-pair the front-end emits on that return value (e.g. from {@code while
+   * (pthread_mutex_trylock(&m)) {}}) then keeps only the consistent control-flow branch, so the
+   * loop correctly exits holding the lock. This is purely additive — it never removes an
    * interleaving — so it cannot turn a real violation into an unsound TRUE; without it the lock is
    * simply never modelled and the guarded region is missed (a spurious data race). Returns false if
    * the edge is not a recognized try/timed-lock call.
@@ -926,9 +968,11 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       retLhs = assign.getLeftHandSide();
     }
 
-    // Pin the returned value: 0 on the success branch, non-zero on the failure branch. Both branches
+    // Pin the returned value: 0 on the success branch, non-zero on the failure branch. Both
+    // branches
     // share one rewritten condition (like handleAssumePair) so their guards stay mutually exclusive
-    // and the reads of the result variable are counted once. A discarded result leaves both branches
+    // and the reads of the result variable are counted once. A discarded result leaves both
+    // branches
     // unconstrained, which is still sound.
     BooleanFormula successCond = bfmgr.makeTrue();
     BooleanFormula failureCond = bfmgr.makeTrue();
@@ -946,12 +990,18 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
               CBinaryExpression.BinaryOperator.EQUALS);
       CAssumeEdge successEdge =
           new CAssumeEdge(
-              "", FileLocation.DUMMY, pEdge.getPredecessor(), pEdge.getSuccessor(), retIsZero, true);
+              "",
+              FileLocation.DUMMY,
+              pEdge.getPredecessor(),
+              pEdge.getSuccessor(),
+              retIsZero,
+              true);
       CollectingRenamer renamer = new CollectingRenamer(pState.getInstanceId());
       CAssumeEdge rewritten;
       try {
         rewritten =
-            (CAssumeEdge) PorEdgeCloner.cloneSingleEdge(successEdge, pState.getInstanceId(), renamer);
+            (CAssumeEdge)
+                PorEdgeCloner.cloneSingleEdge(successEdge, pState.getInstanceId(), renamer);
       } catch (GlobalAccessRenamer.UnsupportedAccessException e) {
         throw new UnsupportedCodeException(e.getMessage(), pEdge);
       }
@@ -1156,7 +1206,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     }
 
     ImmutableList<Integer> predecessors = pState.getLastEventIds();
-    int lastEventId = predecessors.isEmpty() ? MemoryEvent.NO_EVENT : predecessors.get(0);
+    int lastEventId = predecessors.isEmpty() ? MemoryEvent.NO_EVENT : predecessors.getFirst();
     boolean anyEvent = false;
     int firstNewEventId = registry.nextEventId();
 
@@ -1259,7 +1309,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     if (anyEvent) {
       // several accesses on one edge (e.g. both operands of `a != b`) chain into one event
       // sequence, but only the last one becomes this state's lastEventIds; record how to resolve
-      // an earlier event in the chain back to this state (see OcExplorationRegistry#chainTerminalEventId).
+      // an earlier event in the chain back to this state (see
+      // OcExplorationRegistry#chainTerminalEventId).
       registry.registerChainTerminal(firstNewEventId, lastEventId);
       return ImmutableList.of(lastEventId);
     }
@@ -1328,11 +1379,11 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
   /**
    * The flat address of the mutex object a lock/unlock argument designates, evaluated through the
    * same renamer used for ordinary memory: {@code &m} becomes the object's address, {@code
-   * &(p->lock)} becomes p's value plus the field offset, a bare {@code pthread_mutex_t*} becomes its
-   * value. Any base the address minted (e.g. {@code &globalMutex}) is registered for the layout, and
-   * the binding is asserted so the returned term carries the value. The reads the evaluation itself
-   * performs (of the pointer sub-expressions) are marked as bookkeeping so they are not data-race
-   * candidates; the lock/unlock event is chained after them.
+   * &(p->lock)} becomes p's value plus the field offset, a bare {@code pthread_mutex_t*} becomes
+   * its value. Any base the address minted (e.g. {@code &globalMutex}) is registered for the
+   * layout, and the binding is asserted so the returned term carries the value. The reads the
+   * evaluation itself performs (of the pointer sub-expressions) are marked as bookkeeping so they
+   * are not data-race candidates; the lock/unlock event is chained after them.
    */
   private MutexAddress evaluateMutexAddress(
       OrderingConsistencyState pState, CExpression pArg, CFAEdge pEdge)
@@ -1368,10 +1419,10 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
   }
 
   /**
-   * A per-thread syntactic key that pairs a lock with its matching unlock for nesting-depth tracking
-   * (a critical section's static extent). Cross-thread mutex identity — whether two sections exclude
-   * each other — is decided by the mutex address, not by this key, so a purely syntactic key is
-   * enough here and never has to be rejected.
+   * A per-thread syntactic key that pairs a lock with its matching unlock for nesting-depth
+   * tracking (a critical section's static extent). Cross-thread mutex identity — whether two
+   * sections exclude each other — is decided by the mutex address, not by this key, so a purely
+   * syntactic key is enough here and never has to be rejected.
    */
   private static String mutexNestingKey(CExpression pArg) {
     CExpression expression = stripCasts(pArg);
@@ -1385,10 +1436,10 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
   /**
    * Whether a mutex argument's target object is <em>not</em> statically fixed. {@code
    * &staticallyResolvableLvalue} (e.g. {@code &m}, {@code &arr[0]}, {@code &p.lock}) always denotes
-   * the same object, so it is unambiguous; a bare pointer value ({@code m}), a dereference, or {@code
-   * &arr[symbolic]} may point at different objects on different paths and is therefore ambiguous.
-   * Used to decide whether an unlock must be paired with its lock by address rather than by the
-   * syntactic nesting key (see {@link #mutexNestingKey} and {@code OcEncoder.buildCsPairs}).
+   * the same object, so it is unambiguous; a bare pointer value ({@code m}), a dereference, or
+   * {@code &arr[symbolic]} may point at different objects on different paths and is therefore
+   * ambiguous. Used to decide whether an unlock must be paired with its lock by address rather than
+   * by the syntactic nesting key (see {@link #mutexNestingKey} and {@code OcEncoder.buildCsPairs}).
    */
   private static boolean isAmbiguousMutexTarget(CExpression pArg) {
     CExpression expression = stripCasts(pArg);
@@ -1454,7 +1505,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     for (CType leafType : scalarLeafTypes(pointee)) {
       String initName = registry.freshCssaName("__oc_heapinit");
       resolution = indexSymbol(resolution, initName, leafType, pEdge);
-      int primary = lastEventIds.isEmpty() ? MemoryEvent.NO_EVENT : lastEventIds.get(0);
+      int primary = lastEventIds.isEmpty() ? MemoryEvent.NO_EVENT : lastEventIds.getFirst();
       MemoryEvent initialWrite =
           registry.addEvent(
               pState.getInstanceId(),
@@ -1617,7 +1668,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       if (count > cpa.getMaxLoopIterations()) {
         registry.markTruncated();
         // the thread has not terminated on this path, so it can never be joined here
-        int primary = pLastEventIds.isEmpty() ? MemoryEvent.NO_EVENT : pLastEventIds.get(0);
+        int primary = pLastEventIds.isEmpty() ? MemoryEvent.NO_EVENT : pLastEventIds.getFirst();
         MemoryEvent truncated =
             registry.addEvent(
                 pState.getInstanceId(),
@@ -1769,8 +1820,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       // the same cell exactly (see OcEncoder.sameAddress). Reuse analyzeLvalue to resolve the base
       // and offset, then hand back base + offset as one pointer value.
       if (operand instanceof CLeftHandSide lvalue) {
-        PendingAccess offsetHolder =
-            new PendingAccess(null, "", false, lvalue.getExpressionType());
+        PendingAccess offsetHolder = new PendingAccess(null, "", false, lvalue.getExpressionType());
         BaseInfo base = analyzeLvalue(lvalue, offsetHolder, pSubCloner);
         CExpression baseValue = syntheticIdExpression(base.name(), base.type());
         if (offsetHolder.offsetExpr == null) {

@@ -204,7 +204,8 @@ public class ConfigurablePrecision extends NonlocalizedVariableTrackingPrecision
   }
 
   @Override
-  public NonlocalizedVariableTrackingPrecision withIncrement(Collection<MemoryLocation> pIncrement) {
+  public NonlocalizedVariableTrackingPrecision withIncrement(
+      Collection<MemoryLocation> pIncrement) {
     return this;
   }
 

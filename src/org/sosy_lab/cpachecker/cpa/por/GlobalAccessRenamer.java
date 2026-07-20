@@ -32,12 +32,11 @@ public interface GlobalAccessRenamer {
   String freshName(CVariableDeclaration pDeclaration, boolean pIsWrite);
 
   /**
-   * Offers to replace a whole address-of expression (called with the ORIGINAL, un-cloned
-   * expression before its operand is cloned), given a sub-cloner that clones an rvalue
-   * sub-expression with the same renaming — so a compound operand such as {@code &p->field} or
-   * {@code &a[i]} can have its pointer/index sub-parts cloned while the object base and byte offset
-   * are resolved separately and combined into a single address. Returning null keeps the default
-   * cloning.
+   * Offers to replace a whole address-of expression (called with the ORIGINAL, un-cloned expression
+   * before its operand is cloned), given a sub-cloner that clones an rvalue sub-expression with the
+   * same renaming — so a compound operand such as {@code &p->field} or {@code &a[i]} can have its
+   * pointer/index sub-parts cloned while the object base and byte offset are resolved separately
+   * and combined into a single address. Returning null keeps the default cloning.
    */
   default @Nullable CExpression replaceAddressOf(
       CUnaryExpression pOriginalAddressOf, UnaryOperator<CExpression> pSubCloner) {

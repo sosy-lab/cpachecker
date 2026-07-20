@@ -30,14 +30,11 @@ import org.sosy_lab.cpachecker.cpa.mutex.MutexLock.MutexLockType;
  */
 public class MutexState implements AbstractState {
 
-  public static final MutexState EMPTY =
-      new MutexState(ImmutableSet.of(), ImmutableMap.of(), null);
+  public static final MutexState EMPTY = new MutexState(ImmutableSet.of(), ImmutableMap.of(), null);
 
   private final ImmutableSet<String> initializedMutexes;
 
-  /**
-   * Maps mutex lock to the PIDs of the threads that currently hold the lock.
-   */
+  /** Maps mutex lock to the PIDs of the threads that currently hold the lock. */
   private final ImmutableMap<MutexLock, ImmutableSet<Integer>> lockedMutexes;
 
   /**
@@ -77,23 +74,17 @@ public class MutexState implements AbstractState {
     return lockedMutexes;
   }
 
-  /**
-   * Returns {@code true} if the given mutex is currently locked (by any thread).
-   */
+  /** Returns {@code true} if the given mutex is currently locked (by any thread). */
   public boolean isLocked(MutexLock mutex) {
     return lockedMutexes.containsKey(mutex);
   }
 
-  /**
-   * Returns the PID of the thread holding the given mutex, or {@code null} if not locked.
-   */
+  /** Returns the PID of the thread holding the given mutex, or {@code null} if not locked. */
   public ImmutableSet<Integer> getHolders(MutexLock mutex) {
     return lockedMutexes.get(mutex);
   }
 
-  /**
-   * Returns the PID of the thread currently in an atomic block, or {@code null}.
-   */
+  /** Returns the PID of the thread currently in an atomic block, or {@code null}. */
   public @Nullable Integer getAtomicHolder() {
     return atomicHolder;
   }
@@ -124,9 +115,7 @@ public class MutexState implements AbstractState {
     return initializedMutexes.contains(mutex);
   }
 
-  /**
-   * Returns a new state with the given mutex marked as initialized and unlocked.
-   */
+  /** Returns a new state with the given mutex marked as initialized and unlocked. */
   public MutexState withInit(String mutex) {
     return new MutexState(
         ImmutableSet.<String>builder().addAll(initializedMutexes).add(mutex).build(),
@@ -166,9 +155,7 @@ public class MutexState implements AbstractState {
         atomicHolder);
   }
 
-  /**
-   * Returns a new state with the given mutex marked as unlocked.
-   */
+  /** Returns a new state with the given mutex marked as unlocked. */
   public MutexState withUnlock(MutexLock mutex, int holderPid) {
     if (!lockedMutexes.containsKey(mutex)) {
       return this;
@@ -180,7 +167,8 @@ public class MutexState implements AbstractState {
       // a mutex expression it could not resolve to a canonical key, it just doesn't model that
       // edge as a mutex operation (see MutexFunctions#getMutexLockForFunctionSet).
       if (entry.getKey().equals(mutex)
-          || (entry.getKey().handle().equals(mutex.handle()) && mutex.type() == MutexLockType.BOTH)) {
+          || (entry.getKey().handle().equals(mutex.handle())
+              && mutex.type() == MutexLockType.BOTH)) {
         ImmutableSet<Integer> holders = entry.getValue();
         if (!holders.contains(holderPid)) {
           return this;
@@ -203,9 +191,7 @@ public class MutexState implements AbstractState {
     return new MutexState(initializedMutexes, builder.buildKeepingLast(), atomicHolder);
   }
 
-  /**
-   * Returns a new state with the given mutex removed (destroyed).
-   */
+  /** Returns a new state with the given mutex removed (destroyed). */
   public MutexState withDestroy(String mutex) {
     ImmutableSet.Builder<String> initBuilder = ImmutableSet.builder();
     for (String m : initializedMutexes) {
@@ -219,12 +205,10 @@ public class MutexState implements AbstractState {
         lockBuilder.put(entry);
       }
     }
-    return new MutexState(initBuilder.build(), lockBuilder.build(), atomicHolder);
+    return new MutexState(initBuilder.build(), lockBuilder.buildOrThrow(), atomicHolder);
   }
 
-  /**
-   * Returns a new state with the specified thread entering an atomic block.
-   */
+  /** Returns a new state with the specified thread entering an atomic block. */
   public MutexState withAtomicBegin(int pid) {
     if (atomicHolder != null && atomicHolder != pid) {
       throw new IllegalStateException(
@@ -234,9 +218,7 @@ public class MutexState implements AbstractState {
     return new MutexState(initializedMutexes, lockedMutexes, pid);
   }
 
-  /**
-   * Returns a new state with the atomic block released.
-   */
+  /** Returns a new state with the atomic block released. */
   public MutexState withAtomicEnd() {
     return new MutexState(initializedMutexes, lockedMutexes, null);
   }
@@ -272,8 +254,7 @@ public class MutexState implements AbstractState {
 
     if (edge instanceof AStatementEdge sEdge
         && sEdge.getStatement() instanceof AFunctionCall funcCall) {
-      AExpression funcNameExpr =
-          funcCall.getFunctionCallExpression().getFunctionNameExpression();
+      AExpression funcNameExpr = funcCall.getFunctionCallExpression().getFunctionNameExpression();
       if (funcNameExpr instanceof AIdExpression funcName) {
         String functionName = funcName.getName();
 

@@ -49,7 +49,8 @@ public final class KnownConcurrencyIssues {
           // -------------------------------------------------------------------------------------
           // (1) valueAnalysis-concurrency: incorrect FALSE on a safe program.
           // The value analysis never learns `p == &shared`, so `*p = 1` leaves `shared` unknown and
-          // it proposes a spurious counterexample. That is legitimate imprecision -- but this config
+          // it proposes a spurious counterexample. That is legitimate imprecision -- but this
+          // config
           // sets `analysis.checkCounterexamples = false`, so nothing refutes the path and it is
           // reported as a violation. (The POR configs hit the same imprecision and answer UNKNOWN,
           // because their counterexample check rejects the path.)
@@ -62,7 +63,8 @@ public final class KnownConcurrencyIssues {
 
           // -------------------------------------------------------------------------------------
           // (2) bddAnalysis-concurrency: incorrect FALSE on safe programs.
-          // The BDD domain cannot model a pointer or a float, so the later assume stays open and the
+          // The BDD domain cannot model a pointer or a float, so the later assume stays open and
+          // the
           // error looks reachable. It is sound on the plain-integer baselines, so this is a domain
           // limit that is not being reported honestly (UNKNOWN) but as a violation.
           new KnownIssue(
@@ -87,7 +89,8 @@ public final class KnownConcurrencyIssues {
           // -------------------------------------------------------------------------------------
           // (4) predicateAnalysis-concurrency--overflow: misses every overflow reachable after a
           // thread is created. The boundary is exactly a pthread_create -- an overflow BEFORE any
-          // create is still found -- and it is governed by cfa.useCFACloningForMultiThreadedPrograms:
+          // create is still found -- and it is governed by
+          // cfa.useCFACloningForMultiThreadedPrograms:
           // with that option off, the very same programs are correctly reported FALSE. The SV-COMP
           // portfolio (svcomp27--overflow) enables the option, so its ConcurrencySafety-NoOverflows
           // results are affected too. Not root-caused; it is NOT the liveness filter
@@ -108,9 +111,12 @@ public final class KnownConcurrencyIssues {
           // across an interleaving. OverflowCPA never checks the edge it is given -- to constrain
           // `y + 1` it needs y BEFORE the increment, so it looks ahead from the previous edge and
           // parks a flag. Under POR the next edge to run may belong to another thread, so the flag
-          // goes stale. The interleaving that would refresh it is pruned by POR's reduction, because
-          // the edge doing the lookahead reads only a local and POR's independence relation does not
-          // know that OverflowCPA reads the NEXT edge's variables. Changing the program's guard from
+          // goes stale. The interleaving that would refresh it is pruned by POR's reduction,
+          // because
+          // the edge doing the lookahead reads only a local and POR's independence relation does
+          // not
+          // know that OverflowCPA reads the NEXT edge's variables. Changing the program's guard
+          // from
           // `if (local == 0)` to `if (y >= 0)` makes POR find the overflow.
           // sequentialization-concurrency--overflow reports this program FALSE, which is what
           // establishes that it really does overflow.

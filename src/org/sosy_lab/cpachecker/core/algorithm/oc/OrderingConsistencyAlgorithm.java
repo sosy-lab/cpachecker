@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.oc;
 
+import static com.google.common.base.Strings.nullToEmpty;
+
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -126,9 +128,7 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
       description = "export the found violation as an execution graph in DOT/graphviz format")
   private boolean exportExecutionGraph = true;
 
-  @Option(
-      secure = true,
-      description = "file for the violation execution graph (DOT/graphviz)")
+  @Option(secure = true, description = "file for the violation execution graph (DOT/graphviz)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path executionGraphFile = Path.of("executionGraph.dot");
 
@@ -201,10 +201,11 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
 
   /**
    * Maps the properties of the {@code --spec} specification to the built-in target the analysis can
-   * decide. The ordering-consistency analysis does not use specification automata; it interprets the
-   * property itself. An empty specification (no {@code --spec}) yields an empty result. Properties
-   * the analysis cannot decide (overflow, memory safety/cleanup, deadlock, termination) are rejected
-   * rather than silently mis-verified, since an unsound "safe" verdict would be worse than an error.
+   * decide. The ordering-consistency analysis does not use specification automata; it interprets
+   * the property itself. An empty specification (no {@code --spec}) yields an empty result.
+   * Properties the analysis cannot decide (overflow, memory safety/cleanup, deadlock, termination)
+   * are rejected rather than silently mis-verified, since an unsound "safe" verdict would be worse
+   * than an error.
    */
   private static Optional<TargetProperty> targetPropertyOf(Specification pSpecification)
       throws InvalidConfigurationException {
@@ -212,8 +213,8 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
     for (Property property : pSpecification.getProperties()) {
       if (property instanceof CommonVerificationProperty common) {
         switch (common) {
-          case REACHABILITY, REACHABILITY_ERROR, REACHABILITY_LABEL -> targets.add(
-              TargetProperty.UNREACH_CALL);
+          case REACHABILITY, REACHABILITY_ERROR, REACHABILITY_LABEL ->
+              targets.add(TargetProperty.UNREACH_CALL);
           case DATA_RACE -> targets.add(TargetProperty.DATA_RACE);
           default ->
               throw new InvalidConfigurationException(
@@ -290,8 +291,7 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
     CUT
   }
 
-  private RoundResult solveRound(ReachedSet pReachedSet)
-      throws CPAException, InterruptedException {
+  private RoundResult solveRound(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     OcExplorationRegistry registry = ocCpa.getRegistry();
     statistics.eventCount = registry.getEvents().size();
     statistics.instanceCount = registry.getInstances().size();
@@ -467,7 +467,7 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
                 event.id(),
                 event.instanceId(),
                 event.kind(),
-                event.cssaName() == null ? "" : event.cssaName(),
+                nullToEmpty(event.cssaName()),
                 value));
       }
       for (var rf : pEncoder.getRfPairs()) {
@@ -484,8 +484,8 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
 
   /**
    * Writes the found violating execution as a DOT/graphviz execution graph: one node per enabled
-   * event (grouped into a per-thread cluster), program-order edges, create/join cross edges, and the
-   * chosen read-from edges. The file goes to the regular output folder and is suppressed in
+   * event (grouped into a per-thread cluster), program-order edges, create/join cross edges, and
+   * the chosen read-from edges. The file goes to the regular output folder and is suppressed in
    * benchmark mode (the {@link FileOption} path is nulled by {@code output.disable}).
    */
   private void exportExecutionGraph(ProverEnvironment pProver, OcEncoder pEncoder)
@@ -535,8 +535,7 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
       }
       for (var cross : pEncoder.getCrossPoEdges()) {
         if (enabled.contains(cross.from()) && enabled.contains(cross.to())) {
-          String kind =
-              byId.get(cross.from()).kind() == EventKind.CREATE ? "create" : "join";
+          String kind = byId.get(cross.from()).kind() == EventKind.CREATE ? "create" : "join";
           dot.append(
               String.format(
                   "  e%d -> e%d [label=\"%s\", style=dashed, color=blue, constraint=false];%n",
@@ -637,14 +636,14 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
 
   /**
    * Replicates the standard CPAchecker counterexample mechanism so the violation flows through the
-   * existing infrastructure (counterexample export, report, ...). A regular analysis leaves a target
-   * state whose parent chain to the root is the error path; here the "path" is one interleaving of
-   * the whole execution, which crosses thread trees and so has no counterpart in the forest-shaped
-   * reached set. We therefore build a synthetic {@link ARGPath} — a fresh chain of location-wrapping
-   * ARG states linked by the ordered events' CFA edges — and attach it as a {@link
-   * CounterexampleInfo} to the reached target state, exactly as {@code getOnePathTo} would for a
-   * normal analysis. The explicit (non-null) edge list is the path's full path, which is what the
-   * export prints.
+   * existing infrastructure (counterexample export, report, ...). A regular analysis leaves a
+   * target state whose parent chain to the root is the error path; here the "path" is one
+   * interleaving of the whole execution, which crosses thread trees and so has no counterpart in
+   * the forest-shaped reached set. We therefore build a synthetic {@link ARGPath} — a fresh chain
+   * of location-wrapping ARG states linked by the ordered events' CFA edges — and attach it as a
+   * {@link CounterexampleInfo} to the reached target state, exactly as {@code getOnePathTo} would
+   * for a normal analysis. The explicit (non-null) edge list is the path's full path, which is what
+   * the export prints.
    */
   private void attachCounterexample(
       ReachedSet pReachedSet, ProverEnvironment pProver, OcEncoder pEncoder)
@@ -661,8 +660,10 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
       for (MemoryEvent event : orderedViolationEvents(model, pEncoder)) {
         if (event.edge() != null) {
           CFAEdge edge = displayEdge(event, model);
-          // collapse consecutive events that map to the same edge: one statement can produce several
-          // events (e.g. a[k]=5 is a read of k and a write of a[k]) and a shared branch-condition read
+          // collapse consecutive events that map to the same edge: one statement can produce
+          // several
+          // events (e.g. a[k]=5 is a read of k and a write of a[k]) and a shared branch-condition
+          // read
           // can be tagged on several reads of the same assume edge
           if (!edge.equals(previousEdge)) {
             edges.add(edge);
@@ -707,11 +708,14 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
       // a fresh linear chain of location states ending at the real target. Each state carries the
       // successor node of its incoming edge, so the full-path iterator (which advances a state
       // whenever the current edge's successor is that state's location) stays in lockstep with the
-      // edge list — even across thread-jumps, where the edges are not CFA-connected. The real target
-      // already sits at the terminal edge's successor, matching the last edge. It is only appended to
+      // edge list — even across thread-jumps, where the edges are not CFA-connected. The real
+      // target
+      // already sits at the terminal edge's successor, matching the last edge. It is only appended
+      // to
       // the state list, never parent-linked, so the reached-set ARG is left untouched.
       List<ARGState> states = new ArrayList<>();
-      ARGState previous = new ARGState(ocCpa.locationStateFor(edges.get(0).getPredecessor()), null);
+      ARGState previous =
+          new ARGState(ocCpa.locationStateFor(edges.getFirst().getPredecessor()), null);
       states.add(previous);
       for (int i = 1; i < edges.size(); i++) {
         ARGState next =
@@ -813,7 +817,9 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
     return topologicalOrder(enabled, pEncoder, pModel);
   }
 
-  /** A topological order of the happens-before relation over the enabled events (REFINEMENT mode). */
+  /**
+   * A topological order of the happens-before relation over the enabled events (REFINEMENT mode).
+   */
   private static List<MemoryEvent> topologicalOrder(
       List<MemoryEvent> pEnabled, OcEncoder pEncoder, Model pModel) {
     Map<Integer, MemoryEvent> byId = new LinkedHashMap<>();
@@ -837,8 +843,10 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
     }
     // coherence (write-serialization) and from-read edges make the linearization respect the order
     // of same-cell writes, so a read never appears before a co-later write of the value it did not
-    // read. Restricted to scalar writes, where a write-serialization pair is unambiguously same-cell
-    // (region accesses would need the model's address equality, so they keep the happens-before-only
+    // read. Restricted to scalar writes, where a write-serialization pair is unambiguously
+    // same-cell
+    // (region accesses would need the model's address equality, so they keep the
+    // happens-before-only
     // order).
     for (var ws : pEncoder.getWsPairs()) {
       if (ws.write1().isRegionAccess()
@@ -891,7 +899,8 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
         }
       }
     }
-    // a consistent violation is acyclic; if some events remain (unexpected cycle), append them by id
+    // a consistent violation is acyclic; if some events remain (unexpected cycle), append them by
+    // id
     if (ordered.size() < pEnabled.size()) {
       Set<Integer> placed = new HashSet<>();
       for (MemoryEvent event : ordered) {
@@ -906,9 +915,10 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
   }
 
   /**
-   * The CFA edge to show for an event. For a branch-condition read the stored edge is the (arbitrary)
-   * assume edge the shared read was attached to; the actual direction taken is recovered by
-   * evaluating the branch condition in the model, so the counterexample shows the real branch.
+   * The CFA edge to show for an event. For a branch-condition read the stored edge is the
+   * (arbitrary) assume edge the shared read was attached to; the actual direction taken is
+   * recovered by evaluating the branch condition in the model, so the counterexample shows the real
+   * branch.
    */
   private CFAEdge displayEdge(MemoryEvent event, Model model) {
     OcExplorationRegistry.AssumeBranch branch = ocCpa.getRegistry().getAssumeBranch(event.id());
@@ -920,7 +930,9 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
     return event.edge();
   }
 
-  /** One-line detail for a counterexample event: value for accesses, target for create/join, etc. */
+  /**
+   * One-line detail for a counterexample event: value for accesses, target for create/join, etc.
+   */
   private String eventDetail(MemoryEvent event, Model model) {
     if (event.variable() != null) {
       String name =

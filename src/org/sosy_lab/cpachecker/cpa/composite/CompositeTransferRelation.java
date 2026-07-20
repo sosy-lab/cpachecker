@@ -55,9 +55,7 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
   private final BasicBlockAggregator basicBlockAggregator;
 
   CompositeTransferRelation(
-      ImmutableList<TransferRelation> pTransferRelations,
-      CFA pCFA,
-      boolean pAggregateBasicBlocks) {
+      ImmutableList<TransferRelation> pTransferRelations, CFA pCFA, boolean pAggregateBasicBlocks) {
     transferRelations = pTransferRelations;
     size = pTransferRelations.size();
     aggregateBasicBlocks = pAggregateBasicBlocks;
@@ -354,7 +352,7 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
     Collection<List<AbstractState>> allResultingElements;
     switch (resultCount) {
       case 0 ->
-        // at least one CPA decided that there is no successor
+          // at least one CPA decided that there is no successor
           allResultingElements = ImmutableSet.of();
       case 1 -> {
         List<AbstractState> resultingElements = new ArrayList<>(allComponentsSuccessors.size());

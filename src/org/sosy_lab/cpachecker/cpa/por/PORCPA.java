@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.por;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Functions;
 import com.google.common.base.Predicates;
@@ -63,28 +64,29 @@ public class PORCPA extends AbstractSingleWrapperCPA {
 
   @Option(
       secure = true,
-      description = "Use an abstraction-aware POR algorithm. Abstraction-aware POR can ignore"
-          + "certain variables during dependency calculation if there is no information about them"
-          + "in the precision (e.g., no predicates referring to them).")
+      description =
+          "Use an abstraction-aware POR algorithm. Abstraction-aware POR can ignorecertain"
+              + " variables during dependency calculation if there is no information about themin"
+              + " the precision (e.g., no predicates referring to them).")
   private boolean abstractionAware = false;
 
   @Option(
       secure = true,
-      description = "Aggregate basic blocks to MultiEdges. Similar to basic block aggregation in"
-          + "the CompositeCPA transfer relation, but only one global statement (i.e., a"
-          + "statement that accesses a global variable or uses heap memory) is included in a"
-          + "MultiEdge, so that all concurrent thread interleavings are explored."
-  )
+      description =
+          "Aggregate basic blocks to MultiEdges. Similar to basic block aggregation in"
+              + "the CompositeCPA transfer relation, but only one global statement (i.e., a"
+              + "statement that accesses a global variable or uses heap memory) is included in a"
+              + "MultiEdge, so that all concurrent thread interleavings are explored.")
   private boolean aggregateBasicBlocks = false;
 
   @Option(
       secure = true,
-      description = "Seed for the pseudo-random shuffling of the enabled threads in the "
-          + "source-set heuristic. A single random-number generator is shared by reference "
-          + "across all states of one analysis run, so successive shuffles draw fresh values "
-          + "instead of every state restarting the same sequence; the seed is fixed only to "
-          + "keep runs reproducible."
-  )
+      description =
+          "Seed for the pseudo-random shuffling of the enabled threads in the "
+              + "source-set heuristic. A single random-number generator is shared by reference "
+              + "across all states of one analysis run, so successive shuffles draw fresh values "
+              + "instead of every state restarting the same sequence; the seed is fixed only to "
+              + "keep runs reproducible.")
   private long randomSeed = 0;
 
   private final PORTransferRelation transferRelation;
@@ -92,10 +94,7 @@ public class PORCPA extends AbstractSingleWrapperCPA {
 
   @SuppressWarnings("unused")
   private PORCPA(
-      ConfigurableProgramAnalysis pCpa,
-      Configuration pConfig,
-      LogManager pLogger,
-      CFA pCfa)
+      ConfigurableProgramAnalysis pCpa, Configuration pConfig, LogManager pLogger, CFA pCfa)
       throws InvalidConfigurationException {
     super(pCpa);
     pConfig.inject(this);
@@ -105,25 +104,29 @@ public class PORCPA extends AbstractSingleWrapperCPA {
             pCpa, pConfig, pCfa, aggregateBasicBlocks, pLogger, new Random(randomSeed));
 
     final PrecisionAdjustment wrappedPrecisionAdjustment = pCpa.getPrecisionAdjustment();
-    precisionAdjustment = (state, precision, states, stateProjection, fullState) -> {
-      if (!(state instanceof PORState porState)
-          || !(precision instanceof PORPrecision porPrecision)) {
-        throw new CPAException("Expected PORState, got " + state.getClass().getSimpleName());
-      }
-      Optional<PrecisionAdjustmentResult> result = wrappedPrecisionAdjustment.prec(
-          checkNotNull(porState.getWrappedState()),
-          porPrecision.getWrappedPrecision(),
-          states,
-          Functions.compose(s -> checkNotNull((PORState) s).getWrappedState(), stateProjection),
-          fullState);
+    precisionAdjustment =
+        (state, precision, states, stateProjection, fullState) -> {
+          if (!(state instanceof PORState porState)
+              || !(precision instanceof PORPrecision porPrecision)) {
+            throw new CPAException("Expected PORState, got " + state.getClass().getSimpleName());
+          }
+          Optional<PrecisionAdjustmentResult> result =
+              wrappedPrecisionAdjustment.prec(
+                  checkNotNull(porState.getWrappedState()),
+                  porPrecision.getWrappedPrecision(),
+                  states,
+                  Functions.compose(
+                      s -> checkNotNull((PORState) s).getWrappedState(), stateProjection),
+                  fullState);
 
-      return result.map(r -> new PrecisionAdjustmentResult(
-          porState.withWrappedState(r.abstractState()),
-          porPrecision.replaceWrappedPrecision(r.precision(),
-              Predicates.instanceOf(r.precision().getClass())),
-          r.action()
-      ));
-    };
+          return result.map(
+              r ->
+                  new PrecisionAdjustmentResult(
+                      porState.withWrappedState(r.abstractState()),
+                      porPrecision.replaceWrappedPrecision(
+                          r.precision(), Predicates.instanceOf(r.precision().getClass())),
+                      r.action()));
+        };
   }
 
   @Override
@@ -152,7 +155,8 @@ public class PORCPA extends AbstractSingleWrapperCPA {
       }
 
       ScopedRefinablePrecision scopedRefinablePrecision =
-          Precisions.extractPrecisionByType(initialWrappedPrecision, ScopedRefinablePrecision.class);
+          Precisions.extractPrecisionByType(
+              initialWrappedPrecision, ScopedRefinablePrecision.class);
       if (scopedRefinablePrecision != null) {
         variableManagers.add(new ScopedRefinablePrecisionVariableManager());
       }
@@ -161,20 +165,24 @@ public class PORCPA extends AbstractSingleWrapperCPA {
           Precisions.extractPrecisionByType(initialWrappedPrecision, PredicatePrecision.class);
       if (predicatePrecision != null) {
         var predicateCPA = CPAs.retrieveCPA(wrappedCpa, PredicateCPA.class);
-        if (predicateCPA == null) {
-          throw new IllegalStateException(
-              "Abstraction-aware POR requires PredicateCPA when using PredicatePrecision, but it is not present.");
-        }
+        checkState(
+            predicateCPA != null,
+            "Abstraction-aware POR requires PredicateCPA when using PredicatePrecision, but it is"
+                + " not present.");
         var fmgr = predicateCPA.getSolver().getFormulaManager();
         variableManagers.add(new PredicatePrecisionVariableManager(fmgr));
       }
 
-      PrecisionVariableManager variableManager = switch (variableManagers.size()) {
-        case 0 -> throw new IllegalStateException(
-            "Abstraction-aware POR does not support this precision: " + initialWrappedPrecision);
-        case 1 -> variableManagers.getFirst();
-        default -> new CompositePrecisionVariableManager(ImmutableList.copyOf(variableManagers));
-      };
+      PrecisionVariableManager variableManager =
+          switch (variableManagers.size()) {
+            case 0 ->
+                throw new IllegalStateException(
+                    "Abstraction-aware POR does not support this precision: "
+                        + initialWrappedPrecision);
+            case 1 -> variableManagers.getFirst();
+            default ->
+                new CompositePrecisionVariableManager(ImmutableList.copyOf(variableManagers));
+          };
 
       return new AbstractionAwarePORPrecision(variableManager, initialWrappedPrecision);
     }
@@ -191,7 +199,8 @@ public class PORCPA extends AbstractSingleWrapperCPA {
   public MergeOperator getMergeOperator() {
     MergeOperator wrappedMergeOperator = getWrappedCpa().getMergeOperator();
     return (state1, state2, precision) -> {
-      if (state1 instanceof PORState porState1 && state2 instanceof PORState porState2
+      if (state1 instanceof PORState porState1
+          && state2 instanceof PORState porState2
           && precision instanceof PORPrecision porPrecision) {
         if (porState1.canMerge(porState2)) {
           AbstractState wrapped1 = porState1.getWrappedState();
@@ -216,13 +225,14 @@ public class PORCPA extends AbstractSingleWrapperCPA {
       if (state instanceof PORState porState && precision instanceof PORPrecision porPrecision) {
         ImmutableList.Builder<AbstractState> builder = ImmutableList.builder();
         for (AbstractState reachedState : reached) {
-          if (reachedState instanceof PORState reachedPorState && Objects.equals(porState.threads(),
-              reachedPorState.threads()) && Objects.equals(porState.livePids(),
-              reachedPorState.livePids())) {
+          if (reachedState instanceof PORState reachedPorState
+              && Objects.equals(porState.threads(), reachedPorState.threads())
+              && Objects.equals(porState.livePids(), reachedPorState.livePids())) {
             builder.add(reachedPorState.getWrappedState());
           }
         }
-        return getWrappedCpa().getStopOperator()
+        return getWrappedCpa()
+            .getStopOperator()
             .stop(porState.getWrappedState(), builder.build(), porPrecision.getWrappedPrecision());
       }
       return false;

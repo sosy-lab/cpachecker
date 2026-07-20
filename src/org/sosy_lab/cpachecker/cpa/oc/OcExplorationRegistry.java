@@ -65,11 +65,11 @@ public final class OcExplorationRegistry {
   /**
    * Starts the fresh-name counter at {@code pStartCssaIndex} instead of zero. Iterative deepening
    * (see {@code OrderingConsistencyCPA#resetExploration}) throws away the registry every round and
-   * starts a new one, but keeps solving in the very same, persistent solver context. If the
-   * counter restarted at zero every round, two different rounds could mint the identical fresh
-   * name (same prefix, same counter value) for accesses of different types; the solver rejects
-   * redeclaring a symbol at a different sort under the same name. Carrying the counter forward
-   * (see the caller) keeps every name minted over the whole analysis run globally unique.
+   * starts a new one, but keeps solving in the very same, persistent solver context. If the counter
+   * restarted at zero every round, two different rounds could mint the identical fresh name (same
+   * prefix, same counter value) for accesses of different types; the solver rejects redeclaring a
+   * symbol at a different sort under the same name. Carrying the counter forward (see the caller)
+   * keeps every name minted over the whole analysis run globally unique.
    */
   public OcExplorationRegistry(int pStartCssaIndex) {
     nextCssaIndex = pStartCssaIndex;
@@ -81,9 +81,8 @@ public final class OcExplorationRegistry {
   }
 
   /**
-   * The next unused fresh-name counter value; carried into the following round's registry so
-   * names stay unique across iterative-deepening rounds (see {@link
-   * #OcExplorationRegistry(int)}).
+   * The next unused fresh-name counter value; carried into the following round's registry so names
+   * stay unique across iterative-deepening rounds (see {@link #OcExplorationRegistry(int)}).
    */
   public int getNextCssaIndex() {
     return nextCssaIndex;
@@ -98,8 +97,9 @@ public final class OcExplorationRegistry {
    * Records that the events {@code [pFirstEventId, pTerminalEventId]} were all created by one
    * {@code chainAccessEvents} call, i.e. one CFA edge: several accesses on the same edge (e.g. both
    * operands of {@code a != b}) are chained into a single event sequence, but only the last one
-   * becomes a reached state's {@code lastEventIds}. Earlier events in the chain need this mapping to
-   * be resolved back to the state that actually carries them (see {@link #chainTerminalEventId}).
+   * becomes a reached state's {@code lastEventIds}. Earlier events in the chain need this mapping
+   * to be resolved back to the state that actually carries them (see {@link
+   * #chainTerminalEventId}).
    */
   public void registerChainTerminal(int pFirstEventId, int pTerminalEventId) {
     for (int id = pFirstEventId; id <= pTerminalEventId; id++) {
@@ -142,19 +142,21 @@ public final class OcExplorationRegistry {
   }
 
   /**
-   * Records that the given READ/WRITE event is the synthetic thread-id bookkeeping for an
-   * arbitrary pthread_create/pthread_join handle expression (see
-   * OrderingConsistencyTransferRelation's writeThreadHandle/readThreadHandle). It must still
-   * participate in the normal read-from machinery (so a join's candidate-branch equality is only
-   * satisfiable when the handle genuinely aliases that candidate's create), but is not program
-   * memory and must never be reported as a data-race candidate.
+   * Records that the given READ/WRITE event is the synthetic thread-id bookkeeping for an arbitrary
+   * pthread_create/pthread_join handle expression (see OrderingConsistencyTransferRelation's
+   * writeThreadHandle/readThreadHandle). It must still participate in the normal read-from
+   * machinery (so a join's candidate-branch equality is only satisfiable when the handle genuinely
+   * aliases that candidate's create), but is not program memory and must never be reported as a
+   * data-race candidate.
    */
   public void markThreadHandleAccess(int pEventId) {
     threadHandleAccessEventIds.add(pEventId);
   }
 
-  /** Whether the given access event is thread-handle bookkeeping (see {@link
-   * #markThreadHandleAccess}). */
+  /**
+   * Whether the given access event is thread-handle bookkeeping (see {@link
+   * #markThreadHandleAccess}).
+   */
   public boolean isThreadHandleAccess(int pEventId) {
     return threadHandleAccessEventIds.contains(pEventId);
   }
@@ -175,18 +177,21 @@ public final class OcExplorationRegistry {
 
   /**
    * Records that the given UNLOCK event releases a mutex reached through an expression whose target
-   * object is not statically fixed (a bare pointer value, a dereference, or {@code &arr[symbolic]}).
-   * Such an unlock can release a lock held under a <em>different</em> syntactic name, so the critical
-   * section it closes must be resolved by address, not by the syntactic nesting key (see {@code
-   * OcEncoder.buildCsPairs}). Without this, an aliased unlock never closes the section it truly
-   * releases, leaving a later unsynchronized access wrongly inside the section (a missed data race).
+   * object is not statically fixed (a bare pointer value, a dereference, or {@code
+   * &arr[symbolic]}). Such an unlock can release a lock held under a <em>different</em> syntactic
+   * name, so the critical section it closes must be resolved by address, not by the syntactic
+   * nesting key (see {@code OcEncoder.buildCsPairs}). Without this, an aliased unlock never closes
+   * the section it truly releases, leaving a later unsynchronized access wrongly inside the section
+   * (a missed data race).
    */
   public void markAmbiguousUnlock(int pEventId) {
     ambiguousUnlockEventIds.add(pEventId);
   }
 
-  /** Whether the given UNLOCK event has a non-static target object (see {@link
-   * #markAmbiguousUnlock}). */
+  /**
+   * Whether the given UNLOCK event has a non-static target object (see {@link
+   * #markAmbiguousUnlock}).
+   */
   public boolean isAmbiguousUnlock(int pEventId) {
     return ambiguousUnlockEventIds.contains(pEventId);
   }
@@ -273,10 +278,12 @@ public final class OcExplorationRegistry {
     return ImmutableSetMultimap.copyOf(poPredecessors);
   }
 
-  /** One allocation base: its address term and the byte size of the object it heads. The size lets
+  /**
+   * One allocation base: its address term and the byte size of the object it heads. The size lets
    * the encoder lay objects out in disjoint address ranges (a flat memory layout), so a full
    * address {@code base + offset} identifies a cell uniquely across all objects and interior
-   * pointers ({@code &a[i]}, {@code &s.field}) alias exactly. */
+   * pointers ({@code &a[i]}, {@code &s.field}) alias exactly.
+   */
   public record AddressBase(Formula term, long size) {}
 
   /**

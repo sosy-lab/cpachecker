@@ -50,8 +50,7 @@ public class DataRaceAnalysisTest {
    * Sound but incomplete: the analysis honestly answers UNKNOWN rather than claiming the program is
    * race-free. (Ordering consistency proves this one TRUE.)
    */
-  private static final ImmutableSet<String> INCOMPLETE =
-      ImmutableSet.of("atomic_float_ptr_safe.c");
+  private static final ImmutableSet<String> INCOMPLETE = ImmutableSet.of("atomic_float_ptr_safe.c");
 
   private static Configuration getConfig() throws InvalidConfigurationException, IOException {
     return configurationForTest()
@@ -77,9 +76,7 @@ public class DataRaceAnalysisTest {
             // Race-unsafe despite the name: main reads y without the mutex and without joining.
             Pair.of("mutex_protected_safe.c", Result.FALSE));
 
-    return testCases.stream()
-        .map(t -> new Object[] {t.getFirst(), t.getSecond()})
-        .toList();
+    return testCases.stream().map(t -> new Object[] {t.getFirst(), t.getSecond()}).toList();
   }
 
   @Parameter(0)

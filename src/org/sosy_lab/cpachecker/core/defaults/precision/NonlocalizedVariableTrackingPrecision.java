@@ -23,7 +23,8 @@ public abstract class NonlocalizedVariableTrackingPrecision extends VariableTrac
     return isTracking(variable, type);
   }
 
-  public abstract NonlocalizedVariableTrackingPrecision withIncrement(Collection<MemoryLocation> increment);
+  public abstract NonlocalizedVariableTrackingPrecision withIncrement(
+      Collection<MemoryLocation> increment);
 
   @Override
   public VariableTrackingPrecision withIncrement(Multimap<CFANode, MemoryLocation> increment) {
