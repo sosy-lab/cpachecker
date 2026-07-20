@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * This class takes several CFAs (each for a single function) and combines them into one CFA by
@@ -186,6 +187,22 @@ final class CFASecondPassBuilder {
     FileLocation fileLocation = edge.getFileLocation();
     FunctionEntryNode fDefNode = cfa.getFunctionHead(functionName);
     Optional<FunctionExitNode> fExitNode = fDefNode.getExitNode();
+
+    if (cfa.getMainFunction().equals(fDefNode)
+        && !CFAUtils.getGlobalVariableDeclarations(cfa).isEmpty()) {
+      // cf. #1663
+      switch (language) {
+        case JAVA ->
+            throw new JParserException(
+                "Calls to the entry function are currently not supported if global variables exist",
+                edge);
+        case C ->
+            throw new CParserException(
+                "Calls to the entry function are currently not supported if global variables exist",
+                edge);
+        default -> throw new AssertionError("Unhandled language " + language);
+      }
+    }
 
     // get the parameter expression
     // check if the number of function parameters are right
