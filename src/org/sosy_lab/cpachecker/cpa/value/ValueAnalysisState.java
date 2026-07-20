@@ -892,6 +892,12 @@ public final class ValueAnalysisState
         MemoryLocation memoryLocation = entry.getKey();
         Type type = entryValueAndType.getType();
 
+        // TODO: allow this "disallowed MemoryLocation reference" thing in a sensible way! For
+        //  example pointers to structs can be 0, and we should export such cases! This requires
+        //  that we improve type resolving below (e.g. take it from SMG2)
+        //  and add an option to disable those types if wanted.
+        //  (In the past, handling those types fully was not helpful for witnesses,
+        //  but very expensive. We should re-evaluate this!)
         if (!memoryLocation.isReference()
             && type instanceof CType cType
             && CTypes.isArithmeticType((CType) type)) {
@@ -1073,7 +1079,11 @@ public final class ValueAnalysisState
       if (maybeKnownVariable != null
           && maybeKnownVariable.getValue() instanceof NumericValue numericValueOfEntry) {
         // TODO: allow this "disallowed MemoryLocation reference" thing in a sensible way! For
-        // example pointers to structs can be 0, and we should export such cases!
+        //  example pointers to structs can be 0, and we should export such cases! This requires
+        //  that we improve type resolving below (e.g. take it from SMG2)
+        //  and add an option to disable those types if wanted.
+        //  (In the past, handling those types fully was not helpful for witnesses,
+        //  but very expensive. We should re-evaluate this!)
         if (maybeKnownVariable.getType() instanceof CType cType
             && CTypes.isArithmeticType(cType)
             && !returnVariableMemoryLoc.isReference()) {
