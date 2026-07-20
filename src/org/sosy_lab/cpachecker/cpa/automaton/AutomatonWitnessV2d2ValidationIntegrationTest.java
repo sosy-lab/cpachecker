@@ -50,8 +50,8 @@ public class AutomatonWitnessV2d2ValidationIntegrationTest
     verificationPlusValidationTest(inputFilePath, Result.FALSE, specificationFilePath);
   }
 
-  @Test(timeout = 300000000)
-  public void validate_data_race_concurrency_roundtrip_goblint_regression() throws Exception {
+  @Test(timeout = 3000)
+  public void validate_unreac_call_concurrency_goblint_regression_1() throws Exception {
     Path inputFilePath =
         Path.of(
             SV_BENCHMARKS_TEST_DIR_PATH,
@@ -66,6 +66,21 @@ public class AutomatonWitnessV2d2ValidationIntegrationTest
   }
 
   @Test(timeout = 3000)
+  public void validate_unreac_call_concurrency_goblint_regression_2() throws Exception {
+    Path inputFilePath =
+        Path.of(
+            SV_BENCHMARKS_TEST_DIR_PATH,
+            "goblint-regression",
+            "36-apron_41-threadenter-no-locals_unknown_1_neg.c");
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path witnessFilePath =
+        Path.of(
+            CONCURRENCY_TEST_DIR_PATH,
+            "36-apron_41-threadenter-no-locals_unknown_1_neg.c.second.witness.yml");
+    performValidationTest(inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
+  @Test(timeout = 3000000)
   public void validate_data_race_concurrency_roundtrip() throws Exception {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-data-race.prp");
     Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-data-race.c");
@@ -76,6 +91,28 @@ public class AutomatonWitnessV2d2ValidationIntegrationTest
   public void validate_data_race_concurrency_roundtrip_gcd() throws Exception {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-data-race.prp");
     Path inputFilePath = Path.of(SV_BENCHMARKS_TEST_DIR_PATH, "pthread-atomic/gcd-2.i");
+    verificationPlusValidationTest(inputFilePath, Result.FALSE, specificationFilePath);
+  }
+
+  @Test(timeout = 3000)
+  public void validate_data_race_concurrency_roundtrip_qw2004_1() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-data-race.prp");
+    Path inputFilePath = Path.of(SV_BENCHMARKS_TEST_DIR_PATH, "pthread-lit/qw2004-1.i");
+    verificationPlusValidationTest(inputFilePath, Result.FALSE, specificationFilePath);
+  }
+
+  @Test(timeout = 3000000)
+  public void validate_data_race_concurrency_roundtrip_qw2004_2() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-data-race.prp");
+    Path inputFilePath = Path.of(SV_BENCHMARKS_TEST_DIR_PATH, "pthread-lit/qw2004-2.i");
+    verificationPlusValidationTest(inputFilePath, Result.FALSE, specificationFilePath);
+  }
+
+  @Test(timeout = 9000)
+  public void validate_data_race_concurrency_roundtrip_read_write_lock() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-data-race.prp");
+    Path inputFilePath =
+        Path.of(SV_BENCHMARKS_TEST_DIR_PATH, "pthread-atomic/read_write_lock-2b.i");
     verificationPlusValidationTest(inputFilePath, Result.FALSE, specificationFilePath);
   }
 }

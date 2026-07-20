@@ -70,7 +70,7 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
         LocationRecord.createLocationRecordAtStart(
             fileLocation,
             node.getFunction().getFileLocation().getFileName().toString(),
-            node.getFunctionName());
+            node.getFunction().getOrigName());
 
     InvariantEntry invariantEntry =
         new InvariantEntry(

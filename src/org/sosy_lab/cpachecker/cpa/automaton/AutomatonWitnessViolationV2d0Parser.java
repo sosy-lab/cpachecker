@@ -134,10 +134,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
                 followLine,
                 threadId),
             new CheckClosestFullExpressionMatchesColumnAndLine(
-                tightestStatementForStarting.location().getStartColumnInLine(),
-                followLine,
-                cfa.getAstCfaRelation(),
-                threadId));
+                followColumn, followLine, cfa.getAstCfaRelation(), threadId));
 
     AutomatonTransition.Builder transitionBuilder =
         new AutomatonTransition.Builder(expr, nextStateId);
