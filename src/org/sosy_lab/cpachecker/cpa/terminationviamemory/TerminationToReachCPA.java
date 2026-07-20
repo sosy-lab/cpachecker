@@ -198,6 +198,6 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
     } catch (InvalidWitnessException e) {
       throw new CPAException("Invalid witness:\n" + e.getMessage(), e);
     }
-    return invariants.stream().collect(ImmutableSet.toImmutableSet());
+    return ImmutableSet.copyOf(invariants);
   }
 }
