@@ -71,7 +71,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
  * inserting the necessary function call and return edges.
  */
 @Options
-public class CFASecondPassBuilder {
+final class CFASecondPassBuilder {
 
   @Option(
       secure = true,
@@ -85,11 +85,11 @@ public class CFASecondPassBuilder {
       description = "Which functions should be interpreted as encoding assumptions")
   private Set<String> assumeFunctions = ImmutableSet.of("__VERIFIER_assume");
 
-  protected final MutableCFA cfa;
-  protected final Language language;
-  protected final LogManager logger;
+  private final MutableCFA cfa;
+  private final Language language;
+  private final LogManager logger;
 
-  public CFASecondPassBuilder(
+  CFASecondPassBuilder(
       final MutableCFA pCfa,
       final Language pLanguage,
       final LogManager pLogger,
@@ -105,7 +105,7 @@ public class CFASecondPassBuilder {
    * Inserts call edges and return edges (@see {@link #insertCallEdges(AStatementEdge)} in all
    * functions.
    */
-  public void insertCallEdgesRecursively() throws ParserException {
+  void insertCallEdgesRecursively() throws ParserException {
 
     // 1.Step: get all function calls
     final FunctionCallCollector visitor = new FunctionCallCollector();
