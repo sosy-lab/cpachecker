@@ -14,6 +14,7 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Ordering;
+import com.google.errorprone.annotations.DoNotCall;
 import com.google.errorprone.annotations.Immutable;
 import java.io.Serial;
 import java.io.Serializable;
@@ -176,6 +177,18 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
       return variableName;
     }
     return variableName + "/" + offset;
+  }
+
+  /**
+   * @throws UnsupportedOperationException in all cases due to misleading results when used as long
+   *     as an offset is present. Use/see {@link #getExtendedQualifiedName()} instead.
+   */
+  @DoNotCall
+  @Deprecated(
+      since = "2026.07, because usage can be misleading as the offset is not taken into account")
+  public final String getQualifiedName() {
+    throw new UnsupportedOperationException(
+        "MemoryLocation does not support qualified names. See getExtendedQualifiedName() instead.");
   }
 
   /**
