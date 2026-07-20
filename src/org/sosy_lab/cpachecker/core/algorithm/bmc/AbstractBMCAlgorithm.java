@@ -893,7 +893,7 @@ abstract class AbstractBMCAlgorithm
    * @throws CPATransferException may be thrown in subclasses
    * @throws InterruptedException may be thrown in subclasses
    */
-  protected void analyzeCounterexample(
+  protected final void analyzeCounterexample(
       final BooleanFormula pCounterexample,
       final ReachedSet pReachedSet,
       final BasicProverEnvironment<?> pProver)
