@@ -823,10 +823,11 @@ public class CFAUtils {
   }
 
   public static boolean equalityModuloNodes(CFAEdge pFirst, CFAEdge pOther) {
-    // Only necessary to compare CFA Edges of cloned CFAs, which is done for concurrency and makes
-    // the matching with the original CFA difficult
+    // Only necessary to compare CFA edges of cloned CFAs (done for concurrency), where the nodes
+    // themselves differ and so cannot be compared directly.
     //
-    // Is just an approximation for now. This would need to be
+    // This is only an approximation: file location, edge class (or the statement/call-edge
+    // rewrite pair), and raw statement text, not true AST equality.
     return Objects.equals(pFirst.getFileLocation(), pOther.getFileLocation())
         && (Objects.equals(pFirst.getClass(), pOther.getClass())
             || compareFunctionCallAndStatementEdges(pFirst, pOther)

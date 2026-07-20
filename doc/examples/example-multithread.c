@@ -30,26 +30,14 @@ extern int pthread_create (pthread_t *__restrict __newthread,
 extern void pthread_exit (void *__retval) __attribute__ ((__noreturn__));
 extern int pthread_join (pthread_t __th, void **__thread_return);
 
-extern int __VERIFIER_nondet_int();
-
 int x, y;
 void *thr1(void *_) {
-  int nondet = __VERIFIER_nondet_int();
-  if(nondet) {
-    x = 1;
-    x = 2;
-  } else {
-    x = x++ + 1;
-  }
+  x = 1;
+  x = 2;
 }
 void *thr2(void *_) {
   int a = x;
-  if(a > 0) {
-    y = a;
-  } else {
-    y = 0 - a;
-    reach_error();
-  }
+  y = a;
 }
 int main() {
   pthread_t t1, t2;

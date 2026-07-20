@@ -191,8 +191,8 @@ public class LocationState
     return this;
   }
 
-  // no equals and hashCode because there is always only one element per CFANode
-  // -> not true anymore as CFA cloning occurs on-the-fly for dynamic thread creation
+  // Defined by location node: CFA cloning for dynamic thread creation means a CFANode no longer
+  // uniquely identifies one LocationState.
 
   @Override
   public int hashCode() {

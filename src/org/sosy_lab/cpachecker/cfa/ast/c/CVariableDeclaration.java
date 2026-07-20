@@ -30,12 +30,6 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
   @Serial private static final long serialVersionUID = 8303959164064236061L;
   private final CStorageClass cStorageClass;
 
-  /**
-   * Whether the variable was declared {@code __thread} / {@code _Thread_local}: every thread gets
-   * its own copy, so despite being at file scope it is NOT shared state. CDT has no thread-local
-   * storage class, so this is recovered from a preprocessor-inserted attribute (see {@code
-   * EclipseCdtWrapper#THREAD_LOCAL_ATTRIBUTE}).
-   */
   private final boolean isThreadLocal;
 
   public CVariableDeclaration(
@@ -105,12 +99,6 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
     return cStorageClass;
   }
 
-  /**
-   * Whether this variable was declared {@code __thread} / {@code _Thread_local}. Such a variable
-   * lives at file scope but is NOT shared between threads: each thread gets its own copy,
-   * initialized independently. Analyses that reason about shared state must not treat it as a
-   * global (doing so is sound, but reports races/interleavings that cannot happen).
-   */
   public boolean isThreadLocal() {
     return isThreadLocal;
   }
