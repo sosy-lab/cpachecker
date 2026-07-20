@@ -114,6 +114,12 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/benchmarks/pthread/stateful01-1.yml</include>
     <include>../programs/benchmarks/pthread-theta/unwind1-1.yml</include>
   </tasks>
+  <tasks name="oc-clocks-simple">
+    <option name="--orderingConsistency"/>
+    <option name="--option">oc.encoding=CLOCKS</option>
+    <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+  </tasks>
 
   <tasks name="por-pred-aa">
     <option name="--por-pred-aa"/>
@@ -124,6 +130,11 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/benchmarks/pthread/stateful01-1.yml</include>
     <include>../programs/benchmarks/pthread-theta/unwind3-nondet.yml</include>
   </tasks>
+  <tasks name="por-pred-aa-simple">
+    <option name="--por-pred-aa"/>
+    <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+  </tasks>
 
   <tasks name="por-value-aa">
     <option name="--por-value-aa"/>
@@ -133,6 +144,11 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/benchmarks/pthread-ext/18_read_write_lock.yml</include>
     <include>../programs/benchmarks/pthread-theta/unwind3-nondet.yml</include>
     <include>../programs/benchmarks/pthread/lazy01.yml</include>
+  </tasks>
+  <tasks name="por-value-aa-simple">
+    <option name="--por-value-aa"/>
+    <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
 
   <columns>
