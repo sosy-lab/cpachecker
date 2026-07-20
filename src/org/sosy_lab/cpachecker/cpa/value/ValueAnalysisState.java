@@ -912,6 +912,8 @@ public final class ValueAnalysisState
           }
 
           if (qualifiedVariableNamesInScope.contains(memoryLocation.getQualifiedName())) {
+            // We only want some approximation for the location of the variable declaration,
+            // as the location is needed transform the MemoryLocation into a CvariableDeclaration.
             FileLocation loc =
                 pLocation.getNumEnteringEdges() > 0
                     ? pLocation.getEnteringEdge(0).getFileLocation()
