@@ -963,8 +963,8 @@ public final class ValueAnalysisState
     // Note: most of the time we don't export information in v2 witnesses at all locations,
     // but certain pointers like loop-heads. Hence, we return information for a bunch of variables.
 
-    // This returns all assignments for variables in the current function-scope (including
-    // parameters and CPAchecker internal variables), excluding return variables
+    // This returns all assignments for variables that are always within the scope of the
+    // current function; i.e. parameters and global variables. (Return variables should not be returned, as they are not in scope all the time!)
 
     ImmutableSet<String> forbiddenQualifiedNames = ImmutableSet.of();
     if (pFunctionScope.getReturnVariable().isPresent()) {
