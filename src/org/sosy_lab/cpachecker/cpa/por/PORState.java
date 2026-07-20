@@ -24,9 +24,10 @@ import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.Random;
 import java.util.function.Predicate;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.annotations.SuppressForbidden;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
@@ -65,6 +66,8 @@ public class PORState extends AbstractSingleWrapperState
 
   private final CFA cfa;
 
+  private final LogManager logger;
+
   private final ImmutableMap<Integer, PORThreadState> threads;
 
   /** Thread instances created so far along this path and not yet joined away. */
@@ -88,16 +91,10 @@ public class PORState extends AbstractSingleWrapperState
 
   private Collection<CFAEdge> sourceSet = null;
 
-  /**
-   * Env-gated debugging (same pattern as POR_X in PrecisionVariableManager): with POR_SS set, every
-   * source-set computation prints thread locations, enabled edges, and the chosen set. This is what
-   * located the aggregator's fused-scheduling-point bugs on the pthread-wmm family.
-   */
-  private static final boolean DEBUG_SOURCE_SETS = System.getenv("POR_SS") != null;
-
   PORState(
       AbstractState pWrappedState,
       CFA pCfa,
+      LogManager pLogger,
       ImmutableMap<Integer, PORThreadState> pThreads,
       ImmutableSet<Integer> pLivePids,
       ImmutableMap<String, Integer> pHandleHints,
@@ -105,16 +102,19 @@ public class PORState extends AbstractSingleWrapperState
     super(pWrappedState);
 
     cfa = pCfa;
+    logger = pLogger;
     threads = pThreads;
     livePids = pLivePids;
     handleHints = pHandleHints;
     random = pRandom;
   }
 
-  static PORState empty(AbstractState pWrappedInitialState, CFA pCfa, Random pRandom) {
+  static PORState empty(
+      AbstractState pWrappedInitialState, CFA pCfa, LogManager pLogger, Random pRandom) {
     return new PORState(
         pWrappedInitialState,
         pCfa,
+        pLogger,
         ImmutableMap.of(),
         ImmutableSet.of(),
         ImmutableMap.of(),
@@ -181,7 +181,8 @@ public class PORState extends AbstractSingleWrapperState
                 .putAll(handleHints)
                 .put(pHandleQualifiedName, newPid)
                 .buildKeepingLast();
-    return new PORState(getWrappedState(), cfa, newThreads, newLivePids, newHandleHints, random);
+    return new PORState(
+        getWrappedState(), cfa, logger, newThreads, newLivePids, newHandleHints, random);
   }
 
   /**
@@ -203,7 +204,8 @@ public class PORState extends AbstractSingleWrapperState
             .collect(ImmutableMap.toImmutableMap(Entry::getKey, Entry::getValue));
     final ImmutableSet<Integer> newLivePids =
         livePids.stream().filter(pid -> pid != pPid).collect(ImmutableSet.toImmutableSet());
-    return new PORState(getWrappedState(), cfa, newThreads, newLivePids, handleHints, random);
+    return new PORState(
+        getWrappedState(), cfa, logger, newThreads, newLivePids, handleHints, random);
   }
 
   private boolean canJoin(int pPid) {
@@ -240,7 +242,13 @@ public class PORState extends AbstractSingleWrapperState
     }
     newThreads.put(pPid, new PORThreadState(pNextLoc, pNextStack));
     return new PORState(
-        getWrappedState(), cfa, newThreads.buildKeepingLast(), livePids, handleHints, random);
+        getWrappedState(),
+        cfa,
+        logger,
+        newThreads.buildKeepingLast(),
+        livePids,
+        handleHints,
+        random);
   }
 
   public PORState exitThread(int pPid, LocationStateFactory pLocationStateFactory) {
@@ -272,7 +280,7 @@ public class PORState extends AbstractSingleWrapperState
   }
 
   PORState withWrappedState(AbstractState pWrappedState) {
-    return new PORState(pWrappedState, cfa, threads, livePids, handleHints, random);
+    return new PORState(pWrappedState, cfa, logger, threads, livePids, handleHints, random);
   }
 
   /**
@@ -512,7 +520,7 @@ public class PORState extends AbstractSingleWrapperState
         }
       }
       sourceSet = minimalSourceSet;
-      if (DEBUG_SOURCE_SETS) {
+      if (logger.wouldBeLogged(Level.FINE)) {
         dumpSourceSet(allOutgoingEdges);
       }
     } else {
@@ -525,9 +533,8 @@ public class PORState extends AbstractSingleWrapperState
     return sourceSet;
   }
 
-  @SuppressForbidden("debug dump, gated behind the POR_SS environment variable")
   private void dumpSourceSet(Collection<CFAEdge> pAllOutgoingEdges) {
-    StringBuilder sb = new StringBuilder("[POR_SS] locs={");
+    StringBuilder sb = new StringBuilder("source-set: locs={");
     threads.keySet().stream()
         .sorted()
         .forEach(
@@ -545,7 +552,7 @@ public class PORState extends AbstractSingleWrapperState
       sb.append(edgePidMap.get(e)).append(":L").append(e.getLineNumber()).append(" ");
     }
     sb.append("]");
-    System.err.println(sb);
+    logger.log(Level.FINE, sb.toString());
   }
 
   private ImmutableCollection<ImmutableCollection<CFAEdge>> getSourceSetFirstActions(

@@ -91,6 +91,7 @@ public class PORCPA extends AbstractSingleWrapperCPA {
 
   private final PORTransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
+  private final LogManager logger;
 
   @SuppressWarnings("unused")
   private PORCPA(
@@ -99,6 +100,7 @@ public class PORCPA extends AbstractSingleWrapperCPA {
     super(pCpa);
     pConfig.inject(this);
 
+    logger = pLogger;
     transferRelation =
         new PORTransferRelation(
             pCpa, pConfig, pCfa, aggregateBasicBlocks, pLogger, new Random(randomSeed));
@@ -158,7 +160,7 @@ public class PORCPA extends AbstractSingleWrapperCPA {
           Precisions.extractPrecisionByType(
               initialWrappedPrecision, ScopedRefinablePrecision.class);
       if (scopedRefinablePrecision != null) {
-        variableManagers.add(new ScopedRefinablePrecisionVariableManager());
+        variableManagers.add(new ScopedRefinablePrecisionVariableManager(logger));
       }
 
       PredicatePrecision predicatePrecision =

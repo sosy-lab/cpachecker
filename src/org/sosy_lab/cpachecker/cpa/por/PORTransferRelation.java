@@ -74,6 +74,8 @@ public class PORTransferRelation implements TransferRelation {
 
   private final CFA cfa;
 
+  private final LogManager logger;
+
   private final boolean aggregateBasicBlocks;
   private final BasicBlockAggregator basicBlockAggregator;
 
@@ -102,6 +104,7 @@ public class PORTransferRelation implements TransferRelation {
     callstackCPA = new CallstackCPA(pConfig, pLogger);
 
     cfa = pCfa;
+    logger = pLogger;
     threadLocalGlobals = ThreadFunctions.threadLocalGlobals(pCfa);
 
     aggregateBasicBlocks = pAggregateBasicBlocks;
@@ -640,7 +643,8 @@ public class PORTransferRelation implements TransferRelation {
   }
 
   PORState initial(AbstractState wrappedInitialState) {
-    return addNewThreadNode(PORState.empty(wrappedInitialState, cfa, random), false, "main", null);
+    return addNewThreadNode(
+        PORState.empty(wrappedInitialState, cfa, logger, random), false, "main", null);
   }
 
   PORState addNewThread(

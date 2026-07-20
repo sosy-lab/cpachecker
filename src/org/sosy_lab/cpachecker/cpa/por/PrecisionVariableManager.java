@@ -12,6 +12,8 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.defaults.precision.ConfigurablePrecision;
 import org.sosy_lab.cpachecker.core.defaults.precision.ScopedRefinablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -79,7 +81,13 @@ interface PrecisionVariableManager {
 
   class ScopedRefinablePrecisionVariableManager implements PrecisionVariableManager {
 
+    private final LogManager logger;
+
     private ScopedRefinablePrecision precision = null;
+
+    ScopedRefinablePrecisionVariableManager(LogManager pLogger) {
+      logger = pLogger;
+    }
 
     @Override
     public void setNewPrecision(Precision pPrecision) {
@@ -98,10 +106,11 @@ interface PrecisionVariableManager {
       checkState(precision != null, "PrecisionVariableManager not initialized with a precision");
 
       boolean result = precision.getRawPrecision().contains(pMemoryLocation);
-      if (System.getenv("POR_X") != null
+      if (logger.wouldBeLogged(Level.FINE)
           && pMemoryLocation.getExtendedQualifiedName().equals("x")) {
-        System.err.println(
-            "[POR_X] contains(x)="
+        logger.log(
+            Level.FINE,
+            "contains(x)="
                 + result
                 + " precSize="
                 + precision.getRawPrecision().size()
