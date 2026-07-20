@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRealConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibAtTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -155,6 +156,22 @@ public class SvLibTermToFormulaConverter {
       Formula lhs = convertTerm(pTerm.getTerms().getFirst(), ssa, fmgr, pConverter);
       Formula rhs = convertTerm(pTerm.getTerms().get(1), ssa, fmgr, pConverter);
       return fmgr.makeEqual(lhs, rhs);
+    } else if (pSvLibGeneralSymbolApplicationTerm instanceof SvLibSymbolApplicationTerm pTerm
+        && pTerm.getSymbol().getName().equals("distinct")) {
+      // distinct is the negation of equality and is generic over the argument type, so we handle it
+      // here for all types (booleans, bitvectors, arrays, ...) at once. All arguments must be
+      // pairwise different, which for the common binary case is simply the negation of equality.
+      List<SvLibTerm> terms = pTerm.getTerms();
+      Verify.verify(terms.size() >= 2);
+      BooleanFormula allDistinct = fmgr.getBooleanFormulaManager().makeTrue();
+      for (int i = 0; i < terms.size(); i++) {
+        for (int j = i + 1; j < terms.size(); j++) {
+          Formula lhs = convertTerm(terms.get(i), ssa, fmgr, pConverter);
+          Formula rhs = convertTerm(terms.get(j), ssa, fmgr, pConverter);
+          allDistinct = fmgr.makeAnd(allDistinct, fmgr.makeNot(fmgr.makeEqual(lhs, rhs)));
+        }
+      }
+      return allDistinct;
     } else if (pSvLibGeneralSymbolApplicationTerm instanceof SvLibSymbolApplicationTerm pTerm
         && pTerm.getSymbol().getName().equals("const")
         && pTerm.getTerms().size() == 1

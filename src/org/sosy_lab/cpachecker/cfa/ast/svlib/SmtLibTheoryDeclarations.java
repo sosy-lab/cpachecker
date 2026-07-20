@@ -143,6 +143,23 @@ public class SmtLibTheoryDeclarations {
           "=",
           ImmutableList.of());
 
+  /**
+   * The SMT-LIB {@code distinct} predicate, which holds iff all of its arguments are pairwise
+   * different. It is generic over the argument type (which must be the same for all arguments) and
+   * always returns a boolean.
+   */
+  public static SvLibFunctionDeclaration distinct(SvLibType pArgumentType, int amountArguments) {
+    Verify.verify(amountArguments >= 2);
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.copyOf(Collections.nCopies(amountArguments, pArgumentType)),
+            SvLibSmtLibPredefinedType.BOOL),
+        "distinct",
+        "distinct",
+        ImmutableList.of());
+  }
+
   public static SvLibFunctionDeclaration BOOL_NEGATION =
       new SvLibFunctionDeclaration(
           FileLocation.DUMMY,

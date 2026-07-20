@@ -288,6 +288,12 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
         Verify.verify(pArguments.size() == 3);
         return SmtLibTheoryDeclarations.ite(pArguments.get(1).getExpressionType());
       }
+      case "distinct" -> {
+        // distinct is generic over the (shared) argument type and always returns a boolean.
+        Verify.verify(pArguments.size() >= 2);
+        return SmtLibTheoryDeclarations.distinct(
+            pArguments.getFirst().getExpressionType(), pArguments.size());
+      }
       case "=" -> {
         // Equality is part of the core theory only for booleans, for other types it is resolved
         // in their respective theory below.
