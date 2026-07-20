@@ -4058,9 +4058,6 @@ cpa.terminationviamemory.considerRecursion = false
 # BMC.
 cpa.terminationviamemory.performBMC = false
 
-# Enables the TerminationToSafety analysis to be used as a validator.
-cpa.terminationviamemory.validation = false
-
 # Simple thread analysis from theory paper
 cpa.thread.simpleMode = false
 
