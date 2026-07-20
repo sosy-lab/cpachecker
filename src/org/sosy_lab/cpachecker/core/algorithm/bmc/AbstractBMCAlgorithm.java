@@ -920,7 +920,7 @@ abstract class AbstractBMCAlgorithm
    * the solver for a satisfying assignment.
    */
   @SuppressWarnings("resource")
-  protected final Optional<CounterexampleInfo> analyzeCounterexample0(
+  private Optional<CounterexampleInfo> analyzeCounterexample0(
       final BooleanFormula pCounterexampleFormula,
       final ReachedSet pReachedSet,
       final BasicProverEnvironment<?> pProver)
