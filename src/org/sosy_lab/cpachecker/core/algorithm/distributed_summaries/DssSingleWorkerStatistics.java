@@ -41,7 +41,7 @@ public class DssSingleWorkerStatistics implements Statistics {
     ANALYZE_VIOLATION_CONDITION_TIME("time spent in analyzing violation conditions", true),
     STORE_VIOLATION_CONDITION_COUNT("number of violation conditions stored", false),
     STORE_VIOLATION_CONDITION_TIME("time spent in storing violation conditions", true),
-    SERIALIZED_MESSAGE_SIZE("serialized message size (chars)", false);
+    SERIALIZED_MESSAGE_SIZE("serialized states size (chars)", false);
 
     private final String key;
     private final boolean formatAsTime;
@@ -79,7 +79,7 @@ public class DssSingleWorkerStatistics implements Statistics {
       new StatCounter("Analyze Violation Condition");
   private final StatCounter storeViolationConditionCount =
       new StatCounter("Store Violation Condition");
-  private final StatInt serializedMessageSize = new StatInt(StatKind.SUM, "Serialized Message Size");
+  private final StatInt serializedMessageSize = new StatInt(StatKind.SUM, "Serialized States Size");
 
   public DssSingleWorkerStatistics(String pBlockId) {
     blockId = pBlockId;

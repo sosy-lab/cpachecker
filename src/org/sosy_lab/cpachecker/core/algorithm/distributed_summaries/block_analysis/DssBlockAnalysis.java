@@ -352,6 +352,7 @@ public class DssBlockAnalysis {
     serializedContent.put(
         DistributedConfigurableProgramAnalysis.MULTIPLE_STATES_KEY,
         Integer.toString(pStatesAndPrecisions.size()));
+    int totalStateSize = 0;
     for (int i = 0; i < pStatesAndPrecisions.size(); i++) {
       serializedContent.pushLevel(SerializeOperator.STATE_KEY + i);
       StateAndPrecision stateAndPrecision = pStatesAndPrecisions.get(i);
@@ -362,17 +363,17 @@ public class DssBlockAnalysis {
                   dcpa.getSerializePrecisionOperator()
                       .serializePrecision(stateAndPrecision.precision()))
               .buildOrThrow();
+      totalStateSize +=
+          content.entrySet().stream()
+              .mapToInt(e -> e.getKey().length() + e.getValue().length())
+              .sum();
       for (Entry<String, String> contents : content.entrySet()) {
         serializedContent.put(contents.getKey(), contents.getValue());
       }
       serializedContent.popLevel();
     }
-    ImmutableMap<String, String> result = serializedContent.build();
-    workerStats.getSerializedMessageSizeStats().setNextValue(
-        result.entrySet().stream()
-            .mapToInt(e -> e.getKey().length() + e.getValue().length())
-            .sum());
-    return result;
+    workerStats.getSerializedMessageSizeStats().setNextValue(totalStateSize);
+    return serializedContent.build();
   }
 
   /**
