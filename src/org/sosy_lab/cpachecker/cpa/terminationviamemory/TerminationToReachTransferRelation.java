@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -73,7 +72,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       throw new UnsupportedOperationException("TransferRelation requires location information.");
     }
 
-    ImmutableSet.Builder<CFANode> visitedNodes = new Builder<>();
+    ImmutableSet.Builder<CFANode> visitedNodes = new ImmutableSet.Builder<>();
     visitedNodes.addAll(terminationState.visitedNodes());
     visitedNodes.add(location);
     if (terminationState.isLoopHead(location)) {
