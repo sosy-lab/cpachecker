@@ -119,7 +119,8 @@ public interface Property {
 
     TERMINATION("F end"),
 
-    ASSERT("G assert", ImmutableSet.of(Language.SVLIB)),
+    // Assert of only the Java language
+    ASSERT("G assert", ImmutableSet.of(Language.SVLIB, Language.C)),
     CORRECT_ANNOTATIONS("G correct-annotations", ImmutableSet.of(Language.C, Language.JAVA)),
     ;
 
