@@ -38,7 +38,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
   private boolean isTarget;
   private ImmutableSet<Loop> possiblyNonterminatingLoops;
   private ImmutableSet<Loop> allLoops;
-  private Set<CFANode> visitedNodes;
+  private ImmutableSet<CFANode> visitedNodes;
 
   /**
    * The following map keeps track of all the variables as type of @Formula, so that they can be
@@ -82,7 +82,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
       Optional<PathFormula> pPathFormulaFull,
       ImmutableSet<Loop> pPossiblyNonterminatingLoopHeads,
       ImmutableSet<Loop> pAllLoops,
-      Set<CFANode> alreadyVisitedNodes) {
+      ImmutableSet<CFANode> alreadyVisitedNodes) {
 
     storedValues = pStoredValues;
     numberOfIterations = pNumberOfIterations;
@@ -100,6 +100,10 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
       return numberOfIterations.get(pKeyPair);
     }
     return 0;
+  }
+
+  public ImmutableMap<Pair<LocationState, CallstackState>, Integer> getNumberOfIterations() {
+    return numberOfIterations;
   }
 
   public ImmutableMap<
@@ -125,11 +129,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     isTarget = true;
   }
 
-  public void visitNode(CFANode pNode) {
-    visitedNodes.add(pNode);
-  }
-
-  public Set<CFANode> visitedNodes() {
+  public ImmutableSet<CFANode> visitedNodes() {
     return visitedNodes;
   }
 
