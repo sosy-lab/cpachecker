@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Map;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.core.dom.ast.gnu.c.GCCLanguage;
@@ -71,7 +72,197 @@ public class EclipseCdtWrapper {
   }
 
   static FileContent wrapCode(final Path pFileName, final String pCode) {
-    return FileContent.create(pFileName.toString(), pCode.toCharArray());
+    return FileContent.create(
+        pFileName.toString(), rewriteAtomicTypeSpecifiers(pCode).toCharArray());
+  }
+
+  private static final String ATOMIC_KEYWORD = "_Atomic";
+
+  private enum AtomicTypeName {
+    /** A plain type name such as {@code int} or {@code unsigned long}. */
+    PLAIN,
+    /** A pointer type name such as {@code int*} or {@code int **}. */
+    POINTER,
+    /** An unsupported type name: an array, function, or qualified type. */
+    UNSUPPORTED
+  }
+
+  /**
+   * Rewrite each atomic type specifier {@code _Atomic ( type-name )} into the equivalent {@code
+   * _Atomic}-qualifier form, which denotes the same type (cf. C23 § 6.7.3.5 and footnote 147,
+   * #1667). CDT cannot parse the specifier form, but the qualifier form is handled via the {@link
+   * #ATOMIC_ATTRIBUTE} macro (and, for pointers, via the recovery in {@code
+   * ASTTypeConverter#findAtomicPointerOperators}, #1670).
+   *
+   * <p>For a plain type name, {@code _Atomic(T)} becomes {@code _Atomic T} by blanking the
+   * parentheses. For a pointer type name, {@code _Atomic(T*)} becomes {@code T* _Atomic}, so the
+   * {@code _Atomic} applies to the pointer and not to {@code T} (that distinction is the whole
+   * point of the parentheses: {@code _Atomic(int) *} is a pointer to an atomic int, while {@code
+   * _Atomic(int*)} is an atomic pointer to int). Both rewrites keep the total length so that all
+   * source offsets are preserved. Array, function, and qualified type names are left unchanged, as
+   * are occurrences inside strings, character constants, or comments.
+   */
+  private static String rewriteAtomicTypeSpecifiers(final String pCode) {
+    if (!pCode.contains(ATOMIC_KEYWORD)) {
+      return pCode;
+    }
+    char[] code = pCode.toCharArray();
+    int i = 0;
+    while (i < code.length) {
+      char c = code[i];
+      if (c == '"' || c == '\'') {
+        i = skipLiteral(code, i);
+      } else if (c == '/' && i + 1 < code.length && code[i + 1] == '/') {
+        i = skipToLineEnd(code, i);
+      } else if (c == '/' && i + 1 < code.length && code[i + 1] == '*') {
+        i = skipBlockComment(code, i);
+      } else if (startsAtomicKeyword(code, i)) {
+        int next = i + ATOMIC_KEYWORD.length();
+        int open = skipWhitespace(code, next);
+        if (open < code.length && code[open] == '(') {
+          int close = matchingParenthesis(code, open);
+          if (close >= 0) {
+            switch (classifyTypeName(code, open + 1, close)) {
+              case PLAIN -> {
+                code[open] = ' ';
+                code[close] = ' ';
+                next = close + 1;
+              }
+              case POINTER -> {
+                rewriteAtomicPointerSpecifier(code, i, open, close);
+                next = close + 1;
+              }
+              case UNSUPPORTED -> {}
+            }
+          }
+        }
+        i = next;
+      } else {
+        i++;
+      }
+    }
+    return new String(code);
+  }
+
+  private static AtomicTypeName classifyTypeName(
+      final char[] pCode, final int pStart, final int pEnd) {
+    if (pStart >= pEnd) {
+      return AtomicTypeName.UNSUPPORTED;
+    }
+    boolean hasPointer = false;
+    for (int i = pStart; i < pEnd; i++) {
+      char c = pCode[i];
+      if (c == '[' || c == '(') {
+        return AtomicTypeName.UNSUPPORTED; // array or function type name
+      }
+      if (c == '*') {
+        hasPointer = true;
+      }
+    }
+    if (!hasPointer) {
+      return AtomicTypeName.PLAIN;
+    }
+    // A pointer type name has its "*"(s) at the end; anything else (e.g. the qualified pointer
+    // "int * const") is a constraint violation that we do not rewrite.
+    int last = pEnd - 1;
+    while (last >= pStart && Character.isWhitespace(pCode[last])) {
+      last--;
+    }
+    return pCode[last] == '*' ? AtomicTypeName.POINTER : AtomicTypeName.UNSUPPORTED;
+  }
+
+  /**
+   * Turn {@code _Atomic ( type-name * )} into {@code type-name * _Atomic} within the same character
+   * span, so that the {@code _Atomic} qualifier applies to the pointer while all source offsets are
+   * preserved.
+   */
+  private static void rewriteAtomicPointerSpecifier(
+      final char[] pCode, final int pAtomicStart, final int pOpen, final int pClose) {
+    char[] typeName = Arrays.copyOfRange(pCode, pOpen + 1, pClose);
+    int keywordStart = pClose + 1 - ATOMIC_KEYWORD.length();
+    int pos = pAtomicStart;
+    System.arraycopy(typeName, 0, pCode, pos, typeName.length);
+    pos += typeName.length;
+    while (pos < keywordStart) {
+      pCode[pos++] = ' ';
+    }
+    for (int k = 0; k < ATOMIC_KEYWORD.length(); k++) {
+      pCode[keywordStart + k] = ATOMIC_KEYWORD.charAt(k);
+    }
+  }
+
+  private static boolean startsAtomicKeyword(final char[] pCode, final int pIndex) {
+    if (pIndex + ATOMIC_KEYWORD.length() > pCode.length) {
+      return false;
+    }
+    for (int k = 0; k < ATOMIC_KEYWORD.length(); k++) {
+      if (pCode[pIndex + k] != ATOMIC_KEYWORD.charAt(k)) {
+        return false;
+      }
+    }
+    if (pIndex > 0 && isIdentifierPart(pCode[pIndex - 1])) {
+      return false;
+    }
+    int after = pIndex + ATOMIC_KEYWORD.length();
+    return after >= pCode.length || !isIdentifierPart(pCode[after]);
+  }
+
+  private static boolean isIdentifierPart(final char pChar) {
+    return Character.isLetterOrDigit(pChar) || pChar == '_';
+  }
+
+  private static int skipWhitespace(final char[] pCode, final int pIndex) {
+    int i = pIndex;
+    while (i < pCode.length && Character.isWhitespace(pCode[i])) {
+      i++;
+    }
+    return i;
+  }
+
+  private static int skipLiteral(final char[] pCode, final int pIndex) {
+    char quote = pCode[pIndex];
+    int i = pIndex + 1;
+    while (i < pCode.length) {
+      if (pCode[i] == '\\') {
+        i += 2;
+      } else if (pCode[i] == quote) {
+        return i + 1;
+      } else {
+        i++;
+      }
+    }
+    return i;
+  }
+
+  private static int skipToLineEnd(final char[] pCode, final int pIndex) {
+    int i = pIndex + 2;
+    while (i < pCode.length && pCode[i] != '\n') {
+      i++;
+    }
+    return i;
+  }
+
+  private static int skipBlockComment(final char[] pCode, final int pIndex) {
+    int i = pIndex + 2;
+    while (i + 1 < pCode.length && !(pCode[i] == '*' && pCode[i + 1] == '/')) {
+      i++;
+    }
+    return Math.min(i + 2, pCode.length);
+  }
+
+  private static int matchingParenthesis(final char[] pCode, final int pOpen) {
+    int depth = 0;
+    for (int i = pOpen; i < pCode.length; i++) {
+      if (pCode[i] == '(') {
+        depth++;
+      } else if (pCode[i] == ')') {
+        depth--;
+        if (depth == 0) {
+          return i;
+        }
+      }
+    }
+    return -1;
   }
 
   /**

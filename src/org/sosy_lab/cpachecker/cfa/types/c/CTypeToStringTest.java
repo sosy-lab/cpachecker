@@ -262,4 +262,41 @@ public class CTypeToStringTest {
                 .getType();
     assertThat(parsed.getCanonicalType()).isEqualTo(type.getCanonicalType());
   }
+
+  @Test
+  public void testAtomicTypeSpecifierParses() throws CParserException, InterruptedException {
+    // C23 § 6.7.3.5 (issue #1667): the atomic type specifier "_Atomic(T)" denotes the same type as
+    // the "_Atomic T" qualifier (footnote 147). Its string representation is the qualifier form, so
+    // this cannot be checked with the round-trip test above.
+    assertThat(parseGlobalType("_Atomic(int) v;").getCanonicalType())
+        .isEqualTo(CNumericTypes.INT.withAtomic().getCanonicalType());
+    assertThat(parseGlobalType("_Atomic (unsigned long) v;").getCanonicalType())
+        .isEqualTo(CNumericTypes.UNSIGNED_LONG_INT.withAtomic().getCanonicalType());
+
+    // The parentheses are significant: "_Atomic(int) *" is a pointer to an _Atomic int, whereas
+    // "_Atomic(int*)" is an _Atomic pointer to a (non-atomic) int.
+    assertThat(parseGlobalType("_Atomic(int) *v;").getCanonicalType())
+        .isEqualTo(
+            new CPointerType(CTypeQualifiers.NONE, CNumericTypes.INT.withAtomic())
+                .getCanonicalType());
+    assertThat(parseGlobalType("_Atomic(int*) v;").getCanonicalType())
+        .isEqualTo(new CPointerType(CTypeQualifiers.ATOMIC, CNumericTypes.INT).getCanonicalType());
+    assertThat(parseGlobalType("_Atomic(int**) v;").getCanonicalType())
+        .isEqualTo(
+            new CPointerType(
+                    CTypeQualifiers.ATOMIC,
+                    new CPointerType(CTypeQualifiers.NONE, CNumericTypes.INT))
+                .getCanonicalType());
+  }
+
+  private static CType parseGlobalType(String pDeclaration)
+      throws CParserException, InterruptedException {
+    return (CType)
+        parser
+            .parseString(Path.of("dummy"), pDeclaration)
+            .globalDeclarations()
+            .getFirst()
+            .getFirst()
+            .getType();
+  }
 }
