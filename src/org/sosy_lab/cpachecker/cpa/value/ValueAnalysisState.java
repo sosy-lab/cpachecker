@@ -870,7 +870,6 @@ public final class ValueAnalysisState
   }
 
   private ExpressionTree<Object> buildVariableAssignmentsFor(
-      FunctionEntryNode pFunctionScope,
       ImmutableSet<String> qualifiedVariableNamesInScope,
       Function<String, String> variableRenamingFunction)
       throws TranslationToExpressionTreeFailedException {
@@ -879,7 +878,6 @@ public final class ValueAnalysisState
     }
 
     List<ExpressionTree<Object>> result = new ArrayList<>();
-    String functionName = pFunctionScope.getFunctionName();
 
     // TODO: make the constantMap a Stack Frame and only export the current frame.
     // Note: we can not calculate whether its cheaper to traverse the entire map or use get(), since
@@ -960,8 +958,7 @@ public final class ValueAnalysisState
         getSetOfWantedVariableNames(
             pAstCfaRelation, pFunctionScope, forbiddenQualifiedNames, ImmutableSet.of());
 
-    return buildVariableAssignmentsFor(
-        pFunctionScope, qualifiedVariableNamesToExport, Function.identity());
+    return buildVariableAssignmentsFor(qualifiedVariableNamesToExport, Function.identity());
   }
 
   @Override
@@ -989,7 +986,6 @@ public final class ValueAnalysisState
             pAstCfaRelation, pLocation, forbiddenQualifiedNames, forbiddenSubStrings);
 
     return buildVariableAssignmentsFor(
-        pFunctionScope,
         qualifiedVariableNamesToExport,
         varName -> useOldKeywordForVariables ? "\\old(" + varName + ")" : varName);
   }
