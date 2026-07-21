@@ -680,11 +680,11 @@ public class DssBlockAnalysis {
    */
   public Collection<DssMessage> analyzePrecondition()
       throws SolverException, InterruptedException, CPAException {
+    if (!containsViolationInsideBlock && violationConditions.isEmpty()) {
+      return ImmutableSet.of();
+    }
     analyzePreconditionTime.start();
     try {
-      if (!containsViolationInsideBlock && violationConditions.isEmpty()) {
-        return ImmutableSet.of();
-      }
       ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
       AnalysisResult result =
           analyzeViolationCondition(
@@ -713,14 +713,14 @@ public class DssBlockAnalysis {
    */
   public Collection<DssMessage> analyzeViolationCondition(String pSenderId)
       throws SolverException, InterruptedException, CPAException {
+    relevant.clear();
+    Collection<@NonNull StateAndPrecision> violations = violationConditions.get(pSenderId);
+    if (violations.isEmpty()) {
+      throw new IllegalArgumentException(
+          "No violation condition found for sender ID: " + pSenderId);
+    }
     analyzeViolationConditionTime.start();
     try {
-      relevant.clear();
-      Collection<@NonNull StateAndPrecision> violations = violationConditions.get(pSenderId);
-      if (violations.isEmpty()) {
-        throw new IllegalArgumentException(
-            "No violation condition found for sender ID: " + pSenderId);
-      }
       ImmutableList.Builder<DssMessage> messages = ImmutableList.builder();
       AnalysisResult result =
           analyzeViolationCondition(
