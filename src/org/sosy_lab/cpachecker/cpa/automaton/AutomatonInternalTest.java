@@ -40,7 +40,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -91,13 +90,7 @@ public class AutomatonInternalTest {
       AutomatonScanner scanner = new AutomatonScanner(input, defaultSpecPath, logger, sf);
       Symbol symbol =
           new AutomatonParser(
-                  scanner,
-                  sf,
-                  logger,
-                  parser,
-                  MachineModel.LINUX32,
-                  CProgramScope.empty(),
-                  Language.C)
+                  scanner, sf, logger, parser, MachineModel.LINUX32, CProgramScope.empty())
               .parse();
       @SuppressWarnings("unchecked")
       List<Automaton> as = (List<Automaton>) symbol.value;
@@ -407,9 +400,7 @@ public class AutomatonInternalTest {
       } catch (InvalidAutomatonException e) {
         throw new RuntimeException("Cannot parse source code for test", e);
       }
-      matcher =
-          AutomatonASTComparator.generatePatternAST(
-              pattern, parser, CProgramScope.empty(), Language.C);
+      matcher = AutomatonASTComparator.generatePatternAST(pattern, parser, CProgramScope.empty());
 
       return matcher.matches(sourceAST, args);
     }

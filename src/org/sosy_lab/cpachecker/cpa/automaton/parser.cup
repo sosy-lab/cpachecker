@@ -51,7 +51,6 @@ parser code {:
   private CParser cparser;
   private MachineModel machineModel;
   private Scope scope;
-  private Language language;
 
   // this is used to determine unique names for anonymous automata
   private static final UniqueIdGenerator anonymousCounter = new UniqueIdGenerator();
@@ -62,23 +61,20 @@ parser code {:
       LogManager pLogger,
       CParser pCparser,
       MachineModel pMachineModel,
-      Scope pScope,
-      Language pLanguage) {
+      Scope pScope) {
     super(scanner, sf);
     logger = pLogger;
     cparser = pCparser;
     machineModel = pMachineModel;
     scope = pScope;
-    language = pLanguage;
   }
   
-  AutomatonParser(Scanner scanner, SymbolFactory sf, LogManager pLogger, Language pLanguage) {
+  AutomatonParser(Scanner scanner, SymbolFactory sf, LogManager pLogger) {
     super(scanner, sf);
     logger = pLogger;
     cparser = DummyParser.getInstance();
     machineModel = MachineModel.LINUX32; // won't be used anyway
     scope = DummyScope.getInstance();
-    language = pLanguage;
   }
 
   @Override
@@ -167,10 +163,10 @@ parser code {:
         CParser cparser =
             CParser.Factory.getParser(
                 pLogger, CParser.Factory.getOptions(config), pMachine, pShutdownNotifier);
-        automatonParser = new AutomatonParser(scanner, sf, pLogger, cparser, pMachine, scope, pLanguage);
+        automatonParser = new AutomatonParser(scanner, sf, pLogger, cparser, pMachine, scope);
         break;
       default:
-        automatonParser = new AutomatonParser(scanner, sf, pLogger, pLanguage);
+        automatonParser = new AutomatonParser(scanner, sf, pLogger);
     }
 
     try {
@@ -388,7 +384,7 @@ Bool      ::= TRUE  {: RESULT = AutomatonBoolExpr.TRUE; :}
             | MATCH STRING_LITERAL:lit
               {: RESULT = new AutomatonBoolExpr.MatchCFAEdgeExact(lit.toString()); :}
             | MATCH CURLYEXPR:expr
-              {: RESULT = new AutomatonBoolExpr.MatchCFAEdgeASTComparison(AutomatonASTComparator.generatePatternAST(expr.toString(), cparser, scope, language)); :}
+              {: RESULT = new AutomatonBoolExpr.MatchCFAEdgeASTComparison(AutomatonASTComparator.generatePatternAST(expr.toString(), cparser, scope)); :}
             | MATCH SQUAREEXPR:expr
               {: RESULT = new AutomatonBoolExpr.MatchCFAEdgeRegEx(expr.toString()); :}
             | MATCH LABEL STRING_LITERAL:lit

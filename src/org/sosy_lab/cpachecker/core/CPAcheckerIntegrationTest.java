@@ -31,7 +31,6 @@ import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 
@@ -206,28 +205,6 @@ public class CPAcheckerIntegrationTest {
     result.cpaCheckerResult().writeOutputFiles();
 
     result.assertIsUnsafe();
-  }
-
-  @Test
-  public void testSvLibAndCPropertyForSvLibProgram() throws Exception {
-    Configuration config =
-        getConfigWithOutputFiles(
-            CONFIGURATION_FILE_SvLib, Language.SVLIB, PROPERTY_SvLib + "," + SPECIFICATION_C);
-    IntegrationTestResult result = IntegrationTestRunner.run(config, UNSAFE_PROGRAM_SvLib);
-    // Should throw an exception during the parsing of the specifications, since the automata for C
-    // requires a C program scope to be parsed.
-    result.assertIs(Result.NOT_YET_STARTED);
-  }
-
-  @Test
-  public void testSvLibAndCPropertyForCProgram() throws Exception {
-    Configuration config =
-        getConfigWithOutputFiles(
-            CONFIGURATION_FILE_C, Language.C, PROPERTY_SvLib + "," + SPECIFICATION_C);
-    IntegrationTestResult result = IntegrationTestRunner.run(config, UNSAFE_PROGRAM_C);
-    // Should throw an exception during the analysis due to no CPA knowing how to handle the SvLib
-    // specification automaton
-    result.assertIs(Result.UNKNOWN);
   }
 
   @Test
