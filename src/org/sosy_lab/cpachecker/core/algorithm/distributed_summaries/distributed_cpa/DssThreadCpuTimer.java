@@ -12,14 +12,14 @@ import static com.google.common.base.Preconditions.checkState;
 
 import org.sosy_lab.common.time.Tickers;
 
-public class DssThreadCPUTimer {
+public class DssThreadCpuTimer {
 
   private long sum;
   private long lastStart;
   private final String name;
   private boolean running;
 
-  public DssThreadCPUTimer(String pName) {
+  public DssThreadCpuTimer(String pName) {
     sum = 0;
     lastStart = 0;
     name = pName;

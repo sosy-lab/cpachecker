@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssThreadCPUTimer;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssThreadCpuTimer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
@@ -144,10 +144,10 @@ public class DssBlockAnalysis {
 
   private final LogManager logger;
 
-  private final DssThreadCPUTimer storePreconditionTime;
-  private final DssThreadCPUTimer analyzePreconditionTime;
-  private final DssThreadCPUTimer storeViolationConditionTime;
-  private final DssThreadCPUTimer analyzeViolationConditionTime;
+  private final DssThreadCpuTimer storePreconditionTime;
+  private final DssThreadCpuTimer analyzePreconditionTime;
+  private final DssThreadCpuTimer storeViolationConditionTime;
+  private final DssThreadCpuTimer analyzeViolationConditionTime;
 
   private final StatCounter storePreconditionCount;
   private final StatCounter analyzePreconditionCount;

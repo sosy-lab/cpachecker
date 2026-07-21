@@ -15,7 +15,7 @@ import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssWorkerStatistics.StatisticsKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssBlockAnalysisStatistics;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssThreadCPUTimer;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssThreadCpuTimer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -26,14 +26,14 @@ public class DssBlockWorkerStatistics implements Statistics {
 
   private final String blockId;
 
-  private final DssThreadCPUTimer analyzePreconditionTime =
-      new DssThreadCPUTimer("Analyze Precondition");
-  private final DssThreadCPUTimer storePreconditionTime =
-      new DssThreadCPUTimer("Store Precondition");
-  private final DssThreadCPUTimer analyzeViolationConditionTime =
-      new DssThreadCPUTimer("Analyze Violation Condition");
-  private final DssThreadCPUTimer storeViolationConditionTime =
-      new DssThreadCPUTimer("Store Violation Condition");
+  private final DssThreadCpuTimer analyzePreconditionTime =
+      new DssThreadCpuTimer("Analyze Precondition");
+  private final DssThreadCpuTimer storePreconditionTime =
+      new DssThreadCpuTimer("Store Precondition");
+  private final DssThreadCpuTimer analyzeViolationConditionTime =
+      new DssThreadCpuTimer("Analyze Violation Condition");
+  private final DssThreadCpuTimer storeViolationConditionTime =
+      new DssThreadCpuTimer("Store Violation Condition");
 
   private @Nullable DssBlockAnalysisStatistics dcpaStatistics;
 
@@ -48,19 +48,19 @@ public class DssBlockWorkerStatistics implements Statistics {
     blockId = pBlockId;
   }
 
-  public DssThreadCPUTimer getAnalyzePreconditionTimer() {
+  public DssThreadCpuTimer getAnalyzePreconditionTimer() {
     return analyzePreconditionTime;
   }
 
-  public DssThreadCPUTimer getStorePreconditionTimer() {
+  public DssThreadCpuTimer getStorePreconditionTimer() {
     return storePreconditionTime;
   }
 
-  public DssThreadCPUTimer getAnalyzeViolationConditionTimer() {
+  public DssThreadCpuTimer getAnalyzeViolationConditionTimer() {
     return analyzeViolationConditionTime;
   }
 
-  public DssThreadCPUTimer getStoreViolationConditionTimer() {
+  public DssThreadCpuTimer getStoreViolationConditionTimer() {
     return storeViolationConditionTime;
   }
 
