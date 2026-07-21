@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -19,7 +20,8 @@ public class DssResultMessage extends DssMessage {
 
   DssResultMessage(String pSenderId, String pResult) {
     super(pSenderId, DssMessageType.RESULT, ImmutableMap.of(DSS_MESSAGE_RESULT_KEY, pResult));
-    assert !pResult.equals(Result.FALSE.name());
+    Preconditions.checkArgument(
+        !pResult.equals(Result.FALSE.name()), "Result False without violation path");
   }
 
   DssResultMessage(String pSenderId, String pResult, String violationPath) {
@@ -28,7 +30,9 @@ public class DssResultMessage extends DssMessage {
         DssMessageType.RESULT,
         ImmutableMap.of(
             DSS_MESSAGE_RESULT_KEY, pResult, DSS_MESSAGE_VIOLATION_PATH_KEY, violationPath));
-    assert pResult.equals(Result.FALSE.name());
+    Preconditions.checkArgument(
+        pResult.equals(Result.FALSE.name()),
+        "violation path should only be used with a FALSE result");
   }
 
   DssResultMessage(String pSenderId, ImmutableMap<String, String> pResult) {

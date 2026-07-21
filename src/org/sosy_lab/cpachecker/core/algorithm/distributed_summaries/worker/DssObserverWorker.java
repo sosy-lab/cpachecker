@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssArgStateCollector;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssWitnessArgStateCollector;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.ResultWithWitnessInformation;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -59,13 +59,12 @@ public class DssObserverWorker extends DssWorker implements Statistics {
   private final Map<String, Map<StatisticsKey, String>> stats = new HashMap<>();
 
   private final BlockGraph blockGraph;
-  private final DssArgStateCollector stateCollector;
+  private final DssWitnessArgStateCollector stateCollector;
 
   public record StatusAndResult(AlgorithmStatus status, ResultWithWitnessInformation result) {
 
+    // allows other executors that do not use this observer worker to remain unchanged
     public StatusAndResult(AlgorithmStatus status, Result pResult) {
-      // allows other executors that do not use this observer worker to remain unchanged
-      // TODO extract witness information from them as well?
       this(status, ResultWithWitnessInformation.ofResultWithoutInformation(pResult));
     }
   }
@@ -76,7 +75,7 @@ public class DssObserverWorker extends DssWorker implements Statistics {
       BlockGraph pBlockGraph,
       DssMessageFactory pMessageFactory,
       LogManager pLogger,
-      DssArgStateCollector pStateCollector) {
+      DssWitnessArgStateCollector pStateCollector) {
     super(pId, pMessageFactory, pLogger);
     shutdown = false;
     connection = pConnection;
@@ -91,7 +90,6 @@ public class DssObserverWorker extends DssWorker implements Statistics {
   public Collection<DssMessage> processMessage(DssMessage pMessage) {
     switch (pMessage.getType()) {
       case RESULT -> {
-        // TODO make these clauses also sit behind a guard for witness enabled?
         if (pMessage.getResult() == Result.FALSE) {
           result =
               Optional.of(

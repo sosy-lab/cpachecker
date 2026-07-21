@@ -11,8 +11,9 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph.GHOST_EDGE_DESCRIPTION;
 
-import com.google.common.base.Preconditions;
+import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -71,8 +72,8 @@ public class BlockGraphModification {
       ImmutableMap<CFANode, CFAEdge> abstractions) {}
 
   public record MappingInformation(
-      Map<CFANode, CFANode> originalToInstrumentedNodes,
-      Map<CFAEdge, CFAEdge> originalToInstrumentedEdges) {}
+      BiMap<CFANode, CFANode> originalToInstrumentedNodes,
+      BiMap<CFAEdge, CFAEdge> originalToInstrumentedEdges) {}
 
   public static Modification instrumentCFA(
       CFA pCFA, BlockGraph pBlockGraph, Configuration pConfig, LogManager pLogger) {
@@ -118,15 +119,15 @@ public class BlockGraphModification {
   }
 
   private static Modification getUnchanged(CFA pCFA, BlockGraph pBlockGraph) {
-    ImmutableMap<CFANode, CFANode> identityMapping =
+    ImmutableBiMap<CFANode, CFANode> identityMapping =
         pCFA.nodes().stream()
             .map(n -> Map.entry(n, n))
-            .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
+            .collect(ImmutableBiMap.toImmutableBiMap(Map.Entry::getKey, Map.Entry::getValue));
     ModificationMetadata metadata =
         new ModificationMetadata(
             pCFA,
             pBlockGraph,
-            new MappingInformation(identityMapping, ImmutableMap.of()),
+            new MappingInformation(identityMapping, ImmutableBiMap.of()),
             // no abstraction happened, so no issues occurred
             /* unableToAbstract= */ ImmutableSet.of(),
             // no abstraction happened
@@ -304,8 +305,8 @@ public class BlockGraphModification {
     record NodePair(CFANode n1, CFANode n2) {}
 
     SequencedSet<CFANode> covered = new LinkedHashSet<>();
-    ImmutableMap.Builder<CFAEdge, CFAEdge> originalToInstrumentedEdges = ImmutableMap.builder();
-    ImmutableMap.Builder<CFANode, CFANode> originalToInstrumentedNodes = ImmutableMap.builder();
+    ImmutableBiMap.Builder<CFAEdge, CFAEdge> originalToInstrumentedEdges = ImmutableBiMap.builder();
+    ImmutableBiMap.Builder<CFANode, CFANode> originalToInstrumentedNodes = ImmutableBiMap.builder();
 
     List<NodePair> waitlist = new ArrayList<>();
     waitlist.add(new NodePair(pOriginal.getMainFunction(), pInstrumented.getMainFunction()));
@@ -320,21 +321,19 @@ public class BlockGraphModification {
       CFANode instrumentedNode = pair.n2();
       FluentIterable<CFAEdge> instrumentedOutgoing = instrumentedNode.getAllLeavingEdges();
       FluentIterable<CFAEdge> originalOutgoing = originalNode.getAllLeavingEdges();
-      SequencedSet<CFAEdge> foundCorrespondingEdges = new LinkedHashSet<>();
+      SequencedSet<CFANode> foundCorrespondingNodes = new LinkedHashSet<>();
       for (CFAEdge cfaEdge : originalOutgoing) {
         CFAEdge corresponding = findCorrespondingEdge(cfaEdge, instrumentedOutgoing);
-        Preconditions.checkState(
-            !foundCorrespondingEdges.contains(corresponding),
-            "Corresponding edge already found: %s",
-            corresponding);
-        originalToInstrumentedNodes.put(cfaEdge.getSuccessor(), corresponding.getSuccessor());
         originalToInstrumentedEdges.put(cfaEdge, corresponding);
         waitlist.add(new NodePair(cfaEdge.getSuccessor(), corresponding.getSuccessor()));
-        foundCorrespondingEdges.add(corresponding);
+        if (!foundCorrespondingNodes.contains(cfaEdge.getSuccessor())) {
+          originalToInstrumentedNodes.put(cfaEdge.getSuccessor(), corresponding.getSuccessor());
+          foundCorrespondingNodes.add(cfaEdge.getSuccessor());
+        }
       }
     }
     return new MappingInformation(
-        originalToInstrumentedNodes.buildKeepingLast(), originalToInstrumentedEdges.buildOrThrow());
+        originalToInstrumentedNodes.buildOrThrow(), originalToInstrumentedEdges.buildOrThrow());
   }
 
   private static CFAEdge findCorrespondingEdge(CFAEdge edge, Iterable<CFAEdge> edges) {

@@ -182,7 +182,7 @@ public abstract class DssMessage {
     checkArgument(getResult() == Result.FALSE, "Cannot get content for type: " + "%s", type);
     String violationPathString = content.get(DssResultMessage.DSS_MESSAGE_VIOLATION_PATH_KEY);
 
-    assert violationPathString != null; // should always be set for a False Result
+    Preconditions.checkNotNull(violationPathString, "Violation path not set for False result");
 
     ParseResult res = DeserializeBlockStateOperator.parseWitness(violationPathString);
 
@@ -193,7 +193,7 @@ public abstract class DssMessage {
     checkArgument(
         type == DssMessageType.VIOLATION_CONDITION, "Cannot get content for type: " + "%s", type);
 
-    assert getNumberOfContainedStates().orElse(-1) >= 1;
+    checkState(getNumberOfContainedStates().orElse(-1) >= 1, "No state to extract witness from");
 
     return ContentReader.read(content)
         .pushLevel(BlockState.class.getName())
@@ -271,7 +271,7 @@ public abstract class DssMessage {
         type == DssMessageType.STATISTIC, "Cannot get stats for message type: " + "%s", type);
     ImmutableMap.Builder<StatisticsKey, String> statsBuilder = ImmutableMap.builder();
     for (Map.Entry<String, String> entry : content.entrySet()) {
-      if (entry.getKey().startsWith("state")) {
+      if (entry.getKey().startsWith(SerializeOperator.STATE_KEY)) {
         continue;
       }
       StatisticsKey key = StatisticsKey.valueOf(entry.getKey());

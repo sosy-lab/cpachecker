@@ -34,11 +34,6 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
     String content = pMessage.getAbstractStateContent(BlockState.class).get(STATE_KEY);
     ParseResult parsed = parseWitness(content);
     Preconditions.checkNotNull(parsed.serializedBlockState());
-    // TODO this assumtion does not hold when parsing the result for the witnesses -> replace with
-    // something different?
-    /*Preconditions.checkArgument(
-    blockNode.getPredecessorIds().contains(parsed.serializedBlockState())
-        || blockNode.getSuccessorIds().contains(parsed.serializedBlockState()));*/
     return new BlockState(
         DeserializeOperator.startLocationFromMessageType(pMessage, blockNode),
         blockNode,

@@ -24,8 +24,7 @@ public class PathTransferRelation extends SingleEdgeTransferRelation {
     PathState pathState = (PathState) element;
 
     if (pathState.isInitial) {
-      // We can only return one single state as initial state -> create multiple states at the
-      // here
+      // We can only return one single state as initial state -> create multiple states here
       return FluentIterable.from(PathState.initialStates(pathState.paths))
           .transformAndConcat(s -> getAbstractSuccessorsForEdge(s, prec, cfaEdge))
           .toList();
@@ -43,9 +42,7 @@ public class PathTransferRelation extends SingleEdgeTransferRelation {
     int nextPathIndex = pathState.pathIndex + 1;
 
     if (nextPathIndex == pathState.activePath.size()) {
-      // advance to next segment
       return PathState.startSegment(pathState.paths, pathState.segmentIndex + 1).toList();
-
     } else {
       return ImmutableList.of(
           new PathState(

@@ -77,21 +77,27 @@ public class DssWitnessExporter {
 
     if (result == Result.TRUE) {
       reachedSet.clear();
-    }
-
-    if (resultWithWitness.violationPath != null) {
-      logger.log(Level.INFO, "Preparing Violation Witness");
-      fillReachedSetWithViolation(reachedSet, resultWithWitness.violationPath, pModification);
-      logger.log(Level.INFO, "Violation Witness prepared");
-
-    } else if (resultWithWitness.correctnessPreConditionCollector != null
-        && resultWithWitness.correctnessPreConditionCollector.recievedAllStates()) {
-      logger.log(Level.INFO, "Exporting Correctness Witness");
-      exportCorrectnessWitness(resultWithWitness, reachedSet, pModification);
-      logger.log(Level.INFO, "Correctness Witness exported");
-
+      if (resultWithWitness.hasWitnessInformation()) {
+        if (resultWithWitness.getCorrectnessPreConditionCollector().recievedAllStates()) {
+          logger.log(Level.INFO, "Exporting Correctness Witness");
+          exportCorrectnessWitness(resultWithWitness, reachedSet, pModification);
+        } else {
+          logger.log(
+              Level.SEVERE,
+              "Unable to export Witness because not all necessary information has been recived");
+        }
+      }
     } else if (result == Result.FALSE) {
-      addDummyTargetToReachedSet(reachedSet);
+
+      if (resultWithWitness.hasWitnessInformation()) {
+        logger.log(Level.INFO, "Preparing Violation Witness");
+        fillReachedSetWithViolation(
+            reachedSet, resultWithWitness.getViolationPath(), pModification);
+        logger.log(Level.INFO, "Violation Witness prepared");
+
+      } else {
+        addDummyTargetToReachedSet(reachedSet);
+      }
     }
   }
 
@@ -117,7 +123,7 @@ public class DssWitnessExporter {
             pModification.metadata().originalCfa(),
             specification,
             logger,
-            resultWithWitness.correctnessPreConditionCollector);
+            resultWithWitness.getCorrectnessPreConditionCollector());
     PathTemplate correctnessWitnessPath =
         new DssAnalysisOptions(configuration).getYamlCorrectnessWitnessOutputFileTemplate();
     try {
@@ -131,7 +137,7 @@ public class DssWitnessExporter {
       logger.logUserException(
           Level.WARNING,
           e,
-          "Could not export the YAML correctness witness directly from the ARG. "
+          "Could not export the YAML correctness witness directly from the collected ARG states."
               + "Therefore no YAML witness will be exported.");
     } catch (InterruptedException e) {
       logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
@@ -148,9 +154,7 @@ public class DssWitnessExporter {
 
     reachedSet.clear();
 
-    // TODO Do we need to speed this up by tracking the relevant precision for the violation
-    // conditions?
-    // Or we could just do a single SAT check of each path?
+    // TODO which analysis should this actually use to be most efficient? With which configuration?
     reachedSet.add(
         violationCPA.getInitialState(
             modification.metadata().originalCfa().getMainFunction(),

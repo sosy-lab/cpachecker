@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.Ds
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.MultithreadingDssExecutor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.SequentialDssExecutor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.SingleWorkerDssExecutor;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssArgStateCollector;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssWitnessArgStateCollector;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssWitnessExporter;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusAndResult;
@@ -232,8 +232,8 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
           blockGraph.getNodes().size(),
           decompositionOptions.getDecompositionType());
 
-      DssArgStateCollector stateCollector =
-          new DssArgStateCollector(
+      DssWitnessArgStateCollector stateCollector =
+          new DssWitnessArgStateCollector(
               new DssAnalysisOptions(configuration), blockGraph, modification, spec, logger);
 
       return interpretResult(

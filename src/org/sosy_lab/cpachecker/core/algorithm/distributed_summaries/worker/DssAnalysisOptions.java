@@ -72,7 +72,7 @@ public class DssAnalysisOptions {
       secure = true)
   private boolean combineByHash = true;
 
-  // TODO is there a reasonable way to reuse the ARG setting?
+  // TODO How to make sure the other Witness export does not overwrite this?
   @Option(
       secure = true,
       name = "yamlProofWitness",

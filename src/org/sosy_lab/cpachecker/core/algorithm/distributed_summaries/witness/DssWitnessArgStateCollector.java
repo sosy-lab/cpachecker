@@ -10,15 +10,15 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector;
 
-public class DssArgStateCollector implements RelevantArgStatesCollector {
+public class DssWitnessArgStateCollector implements RelevantArgStatesCollector {
 
   private final Multimap<CFANode, ARGState> collectedLoopHeadPreconditions = HashMultimap.create();
   private boolean allStatsContainedStates = true;
@@ -53,7 +53,7 @@ public class DssArgStateCollector implements RelevantArgStatesCollector {
   /** from how many messages we collected information */
   private int messages;
 
-  public DssArgStateCollector(
+  public DssWitnessArgStateCollector(
       DssAnalysisOptions options,
       BlockGraph pBlockGraph,
       Modification pModification,
@@ -130,15 +130,12 @@ public class DssArgStateCollector implements RelevantArgStatesCollector {
     ImmutableListMultimap.Builder<CFANode, ARGState> builder =
         ImmutableListMultimap.builderWithExpectedKeys(toConvert.keySet().size());
 
-    // assertion: mapping is unique
-    ImmutableMap<CFANode, CFANode> instrumentedToOriginal =
-        modification.metadata().mappingInfo().originalToInstrumentedNodes().entrySet().stream()
-            .collect(ImmutableMap.toImmutableMap(Map.Entry::getValue, Map.Entry::getKey));
-
+    BiMap<CFANode, CFANode> instrumentedToOriginal =
+        modification.metadata().mappingInfo().originalToInstrumentedNodes().inverse();
     for (Entry<CFANode, Collection<ARGState>> entry : toConvert.asMap().entrySet()) {
-      // assertion: we did not collect states for nodes inserted by the modification
       CFANode original = instrumentedToOriginal.get(entry.getKey());
-
+      // We should never have collect states for nodes inserted by the modification
+      Preconditions.checkNotNull(original);
       builder.putAll(original, entry.getValue());
     }
 
