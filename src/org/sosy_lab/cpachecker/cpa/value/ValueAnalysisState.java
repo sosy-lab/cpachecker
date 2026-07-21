@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.value;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
@@ -1033,7 +1034,7 @@ public final class ValueAnalysisState
       String qualVarName = declInScope.getQualifiedName();
       if (!forbiddenQualifiedNames.contains(qualVarName)) {
         for (String disallowedSubString : disallowedSubStrings) {
-          if (!qualVarName.contains(disallowedSubString)) {
+          if (!CharMatcher.anyOf(qualVarName).matchesAllOf(disallowedSubString)) {
             qualVarNamesWanted.add(qualVarName);
           }
         }
