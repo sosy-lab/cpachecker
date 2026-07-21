@@ -103,13 +103,13 @@ public interface Property {
 
     REACHABILITY_ERROR("G ! call(reach_error())"),
 
-    VALID_FREE("G valid-free", ImmutableSet.of(Language.SVLIB)),
+    VALID_FREE("G valid-free", ImmutableSet.of(Language.SVLIB, Language.JAVA)),
 
-    VALID_DEREF("G valid-deref", ImmutableSet.of(Language.SVLIB)),
+    VALID_DEREF("G valid-deref", ImmutableSet.of(Language.SVLIB, Language.JAVA)),
 
-    VALID_MEMTRACK("G valid-memtrack", ImmutableSet.of(Language.SVLIB)),
+    VALID_MEMTRACK("G valid-memtrack", ImmutableSet.of(Language.SVLIB, Language.JAVA)),
 
-    VALID_MEMCLEANUP("G valid-memcleanup", ImmutableSet.of(Language.SVLIB)),
+    VALID_MEMCLEANUP("G valid-memcleanup", ImmutableSet.of(Language.SVLIB, Language.JAVA)),
 
     OVERFLOW("G ! overflow", ImmutableSet.of(Language.SVLIB)),
 
