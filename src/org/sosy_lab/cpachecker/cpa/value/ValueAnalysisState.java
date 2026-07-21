@@ -1072,9 +1072,7 @@ public final class ValueAnalysisState
         //  and add an option to disable those types if wanted.
         //  (In the past, handling those types fully was not helpful for witnesses,
         //  but very expensive. We should re-evaluate this!)
-        if (maybeKnownVariable.getType() instanceof CType cType
-            && CTypes.isArithmeticType(cType)
-            && !returnVariableMemoryLoc.isReference()) {
+        if (maybeKnownVariable.getType() instanceof CType cType && CTypes.isArithmeticType(cType)) {
 
           // TODO: this is insufficient unwrapping!
           if (cType instanceof CBitFieldType) {
