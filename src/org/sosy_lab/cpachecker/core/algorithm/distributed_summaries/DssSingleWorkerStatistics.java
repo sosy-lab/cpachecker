@@ -13,7 +13,6 @@ import java.util.concurrent.TimeUnit;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssAllWorkerStatistics.StatisticsKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssBlockAnalysisStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssThreadCpuTimer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -23,6 +22,40 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /** Statistics collected by a single DSS analysis worker. */
 public class DssSingleWorkerStatistics implements Statistics {
+
+  /** Keys used to label statistics collected from DSS analysis workers. */
+  public enum StatisticsKey {
+    SERIALIZATION_COUNT("number of serialized states", false),
+    DESERIALIZATION_COUNT("number of deserialized states", false),
+    PROCEED_COUNT("number of proceeded states", false),
+    SERIALIZATION_TIME("time spent serializing states", true),
+    DESERIALIZATION_TIME("time spent deserializing states", true),
+    PROCEED_TIME("time spent processing states", true),
+    ANALYZE_PRECONDITION_COUNT("number of preconditions analyzed", false),
+    ANALYZE_PRECONDITION_TIME("time spent in analyzing preconditions", true),
+    STORE_PRECONDITION_COUNT("number of preconditions stored", false),
+    STORE_PRECONDITION_TIME("time spent in storing preconditions", true),
+    ANALYZE_VIOLATION_CONDITION_COUNT("number of violation conditions analyzed", false),
+    ANALYZE_VIOLATION_CONDITION_TIME("time spent in analyzing violation conditions", true),
+    STORE_VIOLATION_CONDITION_COUNT("number of violation conditions stored", false),
+    STORE_VIOLATION_CONDITION_TIME("time spent in storing violation conditions", true);
+
+    private final String key;
+    private final boolean formatAsTime;
+
+    StatisticsKey(String pKey, boolean pFormatAsTime) {
+      key = pKey;
+      formatAsTime = pFormatAsTime;
+    }
+
+    public String getKey() {
+      return key;
+    }
+
+    public boolean isFormattedAsTime() {
+      return formatAsTime;
+    }
+  }
 
   private final String blockId;
 
