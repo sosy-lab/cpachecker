@@ -18,6 +18,8 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /** Statistics collected by a single DSS analysis worker. */
@@ -38,7 +40,8 @@ public class DssSingleWorkerStatistics implements Statistics {
     ANALYZE_VIOLATION_CONDITION_COUNT("number of violation conditions analyzed", false),
     ANALYZE_VIOLATION_CONDITION_TIME("time spent in analyzing violation conditions", true),
     STORE_VIOLATION_CONDITION_COUNT("number of violation conditions stored", false),
-    STORE_VIOLATION_CONDITION_TIME("time spent in storing violation conditions", true);
+    STORE_VIOLATION_CONDITION_TIME("time spent in storing violation conditions", true),
+    SERIALIZED_MESSAGE_SIZE("serialized message size (chars)", false);
 
     private final String key;
     private final boolean formatAsTime;
@@ -76,6 +79,7 @@ public class DssSingleWorkerStatistics implements Statistics {
       new StatCounter("Analyze Violation Condition");
   private final StatCounter storeViolationConditionCount =
       new StatCounter("Store Violation Condition");
+  private final StatInt serializedMessageSize = new StatInt(StatKind.SUM, "Serialized Message Size");
 
   public DssSingleWorkerStatistics(String pBlockId) {
     blockId = pBlockId;
@@ -117,6 +121,10 @@ public class DssSingleWorkerStatistics implements Statistics {
     return storeViolationConditionCount;
   }
 
+  public StatInt getSerializedMessageSizeStats() {
+    return serializedMessageSize;
+  }
+
   public @Nullable DssBlockAnalysisStatistics getDcpaStatistics() {
     return dcpaStatistics;
   }
@@ -142,6 +150,7 @@ public class DssSingleWorkerStatistics implements Statistics {
       case ANALYZE_VIOLATION_CONDITION_TIME -> analyzeViolationConditionTime.nanos();
       case STORE_VIOLATION_CONDITION_COUNT -> storeViolationConditionCount.getUpdateCount();
       case STORE_VIOLATION_CONDITION_TIME -> storeViolationConditionTime.nanos();
+      case SERIALIZED_MESSAGE_SIZE -> serializedMessageSize.getValueSum();
     };
   }
 
@@ -198,7 +207,8 @@ public class DssSingleWorkerStatistics implements Statistics {
             storeViolationConditionCount.getUpdateCount())
         .put(
             StatisticsKey.STORE_VIOLATION_CONDITION_TIME.getKey(),
-            formatNanos(storeViolationConditionTime.nanos()));
+            formatNanos(storeViolationConditionTime.nanos()))
+        .put(StatisticsKey.SERIALIZED_MESSAGE_SIZE.getKey(), serializedMessageSize.toString());
   }
 
   static String formatNanos(long nanos) {

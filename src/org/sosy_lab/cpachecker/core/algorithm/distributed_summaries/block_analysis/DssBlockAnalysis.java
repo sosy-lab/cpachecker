@@ -367,11 +367,16 @@ public class DssBlockAnalysis {
       }
       serializedContent.popLevel();
     }
-    return serializedContent.build();
+    ImmutableMap<String, String> result = serializedContent.build();
+    workerStats.getSerializedMessageSizeStats().setNextValue(
+        result.entrySet().stream()
+            .mapToInt(e -> e.getKey().length() + e.getValue().length())
+            .sum());
+    return result;
   }
 
   /**
-   * The method restores a lis of states and precisions from a DssMessage. In general, it should
+   * The method restores a list of states and precisions from a DssMessage. In general, it should
    * hold that the concretization of the list of states is a subset of the concretization after
    * serializing and deserializing them, i.e., [[states]] <= [[deserialize(serialize(states))]].
    *
