@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.Map;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.core.dom.ast.gnu.c.GCCLanguage;
@@ -79,11 +78,16 @@ public class EclipseCdtWrapper {
   private static final String ATOMIC_KEYWORD = "_Atomic";
 
   private enum AtomicTypeName {
-    /** A plain type name such as {@code int} or {@code unsigned long}. */
+    /** A plain type name such as {@code int}, {@code unsigned long}, or {@code struct s}. */
     PLAIN,
-    /** A pointer type name such as {@code int*} or {@code int **}. */
-    POINTER,
-    /** An unsupported type name: an array, function, or qualified type. */
+    /** A pointer type name whose {@code *}(s) are trailing, e.g. {@code int*} or {@code int **}. */
+    TRAILING_POINTER,
+    /**
+     * A pointer type name with a parenthesized declarator, e.g. {@code int (*)(void)} (pointer to
+     * function) or {@code int (*)[3]} (pointer to array).
+     */
+    PARENTHESIZED_POINTER,
+    /** An unsupported type name: an array, function, or otherwise too complex type name. */
     UNSUPPORTED
   }
 
@@ -94,54 +98,94 @@ public class EclipseCdtWrapper {
    * #ATOMIC_ATTRIBUTE} macro (and, for pointers, via the recovery in {@code
    * ASTTypeConverter#findAtomicPointerOperators}, #1670).
    *
-   * <p>For a plain type name, {@code _Atomic(T)} becomes {@code _Atomic T} by blanking the
-   * parentheses. For a pointer type name, {@code _Atomic(T*)} becomes {@code T* _Atomic}, so the
-   * {@code _Atomic} applies to the pointer and not to {@code T} (that distinction is the whole
-   * point of the parentheses: {@code _Atomic(int) *} is a pointer to an atomic int, while {@code
-   * _Atomic(int*)} is an atomic pointer to int). Both rewrites keep the total length so that all
-   * source offsets are preserved. Array, function, and qualified type names are left unchanged, as
-   * are occurrences inside strings, character constants, or comments.
+   * <ul>
+   *   <li>a plain type name: {@code _Atomic(T)} becomes {@code _Atomic T} by blanking the
+   *       parentheses;
+   *   <li>a trailing-pointer type name: {@code _Atomic(T*)} becomes {@code T* _Atomic}, so the
+   *       {@code _Atomic} applies to the pointer (the distinction is the point of the parentheses:
+   *       {@code _Atomic(int) *} is a pointer to an atomic int, while {@code _Atomic(int*)} is an
+   *       atomic pointer to int);
+   *   <li>a parenthesized-pointer type name (function pointer or pointer to array): {@code
+   *       _Atomic(int (*)(void)) f} becomes {@code typedef int (*NAME)(void); _Atomic NAME f} via a
+   *       fresh typedef, because the qualifier form cannot otherwise be written without moving the
+   *       declarator.
+   * </ul>
+   *
+   * <p>The first two rewrites keep the total length so that all source offsets are preserved; the
+   * typedef rewrite does not (but preserves the line structure). Array and function type names are
+   * forbidden (C23 § 6.7.3.5 (3)) and left unchanged, as are occurrences inside strings, character
+   * constants, or comments.
    */
   private static String rewriteAtomicTypeSpecifiers(final String pCode) {
     if (!pCode.contains(ATOMIC_KEYWORD)) {
       return pCode;
     }
     char[] code = pCode.toCharArray();
+    StringBuilder out = new StringBuilder(code.length);
+    int typedefCounter = 0;
     int i = 0;
     while (i < code.length) {
       char c = code[i];
       if (c == '"' || c == '\'') {
-        i = skipLiteral(code, i);
+        int end = skipLiteral(code, i);
+        out.append(code, i, end - i);
+        i = end;
       } else if (c == '/' && i + 1 < code.length && code[i + 1] == '/') {
-        i = skipToLineEnd(code, i);
+        int end = skipToLineEnd(code, i);
+        out.append(code, i, end - i);
+        i = end;
       } else if (c == '/' && i + 1 < code.length && code[i + 1] == '*') {
-        i = skipBlockComment(code, i);
+        int end = skipBlockComment(code, i);
+        out.append(code, i, end - i);
+        i = end;
       } else if (startsAtomicKeyword(code, i)) {
-        int next = i + ATOMIC_KEYWORD.length();
-        int open = skipWhitespace(code, next);
-        if (open < code.length && code[open] == '(') {
-          int close = matchingParenthesis(code, open);
-          if (close >= 0) {
-            switch (classifyTypeName(code, open + 1, close)) {
-              case PLAIN -> {
-                code[open] = ' ';
-                code[close] = ' ';
-                next = close + 1;
-              }
-              case POINTER -> {
-                rewriteAtomicPointerSpecifier(code, i, open, close);
-                next = close + 1;
-              }
-              case UNSUPPORTED -> {}
-            }
-          }
+        int open = skipWhitespace(code, i + ATOMIC_KEYWORD.length());
+        int close = open < code.length && code[open] == '(' ? matchingParenthesis(code, open) : -1;
+        if (close < 0) {
+          out.append(ATOMIC_KEYWORD);
+          i += ATOMIC_KEYWORD.length();
+          continue;
         }
-        i = next;
+        int start = open + 1;
+        switch (classifyTypeName(code, start, close)) {
+          case PLAIN ->
+              // "_Atomic(T)" -> "_Atomic T " (blank the parentheses)
+              out.append(code, i, open - i)
+                  .append(' ')
+                  .append(code, start, close - start)
+                  .append(' ');
+          case TRAILING_POINTER -> {
+            // "_Atomic(T*)" -> "T* _Atomic" (append the qualifier after the pointer)
+            int padding = (close + 1 - i) - (close - start) - ATOMIC_KEYWORD.length();
+            out.append(code, start, close - start);
+            appendRepeated(out, ' ', padding);
+            out.append(ATOMIC_KEYWORD);
+          }
+          case PARENTHESIZED_POINTER -> {
+            // introduce a fresh typedef for the type name and make that typedef atomic
+            String name = "__CPAchecker_atomic_type_" + typedefCounter++;
+            out.append("typedef ")
+                .append(typedefDeclarator(code, start, close, name))
+                .append("; ")
+                .append(ATOMIC_KEYWORD)
+                .append(' ')
+                .append(name);
+          }
+          case UNSUPPORTED -> out.append(code, i, close + 1 - i); // leave unchanged
+        }
+        i = close + 1;
       } else {
+        out.append(c);
         i++;
       }
     }
-    return new String(code);
+    return out.toString();
+  }
+
+  private static void appendRepeated(final StringBuilder pOut, final char pChar, final int pCount) {
+    for (int k = 0; k < pCount; k++) {
+      pOut.append(pChar);
+    }
   }
 
   private static AtomicTypeName classifyTypeName(
@@ -149,46 +193,67 @@ public class EclipseCdtWrapper {
     if (pStart >= pEnd) {
       return AtomicTypeName.UNSUPPORTED;
     }
+    int firstParenthesis = -1;
+    int firstBracket = -1;
     boolean hasPointer = false;
     for (int i = pStart; i < pEnd; i++) {
       char c = pCode[i];
-      if (c == '[' || c == '(') {
-        return AtomicTypeName.UNSUPPORTED; // array or function type name
-      }
-      if (c == '*') {
+      if (c == '(' && firstParenthesis < 0) {
+        firstParenthesis = i;
+      } else if (c == '[' && firstBracket < 0) {
+        firstBracket = i;
+      } else if (c == '*') {
         hasPointer = true;
       }
+    }
+    if (firstParenthesis >= 0 && (firstBracket < 0 || firstParenthesis < firstBracket)) {
+      // A parenthesized declarator such as "(*)" in "int (*)(void)"; supported only if these
+      // parentheses contain nothing but "*"(s).
+      int declaratorEnd = matchingParenthesis(pCode, firstParenthesis);
+      if (declaratorEnd < 0 || declaratorEnd >= pEnd) {
+        return AtomicTypeName.UNSUPPORTED;
+      }
+      boolean starsOnly = false;
+      for (int i = firstParenthesis + 1; i < declaratorEnd; i++) {
+        char c = pCode[i];
+        if (c == '*') {
+          starsOnly = true;
+        } else if (!Character.isWhitespace(c)) {
+          return AtomicTypeName.UNSUPPORTED;
+        }
+      }
+      return starsOnly ? AtomicTypeName.PARENTHESIZED_POINTER : AtomicTypeName.UNSUPPORTED;
+    }
+    if (firstBracket >= 0) {
+      return AtomicTypeName.UNSUPPORTED; // array type name
     }
     if (!hasPointer) {
       return AtomicTypeName.PLAIN;
     }
-    // A pointer type name has its "*"(s) at the end; anything else (e.g. the qualified pointer
-    // "int * const") is a constraint violation that we do not rewrite.
+    // A trailing-pointer type name has its "*"(s) at the end; anything else (e.g. the qualified
+    // pointer "int * const") is a constraint violation that we do not rewrite.
     int last = pEnd - 1;
     while (last >= pStart && Character.isWhitespace(pCode[last])) {
       last--;
     }
-    return pCode[last] == '*' ? AtomicTypeName.POINTER : AtomicTypeName.UNSUPPORTED;
+    return pCode[last] == '*' ? AtomicTypeName.TRAILING_POINTER : AtomicTypeName.UNSUPPORTED;
   }
 
   /**
-   * Turn {@code _Atomic ( type-name * )} into {@code type-name * _Atomic} within the same character
-   * span, so that the {@code _Atomic} qualifier applies to the pointer while all source offsets are
-   * preserved.
+   * Build the declarator for a typedef of the parenthesized-pointer type name {@code [pStart,
+   * pEnd)}, giving it the name {@code pName}. For example {@code int (*)(void)} with name {@code N}
+   * yields {@code int (*N)(void)}.
    */
-  private static void rewriteAtomicPointerSpecifier(
-      final char[] pCode, final int pAtomicStart, final int pOpen, final int pClose) {
-    char[] typeName = Arrays.copyOfRange(pCode, pOpen + 1, pClose);
-    int keywordStart = pClose + 1 - ATOMIC_KEYWORD.length();
-    int pos = pAtomicStart;
-    System.arraycopy(typeName, 0, pCode, pos, typeName.length);
-    pos += typeName.length;
-    while (pos < keywordStart) {
-      pCode[pos++] = ' ';
+  private static String typedefDeclarator(
+      final char[] pCode, final int pStart, final int pEnd, final String pName) {
+    int parenthesis = pStart;
+    while (pCode[parenthesis] != '(') {
+      parenthesis++;
     }
-    for (int k = 0; k < ATOMIC_KEYWORD.length(); k++) {
-      pCode[keywordStart + k] = ATOMIC_KEYWORD.charAt(k);
-    }
+    int declaratorEnd = matchingParenthesis(pCode, parenthesis);
+    return new String(pCode, pStart, declaratorEnd - pStart)
+        + pName
+        + new String(pCode, declaratorEnd, pEnd - declaratorEnd);
   }
 
   private static boolean startsAtomicKeyword(final char[] pCode, final int pIndex) {

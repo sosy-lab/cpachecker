@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypesTest.CONST_VOLATILE_INT;
 
 import com.google.common.collect.ImmutableList;
@@ -289,6 +290,63 @@ public class CTypeToStringTest {
                 .getCanonicalType());
   }
 
+  @Test
+  public void testAtomicTypeSpecifierWithArrayAndAggregateTypes()
+      throws CParserException, InterruptedException {
+    // The atomic type specifier gives the element type, while the array is a separate declarator,
+    // so
+    // "_Atomic(int) x[3]" is an array of _Atomic int (an array *as the type name* is forbidden, see
+    // testAtomicTypeSpecifierRejectsUnsupportedTypeNames).
+    CType arrayOfAtomicInt = parseLastGlobalType("_Atomic(int) x[3];").getCanonicalType();
+    assertThat(arrayOfAtomicInt).isInstanceOf(CArrayType.class);
+    assertThat(((CArrayType) arrayOfAtomicInt).getType().getCanonicalType())
+        .isEqualTo(CNumericTypes.INT.withAtomic().getCanonicalType());
+
+    CType arrayOfAtomicPointers = parseLastGlobalType("_Atomic(int*) x[3];").getCanonicalType();
+    assertThat(arrayOfAtomicPointers).isInstanceOf(CArrayType.class);
+    assertThat(((CArrayType) arrayOfAtomicPointers).getType().getCanonicalType())
+        .isEqualTo(new CPointerType(CTypeQualifiers.ATOMIC, CNumericTypes.INT).getCanonicalType());
+
+    // struct/union/enum/typedef type names are plain type names and are handled as well.
+    assertThat(parseLastGlobalType("struct s { int a; }; _Atomic(struct s) v;").isAtomic())
+        .isTrue();
+    assertThat(parseLastGlobalType("union u { int a; }; _Atomic(union u) v;").isAtomic()).isTrue();
+    assertThat(parseLastGlobalType("enum e { A }; _Atomic(enum e) v;").isAtomic()).isTrue();
+    assertThat(parseLastGlobalType("typedef int t; _Atomic(t) v;").getCanonicalType())
+        .isEqualTo(CNumericTypes.INT.withAtomic().getCanonicalType());
+  }
+
+  @Test
+  public void testAtomicTypeSpecifierWithFunctionPointerTypes()
+      throws CParserException, InterruptedException {
+    // A parenthesized-pointer type name (function pointer or pointer to array) is a valid pointer
+    // type; "_Atomic(int (*)(void)) fp" is an atomic pointer to a function.
+    CType atomicFunctionPointer =
+        parseLastGlobalType("_Atomic(int (*)(void)) fp;").getCanonicalType();
+    assertThat(atomicFunctionPointer.isAtomic()).isTrue();
+    assertThat(atomicFunctionPointer).isInstanceOf(CPointerType.class);
+    assertThat(((CPointerType) atomicFunctionPointer).getType().getCanonicalType())
+        .isInstanceOf(CFunctionType.class);
+
+    // "_Atomic(int (*)[3]) p" is an atomic pointer to an array.
+    CType atomicArrayPointer = parseLastGlobalType("_Atomic(int (*)[3]) p;").getCanonicalType();
+    assertThat(atomicArrayPointer.isAtomic()).isTrue();
+    assertThat(atomicArrayPointer).isInstanceOf(CPointerType.class);
+    assertThat(((CPointerType) atomicArrayPointer).getType().getCanonicalType())
+        .isInstanceOf(CArrayType.class);
+
+    // The shared type name applies to every declarator, so both are atomic function pointers.
+    assertThat(parseLastGlobalType("_Atomic(int (*)(void)) fp, gp;").isAtomic()).isTrue();
+  }
+
+  @Test
+  public void testAtomicTypeSpecifierRejectsForbiddenTypeNames() {
+    // C23 § 6.7.3.5 (3): the type name in an atomic type specifier shall not be an array or a
+    // function type. These are constraint violations and are rejected (as they are by GCC).
+    assertThrows(CParserException.class, () -> parseLastGlobalType("_Atomic(int[3]) v;"));
+    assertThrows(CParserException.class, () -> parseLastGlobalType("_Atomic(int(void)) f;"));
+  }
+
   private static CType parseGlobalType(String pDeclaration)
       throws CParserException, InterruptedException {
     return (CType)
@@ -296,6 +354,17 @@ public class CTypeToStringTest {
             .parseString(Path.of("dummy"), pDeclaration)
             .globalDeclarations()
             .getFirst()
+            .getFirst()
+            .getType();
+  }
+
+  private static CType parseLastGlobalType(String pCode)
+      throws CParserException, InterruptedException {
+    return (CType)
+        parser
+            .parseString(Path.of("dummy"), pCode)
+            .globalDeclarations()
+            .getLast()
             .getFirst()
             .getType();
   }
