@@ -249,4 +249,30 @@ public class CTypeToStringTest {
                 .getType();
     assertThat(parsed.getCanonicalType()).isEqualTo(type.getCanonicalType());
   }
+
+  @Test
+  public void testAtomicTypeSpecifierParses() throws CParserException, InterruptedException {
+    // C23 § 6.7.3.5 (issue #1667): the atomic type specifier "_Atomic(T)" denotes the same type as
+    // the "_Atomic T" qualifier (footnote 147), for a plain type name T. Its string representation
+    // is the qualifier form, so this cannot be checked with the round-trip test above.
+    assertThat(parseGlobalType("_Atomic(int) v;").getCanonicalType())
+        .isEqualTo(CNumericTypes.INT.withAtomic().getCanonicalType());
+    assertThat(parseGlobalType("_Atomic (unsigned long) v;").getCanonicalType())
+        .isEqualTo(CNumericTypes.UNSIGNED_LONG_INT.withAtomic().getCanonicalType());
+    assertThat(parseGlobalType("_Atomic(int) *v;").getCanonicalType())
+        .isEqualTo(
+            new CPointerType(CTypeQualifiers.NONE, CNumericTypes.INT.withAtomic())
+                .getCanonicalType());
+  }
+
+  private static CType parseGlobalType(String pDeclaration)
+      throws CParserException, InterruptedException {
+    return (CType)
+        parser
+            .parseString(Path.of("dummy"), pDeclaration)
+            .globalDeclarations()
+            .getFirst()
+            .getFirst()
+            .getType();
+  }
 }

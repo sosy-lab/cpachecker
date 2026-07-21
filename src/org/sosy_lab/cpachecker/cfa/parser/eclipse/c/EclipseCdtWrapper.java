@@ -71,7 +71,134 @@ public class EclipseCdtWrapper {
   }
 
   static FileContent wrapCode(final Path pFileName, final String pCode) {
-    return FileContent.create(pFileName.toString(), pCode.toCharArray());
+    return FileContent.create(
+        pFileName.toString(), rewriteAtomicTypeSpecifiers(pCode).toCharArray());
+  }
+
+  private static final String ATOMIC_KEYWORD = "_Atomic";
+
+  /**
+   * Rewrite each atomic type specifier {@code _Atomic ( type-name )} that uses a plain type name
+   * into the equivalent {@code _Atomic type-name} qualifier form (which denotes the same type, cf.
+   * C23 § 6.7.3.5 and footnote 147, #1667). CDT cannot parse the specifier form, but the qualifier
+   * form is handled via the {@link #ATOMIC_ATTRIBUTE} macro. The rewrite only replaces the two
+   * enclosing parentheses with spaces so that all source offsets are preserved. Type names that
+   * contain a derived declarator (e.g., the pointer in {@code _Atomic(int*)}) are left unchanged,
+   * as are occurrences inside strings, character constants, or comments.
+   */
+  private static String rewriteAtomicTypeSpecifiers(final String pCode) {
+    if (!pCode.contains(ATOMIC_KEYWORD)) {
+      return pCode;
+    }
+    char[] code = pCode.toCharArray();
+    int i = 0;
+    while (i < code.length) {
+      char c = code[i];
+      if (c == '"' || c == '\'') {
+        i = skipLiteral(code, i);
+      } else if (c == '/' && i + 1 < code.length && code[i + 1] == '/') {
+        i = skipToLineEnd(code, i);
+      } else if (c == '/' && i + 1 < code.length && code[i + 1] == '*') {
+        i = skipBlockComment(code, i);
+      } else if (startsAtomicKeyword(code, i)) {
+        int open = skipWhitespace(code, i + ATOMIC_KEYWORD.length());
+        if (open < code.length && code[open] == '(') {
+          int close = matchingParenthesis(code, open);
+          if (close >= 0 && isPlainTypeName(code, open + 1, close)) {
+            code[open] = ' ';
+            code[close] = ' ';
+          }
+        }
+        i += ATOMIC_KEYWORD.length();
+      } else {
+        i++;
+      }
+    }
+    return new String(code);
+  }
+
+  private static boolean startsAtomicKeyword(final char[] pCode, final int pIndex) {
+    if (pIndex + ATOMIC_KEYWORD.length() > pCode.length) {
+      return false;
+    }
+    for (int k = 0; k < ATOMIC_KEYWORD.length(); k++) {
+      if (pCode[pIndex + k] != ATOMIC_KEYWORD.charAt(k)) {
+        return false;
+      }
+    }
+    if (pIndex > 0 && isIdentifierPart(pCode[pIndex - 1])) {
+      return false;
+    }
+    int after = pIndex + ATOMIC_KEYWORD.length();
+    return after >= pCode.length || !isIdentifierPart(pCode[after]);
+  }
+
+  private static boolean isIdentifierPart(final char pChar) {
+    return Character.isLetterOrDigit(pChar) || pChar == '_';
+  }
+
+  private static int skipWhitespace(final char[] pCode, final int pIndex) {
+    int i = pIndex;
+    while (i < pCode.length && Character.isWhitespace(pCode[i])) {
+      i++;
+    }
+    return i;
+  }
+
+  private static int skipLiteral(final char[] pCode, final int pIndex) {
+    char quote = pCode[pIndex];
+    int i = pIndex + 1;
+    while (i < pCode.length) {
+      if (pCode[i] == '\\') {
+        i += 2;
+      } else if (pCode[i] == quote) {
+        return i + 1;
+      } else {
+        i++;
+      }
+    }
+    return i;
+  }
+
+  private static int skipToLineEnd(final char[] pCode, final int pIndex) {
+    int i = pIndex + 2;
+    while (i < pCode.length && pCode[i] != '\n') {
+      i++;
+    }
+    return i;
+  }
+
+  private static int skipBlockComment(final char[] pCode, final int pIndex) {
+    int i = pIndex + 2;
+    while (i + 1 < pCode.length && !(pCode[i] == '*' && pCode[i + 1] == '/')) {
+      i++;
+    }
+    return Math.min(i + 2, pCode.length);
+  }
+
+  private static int matchingParenthesis(final char[] pCode, final int pOpen) {
+    int depth = 0;
+    for (int i = pOpen; i < pCode.length; i++) {
+      if (pCode[i] == '(') {
+        depth++;
+      } else if (pCode[i] == ')') {
+        depth--;
+        if (depth == 0) {
+          return i;
+        }
+      }
+    }
+    return -1;
+  }
+
+  private static boolean isPlainTypeName(final char[] pCode, final int pStart, final int pEnd) {
+    for (int i = pStart; i < pEnd; i++) {
+      char c = pCode[i];
+      if (c == '*' || c == '[' || c == '(') {
+        return false;
+      }
+    }
+    return pStart < pEnd;
   }
 
   /**
