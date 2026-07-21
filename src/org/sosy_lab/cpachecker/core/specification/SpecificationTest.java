@@ -55,37 +55,26 @@ public class SpecificationTest {
         .testEquals();
   }
 
+  /**
+   * Combining an SV-LIB property with a C property is invalid, independent of whether the analyzed
+   * program is an SV-LIB or a C program. In both cases {@link Specification#fromFiles} must reject
+   * the combination.
+   */
   @Test
-  public void testInvalidCombinationSvLibCPropertyForSvLib() throws Exception {
-    Configuration config = TestUtils.configurationForTest().setOption("language", "SvLib").build();
-    LogManager logger = LogManager.createTestLogManager();
-    ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
-
-    CFA cfa =
-        new CFACreator(config, logger, shutdownNotifier)
-            .parseFileAndCreateCFA(ImmutableList.of("test/programs/sv-lib/simple-correct.svlib"));
-
-    ImmutableList<Path> specFiles =
-        ImmutableList.of(
-            // property file specifying the SV-LIB annotation-correctness property
-            Path.of("config/properties/correct-annotations.prp"),
-            // specification automaton for C programs (matches against C statements)
-            Path.of("config/properties/unreach-call.prp"));
-
-    assertThrows(
-        InvalidConfigurationException.class,
-        () -> Specification.fromFiles(specFiles, cfa, config, logger, shutdownNotifier));
+  public void testInvalidCombinationSvLibCProperty() throws Exception {
+    assertInvalidCombinationSvLibCProperty("SvLib", "test/programs/sv-lib/simple-correct.svlib");
+    assertInvalidCombinationSvLibCProperty("C", "test/programs/simple/__VERIFIER_assume.c");
   }
 
-  @Test
-  public void testInvalidCombinationSvLibCPropertyForC() throws Exception {
-    Configuration config = TestUtils.configurationForTest().setOption("language", "C").build();
+  private void assertInvalidCombinationSvLibCProperty(String language, String program)
+      throws Exception {
+    Configuration config = TestUtils.configurationForTest().setOption("language", language).build();
     LogManager logger = LogManager.createTestLogManager();
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
 
     CFA cfa =
         new CFACreator(config, logger, shutdownNotifier)
-            .parseFileAndCreateCFA(ImmutableList.of("test/programs/simple/__VERIFIER_assume.c"));
+            .parseFileAndCreateCFA(ImmutableList.of(program));
 
     ImmutableList<Path> specFiles =
         ImmutableList.of(
