@@ -872,7 +872,6 @@ public final class ValueAnalysisState
 
   private ExpressionTree<Object> buildVariableAssignmentsFor(
       FunctionEntryNode pFunctionScope,
-      CFANode pLocation,
       ImmutableSet<String> qualifiedVariableNamesInScope,
       Function<String, String> variableRenamingFunction)
       throws TranslationToExpressionTreeFailedException {
@@ -913,13 +912,6 @@ public final class ValueAnalysisState
           }
 
           if (qualifiedVariableNamesInScope.contains(memoryLocation.getQualifiedName())) {
-            // We only want some approximation for the location of the variable declaration,
-            // as the location is needed transform the MemoryLocation into a CvariableDeclaration.
-            FileLocation loc =
-                pLocation.getNumEnteringEdges() > 0
-                    ? pLocation.getEnteringEdge(0).getFileLocation()
-                    : pFunctionScope.getFileLocation();
-
             // We rename the identifier, i.e. the "name", without the qualification part
             String newVariableName = variableRenamingFunction.apply(memoryLocation.getIdentifier());
 
@@ -936,7 +928,7 @@ public final class ValueAnalysisState
 
             CVariableDeclaration decl =
                 new CVariableDeclaration(
-                    loc,
+                    FileLocation.DUMMY,
                     !memoryLocation.isOnFunctionStack(),
                     CStorageClass.AUTO,
                     cType,
@@ -944,7 +936,7 @@ public final class ValueAnalysisState
                     newVariableName,
                     memoryLocWithNewName.getQualifiedName(),
                     null);
-            CExpression var = new CIdExpression(loc, decl);
+            CExpression var = new CIdExpression(FileLocation.DUMMY, decl);
 
             Optional<CBinaryExpression> constraint =
                 buildAssignmentFrom(var, cType, numericValueOfEntry);
@@ -980,7 +972,7 @@ public final class ValueAnalysisState
             pAstCfaRelation, pFunctionScope, forbiddenQualifiedNames, ImmutableSet.of());
 
     return buildVariableAssignmentsFor(
-        pFunctionScope, pLocation, qualifiedVariableNamesToExport, Function.identity());
+        pFunctionScope, qualifiedVariableNamesToExport, Function.identity());
   }
 
   @Override
@@ -1009,7 +1001,6 @@ public final class ValueAnalysisState
 
     return buildVariableAssignmentsFor(
         pFunctionScope,
-        pLocation,
         qualifiedVariableNamesToExport,
         varName -> useOldKeywordForVariables ? "\\old(" + varName + ")" : varName);
   }
