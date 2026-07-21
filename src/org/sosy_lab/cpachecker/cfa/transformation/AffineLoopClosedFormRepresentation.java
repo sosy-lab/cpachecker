@@ -189,4 +189,102 @@ public class AffineLoopClosedFormRepresentation {
       IExpr lambda
   ) {}
 
+  public static List<CFAEdge> getRowSummandStatements( CIdExpression pVariable, List<RowSummand> pRowSummands, CExpression pIterations, List<CDeclaration> tmpVars, CFANode pPredecessor)
+      throws UnrecognizedCodeException {
+    ImmutableList.Builder<CFAEdge> builder = ImmutableList.builder();
+    CBinaryExpressionBuilder binaryExpressionBuilder = new CBinaryExpressionBuilder(MachineModel.LINUX64, LogManager.createNullLogManager());
+
+    int tmpVarCounter = 0;
+    CFANode currentNode = pPredecessor;
+    CFANode newNode = CFANode.newDummyCFANode(pPredecessor.getFunctionName());
+    ImmutableList.Builder<CExpression> summands =  ImmutableList.builder();
+    for (RowSummand summand : pRowSummands) {
+      // add assignment edge for the lam ^ n tmpVar
+      CFunctionCallExpression lamToNExpression =
+          new CFunctionCallExpression(
+              FileLocation.DUMMY,
+              CNumericTypes.DOUBLE,
+              getPow(),
+              ImmutableList.of(
+                  new CFloatLiteralExpression(
+                      FileLocation.DUMMY, MachineModel.LINUX64, CNumericTypes.DOUBLE, FloatValue.fromDouble(summand.lambda().toDoubleDefault())),
+                  new CCastExpression(FileLocation.DUMMY, CNumericTypes.DOUBLE, pIterations)),
+              CFunctionDeclaration.DUMMY);
+      CStatementEdge lamToNEdge =
+          new CStatementEdge(
+              tmpVars.get(tmpVarCounter).getName() + " = pow("
+                  + summand.lambda().toDoubleDefault()
+                  + ","
+                  + pIterations
+                  + ");",
+              new CFunctionCallAssignmentStatement(
+                  FileLocation.DUMMY,
+                  new CIdExpression(FileLocation.DUMMY, tmpVars.get(tmpVarCounter)),
+                  lamToNExpression),
+              FileLocation.DUMMY,
+              currentNode,
+              newNode);
+      builder.add(lamToNEdge);
+      // the lam ^ n function call in each row summand needs an extra node for the function call edge
+      currentNode = newNode;
+      newNode = CFANode.newDummyCFANode(pPredecessor.getFunctionName());
+      // create a CBinaryExpression for n ^ pow
+      CExpression nPow;
+      switch (summand.power) {
+        case 0:
+          nPow = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ONE);
+          break;
+        case 1:
+          nPow = pIterations;
+          break;
+        default:
+          nPow = pIterations;
+          for (int i = 0; i < summand.power() - 1 ; i++) {
+            nPow = binaryExpressionBuilder.buildBinaryExpression(nPow, pIterations, BinaryOperator.MULTIPLY);
+          }
+      }
+      // create a CBinaryExpression for the summand = coeff * var * lambda ^ n * n ^ pow
+      CExpression summandExpression =
+          binaryExpressionBuilder.buildBinaryExpression(
+              new CIdExpression(FileLocation.DUMMY, tmpVars.get(tmpVarCounter)), nPow, BinaryOperator.MULTIPLY);
+      summandExpression = binaryExpressionBuilder.buildBinaryExpression(summandExpression, summand.variable() == null ? new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ONE) : summand.variable(), BinaryOperator.MULTIPLY);
+      summandExpression =
+          binaryExpressionBuilder.buildBinaryExpression(
+              summandExpression,
+              new CFloatLiteralExpression(
+                  FileLocation.DUMMY, MachineModel.LINUX64, CNumericTypes.DOUBLE, FloatValue.fromDouble(summand.coeff().toDoubleDefault())), BinaryOperator.MULTIPLY);
+      summands.add(summandExpression);
+
+      tmpVarCounter++;
+    }
+    // add all summands together, cast them to int and assign them to pVariable
+    ImmutableList<CExpression> summandStatements = summands.build();
+    if (summandStatements.isEmpty()) return ImmutableList.of();
+    CExpression rightHandSide = summandStatements.getFirst();
+    for (int i = 0; i < summandStatements.size(); i++) {
+      if (i != 0) {
+        rightHandSide =
+            binaryExpressionBuilder.buildBinaryExpression(
+                rightHandSide, summandStatements.get(i), BinaryOperator.PLUS);
+      }
+    }
+    CStatementEdge assignEdge =
+        new CStatementEdge(
+            pVariable + " = (int) " + rightHandSide + ";",
+            new CExpressionAssignmentStatement(
+                FileLocation.DUMMY, pVariable, new CCastExpression(FileLocation.DUMMY, CNumericTypes.INT, rightHandSide)),
+            FileLocation.DUMMY,
+            currentNode,
+            newNode);
+    builder.add(assignEdge);
+
+    ImmutableList<CFAEdge> newEdges = builder.build();
+    for (CFAEdge edge : newEdges) {
+      edge.getPredecessor().addLeavingEdge(edge);
+      edge.getSuccessor().addEnteringEdge(edge);
+    }
+
+    return newEdges;
+  }
+
 }
