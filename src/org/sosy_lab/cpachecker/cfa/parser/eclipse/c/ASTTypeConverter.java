@@ -516,8 +516,8 @@ class ASTTypeConverter {
    * _Atomic} qualifier (e.g., {@code int * _Atomic p}). CDT silently drops the attribute we use for
    * _Atomic when it appears to the right of a {@code *}, but the location of the dropped {@code
    * _Atomic} is still recorded in {@link #unhandledAtomicOccurrences}. We recover the qualifier by
-   * matching such an occurrence to the pointer operator whose qualifier region (between the {@code
-   * *} and the next modifier or the end of the declarator) contains it, and mark the occurrence as
+   * matching such an occurrence to the pointer operator whose qualifier region (between {@code *}
+   * and the next modifier or the end of the declarator) contains it, and mark the occurrence as
    * handled. Cf. #1670.
    */
   Set<IASTPointerOperator> findAtomicPointerOperators(
