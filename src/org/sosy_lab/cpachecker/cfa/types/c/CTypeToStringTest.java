@@ -86,6 +86,19 @@ public class CTypeToStringTest {
         "const volatile int *const volatile var",
         new CPointerType(CTypeQualifiers.CONST_VOLATILE, CONST_VOLATILE_INT),
       },
+      { // declare var as _Atomic pointer to int (issue #1670)
+        "int *_Atomic var", new CPointerType(CTypeQualifiers.ATOMIC, CNumericTypes.INT),
+      },
+      { // declare var as _Atomic pointer to pointer to int
+        "int **_Atomic var",
+        new CPointerType(
+            CTypeQualifiers.ATOMIC, new CPointerType(CTypeQualifiers.NONE, CNumericTypes.INT)),
+      },
+      { // declare var as pointer to _Atomic pointer to int
+        "int *_Atomic *var",
+        new CPointerType(
+            CTypeQualifiers.NONE, new CPointerType(CTypeQualifiers.ATOMIC, CNumericTypes.INT)),
+      },
       { // declare var as array 1 of int
         "int var[1]",
         new CArrayType(CTypeQualifiers.NONE, CNumericTypes.INT, CIntegerLiteralExpression.ONE),

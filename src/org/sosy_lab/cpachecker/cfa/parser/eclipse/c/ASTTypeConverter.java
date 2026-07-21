@@ -13,6 +13,9 @@ import static com.google.common.base.Verify.verify;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -20,9 +23,11 @@ import org.eclipse.cdt.core.dom.ast.DOMException;
 import org.eclipse.cdt.core.dom.ast.IASTAttribute;
 import org.eclipse.cdt.core.dom.ast.IASTAttributeOwner;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
+import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNamedTypeSpecifier;
+import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTPointer;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
@@ -485,15 +490,70 @@ class ASTTypeConverter {
 
   /** returns a pointerType, that wraps the type. */
   CPointerType convert(final IASTPointerOperator po, final CType type) {
+    return convert(po, type, false);
+  }
+
+  /**
+   * Returns a pointerType that wraps the type. {@code pAtomic} tells whether the pointer itself is
+   * atomic, e.g., for {@code int * _Atomic p}. CDT silently drops the attribute we use for _Atomic
+   * from a pointer operator, so this information cannot be read from the pointer directly and has
+   * to be recovered separately (cf. {@link #findAtomicPointerOperators}, #1670).
+   */
+  CPointerType convert(final IASTPointerOperator po, final CType type, final boolean pAtomic) {
     if (po instanceof IASTPointer p) {
       return new CPointerType(
           CTypeQualifiers.create(
-              hasUnexpectedCPAcheckerAttributeForAtomic(p), p.isConst(), p.isVolatile()),
+              pAtomic || hasCPAcheckerAttributeForAtomic(p), p.isConst(), p.isVolatile()),
           type);
 
     } else {
       throw parseContext.parseError("Unknown pointer operator", po);
     }
+  }
+
+  /**
+   * Determine which of the given declarator modifiers are pointer operators carrying an {@code
+   * _Atomic} qualifier (e.g., {@code int * _Atomic p}). CDT silently drops the attribute we use for
+   * _Atomic when it appears to the right of a {@code *}, but the location of the dropped {@code
+   * _Atomic} is still recorded in {@link #unhandledAtomicOccurrences}. We recover the qualifier by
+   * matching such an occurrence to the pointer operator whose qualifier region (between the {@code
+   * *} and the next modifier or the end of the declarator) contains it, and mark the occurrence as
+   * handled. Cf. #1670.
+   */
+  Set<IASTPointerOperator> findAtomicPointerOperators(
+      final List<IASTNode> modifiers, final IASTDeclarator declarator) {
+    List<Integer> modifierOffsets = new ArrayList<>(modifiers.size());
+    for (IASTNode modifier : modifiers) {
+      modifierOffsets.add(converter.getLocation(modifier).getNodeOffset());
+    }
+    FileLocation declaratorLocation = converter.getLocation(declarator);
+    int declaratorEnd = declaratorLocation.getNodeOffset() + declaratorLocation.getNodeLength();
+
+    Set<IASTPointerOperator> atomicPointers = Collections.newSetFromMap(new IdentityHashMap<>());
+    for (IASTNode modifier : modifiers) {
+      if (!(modifier instanceof IASTPointerOperator pointer)) {
+        continue;
+      }
+      FileLocation pointerLocation = converter.getLocation(pointer);
+      int regionStart = pointerLocation.getNodeOffset() + pointerLocation.getNodeLength();
+      int regionEnd = declaratorEnd;
+      for (int offset : modifierOffsets) {
+        if (offset > pointerLocation.getNodeOffset() && offset < regionEnd) {
+          regionEnd = offset;
+        }
+      }
+      for (Iterator<FileLocation> it = unhandledAtomicOccurrences.iterator(); it.hasNext(); ) {
+        FileLocation occurrence = it.next();
+        if (occurrence.getFileName().equals(pointerLocation.getFileName())
+            && occurrence.getNodeOffset() >= regionStart
+            && occurrence.getNodeOffset() < regionEnd) {
+          it.remove();
+          atomicPointers.add(pointer);
+          break;
+        }
+      }
+    }
+    return atomicPointers;
   }
 
   /** returns a pointerType, that wraps all the converted types. */

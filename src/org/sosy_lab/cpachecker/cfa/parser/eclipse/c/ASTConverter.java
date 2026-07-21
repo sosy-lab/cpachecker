@@ -2351,6 +2351,8 @@ class ASTConverter {
 
       // Add the modifiers to the type.
       CType type = specifier;
+      Set<IASTPointerOperator> atomicPointers =
+          d == null ? ImmutableSet.of() : typeConverter.findAtomicPointerOperators(modifiers, d);
       // array modifiers have to be added backwards, otherwise the arraysize is wrong
       // with multidimensional arrays
       List<IASTArrayModifier> tmpArrMod = new ArrayList<>();
@@ -2365,7 +2367,9 @@ class ASTConverter {
           // clear added modifiers
           tmpArrMod.clear();
 
-          type = typeConverter.convert(iASTPointerOperator, type);
+          type =
+              typeConverter.convert(
+                  iASTPointerOperator, type, atomicPointers.contains(iASTPointerOperator));
 
         } else {
           throw new AssertionError();
