@@ -113,6 +113,16 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
   }
 
   /**
+   * Returns a new copy of the current {@link MemoryLocation} with the identifier given.
+   *
+   * @param pNewIdentifier the new identifier. Obtained from {@link #getIdentifier()}.
+   * @return a new {@link MemoryLocation} with the new identifier.
+   */
+  public MemoryLocation withIdentifier(String pNewIdentifier) {
+    return new MemoryLocation(functionName, pNewIdentifier, offset);
+  }
+
+  /**
    * Create an instance using a qualified name of a declaration as returned by {@link
    * ASimpleDeclaration#getQualifiedName()}.
    */
