@@ -15,8 +15,10 @@ import com.google.common.collect.Iterables;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -44,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -1209,6 +1212,17 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     boolean anyEvent = false;
     int firstNewEventId = registry.nextEventId();
 
+    // On a declaration edge the declared object is not a value use; its initial writes (below)
+    // already cover it, so the whole-object access recorded for it in freshName is skipped.
+    String declaredObjectName =
+        pEdge instanceof CDeclarationEdge decl
+                && decl.getDeclaration() instanceof CVariableDeclaration variable
+            ? variable.getQualifiedName()
+            : null;
+    // value symbols of whole-object reads on this edge, keyed by region; a whole-object write of
+    // the same region (a copy `s = other;`) is constrained to the source's value (see below)
+    Map<String, Formula> aggregateReadValueByRegion = new HashMap<>();
+
     for (CVariableDeclaration aggregate : pRenamer.aggregateDecls) {
       if (!aggregateInitEmitted.add(aggregate.getQualifiedName())) {
         continue;
@@ -1303,6 +1317,73 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
           anyEvent = true;
         }
         lastEventId = event.id();
+      }
+      // Whole-object accesses (e.g. `s = other;`): a struct/array copy touches every cell of the
+      // object, so it must be visible as memory events, otherwise a data race through it is missed
+      // (and, under reachability, its store is lost). Model it with one fill event per scalar leaf
+      // region — each covers the whole object of that region — mirroring the aggregate-init writes.
+      for (AggregateAccess aggregate : pRenamer.aggregateAccesses) {
+        if (aggregate.write() != writes
+            || aggregate.declaration().getQualifiedName().equals(declaredObjectName)) {
+          continue;
+        }
+        CVariableDeclaration decl = aggregate.declaration();
+        String baseName = baseNameFor(decl, pState.getInstanceId());
+        CType baseType = new CPointerType(CTypeQualifiers.NONE, decl.getType());
+        if (!resolution.getSsa().containsVariable(baseName)) {
+          resolution = indexSymbol(resolution, baseName, baseType, pEdge);
+        }
+        Formula baseTerm = resolve(resolution, baseName, baseType, pEdge);
+        if (registeredBases.add(baseName)) {
+          registry.addAddressBase(baseTerm, objectSizeBytes(decl.getType()));
+        }
+        long fillSize = objectSizeBytes(decl.getType());
+        // a whole-object access of an _Atomic-qualified aggregate is itself atomic
+        boolean atomicObject = decl.getType().getCanonicalType().isAtomic();
+        for (CType leafType : scalarLeafTypes(decl.getType())) {
+          String region = regionOf(leafType);
+          String accName = registry.freshCssaName("__oc_aggacc");
+          resolution = indexSymbol(resolution, accName, leafType, pEdge);
+          Formula valueTerm = resolve(resolution, accName, leafType, pEdge);
+          if (aggregate.write()) {
+            // a copy `s = other;` propagates the source's value at region granularity; a write
+            // with no matching source read (e.g. `s = f();`) leaves the value unconstrained
+            Formula sourceValue = aggregateReadValueByRegion.get(region);
+            if (sourceValue != null) {
+              registry.addPathConstraint(
+                  bfmgr.implication(pState.getGuard(), fmgr.makeEqual(valueTerm, sourceValue)));
+            }
+          } else {
+            aggregateReadValueByRegion.put(region, valueTerm);
+          }
+          MemoryEvent event =
+              registry.addEvent(
+                  pState.getInstanceId(),
+                  aggregate.write() ? EventKind.WRITE : EventKind.READ,
+                  lastEventId,
+                  pState.getGuard(),
+                  null,
+                  accName,
+                  valueTerm,
+                  null,
+                  MemoryEvent.NO_INSTANCE,
+                  region,
+                  baseTerm,
+                  null,
+                  true,
+                  fillSize,
+                  pEdge);
+          if (atomicObject || leafType.getCanonicalType().isAtomic()) {
+            registry.markAtomicAccess(event.id());
+          }
+          if (!anyEvent) {
+            for (int i = 1; i < predecessors.size(); i++) {
+              registry.addPoPredecessor(event.id(), predecessors.get(i));
+            }
+            anyEvent = true;
+          }
+          lastEventId = event.id();
+        }
       }
     }
     if (anyEvent) {
@@ -1752,6 +1833,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     private final List<PendingAccess> accesses = new ArrayList<>();
     private final List<PendingBase> mintedBases = new ArrayList<>();
     private final List<CVariableDeclaration> aggregateDecls = new ArrayList<>();
+    private final List<AggregateAccess> aggregateAccesses = new ArrayList<>();
 
     private CollectingRenamer(int pInstanceId) {
       instanceId = pInstanceId;
@@ -1776,6 +1858,10 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         // regime, seeded with initial writes when the declaration is first seen. An incomplete
         // (only forward-declared) type can never be value-accessed, so it gets no cells at all
         aggregateDecls.add(pDeclaration);
+        // A whole-object value use (e.g. `s = other;`) reads or writes every cell of the object.
+        // Record it so chainAccessEvents can emit per-region fill events; the object's own
+        // declaration edge is filtered out there (its initial writes already cover it).
+        aggregateAccesses.add(new AggregateAccess(pDeclaration, pIsWrite));
         return cssaName;
       }
       PendingAccess access =
@@ -1933,6 +2019,13 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
 
   /** The base object identity of an aliased access. */
   private record BaseInfo(String name, CType type) {}
+
+  /**
+   * A whole-object read or write of an aggregate (struct/array/union) object — a global, or an
+   * address-taken local in the aliasing regime. {@link #chainAccessEvents} models it as one fill
+   * event per scalar leaf region, each covering the whole object of that region.
+   */
+  private record AggregateAccess(CVariableDeclaration declaration, boolean write) {}
 
   private long sizeofBytes(CType pType) {
     return machineModel.getSizeof(pType.getCanonicalType()).longValueExact();

@@ -86,7 +86,16 @@ public class OrderingConsistencyDataRaceTest {
             // race-free: exercises per-instance base identity for a local handle array. Its unsafe
             // sibling is a genuine race through the same path and must stay FALSE.
             Pair.of("loop_handle_datarace_safe.c", Result.TRUE),
-            Pair.of("loop_handle_datarace_unsafe.c", Result.FALSE));
+            Pair.of("loop_handle_datarace_unsafe.c", Result.FALSE),
+            // A whole-struct assignment `s = other;` writes every cell of s. Two threads run it
+            // concurrently -> write/write race. Regression: whole-struct assignments used to emit
+            // no memory event, so the race was silently missed (reported TRUE).
+            Pair.of("struct_assign_datarace_unsafe.c", Result.FALSE),
+            // The whole-struct write is ordered before main's field read by the join: no race.
+            Pair.of("struct_assign_datarace_safe.c", Result.TRUE),
+            // The same two concurrent whole-struct assignments, but on an _Atomic struct: the
+            // accesses are atomic and excluded from race candidates. Covers atomic struct support.
+            Pair.of("atomic_struct_datarace_safe.c", Result.TRUE));
 
     return testCases.stream()
         .map(testCase -> new Object[] {testCase.getFirst(), testCase.getSecond()})
