@@ -331,7 +331,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     boolean isTransitionInvariant;
 
     // The goal is to construct formula of the following form:
-    // T(x__PREV, x__CURR) and Tr(x__CURR, x__CURR2) => T(x__PREV, x__CURR)
+    // T(x__PREV, x__CURR) and Tr(x__CURR, x__CURR2) => T(x__PREV, x__CURR2)
 
     // Construct T(x__PREV, x__CURR)
     candidateTransitionInvariant.extendPrevVarsWithSuffix(PREV_KEYWORD);
@@ -356,7 +356,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           solver.implies(
               bfmgr.and(firstStepInTransInv, iterationFormula.getFormula()), secondStepInTransInv);
 
-      // Check Init(x__CURR) and Tr(x__CURR, x__CURR2) => T(x__CURR, x__CURR2)
+      // Check Tr(x__CURR, x__CURR2) => T(x__CURR, x__CURR2)
       candidateTransitionInvariant.extendPrevVarsWithSuffix(CURR_KEYWORD);
 
       isTransitionInvariant =
