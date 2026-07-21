@@ -102,10 +102,6 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     return 0;
   }
 
-  public ImmutableMap<Pair<LocationState, CallstackState>, Integer> getNumberOfIterationsMap() {
-    return numberOfIterations;
-  }
-
   public ImmutableMap<
           Pair<LocationState, CallstackState>, ImmutableMap<Integer, ImmutableSet<Formula>>>
       getStoredValues() {
