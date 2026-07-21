@@ -12,6 +12,10 @@ import static com.google.common.base.Preconditions.checkState;
 
 import org.sosy_lab.common.time.Tickers;
 
+/**
+ * Measures the CPU time consumed by a single owning thread. Can be started and stopped multiple
+ * times to accumulate time only across meaningful operations.
+ */
 public class DssThreadCpuTimer {
 
   private long sum;
