@@ -276,8 +276,13 @@ public sealed interface CType extends Type
   }
 
   /**
-   * Return a copy of this type that has the "atomic", "const", and "volatile" flags removed. If the
-   * type already has no qualifiers, it is returned unchanged.
+   * Return the unqualified version of this type as defined by the C standard, i.e., a copy that has
+   * the "const" and "volatile" flags removed but keeps the "atomic" flag. If the type is already
+   * non-const and non-volatile, it is returned unchanged.
+   *
+   * <p>Per C11 § 6.2.5 (27) (C23 § 6.2.5 (32)), {@code _Atomic} is not one of the qualifiers that
+   * make up the "qualified or unqualified" versions of a type, so it is deliberately kept here. Use
+   * {@link #withoutAtomic()} in addition if a fully unqualified, non-atomic type is required.
    *
    * <p>This method only eliminates the outermost qualifiers, if present, i.e., it does not change a
    * non-const non-volatile pointer to a const volatile int.
@@ -286,7 +291,7 @@ public sealed interface CType extends Type
    * cast the result.
    */
   default CType withoutQualifiers() {
-    return withQualifiersSetTo(CTypeQualifiers.NONE);
+    return withQualifiersSetTo(getQualifiers().withoutConst().withoutVolatile());
   }
 
   /**
