@@ -124,12 +124,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
             pairKey, terminationState.getNumberOfIterationsAtLoopHead(pairKey) + 1);
 
         if (terminationState.getPathFormulasForIteration().containsKey(pairKey)) {
-          newPathFormulaForIteration.put(
-              pairKey,
-              pfmgr.makeConjunction(
-                  ImmutableList.of(
-                      terminationState.getPathFormulasForIteration().get(pairKey),
-                      predicateState.getPathFormula())));
+          newPathFormulaForIteration.put(pairKey, predicateState.getPathFormula());
         } else {
           newPathFormulaForIteration.put(pairKey, predicateState.getPathFormula());
         }
