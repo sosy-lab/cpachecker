@@ -45,7 +45,6 @@ public class LoopAccelerationUtils {
     List<Integer> b = pLoop.getIterationConstants();
 
     if (b.isEmpty()) return closedFormLinear(pLoop);
-    ExprEvaluator util = new ExprEvaluator(false, (short) 100);
     try{
       int d = A.size();
 
@@ -61,7 +60,6 @@ public class LoopAccelerationUtils {
       extraRow.addAll(Collections.nCopies(d, 0));
       extraRow.add(1);
       Ahom.add(extraRow.build());
-
 
       CIdExpression x_fresh = new CIdExpression(
           FileLocation.DUMMY,
@@ -110,9 +108,9 @@ public class LoopAccelerationUtils {
       // 1. calculate the jordan form of the loop: A = P * J * Pinv
       IExpr A = util.eval(pLoop.printMatrix());
       IExpr jordanForm = util.eval(F.JordanDecomposition(A));
-      IExpr P2 = jordanForm.first();
-      IExpr J2 = jordanForm.last();
-      IExpr Pinv2 = util.eval(F.Inverse(P2));
+      IExpr P = jordanForm.first();
+      IExpr J = jordanForm.last();
+      IExpr Pinv = util.eval(F.Inverse(P));
       int d = pLoop.getVariables().size();
       boolean negativeEigenvalue = false;
 
@@ -120,13 +118,14 @@ public class LoopAccelerationUtils {
       List<BlockInfo> blockInfos = new ArrayList<>();
       int m = 1;
       for (int i = 0; i < d; i = i + m) {
-        IExpr lambda = util.eval(getMatrixEntry(J2, i, i));
-        if (lambda.lessThan(0).isTrue()) {
-          negativeEigenvalue = true;
+        IExpr lambda = util.eval(getMatrixEntry(J, i, i));
+        // only support -1, 0, 1 as eigenvalues
+        if (! (lambda.isMinusOne() || lambda.isOne() || lambda.isZero())) {
+          return Optional.empty();
         }
         m = 1;
         while (i + m < d &&
-            util.eval(getMatrixEntry(J2, i + m - 1, i + m)).isOne()) {
+            util.eval(getMatrixEntry(J, i + m - 1, i + m)).isOne()) {
           m++;
         }
         blockInfos.add(new BlockInfo(i, m, lambda));
@@ -179,11 +178,11 @@ public class LoopAccelerationUtils {
         for (int j = 0; j < d; j++) {
           List<Summand> acc = new ArrayList<>();
           for (int k = 0; k < d; k++) {
-            if (! getMatrixEntry(P2, i, k).isZero()) {
+            if (! getMatrixEntry(P, i, k).isZero()) {
               List<Summand> JnSummand = closedFormBuilder.getSummands(k, j);
               for (Summand summand : JnSummand) {
                 if (!summand.coeff().isZero()) {
-                  acc.add(new Summand(summand.coeff().multiply(getMatrixEntry(P2, i, k)), summand.power(), summand.lambda()));
+                  acc.add(new Summand(summand.coeff().multiply(getMatrixEntry(P, i, k)), summand.power(), summand.lambda()));
                 }
               }
             }
@@ -199,11 +198,11 @@ public class LoopAccelerationUtils {
         for (int j = 0; j < d; j++) {
           List<Summand> acc = new ArrayList<>();
           for (int k = 0; k < d; k++) {
-            if (! getMatrixEntry(Pinv2, k,j).isZero()) {
+            if (! getMatrixEntry(Pinv, k,j).isZero()) {
               List<Summand> JnSummand = closedFormBuilder.getSummands(i, k);
               for (Summand summand : JnSummand) {
                 if (!summand.coeff().isZero()) {
-                  acc.add(new Summand(summand.coeff().multiply(getMatrixEntry(Pinv2, k, j)), summand.power(), summand.lambda()));
+                  acc.add(new Summand(summand.coeff().multiply(getMatrixEntry(Pinv, k, j)), summand.power(), summand.lambda()));
                 }
               }
             }

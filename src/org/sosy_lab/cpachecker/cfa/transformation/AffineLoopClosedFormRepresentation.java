@@ -11,19 +11,38 @@ package org.sosy_lab.cpachecker.cfa.transformation;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import org.matheclipse.core.interfaces.IExpr;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 
 public class AffineLoopClosedFormRepresentation {
   private final ImmutableMap<CIdExpression, ImmutableList<RowSummand>> closedForm;
@@ -145,7 +164,7 @@ public class AffineLoopClosedFormRepresentation {
     return new AffineLoopClosedFormRepresentation(builder.build());
   }
 
-  private CIdExpression getPow() {
+  private static CIdExpression getPow() {
     ImmutableList.Builder<CParameterDeclaration> parameters = ImmutableList.builder();
     parameters.add(new CParameterDeclaration(FileLocation.DUMMY, CNumericTypes.DOUBLE, "base"));
     parameters.add(new CParameterDeclaration(FileLocation.DUMMY, CNumericTypes.DOUBLE, "exponent"));
@@ -189,45 +208,35 @@ public class AffineLoopClosedFormRepresentation {
       IExpr lambda
   ) {}
 
-  public static List<CFAEdge> getRowSummandStatements( CIdExpression pVariable, List<RowSummand> pRowSummands, CExpression pIterations, List<CDeclaration> tmpVars, CFANode pPredecessor)
+  public static Optional<CFAEdge> getRowSummandStatements(CIdExpression pVariable, List<RowSummand> pRowSummands, CExpression pIterations, CFANode pPredecessor)
       throws UnrecognizedCodeException {
-    ImmutableList.Builder<CFAEdge> builder = ImmutableList.builder();
     CBinaryExpressionBuilder binaryExpressionBuilder = new CBinaryExpressionBuilder(MachineModel.LINUX64, LogManager.createNullLogManager());
 
-    int tmpVarCounter = 0;
-    CFANode currentNode = pPredecessor;
     CFANode newNode = CFANode.newDummyCFANode(pPredecessor.getFunctionName());
     ImmutableList.Builder<CExpression> summands =  ImmutableList.builder();
     for (RowSummand summand : pRowSummands) {
-      // add assignment edge for the lam ^ n tmpVar
-      CFunctionCallExpression lamToNExpression =
-          new CFunctionCallExpression(
-              FileLocation.DUMMY,
-              CNumericTypes.DOUBLE,
-              getPow(),
-              ImmutableList.of(
-                  new CFloatLiteralExpression(
-                      FileLocation.DUMMY, MachineModel.LINUX64, CNumericTypes.DOUBLE, FloatValue.fromDouble(summand.lambda().toDoubleDefault())),
-                  new CCastExpression(FileLocation.DUMMY, CNumericTypes.DOUBLE, pIterations)),
-              CFunctionDeclaration.DUMMY);
-      CStatementEdge lamToNEdge =
-          new CStatementEdge(
-              tmpVars.get(tmpVarCounter).getName() + " = pow("
-                  + summand.lambda().toDoubleDefault()
-                  + ","
-                  + pIterations
-                  + ");",
-              new CFunctionCallAssignmentStatement(
-                  FileLocation.DUMMY,
-                  new CIdExpression(FileLocation.DUMMY, tmpVars.get(tmpVarCounter)),
-                  lamToNExpression),
-              FileLocation.DUMMY,
-              currentNode,
-              newNode);
-      builder.add(lamToNEdge);
-      // the lam ^ n function call in each row summand needs an extra node for the function call edge
-      currentNode = newNode;
-      newNode = CFANode.newDummyCFANode(pPredecessor.getFunctionName());
+      // create expression for lam ^ n
+      CExpression lamToN;
+      if (summand.lambda().isMinusOne()) {
+        // -1 if n is even 1 otherwise
+        CExpression modulo = binaryExpressionBuilder.buildBinaryExpression(
+            pIterations,
+            new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.TWO),
+            BinaryOperator.MODULO
+        );
+        CExpression moduloTimes2 = binaryExpressionBuilder.buildBinaryExpression(
+            new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.TWO),
+            modulo,
+            BinaryOperator.MULTIPLY);
+        lamToN = binaryExpressionBuilder.buildBinaryExpression(
+            new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ONE),
+            moduloTimes2,
+            BinaryOperator.MINUS
+        );
+      } else {
+        // simply 1
+        lamToN = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ONE);
+      }
       // create a CBinaryExpression for n ^ pow
       CExpression nPow;
       switch (summand.power) {
@@ -246,7 +255,7 @@ public class AffineLoopClosedFormRepresentation {
       // create a CBinaryExpression for the summand = coeff * var * lambda ^ n * n ^ pow
       CExpression summandExpression =
           binaryExpressionBuilder.buildBinaryExpression(
-              new CIdExpression(FileLocation.DUMMY, tmpVars.get(tmpVarCounter)), nPow, BinaryOperator.MULTIPLY);
+              lamToN, nPow, BinaryOperator.MULTIPLY);
       summandExpression = binaryExpressionBuilder.buildBinaryExpression(summandExpression, summand.variable() == null ? new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ONE) : summand.variable(), BinaryOperator.MULTIPLY);
       summandExpression =
           binaryExpressionBuilder.buildBinaryExpression(
@@ -255,11 +264,10 @@ public class AffineLoopClosedFormRepresentation {
                   FileLocation.DUMMY, MachineModel.LINUX64, CNumericTypes.DOUBLE, FloatValue.fromDouble(summand.coeff().toDoubleDefault())), BinaryOperator.MULTIPLY);
       summands.add(summandExpression);
 
-      tmpVarCounter++;
     }
     // add all summands together, cast them to int and assign them to pVariable
     ImmutableList<CExpression> summandStatements = summands.build();
-    if (summandStatements.isEmpty()) return ImmutableList.of();
+    if (summandStatements.isEmpty()) return Optional.empty();
     CExpression rightHandSide = summandStatements.getFirst();
     for (int i = 0; i < summandStatements.size(); i++) {
       if (i != 0) {
@@ -274,17 +282,13 @@ public class AffineLoopClosedFormRepresentation {
             new CExpressionAssignmentStatement(
                 FileLocation.DUMMY, pVariable, new CCastExpression(FileLocation.DUMMY, CNumericTypes.INT, rightHandSide)),
             FileLocation.DUMMY,
-            currentNode,
+            pPredecessor,
             newNode);
-    builder.add(assignEdge);
 
-    ImmutableList<CFAEdge> newEdges = builder.build();
-    for (CFAEdge edge : newEdges) {
-      edge.getPredecessor().addLeavingEdge(edge);
-      edge.getSuccessor().addEnteringEdge(edge);
-    }
+    assignEdge.getPredecessor().addLeavingEdge(assignEdge);
+    assignEdge.getSuccessor().addEnteringEdge(assignEdge);
 
-    return newEdges;
+    return Optional.of(assignEdge);
   }
 
 }
