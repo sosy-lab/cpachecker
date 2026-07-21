@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssThreadCpuTimer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
@@ -76,7 +75,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
-import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class DssBlockAnalysis {
@@ -144,15 +142,7 @@ public class DssBlockAnalysis {
 
   private final LogManager logger;
 
-  private final DssThreadCpuTimer storePreconditionTime;
-  private final DssThreadCpuTimer analyzePreconditionTime;
-  private final DssThreadCpuTimer storeViolationConditionTime;
-  private final DssThreadCpuTimer analyzeViolationConditionTime;
-
-  private final StatCounter storePreconditionCount;
-  private final StatCounter analyzePreconditionCount;
-  private final StatCounter storeViolationConditionCount;
-  private final StatCounter analyzeViolationConditionCount;
+  private final DssSingleWorkerStatistics workerStats;
 
   private AlgorithmStatus status;
   private boolean containsViolationInsideBlock;
@@ -205,14 +195,7 @@ public class DssBlockAnalysis {
     containsViolationInsideBlock = false;
     combineByHash = pOptions.combineByHash();
 
-    storePreconditionTime = pWorkerStats.getStorePreconditionTimer();
-    analyzePreconditionTime = pWorkerStats.getAnalyzePreconditionTimer();
-    storeViolationConditionTime = pWorkerStats.getStoreViolationConditionTimer();
-    analyzeViolationConditionTime = pWorkerStats.getAnalyzeViolationConditionTimer();
-    storePreconditionCount = pWorkerStats.getStorePreconditionCounter();
-    analyzePreconditionCount = pWorkerStats.getAnalyzePreconditionCounter();
-    storeViolationConditionCount = pWorkerStats.getStoreViolationConditionCounter();
-    analyzeViolationConditionCount = pWorkerStats.getAnalyzeViolationConditionCounter();
+    workerStats = pWorkerStats;
     // Register dcpa-level statistics with the worker stats object.
     if (dcpa instanceof DistributedARGCPA arg
         && arg.getWrappedCPA() instanceof DistributedCompositeCPA composite) {
@@ -568,7 +551,7 @@ public class DssBlockAnalysis {
    */
   public DssMessageProcessing storePrecondition(DssPostConditionMessage pReceived)
       throws InterruptedException, SolverException, CPAException {
-    storePreconditionTime.start();
+    workerStats.getStorePreconditionTimer().start();
     try {
       relevant.clear();
       logger.log(Level.INFO, "Running forward analysis with new precondition");
@@ -620,8 +603,8 @@ public class DssBlockAnalysis {
       appendTopToRelevantIfNecessary(pReceived.getSenderId());
       return processing;
     } finally {
-      storePreconditionTime.stop();
-      storePreconditionCount.inc();
+      workerStats.getStorePreconditionTimer().stop();
+      workerStats.getStorePreconditionCounter().inc();
     }
   }
 
@@ -641,7 +624,7 @@ public class DssBlockAnalysis {
   public DssMessageProcessing storeViolationCondition(
       DssViolationConditionMessage pNewViolationCondition)
       throws InterruptedException, SolverException {
-    storeViolationConditionTime.start();
+    workerStats.getStoreViolationConditionTimer().start();
     try {
       logger.log(Level.INFO, "Running forward analysis with respect to error condition");
       // merge all states into the reached set
@@ -667,8 +650,8 @@ public class DssBlockAnalysis {
       }
       return DssMessageProcessing.proceed();
     } finally {
-      storeViolationConditionTime.stop();
-      storeViolationConditionCount.inc();
+      workerStats.getStoreViolationConditionTimer().stop();
+      workerStats.getStoreViolationConditionCounter().inc();
     }
   }
 
@@ -683,7 +666,7 @@ public class DssBlockAnalysis {
     if (!containsViolationInsideBlock && violationConditions.isEmpty()) {
       return ImmutableSet.of();
     }
-    analyzePreconditionTime.start();
+    workerStats.getAnalyzePreconditionTimer().start();
     try {
       ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
       AnalysisResult result =
@@ -698,8 +681,8 @@ public class DssBlockAnalysis {
       }
       return messages.build();
     } finally {
-      analyzePreconditionTime.stop();
-      analyzePreconditionCount.inc();
+      workerStats.getAnalyzePreconditionTimer().stop();
+      workerStats.getAnalyzePreconditionCounter().inc();
     }
   }
 
@@ -719,7 +702,7 @@ public class DssBlockAnalysis {
       throw new IllegalArgumentException(
           "No violation condition found for sender ID: " + pSenderId);
     }
-    analyzeViolationConditionTime.start();
+    workerStats.getAnalyzeViolationConditionTimer().start();
     try {
       ImmutableList.Builder<DssMessage> messages = ImmutableList.builder();
       AnalysisResult result =
@@ -733,8 +716,8 @@ public class DssBlockAnalysis {
       }
       return messages.build();
     } finally {
-      analyzeViolationConditionTime.stop();
-      analyzeViolationConditionCount.inc();
+      workerStats.getAnalyzeViolationConditionTimer().stop();
+      workerStats.getAnalyzeViolationConditionCounter().inc();
     }
   }
 
