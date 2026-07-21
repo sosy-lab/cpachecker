@@ -22,6 +22,8 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -237,11 +239,17 @@ public class CTypeToStringTest {
   private static CParser parser;
 
   @BeforeClass
-  public static void setupParser() {
+  public static void setupParser() throws InvalidConfigurationException {
+    // Enable the (default-disabled) rewriting so that the atomic type specifier tests below apply.
+    EclipseCParserOptions options = new EclipseCParserOptions();
+    Configuration.builder()
+        .setOption("parser.rewriteAtomicTypeSpecifiers", "true")
+        .build()
+        .recursiveInject(options);
     parser =
         Parsers.getCParser(
             LogManager.createTestLogManager(),
-            new EclipseCParserOptions(),
+            options,
             MachineModel.LINUX32,
             ShutdownNotifier.createDummy());
   }

@@ -5139,6 +5139,11 @@ parser.preprocessor.dumpResults = false
 # for outputting line numbers. (Always enabled when pre-processing is used.)
 parser.readLineDirectives = false
 
+# Whether to enable (experimental) support for the atomic type specifier
+# '_Atomic(type-name)' by rewriting it to the equivalent '_Atomic' qualifier
+# before parsing.
+parser.rewriteAtomicTypeSpecifiers = false
+
 # Preprocess the given C files before parsing: Put every single token onto a
 # new line. Then the line number corresponds to the token number.
 parser.transformTokensToLines = false
