@@ -123,6 +123,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks name="por-pred-aa">
     <option name="--por-pred-aa"/>
+    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
 
     <include>../programs/benchmarks/pthread-ext/18_read_write_lock.yml</include>
@@ -132,6 +133,7 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
   <tasks name="por-pred-aa-simple">
     <option name="--por-pred-aa"/>
+    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <includesfile>../programs/simple/simple.set</includesfile>
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
