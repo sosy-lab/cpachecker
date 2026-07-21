@@ -193,9 +193,12 @@ final class AtomicTypeSpecifierRewriter {
       parenthesis++;
     }
     int declaratorEnd = matchingParenthesis(pCode, parenthesis);
-    return new String(pCode, pStart, declaratorEnd - pStart)
-        + pName
-        + new String(pCode, declaratorEnd, pEnd - declaratorEnd);
+
+    return new StringBuilder(pEnd - pStart + pName.length())
+        .append(pCode, pStart, declaratorEnd - pStart)
+        .append(pName)
+        .append(pCode, declaratorEnd, pEnd - declaratorEnd)
+        .toString();
   }
 
   private static boolean startsAtomicKeyword(final char[] pCode, final int pIndex) {
