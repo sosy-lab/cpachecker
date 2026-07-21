@@ -372,7 +372,7 @@ public class DssBlockAnalysis {
       }
       serializedContent.popLevel();
     }
-    workerStats.getSerializedMessageSizeStats().setNextValue(totalStateSize);
+    workerStats.getSerializedStatesSizeStats().setNextValue(totalStateSize);
     return serializedContent.build();
   }
 

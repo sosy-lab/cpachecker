@@ -41,7 +41,7 @@ public class DssSingleWorkerStatistics implements Statistics {
     ANALYZE_VIOLATION_CONDITION_TIME("time spent in analyzing violation conditions", true),
     STORE_VIOLATION_CONDITION_COUNT("number of violation conditions stored", false),
     STORE_VIOLATION_CONDITION_TIME("time spent in storing violation conditions", true),
-    SERIALIZED_MESSAGE_SIZE("serialized states size (chars)", false);
+    SERIALIZED_STATES_SIZE("serialized states size (chars)", false);
 
     private final String key;
     private final boolean formatAsTime;
@@ -79,7 +79,7 @@ public class DssSingleWorkerStatistics implements Statistics {
       new StatCounter("Analyze Violation Condition");
   private final StatCounter storeViolationConditionCount =
       new StatCounter("Store Violation Condition");
-  private final StatInt serializedMessageSize = new StatInt(StatKind.SUM, "Serialized States Size");
+  private final StatInt serializedStatesSize = new StatInt(StatKind.SUM, "Serialized States Size");
 
   public DssSingleWorkerStatistics(String pBlockId) {
     blockId = pBlockId;
@@ -121,8 +121,8 @@ public class DssSingleWorkerStatistics implements Statistics {
     return storeViolationConditionCount;
   }
 
-  public StatInt getSerializedMessageSizeStats() {
-    return serializedMessageSize;
+  public StatInt getSerializedStatesSizeStats() {
+    return serializedStatesSize;
   }
 
   public @Nullable DssBlockAnalysisStatistics getDcpaStatistics() {
@@ -150,7 +150,7 @@ public class DssSingleWorkerStatistics implements Statistics {
       case ANALYZE_VIOLATION_CONDITION_TIME -> analyzeViolationConditionTime.nanos();
       case STORE_VIOLATION_CONDITION_COUNT -> storeViolationConditionCount.getUpdateCount();
       case STORE_VIOLATION_CONDITION_TIME -> storeViolationConditionTime.nanos();
-      case SERIALIZED_MESSAGE_SIZE -> serializedMessageSize.getValueSum();
+      case SERIALIZED_STATES_SIZE -> serializedStatesSize.getValueSum();
     };
   }
 
@@ -208,7 +208,7 @@ public class DssSingleWorkerStatistics implements Statistics {
         .put(
             StatisticsKey.STORE_VIOLATION_CONDITION_TIME.getKey(),
             formatNanos(storeViolationConditionTime.nanos()))
-        .put(StatisticsKey.SERIALIZED_MESSAGE_SIZE.getKey(), serializedMessageSize.toString());
+        .put(StatisticsKey.SERIALIZED_STATES_SIZE.getKey(), serializedStatesSize.toString());
   }
 
   static String formatNanos(long nanos) {
