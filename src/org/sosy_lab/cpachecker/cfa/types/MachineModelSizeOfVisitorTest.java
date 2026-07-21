@@ -231,4 +231,31 @@ public class MachineModelSizeOfVisitorTest {
   public void testSizeOfStruct() {
     assertThat(Optional.of(model.getSizeof(testStruct))).hasValue(BigInteger.valueOf(expectedSize));
   }
+
+  @Test
+  public void testAtomicAlignment() {
+    // C11 § 6.2.5 (27) / C23 § 6.2.5 (32): an atomic type may be aligned more strictly than its
+    // non-atomic version. On 32-bit Linux an 8-byte atomic scalar is aligned to 8 (not 4).
+    assertThat(MODEL32.getAlignof(CNumericTypes.LONG_LONG_INT)).isEqualTo(4);
+    assertThat(MODEL32.getAlignof(CNumericTypes.LONG_LONG_INT.withAtomic())).isEqualTo(8);
+    assertThat(MODEL32.getAlignof(CNumericTypes.DOUBLE)).isEqualTo(4);
+    assertThat(MODEL32.getAlignof(CNumericTypes.DOUBLE.withAtomic())).isEqualTo(8);
+
+    // long double is 12 bytes on 32-bit Linux, not a power of two, so its alignment is unchanged,
+    // and types that are already naturally aligned are not affected either.
+    assertThat(MODEL32.getAlignof(CNumericTypes.LONG_DOUBLE.withAtomic()))
+        .isEqualTo(MODEL32.getAlignof(CNumericTypes.LONG_DOUBLE));
+    assertThat(MODEL32.getAlignof(CNumericTypes.INT.withAtomic()))
+        .isEqualTo(MODEL32.getAlignof(CNumericTypes.INT));
+
+    // On 64-bit Linux there is no difference between atomic and non-atomic alignment.
+    assertThat(MODEL64.getAlignof(CNumericTypes.LONG_LONG_INT.withAtomic()))
+        .isEqualTo(MODEL64.getAlignof(CNumericTypes.LONG_LONG_INT));
+    assertThat(MODEL64.getAlignof(CNumericTypes.DOUBLE.withAtomic()))
+        .isEqualTo(MODEL64.getAlignof(CNumericTypes.DOUBLE));
+
+    // The size of an atomic type never differs from the size of its non-atomic version.
+    assertThat(MODEL32.getSizeof(CNumericTypes.LONG_LONG_INT.withAtomic()))
+        .isEqualTo(BigInteger.valueOf(MODEL32.getSizeofLongLongInt()));
+  }
 }
