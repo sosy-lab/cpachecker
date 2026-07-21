@@ -60,7 +60,8 @@ public class MergeBlockNodesDecompositionTest {
         2,
         -1,
         Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
-        false);
+        false,
+        true);
   }
 
   @Test

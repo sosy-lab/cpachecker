@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.block.ViolationWitness;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class BlockViolationConditionOperator implements ViolationConditionOperator {
@@ -35,24 +36,40 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
     BlockState topMost =
         Objects.requireNonNull(
             AbstractStates.extractStateByType(pARGPath.getFirstState(), BlockState.class));
-    if (!trackHistory) {
-      return Optional.of(topMost);
-    }
-    List<String> previousHistory =
+    ViolationWitness previousWitness =
         pPreviousCondition
             .map(
                 state ->
                     Objects.requireNonNull(
                             AbstractStates.extractStateByType(state, BlockState.class))
-                        .getHistory())
+                        .getWitness())
+            .orElse(ViolationWitness.EMPTY);
+    ViolationWitness currentWitness = previousWitness.addEdges(pARGPath.getFullPath());
+
+    if (!trackHistory) {
+      return Optional.of(
+          new BlockState(
+              topMost.getLocationNode(),
+              topMost.getBlockNode(),
+              topMost.getType(),
+              topMost.getViolationConditions(),
+              topMost.getHistory(),
+              currentWitness,
+              false));
+    }
+    List<String> previousHistory =
+        pPreviousCondition
+            .map(state -> AbstractStates.extractStateByType(state, BlockState.class).getHistory())
             .orElse(ImmutableList.of());
     BlockState withHistory =
         new BlockState(
             topMost.getLocationNode(),
             topMost.getBlockNode(),
             topMost.getType(),
-            topMost.getErrorCondition(),
-            listAndElement(previousHistory, topMost.getBlockNode().getId()));
+            topMost.getViolationConditions(),
+            listAndElement(previousHistory, topMost.getBlockNode().getId()),
+            currentWitness,
+            false);
     return Optional.of(withHistory);
   }
 }

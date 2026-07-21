@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /** Unit tests for {@link LlvmParserWithClang}. */
 @RunWith(Parameterized.class)
-@Ignore // cf. https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356
+@Ignore("cf. issue #1356")
 public class LlvmParserWithClangTest {
 
   @Parameters(name = "{0} with file name {1}")

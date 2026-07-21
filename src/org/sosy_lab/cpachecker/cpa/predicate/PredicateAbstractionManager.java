@@ -265,7 +265,7 @@ public final class PredicateAbstractionManager {
       unsatisfiabilityCache = null;
     }
 
-    if (useCache && (abstractionType != AbstractionType.BOOLEAN)) {
+    if (useCache) {
       cartesianAbstractionCache = new HashMap<>();
     } else {
       cartesianAbstractionCache = null;
@@ -430,7 +430,10 @@ public final class PredicateAbstractionManager {
       }
 
       boolean unsatisfiable =
-          unsatisfiabilityCache.contains(symbFormula) || unsatisfiabilityCache.contains(f);
+          unsatisfiabilityCache.contains(symbFormula)
+              || unsatisfiabilityCache.contains(f)
+              || Boolean.TRUE.equals(solver.isUnsatCached(symbFormula))
+              || Boolean.TRUE.equals(solver.isUnsatCached(f));
       if (unsatisfiable) {
         // block is infeasible
         logger.log(
@@ -544,7 +547,7 @@ public final class PredicateAbstractionManager {
       return bfmgr.makeTrue();
     }
 
-    if (unsatisfiabilityCache.contains(pF)) {
+    if (unsatisfiabilityCache.contains(pF) || Boolean.TRUE.equals(solver.isUnsatCached(pF))) {
       stats.numCallsAbstractionCached.incrementAndGet();
       return bfmgr.makeFalse();
     }
@@ -827,30 +830,38 @@ public final class PredicateAbstractionManager {
       final Collection<AbstractionPredicate> remainingPredicates,
       final Function<BooleanFormula, BooleanFormula> instantiator)
       throws SolverException, InterruptedException {
-    Region abs = rmgr.makeTrue();
 
-    try (ProverEnvironment thmProver =
-        solver.newProverEnvironment(ProverOptions.GENERATE_ALL_SAT)) {
-      thmProver.push(f);
+    if (remainingPredicates.isEmpty()) {
+      // Without predicates, we only need a SAT check (precision was just {false}).
+      // We can use the caching Solver.isUnsat() method.
+      stats.numSatCheckAbstractions.incrementAndGet();
 
-      if (remainingPredicates.isEmpty()) {
-        stats.numSatCheckAbstractions.incrementAndGet();
+      stats.abstractionSolveTime.start();
+      try {
+        return solver.isUnsat(f) ? rmgr.makeFalse() : rmgr.makeTrue();
+      } finally {
+        stats.abstractionSolveTime.stop();
+      }
 
-        stats.abstractionSolveTime.start();
-        boolean feasibility;
-        try {
-          feasibility = !thmProver.isUnsat();
-        } finally {
-          stats.abstractionSolveTime.stop();
-        }
+    } else {
+      Region abs = rmgr.makeTrue();
 
-        if (!feasibility) {
-          abs = rmgr.makeFalse();
-        }
+      // If there is just one predicate, cartesian abstraction is the same as boolean,
+      // but can avoid GENERATE_ALL_SAT.
+      AbstractionType thisAbstraction =
+          remainingPredicates.size() == 1 ? AbstractionType.CARTESIAN : abstractionType;
 
-      } else {
-        if (abstractionType != AbstractionType.BOOLEAN) {
-          // First do cartesian abstraction if desired
+      // If we only do cartesian abstraction, we do not need the prover option.
+      ProverOptions[] proverOptions =
+          thisAbstraction == AbstractionType.CARTESIAN
+              ? new ProverOptions[] {}
+              : new ProverOptions[] {ProverOptions.GENERATE_ALL_SAT};
+
+      try (ProverEnvironment thmProver = solver.newProverEnvironment(proverOptions)) {
+        thmProver.push(f);
+
+        if (thisAbstraction != AbstractionType.BOOLEAN) {
+          // First do cartesian abstraction if desired (CARTESIAN or COMBINED)
           stats.cartesianAbstractionTime.start();
           try {
             abs =
@@ -862,7 +873,7 @@ public final class PredicateAbstractionManager {
           }
         }
 
-        if (abstractionType != AbstractionType.CARTESIAN && !remainingPredicates.isEmpty()) {
+        if (thisAbstraction != AbstractionType.CARTESIAN && !remainingPredicates.isEmpty()) {
           // Last do boolean abstraction if desired and necessary
           stats.numBooleanAbsPredicates.addAndGet(remainingPredicates.size());
           stats.booleanAbstractionTime.start();
@@ -879,8 +890,8 @@ public final class PredicateAbstractionManager {
           // remainingPredicates is now empty.
         }
       }
+      return abs;
     }
-    return abs;
   }
 
   /**
@@ -910,7 +921,7 @@ public final class PredicateAbstractionManager {
       return rmgr.makeFalse();
     }
 
-    if (!warnedOfCartesianAbstraction && !fmgr.isPurelyConjunctive(f)) {
+    if (!warnedOfCartesianAbstraction && pPredicates.size() > 1 && !fmgr.isPurelyConjunctive(f)) {
       logger.log(
           Level.WARNING,
           "Using cartesian abstraction when formulas contain disjunctions may be imprecise. "

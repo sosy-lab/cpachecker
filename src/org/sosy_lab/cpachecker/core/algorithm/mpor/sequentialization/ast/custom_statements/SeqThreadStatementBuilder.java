@@ -76,7 +76,6 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionStatementWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
-import org.sosy_lab.cpachecker.util.cwriter.export.CVariableDeclarationWrapper;
 
 public record SeqThreadStatementBuilder(
     MPORThread thread,
@@ -269,7 +268,9 @@ public record SeqThreadStatementBuilder(
         variableDeclaration, pFirstSuccessorEdge, pSecondSuccessorEdge);
 
     ImmutableList.Builder<CCompoundStatementElement> exportStatements = ImmutableList.builder();
-    exportStatements.add(new CVariableDeclarationWrapper(variableDeclaration));
+    CExpressionAssignmentStatement assignmentStatement =
+        buildExpressionAssignmentStatementFromVariableDeclaration(variableDeclaration);
+    exportStatements.add(new CStatementWrapper(assignmentStatement));
     exportStatements.add(
         new CStatementWrapper(((CStatementEdge) pFirstSuccessorEdge.cfaEdge).getStatement()));
 
@@ -496,9 +497,10 @@ public record SeqThreadStatementBuilder(
             pSubstituteEdge,
             thread.id(),
             pcLeftHandSide);
-    CStatementWrapper assignmentStatement =
+    CExpressionAssignmentStatement assignmentStatement =
         buildExpressionAssignmentStatementFromVariableDeclaration(pVariableDeclaration);
-    return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(assignmentStatement));
+    return SeqThreadStatement.of(
+        data, pTargetPc, ImmutableList.of(new CStatementWrapper(assignmentStatement)));
   }
 
   private SeqThreadStatement buildFunctionCallStatement(
@@ -919,8 +921,9 @@ public record SeqThreadStatementBuilder(
     return false;
   }
 
-  private static CStatementWrapper buildExpressionAssignmentStatementFromVariableDeclaration(
-      CVariableDeclaration pVariableDeclaration) throws UnsupportedCodeException {
+  private static CExpressionAssignmentStatement
+      buildExpressionAssignmentStatementFromVariableDeclaration(
+          CVariableDeclaration pVariableDeclaration) throws UnsupportedCodeException {
 
     if (!(pVariableDeclaration.getInitializer() instanceof CInitializerExpression)) {
       throw new UnsupportedCodeException(
@@ -932,12 +935,10 @@ public record SeqThreadStatementBuilder(
     // it is assigned the initializer e.g. 'x = 7;'
     CIdExpression idExpression =
         new CIdExpression(pVariableDeclaration.getFileLocation(), pVariableDeclaration);
-    CExpressionAssignmentStatement assignmentStatement =
-        new CExpressionAssignmentStatement(
-            FileLocation.DUMMY,
-            idExpression,
-            ((CInitializerExpression) pVariableDeclaration.getInitializer()).getExpression());
-    return new CStatementWrapper(assignmentStatement);
+    return new CExpressionAssignmentStatement(
+        FileLocation.DUMMY,
+        idExpression,
+        ((CInitializerExpression) pVariableDeclaration.getInitializer()).getExpression());
   }
 
   private static boolean isExcludedSummaryEdge(CFAEdge pCfaEdge) {

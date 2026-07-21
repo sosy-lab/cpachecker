@@ -817,7 +817,8 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
               cfa.getVarClassification(),
               config,
               shutdownNotifier,
-              logger);
+              logger,
+              /* pEnableCounterexampleAnalysis= */ false);
 
       infeasiblePrefixes =
           new PredicateBasedPrefixProvider(config, logger, solver, shutdownNotifier)
