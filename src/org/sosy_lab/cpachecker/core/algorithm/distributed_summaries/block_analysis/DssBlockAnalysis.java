@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssBlockWorkerStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -169,7 +169,7 @@ public class DssBlockAnalysis {
       DssAnalysisOptions pOptions,
       DssMessageFactory pMessageFactory,
       ShutdownManager pShutdownManager,
-      DssBlockWorkerStatistics pWorkerStats)
+      DssSingleWorkerStatistics pWorkerStats)
       throws CPAException, InterruptedException, InvalidConfigurationException {
     messageFactory = pMessageFactory;
     AnalysisComponents parts =

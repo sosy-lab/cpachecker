@@ -39,12 +39,12 @@ public class DistributedSummarySynthesisStatistics implements Statistics {
   private final StatTimer decompositionTimer = new StatTimer("Decomposition time");
   private final StatTimer instrumentationTimer = new StatTimer("Instrumentation time");
 
-  private final DssWorkerStatistics workerStatistics;
+  private final DssAllWorkerStatistics allWorkerStatistics;
 
   public DistributedSummarySynthesisStatistics(Configuration pConfiguration)
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
-    workerStatistics = new DssWorkerStatistics(printBlockLevelStats);
+    allWorkerStatistics = new DssAllWorkerStatistics(printBlockLevelStats);
   }
 
   public StatInt getAverageNumberOfEdges() {
@@ -67,8 +67,8 @@ public class DistributedSummarySynthesisStatistics implements Statistics {
     return instrumentationTimer;
   }
 
-  public DssWorkerStatistics getWorkerStatistics() {
-    return workerStatistics;
+  public DssAllWorkerStatistics getAllWorkerStatistics() {
+    return allWorkerStatistics;
   }
 
   @Override
@@ -81,7 +81,7 @@ public class DistributedSummarySynthesisStatistics implements Statistics {
         .put(averageNumberOfEdges)
         .put(instrumentationTimer)
         .put(decompositionTimer);
-    workerStatistics.printStatistics(out, result, reached);
+    allWorkerStatistics.printStatistics(out, result, reached);
   }
 
   @Override

@@ -23,7 +23,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssWorkerStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssAllWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.CommunicationId;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssCommunicationEntity;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
@@ -44,7 +44,7 @@ public class DssWorkerBuilder {
   private final DssMessageFactory messageFactory;
   private final ImmutableMap.Builder<CommunicationId, WorkerGenerator> workerGenerators;
   private final Supplier<BlockingQueue<DssMessage>> queueFactory;
-  private final DssWorkerStatistics workerStatistics;
+  private final DssAllWorkerStatistics workerStatistics;
   private final ShutdownManager shutdownManager;
 
   public DssWorkerBuilder(
@@ -52,7 +52,7 @@ public class DssWorkerBuilder {
       Specification pSpecification,
       Supplier<BlockingQueue<DssMessage>> pQueueFactory,
       DssMessageFactory pMessageFactory,
-      DssWorkerStatistics pWorkerStatistics,
+      DssAllWorkerStatistics pWorkerStatistics,
       ShutdownManager pShutdownManager) {
     cfa = pCFA;
     specification = pSpecification;

@@ -19,7 +19,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssWorkerStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssAllWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssDefaultQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssExceptionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -59,7 +59,7 @@ public class SequentialDssExecutor implements DssExecutor {
   }
 
   private DssActors createDssActors(
-      CFA cfa, BlockGraph blockGraph, DssWorkerStatistics workerStatistics)
+      CFA cfa, BlockGraph blockGraph, DssAllWorkerStatistics workerStatistics)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     ImmutableSet<BlockNode> blocks = blockGraph.getNodes();
     DssWorkerBuilder builder =
@@ -81,7 +81,7 @@ public class SequentialDssExecutor implements DssExecutor {
 
   @Override
   public StatusAndResult execute(
-      CFA cfa, BlockGraph blockGraph, DssWorkerStatistics workerStatistics)
+      CFA cfa, BlockGraph blockGraph, DssAllWorkerStatistics workerStatistics)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     DssActors actors = createDssActors(cfa, blockGraph, workerStatistics);
 

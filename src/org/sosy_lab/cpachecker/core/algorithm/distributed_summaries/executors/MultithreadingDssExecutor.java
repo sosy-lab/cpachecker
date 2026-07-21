@@ -18,7 +18,7 @@ import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssWorkerStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssAllWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssDefaultQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
@@ -70,7 +70,7 @@ public class MultithreadingDssExecutor implements DssExecutor {
   }
 
   private DssActors createDssActors(
-      CFA cfa, BlockGraph blockGraph, DssWorkerStatistics workerStatistics)
+      CFA cfa, BlockGraph blockGraph, DssAllWorkerStatistics allWorkerStatistics)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     ImmutableSet<BlockNode> blocks = blockGraph.getNodes();
     DssWorkerBuilder builder =
@@ -79,7 +79,7 @@ public class MultithreadingDssExecutor implements DssExecutor {
             specification,
             () -> new DssDefaultQueue(),
             messageFactory,
-            workerStatistics,
+            allWorkerStatistics,
             shutdownManager);
     for (BlockNode distinctNode : blocks) {
       builder = builder.addAnalysisWorker(distinctNode, options);
@@ -93,9 +93,9 @@ public class MultithreadingDssExecutor implements DssExecutor {
 
   @Override
   public StatusAndResult execute(
-      CFA cfa, BlockGraph blockGraph, DssWorkerStatistics workerStatistics)
+      CFA cfa, BlockGraph blockGraph, DssAllWorkerStatistics allWorkerStatistics)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    try (DssActors actors = createDssActors(cfa, blockGraph, workerStatistics)) {
+    try (DssActors actors = createDssActors(cfa, blockGraph, allWorkerStatistics)) {
       DssObserverWorker observer = Iterables.getOnlyElement(actors.getObservers());
       Preconditions.checkState(
           observer.getId().equals(OBSERVER_WORKER_ID),

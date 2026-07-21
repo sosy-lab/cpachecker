@@ -20,8 +20,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssBlockWorkerStatistics;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssWorkerStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssAllWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssMessageBroadcaster;
@@ -84,7 +84,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
 
   private final DssConnection connection;
 
-  private final DssBlockWorkerStatistics workerStats;
+  private final DssSingleWorkerStatistics workerStats;
 
   private boolean shutdown;
   private boolean closed;
@@ -112,7 +112,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
       Specification pSpecification,
       DssMessageFactory pMessageFactory,
       ShutdownManager pShutdownManager,
-      DssWorkerStatistics pWorkerStatistics,
+      DssAllWorkerStatistics pWorkerStatistics,
       LogManager pLogger)
       throws InvalidConfigurationException, IOException {
     super("analysis-worker-" + pId, pMessageFactory, pLogger);

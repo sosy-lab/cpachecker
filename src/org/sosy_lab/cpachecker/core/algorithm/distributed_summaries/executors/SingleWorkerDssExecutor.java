@@ -27,7 +27,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssWorkerStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssAllWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssDefaultQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
@@ -160,7 +160,7 @@ public class SingleWorkerDssExecutor implements DssExecutor {
 
   @Override
   public StatusAndResult execute(
-      CFA cfa, BlockGraph blockGraph, DssWorkerStatistics workerStatistics)
+      CFA cfa, BlockGraph blockGraph, DssAllWorkerStatistics workerStatistics)
       throws CPAException,
           SolverException,
           InterruptedException,

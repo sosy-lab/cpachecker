@@ -17,11 +17,11 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /**
- * Aggregate statistics for all DSS analysis workers. {@link DssBlockWorkerStatistics} objects are
+ * Aggregate statistics for all DSS analysis workers. {@link DssSingleWorkerStatistics} objects are
  * registered at worker creation time via {@link #createWorkerStats} and written to by the workers
  * directly.
  */
-public class DssWorkerStatistics implements Statistics {
+public class DssAllWorkerStatistics implements Statistics {
 
   /** Keys used to label statistics collected from DSS analysis workers. */
   public enum StatisticsKey {
@@ -57,15 +57,15 @@ public class DssWorkerStatistics implements Statistics {
     }
   }
 
-  private final List<DssBlockWorkerStatistics> workerStats = new ArrayList<>();
+  private final List<DssSingleWorkerStatistics> workerStats = new ArrayList<>();
   private final boolean printBlockLevelStats;
 
-  public DssWorkerStatistics(boolean pPrintBlockLevelStats) {
+  public DssAllWorkerStatistics(boolean pPrintBlockLevelStats) {
     printBlockLevelStats = pPrintBlockLevelStats;
   }
 
-  public synchronized DssBlockWorkerStatistics createWorkerStats(String pWorkerId) {
-    DssBlockWorkerStatistics stats = new DssBlockWorkerStatistics(pWorkerId);
+  public synchronized DssSingleWorkerStatistics createWorkerStats(String pWorkerId) {
+    DssSingleWorkerStatistics stats = new DssSingleWorkerStatistics(pWorkerId);
     workerStats.add(stats);
     return stats;
   }
@@ -73,7 +73,7 @@ public class DssWorkerStatistics implements Statistics {
   @Override
   public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
     if (printBlockLevelStats) {
-      for (DssBlockWorkerStatistics ws : workerStats) {
+      for (DssSingleWorkerStatistics ws : workerStats) {
         ws.printStatistics(out, pResult, pReached);
       }
     }
@@ -89,7 +89,7 @@ public class DssWorkerStatistics implements Statistics {
       long total = workerStats.stream().mapToLong(ws -> ws.getValue(key)).sum();
       String formatted =
           key.isFormattedAsTime()
-              ? DssBlockWorkerStatistics.formatNanos(total)
+              ? DssSingleWorkerStatistics.formatNanos(total)
               : Long.toString(total);
       writer.put(key.getKey(), formatted);
     }

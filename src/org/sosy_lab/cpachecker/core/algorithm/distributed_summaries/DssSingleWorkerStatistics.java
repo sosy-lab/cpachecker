@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssWorkerStatistics.StatisticsKey;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssAllWorkerStatistics.StatisticsKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssBlockAnalysisStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssThreadCpuTimer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /** Statistics collected by a single DSS analysis worker. */
-public class DssBlockWorkerStatistics implements Statistics {
+public class DssSingleWorkerStatistics implements Statistics {
 
   private final String blockId;
 
@@ -44,7 +44,7 @@ public class DssBlockWorkerStatistics implements Statistics {
   private final StatCounter storeViolationConditionCount =
       new StatCounter("Store Violation Condition");
 
-  public DssBlockWorkerStatistics(String pBlockId) {
+  public DssSingleWorkerStatistics(String pBlockId) {
     blockId = pBlockId;
   }
 

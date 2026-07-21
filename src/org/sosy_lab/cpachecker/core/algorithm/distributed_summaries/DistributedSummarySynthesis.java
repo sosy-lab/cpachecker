@@ -236,7 +236,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
           decompositionOptions.getDecompositionType());
 
       return interpretResult(
-          executor.execute(cfa, blockGraph, dssStats.getWorkerStatistics()), reachedSet);
+          executor.execute(cfa, blockGraph, dssStats.getAllWorkerStatistics()), reachedSet);
     } catch (InvalidConfigurationException | IOException | SolverException e) {
       logger.logException(Level.SEVERE, e, "Block analysis stopped unexpectedly.");
       throw new CPAException("Component Analysis run into an error.", e);
