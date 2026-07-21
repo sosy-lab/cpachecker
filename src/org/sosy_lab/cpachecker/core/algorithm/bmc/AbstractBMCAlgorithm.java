@@ -884,8 +884,7 @@ abstract class AbstractBMCAlgorithm
 
   /**
    * This method is called after a violation has been found (i.e., the bounded-model-checking
-   * formula was satisfied). The formula is still on the solver stack. Subclasses can use this
-   * method to further analyze the counterexample if necessary.
+   * formula was satisfied). The formula is still on the solver stack.
    *
    * @param pCounterexample the satisfiable formula that contains the specification violation
    * @param pReachedSet the reached used for analyzing
