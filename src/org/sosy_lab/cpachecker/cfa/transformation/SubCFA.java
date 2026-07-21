@@ -22,7 +22,6 @@ public record SubCFA(
     CFANode subCFAEntryNode,
     CFANode subCFAExitNode,
     ProgramTransformationEnum programTransformationEnum,
-    ProgramTransformationBehaviour programTransformationBehaviour,
     ImmutableSet<CFANode> allNodes,
     ImmutableSet<CFAEdge> allEdges) {
 

@@ -141,7 +141,6 @@ public class LoopAccelerationProgramTransformation extends ProgramTransformation
         newEntryNode,
         newExitNode,
         ProgramTransformationEnum.LOOP_ACCELERATION,
-        ProgramTransformationBehaviour.PRECISE,
         ImmutableSet.copyOf(nodes.build()),
         ImmutableSet.copyOf(edges.build())
     );
