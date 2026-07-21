@@ -19,20 +19,21 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
+/**
+ * Visitor for traversing an affine loop. It collects every assignment statement it encounters.
+ */
 public class LoopAccelerationVisitor implements CFAVisitor {
 
   private final CFANode loopHead;
   private ImmutableList.Builder<CExpressionAssignmentStatement> statements;
   private Optional<CFAEdge> lastEdge;
   private Optional<CFANode> lastNode;
-  private boolean success;
 
   public LoopAccelerationVisitor(CFANode pLoopHead) {
     loopHead = pLoopHead;
     statements = ImmutableList.builder();
     lastEdge = Optional.empty();
     lastNode = Optional.empty();
-    success = false;
   }
 
   public Builder<CExpressionAssignmentStatement> getStatements() {
@@ -45,10 +46,6 @@ public class LoopAccelerationVisitor implements CFAVisitor {
 
   public Optional<CFANode> getLastNode() {
     return lastNode;
-  }
-
-  public boolean wasSuccesful() {
-    return success;
   }
 
   @Override
@@ -78,8 +75,7 @@ public class LoopAccelerationVisitor implements CFAVisitor {
     lastNode = Optional.of(node);
     lastEdge = Optional.empty();
     if (node == loopHead) {
-      success = true;
-      return TraversalProcess.ABORT;
+      return TraversalProcess.SKIP;
     }
     if (node.getLeavingEdges().size() != 1) {
       return TraversalProcess.ABORT;

@@ -81,26 +81,6 @@ public class LoopAccelerationProgramTransformation extends ProgramTransformation
     //   then we get x1 = 0 * n^0 * lam0^n * x0 + 3 * n * lam1^n * x1 - 5 * n^2 * lam2^n * x2
     AffineLoopClosedFormRepresentation closedForm = closedFormOptional.orElseThrow();
 
-
-    // insert n into the closed form and build the resulting assignment statements
-//    ImmutableList.Builder<CExpressionAssignmentStatement> assignmentStatements = ImmutableList.builder();
-//    for (Entry<CIdExpression, ImmutableList<RowSummand>> assignment : closedForm.getClosedForm().entrySet()) {
-//      List<Coefficient> assignmentWithn = simplifyClosedFormAssignment(transformationData.numberOfIterations, assignment.getValue());
-//      CExpressionAssignmentStatement assignmentStatement =
-//          new CExpressionAssignmentStatement(
-//              FileLocation.DUMMY,
-//              new CIdExpression(
-//                  FileLocation.DUMMY,
-//                  assignment.getKey().getExpressionType(),
-//                  assignment.getKey().getName(),
-//                  assignment.getKey().getDeclaration()
-//              ),
-//              expressionFromCoefficients(assignmentWithn));
-//      assignmentStatements.add(assignmentStatement);
-//
-//    }
-//    ImmutableList<CExpressionAssignmentStatement> assignments = assignmentStatements.build();
-
     // perform transformation
     ImmutableList.Builder<CFANode> nodes = ImmutableList.builder();
     ImmutableList.Builder<CFAEdge> edges = ImmutableList.builder();
@@ -142,42 +122,6 @@ public class LoopAccelerationProgramTransformation extends ProgramTransformation
     nodes.build().getLast().addLeavingEdge(dummyEdge);
     newExitNode.addEnteringEdge(dummyEdge);
     edges.add(dummyEdge);
-
-//    CFANode currentNode = newEntryNode;
-//    CFANode nextNode;
-//    for (int i = 0; i < assignments.size(); i++) {
-//      if (i == assignments.size() - 1) {
-//        nextNode = newExitNode;
-//      } else {
-//        nextNode = CFANode.newDummyCFANode(pNode.getFunctionName());
-//        nodes.add(nextNode);
-//      }
-//      CFAEdge newEdge = new CStatementEdge(
-//          assignments.get(i).toString(),
-//          assignments.get(i),
-//          FileLocation.DUMMY,
-//          currentNode,
-//          nextNode
-//      );
-//      currentNode.addLeavingEdge(newEdge);
-//      nextNode.addEnteringEdge(newEdge);
-//      edges.add(newEdge);
-//      currentNode = nextNode;
-//    }
-
-    // catch empty loops, i.e. only blank edges in loop body
-//    if (assignments.isEmpty()) {
-//      BlankEdge emptyEdge = new BlankEdge(
-//          "empty loop",
-//          FileLocation.DUMMY,
-//          newEntryNode,
-//          newExitNode,
-//          "loop has no assignments"
-//      );
-//      edges.add(emptyEdge);
-//      newEntryNode.addLeavingEdge(emptyEdge);
-//      newExitNode.addEnteringEdge(emptyEdge);
-//    }
 
     SubCFA subCFA = new SubCFA(
         transformationData.loopHead,

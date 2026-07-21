@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.transformation;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,22 +23,15 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
@@ -162,24 +154,6 @@ public class AffineLoopClosedFormRepresentation {
     }
 
     return new AffineLoopClosedFormRepresentation(builder.build());
-  }
-
-  private static CIdExpression getPow() {
-    ImmutableList.Builder<CParameterDeclaration> parameters = ImmutableList.builder();
-    parameters.add(new CParameterDeclaration(FileLocation.DUMMY, CNumericTypes.DOUBLE, "base"));
-    parameters.add(new CParameterDeclaration(FileLocation.DUMMY, CNumericTypes.DOUBLE, "exponent"));
-    CSimpleDeclaration declaration = new CFunctionDeclaration(
-        FileLocation.DUMMY,
-        CFunctionType.functionTypeWithReturnType(CNumericTypes.DOUBLE),
-        "pow",
-        parameters.build(),
-        ImmutableSet.of()
-    );
-
-    return new CIdExpression(
-        FileLocation.DUMMY,
-        declaration
-    );
   }
 
   /**
