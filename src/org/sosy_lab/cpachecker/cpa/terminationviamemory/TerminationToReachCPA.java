@@ -110,7 +110,8 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
             Optional.empty(),
             configuration,
             shutdownNotifier,
-            logger);
+            logger,
+            false);
     precisionAdjustment =
         new TerminationToReachPrecisionAdjustment(
             solver, statistics, logger, cfa, bfmgr, fmgr, itpMgr, configuration);
