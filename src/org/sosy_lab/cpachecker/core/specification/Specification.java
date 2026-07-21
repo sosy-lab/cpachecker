@@ -182,6 +182,14 @@ public final class Specification {
         }
 
         for (Property prop : props) {
+          if (prop.getLanguage().equals(cfa.getLanguage())) {
+            // Only add properties that match the language of the CFA.
+            throw new InvalidConfigurationException(
+                String.format(
+                    "Property %s in file %s is not applicable to programs in language %s",
+                    prop, specFile, cfa.getLanguage()));
+          }
+
           properties.add(prop);
 
           if (prop instanceof Property.OtherLtlProperty) {

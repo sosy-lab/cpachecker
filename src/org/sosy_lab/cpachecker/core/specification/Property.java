@@ -14,6 +14,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.Language;
 
 /**
  * Instances represent some property that CPAchecker should check and are part of our {@link
@@ -24,6 +25,9 @@ public interface Property {
   boolean isCoverage();
 
   boolean isVerification();
+
+  /** Return the language of the programs this property can be checked for. */
+  Language getLanguage();
 
   /** Return a representation of this property in an unspecified format. */
   @Override
@@ -65,6 +69,11 @@ public interface Property {
     }
 
     @Override
+    public Language getLanguage() {
+      return Language.C;
+    }
+
+    @Override
     public String toString() {
       return representation;
     }
@@ -87,35 +96,44 @@ public interface Property {
 
   /** Represents the few commonly used hard-coded verification property used by SV-COMP. */
   public enum CommonVerificationProperty implements Property {
-    REACHABILITY_LABEL("G ! label(ERROR)"),
+    REACHABILITY_LABEL("G ! label(ERROR)", Language.C),
 
-    REACHABILITY("G ! call(__VERIFIER_error())"),
+    REACHABILITY("G ! call(__VERIFIER_error())", Language.C),
 
-    REACHABILITY_ERROR("G ! call(reach_error())"),
+    REACHABILITY_ERROR("G ! call(reach_error())", Language.C),
 
-    VALID_FREE("G valid-free"),
+    VALID_FREE("G valid-free", Language.C),
 
-    VALID_DEREF("G valid-deref"),
+    VALID_DEREF("G valid-deref", Language.C),
 
-    VALID_MEMTRACK("G valid-memtrack"),
+    VALID_MEMTRACK("G valid-memtrack", Language.C),
 
-    VALID_MEMCLEANUP("G valid-memcleanup"),
+    VALID_MEMCLEANUP("G valid-memcleanup", Language.C),
 
-    OVERFLOW("G ! overflow"),
+    OVERFLOW("G ! overflow", Language.C),
 
-    DATA_RACE("G ! data-race"),
+    DATA_RACE("G ! data-race", Language.C),
 
-    DEADLOCK("G ! deadlock"),
+    DEADLOCK("G ! deadlock", Language.C),
 
-    TERMINATION("F end"),
+    TERMINATION("F end", Language.C),
 
-    ASSERT("G assert"),
-    CORRECT_ANNOTATIONS("G correct-annotations");
+    ASSERT("G assert", Language.C),
+    CORRECT_ANNOTATIONS("G correct-annotations", Language.SVLIB);
 
     private final String representation;
 
-    CommonVerificationProperty(String pRepresentation) {
+    /** The language of the programs this property can be checked for. */
+    private final Language language;
+
+    CommonVerificationProperty(String pRepresentation, Language pLanguage) {
       representation = pRepresentation;
+      language = pLanguage;
+    }
+
+    @Override
+    public Language getLanguage() {
+      return language;
     }
 
     @Override
@@ -167,6 +185,11 @@ public interface Property {
     }
 
     @Override
+    public Language getLanguage() {
+      return Language.C;
+    }
+
+    @Override
     public String toString() {
       return representation;
     }
@@ -200,6 +223,11 @@ public interface Property {
     @Override
     public boolean isVerification() {
       return false;
+    }
+
+    @Override
+    public Language getLanguage() {
+      return Language.C;
     }
 
     public String getCoverFunction() {
