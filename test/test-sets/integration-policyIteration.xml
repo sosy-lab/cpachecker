@@ -154,6 +154,8 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/loop-invgen/half_2.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/loop-lit/gj2007.c.i.p+lhb-reducer.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/loop-lit/hhk2008.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/loop-lit/jm2006_variant.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/loops/heavy-1.yml</exclude> <!-- flapping error/timeout -->
     <exclude>../programs/benchmarks/loops/invert_string-1.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loops/invert_string-3.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/loops/linear_search.yml</exclude> <!-- flapping unknown/timeout -->

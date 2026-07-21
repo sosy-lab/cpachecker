@@ -18,7 +18,13 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
+import org.sosy_lab.cpachecker.cpa.block.ViolationWitness;
 
+/**
+ * Reverses the serialization performed by {@link SerializeBlockStateOperator}; see there for the
+ * documentation of the wire format (the {@code W:} witness and {@code H:} history markers and the
+ * omission of the history suffix when empty).
+ */
 public class DeserializeBlockStateOperator implements DeserializeOperator {
 
   private final BlockNode blockNode;
@@ -30,12 +36,19 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
   @Override
   public AbstractState deserialize(DssMessage pMessage) throws InterruptedException {
     String content = pMessage.getAbstractStateContent(BlockState.class).get(STATE_KEY);
+    boolean stemsFromTopState = content.startsWith("true ");
+    if (stemsFromTopState) {
+      content = content.substring("true ".length());
+    } else {
+      content = content.substring("false ".length());
+    }
     List<String> idAndWitnessAndMaybeHistory = Splitter.on(" W:").limit(2).splitToList(content);
     Preconditions.checkArgument(idAndWitnessAndMaybeHistory.size() == 2);
     String serializedBlockState = idAndWitnessAndMaybeHistory.getFirst();
     List<String> witnessAndMaybeHistory =
         Splitter.on(" H:").limit(2).splitToList(idAndWitnessAndMaybeHistory.getLast());
-    List<String> witness = Splitter.on(",").splitToList(witnessAndMaybeHistory.getFirst());
+
+    ViolationWitness finalWitness = ViolationWitness.deserialize(witnessAndMaybeHistory.getFirst());
     List<String> history =
         witnessAndMaybeHistory.size() == 2
             ? Splitter.on(",").splitToList(witnessAndMaybeHistory.getLast())
@@ -50,6 +63,7 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
         BlockStateType.INITIAL,
         ImmutableList.of(),
         history,
-        witness);
+        finalWitness,
+        stemsFromTopState);
   }
 }
