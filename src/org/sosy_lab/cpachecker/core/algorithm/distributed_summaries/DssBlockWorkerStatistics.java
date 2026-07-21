@@ -116,7 +116,7 @@ public class DssBlockWorkerStatistics implements Statistics {
   public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
     StatisticsWriter writer =
         StatisticsWriter.writingStatisticsTo(out)
-            .put("DSS Block Worker Statistics for:", blockId)
+            .put("DSS Block Worker Statistics for", blockId)
             .beginLevel();
 
     if (dcpaStatistics != null) {
