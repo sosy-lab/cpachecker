@@ -551,13 +551,13 @@ public class DssBlockAnalysis {
    */
   public DssMessageProcessing storePrecondition(DssPostConditionMessage pReceived)
       throws InterruptedException, SolverException, CPAException {
+    ImmutableList<@NonNull StateAndPrecision> deserializedStatesAndPrecisions = ImmutableList.of();
     workerStats.getStorePreconditionTimer().start();
     try {
       relevant.clear();
       logger.log(Level.INFO, "Running forward analysis with new precondition");
       resetStates();
-      ImmutableList<@NonNull StateAndPrecision> deserializedStatesAndPrecisions =
-          deserialize(pReceived);
+      deserializedStatesAndPrecisions = deserialize(pReceived);
       DssMessageProcessing processing = DssMessageProcessing.proceed();
       for (StateAndPrecision stateAndPrecision : deserializedStatesAndPrecisions) {
         processing =
@@ -604,7 +604,7 @@ public class DssBlockAnalysis {
       return processing;
     } finally {
       workerStats.getStorePreconditionTimer().stop();
-      workerStats.getStorePreconditionCounter().inc();
+      workerStats.getStorePreconditionCounter().add(deserializedStatesAndPrecisions.size());
     }
   }
 
@@ -624,11 +624,12 @@ public class DssBlockAnalysis {
   public DssMessageProcessing storeViolationCondition(
       DssViolationConditionMessage pNewViolationCondition)
       throws InterruptedException, SolverException {
+    ImmutableList<StateAndPrecision> deserializedStates = ImmutableList.of();
     workerStats.getStoreViolationConditionTimer().start();
     try {
       logger.log(Level.INFO, "Running forward analysis with respect to error condition");
       // merge all states into the reached set
-      ImmutableList<StateAndPrecision> deserializedStates = deserialize(pNewViolationCondition);
+      deserializedStates = deserialize(pNewViolationCondition);
       Set<ViolationWitness> oldVcs =
           transformedImmutableSetCopy(
               violationConditions.removeAll(pNewViolationCondition.getSenderId()),
@@ -651,7 +652,7 @@ public class DssBlockAnalysis {
       return DssMessageProcessing.proceed();
     } finally {
       workerStats.getStoreViolationConditionTimer().stop();
-      workerStats.getStoreViolationConditionCounter().inc();
+      workerStats.getStoreViolationConditionCounter().add(deserializedStates.size());
     }
   }
 
@@ -682,7 +683,7 @@ public class DssBlockAnalysis {
       return messages.build();
     } finally {
       workerStats.getAnalyzePreconditionTimer().stop();
-      workerStats.getAnalyzePreconditionCounter().inc();
+      workerStats.getAnalyzePreconditionCounter().add(violationConditions.values().size());
     }
   }
 
@@ -717,7 +718,7 @@ public class DssBlockAnalysis {
       return messages.build();
     } finally {
       workerStats.getAnalyzeViolationConditionTimer().stop();
-      workerStats.getAnalyzeViolationConditionCounter().inc();
+      workerStats.getAnalyzeViolationConditionCounter().add(violations.size());
     }
   }
 
