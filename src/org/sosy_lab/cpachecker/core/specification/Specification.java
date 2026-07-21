@@ -182,7 +182,7 @@ public final class Specification {
         }
 
         for (Property prop : props) {
-          if (!prop.getLanguage().equals(cfa.getLanguage())) {
+          if (prop.getUnsupportedLanguages().contains(cfa.getLanguage())) {
             throw new InvalidConfigurationException(
                 String.format(
                     "Property %s in file %s is not applicable to programs in language %s",

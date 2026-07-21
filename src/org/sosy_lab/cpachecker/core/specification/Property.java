@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.specification;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -26,8 +27,8 @@ public interface Property {
 
   boolean isVerification();
 
-  /** Return the language of the programs this property can be checked for. */
-  Language getLanguage();
+  /** Return the set of languages for whose programs this property cannot be checked. */
+  ImmutableSet<Language> getUnsupportedLanguages();
 
   /** Return a representation of this property in an unspecified format. */
   @Override
@@ -69,8 +70,8 @@ public interface Property {
     }
 
     @Override
-    public Language getLanguage() {
-      return Language.C;
+    public ImmutableSet<Language> getUnsupportedLanguages() {
+      return ImmutableSet.of();
     }
 
     @Override
@@ -96,44 +97,52 @@ public interface Property {
 
   /** Represents the few commonly used hard-coded verification property used by SV-COMP. */
   public enum CommonVerificationProperty implements Property {
-    REACHABILITY_LABEL("G ! label(ERROR)", Language.C),
+    // The topmost three are unsupported for SV-LIB only due to
+    // https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1674
+    REACHABILITY_LABEL("G ! label(ERROR)", ImmutableSet.of(Language.SVLIB)),
 
-    REACHABILITY("G ! call(__VERIFIER_error())", Language.C),
+    REACHABILITY("G ! call(__VERIFIER_error())", ImmutableSet.of(Language.SVLIB)),
 
-    REACHABILITY_ERROR("G ! call(reach_error())", Language.C),
+    REACHABILITY_ERROR("G ! call(reach_error())", ImmutableSet.of(Language.SVLIB)),
 
-    VALID_FREE("G valid-free", Language.C),
+    VALID_FREE("G valid-free", ImmutableSet.of(Language.SVLIB)),
 
-    VALID_DEREF("G valid-deref", Language.C),
+    VALID_DEREF("G valid-deref", ImmutableSet.of(Language.SVLIB)),
 
-    VALID_MEMTRACK("G valid-memtrack", Language.C),
+    VALID_MEMTRACK("G valid-memtrack", ImmutableSet.of(Language.SVLIB)),
 
-    VALID_MEMCLEANUP("G valid-memcleanup", Language.C),
+    VALID_MEMCLEANUP("G valid-memcleanup", ImmutableSet.of(Language.SVLIB)),
 
-    OVERFLOW("G ! overflow", Language.C),
+    OVERFLOW("G ! overflow", ImmutableSet.of(Language.SVLIB)),
 
-    DATA_RACE("G ! data-race", Language.C),
+    DATA_RACE("G ! data-race", ImmutableSet.of(Language.SVLIB)),
 
-    DEADLOCK("G ! deadlock", Language.C),
+    DEADLOCK("G ! deadlock", ImmutableSet.of(Language.SVLIB)),
 
-    TERMINATION("F end", Language.C),
+    TERMINATION("F end"),
 
-    ASSERT("G assert", Language.C),
-    CORRECT_ANNOTATIONS("G correct-annotations", Language.SVLIB);
+    ASSERT("G assert", ImmutableSet.of(Language.SVLIB)),
+    CORRECT_ANNOTATIONS("G correct-annotations", ImmutableSet.of(Language.C, Language.JAVA)),
+    ;
 
     private final String representation;
 
-    /** The language of the programs this property can be checked for. */
-    private final Language language;
+    /** The set of languages for whose programs this property cannot be checked. */
+    private final ImmutableSet<Language> unsupportedLanguages;
 
-    CommonVerificationProperty(String pRepresentation, Language pLanguage) {
+    CommonVerificationProperty(String pRepresentation) {
+      this(pRepresentation, ImmutableSet.of());
+    }
+
+    CommonVerificationProperty(
+        String pRepresentation, ImmutableSet<Language> pUnsupportedLanguages) {
       representation = pRepresentation;
-      language = pLanguage;
+      unsupportedLanguages = pUnsupportedLanguages;
     }
 
     @Override
-    public Language getLanguage() {
-      return language;
+    public ImmutableSet<Language> getUnsupportedLanguages() {
+      return unsupportedLanguages;
     }
 
     @Override
@@ -185,8 +194,8 @@ public interface Property {
     }
 
     @Override
-    public Language getLanguage() {
-      return Language.C;
+    public ImmutableSet<Language> getUnsupportedLanguages() {
+      return ImmutableSet.of();
     }
 
     @Override
@@ -226,8 +235,8 @@ public interface Property {
     }
 
     @Override
-    public Language getLanguage() {
-      return Language.C;
+    public ImmutableSet<Language> getUnsupportedLanguages() {
+      return ImmutableSet.of();
     }
 
     public String getCoverFunction() {
