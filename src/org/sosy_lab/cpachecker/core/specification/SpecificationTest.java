@@ -62,7 +62,10 @@ public class SpecificationTest {
    */
   @Test
   public void testInvalidCombinationSvLibCProperty() throws Exception {
-    assertInvalidCombinationSvLibCProperty("SvLib", "test/programs/sv-lib/simple-correct.svlib");
+    // Can be enabled once
+    // https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1674
+    // is fixed
+    // assertInvalidCombinationSvLibCProperty("SvLib", "test/programs/sv-lib/simple-correct.svlib");
     assertInvalidCombinationSvLibCProperty("C", "test/programs/simple/__VERIFIER_assume.c");
   }
 

@@ -97,13 +97,11 @@ public interface Property {
 
   /** Represents the few commonly used hard-coded verification property used by SV-COMP. */
   public enum CommonVerificationProperty implements Property {
-    // The topmost three are unsupported for SV-LIB only due to
-    // https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1674
-    REACHABILITY_LABEL("G ! label(ERROR)", ImmutableSet.of(Language.SVLIB)),
+    REACHABILITY_LABEL("G ! label(ERROR)"),
 
-    REACHABILITY("G ! call(__VERIFIER_error())", ImmutableSet.of(Language.SVLIB)),
+    REACHABILITY("G ! call(__VERIFIER_error())"),
 
-    REACHABILITY_ERROR("G ! call(reach_error())", ImmutableSet.of(Language.SVLIB)),
+    REACHABILITY_ERROR("G ! call(reach_error())"),
 
     VALID_FREE("G valid-free", ImmutableSet.of(Language.SVLIB)),
 
