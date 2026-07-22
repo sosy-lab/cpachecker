@@ -95,8 +95,8 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
    * CCompositeType}s, corresponding {@link CElaboratedType}s and {@link CTypedefType}s shouldn't be
    * distinguished and are converted to the same canonical type by this method.
    *
-   * <p>This method will also remove all qualifiers (e.g., const/volatile/_Atomic) from the
-   * type. This means that for a variable of an atomic type, {@link
+   * <p>This method will also remove all qualifiers (e.g., const/volatile/_Atomic) from the type.
+   * This means that for a variable of an atomic type, {@link
    * PointerTargetSetManager#makeBaseAddressConstraints} will constrain the base address using the
    * non-atomic alignment computed by {@link MachineModel#getAlignof}, even though C11 may require a
    * stricter alignment for the atomic type (see the comment there). This is a known imprecision of
