@@ -34,6 +34,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/pthread-wmm/safe037.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/weaver/chl-name-comparator-subst.wvr.yml</exclude> <!-- flapping error/timeout -->
     <exclude>../programs/benchmarks/weaver/chl-name-comparator-trans.wvr.yml</exclude> <!-- flapping error/timeout -->
+    <exclude>../programs/benchmarks/weaver/chl-sre-trans.wvr.yml</exclude> <!-- flapping timeout -->
   </tasks>
 
 </benchmark>

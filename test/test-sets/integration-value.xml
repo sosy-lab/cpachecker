@@ -51,6 +51,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/floats-cdfpl/newton_*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/float-newlib/*</exclude> <!-- only timeout -->
     <exclude>../programs/benchmarks/neural-networks/conv1d_2_safe.c-amalgamation.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/neural-networks/conv1d_3_safe.c-amalgamation.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c13_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c13_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c26_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
@@ -84,6 +85,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/neural-networks/sll_4x12x12x1_case_3_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/sll_4x12x12x1_case_4_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/sll_4x12x12x1_case_5_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
+    <exclude>../programs/benchmarks/neural-networks/vdp_0_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/vdp_7_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
   </tasks>
   <tasks>

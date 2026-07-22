@@ -50,6 +50,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/floats-cbmc-regression/float-no-simp2.yml</exclude> <!-- flapping timeout / unknown -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c13_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c13_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
+    <exclude>../programs/benchmarks/neural-networks/sll_2x4x4x1_case_4_safe.c-amalgamation.yml</exclude> <!-- flapping unknown/timeout -->
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks>

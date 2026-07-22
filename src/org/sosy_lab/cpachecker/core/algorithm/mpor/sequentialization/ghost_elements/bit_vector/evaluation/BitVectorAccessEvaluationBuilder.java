@@ -19,14 +19,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryReachType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.bit_vector.SeqBitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportExpression;
@@ -53,9 +53,9 @@ class BitVectorAccessEvaluationBuilder {
       case SPARSE -> {
         ImmutableListMultimap<SeqMemoryLocation, CExpression> sparseBitVectors =
             BitVectorEvaluationUtil.mapMemoryLocationsToSparseBitVectorsByAccessType(
-                pOtherThreads, pBitVectorVariables, MemoryAccessType.ACCESS);
+                pOtherThreads, pBitVectorVariables, SeqMemoryAccessType.ACCESS);
         yield BitVectorEvaluationUtil.buildFullSparseVariableOnlyEvaluationByAccessType(
-            pActiveThread, MemoryAccessType.ACCESS, sparseBitVectors, pBitVectorVariables);
+            pActiveThread, SeqMemoryAccessType.ACCESS, sparseBitVectors, pBitVectorVariables);
       }
     };
   }
@@ -65,7 +65,7 @@ class BitVectorAccessEvaluationBuilder {
       ImmutableSet<CExpression> pOtherBitVectors,
       ImmutableSet<SeqMemoryLocation> pDirectMemoryLocations,
       MachineModel pMachineModel,
-      MemoryModel pMemoryModel,
+      SeqPointerAliasingMap pPointerAliasingMap,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
@@ -75,7 +75,7 @@ class BitVectorAccessEvaluationBuilder {
           pOtherBitVectors,
           pDirectMemoryLocations,
           pMachineModel,
-          pMemoryModel,
+          pPointerAliasingMap,
           pUtils);
     } else {
       return Optional.of(
@@ -84,7 +84,7 @@ class BitVectorAccessEvaluationBuilder {
               pOtherBitVectors,
               pDirectMemoryLocations,
               pMachineModel,
-              pMemoryModel,
+              pPointerAliasingMap,
               pUtils));
     }
   }
@@ -101,11 +101,11 @@ class BitVectorAccessEvaluationBuilder {
           pLeftHandSides,
           pRightHandSides,
           pAccessedMemoryLocations,
-          MemoryAccessType.ACCESS,
+          SeqMemoryAccessType.ACCESS,
           pBitVectorVariables);
     } else {
       return BitVectorEvaluationUtil.buildFullSparseEvaluationByAccessType(
-          pLeftHandSides, pRightHandSides, MemoryAccessType.ACCESS, pBitVectorVariables);
+          pLeftHandSides, pRightHandSides, SeqMemoryAccessType.ACCESS, pBitVectorVariables);
     }
   }
 
@@ -116,7 +116,7 @@ class BitVectorAccessEvaluationBuilder {
       ImmutableSet<CExpression> pOtherBitVectors,
       ImmutableSet<SeqMemoryLocation> pDirectAccessMemoryLocations,
       MachineModel pMachineModel,
-      MemoryModel pMemoryModel,
+      SeqPointerAliasingMap pPointerAliasingMap,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
@@ -130,7 +130,7 @@ class BitVectorAccessEvaluationBuilder {
             pOtherBitVectors,
             pDirectAccessMemoryLocations,
             pMachineModel,
-            pMemoryModel,
+            pPointerAliasingMap,
             pUtils));
   }
 
@@ -139,13 +139,13 @@ class BitVectorAccessEvaluationBuilder {
       ImmutableSet<CExpression> pOtherBitVectors,
       ImmutableSet<SeqMemoryLocation> pDirectMemoryLocations,
       MachineModel pMachineModel,
-      MemoryModel pMemoryModel,
+      SeqPointerAliasingMap pPointerAliasingMap,
       SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     CIntegerLiteralExpression directBitVector =
         SeqBitVectorUtil.buildBitVectorExpression(
-            pEncoding, pMachineModel, pMemoryModel, pDirectMemoryLocations);
+            pEncoding, pMachineModel, pPointerAliasingMap, pDirectMemoryLocations);
     return buildFullDenseBinaryAnd(directBitVector, pOtherBitVectors, pUtils);
   }
 
@@ -158,10 +158,10 @@ class BitVectorAccessEvaluationBuilder {
 
     CExpression directBitVector =
         pBitVectorVariables.getDenseBitVector(
-            pActiveThread, MemoryAccessType.ACCESS, ReachType.DIRECT);
+            pActiveThread, SeqMemoryAccessType.ACCESS, SeqMemoryReachType.DIRECT);
     ImmutableSet<CExpression> otherReachableBitVectors =
         pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
-            MemoryAccessType.ACCESS, pOtherThreads);
+            SeqMemoryAccessType.ACCESS, pOtherThreads);
     return buildFullDenseBinaryAnd(directBitVector, otherReachableBitVectors, pUtils);
   }
 
