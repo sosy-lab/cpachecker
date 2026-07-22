@@ -25,11 +25,11 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
@@ -214,7 +214,7 @@ class EclipseCParser implements CParser {
         machine,
         "",
         sa,
-        Collections.emptyNavigableSet());
+        new TreeSet<>());
   }
 
   @Override
