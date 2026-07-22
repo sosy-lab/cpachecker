@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 public class AcslTypeHelper {
   private final MachineModel machineModel;
@@ -72,9 +73,9 @@ public class AcslTypeHelper {
   }
 
   public Formula convertFormulaType(Formula f, AcslType commonType) {
+    FormulaType<Formula> ftype = fmgr.getFormulaType(f);
     switch (commonType) {
       case AcslBuiltinLogicType.INTEGER -> {
-        FormulaType<Formula> ftype = fmgr.getFormulaType(f);
         if (ftype.isIntegerType()) {
           return f;
         } else if (ftype.isBitvectorType()) {
@@ -88,6 +89,21 @@ public class AcslTypeHelper {
           throw new UnsupportedOperationException("Not yet implemented");
       case AcslBuiltinLogicType.BOOLEAN ->
           throw new UnsupportedOperationException("Not yet implemented");
+      case AcslCType ctype -> {
+        if (ctype.getType() instanceof CSimpleType
+            && ((CSimpleType) ctype.getType()).getType().isIntegerType()) {
+          if (ftype.isIntegerType()) {
+            // cast IntegerFormula to how C represents Ints (as BitvectorFormulas)
+            IntegerFormula intF = (IntegerFormula) f;
+            return fmgr.getBitvectorFormulaManager()
+                .makeBitvector(machineModel.getSizeof((CSimpleType) ctype.getType()) * 8, intF);
+          } else if (ftype.isBitvectorType()) {
+            return f;
+          } else {
+            throw new UnsupportedOperationException("Not yet implemented");
+          }
+        } else throw new UnsupportedOperationException("Not yet implemented");
+      }
       default -> throw new UnsupportedOperationException("Not yet implemented");
     }
   }
