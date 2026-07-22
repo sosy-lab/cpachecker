@@ -18,13 +18,13 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 
 public class PathCPA extends AbstractCPA {
 
-  private ViolationWitness pathCollection;
+  private SegmentedPaths pathCollection;
 
   public PathCPA() {
     super("sep", "sep", new FlatLatticeDomain(), new PathTransferRelation());
   }
 
-  public void init(ViolationWitness pPathCollection) {
+  public void init(SegmentedPaths pPathCollection) {
     Preconditions.checkNotNull(pPathCollection);
     Preconditions.checkState(pathCollection == null);
     pathCollection = pPathCollection;

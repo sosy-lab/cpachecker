@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness;
 
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,13 +18,10 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm.CEGARAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification.Modification;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
@@ -40,7 +35,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.path.PathCPA;
-import org.sosy_lab.cpachecker.cpa.path.ViolationWitness;
+import org.sosy_lab.cpachecker.cpa.path.SegmentedPaths;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -145,10 +140,10 @@ public class DssWitnessExporter {
   }
 
   private void fillReachedSetWithViolation(
-      ReachedSet reachedSet, ViolationWitness pViolationPath, Modification modification)
+      ReachedSet reachedSet, SegmentedPaths pViolationPath, Modification modification)
       throws CPAException, InterruptedException, InvalidConfigurationException {
 
-    ViolationWitness mappedViolation = convertToOriginalEdges(pViolationPath, modification);
+    SegmentedPaths mappedViolation = convertToOriginalEdges(pViolationPath, modification);
     Optional.ofNullable(CPAs.retrieveCPA(violationCPA, PathCPA.class))
         .ifPresent(p -> p.init(mappedViolation));
 
@@ -191,35 +186,10 @@ public class DssWitnessExporter {
     }
   }
 
-  private ViolationWitness convertToOriginalEdges(
-      ViolationWitness pViolationPath, Modification pModification) {
+  private SegmentedPaths convertToOriginalEdges(
+      SegmentedPaths pViolationPath, Modification pModification) {
 
     return pViolationPath.transformEdges(
-        e -> ViolationWitness.edgeToString(parseEdge(e, pModification)));
-  }
-
-  private CFAEdge parseEdge(String edge, Modification pModification) {
-
-    CFAEdge modifiedEdge =
-        Iterables.getOnlyElement(
-            FluentIterable.from(pModification.cfa().edges())
-                .filter(
-                    e ->
-                        edge.equals(
-                            "N"
-                                + e.getPredecessor().getNodeNumber()
-                                + "N"
-                                + e.getSuccessor().getNodeNumber())));
-
-    if (modifiedEdge instanceof BlankEdge blank
-        && blank.getDescription().equals(BlockGraph.GHOST_EDGE_DESCRIPTION)) {
-      return null;
-    }
-
-    return Iterables.getOnlyElement(
-        FluentIterable.from(
-                pModification.metadata().mappingInfo().originalToInstrumentedEdges().entrySet())
-            .filter(entry -> entry.getValue().equals(modifiedEdge))
-            .transform(entry -> entry.getKey()));
+        pModification.metadata().mappingInfo().originalToInstrumentedEdges().inverse());
   }
 }

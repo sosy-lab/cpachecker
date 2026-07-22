@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 public class PathState implements AbstractState {
 
-  final ViolationWitness paths;
+  final SegmentedPaths paths;
 
   /** the index of the segment we are in. */
   final int segmentIndex;
@@ -29,15 +29,12 @@ public class PathState implements AbstractState {
   final boolean isInitial;
 
   PathState(
-      ViolationWitness pPaths,
-      int pSegmentIndex,
-      ImmutableList<String> pActivePath,
-      int pPathIndex) {
+      SegmentedPaths pPaths, int pSegmentIndex, ImmutableList<String> pActivePath, int pPathIndex) {
     this(pPaths, pSegmentIndex, pActivePath, pPathIndex, false);
   }
 
   public PathState(
-      ViolationWitness pPaths,
+      SegmentedPaths pPaths,
       int pSegmentIndex,
       ImmutableList<String> pActivePath,
       int pPathIndex,
@@ -49,35 +46,35 @@ public class PathState implements AbstractState {
     isInitial = pIsInitial;
   }
 
-  public static PathState initialState(ViolationWitness pPaths) {
+  public static PathState initialState(SegmentedPaths pPaths) {
     return new PathState(pPaths, 0, null, 0, true);
   }
 
-  public static Iterable<PathState> initialStates(ViolationWitness pPaths) {
+  public static Iterable<PathState> initialStates(SegmentedPaths pPaths) {
 
-    if (pPaths.witness().isEmpty()) {
+    if (pPaths.paths.isEmpty()) {
       return ImmutableList.of(new PathState(pPaths, 0, null, 0));
     }
 
     return startSegment(pPaths, 0);
   }
 
-  static FluentIterable<PathState> startSegment(ViolationWitness pPaths, int segment) {
+  static FluentIterable<PathState> startSegment(SegmentedPaths pPaths, int segment) {
 
-    if (segment == pPaths.witness().size()) {
+    if (segment == pPaths.paths.size()) {
       return FluentIterable.of(new PathState(pPaths, segment, null, -1));
     }
 
-    if (pPaths.witness().get(segment).isEmpty()) {
+    if (pPaths.paths.get(segment).isEmpty()) {
       return startSegment(pPaths, segment + 1);
     }
 
-    return FluentIterable.from(pPaths.witness().get(segment))
+    return FluentIterable.from(pPaths.paths.get(segment))
         .transform(nextPath -> new PathState(pPaths, segment, nextPath, 0));
   }
 
   boolean isAtEndOfPath() {
-    return segmentIndex == paths.witness().size();
+    return segmentIndex == paths.paths.size();
   }
 
   @Override

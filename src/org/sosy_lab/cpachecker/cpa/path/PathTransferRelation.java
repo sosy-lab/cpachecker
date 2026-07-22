@@ -30,11 +30,11 @@ public class PathTransferRelation extends SingleEdgeTransferRelation {
           .toList();
     }
 
-    if (pathState.isAtEndOfPath() || !ViolationWitness.isDecisionEdge(cfaEdge)) {
+    if (pathState.isAtEndOfPath() || !SegmentedPaths.isDecisionEdge(cfaEdge)) {
       return ImmutableList.of(pathState);
     }
 
-    if (!ViolationWitness.edgeToString(cfaEdge)
+    if (!SegmentedPaths.edgeToString(cfaEdge)
         .equals(pathState.activePath.get(pathState.pathIndex))) {
       return ImmutableList.of();
     }

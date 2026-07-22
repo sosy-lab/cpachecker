@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
-import org.sosy_lab.cpachecker.cpa.path.ViolationWitness;
+import org.sosy_lab.cpachecker.cpa.path.SegmentedPaths;
 
 /**
  * Abstract base class for messages used in distributed summary synthesis. Each message has a sender
@@ -178,7 +178,7 @@ public abstract class DssMessage {
     return Result.valueOf(resultString);
   }
 
-  public final ViolationWitness getViolationPath() {
+  public final SegmentedPaths getViolationPath() {
     checkArgument(getResult() == Result.FALSE, "Cannot get content for type: " + "%s", type);
     String violationPathString = content.get(DssResultMessage.DSS_MESSAGE_VIOLATION_PATH_KEY);
 

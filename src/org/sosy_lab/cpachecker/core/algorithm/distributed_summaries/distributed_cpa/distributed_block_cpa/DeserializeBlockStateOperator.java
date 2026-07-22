@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
-import org.sosy_lab.cpachecker.cpa.path.ViolationWitness;
+import org.sosy_lab.cpachecker.cpa.path.SegmentedPaths;
 
 public class DeserializeBlockStateOperator implements DeserializeOperator {
 
@@ -49,7 +49,7 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
     String serializedBlockState = idAndWitnessAndMaybeHistory.getFirst();
     List<String> witnessAndMaybeHistory =
         Splitter.on(" H:").limit(2).splitToList(idAndWitnessAndMaybeHistory.getLast());
-    ViolationWitness finalWitness = ViolationWitness.deserialize(witnessAndMaybeHistory.getFirst());
+    SegmentedPaths finalWitness = SegmentedPaths.deserialize(witnessAndMaybeHistory.getFirst());
     List<String> history =
         witnessAndMaybeHistory.size() == 2
             ? Splitter.on(",").splitToList(witnessAndMaybeHistory.getLast())
@@ -58,5 +58,5 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
   }
 
   public record ParseResult(
-      String serializedBlockState, ViolationWitness witness, List<String> history) {}
+      String serializedBlockState, SegmentedPaths witness, List<String> history) {}
 }
