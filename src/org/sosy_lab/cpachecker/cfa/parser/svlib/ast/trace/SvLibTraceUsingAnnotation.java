@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.trace;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
@@ -44,7 +46,7 @@ public final class SvLibTraceUsingAnnotation extends SvLibTraceComponent {
     return "(using-annotation "
         + tagName
         + " "
-        + Joiner.on(" ").join(attributes.stream().map(SvLibAstNode::toASTString).toList())
+        + from(attributes).transform(SvLibAstNode::toASTString).join(Joiner.on(" "))
         + ")";
   }
 
