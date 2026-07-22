@@ -147,8 +147,10 @@ public sealed interface CType extends Type
 
     // Cf. C-Standard §6.5.16.1 (1), second constraint.
     if (leftHandSide instanceof CCompositeType && rightHandSide instanceof CCompositeType) {
-      CType plainCompositeLeft = leftHandSide.withoutQualifiers();
-      CType plainCompositeRight = rightHandSide.withoutQualifiers();
+      // _Atomic is irrelevant for this compatibility check, so use asUnqualified() instead of
+      // withoutQualifiers() to also strip it.
+      CType plainCompositeLeft = leftHandSide.asUnqualified();
+      CType plainCompositeRight = rightHandSide.asUnqualified();
 
       return CTypes.areTypesCompatible(plainCompositeLeft, plainCompositeRight);
     }
@@ -174,11 +176,13 @@ public sealed interface CType extends Type
         return true;
       }
 
-      // Cf. C-Standard §6.5.16.1 (1), third and fourth constraint.
+      // Cf. C-Standard §6.5.16.1 (1), third and fourth constraint. The qualifier containment check
+      // (including _Atomic) is done here explicitly, so the compatibility check below uses
+      // asUnqualified() to compare only the unqualified, non-atomic core types.
       return (leftPointedToType.getQualifiers().containsAllOf(rightPointedToType.getQualifiers())
           && ((leftPointedToType instanceof CVoidType || rightPointedToType instanceof CVoidType)
               || CTypes.areTypesCompatible(
-                  leftPointedToType.withoutQualifiers(), rightPointedToType.withoutQualifiers())));
+                  leftPointedToType.asUnqualified(), rightPointedToType.asUnqualified())));
     }
 
     // Cf. C-Standard §6.3.2.1 (3)
@@ -282,7 +286,8 @@ public sealed interface CType extends Type
    *
    * <p>Per C11 § 6.2.5 (27) (C23 § 6.2.5 (32)), {@code _Atomic} is not one of the qualifiers that
    * make up the "qualified or unqualified" versions of a type, so it is deliberately kept here. Use
-   * {@link #withoutAtomic()} in addition if a fully unqualified, non-atomic type is required.
+   * {@link #asUnqualified()} instead if a fully unqualified, non-atomic type is required (e.g., for
+   * comparisons that should treat {@code T} and {@code _Atomic T} as the same type).
    *
    * <p>This method only eliminates the outermost qualifiers, if present, i.e., it does not change a
    * non-const non-volatile pointer to a const volatile int.
@@ -292,6 +297,27 @@ public sealed interface CType extends Type
    */
   default CType withoutQualifiers() {
     return withQualifiersSetTo(getQualifiers().withoutConst().withoutVolatile());
+  }
+
+  /**
+   * Return a copy of this type that has the "atomic", "const", and "volatile" flags all removed,
+   * i.e., the fully unqualified type in the everyday (not C-standard) sense. If the type already has
+   * no qualifiers, it is returned unchanged.
+   *
+   * <p>This differs from {@link #withoutQualifiers()}, which follows the C standard's narrower
+   * definition of "unqualified" and deliberately keeps {@code _Atomic} (cf. C11 § 6.2.5 (27)). Use
+   * this method when {@code _Atomic} should not matter for the comparison or lookup at hand, e.g.,
+   * when checking assignment compatibility (C11 § 6.5.16.1) or when using a type as a lookup key
+   * that was populated with plain types.
+   *
+   * <p>This method only eliminates the outermost qualifiers, if present, i.e., it does not change a
+   * plain pointer to an atomic const volatile int.
+   *
+   * <p>This method always returns an instance of the same type as it is called on, so it is safe to
+   * cast the result.
+   */
+  default CType asUnqualified() {
+    return withQualifiersSetTo(CTypeQualifiers.NONE);
   }
 
   /**
