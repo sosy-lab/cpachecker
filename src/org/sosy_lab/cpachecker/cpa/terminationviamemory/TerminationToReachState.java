@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.java_smt.api.Formula;
+import scala.collection.mutable.Builder;
 
 /**
  * Tracks already seen states at loop-head locations and within the same call-stack. In the
@@ -35,10 +36,11 @@ import org.sosy_lab.java_smt.api.Formula;
 public class TerminationToReachState implements Graphable, AbstractQueryableState, Targetable {
   private static final ImmutableSet<TargetInformation> TERMINATION_PROPERTY =
       SimpleTargetInformation.singleton("termination");
+
   private boolean isTarget;
   private ImmutableSet<Loop> possiblyNonterminatingLoops;
-  private ImmutableSet<Loop> allLoops;
-  private ImmutableSet<CFANode> visitedNodes;
+  private final ImmutableSet<Loop> allLoops;
+  private final ImmutableSet<CFANode> visitedNodes;
 
   /**
    * The following map keeps track of all the variables as type of @Formula, so that they can be
@@ -169,7 +171,8 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
 
   @Override
   public int hashCode() {
-    return Objects.hash(storedValues, numberOfIterations, isTarget);
+    return Objects.hash(
+        storedValues, numberOfIterations, isTarget, possiblyNonterminatingLoops, visitedNodes);
   }
 
   @Override
@@ -194,7 +197,10 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
       return true;
     }
     return pOther instanceof TerminationToReachState other
-        && storedValues.equals(other.getStoredValues());
+        && storedValues.equals(other.getStoredValues())
+        && numberOfIterations.equals(other.getNumberOfIterations())
+        && isTarget == other.isTarget()
+        && visitedNodes == other.visitedNodes();
   }
 
   private String getReadableStoredValues() {
