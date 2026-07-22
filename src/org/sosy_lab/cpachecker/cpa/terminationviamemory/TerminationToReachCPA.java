@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -132,7 +133,7 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
         Optional.empty(),
         possiblyNonTerminatingLoops,
         possiblyNonTerminatingLoops,
-        ImmutableSet.of());
+        new HashSet<>());
   }
 
   @Override

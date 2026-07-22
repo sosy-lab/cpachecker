@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.java_smt.api.Formula;
-import scala.collection.mutable.Builder;
 
 /**
  * Tracks already seen states at loop-head locations and within the same call-stack. In the
@@ -40,7 +39,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
   private boolean isTarget;
   private ImmutableSet<Loop> possiblyNonterminatingLoops;
   private final ImmutableSet<Loop> allLoops;
-  private final ImmutableSet<CFANode> visitedNodes;
+  private Set<CFANode> visitedNodes;
 
   /**
    * The following map keeps track of all the variables as type of @Formula, so that they can be
@@ -84,7 +83,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
       Optional<PathFormula> pPathFormulaFull,
       ImmutableSet<Loop> pPossiblyNonterminatingLoopHeads,
       ImmutableSet<Loop> pAllLoops,
-      ImmutableSet<CFANode> alreadyVisitedNodes) {
+      Set<CFANode> alreadyVisitedNodes) {
 
     storedValues = pStoredValues;
     numberOfIterations = pNumberOfIterations;
@@ -131,7 +130,11 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     isTarget = true;
   }
 
-  public ImmutableSet<CFANode> visitedNodes() {
+  public void visitNode(CFANode pNode) {
+    visitedNodes.add(pNode);
+  }
+
+  public Set<CFANode> visitedNodes() {
     return visitedNodes;
   }
 

@@ -66,15 +66,12 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
     CFANode location = AbstractStates.extractLocation(locationState);
     PredicateAbstractState predicateState = getPredicateState(pOtherStates);
     TerminationToReachState terminationState = (TerminationToReachState) pState;
-    TerminationToReachState newState;
 
     if (location == null) {
       throw new UnsupportedOperationException("TransferRelation requires location information.");
     }
+    terminationState.visitNode(location);
 
-    ImmutableSet.Builder<CFANode> visitedNodes = new ImmutableSet.Builder<>();
-    visitedNodes.addAll(terminationState.visitedNodes());
-    visitedNodes.add(location);
     if (terminationState.isLoopHead(location)) {
       Pair<LocationState, CallstackState> pairKey = Pair.of(locationState, callstackState);
 
@@ -137,7 +134,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
         newStoredValues.put(pairKey, newValues.buildOrThrow());
         newNumberOfIterations.put(pairKey, 1);
       }
-      newState =
+      TerminationToReachState newState =
           new TerminationToReachState(
               newStoredValues.buildOrThrow(),
               newNumberOfIterations.buildOrThrow(),
@@ -146,20 +143,11 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
               newFullFormula,
               terminationState.getPossiblyNonterminatingLoopHeads(),
               terminationState.getAllLoops(),
-              visitedNodes.build());
-    } else {
-      newState =
-          new TerminationToReachState(
-              terminationState.getStoredValues(),
-              terminationState.getNumberOfIterations(),
-              terminationState.getPathFormulasForIteration(),
-              terminationState.getPathFormulasForPrefix(),
-              terminationState.getPathFormulaFull(),
-              terminationState.getPossiblyNonterminatingLoopHeads(),
-              terminationState.getAllLoops(),
-              visitedNodes.build());
+              terminationState.visitedNodes());
+      newState.visitNode(location);
+      return ImmutableList.of(newState);
     }
-    return ImmutableList.of(newState);
+    return ImmutableList.of(pState);
   }
 
   private ImmutableSet<Formula> extractLoopHeadVariables(PathFormula pPathFormula) {
