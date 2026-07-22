@@ -218,7 +218,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           if (isOverapproximating
               && isTransitionInvariant(candidateTransInv, iterationFormula, location)) {
             terminationState.setTerminatingIfAllNodesVisited(locationState.getLocationNode());
-            System.out.println(candidateTransInv.getFormula());
             return Optional.of(result.withAbstractState(terminationState));
           }
 
