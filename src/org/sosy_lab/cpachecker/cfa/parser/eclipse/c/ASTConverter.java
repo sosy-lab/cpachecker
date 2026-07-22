@@ -31,8 +31,8 @@ import java.util.Deque;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NavigableSet;
 import java.util.Optional;
-import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -337,7 +337,7 @@ class ASTConverter {
       MachineModel pMachineModel,
       String pStaticVariablePrefix,
       Sideassignments pSideAssignmentStack,
-      Set<FileLocation> pUnhandledAtomicOccurrences) {
+      NavigableSet<FileLocation> pUnhandledAtomicOccurrences) {
     options = pOptions;
     scope = pScope;
     logger = pLogger;
@@ -2351,8 +2351,6 @@ class ASTConverter {
 
       // Add the modifiers to the type.
       CType type = specifier;
-      Set<IASTPointerOperator> atomicPointers =
-          d == null ? ImmutableSet.of() : typeConverter.findAtomicPointerOperators(modifiers, d);
       // array modifiers have to be added backwards, otherwise the arraysize is wrong
       // with multidimensional arrays
       List<IASTArrayModifier> tmpArrMod = new ArrayList<>();
@@ -2367,9 +2365,7 @@ class ASTConverter {
           // clear added modifiers
           tmpArrMod.clear();
 
-          type =
-              typeConverter.convert(
-                  iASTPointerOperator, type, atomicPointers.contains(iASTPointerOperator));
+          type = typeConverter.convert(iASTPointerOperator, type, modifiers, d);
 
         } else {
           throw new AssertionError();
