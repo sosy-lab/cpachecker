@@ -46,6 +46,17 @@ public class EclipseCdtWrapper {
    */
   static final String ATOMIC_ATTRIBUTE = "__CPAchecker_Atomic__";
 
+  /**
+   * The atomic type specifier {@code _Atomic(type-name)} (C23 § 6.7.3.5, #1667) needs a macro
+   * definition distinct from the {@code _Atomic} qualifier above, since a macro name cannot be both
+   * unconditionally substituted (the qualifier) and only substituted when followed by "(" (the
+   * specifier). {@link AtomicTypeSpecifierRewriter} renames occurrences of the specifier form to
+   * this name before parsing; the macro below then expands it via {@code __typeof__}, so that CDT's
+   * own preprocessor and type system resolve the type-name, including pointer and function-pointer
+   * shapes.
+   */
+  static final String ATOMIC_SPECIFIER_MACRO = "_CPA_AS";
+
   // we don't use IASTName#getImageLocation(), so the parser doesn't need to create them
   private static final int PARSER_OPTIONS = ILanguage.OPTION_NO_IMAGE_LOCATIONS;
 
@@ -205,6 +216,9 @@ public class EclipseCdtWrapper {
           "__SIZEOF_LONG_DOUBLE__", Integer.toString(pMachineModel.getSizeofLongDouble()));
 
       macrosBuilder.put("_Atomic", "__attribute__((%s))".formatted(ATOMIC_ATTRIBUTE));
+      macrosBuilder.put(
+          ATOMIC_SPECIFIER_MACRO + "(T)",
+          "__typeof__(T) __attribute__((%s))".formatted(ATOMIC_ATTRIBUTE));
 
       macros = macrosBuilder.buildOrThrow();
     }

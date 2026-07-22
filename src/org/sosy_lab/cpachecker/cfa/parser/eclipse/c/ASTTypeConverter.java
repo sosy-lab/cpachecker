@@ -373,12 +373,21 @@ class ASTTypeConverter {
         }
 
         if (!(ctype instanceof CProblemType)) {
+          CTypeQualifiers outerQualifiers = convertCTypeQualifiers(dd);
+          if (outerQualifiers.containsAtomic()
+              && (ctype instanceof CArrayType || ctype instanceof CFunctionType)) {
+            // C23 § 6.7.3.5 (3): the type name in an atomic type specifier shall not be an array
+            // or a function type. This is reachable via "_Atomic(type-name)", which
+            // AtomicTypeSpecifierRewriter expands to "__typeof__(type-name) __attribute__(...)".
+            throw parseContext.parseError(
+                "Array or function type not allowed as atomic type specifier argument", dd);
+          }
           // We can have something like "const __typeof__(volatile int)", we need to combine inner
           // and outer qualifier.
           // TODO wrong for arrays once we fix its getCanonicalType(), cf. #1375
           ctype =
               ctype.withQualifiersSetTo(
-                  CTypeQualifiers.union(ctype.getQualifiers(), convertCTypeQualifiers(dd)));
+                  CTypeQualifiers.union(ctype.getQualifiers(), outerQualifiers));
         }
         return ctype;
       }
