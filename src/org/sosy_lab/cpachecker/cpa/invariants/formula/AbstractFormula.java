@@ -10,7 +10,8 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
 
-abstract class AbstractFormula<ConstantType> implements NumeralFormula<ConstantType> {
+abstract sealed class AbstractFormula<ConstantType> implements NumeralFormula<ConstantType>
+    permits AbstractBinaryFormula, BinaryNot, Cast, Constant, Exclusion, IfThenElse, Variable {
 
   private final TypeInfo info;
 

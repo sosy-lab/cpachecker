@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector.ISCOperatorFac
 
 /** Instances of this class represent compound states of intervals. */
 @SuppressWarnings("AmbiguousMethodReference")
-public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitVectorType {
+public final class CompoundBitVectorInterval implements CompoundIntegralInterval, BitVectorType {
 
   private final BitVectorInfo info;
 

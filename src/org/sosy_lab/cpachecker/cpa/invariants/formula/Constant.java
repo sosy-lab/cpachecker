@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.Typed;
  *
  * @param <T> the type of the constant value.
  */
-public class Constant<T> extends AbstractFormula<T> implements NumeralFormula<T> {
+public final class Constant<T> extends AbstractFormula<T> {
 
   /** The value of the constant. */
   private final T value;

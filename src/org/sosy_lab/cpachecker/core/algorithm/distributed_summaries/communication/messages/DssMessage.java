@@ -15,7 +15,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -30,6 +29,11 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
+/**
+ * Abstract base class for messages used in distributed summary synthesis. Each message has a sender
+ * ID, a type, a timestamp, and content. The content is a flat map of key-value pairs, where keys
+ * can be hierarchical using dot notation.
+ */
 public abstract class DssMessage {
 
   public enum DssMessageType {
@@ -76,6 +80,13 @@ public abstract class DssMessage {
   private final Instant timestamp;
   private final ImmutableMap<String, String> content;
 
+  /**
+   * Creates a new message with the given sender ID, type, and content.
+   *
+   * @param pSenderId the ID of the sender
+   * @param pType the type of the message
+   * @param pContent the content of the message
+   */
   DssMessage(String pSenderId, DssMessageType pType, Map<String, String> pContent) {
     checkArgument(isValid(pContent), "Invalid content for message type: %s", pType);
     senderId = pSenderId;
@@ -84,6 +95,12 @@ public abstract class DssMessage {
     content = ImmutableMap.copyOf(pContent);
   }
 
+  /**
+   * Checks whether the given content is valid for this message type.
+   *
+   * @param pContent the content to check
+   * @return true if the content is valid, false otherwise
+   */
   abstract boolean isValid(Map<String, String> pContent);
 
   public final Instant getTimestamp() {
@@ -252,7 +269,7 @@ public abstract class DssMessage {
     DssMessageType type = DssMessageType.valueOf(header.get(DSS_MESSAGE_HEADER_TYPE_KEY));
 
     return switch (type) {
-      case POST_CONDITION -> new DssPostConditionMessage(senderId, ImmutableList.of(), content);
+      case POST_CONDITION -> new DssPostConditionMessage(senderId, content);
       case VIOLATION_CONDITION -> new DssViolationConditionMessage(senderId, content);
       case EXCEPTION -> new DssExceptionMessage(senderId, content);
       case RESULT -> new DssResultMessage(senderId, content);

@@ -131,7 +131,7 @@ public interface CParser extends Parser {
    *   bar();
    *   a = 2;
    *   }
-   * </code> Example output: AST for "<bar();, a = 2;>"
+   * </code> Example output: AST for {@code ["bar();", "a = 2;"]}
    *
    * <p>This method guarantees that the AST does not contain CProblem nodes.
    *

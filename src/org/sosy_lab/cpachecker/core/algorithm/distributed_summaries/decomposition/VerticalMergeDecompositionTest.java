@@ -58,7 +58,8 @@ public class VerticalMergeDecompositionTest {
     return new VerticalMergeDecomposition(
         new LinearBlockNodeDecomposition(isBlockEnd),
         2,
-        Comparator.comparing(BlockNodeWithoutGraphInformation::getId));
+        Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
+        true);
   }
 
   @Test

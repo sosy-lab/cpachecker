@@ -34,7 +34,7 @@ public interface Constraint extends SymbolicValue {
    * org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintTrivialityChecker}.
    *
    * @return <code>true</code> if the given constraint does not contain any symbolic identifiers,
-   *     <code>false</code> otherwise</code>
+   *     <code>false</code> otherwise
    */
   boolean isTrivial();
 }

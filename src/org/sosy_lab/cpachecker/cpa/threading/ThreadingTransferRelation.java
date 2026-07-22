@@ -740,30 +740,26 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   }
 
   private static boolean isImporantForThreading(CFAEdge cfaEdge) {
-    switch (cfaEdge.getEdgeType()) {
+    return switch (cfaEdge.getEdgeType()) {
       case StatementEdge -> {
         AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
         if (statement instanceof AFunctionCall aFunctionCall) {
           AExpression functionNameExp =
               aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
           if (functionNameExp instanceof AIdExpression aIdExpression) {
-            return THREAD_FUNCTIONS.contains(aIdExpression.getName());
+            yield THREAD_FUNCTIONS.contains(aIdExpression.getName());
           }
         }
-        return false;
+        yield false;
       }
-      case FunctionCallEdge -> {
-        // @Deprecated, for old benchmark tasks
-        return cfaEdge.getSuccessor().getFunctionName().startsWith(VERIFIER_ATOMIC);
-      }
-      case FunctionReturnEdge -> {
-        // @Deprecated, for old benchmark tasks
-        return cfaEdge.getPredecessor().getFunctionName().startsWith(VERIFIER_ATOMIC);
-      }
-      default -> {
-        return false;
-      }
-    }
+      case FunctionCallEdge ->
+          // @Deprecated, for old benchmark tasks
+          cfaEdge.getSuccessor().getFunctionName().startsWith(VERIFIER_ATOMIC);
+      case FunctionReturnEdge ->
+          // @Deprecated, for old benchmark tasks
+          cfaEdge.getPredecessor().getFunctionName().startsWith(VERIFIER_ATOMIC);
+      default -> false;
+    };
   }
 
   @Override
