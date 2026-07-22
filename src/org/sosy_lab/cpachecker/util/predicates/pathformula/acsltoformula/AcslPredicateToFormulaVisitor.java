@@ -265,8 +265,19 @@ public class AcslPredicateToFormulaVisitor
     String predName = "ACSLPred#" + declaration.getQualifiedName();
 
     List<Formula> params = new ArrayList<>();
+    int i = 0;
     for (AcslTerm param : pAcslPredicateApplicationPredicate.getParameters()) {
-      params.add(param.accept(termVisitor));
+      Formula f = param.accept(termVisitor);
+      AcslParameterDeclaration paramDecl =
+          (AcslParameterDeclaration) declaration.getParameters().get(i);
+
+      // Check if a parameter of a different type was passed and try to cast it (e.g. an Int instead
+      // of a Bitvector)
+      if (!fmgr.getFormulaType(f).equals(typeHelper.acslTypeToFormulaType(paramDecl.getType()))) {
+        f = typeHelper.convertFormulaType(f, paramDecl.getType());
+      }
+      params.add(f);
+      i++;
     }
 
     // Calling declareAndCallUF multiple times with the same function name does not seem to create
