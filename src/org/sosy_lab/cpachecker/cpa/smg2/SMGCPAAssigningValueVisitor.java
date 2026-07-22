@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
@@ -113,45 +114,58 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
 
         List<SMGState> handledStates = ImmutableList.of(currentState);
 
-        // We handle non-equality assumptions a little differently, see below
-        if (!isNonEqualityAssumption(binaryOperator)) {
-          // TODO: might be inefficient due to multiple checks for nested equality/inequality
-          // expressions
-          // Check SAT and add constraints if eligible (the method returns the initial state if we
-          // don't
-          // use a solver in this analysis. But also might return null for UNSAT)
-          Optional<SMGState> maybeStatesWithConstraints =
-              addConstraintsAndCheckSat(currentState, pE);
+        try {
+          // We handle non-equality assumptions a little differently, see below
+          if (!isNonEqualityAssumption(binaryOperator)) {
+            // TODO: might be inefficient due to multiple checks for nested equality/inequality
+            // expressions
+            // Check SAT and add constraints if eligible (the method returns the initial state if we
+            // don't
+            // use a solver in this analysis. But also might return null for UNSAT)
+            Optional<SMGState> maybeStatesWithConstraints =
+                addConstraintsAndCheckSat(currentState, pE);
 
-          if (maybeStatesWithConstraints.isEmpty()) {
-            // Don't add any states as we know its UNSAT
-            continue;
+            if (maybeStatesWithConstraints.isEmpty()) {
+              // Don't add any states as we know its UNSAT
+              continue;
+            }
+
+            // SAT, try to assign values
+            SMGState stateWithConstraints = maybeStatesWithConstraints.orElseThrow();
+
+            // (a == b) case
+            if (isEqualityAssumption(binaryOperator)) {
+              handledStates =
+                  handleEqualityAssumption(
+                      lVarInBinaryExp,
+                      leftValue,
+                      rVarInBinaryExp,
+                      rightValue,
+                      stateWithConstraints,
+                      edge);
+            } else {
+              handledStates = ImmutableList.of(stateWithConstraints);
+            }
           }
 
-          // SAT, try to assign values
-          SMGState stateWithConstraints = maybeStatesWithConstraints.orElseThrow();
-
-          // (a == b) case
-          if (isEqualityAssumption(binaryOperator)) {
+          // !(a == b) case
+          if (isNonEqualityAssumption(binaryOperator)) {
+            // SAT check is performed inside
             handledStates =
-                handleEqualityAssumption(
+                handleInEqualityAssumption(
+                    pE,
                     lVarInBinaryExp,
                     leftValue,
                     rVarInBinaryExp,
                     rightValue,
-                    stateWithConstraints,
+                    currentState,
                     edge);
-          } else {
-            handledStates = ImmutableList.of(stateWithConstraints);
           }
-        }
-
-        // !(a == b) case
-        if (isNonEqualityAssumption(binaryOperator)) {
-          // SAT check is performed inside
-          handledStates =
-              handleInEqualityAssumption(
-                  pE, lVarInBinaryExp, leftValue, rVarInBinaryExp, rightValue, currentState, edge);
+        } catch (AssertionError | UnrecognizedCodeException exception) {
+          // Some cases of pointer arithmetics/comparisons that can not be resolved cause
+          // exceptions to be thrown. This is fine, the solver can not determine the correct result
+          // anyway, as it is a pointer, and we made sure it can not be 0.
+          // We just skip those for now, as we simply overapproximate if we do not use a solver.
         }
 
         for (SMGState handledState : handledStates) {
@@ -204,13 +218,13 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
             getAssignable(lVarInBinaryExp, currentState);
         Preconditions.checkArgument(leftHandSideAssignments.size() == 1);
         SMGStateAndOptionalSMGObjectAndOffset leftHandSideAssignment =
-            leftHandSideAssignments.get(0);
+            leftHandSideAssignments.getFirst();
         currentState = leftHandSideAssignment.getSMGState();
 
         if (isAssignable(leftHandSideAssignments)) {
 
           CType lType = SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
-          Value size = new NumericValue(evaluator.getBitSizeof(currentState, lType));
+          Value size = evaluator.getBitSizeof(currentState, lType, edge);
           if (!SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp).equals(lType)) {
             // Cast first
             ValueAndSMGState newRightValueAndState = castCValue(rightValue, lType, currentState);
@@ -235,13 +249,13 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
               getAssignable(rVarInBinaryExp, currentState);
           Preconditions.checkArgument(rightHandSideAssignments.size() == 1);
           SMGStateAndOptionalSMGObjectAndOffset rightHandSideAssignment =
-              rightHandSideAssignments.get(0);
+              rightHandSideAssignments.getFirst();
           currentState = rightHandSideAssignment.getSMGState();
 
           if (isAssignable(rightHandSideAssignments)) {
 
             CType rType = SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
-            Value size = new NumericValue(evaluator.getBitSizeof(currentState, rType));
+            Value size = evaluator.getBitSizeof(currentState, rType, edge);
 
             if (!SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp).equals(rType)) {
               // Cast first
@@ -302,7 +316,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
               getAssignable(lVarInBinaryExp, currentState);
           Preconditions.checkArgument(leftHandSideAssignments.size() == 1);
           SMGStateAndOptionalSMGObjectAndOffset leftHandSideAssignment =
-              leftHandSideAssignments.get(0);
+              leftHandSideAssignments.getFirst();
           currentState = leftHandSideAssignment.getSMGState();
           if (isAssignable(leftHandSideAssignments)
               && getInitialVisitorOptions().isOptimizeBooleanVariables()) {
@@ -331,7 +345,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
               }
 
               CType type = SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
-              Value size = new NumericValue(evaluator.getBitSizeof(stateToAssign, type));
+              Value size = evaluator.getBitSizeof(stateToAssign, type, edge);
               stateToAssign =
                   stateToAssign.writeValueWithChecks(
                       leftHandSideAssignment.getSMGObject(),
@@ -361,7 +375,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
                 getAssignable(rVarInBinaryExp, currentState);
             Preconditions.checkArgument(rightHandSideAssignments.size() == 1);
             SMGStateAndOptionalSMGObjectAndOffset rightHandSideAssignment =
-                rightHandSideAssignments.get(0);
+                rightHandSideAssignments.getFirst();
             currentState = rightHandSideAssignment.getSMGState();
 
             if (isAssignable(rightHandSideAssignments)) {
@@ -386,7 +400,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
               }
 
               CType type = SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp);
-              Value size = new NumericValue(evaluator.getBitSizeof(stateToAssign, type));
+              Value size = evaluator.getBitSizeof(stateToAssign, type, edge);
               stateToAssign =
                   stateToAssign.writeValueWithChecks(
                       rightHandSideAssignment.getSMGObject(),
@@ -477,8 +491,9 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
   }
 
   /**
-   * Handles nested assumptions. e.g. ((a != b) == c) by appyling this visitor (visit) on the nexted
-   * expressions.
+   * Handles nested assumptions. e.g. ((a != b) == c) by applying this visitor on the nested
+   * expressions in the hopes of finding assignable sub-expressions. The returned values are not to
+   * be used in any case. This is meant to only updates the states!
    */
   private List<ValueAndSMGState> updateNested(
       CExpression lVarInBinaryExp,
@@ -490,44 +505,73 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
     SMGCPAExpressionEvaluator evaluator = super.getInitialVisitorEvaluator();
     LogManagerWithoutDuplicates logger = super.getInitialVisitorLogger();
     CFAEdge edge = super.getInitialVisitorCFAEdge();
-    // Just use the current state as base case (with an unknown value that we won't use)
-    List<ValueAndSMGState> updatedStates =
-        ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
+
     // if (true == (unknown == concrete_value)) we set the value (for true left and right)
     if (leftValue.isExplicitlyKnown()) {
-      Number lNum = leftValue.asNumericValue().getNumber();
+      if (!(leftValue instanceof NumericValue numLeft)) {
+        throw new SMGException("Error: explicit number for assignment not numeric");
+      }
+      Number lNum = numLeft.getNumber();
       if (BigInteger.ONE.equals(lNum)) {
-        updatedStates =
-            rVarInBinaryExp.accept(
-                new SMGCPAAssigningValueVisitor(
-                    evaluator,
-                    solver,
-                    currentState,
-                    edge,
-                    logger,
-                    truthValue,
-                    getInitialVisitorOptions(),
-                    booleans,
-                    callerFunctionName));
+        // Assign
+        return rVarInBinaryExp.accept(
+            new SMGCPAAssigningValueVisitor(
+                evaluator,
+                solver,
+                currentState,
+                edge,
+                logger,
+                truthValue,
+                getInitialVisitorOptions(),
+                booleans,
+                callerFunctionName));
       }
     } else if (rightValue.isExplicitlyKnown()) {
-      Number rNum = rightValue.asNumericValue().bigIntegerValue();
+      if (!(rightValue instanceof NumericValue numRight)) {
+        throw new SMGException("Error: explicit number for assignment not numeric");
+      }
+      Number rNum = numRight.bigIntegerValue();
       if (BigInteger.ONE.equals(rNum)) {
-        updatedStates =
-            lVarInBinaryExp.accept(
-                new SMGCPAAssigningValueVisitor(
-                    evaluator,
-                    solver,
-                    currentState,
-                    edge,
-                    logger,
-                    truthValue,
-                    getInitialVisitorOptions(),
-                    booleans,
-                    callerFunctionName));
+        // Assign
+        return lVarInBinaryExp.accept(
+            new SMGCPAAssigningValueVisitor(
+                evaluator,
+                solver,
+                currentState,
+                edge,
+                logger,
+                truthValue,
+                getInitialVisitorOptions(),
+                booleans,
+                callerFunctionName));
       }
     }
-    return updatedStates;
+
+    // TODO: maybe we can find a use of the numerics, or assign them?
+    // These cases are not a problem, i just want to know how often they occur and whether we can
+    // improve it
+    if (leftValue instanceof NumericValue numLeft) {
+      return ImmutableList.of(
+          ValueAndSMGState.ofUnknownValue(
+              currentState,
+              "Concrete evaluation result of numeric value "
+                  + numLeft
+                  + " could not be assigned to its source in assumption evaluation. This is not a"
+                  + " problem and only to be used for internal logging. ",
+              edge));
+    } else if (rightValue instanceof NumericValue numRight) {
+      return ImmutableList.of(
+          ValueAndSMGState.ofUnknownValue(
+              currentState,
+              "Concrete evaluation result of numeric value "
+                  + numRight
+                  + " could not be assigned to its source in assumption evaluation. This is not a"
+                  + " problem and only to be used for internal logging. ",
+              edge));
+    }
+
+    // No need to log unknown, as it is ignored in the evaluation of the result of this method!
+    return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
   }
 
   private static AExpression unwrap(AExpression expression) {
@@ -622,13 +666,13 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
    * @throws SMGException in case of a critical error.
    */
   private String getExtendedQualifiedName(CExpression expr) throws SMGException {
-    if (expr instanceof CIdExpression) {
-      return ((CIdExpression) expr).getDeclaration().getQualifiedName();
+    if (expr instanceof CIdExpression cIdExpression) {
+      return cIdExpression.getDeclaration().getQualifiedName();
     } else if (expr instanceof CArraySubscriptExpression) {
       return expr.toQualifiedASTString();
-    } else if (expr instanceof CFieldReference) {
-      return ((CFieldReference) expr).getFieldOwner().toQualifiedASTString()
-          + ((CFieldReference) expr).getFieldName();
+    } else if (expr instanceof CFieldReference cFieldReference) {
+      return cFieldReference.getFieldOwner().toQualifiedASTString()
+          + cFieldReference.getFieldName();
     } else if (expr instanceof CPointerExpression) {
       return expr.toQualifiedASTString();
     }
@@ -642,9 +686,9 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
    * @return whether the expression is handleable by the assigning visitor
    */
   private boolean isNestingHandleable(CExpression expr) {
-    if (expr instanceof CBinaryExpression) {
-      return isNestingHandleable(((CBinaryExpression) expr).getOperand1())
-          && isNestingHandleable(((CBinaryExpression) expr).getOperand2());
+    if (expr instanceof CBinaryExpression cBinaryExpression) {
+      return isNestingHandleable(cBinaryExpression.getOperand1())
+          && isNestingHandleable(cBinaryExpression.getOperand2());
     } else {
       return expr instanceof CIdExpression
           || expr instanceof CArraySubscriptExpression
@@ -672,7 +716,8 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
         for (SMGState stateWithConstraint : statesWithConstraints) {
           if (getInitialVisitorOptions().isSatCheckStrategyAtAssume()) {
             SolverResult solverResult =
-                solver.checkUnsat(stateWithConstraint.getConstraints(), callerFunctionName);
+                solver.checkUnsatWithOptionDefinedSolverReuse(
+                    stateWithConstraint.getConstraints(), callerFunctionName);
             if (solverResult.satisfiability().equals(Satisfiability.SAT)) {
               resultStateBuilder.add(
                   stateWithConstraint.replaceModelAndDefAssignmentAndCopy(
@@ -690,7 +735,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       }
       // TODO: replace this ugliness once we know its only ever 1 returned state
       ImmutableList<SMGState> returnList = resultStateBuilder.build();
-      return returnList.isEmpty() ? Optional.empty() : Optional.of(returnList.get(0));
+      return returnList.isEmpty() ? Optional.empty() : Optional.of(returnList.getFirst());
 
     } catch (InterruptedException | SolverException e) {
       throw new SMGSolverException(e, initialState);
@@ -704,6 +749,13 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       final boolean pTruthAssumption,
       CFAEdge pEdge)
       throws CPATransferException, SolverException, InterruptedException {
+
+    if (pExpression instanceof CBinaryExpression binExpr
+        && !ConstraintFactory.binaryExpressionIsConstraint(binExpr)) {
+      // For example an expression of the kind array[i] % 2 == 1 is split and array[i] % 2 ends up
+      // here and would fail below.
+      return ImmutableList.of(pOldState);
+    }
 
     final ConstraintFactory constraintFactory =
         ConstraintFactory.getInstance(
@@ -729,7 +781,9 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       // TODO: is this still correct for more than one returned constraint? I.e. can a trivial
       //   constraint be non-trivial with a second constraint?
       if (newConstraint.isTrivial()) {
-        if (solver.checkUnsat(newConstraint, callerFunctionName).equals(Satisfiability.SAT)) {
+        if (solver
+            .checkUnsatWithFreshSolver(newConstraint, callerFunctionName)
+            .equals(Satisfiability.SAT)) {
           // Iff SAT -> we go that path with this state
           // We don't add the constraint as it is trivial
           stateBuilder.add(currentState);
@@ -751,12 +805,12 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       AExpression pExpression, ConstraintFactory pFactory, boolean pTruthAssumption)
       throws CPATransferException {
 
-    if (pExpression instanceof CBinaryExpression) {
-      return createConstraint((CBinaryExpression) pExpression, pFactory, pTruthAssumption);
+    if (pExpression instanceof CBinaryExpression cBinaryExpression) {
+      return createConstraint(cBinaryExpression, pFactory, pTruthAssumption);
 
-    } else if (pExpression instanceof CIdExpression) {
+    } else if (pExpression instanceof CIdExpression cIdExpression) {
       // id expressions in assume edges are created by a call of __VERIFIER_assume(x), for example
-      return createConstraint((CIdExpression) pExpression, pFactory, pTruthAssumption);
+      return createConstraint(cIdExpression, pFactory, pTruthAssumption);
 
     } else {
       throw new AssertionError("Unhandled expression type " + pExpression.getClass());

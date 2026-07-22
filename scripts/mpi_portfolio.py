@@ -197,8 +197,7 @@ class MPIMain:
                     # a TRUE or FALSE result.
                     if result is not None and result == results.SUCCESS.name:
                         logger.info(
-                            "RECEIVING: received signal for shutting this process "
-                            "down."
+                            "RECEIVING: received signal for shutting this process down."
                         )
                         self.interrupt_mpi_listener()
                         self.shutdown_processes()

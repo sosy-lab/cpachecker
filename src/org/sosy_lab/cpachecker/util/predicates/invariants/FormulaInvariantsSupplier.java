@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerBase;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.FormulaTransformationVisitor;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -93,7 +94,7 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
     private final PathFormula context;
     private final PathFormulaManager pfgmr;
 
-    protected AddPointerInformationVisitor(
+    AddPointerInformationVisitor(
         FormulaManagerView pFmgr, PathFormula pContext, PathFormulaManager pPfmgr) {
       super(pFmgr);
       pfgmr = pPfmgr;
@@ -102,10 +103,14 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
 
     @Override
     public Formula visitFreeVariable(Formula atom, String varName) {
-      if (context.getPointerTargetSet().isActualBase(varName)) {
+      // varName comes from a formula that was not created by our usual formula encoding.
+      // It could refer to an aliased variable that CtoFormulaConverter encodes differently.
+      // We need to check whether this is such a case and if yes, replace it.
+      PointerBase base = new PointerBase(varName);
+      if (context.getPointerTargetSet().isActualBase(base)) {
         return pfgmr.makeFormulaForUninstantiatedVariable(
             varName,
-            context.getPointerTargetSet().getBases().get(varName),
+            context.getPointerTargetSet().getBases().get(base),
             context.getPointerTargetSet(),
             false);
       } else {
@@ -139,11 +144,11 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
 
     private final LazyLocationMapping lazyLocationMapping;
 
-    public ReachedSetBasedFormulaSupplier(LazyLocationMapping pLazyLocationMapping) {
+    ReachedSetBasedFormulaSupplier(LazyLocationMapping pLazyLocationMapping) {
       lazyLocationMapping = Objects.requireNonNull(pLazyLocationMapping);
     }
 
-    public BooleanFormula getInvariantFor(
+    BooleanFormula getInvariantFor(
         CFANode pLocation,
         Optional<CallstackStateEqualsWrapper> pCallstackInformation,
         FormulaManagerView fmgr) {
@@ -219,7 +224,7 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
     private final FormulaManagerView fmgr;
     private final PathFormulaManager pfmgr;
 
-    public InvariantsCacheKey(
+    InvariantsCacheKey(
         CFANode pNode,
         Optional<CallstackStateEqualsWrapper> pCallstackInformation,
         FormulaManagerView pFormulaManager,

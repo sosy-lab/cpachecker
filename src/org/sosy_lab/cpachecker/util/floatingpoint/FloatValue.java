@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
+import static org.sosy_lab.java_smt.api.FormulaType.getFloatingPointTypeFromSizesWithoutHiddenBit;
+
 import com.google.common.base.Ascii;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
@@ -26,6 +28,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -34,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.java_smt.api.FloatingPointNumber;
+import org.sosy_lab.java_smt.api.FloatingPointNumber.Sign;
 
 /**
  * Java based implementation of multi-precision floating point values with correct rounding.
@@ -537,6 +541,21 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
         pFormat, false, pFormat.maxExp() + 1, BigInteger.ONE.shiftLeft(pFormat.sigBits - 1));
   }
 
+  /**
+   * Create a random FloatValue.
+   *
+   * @param pFormat The format of the generated value according to machine model and C type.
+   * @param pRandomGenerator The random generator to use.
+   * @return A random FloatValue.
+   */
+  public static FloatValue randomValue(Format pFormat, Random pRandomGenerator) {
+    return new FloatValue(
+        pFormat,
+        pRandomGenerator.nextBoolean(),
+        pRandomGenerator.nextLong(pFormat.minExp(), pFormat.maxExp() + 1),
+        new BigInteger(pFormat.sigBits() + 1, pRandomGenerator));
+  }
+
   /** Positive infinity. */
   public static FloatValue infinity(Format pFormat) {
     return signedInfinity(pFormat, false);
@@ -803,7 +822,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
         FloatValue expPart =
             new FloatValue(
                 precision, false, pExponent - exponent, BigInteger.ONE.shiftLeft(format.sigBits));
-        return this.withPrecision(precision).multiply(expPart).withPrecision(format);
+        return withPrecision(precision).multiply(expPart).withPrecision(format);
       }
     } else {
       // Exponent within range
@@ -1463,7 +1482,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   }
 
   private FloatValue squared() {
-    return this.multiply(this);
+    return multiply(this);
   }
 
   /**
@@ -1487,11 +1506,11 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   private FloatValue powFast(BigInteger x) {
     if (x.compareTo(BigInteger.ZERO) < 0) {
       // If x is negative we calculate 1/a^-x
-      return one(format).divide(this.powFast(x.abs()));
+      return one(format).divide(powFast(x.abs()));
     }
     FloatValue r = one(format);
     for (int s = x.bitLength() - 1; s >= 0; s--) {
-      r = x.testBit(s) ? this.multiply(r.squared()) : r.squared();
+      r = x.testBit(s) ? multiply(r.squared()) : r.squared();
     }
     return r;
   }
@@ -1500,7 +1519,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   public FloatValue divide(FloatValue pDivisor) {
     checkMatchingPrecision(pDivisor);
     Format precision = format.intermediatePrecision();
-    FloatValue arg1 = this.withPrecision(precision);
+    FloatValue arg1 = withPrecision(precision);
     FloatValue arg2 = pDivisor.withPrecision(precision);
 
     return arg1.divideSlow(arg2).withPrecision(format);
@@ -1752,7 +1771,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     }
 
     // Fix the sign if x was negative
-    if (this.isNegative()) {
+    if (isNegative()) {
       result = result.negate();
     }
     return result.withPrecision(format);
@@ -2320,7 +2339,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   /** Handle cases in pow where a^x is a floating point number or a breakpoint. */
   private FloatValue powExact(FloatValue exp) {
     Format precision = format.withUnlimitedExponent();
-    FloatValue arg1 = this.withPrecision(precision);
+    FloatValue arg1 = withPrecision(precision);
     FloatValue arg2 = exp.withPrecision(precision);
 
     FloatValue r = nan(format);
@@ -2349,7 +2368,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       // a^x = exp(x * ln a)
       Format precision = new Format(p.expBits, p.sigBits - format.sigBits);
 
-      FloatValue a = this.withPrecision(p);
+      FloatValue a = withPrecision(p);
       FloatValue x = pExponent.withPrecision(p);
 
       // The next call calculates ln with the current precision.
@@ -2402,7 +2421,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       return this;
     } else if (isNan()) {
       // For -NaN we drop the sign to make the implementation in line with MPFR
-      return this.abs();
+      return abs();
     } else if (exponent > format.sigBits) {
       // If the exponent is large enough we already have an integer and can return immediately
       return this;
@@ -2678,7 +2697,8 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
   /** Convert a {@link FloatingPointNumber} to {@link FloatValue} */
   public static FloatValue fromFloatingPointNumber(FloatingPointNumber pNumber) {
-    Format format = new Format(pNumber.getExponentSize(), pNumber.getMantissaSize());
+    Format format =
+        new Format(pNumber.getExponentSize(), pNumber.getMantissaSizeWithoutHiddenBit());
     long exponent = pNumber.getExponent().longValue() - format.bias();
     BigInteger significand = pNumber.getMantissa();
     if (exponent >= format.minExp() && exponent <= format.maxExp()) {
@@ -2686,17 +2706,16 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       // significand
       significand = significand.setBit(format.sigBits);
     }
-    return new FloatValue(format, pNumber.getSign(), exponent, significand);
+    return new FloatValue(format, pNumber.getMathSign().isNegative(), exponent, significand);
   }
 
   /** Convert this {@link FloatValue} to {@link FloatingPointNumber} */
   public FloatingPointNumber toFloatingPointNumber() {
     return FloatingPointNumber.of(
-        sign,
+        Sign.of(sign),
         BigInteger.valueOf(exponent + format.bias()),
         significand.clearBit(format.sigBits()),
-        format.expBits(),
-        format.sigBits());
+        getFloatingPointTypeFromSizesWithoutHiddenBit(format.expBits(), format.sigBits()));
   }
 
   /** Convert a <code>float</code> to {@link FloatValue} */
@@ -2968,14 +2987,19 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   public static FloatValue fromString(Format pFormat, String pInput) {
     Preconditions.checkArgument(!pInput.isEmpty());
 
-    if (pInput.equals("inf")) {
-      return infinity(pFormat);
-    } else if (pInput.equals("-inf")) {
-      return negativeInfinity(pFormat);
-    } else if (pInput.equals("nan")) {
-      return nan(pFormat);
-    } else if (pInput.equals("-nan")) {
-      return nan(pFormat).negate();
+    switch (pInput) {
+      case "inf" -> {
+        return infinity(pFormat);
+      }
+      case "-inf" -> {
+        return negativeInfinity(pFormat);
+      }
+      case "nan" -> {
+        return nan(pFormat);
+      }
+      case "-nan" -> {
+        return nan(pFormat).negate();
+      }
     }
     pInput = Ascii.toLowerCase(pInput);
 

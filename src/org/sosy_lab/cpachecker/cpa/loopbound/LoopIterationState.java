@@ -166,21 +166,21 @@ interface LoopIterationState {
 
       private final int iteration;
 
-      public LoopIteration(Loop pLoop, int pIteration) {
+      LoopIteration(Loop pLoop, int pIteration) {
         loop = Objects.requireNonNull(pLoop);
         Preconditions.checkArgument(pIteration >= 0);
         iteration = pIteration;
       }
 
-      public Loop getLoop() {
+      Loop getLoop() {
         return loop;
       }
 
-      public int getCount() {
+      int getCount() {
         return iteration;
       }
 
-      public LoopIteration increment() {
+      LoopIteration increment() {
         return new LoopIteration(loop, getCount() + 1);
       }
 

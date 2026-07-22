@@ -18,6 +18,20 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
 public class PathToConcreteProgramTranslator extends PathTranslator {
 
+  private static final String HEADER_DEFINITIONS =
+      """
+      #define __CPROVER_assume(x) if(!(x)){exit(0);}
+      int __VERIFIER_nondet_int() {return 0;}
+      long __VERIFIER_nondet_long() {return 0;}
+      void *__VERIFIER_nondet_pointer() { return malloc(100); } // assume a size
+      char __VERIFIER_nondet_char() {return '0';}
+      int __VERIFIER_nondet_bool() {return 0;}
+      float __VERIFIER_nondet_float() {return 0.0;}
+      short __VERIFIER_nondet_short() {return 0;}
+      void main();
+      void main() {main_0();}
+      """;
+
   private PathToConcreteProgramTranslator() {}
 
   /**
@@ -76,17 +90,7 @@ public class PathToConcreteProgramTranslator extends PathTranslator {
       }
     }
 
-    mGlobalDefinitionsList.add(0, "#define __CPROVER_assume(x) if(!(x)){exit(0);}");
-    mGlobalDefinitionsList.add(1, "int __VERIFIER_nondet_int() {return 0;}");
-    mGlobalDefinitionsList.add(2, "long __VERIFIER_nondet_long() {return 0;}");
-    mGlobalDefinitionsList.add(
-        3, "void *__VERIFIER_nondet_pointer() { return malloc(100); }"); // assume a size
-    mGlobalDefinitionsList.add(4, "char __VERIFIER_nondet_char() {return '0';}");
-    mGlobalDefinitionsList.add(5, "int __VERIFIER_nondet_bool() {return 0;}");
-    mGlobalDefinitionsList.add(6, "float __VERIFIER_nondet_float() {return 0.0;}");
-    mGlobalDefinitionsList.add(7, "short __VERIFIER_nondet_short() {return 0;}");
-    mGlobalDefinitionsList.add(8, "void main();");
-    mGlobalDefinitionsList.add(9, "void main() {main_0();}");
+    mGlobalDefinitionsList.addFirst(HEADER_DEFINITIONS);
 
     return super.generateCCode();
   }

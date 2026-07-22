@@ -14,8 +14,8 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Map.Entry;
+import java.util.SequencedMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -84,7 +84,7 @@ class BAMCPAStatistics implements Statistics {
   private final AbstractBAMCPA cpa;
 
   private int maxRecursiveDepth = 0;
-  private final Map<Block, Timer> timeForBlock = new LinkedHashMap<>();
+  private final SequencedMap<Block, Timer> timeForBlock = new LinkedHashMap<>();
 
   public BAMCPAStatistics(Configuration pConfig, LogManager pLogger, AbstractBAMCPA pCpa)
       throws InvalidConfigurationException {

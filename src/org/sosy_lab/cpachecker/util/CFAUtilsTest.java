@@ -12,12 +12,12 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Level;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -26,23 +26,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
-import org.sosy_lab.cpachecker.util.test.TestResults;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 
 public class CFAUtilsTest {
-
-  private TestResults parseProgram(String pProgramName) throws Exception {
-    final Configuration config =
-        TestDataTools.configurationForTest()
-            .setOption("--config", "config/generateCFA.properties")
-            .build();
-
-    String test_dir = "test/programs/cfa-ast-relation/";
-    Path program = Path.of(test_dir, pProgramName);
-
-    return CPATestRunner.run(config, program.toString(), Level.FINEST);
-  }
 
   private void fullExpressionAtCorrectPosition(
       CFA pCFA,
@@ -52,7 +38,7 @@ public class CFAUtilsTest {
       int pExpectedEndingLine,
       int pExpectedEndColumnInLine) {
     AstCfaRelation astCfaRelation = pCFA.getAstCfaRelation();
-    CFAEdge edge = TestDataTools.getEdge(pStringsToIdentifyEdge, pCFA);
+    CFAEdge edge = TestCfaUtils.getEdge(pStringsToIdentifyEdge, pCFA);
     assertThat(edge instanceof CCfaEdge).isTrue();
 
     Optional<FileLocation> optionalExpressionLocation =
@@ -77,10 +63,8 @@ public class CFAUtilsTest {
    */
   @Test
   public void testFullExpression() throws Exception {
-    String programName = "full-expression.c";
-    TestResults results = parseProgram(programName);
-    CFA cfa = results.getCheckerResult().getCfa();
-    assertThat(cfa).isNotNull();
+    Path programPath = Path.of("test/programs/cfa-ast-relation/full-expression.c");
+    CFA cfa = TestCfaUtils.makeCFA(Files.readString(programPath, StandardCharsets.UTF_8));
 
     fullExpressionAtCorrectPosition(cfa, "x + y", 18, 10, 18, 15);
     fullExpressionAtCorrectPosition(cfa, "x = 1", 10, 11, 10, 12);

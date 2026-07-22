@@ -301,9 +301,9 @@ public class ExpressionToFormulaVisitor
 
     final NumeralFormula<CompoundInterval> result =
         switch (pCBinaryExpression.getOperator()) {
-          case BINARY_AND -> allPossibleValues(pCBinaryExpression);
-          case BINARY_OR -> allPossibleValues(pCBinaryExpression);
-          case BINARY_XOR -> allPossibleValues(pCBinaryExpression);
+          case BITWISE_AND -> allPossibleValues(pCBinaryExpression);
+          case BITWISE_OR -> allPossibleValues(pCBinaryExpression);
+          case BITWISE_XOR -> allPossibleValues(pCBinaryExpression);
           case DIVIDE -> compoundIntervalFormulaManager.divide(left, right);
           case EQUALS ->
               compoundIntervalFormulaManager.fromBoolean(
@@ -332,12 +332,12 @@ public class ExpressionToFormulaVisitor
                   compoundIntervalFormulaManager.multiply(
                       right,
                       getPointerTargetSizeLiteral((CPointerType) promLeft, calculationType)));
-            } else if (promLeft instanceof CPointerType) {
+            } else if (promLeft instanceof CPointerType cPointerType) {
               // Pointer subtraction => (operand1 - operand2) / sizeof (*operand1)
               if (promLeft.equals(promRight)) {
                 yield compoundIntervalFormulaManager.divide(
                     compoundIntervalFormulaManager.subtract(left, right),
-                    getPointerTargetSizeLiteral((CPointerType) promLeft, calculationType));
+                    getPointerTargetSizeLiteral(cPointerType, calculationType));
               } else {
                 throw new UnrecognizedCodeException(
                     "Can't subtract pointers of different types", pCBinaryExpression);
@@ -347,7 +347,7 @@ public class ExpressionToFormulaVisitor
                   "Can't subtract a pointer from a non-pointer", pCBinaryExpression);
             }
           }
-          case MODULO -> compoundIntervalFormulaManager.modulo(left, right);
+          case REMAINDER -> compoundIntervalFormulaManager.modulo(left, right);
           case MULTIPLY -> compoundIntervalFormulaManager.multiply(left, right);
           case NOT_EQUALS ->
               compoundIntervalFormulaManager.fromBoolean(
@@ -358,7 +358,7 @@ public class ExpressionToFormulaVisitor
             if (!(promLeft instanceof CPointerType)
                 && !(promRight instanceof CPointerType)) { // Just an addition e.g. 6 + 7
               yield compoundIntervalFormulaManager.add(left, right);
-            } else if (!(promRight instanceof CPointerType)) {
+            } else if (!(promRight instanceof CPointerType cPointerType)) {
               // operand1 is a pointer => we should multiply the second summand by the size of the
               // pointer target
               yield compoundIntervalFormulaManager.add(
@@ -370,8 +370,7 @@ public class ExpressionToFormulaVisitor
               yield compoundIntervalFormulaManager.add(
                   right,
                   compoundIntervalFormulaManager.multiply(
-                      left,
-                      getPointerTargetSizeLiteral((CPointerType) promRight, calculationType)));
+                      left, getPointerTargetSizeLiteral(cPointerType, calculationType)));
             } else {
               throw new UnrecognizedCodeException("Can't add pointers", pCBinaryExpression);
             }
@@ -390,8 +389,8 @@ public class ExpressionToFormulaVisitor
 
   private NumeralFormula<CompoundInterval> topIfProblematicType(
       CType pType, NumeralFormula<CompoundInterval> pFormula) {
-    if ((pType instanceof CSimpleType)
-        && ((CSimpleType) pType).getCanonicalType().hasUnsignedSpecifier()) {
+    if ((pType instanceof CSimpleType cSimpleType)
+        && cSimpleType.getCanonicalType().hasUnsignedSpecifier()) {
       CompoundInterval value = pFormula.accept(evaluationVisitor, environment);
       if (value.containsAllPossibleValues()) {
         return pFormula;
@@ -426,11 +425,11 @@ public class ExpressionToFormulaVisitor
         compoundIntervalFormulaManager.fromNumeral(right);
     TypeInfo typeInfo = TypeInfo.from(machineModel, pBinaryExpression.getExpressionType());
     return switch (pBinaryExpression.getOperator()) {
-      case BINARY_AND -> allPossibleValues(pBinaryExpression);
+      case BITWISE_AND -> allPossibleValues(pBinaryExpression);
 
-      case BINARY_OR -> allPossibleValues(pBinaryExpression);
+      case BITWISE_OR -> allPossibleValues(pBinaryExpression);
 
-      case BINARY_XOR -> allPossibleValues(pBinaryExpression);
+      case BITWISE_XOR -> allPossibleValues(pBinaryExpression);
 
       case CONDITIONAL_AND -> allPossibleValues(pBinaryExpression);
 
@@ -477,7 +476,7 @@ public class ExpressionToFormulaVisitor
 
       case MINUS -> compoundIntervalFormulaManager.subtract(left, right);
 
-      case MODULO -> compoundIntervalFormulaManager.modulo(left, right);
+      case REMAINDER -> compoundIntervalFormulaManager.modulo(left, right);
 
       case MULTIPLY -> compoundIntervalFormulaManager.multiply(left, right);
 
@@ -681,11 +680,10 @@ public class ExpressionToFormulaVisitor
     FormulaCompoundStateEvaluationVisitor evaluator =
         new FormulaCompoundStateEvaluationVisitor(pCompoundIntervalManagerFactory);
     CompoundInterval value = formula.accept(evaluator, pEnvironment);
-    if (value instanceof CompoundIntegralInterval
+    if (value instanceof CompoundIntegralInterval integralValue
         && typeInfo instanceof BitVectorInfo bitVectorInfo) {
       BigInteger lowerInclusiveBound = bitVectorInfo.getMinValue();
       BigInteger upperExclusiveBound = bitVectorInfo.getMaxValue().add(BigInteger.ONE);
-      CompoundIntegralInterval integralValue = (CompoundIntegralInterval) value;
 
       if (typeInfo.isSigned()) {
         if (!value.hasLowerBound() || !value.hasUpperBound()) {
@@ -698,9 +696,10 @@ public class ExpressionToFormulaVisitor
           return InvariantsFormulaManager.INSTANCE.asConstant(typeInfo, cim.allPossibleValues());
         }
         // Handle implementation-defined cast to signed
-        if (pCompoundIntervalManagerFactory instanceof CompoundBitVectorIntervalManagerFactory
-            && !((CompoundBitVectorIntervalManagerFactory) pCompoundIntervalManagerFactory)
-                .isSignedWrapAroundAllowed()) {
+        if (pCompoundIntervalManagerFactory
+                instanceof
+                CompoundBitVectorIntervalManagerFactory compoundBitVectorIntervalManagerFactory
+            && !compoundBitVectorIntervalManagerFactory.isSignedWrapAroundAllowed()) {
           CompoundInterval ci = pFormula.accept(evaluator, pEnvironment);
           if (ci instanceof CompoundBitVectorInterval cbvi) {
             final AtomicBoolean overflows = new AtomicBoolean();
@@ -748,24 +747,24 @@ public class ExpressionToFormulaVisitor
 
   public static CRightHandSide makeCastFromArrayToPointerIfNecessary(
       CRightHandSide pExpression, CType pTargetType) {
-    if (pExpression instanceof CExpression) {
-      return makeCastFromArrayToPointerIfNecessary((CExpression) pExpression, pTargetType);
+    if (pExpression instanceof CExpression cExpression) {
+      return makeCastFromArrayToPointerIfNecessary(cExpression, pTargetType);
     }
     return pExpression;
   }
 
   public static AExpression makeCastFromArrayToPointerIfNecessary(
       AExpression pExpression, Type pTargetType) {
-    if (pExpression instanceof CExpression && pTargetType instanceof CType) {
-      return makeCastFromArrayToPointerIfNecessary((CExpression) pExpression, (CType) pTargetType);
+    if (pExpression instanceof CExpression cExpression && pTargetType instanceof CType cType) {
+      return makeCastFromArrayToPointerIfNecessary(cExpression, cType);
     }
     return pExpression;
   }
 
   public static ARightHandSide makeCastFromArrayToPointerIfNecessary(
       ARightHandSide pExpression, Type pTargetType) {
-    if (pExpression instanceof CExpression && pTargetType instanceof CType) {
-      return makeCastFromArrayToPointerIfNecessary((CExpression) pExpression, (CType) pTargetType);
+    if (pExpression instanceof CExpression cExpression && pTargetType instanceof CType cType) {
+      return makeCastFromArrayToPointerIfNecessary(cExpression, cType);
     }
     return pExpression;
   }

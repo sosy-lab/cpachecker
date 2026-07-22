@@ -212,7 +212,7 @@ class OctagonArgBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, S
     }
 
     reached.removeSubtree(
-        ((ARGState) reachedSet.getFirstState()).getChildren().iterator().next(),
+        ((ARGState) reachedSet.getFirstState()).getChildren().getFirst(),
         octPrecision.withIncrement(increment),
         VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class));
     logger.log(

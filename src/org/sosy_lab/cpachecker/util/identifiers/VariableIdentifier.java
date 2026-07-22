@@ -15,8 +15,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 public abstract sealed class VariableIdentifier extends SingleIdentifier
     permits GlobalVariableIdentifier, LocalVariableIdentifier, ReturnIdentifier {
 
-  protected VariableIdentifier(String nm, CType tp, int dereference) {
-    super(nm, tp, dereference);
+  protected VariableIdentifier(String nm, CType tp, int pDereference) {
+    super(nm, tp, pDereference);
   }
 
   @Override

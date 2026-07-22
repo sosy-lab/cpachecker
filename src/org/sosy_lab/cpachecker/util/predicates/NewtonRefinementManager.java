@@ -138,7 +138,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
    * @param pAllStatesTrace The error path
    * @param pFormulas The Block formulas computed in previous step
    * @return The Counterexample, containing pseudo-interpolants if successful
-   * @exception RefinementFailedException If the Newton refinement fails
+   * @throws RefinementFailedException If the Newton refinement fails
    */
   public CounterexampleTraceInfo buildCounterexampleTrace(
       ARGPath pAllStatesTrace, BlockFormulas pFormulas)
@@ -159,7 +159,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
             };
         // Test if the predicate of the error state is unsatisfiable
         try {
-          if (!solver.isUnsat(predicates.get(predicates.size() - 1))) {
+          if (!solver.isUnsat(predicates.getLast())) {
             throw new RefinementFailedException(Reason.SequenceOfAssertionsToWeak, pAllStatesTrace);
           }
         } catch (SolverException e) {

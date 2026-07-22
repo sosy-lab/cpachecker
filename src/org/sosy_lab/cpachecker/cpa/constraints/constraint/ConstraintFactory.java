@@ -24,8 +24,10 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.CExpressionTransformer;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ExpressionTransformer;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.JExpressionTransformer;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.EqualsExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalNotExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -41,8 +43,6 @@ public class ConstraintFactory {
   private final String functionName;
   private final ValueAnalysisState valueState;
 
-  private SymbolicValueFactory expressionFactory;
-
   private ConstraintFactory(
       String pFunctionName,
       ValueAnalysisState pValueState,
@@ -53,7 +53,6 @@ public class ConstraintFactory {
     logger = pLogger;
     functionName = pFunctionName;
     valueState = pValueState;
-    expressionFactory = SymbolicValueFactory.getInstance();
   }
 
   public static ConstraintFactory getInstance(
@@ -150,8 +149,8 @@ public class ConstraintFactory {
 
     if (symbolicExpression == null) {
       return null;
-    } else if (symbolicExpression instanceof Constraint) {
-      return (Constraint) symbolicExpression;
+    } else if (symbolicExpression instanceof Constraint constraint) {
+      return constraint;
 
     } else {
       return transformValueToConstraint(symbolicExpression, pExpression.getExpressionType());
@@ -187,10 +186,10 @@ public class ConstraintFactory {
   }
 
   private boolean isNumeric(Type pType) {
-    if (pType instanceof CType) {
-      CType canonicalType = ((CType) pType).getCanonicalType();
-      if (canonicalType instanceof CSimpleType) {
-        switch (((CSimpleType) canonicalType).getType()) {
+    if (pType instanceof CType cType) {
+      CType canonicalType = cType.getCanonicalType();
+      if (canonicalType instanceof CSimpleType cSimpleType) {
+        switch (cSimpleType.getType()) {
           case FLOAT, INT -> {
             return true;
           }
@@ -201,8 +200,8 @@ public class ConstraintFactory {
       }
 
       return false;
-    } else if (pType instanceof JSimpleType) {
-      switch ((JSimpleType) pType) {
+    } else if (pType instanceof JSimpleType jSimpleType) {
+      switch (jSimpleType) {
         case BYTE, CHAR, SHORT, INT, LONG, FLOAT, DOUBLE -> {
           return true;
         }
@@ -218,11 +217,11 @@ public class ConstraintFactory {
   }
 
   private boolean isBoolean(Type pType) {
-    if (pType instanceof CType) {
-      CType canonicalType = ((CType) pType).getCanonicalType();
+    if (pType instanceof CType cType) {
+      CType canonicalType = cType.getCanonicalType();
 
-      return canonicalType instanceof CSimpleType
-          && ((CSimpleType) canonicalType).getType() == CBasicType.BOOL;
+      return canonicalType instanceof CSimpleType cSimpleType
+          && cSimpleType.getType() == CBasicType.BOOL;
     }
 
     if (pType instanceof JSimpleType) {
@@ -233,11 +232,11 @@ public class ConstraintFactory {
   }
 
   private SymbolicExpression getOneConstant(Type pType) {
-    return expressionFactory.asConstant(new NumericValue(1L), pType);
+    return ConstantSymbolicExpression.of(new NumericValue(1L), pType);
   }
 
   private SymbolicExpression getTrueValueConstant() {
-    return expressionFactory.asConstant(BooleanValue.valueOf(true), JSimpleType.BOOLEAN);
+    return ConstantSymbolicExpression.of(BooleanValue.valueOf(true), JSimpleType.BOOLEAN);
   }
 
   private Constraint createNot(Constraint pConstraint) {
@@ -246,8 +245,7 @@ public class ConstraintFactory {
   }
 
   private Constraint createNot(SymbolicExpression pSymbolicExpression) {
-    return (Constraint)
-        expressionFactory.logicalNot(pSymbolicExpression, pSymbolicExpression.getType());
+    return (Constraint) LogicalNotExpression.of(pSymbolicExpression, pSymbolicExpression.getType());
   }
 
   private Constraint createEqual(
@@ -256,6 +254,6 @@ public class ConstraintFactory {
       Type pExpressionType,
       Type pCalculationType) {
 
-    return expressionFactory.equal(pLeftOperand, pRightOperand, pExpressionType, pCalculationType);
+    return EqualsExpression.of(pLeftOperand, pRightOperand, pExpressionType, pCalculationType);
   }
 }

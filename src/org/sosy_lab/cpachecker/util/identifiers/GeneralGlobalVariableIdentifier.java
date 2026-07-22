@@ -14,8 +14,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 public final class GeneralGlobalVariableIdentifier extends GlobalVariableIdentifier
     implements GeneralIdentifier {
 
-  public GeneralGlobalVariableIdentifier(String pNm, CType type, int pDereference) {
-    super(pNm, type, pDereference);
+  public GeneralGlobalVariableIdentifier(String pNm, CType pType, int pDereference) {
+    super(pNm, pType, pDereference);
   }
 
   public GeneralGlobalVariableIdentifier(String pNm, int pDereference) {

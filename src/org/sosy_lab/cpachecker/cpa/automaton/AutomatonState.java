@@ -370,7 +370,7 @@ public class AutomatonState
               + pProperty
               + "\" is invalid. Could not split the property string correctly.");
     } else {
-      String left = parts.get(0);
+      String left = parts.getFirst();
       String right = parts.get(1);
       if (left.equalsIgnoreCase("state")) {
         return getInternalState().getName().equals(right);
@@ -408,14 +408,14 @@ public class AutomatonState
       throw new InvalidQueryException(
           "The Query \"" + pModification + "\" is invalid. Could not split the string correctly.");
     } else {
-      String left = parts.get(0);
+      String left = parts.getFirst();
       String right = parts.get(1);
       AutomatonVariable var = vars.get(left);
       if (var != null) {
-        if (var instanceof AutomatonIntVariable) {
+        if (var instanceof AutomatonIntVariable automatonIntVariable) {
           try {
             int val = Integer.parseInt(right);
-            ((AutomatonIntVariable) var).setValue(val);
+            automatonIntVariable.setValue(val);
           } catch (NumberFormatException e) {
             throw new InvalidQueryException(
                 "The Query \""

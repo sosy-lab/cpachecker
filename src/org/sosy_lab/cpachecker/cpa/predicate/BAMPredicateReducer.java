@@ -17,6 +17,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -31,7 +32,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.defaults.GenericReducer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -170,9 +171,9 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
   private Set<AbstractionPredicate> getRelevantPredicates(
       Block pContext, Collection<AbstractionPredicate> predicates) throws InterruptedException {
 
-    final Set<AbstractionPredicate> relevantPredicates = new LinkedHashSet<>();
-    Set<String> relevantVariables = new LinkedHashSet<>();
-    Set<AbstractionPredicate> irrelevantPredicates = new LinkedHashSet<>();
+    final SequencedSet<AbstractionPredicate> relevantPredicates = new LinkedHashSet<>();
+    SequencedSet<String> relevantVariables = new LinkedHashSet<>();
+    SequencedSet<AbstractionPredicate> irrelevantPredicates = new LinkedHashSet<>();
 
     // get predicates that are directly relevant
     for (AbstractionPredicate predicate : predicates) {
@@ -189,8 +190,8 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
     // predicates that are important because they contain variables used in relevant predicates.
     while (!relevantVariables.isEmpty()) {
       shutdownNotifier.shutdownIfNecessary();
-      Set<String> newRelevantVariables = new LinkedHashSet<>();
-      Set<AbstractionPredicate> newIrrelevantPredicates = new LinkedHashSet<>();
+      SequencedSet<String> newRelevantVariables = new LinkedHashSet<>();
+      SequencedSet<AbstractionPredicate> newIrrelevantPredicates = new LinkedHashSet<>();
       for (AbstractionPredicate predicate : irrelevantPredicates) { // shrinking with each iteration
         Set<String> variables = getVariables(predicate);
         if (isAnyVariableRelevant(relevantVariables, variables)) {
@@ -439,7 +440,7 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
 
     final SSAMap expandedSSA = expandedState.getAbstractionFormula().getBlockFormula().getSsa();
     for (String var : expandedSSA.allVariables()) {
-      final CType type = expandedSSA.getType(var);
+      final Type type = expandedSSA.getType(var);
       if (var.startsWith(calledFunction + "::") && var.endsWith(PARAM_VARIABLE_NAME)) {
         int newIndex = entrySsaWithRet.getIndex(var);
         assert entrySsaWithRet.containsVariable(var)
@@ -553,7 +554,7 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
 
       // Depending on the scope of vars, set either only the lastUsedIndex or the default index.
       // var was used and maybe overridden inside the block
-      final CType type = expandedSSA.getType(var);
+      final Type type = expandedSSA.getType(var);
       if (var.contains("::")
           && !isReturnVar(var, functionExitNode)) { // var is scoped -> not global
 

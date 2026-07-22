@@ -8,11 +8,9 @@
 
 package org.sosy_lab.cpachecker.pcc.strategy.parallel;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.concurrent.ThreadFactory;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -73,15 +71,12 @@ public class ReachedSetParallelStrategy extends ReachedSetStrategy {
     Thread[] helperThreads = new Thread[numThreads - 1];
     int length = reachedSet.length / numThreads;
 
-    ThreadFactory threadFactory =
-        new ThreadFactoryBuilder()
-            .setNameFormat("ReachedSetParallelStrategy-checkCertificate-%d")
-            .build();
+    Thread.Builder threadBuilder =
+        Thread.ofPlatform().name("ReachedSetParallelStrategy-checkCertificate-", 0);
     for (int i = 0; i < helper.length; i++) {
       shutdownNotifier.shutdownIfNecessary();
       helper[i] = new CheckingHelper(i * length, length, initialPrec);
-      helperThreads[i] = threadFactory.newThread(helper[i]);
-      helperThreads[i].start();
+      helperThreads[i] = threadBuilder.start(helper[i]);
     }
 
     Collection<? extends AbstractState> successors;

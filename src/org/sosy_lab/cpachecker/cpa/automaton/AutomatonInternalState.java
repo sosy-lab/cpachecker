@@ -133,7 +133,7 @@ public class AutomatonInternalState {
   /** Returns is it a state in that we will remain the rest of the time?. */
   public boolean isFinalSelfLoopingState() {
     if (transitions.size() == 1) {
-      AutomatonTransition tr = transitions.get(0);
+      AutomatonTransition tr = transitions.getFirst();
       if (tr.getFollowState().equals(this)) {
         return true;
       }

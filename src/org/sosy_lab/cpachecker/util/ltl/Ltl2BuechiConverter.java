@@ -178,7 +178,7 @@ public class Ltl2BuechiConverter {
       this.commands = ImmutableList.copyOf(commands);
     }
 
-    public String getToolName() {
+    String getToolName() {
       return toolName;
     }
 
@@ -186,7 +186,7 @@ public class Ltl2BuechiConverter {
       return "./" + getToolName();
     }
 
-    public ImmutableList<String> getArgs() {
+    ImmutableList<String> getArgs() {
       return commands;
     }
   }

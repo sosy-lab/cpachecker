@@ -15,12 +15,12 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Comparators;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Multiset;
-import com.google.common.collect.Ordering;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -47,8 +47,8 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -138,7 +138,7 @@ public final class MainCPAStatistics implements Statistics {
   private long analysisCpuTime = 0;
 
   private @Nullable Statistics cfaCreatorStatistics;
-  private @Nullable CFA cfa;
+  private @Nullable ImmutableCFA cfa;
   private @Nullable ConfigurableProgramAnalysis cpa;
 
   public MainCPAStatistics(
@@ -377,8 +377,8 @@ public final class MainCPAStatistics implements Statistics {
     StringBuilder buf = new StringBuilder();
     buf.append(node.getNodeNumber()).append("\n");
     for (AbstractState state : locationMapping.get(node)) {
-      if (state instanceof Graphable) {
-        buf.append(((Graphable) state).toDOTLabel());
+      if (state instanceof Graphable graphable) {
+        buf.append(graphable.toDOTLabel());
       }
     }
     return buf.toString();
@@ -448,8 +448,7 @@ public final class MainCPAStatistics implements Statistics {
 
         } else if (size == mostFrequentLocationCount) {
           // use node with the smallest number to have deterministic output
-          mostFrequentLocation =
-              Ordering.natural().min(mostFrequentLocation, location.getElement());
+          mostFrequentLocation = Comparators.min(mostFrequentLocation, location.getElement());
         }
       }
     }
@@ -563,7 +562,7 @@ public final class MainCPAStatistics implements Statistics {
     cfaCreatorStatistics = pCfaCreator.getStatistics();
   }
 
-  public void setCFA(CFA pCfa) {
+  public void setCFA(ImmutableCFA pCfa) {
     Preconditions.checkState(cfa == null);
     cfa = pCfa;
   }

@@ -43,7 +43,7 @@ when you decide to move or change the package.
 
 Compile a new shared library object by running `compile.sh` after setting
 the `JAVA_HOME` environment variable to your respective JVM, e.g.,
-`/usr/lib/jvm/java-17-openjdk-amd64`.
+`/usr/lib/jvm/java-21-openjdk-amd64`.
 
 Once compiled, the binary needs to be copied its final location:
 

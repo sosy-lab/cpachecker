@@ -54,10 +54,10 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
     logger = pLogger;
     innerAlgorithm = pAlgorithm;
 
-    if (!(pCpa instanceof ARGCPA)) {
+    if (!(pCpa instanceof ARGCPA aRGCPA)) {
       throw new InvalidConfigurationException("ARGCPA needed for RestartWithConditionsAlgorithm");
     }
-    cpa = (ARGCPA) pCpa;
+    cpa = aRGCPA;
     if (cpa.retrieveWrappedCpa(AssumptionStorageCPA.class) == null) {
       throw new InvalidConfigurationException(
           "AssumptionStorageCPA needed for RestartWithConditionsAlgorithm");

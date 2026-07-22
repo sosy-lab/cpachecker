@@ -8,11 +8,12 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 
-import com.google.common.collect.ImmutableSortedSet;
 import java.math.BigInteger;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -39,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -60,7 +62,7 @@ import org.sosy_lab.java_smt.api.Formula;
  * malloc() and free(), and for handling deferred allocations (calls to malloc() where the assumed
  * type of the memory is not yet known).
  */
-class DynamicMemoryHandler {
+public final class DynamicMemoryHandler {
 
   private static final String CALLOC_FUNCTION = "calloc";
 
@@ -156,7 +158,7 @@ class DynamicMemoryHandler {
     List<CExpression> parameters = e.getParameterExpressions();
 
     if (functionName.equals(CALLOC_FUNCTION) && parameters.size() == 2) {
-      CExpression param0 = parameters.get(0);
+      CExpression param0 = parameters.getFirst();
       CExpression param1 = parameters.get(1);
 
       // Build expression for param0 * param1 as new parameter.
@@ -170,13 +172,15 @@ class DynamicMemoryHandler {
       Long value1 = tryEvaluateExpression(param1);
       if (value0 != null && value1 != null) {
         long result =
-            AbstractExpressionValueVisitor.calculateBinaryOperation(
-                    new NumericValue(value0),
-                    new NumericValue(value1),
-                    multiplication,
-                    conv.machineModel,
-                    conv.logger)
-                .asLong(multiplication.getExpressionType());
+            ((NumericValue)
+                    AbstractExpressionValueVisitor.calculateBinaryOperation(
+                        new NumericValue(value0),
+                        new NumericValue(value1),
+                        multiplication,
+                        conv.machineModel,
+                        conv.logger))
+                .asLong(multiplication.getExpressionType())
+                .orElseThrow();
 
         CExpression newParam =
             new CIntegerLiteralExpression(
@@ -191,7 +195,7 @@ class DynamicMemoryHandler {
 
     } else if (parameters.size() != 1) {
       if (parameters.size() > 1 && conv.options.hasSuperfluousParameters(functionName)) {
-        parameters = Collections.singletonList(parameters.get(0));
+        parameters = Collections.singletonList(parameters.getFirst());
       } else {
         throw new UnrecognizedCodeException(
             String.format(
@@ -237,7 +241,7 @@ class DynamicMemoryHandler {
     // as it might refer to another function if this method is called from handleMemoryAllocation()
     if (parameters.size() != 1) {
       if (parameters.size() > 1 && conv.options.hasSuperfluousParameters(functionName)) {
-        parameters = Collections.singletonList(parameters.get(0));
+        parameters = Collections.singletonList(parameters.getFirst());
       } else {
         throw new UnrecognizedCodeException(
             String.format(
@@ -248,7 +252,7 @@ class DynamicMemoryHandler {
       }
     }
 
-    final CExpression parameter = parameters.get(0);
+    final CExpression parameter = parameters.getFirst();
     Long size = null;
     final CType newType;
     if (isSizeof(parameter)) {
@@ -258,9 +262,9 @@ class DynamicMemoryHandler {
       final CType operand1Type = getSizeofType(product.getOperand1());
       final CType operand2Type = getSizeofType(product.getOperand2());
       if (operand1Type != null) {
-        newType = new CArrayType(false, false, operand1Type, product.getOperand2());
+        newType = new CArrayType(CTypeQualifiers.NONE, operand1Type, product.getOperand2());
       } else if (operand2Type != null) {
-        newType = new CArrayType(false, false, operand2Type, product.getOperand1());
+        newType = new CArrayType(CTypeQualifiers.NONE, operand2Type, product.getOperand1());
       } else {
         throw new UnrecognizedCodeException(
             "Can't determine type for internal memory allocation", edge, e);
@@ -279,7 +283,7 @@ class DynamicMemoryHandler {
         } else {
           length = parameter;
         }
-        newType = new CArrayType(false, false, CVoidType.VOID, length);
+        newType = new CArrayType(CTypeQualifiers.NONE, CVoidType.VOID, length);
       } else {
         newType = null;
       }
@@ -300,8 +304,7 @@ class DynamicMemoryHandler {
             edge);
     Formula address;
     if (newType != null) {
-      final String newBase =
-          makeAllocVariableName(functionName, newType, pts.getFreshAllocationId());
+      final PointerBase newBase = makeAllocBase(functionName, newType, pts.getFreshAllocationId());
       address =
           makeAllocation(
               conv.options.isSuccessfulZallocFunctionName(functionName),
@@ -309,8 +312,8 @@ class DynamicMemoryHandler {
               newBase,
               Optional.of(sizeExp));
     } else {
-      final String newBase =
-          makeAllocVariableName(functionName, CVoidType.VOID, pts.getFreshAllocationId());
+      final PointerBase newBase =
+          makeAllocBase(functionName, CVoidType.VOID, pts.getFreshAllocationId());
       pts.addNextBaseAddressConstraints(newBase, null, sizeExp, true, constraints);
       pts.addTemporaryDeferredAllocation(
           conv.options.isSuccessfulZallocFunctionName(functionName),
@@ -322,8 +325,7 @@ class DynamicMemoryHandler {
                           parameter.getExpressionType(),
                           BigInteger.valueOf(s))),
           newBase);
-      address =
-          conv.makeConstant(PointerTargetSet.getBaseName(newBase), CPointerType.POINTER_TO_VOID);
+      address = conv.makeConstant(newBase.formulaEncoding(), CPointerType.POINTER_TO_VOID);
       constraints.addConstraint(
           conv.fmgr.makeGreaterThan(
               address, conv.fmgr.makeNumber(typeHandler.getPointerType(), 0L), true));
@@ -357,13 +359,12 @@ class DynamicMemoryHandler {
     if (errorConditions.isEnabled()) {
       final Formula operand =
           expressionVisitor.asValueFormula(
-              parameters.get(0).accept(expressionVisitor),
-              typeHandler.getSimplifiedType(parameters.get(0)));
+              parameters.getFirst().accept(expressionVisitor),
+              typeHandler.getSimplifiedType(parameters.getFirst()));
       BooleanFormula validFree = conv.fmgr.makeEqual(operand, conv.nullPointer);
 
-      for (String base : pts.getAllBases()) {
-        Formula baseF =
-            conv.makeBaseAddress(PointerTargetSet.getBaseName(base), CPointerType.POINTER_TO_VOID);
+      for (PointerBase base : pts.getAllBases()) {
+        Formula baseF = conv.makeBaseAddress(base, CPointerType.POINTER_TO_VOID);
         validFree = conv.bfmgr.or(validFree, conv.fmgr.makeEqual(operand, baseF));
       }
       errorConditions.addInvalidFreeCondition(conv.bfmgr.not(validFree));
@@ -377,7 +378,7 @@ class DynamicMemoryHandler {
    *
    * @param isZeroing A flag indicating if the variable is zeroing.
    * @param type The type.
-   * @param base The name of the base.
+   * @param base The base.
    * @param pSize An expression for the size in bytes of the new base. If absent, this was a
    *     previously deferred base.
    * @return A formula for the memory allocation.
@@ -385,7 +386,10 @@ class DynamicMemoryHandler {
    * @throws InterruptedException If the execution gets interrupted.
    */
   private Formula makeAllocation(
-      final boolean isZeroing, final CType type, final String base, final Optional<Formula> pSize)
+      final boolean isZeroing,
+      final CType type,
+      final PointerBase base,
+      final Optional<Formula> pSize)
       throws UnrecognizedCodeException, InterruptedException {
     final Formula result = conv.makeBaseAddress(base, type);
     if (isZeroing) {
@@ -404,7 +408,7 @@ class DynamicMemoryHandler {
               CNumericTypes.SIGNED_CHAR,
               AliasedLocation.ofAddress(result),
               Value.ofValue(
-                  conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(CNumericTypes.SIGNED_CHAR), 0)),
+                  conv.fmgr.makeNumber(conv.getFormulaTypeFromType(CNumericTypes.SIGNED_CHAR), 0)),
               true,
               null,
               conv.bfmgr.makeTrue(),
@@ -435,35 +439,37 @@ class DynamicMemoryHandler {
           addAllFields(memberType);
         }
       }
-    } else if (type instanceof CArrayType) {
-      final CType elementType = checkIsSimplified(((CArrayType) type).getType());
+    } else if (type instanceof CArrayType cArrayType) {
+      final CType elementType = checkIsSimplified(cArrayType.getType());
       addAllFields(elementType);
     }
   }
 
   /**
-   * Creates a name for an allocation.
+   * Creates a base for an allocation.
    *
    * @param functionName The name of the function.
    * @param type The type of the function.
    * @param allocationId A unique ID for this allocation
    * @return A name for allocations.
    */
-  private String makeAllocVariableName(
+  private PointerBase makeAllocBase(
       final String functionName, final CType type, final int allocationId) {
-    return MALLOC_INDEX_SEPARATOR
-        + functionName
-        + "_"
-        + typeHandler.getPointerAccessNameForType(type)
-        + MALLOC_INDEX_SEPARATOR
-        + allocationId;
+    return new PointerBase(
+        MALLOC_INDEX_SEPARATOR
+            + functionName
+            + "_"
+            + typeHandler.getPointerAccessNameForType(type)
+            + MALLOC_INDEX_SEPARATOR
+            + allocationId);
   }
 
   /**
-   * Checks whether a given (non-empty) string is one that could be returned by {@link
-   * #makeAllocVariableName(String, CType, int)}.
+   * Checks whether a given base is one that could be returned by {@link #makeAllocBase(String,
+   * CType, int)}.
    */
-  static boolean isAllocVariableName(String name) {
+  public static boolean isAllocBase(PointerBase base) {
+    String name = base.name();
     // Check could be stricter, but should reliably distinguish everything returned from
     // makeAllocVariableName from other bases anyway.
     return name.charAt(0) == MALLOC_INDEX_SEPARATOR && name.lastIndexOf(MALLOC_INDEX_SEPARATOR) > 2;
@@ -476,8 +482,8 @@ class DynamicMemoryHandler {
    * @return The value, if the expression is an integer literal, or {@code null}
    */
   private static @Nullable Long tryEvaluateExpression(CExpression e) {
-    if (e instanceof CIntegerLiteralExpression) {
-      return ((CIntegerLiteralExpression) e).getValue().longValueExact();
+    if (e instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
+      return cIntegerLiteralExpression.getValue().longValueExact();
     }
     return null;
   }
@@ -489,10 +495,10 @@ class DynamicMemoryHandler {
    * @return True, if the expression is a {@code sizeof} expression, false otherwise.
    */
   private static boolean isSizeof(final CExpression e) {
-    return (e instanceof CUnaryExpression
-            && ((CUnaryExpression) e).getOperator() == UnaryOperator.SIZEOF)
-        || (e instanceof CTypeIdExpression
-            && ((CTypeIdExpression) e).getOperator() == TypeIdOperator.SIZEOF);
+    return (e instanceof CUnaryExpression cUnaryExpression
+            && cUnaryExpression.getOperator() == UnaryOperator.SIZEOF)
+        || (e instanceof CTypeIdExpression cTypeIdExpression
+            && cTypeIdExpression.getOperator() == TypeIdOperator.SIZEOF);
   }
 
   /**
@@ -503,10 +509,9 @@ class DynamicMemoryHandler {
    *     otherwise.
    */
   private static boolean isSizeofMultiple(final CExpression e) {
-    return e instanceof CBinaryExpression
-        && ((CBinaryExpression) e).getOperator() == BinaryOperator.MULTIPLY
-        && (isSizeof(((CBinaryExpression) e).getOperand1())
-            || isSizeof(((CBinaryExpression) e).getOperand2()));
+    return e instanceof CBinaryExpression cBinaryExpression
+        && cBinaryExpression.getOperator() == BinaryOperator.MULTIPLY
+        && (isSizeof(cBinaryExpression.getOperand1()) || isSizeof(cBinaryExpression.getOperand2()));
   }
 
   /**
@@ -516,12 +521,12 @@ class DynamicMemoryHandler {
    * @return The size of the expression.
    */
   private @Nullable CType getSizeofType(CExpression e) {
-    if (e instanceof CUnaryExpression
-        && ((CUnaryExpression) e).getOperator() == UnaryOperator.SIZEOF) {
-      return typeHandler.getSimplifiedType(((CUnaryExpression) e).getOperand());
-    } else if (e instanceof CTypeIdExpression
-        && ((CTypeIdExpression) e).getOperator() == TypeIdOperator.SIZEOF) {
-      return typeHandler.simplifyType(((CTypeIdExpression) e).getType());
+    if (e instanceof CUnaryExpression cUnaryExpression
+        && cUnaryExpression.getOperator() == UnaryOperator.SIZEOF) {
+      return typeHandler.getSimplifiedType(cUnaryExpression.getOperand());
+    } else if (e instanceof CTypeIdExpression cTypeIdExpression
+        && cTypeIdExpression.getOperator() == TypeIdOperator.SIZEOF) {
+      return typeHandler.simplifyType(cTypeIdExpression.getType());
     } else {
       return null;
     }
@@ -575,8 +580,7 @@ class DynamicMemoryHandler {
       }
 
       return new CArrayType(
-          false,
-          false,
+          CTypeQualifiers.NONE,
           type,
           new CIntegerLiteralExpression(
               sizeLiteral.getFileLocation(),
@@ -586,8 +590,8 @@ class DynamicMemoryHandler {
   }
 
   private static CType unwrapPointers(final CType type) {
-    if (type instanceof CPointerType) {
-      return unwrapPointers(((CPointerType) type).getType());
+    if (type instanceof CPointerType cPointerType) {
+      return unwrapPointers(cPointerType.getType());
     }
     return type;
   }
@@ -620,7 +624,7 @@ class DynamicMemoryHandler {
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException if the execution was interrupted.
    */
-  private void handleDeferredAllocationTypeRevelation(final String pointer, final CType type)
+  private void handleDeferredAllocationTypeRevelation(final PointerBase pointer, final CType type)
       throws UnrecognizedCodeException, InterruptedException {
     for (DeferredAllocation d : pts.removeDeferredAllocations(pointer)) {
       makeAllocation(
@@ -647,8 +651,8 @@ class DynamicMemoryHandler {
       final CRightHandSide rhs,
       final Expression rhsExpression,
       final CType lhsType,
-      final Map<String, CType> lhsLearnedPointerTypes,
-      final Map<String, CType> rhsLearnedPointerTypes)
+      final Map<PointerBase, CType> lhsLearnedPointerTypes,
+      final Map<PointerBase, CType> rhsLearnedPointerTypes)
       throws UnrecognizedCodeException, InterruptedException {
     // Handle allocations: reveal the actual type form the LHS type or defer the allocation until
     // later
@@ -665,9 +669,11 @@ class DynamicMemoryHandler {
       // allocation address)
       for (final String mangledVariable : rhsVariables) {
         final String nameWithoutIndex = FormulaManagerView.parseName(mangledVariable).getFirst();
-        if (PointerTargetSet.isBaseName(nameWithoutIndex)) {
+        final Optional<PointerBase> potentialBase =
+            PointerBase.fromFormulaEncoding(nameWithoutIndex);
+        if (potentialBase.isPresent()) {
           assert FormulaManagerView.parseName(mangledVariable).getSecond().isEmpty();
-          final String variable = PointerTargetSet.getBase(nameWithoutIndex);
+          final PointerBase variable = potentialBase.orElseThrow();
           if (pts.isTemporaryDeferredAllocationPointer(variable)) {
             if (!isAllocation) {
               if (CExpressionVisitorWithPointerAliasing.isRevealingType(lhsType)) {
@@ -675,7 +681,7 @@ class DynamicMemoryHandler {
                 handleDeferredAllocationTypeRevelation(variable, lhsType);
               } else {
                 // We can defer the allocation and start tracking the variable in the LHS
-                final Optional<String> lhsPointer =
+                final Optional<PointerBase> lhsPointer =
                     lhs.accept(new PointerApproximatingVisitor(typeHandler, edge));
                 lhsPointer.ifPresent(
                     s -> {
@@ -703,7 +709,7 @@ class DynamicMemoryHandler {
             }
           }
         } else {
-          assert !pts.isTemporaryDeferredAllocationPointer(mangledVariable);
+          assert !pts.isTemporaryDeferredAllocationPointer(new PointerBase(mangledVariable));
         }
       }
     }
@@ -731,8 +737,8 @@ class DynamicMemoryHandler {
       final CLeftHandSide lhs,
       final CRightHandSide rhs,
       final CType lhsType,
-      final Map<String, CType> lhsLearnedPointerTypes,
-      final Map<String, CType> rhsLearnedPointerTypes)
+      final Map<PointerBase, CType> lhsLearnedPointerTypes,
+      final Map<PointerBase, CType> rhsLearnedPointerTypes)
       throws UnrecognizedCodeException, InterruptedException {
     if (!(lhsType instanceof CPointerType || lhsType instanceof CArrayType)) {
       return;
@@ -762,16 +768,17 @@ class DynamicMemoryHandler {
         new PointerApproximatingVisitor(typeHandler, edge);
 
     // Reveal the type from usages (type casts, comparisons) in both sides
-    for (Map.Entry<String, CType> entry : lhsLearnedPointerTypes.entrySet()) {
+    for (Map.Entry<PointerBase, CType> entry : lhsLearnedPointerTypes.entrySet()) {
       handleDeferredAllocationTypeRevelation(entry.getKey(), entry.getValue());
     }
-    for (Map.Entry<String, CType> entry : rhsLearnedPointerTypes.entrySet()) {
+    for (Map.Entry<PointerBase, CType> entry : rhsLearnedPointerTypes.entrySet()) {
       handleDeferredAllocationTypeRevelation(entry.getKey(), entry.getValue());
     }
 
     // Reveal the type from the assignment itself (i.e. lhs from rhs and vice versa)
     if (toHandle.isPresent()) {
-      Optional<String> s = toHandle.orElseThrow().getFirst().accept(pointerApproximatingVisitor);
+      Optional<PointerBase> s =
+          toHandle.orElseThrow().getFirst().accept(pointerApproximatingVisitor);
       if (s.isPresent()
           && !lhsLearnedPointerTypes.containsKey(s.orElseThrow())
           && !rhsLearnedPointerTypes.containsKey(s.orElseThrow())) {
@@ -779,13 +786,13 @@ class DynamicMemoryHandler {
       }
     }
 
-    if (lhs instanceof CIdExpression) {
+    if (lhs instanceof CIdExpression cIdExpression) {
       // If LHS is a variable, remove previous points-to bindings containing it
-      pts.removeDeferredAllocationPointer(((CIdExpression) lhs).getDeclaration().getQualifiedName())
+      pts.removeDeferredAllocationPointer(new PointerBase(cIdExpression.getDeclaration()))
           .forEach(d -> handleDeferredAllocationPointerRemoval(lhs));
     } else {
       // Else try to remove bindings and only actually remove if no dangling objects arises
-      Optional<String> lhsPointer = lhs.accept(pointerApproximatingVisitor);
+      Optional<PointerBase> lhsPointer = lhs.accept(pointerApproximatingVisitor);
       if (lhsPointer.isPresent()
           && pts.canRemoveDeferredAllocationPointer(lhsPointer.orElseThrow())) {
         pts.removeDeferredAllocationPointer(lhsPointer.orElseThrow());
@@ -793,7 +800,7 @@ class DynamicMemoryHandler {
     }
 
     // And now propagate points-to bindings from the RHS to the LHS
-    Optional<String> l = lhs.accept(pointerApproximatingVisitor);
+    Optional<PointerBase> l = lhs.accept(pointerApproximatingVisitor);
     if (l.isPresent() && rhs != null) {
       rhs.accept(pointerApproximatingVisitor)
           .ifPresent(r -> pts.addDeferredAllocationPointer(l.orElseThrow(), r));
@@ -809,9 +816,9 @@ class DynamicMemoryHandler {
    * @throws InterruptedException If the execution gets interrupted.
    */
   void handleDeferredAllocationsInAssume(
-      final CExpression e, final Map<String, CType> learnedPointerTypes)
+      final CExpression e, final Map<PointerBase, CType> learnedPointerTypes)
       throws UnrecognizedCodeException, InterruptedException {
-    for (Map.Entry<String, CType> entry : learnedPointerTypes.entrySet()) {
+    for (Map.Entry<PointerBase, CType> entry : learnedPointerTypes.entrySet()) {
       handleDeferredAllocationTypeRevelation(entry.getKey(), entry.getValue());
     }
   }
@@ -840,8 +847,11 @@ class DynamicMemoryHandler {
   void handleDeferredAllocationInFunctionExit(final String function) {
     for (String v :
         CFAUtils.filterVariablesOfFunction(
-            ImmutableSortedSet.copyOf(pts.getDeferredAllocationPointers()), function)) {
-      if (!pts.removeDeferredAllocationPointer(v).isEmpty()) {
+            from(pts.getDeferredAllocationPointers())
+                .transform(PointerBase::name)
+                .toSortedSet(Comparator.naturalOrder()),
+            function)) {
+      if (!pts.removeDeferredAllocationPointer(new PointerBase(v)).isEmpty()) {
         conv.logger.logfOnce(
             Level.WARNING,
             "%s: Destroying the void* pointer %s produces garbage or the memory pointed by it is"

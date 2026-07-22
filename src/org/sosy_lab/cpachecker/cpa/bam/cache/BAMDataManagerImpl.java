@@ -14,7 +14,6 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
@@ -25,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.SequencedMap;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -66,7 +66,8 @@ public class BAMDataManagerImpl implements BAMDataManager {
   private final Multimap<AbstractState, AbstractState> reducedToNonReduced =
       LinkedHashMultimap.create();
 
-  private final Map<AbstractState, BlockExitData> expandedStateToBlockExit = new LinkedHashMap<>();
+  private final SequencedMap<AbstractState, BlockExitData> expandedStateToBlockExit =
+      new LinkedHashMap<>();
 
   private static class BlockExitData {
 
@@ -194,7 +195,7 @@ public class BAMDataManagerImpl implements BAMDataManager {
       lst.add(state);
       state = data.reducedState;
     }
-    return Lists.reverse(lst);
+    return lst.reversed();
   }
 
   /**

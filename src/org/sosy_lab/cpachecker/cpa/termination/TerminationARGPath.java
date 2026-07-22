@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * Adds intermediate {@link CFAEdge}s created by {@link TerminationTransferRelation} during the
@@ -39,7 +38,7 @@ public class TerminationARGPath extends ARGPath {
   private final TerminationLoopInformation terminationInformation;
 
   // Construct full path at most once.
-  @Nullable private List<CFAEdge> terminationFullPath = null;
+  @Nullable private ImmutableList<CFAEdge> terminationFullPath = null;
 
   public TerminationARGPath(
       ARGPath pBasicArgPath, TerminationLoopInformation pTerminationInformation) {
@@ -48,7 +47,7 @@ public class TerminationARGPath extends ARGPath {
   }
 
   @Override
-  public List<CFAEdge> getFullPath() {
+  public ImmutableList<CFAEdge> getFullPath() {
     if (terminationFullPath != null) {
       return terminationFullPath;
     }
@@ -93,7 +92,7 @@ public class TerminationARGPath extends ARGPath {
         // we assume a linear chain of edges from 'prev' to 'succ'
         while (!Objects.equals(curNode, nextNode)) {
           FluentIterable<CFAEdge> leavingEdges =
-              CFAUtils.leavingEdges(curNode).filter(not(in(intermediateTermiantionEdges)));
+              curNode.getLeavingEdges().filter(not(in(intermediateTermiantionEdges)));
           if (!(leavingEdges.size() == 1 && curNode.getLeavingSummaryEdge() == null)) {
             return ImmutableList.of();
           }

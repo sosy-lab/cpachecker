@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatDouble;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -36,10 +37,11 @@ public class ConstraintsStatistics implements Statistics {
       new StatTimer(StatKind.SUM, "Time for independent computation");
   public final StatTimer timeForDefinitesComputation =
       new StatTimer(StatKind.SUM, "Time for resolving definites");
+  public StatCounter definiteAssignmentsFound =
+      new StatCounter("Number of definite assignments found");
   public final StatTimer timeForModelReuse =
       new StatTimer(StatKind.SUM, "Time for model re-use attempts");
-  public final StatTimer timeForSatCheck = new StatTimer(StatKind.SUM, "Time for SMT check");
-  public final StatCounter modelReuseSuccesses = new StatCounter("Successful model re-uses");
+  public final StatTimer timeForSatCheck = new StatTimer(StatKind.SUM, "Time for SMT checks");
 
   public final StatCounter cacheLookups = new StatCounter("Cache lookups");
   public final StatTimer directCacheLookupTime =
@@ -60,6 +62,27 @@ public class ConstraintsStatistics implements Statistics {
 
   public final StatCounter constraintsRemovedInMerge =
       new StatCounter("Number of constraints removed in merge");
+  public final StatCounter distinctFreshProversUsed =
+      new StatCounter("Number of times a new prover was used for a SAT check");
+  public final StatCounter persistentProverUsed =
+      new StatCounter("Number of times the persistent prover was used for a SAT check");
+  public final StatCounter persistentProverUsedIncrementallyFormulasPopdAndRepushed =
+      new StatCounter(
+          "Number of times the persistent provers stack removed constraints and re-pushed them to"
+              + " the stack because a constraint below had to be removed");
+  public final StatCounter persistentProverUsedIncrementallyPushedWithoutPop =
+      new StatCounter(
+          "Number of times the persistent provers stack pushed new constraints to the top of the"
+              + " stack without removing any constraints");
+  public final StatCounter persistentProverUsedIncrementallyFormulasPopdAndNotRepushed =
+      new StatCounter(
+          "Number of times the persistent provers stack removed constraints from the top of the"
+              + " stack and then pushed new constraints (that were not removed in the pop)");
+  public StatDouble reuseRatio =
+      new StatDouble(
+          StatKind.AVG,
+          "Ratio of prover reuses (number of reused constraints / number of constraints)");
+  public StatTimer timeForProverPreparation = new StatTimer(StatKind.SUM, "Time for stack setup");
 
   private final String name;
 
@@ -88,10 +111,13 @@ public class ConstraintsStatistics implements Statistics {
         .beginLevel()
         .putIfUpdatedAtLeastOnce(timeForIndependentComputation)
         .putIfUpdatedAtLeastOnce(timeForModelReuse)
+        .put("Number of SMT checks", timeForSatCheck.getUpdateCount())
         .putIfUpdatedAtLeastOnce(timeForSatCheck)
         .putIfUpdatedAtLeastOnce(timeForDefinitesComputation)
         .endLevel()
-        .putIfUpdatedAtLeastOnce(modelReuseSuccesses)
+        .putIfUpdatedAtLeastOnce(definiteAssignmentsFound)
+        .put(timeForProverPreparation)
+        .put(reuseRatio)
         .spacer() // Direct constraints solver cache
         .putIf(cacheLookups.getUpdateCount() > 0, cacheLookups)
         .putIf(cacheLookups.getUpdateCount() > 0, directCacheHits)
@@ -110,7 +136,13 @@ public class ConstraintsStatistics implements Statistics {
         .spacer() // Precision adjustment
         .putIfUpdatedAtLeastOnce(constraintNumberAfterAdj)
         .putIfUpdatedAtLeastOnce(constraintNumberBeforeAdj)
-        .putIfUpdatedAtLeastOnce(adjustmentTime);
+        .putIfUpdatedAtLeastOnce(adjustmentTime)
+        .put(constraintsRemovedInMerge)
+        .put(distinctFreshProversUsed)
+        .put(persistentProverUsed)
+        .put(persistentProverUsedIncrementallyFormulasPopdAndRepushed)
+        .put(persistentProverUsedIncrementallyFormulasPopdAndNotRepushed)
+        .put(persistentProverUsedIncrementallyPushedWithoutPop);
   }
 
   @Nullable

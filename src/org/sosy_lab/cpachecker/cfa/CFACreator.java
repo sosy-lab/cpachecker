@@ -34,6 +34,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.NavigableMap;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -66,6 +68,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.export.CFAToPixelsWriter;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
@@ -78,7 +82,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.CParsingFailureRequiringPreprocessingException;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.AtExitTransformer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFADeclarationMover;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
@@ -104,6 +110,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.exceptions.SvLibParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
@@ -124,20 +131,33 @@ public class CFACreator {
   public static final String VALID_C_FUNCTION_NAME_PATTERN = "[_a-zA-Z][_a-zA-Z0-9]*";
   public static final String VALID_JAVA_FUNCTION_NAME_PATTERN = ".*"; // TODO
 
+  private enum PreprocessorUsage {
+    FALSE,
+    TRUE,
+    AUTO
+  }
+
   @Option(
       secure = true,
       name = "parser.usePreprocessor",
       description =
-          "For C files, run the preprocessor on them before parsing. Note that all line numbers"
-              + " printed by CPAchecker will refer to the pre-processed file, not the original"
-              + " input file.")
-  private boolean usePreprocessor = false;
+          "For C files, run an external preprocessor on them before parsing. Note that all line"
+              + " numbers printed by CPAchecker will refer to the pre-processed file, not the"
+              + " original input file. In case auto detection is enabled, the preprocessor will"
+              + " only be used in case the program contains system headers. Furthermore, note that"
+              + " this option only enables an external pre-processor for C files, whose primary"
+              + " responsibility is resolving system headers and includes.We always make use of the"
+              + " built-in pre-processor of the Eclipse CDT parser, which already handles macros"
+              + " and comments.")
+  private PreprocessorUsage usePreprocessor = PreprocessorUsage.AUTO;
 
   @Option(
       secure = true,
       name = "parser.useClang",
       description =
-          "For C files, convert to LLVM IR with clang first and then use the LLVM parser.")
+          "For C files, convert to LLVM IR with clang first and then use the LLVM parser (currently"
+              + " unsupported).")
+  @Deprecated
   private boolean useClang = false;
 
   @Option(
@@ -317,9 +337,11 @@ public class CFACreator {
   @Option(
       secure = true,
       description =
-          "Programming language of the input program. If not given explicitly, "
-              + "auto-detection will occur")
-  // keep option name in sync with {@link CPAMain#language}, value might differ
+          "Programming language of the input program. If not given explicitly, auto-detection"
+              + " will occur. LLVM IR is currently unsupported as input (cf."
+              + " https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356).")
+  // keep option name in sync with {@link CPAMain#language} and {@link
+  // ConfigurationFileChecks.OptionsWithSpecialHandlingInTest#language}, value might differ
   private Language language = Language.C;
 
   private Language inputLanguage = Language.C;
@@ -330,6 +352,9 @@ public class CFACreator {
 
   private final LogManager logger;
   private final Parser parser;
+  // Contains a parser that is used as a backup in case the main parser failed due to preprocessing
+  // Only applies when verifying C programs with auto-detected preprocessing.
+  private Optional<Parser> backupParserForPreprocessing = Optional.empty();
   private final ShutdownNotifier shutdownNotifier;
   private static final String EXAMPLE_JAVA_METHOD_NAME =
       """
@@ -401,15 +426,15 @@ public class CFACreator {
   private final CFACreatorStatistics stats;
   private final Configuration config;
 
-  public CFACreator(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier)
+  public CFACreator(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
 
-    config.inject(this);
+    pConfig.inject(this);
 
-    this.config = config;
-    this.logger = logger;
+    this.config = pConfig;
+    this.logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
-    stats = new CFACreatorStatistics(logger);
+    stats = new CFACreatorStatistics(pLogger);
 
     stats.parserInstantiationTime.start();
     String regExPattern;
@@ -421,7 +446,7 @@ public class CFACreator {
           throw new InvalidConfigurationException(
               "Entry function for java programs must match pattern " + regExPattern);
         }
-        parser = Parsers.getJavaParser(logger, config, mainFunctionName);
+        parser = Parsers.getJavaParser(pLogger, pConfig, mainFunctionName);
       }
       case C -> {
         regExPattern = "^" + VALID_C_FUNCTION_NAME_PATTERN + "$";
@@ -431,32 +456,48 @@ public class CFACreator {
         }
         CParser outerParser =
             CParser.Factory.getParser(
-                logger, CParser.Factory.getOptions(config), machineModel, shutdownNotifier);
+                pLogger, CParser.Factory.getOptions(pConfig), machineModel, shutdownNotifier);
 
-        outerParser =
-            new CParserWithLocationMapper(
-                config, logger, outerParser, readLineDirectives || usePreprocessor || useClang);
+        if (usePreprocessor == PreprocessorUsage.TRUE) {
+          // always preprocess, always read line directives
+          outerParser =
+              new CParserWithPreprocessor(
+                  new CParserWithLocationMapper(pConfig, pLogger, outerParser, true),
+                  new CPreprocessor(pConfig, pLogger, machineModel));
 
-        if (usePreprocessor) {
-          CPreprocessor preprocessor = new CPreprocessor(config, logger);
-          outerParser = new CParserWithPreprocessor(outerParser, preprocessor);
+        } else {
+          // on first try, do not preprocess, read line directives only if explicitly requested
+          outerParser =
+              new CParserWithLocationMapper(
+                  pConfig, pLogger, outerParser, readLineDirectives || useClang);
+
+          if (usePreprocessor == PreprocessorUsage.AUTO) {
+            // on second try, always preprocess, always read line directives
+            backupParserForPreprocessing =
+                Optional.of(
+                    new CParserWithPreprocessor(
+                        new CParserWithLocationMapper(pConfig, pLogger, outerParser, true),
+                        new CPreprocessor(pConfig, pLogger, machineModel)));
+          }
         }
 
         if (useClang) {
-          if (usePreprocessor) {
-            logger.log(
+          if (usePreprocessor != PreprocessorUsage.FALSE) {
+            pLogger.log(
                 Level.WARNING, "Option --preprocess is ignored when used with option -clang");
           }
-          ClangPreprocessor clang = new ClangPreprocessor(config, logger);
-          parser = LlvmParserWithClang.Factory.getParser(clang, logger, machineModel);
+          parser = Parsers.getLlvmClangParser(pConfig, pLogger, machineModel);
         } else {
           parser = outerParser;
         }
       }
       case LLVM -> {
-        parser = Parsers.getLlvmParser(logger, machineModel);
+        parser = Parsers.getLlvmParser(pLogger, machineModel);
         language = Language.C;
         // After parsing, we will have a CFA representing C code
+      }
+      case SVLIB -> {
+        parser = Parsers.getSvLibParser(logger, config, machineModel, shutdownNotifier);
       }
       default -> throw new AssertionError();
     }
@@ -476,7 +517,7 @@ public class CFACreator {
    *     configuration is not found.
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
    */
-  public CFA parseSourceAndCreateCFA(String program)
+  public ImmutableCFA parseSourceAndCreateCFA(String program)
       throws InvalidConfigurationException, ParserException, InterruptedException {
 
     stats.totalTime.start();
@@ -485,9 +526,7 @@ public class CFACreator {
       FunctionEntryNode mainFunction = parseResult.functions().get(mainFunctionName);
       assert mainFunction != null : "program lacks main function.";
 
-      CFA cfa = createCFA(parseResult, mainFunction);
-
-      return cfa;
+      return createCFA(parseResult, mainFunction);
     } finally {
       stats.totalTime.stop();
     }
@@ -503,7 +542,7 @@ public class CFACreator {
    * @throws IOException If an I/O error occurs.
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
    */
-  public CFA parseFileAndCreateCFA(List<String> sourceFiles)
+  public ImmutableCFA parseFileAndCreateCFA(List<String> sourceFiles)
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
     Preconditions.checkArgument(
@@ -513,8 +552,25 @@ public class CFACreator {
     try {
       // FIRST, parse file(s) and create CFAs for each function
       logger.log(Level.FINE, "Starting parsing of file(s)");
-
-      final ParseResult c = parseToCFAs(sourceFiles);
+      ParseResult c;
+      try {
+        c = parseToCFAs(sourceFiles);
+      } catch (CParsingFailureRequiringPreprocessingException e) {
+        if (backupParserForPreprocessing.isPresent()) {
+          logger.logDebugException(
+              e,
+              "Parsing failed with preprocessing disabled, trying "
+                  + "backup parser with preprocessing enabled");
+          logger.log(
+              Level.INFO,
+              "Parsing failed with preprocessing using an external "
+                  + "pre-processor disabled, now trying to parse "
+                  + "the code with usage of an external pre-processor.");
+          c = backupParserForPreprocessing.orElseThrow().parseFiles(sourceFiles);
+        } else {
+          throw e;
+        }
+      }
 
       logger.log(Level.FINE, "Parser Finished");
 
@@ -526,10 +582,11 @@ public class CFACreator {
           checkForAmbiguousMethod(mainFunction, mainFunctionName, c.functions());
         }
         case C -> mainFunction = getCMainFunction(sourceFiles, c.functions());
+        case SVLIB -> mainFunction = getSvLibMainFunction(c.functions());
         default -> throw new AssertionError();
       }
 
-      CFA cfa = createCFA(c, mainFunction);
+      ImmutableCFA cfa = createCFA(c, mainFunction);
 
       if (!commentPositions.isEmpty()) {
         SyntacticBlockStructureBuilder blockStructureBuilder =
@@ -545,6 +602,12 @@ public class CFACreator {
     } finally {
       stats.totalTime.stop();
     }
+  }
+
+  private FunctionEntryNode getSvLibMainFunction(
+      NavigableMap<String, FunctionEntryNode> pFunctions) {
+    String mainFunctioName = SvLibFunctionDeclaration.mainFunctionDeclaration().getName();
+    return pFunctions.get(mainFunctioName);
   }
 
   @VisibleForTesting
@@ -587,7 +650,7 @@ public class CFACreator {
                 "Method " + mainFunction + " not found.\n" + EXAMPLE_JAVA_METHOD_NAME));
   }
 
-  private CFA createCFA(ParseResult pParseResult, FunctionEntryNode pMainFunction)
+  private ImmutableCFA createCFA(ParseResult pParseResult, FunctionEntryNode pMainFunction)
       throws InvalidConfigurationException, InterruptedException, ParserException {
 
     FunctionEntryNode mainFunction = pMainFunction;
@@ -681,6 +744,10 @@ public class CFACreator {
       cfa.setAstCfaRelation(pParseResult.astStructure().orElseThrow());
     }
 
+    if (pParseResult.svLibCfaMetadata().isPresent()) {
+      cfa.setSvLibCfaMetadata(pParseResult.svLibCfaMetadata().orElseThrow());
+    }
+
     final ImmutableCFA immutableCFA = cfa.immutableCopy();
 
     if (pParseResult.blocks().isPresent() && pParseResult.commentLocations().isPresent()) {
@@ -747,6 +814,10 @@ public class CFACreator {
       switch (language) {
         case JAVA -> throw new JParserException("No methods found in program");
         case C -> throw new CParserException("No functions found in program");
+        case SVLIB ->
+            throw new SvLibParserException(
+                "No verification call found in the SV-LIB program. Please check the syntax of your"
+                    + " SV-LIB program.");
         default -> throw new AssertionError();
       }
     }
@@ -832,14 +903,13 @@ public class CFACreator {
     // for all possible edges
     for (CFAEdge edge : CFAUtils.allEdges(pCfa)) {
       // check for creation of new thread
-      if (edge instanceof AStatementEdge) {
-        final AStatement statement = ((AStatementEdge) edge).getStatement();
-        if (statement instanceof AFunctionCall) {
+      if (edge instanceof AStatementEdge aStatementEdge) {
+        final AStatement statement = aStatementEdge.getStatement();
+        if (statement instanceof AFunctionCall aFunctionCall) {
           final AExpression functionNameExp =
-              ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-          if (functionNameExp instanceof AIdExpression) {
-            if (ThreadingTransferRelation.THREAD_START.equals(
-                ((AIdExpression) functionNameExp).getName())) {
+              aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+          if (functionNameExp instanceof AIdExpression aIdExpression) {
+            if (ThreadingTransferRelation.THREAD_START.equals(aIdExpression.getName())) {
               return true;
             }
           }
@@ -985,7 +1055,7 @@ public class CFACreator {
 
     } else if (sourceFiles.size() == 1) {
       // get the AAA part out of a filename like test/program/AAA.cil.c
-      Path path = Path.of(sourceFiles.get(0)).getFileName();
+      Path path = Path.of(sourceFiles.getFirst()).getFileName();
       if (path != null) {
         String filename = path.toString(); // remove directory
 
@@ -1065,6 +1135,13 @@ public class CFACreator {
                 new CDeclarationEdge(rawSignature, d.getFileLocation(), cur, n, (CDeclaration) d);
             case JAVA ->
                 new JDeclarationEdge(rawSignature, d.getFileLocation(), cur, n, (JDeclaration) d);
+            case SVLIB ->
+                new SvLibDeclarationEdge(
+                    Objects.requireNonNull(rawSignature),
+                    d.getFileLocation(),
+                    cur,
+                    n,
+                    (SvLibDeclaration) d);
             default -> throw new AssertionError("unknown language");
           };
       CFACreationUtils.addEdgeUnconditionallyToCFA(newEdge);
@@ -1132,8 +1209,8 @@ public class CFACreator {
           // (e.g., "struct s;"), we cannot produce an initializer.
           // (Although there shouldn't be any variables of this type anyway.)
           CType type = v.getType().getCanonicalType();
-          if (!(type instanceof CElaboratedType)
-              || (((CElaboratedType) type).getKind() == ComplexTypeKind.ENUM)) {
+          if (!(type instanceof CElaboratedType cElaboratedType)
+              || (cElaboratedType.getKind() == ComplexTypeKind.ENUM)) {
             CInitializer initializer = CDefaults.forType(pMachineModel, type, v.getFileLocation());
             v.addInitializer(initializer);
             v =
@@ -1170,7 +1247,7 @@ public class CFACreator {
       @JsonProperty("name") @NonNull String name,
       @JsonProperty("simpleType") @NonNull CBasicType simpleType) {
 
-    public AVariableDeclarationExchange {
+    AVariableDeclarationExchange {
       checkNotNull(name);
       checkNotNull(simpleType);
     }

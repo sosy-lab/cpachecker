@@ -212,7 +212,7 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
     }
 
     reached.removeSubtree(
-        ((ARGState) reachedSet.getFirstState()).getChildren().iterator().next(),
+        ((ARGState) reachedSet.getFirstState()).getChildren().getFirst(),
         apronPrecision.withIncrement(increment),
         VariableTrackingPrecision.isMatchingCPAClass(ApronCPA.class));
 

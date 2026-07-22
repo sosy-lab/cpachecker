@@ -65,7 +65,7 @@ class BasicBlock {
   }
 
   public void write(Object pStatement) {
-    if (!(pStatement instanceof String) || !((String) pStatement).isEmpty()) {
+    if (!(pStatement instanceof String string) || !string.isEmpty()) {
       codeList.add(pStatement);
     }
   }
@@ -103,11 +103,11 @@ class BasicBlock {
     for (Object obj : codeList) {
       // check whether we have a simple statement
       // or a conditional statement
-      if (obj instanceof String) {
+      if (obj instanceof String string) {
         ret.append(indent);
-        ret.append((String) obj);
-      } else if (obj instanceof BasicBlock) {
-        ret.append(((BasicBlock) obj).getCode(indent));
+        ret.append(string);
+      } else if (obj instanceof BasicBlock basicBlock) {
+        ret.append(basicBlock.getCode(indent));
       } else {
         throw new AssertionError();
       }

@@ -99,11 +99,11 @@ final class PredicateForcedCovering implements ForcedCovering, StatisticsProvide
       throws InvalidConfigurationException {
     logger = pLogger;
 
-    if (!(pCpa instanceof ARGCPA)) {
+    if (!(pCpa instanceof ARGCPA aRGCPA)) {
       throw new InvalidConfigurationException(
           PredicateForcedCovering.class.getSimpleName() + " needs an ARGCPA");
     }
-    argCpa = (ARGCPA) pCpa;
+    argCpa = aRGCPA;
     stop = argCpa.getStopOperator();
 
     @SuppressWarnings("resource")
@@ -117,7 +117,8 @@ final class PredicateForcedCovering implements ForcedCovering, StatisticsProvide
             predicateCpa.getCfa().getVarClassification(),
             config,
             predicateCpa.getShutdownNotifier(),
-            pLogger);
+            pLogger,
+            /* pEnableCounterexampleAnalysis= */ false);
     fmgr = predicateCpa.getSolver().getFormulaManager();
     predAbsMgr = predicateCpa.getPredicateManager();
     impact = new ImpactUtility(config, fmgr, predAbsMgr);

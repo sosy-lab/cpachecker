@@ -70,8 +70,8 @@ class CReferencedFunctionsCollector {
       }
       case DeclarationEdge -> {
         CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
-        if (declaration instanceof CVariableDeclaration) {
-          visitDeclaration((CVariableDeclaration) declaration);
+        if (declaration instanceof CVariableDeclaration cVariableDeclaration) {
+          visitDeclaration(cVariableDeclaration);
         }
       }
       case ReturnStatementEdge -> {

@@ -78,8 +78,8 @@ public class ARGTransferRelation extends AbstractSingleWrapperTransferRelation {
       return pType.cast(this);
     } else if (pType.isAssignableFrom(transferRelation.getClass())) {
       return pType.cast(transferRelation);
-    } else if (transferRelation instanceof WrapperTransferRelation) {
-      return ((WrapperTransferRelation) transferRelation).retrieveWrappedTransferRelation(pType);
+    } else if (transferRelation instanceof WrapperTransferRelation wrapperTransferRelation) {
+      return wrapperTransferRelation.retrieveWrappedTransferRelation(pType);
     } else {
       return null;
     }

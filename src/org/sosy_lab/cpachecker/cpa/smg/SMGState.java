@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.SequencedMap;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
@@ -75,11 +76,11 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGIsLessOrEqual;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoin;
-import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentBiMap;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
+import org.sosy_lab.cpachecker.util.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, Graphable {
@@ -408,8 +409,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     }
     SMGObject target = pAddress.getObject();
     SMGExplicitValue offset = pAddress.getOffset();
-    if (target instanceof SMGRegion) {
-      SMGValue address = getAddress((SMGRegion) target, offset.getAsLong());
+    if (target instanceof SMGRegion sMGRegion) {
+      SMGValue address = getAddress(sMGRegion, offset.getAsLong());
       if (address == null) {
         return singletonList(
             SMGAddressValueAndState.of(
@@ -1301,8 +1302,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     // If the value represents an address, and the address is known,
     // add the necessary points-To edge.
-    if (pValue instanceof SMGAddressValue) {
-      SMGAddress address = ((SMGAddressValue) pValue).getAddress();
+    if (pValue instanceof SMGAddressValue sMGAddressValue) {
+      SMGAddress address = sMGAddressValue.getAddress();
 
       if (!address.isUnknown()) {
         addPointsToEdge(address.getObject(), address.getOffset().getAsLong(), value);
@@ -1535,38 +1536,38 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    switch (pProperty) {
+    return switch (pProperty) {
       case HAS_LEAKS -> {
         if (errorInfo.hasMemoryLeak()) {
           // TODO: Give more information
           issueMemoryError("Memory leak found", false);
-          return true;
+          yield true;
         }
-        return false;
+        yield false;
       }
       case HAS_INVALID_WRITES -> {
         if (errorInfo.isInvalidWrite()) {
           // TODO: Give more information
           issueMemoryError("Invalid write found", true);
-          return true;
+          yield true;
         }
-        return false;
+        yield false;
       }
       case HAS_INVALID_READS -> {
         if (errorInfo.isInvalidRead()) {
           // TODO: Give more information
           issueMemoryError("Invalid read found", true);
-          return true;
+          yield true;
         }
-        return false;
+        yield false;
       }
       case HAS_INVALID_FREES -> {
         if (errorInfo.isInvalidFree()) {
           // TODO: Give more information
           issueMemoryError("Invalid free found", true);
-          return true;
+          yield true;
         }
-        return false;
+        yield false;
       }
       case HAS_HEAP_OBJECTS -> {
         // Having heap objects is not an error on its own.
@@ -1580,10 +1581,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
             heapObs = heapObs.removeAndCopy(object);
           }
         }
-        return !heapObs.isEmpty();
+        yield !heapObs.isEmpty();
       }
       default -> throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
-    }
+    };
   }
 
   public void addGlobalObject(SMGRegion newObject) {
@@ -1737,7 +1738,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
   public void addElementToCurrentChain(Object elem) {
     // Avoid to add Null element
-    if (elem instanceof SMGValue && ((SMGValue) elem).isZero()) {
+    if (elem instanceof SMGValue sMGValue && sMGValue.isZero()) {
       return;
     }
     errorInfo = errorInfo.withObject(elem);
@@ -1981,9 +1982,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       SMGType pSMGType2,
       BinaryOperator pOp,
       CFAEdge pEdge) {
-    if (isTrackPredicatesEnabled() && pEdge instanceof CAssumeEdge) {
+    if (isTrackPredicatesEnabled() && pEdge instanceof CAssumeEdge cAssumeEdge) {
       BinaryOperator temp;
-      if (((CAssumeEdge) pEdge).getTruthAssumption()) {
+      if (cAssumeEdge.getTruthAssumption()) {
         temp = pOp;
       } else {
         temp = pOp.getOppositLogicalOperator();
@@ -1996,9 +1997,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
   public void addPredicateRelation(
       SMGValue pV1, SMGType pSMGType1, SMGExplicitValue pV2, BinaryOperator pOp, CFAEdge pEdge) {
-    if (isTrackPredicatesEnabled() && pEdge instanceof CAssumeEdge) {
+    if (isTrackPredicatesEnabled() && pEdge instanceof CAssumeEdge cAssumeEdge) {
       BinaryOperator temp;
-      if (((CAssumeEdge) pEdge).getTruthAssumption()) {
+      if (cAssumeEdge.getTruthAssumption()) {
         temp = pOp;
       } else {
         temp = pOp.getOppositLogicalOperator();
@@ -2266,7 +2267,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   @Override
   public Map<MemoryLocation, SMGRegion> getStackVariables() {
 
-    Map<MemoryLocation, SMGRegion> result = new LinkedHashMap<>();
+    SequencedMap<MemoryLocation, SMGRegion> result = new LinkedHashMap<>();
 
     for (Entry<String, SMGRegion> variableEntry : heap.getGlobalObjects().entrySet()) {
       String variableName = variableEntry.getKey();

@@ -19,7 +19,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -84,13 +83,13 @@ public class ConstraintsTransferRelation
       final ConstraintsSolver pSolver,
       final ConstraintsStatistics pStats,
       final MachineModel pMachineModel,
-      final LogManager pLogger,
+      final LogManagerWithoutDuplicates pLogger,
       final Configuration pConfig)
       throws InvalidConfigurationException {
 
     pConfig.inject(this);
 
-    logger = new LogManagerWithoutDuplicates(pLogger);
+    logger = pLogger;
     machineModel = pMachineModel;
     simplifier = new StateSimplifier(pConfig, pStats);
     solver = pSolver;
@@ -172,7 +171,8 @@ public class ConstraintsTransferRelation
       // If a constraint is trivial, its satisfiability is not influenced by other constraints.
       // So to evade more expensive SAT checks, we just check the constraint on its own.
       if (newConstraint.isTrivial()) {
-        if (solver.checkUnsat(newConstraint, functionName) == Satisfiability.UNSAT) {
+        if (solver.checkUnsatWithOptionDefinedSolverReuse(newConstraint, functionName)
+            == Satisfiability.UNSAT) {
           return null;
         }
       } else {
@@ -187,22 +187,18 @@ public class ConstraintsTransferRelation
       AExpression pExpression, ConstraintFactory pFactory, boolean pTruthAssumption)
       throws UnrecognizedCodeException {
 
-    if (pExpression instanceof JBinaryExpression) {
-      return createConstraint((JBinaryExpression) pExpression, pFactory, pTruthAssumption);
-
-    } else if (pExpression instanceof JUnaryExpression) {
-      return createConstraint((JUnaryExpression) pExpression, pFactory, pTruthAssumption);
-
-    } else if (pExpression instanceof CBinaryExpression) {
-      return createConstraint((CBinaryExpression) pExpression, pFactory, pTruthAssumption);
-
-    } else if (pExpression instanceof AIdExpression) {
+    return switch (pExpression) {
+      case JBinaryExpression jBinaryExpression ->
+          createConstraint(jBinaryExpression, pFactory, pTruthAssumption);
+      case JUnaryExpression jUnaryExpression ->
+          createConstraint(jUnaryExpression, pFactory, pTruthAssumption);
+      case CBinaryExpression cBinaryExpression ->
+          createConstraint(cBinaryExpression, pFactory, pTruthAssumption);
       // id expressions in assume edges are created by a call of __VERIFIER_assume(x), for example
-      return createConstraint((AIdExpression) pExpression, pFactory, pTruthAssumption);
-
-    } else {
-      throw new AssertionError("Unhandled expression type " + pExpression.getClass());
-    }
+      case AIdExpression aIdExpression ->
+          createConstraint(aIdExpression, pFactory, pTruthAssumption);
+      default -> throw new AssertionError("Unhandled expression type " + pExpression.getClass());
+    };
   }
 
   private Optional<Constraint> createConstraint(
@@ -288,7 +284,7 @@ public class ConstraintsTransferRelation
     boolean nothingChanged = true;
 
     for (AbstractState currStrengtheningState : pStrengtheningStates) {
-      ConstraintsState currStateToStrengthen = newStates.get(0);
+      ConstraintsState currStateToStrengthen = newStates.getFirst();
       StrengthenOperator strengthenOperator = null;
 
       if (currStrengtheningState instanceof ValueAnalysisState) {
@@ -332,7 +328,8 @@ public class ConstraintsTransferRelation
   private static ConstraintsState getIfSatisfiable(
       ConstraintsState pStateToCheck, String functionName, ConstraintsSolver solver)
       throws UnrecognizedCodeException, SolverException, InterruptedException {
-    SolverResult solverResult = solver.checkUnsat(pStateToCheck, functionName);
+    SolverResult solverResult =
+        solver.checkUnsatWithOptionDefinedSolverReuse(pStateToCheck, functionName);
     if (solverResult.satisfiability() == Satisfiability.SAT) {
       ConstraintsState newState = pStateToCheck;
       if (solverResult.model().isPresent()) {
@@ -360,12 +357,11 @@ public class ConstraintsTransferRelation
 
       assert pValueState instanceof ValueAnalysisState;
 
-      if (!(pCfaEdge instanceof AssumeEdge)) {
+      if (!(pCfaEdge instanceof AssumeEdge assume)) {
         return Optional.empty();
       }
 
       final ValueAnalysisState valueState = (ValueAnalysisState) pValueState;
-      final AssumeEdge assume = (AssumeEdge) pCfaEdge;
 
       final boolean truthAssumption = assume.getTruthAssumption();
       final AExpression edgeExpression = assume.getExpression();

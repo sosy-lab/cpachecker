@@ -101,7 +101,7 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner
     return new ValueAnalysisImpactRefiner(delegate, argCpa, logger);
   }
 
-  ValueAnalysisImpactRefiner(
+  private ValueAnalysisImpactRefiner(
       final ImpactDelegateRefiner pDelegate, final ARGCPA pArgCpa, final LogManager pLogger) {
     super(pDelegate, pArgCpa, pLogger);
   }
@@ -266,8 +266,8 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner
           // should helps that the waitlist does not run dry too fast
           // -> did not help much
 
-          ARGState parent = Iterables.getFirst(currentState.getParents(), null);
-          if (parent != null) {
+          if (!currentState.getParents().isEmpty()) {
+            // ARGState parent = currentState.getParents().getFirst();
             // readdSiblings(pReached, parent, currentState, newPrecision);
           }
 

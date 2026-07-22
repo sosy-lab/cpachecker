@@ -206,7 +206,7 @@ public class CEXWeakeningManager {
               case ALL -> TraversalProcess.CONTINUE;
 
               case FIRST -> {
-                BooleanFormula selected = operands.iterator().next();
+                BooleanFormula selected = operands.getFirst();
                 yield TraversalProcess.custom(selected);
               }
               case RANDOM -> {
@@ -215,7 +215,7 @@ public class CEXWeakeningManager {
               }
               case LEAST_REMOVALS -> {
                 if (depth >= leastRemovalsDepthLimit) {
-                  yield TraversalProcess.custom(operands.iterator().next());
+                  yield TraversalProcess.custom(operands.getFirst());
                 }
                 BooleanFormula out =
                     Collections.min(

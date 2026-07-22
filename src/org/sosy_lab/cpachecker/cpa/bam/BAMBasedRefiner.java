@@ -61,10 +61,10 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
         !(pRefiner instanceof Refiner),
         "ARGBasedRefiners may not implement Refiner, choose between these two!");
 
-    if (!(pCpa instanceof AbstractBAMCPA)) {
+    if (!(pCpa instanceof AbstractBAMCPA bamCpa)) {
       throw new InvalidConfigurationException("BAM CPA needed for BAM-based refinement");
     }
-    AbstractBAMCPA bamCpa = (AbstractBAMCPA) pCpa;
+
     ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, Refiner.class);
     return new BAMBasedRefiner(pRefiner, argCpa, bamCpa, bamCpa.getLogger());
   }

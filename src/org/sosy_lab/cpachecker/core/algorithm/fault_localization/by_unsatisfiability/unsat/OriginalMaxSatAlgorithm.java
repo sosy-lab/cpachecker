@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiab
 import com.google.common.collect.FluentIterable;
 import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizerWithTraceFormula;
@@ -45,10 +46,10 @@ public class OriginalMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     BooleanFormula booleanTraceFormula = tf.toFormula(new SelectorTraceInterpreter(bmgr), true);
 
-    Set<Fault> hard = new LinkedHashSet<>();
+    SequencedSet<Fault> hard = new LinkedHashSet<>();
 
     // if selectors are reduced the set ensures to remove duplicates
-    Set<TraceAtom> soft = new LinkedHashSet<>(tf.getTrace());
+    SequencedSet<TraceAtom> soft = new LinkedHashSet<>(tf.getTrace());
     // if a selector is true (i.e. enabled) it cannot be part of the result set. This usually
     // happens if the selector is a part of the pre-condition
     soft.removeIf(fc -> bmgr.isTrue(fc.getFormula()) || bmgr.isFalse(fc.getFormula()));
@@ -100,7 +101,7 @@ public class OriginalMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
       throws SolverException, InterruptedException {
     Solver solver = pContext.getSolver();
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
-    Set<TraceAtom> selectors = new LinkedHashSet<>(pSoftSet);
+    SequencedSet<TraceAtom> selectors = new LinkedHashSet<>(pSoftSet);
     Fault result = new Fault();
     BooleanFormula composedFormula = bmgr.and(pTraceFormula, hardSetFormula(pHardSet, bmgr));
     boolean changed;

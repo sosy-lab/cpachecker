@@ -50,6 +50,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.SequencedMap;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -1048,11 +1050,11 @@ public class AutomatonGraphmlParser {
       automatonName.append("_").append(idGen.getFreshId());
     }
 
-    Map<String, GraphMLState> states = new LinkedHashMap<>();
+    SequencedMap<String, GraphMLState> states = new LinkedHashMap<>();
     Multimap<GraphMLState, GraphMLTransition> enteringTransitions = LinkedHashMultimap.create();
     Multimap<GraphMLState, GraphMLTransition> leavingTransitions = LinkedHashMultimap.create();
     NumericIdProvider numericIdProvider = NumericIdProvider.create();
-    Set<GraphMLState> entryStates = new LinkedHashSet<>();
+    SequencedSet<GraphMLState> entryStates = new LinkedHashSet<>();
     for (Node transition : docDat.getTransitions()) {
       collectEdgeData(
           docDat,
@@ -1706,7 +1708,7 @@ public class AutomatonGraphmlParser {
         StringBuilder messageBuilder = new StringBuilder();
         if (invalidHashes.size() == 1) {
           messageBuilder.append("The value <");
-          messageBuilder.append(invalidHashes.iterator().next());
+          messageBuilder.append(invalidHashes.getFirst());
           messageBuilder.append(
               "> given as hash value of the program source code is not a valid SHA-256 hash value"
                   + " for any program.");
@@ -1978,7 +1980,7 @@ public class AutomatonGraphmlParser {
     @Override
     public String getTargetInformation(AutomatonExpressionArguments pArgs) {
       String own = getFollowState().isTarget() ? super.getTargetInformation(pArgs) : null;
-      Set<String> targetInformationDescriptions = new LinkedHashSet<>();
+      SequencedSet<String> targetInformationDescriptions = new LinkedHashSet<>();
 
       if (!Strings.isNullOrEmpty(own)) {
         targetInformationDescriptions.add(own);
@@ -2077,7 +2079,7 @@ public class AutomatonGraphmlParser {
 
       Set<Node> dataNodes = findKeyedDataNode((Element) node, dataKey);
 
-      Set<String> result = new LinkedHashSet<>();
+      SequencedSet<String> result = new LinkedHashSet<>();
       for (Node n : dataNodes) {
         result.add(n.getTextContent());
       }
@@ -2085,7 +2087,7 @@ public class AutomatonGraphmlParser {
     }
 
     private static Set<Node> findKeyedDataNode(Element of, final KeyDef dataKey) {
-      Set<Node> result = new LinkedHashSet<>();
+      SequencedSet<Node> result = new LinkedHashSet<>();
       Set<Node> alternative = null;
       NodeList dataChilds = of.getElementsByTagName(GraphMLTag.DATA.toString());
       for (Node dataChild : asIterable(dataChilds)) {

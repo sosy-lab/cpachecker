@@ -148,7 +148,7 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
       assert new HashSet<>(currentStacks).size() <= 1
           : "function with multiple entry-states not supported";
 
-      callStacks.put(currentState, currentStacks.get(0));
+      callStacks.put(currentState, currentStacks.getFirst());
 
       PathFormula currentFormula;
       final PredicateAbstractState predicateElement =

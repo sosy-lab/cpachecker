@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.PartialARGsCombiner;
 import org.sosy_lab.cpachecker.core.defaults.MultiStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
@@ -72,7 +71,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
     private int noOfAlgorithmsUsed = 0;
     private Timer totalTime = new Timer();
 
-    public RestartAlgorithmStatistics(List<String> pAlgorithms, LogManager pLogger) {
+    RestartAlgorithmStatistics(List<String> pAlgorithms, LogManager pLogger) {
       super(pLogger);
       algorithms = pAlgorithms;
     }
@@ -288,6 +287,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
           currentCpa = currentAlg.cpa();
           currentReached = currentAlg.reached();
         } catch (InvalidConfigurationException e) {
+          // TODO: log/return the config that triggers this!
           logger.logUserException(
               Level.WARNING,
               e,
@@ -296,6 +296,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
                   + " is invalid");
           continue;
         } catch (IOException e) {
+          // TODO: log/return the config that triggers this!
           String message =
               "Skipping one analysis because the configuration file "
                   + singleConfigFileName
@@ -308,14 +309,11 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
           continue;
         }
 
-        if (reached instanceof HistoryForwardingReachedSet) {
-          ((HistoryForwardingReachedSet) reached).saveCPA(currentCpa);
+        if (reached instanceof HistoryForwardingReachedSet historyForwardingReachedSet) {
+          historyForwardingReachedSet.saveCPA(currentCpa);
         }
         reached.setDelegate(currentReached);
 
-        if (currentAlgorithm instanceof StatisticsProvider) {
-          ((StatisticsProvider) currentAlgorithm).collectStatistics(stats.getSubStatistics());
-        }
         shutdownNotifier.shutdownIfNecessary();
 
         stats.noOfAlgorithmsUsed++;
@@ -369,7 +367,9 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
               configFilesIterator,
               LastAnalysisResult.FAILED,
               e.getMessage().contains("recursion"),
-              e.getMessage().contains("pthread_create"));
+              e.getMessage().contains("pthread_create")
+                  || e.getMessage()
+                      .contains("Concurrency analysis not supported in this configuration"));
 
           if (e instanceof CounterexampleAnalysisFailed
               || e instanceof RefinementFailedException
@@ -525,9 +525,6 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (currentAlgorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) currentAlgorithm).collectStatistics(pStatsCollection);
-    }
     pStatsCollection.add(stats);
   }
 

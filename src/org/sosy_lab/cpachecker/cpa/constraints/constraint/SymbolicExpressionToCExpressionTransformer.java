@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -21,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressOfExpression;
@@ -52,6 +55,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.ValueToCExpressionTransformer;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * Transforms {@link SymbolicExpression}s into {@link CExpression}s.
@@ -84,10 +88,10 @@ public class SymbolicExpressionToCExpressionTransformer
 
   private CExpression transformValue(Value pValue, CType pType) {
 
-    if (pValue instanceof SymbolicIdentifier) {
-      return getIdentifierCExpression((SymbolicIdentifier) pValue, pType);
-    } else if (pValue instanceof SymbolicValue) {
-      return ((SymbolicValue) pValue).accept(this);
+    if (pValue instanceof SymbolicIdentifier symbolicIdentifier) {
+      return getIdentifierCExpression(symbolicIdentifier, pType);
+    } else if (pValue instanceof SymbolicValue symbolicValue) {
+      return symbolicValue.accept(this);
 
     } else {
       return pValue.accept(new ValueToCExpressionTransformer(machineModel, pType));
@@ -151,8 +155,11 @@ public class SymbolicExpressionToCExpressionTransformer
   }*/
 
   private CType getCType(Type pType) {
-    if (pType instanceof CType) {
-      return (CType) pType;
+    if (pType instanceof CType cType) {
+      while (cType instanceof CTypedefType pTypedefType) {
+        cType = pTypedefType.getRealType();
+      }
+      return cType;
 
     } else {
       assert pType instanceof JType;
@@ -222,12 +229,12 @@ public class SymbolicExpressionToCExpressionTransformer
 
   @Override
   public CExpression visit(ModuloExpression pExpression) {
-    return createBinaryExpression(pExpression, CBinaryExpression.BinaryOperator.MODULO);
+    return createBinaryExpression(pExpression, CBinaryExpression.BinaryOperator.REMAINDER);
   }
 
   @Override
   public CExpression visit(BinaryAndExpression pExpression) {
-    return createBinaryExpression(pExpression, CBinaryExpression.BinaryOperator.BINARY_AND);
+    return createBinaryExpression(pExpression, CBinaryExpression.BinaryOperator.BITWISE_AND);
   }
 
   @Override
@@ -237,12 +244,12 @@ public class SymbolicExpressionToCExpressionTransformer
 
   @Override
   public CExpression visit(BinaryOrExpression pExpression) {
-    return createBinaryExpression(pExpression, CBinaryExpression.BinaryOperator.BINARY_OR);
+    return createBinaryExpression(pExpression, CBinaryExpression.BinaryOperator.BITWISE_OR);
   }
 
   @Override
   public CExpression visit(BinaryXorExpression pExpression) {
-    return createBinaryExpression(pExpression, CBinaryExpression.BinaryOperator.BINARY_XOR);
+    return createBinaryExpression(pExpression, CBinaryExpression.BinaryOperator.BITWISE_XOR);
   }
 
   @Override
@@ -259,26 +266,21 @@ public class SymbolicExpressionToCExpressionTransformer
   public CExpression visit(LogicalNotExpression pExpression) {
     SymbolicExpression operand = pExpression.getOperand();
 
-    if (operand instanceof LogicalNotExpression) {
-      return ((LogicalNotExpression) operand).getOperand().accept(this);
+    if (operand instanceof LogicalNotExpression logicalNotExpression) {
+      return logicalNotExpression.getOperand().accept(this);
 
     } else {
-      assert operand instanceof BinarySymbolicExpression;
-      BinarySymbolicExpression innerExpression = (BinarySymbolicExpression) operand;
+      try {
+        assert operand instanceof BinarySymbolicExpression;
+        BinarySymbolicExpression innerExpression = (BinarySymbolicExpression) operand;
 
-      if (operand instanceof EqualsExpression) {
-        return createBinaryExpression(innerExpression, CBinaryExpression.BinaryOperator.NOT_EQUALS);
+        return new CBinaryExpressionBuilder(machineModel, LogManager.createNullLogManager())
+            .negateExpressionAndSimplify(innerExpression.accept(this));
 
-      } else if (operand instanceof LessThanExpression) {
-        return createBinaryExpression(
-            innerExpression, CBinaryExpression.BinaryOperator.GREATER_EQUAL);
-
-      } else if (operand instanceof LessThanOrEqualExpression) {
-        return createBinaryExpression(
-            innerExpression, CBinaryExpression.BinaryOperator.GREATER_THAN);
-
-      } else {
-        throw new AssertionError("Unhandled operation " + operand);
+      } catch (UnrecognizedCodeException urce) {
+        // This may only happen for unhandled cases in negateExpressionAndSimplify() or invalid
+        // transformation of original code to the handled expression
+        throw new AssertionError(urce);
       }
     }
   }
@@ -300,12 +302,12 @@ public class SymbolicExpressionToCExpressionTransformer
 
   @Override
   public CExpression visit(LogicalOrExpression pExpression) {
-    return createBinaryExpression(pExpression, CBinaryExpression.BinaryOperator.BINARY_OR);
+    return createBinaryExpression(pExpression, CBinaryExpression.BinaryOperator.BITWISE_OR);
   }
 
   @Override
   public CExpression visit(LogicalAndExpression pExpression) {
-    return createBinaryExpression(pExpression, CBinaryExpression.BinaryOperator.BINARY_AND);
+    return createBinaryExpression(pExpression, CBinaryExpression.BinaryOperator.BITWISE_AND);
   }
 
   @Override

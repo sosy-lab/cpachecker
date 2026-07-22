@@ -96,9 +96,9 @@ class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCodeE
   public Formula visit(CFieldReference fexp) throws UnrecognizedCodeException {
     if (!conv.options.handleFieldAccess()) {
       CExpression fieldRef = fexp.getFieldOwner();
-      if (fieldRef instanceof CIdExpression) {
-        CSimpleDeclaration decl = ((CIdExpression) fieldRef).getDeclaration();
-        if (decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal()) {
+      if (fieldRef instanceof CIdExpression cIdExpression) {
+        CSimpleDeclaration decl = cIdExpression.getDeclaration();
+        if (decl instanceof CDeclaration cDeclaration && cDeclaration.isGlobal()) {
           // this is the reference to a global field variable
           // we don't need to scope the variable reference
           String var = CtoFormulaConverter.exprToVarNameUnscoped(fexp);

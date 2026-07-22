@@ -50,7 +50,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
       throws CPATransferException {
     BinaryOperator binaryOperator = pExp.getOperator();
 
-    switch (binaryOperator) {
+    return switch (binaryOperator) {
       case EQUALS, NOT_EQUALS, LESS_EQUAL, LESS_THAN, GREATER_EQUAL, GREATER_THAN -> {
         List<SMGValueAndState> result = new ArrayList<>(4);
 
@@ -140,12 +140,10 @@ public class AssumeVisitor extends ExpressionValueVisitor {
           }
         }
 
-        return result;
+        yield result;
       }
-      default -> {
-        return super.visit(pExp);
-      }
-    }
+      default -> super.visit(pExp);
+    };
   }
 
   private boolean isPointer(UnmodifiableSMGState pNewSmgState, SMGValue symVal) {
@@ -410,12 +408,12 @@ public class AssumeVisitor extends ExpressionValueVisitor {
     }
 
     @SuppressWarnings("unused")
-    public boolean isTrue() {
+    boolean isTrue() {
       return isTrue;
     }
 
     @SuppressWarnings("unused")
-    public boolean isFalse() {
+    boolean isFalse() {
       return isFalse;
     }
 

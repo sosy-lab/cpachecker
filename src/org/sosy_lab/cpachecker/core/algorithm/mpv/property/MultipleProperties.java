@@ -133,8 +133,8 @@ public final class MultipleProperties {
   /** Determine, which properties were violated in the given target state. */
   private Set<AbstractSingleProperty> determineViolatedProperties(AbstractState targetState) {
     ImmutableSet.Builder<AbstractSingleProperty> builder = ImmutableSet.builder();
-    if (targetState instanceof AbstractWrapperState) {
-      for (AbstractState state : ((AbstractWrapperState) targetState).getWrappedStates()) {
+    if (targetState instanceof AbstractWrapperState abstractWrapperState) {
+      for (AbstractState state : abstractWrapperState.getWrappedStates()) {
         builder.addAll(determineViolatedProperties(state));
       }
     } else if ((targetState instanceof AutomatonState automatonState)

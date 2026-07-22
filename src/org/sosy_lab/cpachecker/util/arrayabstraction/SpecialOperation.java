@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -85,10 +86,10 @@ abstract class SpecialOperation {
       return Optional.empty();
     }
 
-    if (value.isExplicitlyKnown() && value.isNumericValue()) {
-      Number number = value.asNumericValue().getNumber();
-      if (number instanceof BigInteger) {
-        return Optional.of((BigInteger) number);
+    if (value.isExplicitlyKnown() && value instanceof NumericValue numValue) {
+      Number number = numValue.getNumber();
+      if (number instanceof BigInteger bigInteger) {
+        return Optional.of(bigInteger);
       } else if (number instanceof Byte
           || number instanceof Short
           || number instanceof Integer
@@ -126,10 +127,10 @@ abstract class SpecialOperation {
 
         CDeclaration declaration = declarationEdge.getDeclaration();
 
-        if (declaration instanceof CVariableDeclaration) {
-          CInitializer initializer = ((CVariableDeclaration) declaration).getInitializer();
-          if (initializer instanceof CInitializerExpression) {
-            CExpression expression = ((CInitializerExpression) initializer).getExpression();
+        if (declaration instanceof CVariableDeclaration cVariableDeclaration) {
+          CInitializer initializer = cVariableDeclaration.getInitializer();
+          if (initializer instanceof CInitializerExpression cInitializerExpression) {
+            CExpression expression = cInitializerExpression.getExpression();
             return Optional.of(new ExpressionAssign(declaration, expression));
           }
         }
@@ -320,10 +321,10 @@ abstract class SpecialOperation {
 
           if ((operator == CBinaryExpression.BinaryOperator.PLUS
                   || operator == CBinaryExpression.BinaryOperator.MINUS)
-              && operand1 instanceof CIdExpression) {
+              && operand1 instanceof CIdExpression cIdExpression) {
 
             CSimpleDeclaration assignDeclaration = expressionAssign.getDeclaration();
-            CSimpleDeclaration operand1Declaration = ((CIdExpression) operand1).getDeclaration();
+            CSimpleDeclaration operand1Declaration = cIdExpression.getDeclaration();
 
             if (operand1Declaration.equals(assignDeclaration)) {
 
@@ -439,7 +440,7 @@ abstract class SpecialOperation {
                   || operator == CBinaryExpression.BinaryOperator.GREATER_THAN
                   || operator == CBinaryExpression.BinaryOperator.LESS_EQUAL
                   || operator == CBinaryExpression.BinaryOperator.GREATER_EQUAL)
-              && operand1 instanceof CIdExpression) {
+              && operand1 instanceof CIdExpression cIdExpression) {
 
             CExpression valueExpression = binaryExpression.getOperand2();
 
@@ -477,7 +478,7 @@ abstract class SpecialOperation {
                     default -> throw new AssertionError("Unknown operator: " + operator);
                   };
 
-              CSimpleDeclaration variableDeclaration = ((CIdExpression) operand1).getDeclaration();
+              CSimpleDeclaration variableDeclaration = cIdExpression.getDeclaration();
               BigInteger constantValue = optConstantValue.orElseThrow();
 
               return Optional.of(

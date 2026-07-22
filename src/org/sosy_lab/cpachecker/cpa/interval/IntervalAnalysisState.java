@@ -340,29 +340,29 @@ public class IntervalAnalysisState
 
     if (parts.size() == 2) {
 
-      if (isLong(parts.get(0))) {
+      if (isLong(parts.getFirst())) {
         // pProperty = value <= varName
-        long value = Long.parseLong(parts.get(0));
+        long value = Long.parseLong(parts.getFirst());
         Interval iv = getInterval(parts.get(1));
         return (value <= iv.getLow());
 
       } else if (isLong(parts.get(1))) {
         // pProperty = varName <= value
         long value = Long.parseLong(parts.get(1));
-        Interval iv = getInterval(parts.get(0));
+        Interval iv = getInterval(parts.getFirst());
         return (iv.getHigh() <= value);
 
       } else {
         // pProperty = varName1 <= varName2
-        Interval iv1 = getInterval(parts.get(0));
+        Interval iv1 = getInterval(parts.getFirst());
         Interval iv2 = getInterval(parts.get(1));
         return iv1.contains(iv2);
       }
 
       // pProperty = value1 <= varName <= value2
     } else if (parts.size() == 3) {
-      if (isLong(parts.get(0)) && isLong(parts.get(2))) {
-        long value1 = Long.parseLong(parts.get(0));
+      if (isLong(parts.getFirst()) && isLong(parts.get(2))) {
+        long value1 = Long.parseLong(parts.getFirst());
         long value2 = Long.parseLong(parts.get(2));
         Interval iv = getInterval(parts.get(1));
         return (value1 <= iv.getLow() && iv.getHigh() <= value2);
@@ -480,7 +480,7 @@ public class IntervalAnalysisState
     private final int size;
     private final BigInteger absoluteDistance;
 
-    public IntervalPseudoPartitionKey(int pSize, BigInteger pAbsoluteDistance) {
+    IntervalPseudoPartitionKey(int pSize, BigInteger pAbsoluteDistance) {
       size = pSize;
       absoluteDistance = pAbsoluteDistance;
     }

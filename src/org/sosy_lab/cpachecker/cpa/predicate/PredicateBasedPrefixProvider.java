@@ -189,11 +189,11 @@ public final class PredicateBasedPrefixProvider implements PrefixProvider {
             prover.pop();
 
             // replace respective term by tautology
-            terms.remove(terms.size() - 1);
+            terms.removeLast();
             terms.add(prover.push(makeTrue()));
 
             // replace failing block formula by tautology, too
-            pathFormula.remove(pathFormula.size() - 1);
+            pathFormula.removeLast();
             pathFormula.add(makeTrue());
           }
         } catch (SolverException e) {

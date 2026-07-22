@@ -87,8 +87,8 @@ public abstract class VariableTrackingPrecision implements Precision {
   public static Predicate<Precision> isMatchingCPAClass(
       final Class<? extends ConfigurableProgramAnalysis> cpaClass) {
     return pPrecision ->
-        pPrecision instanceof VariableTrackingPrecision
-            && ((VariableTrackingPrecision) pPrecision).getCPAClass() == cpaClass;
+        pPrecision instanceof VariableTrackingPrecision variableTrackingPrecision
+            && variableTrackingPrecision.getCPAClass() == cpaClass;
   }
 
   /**

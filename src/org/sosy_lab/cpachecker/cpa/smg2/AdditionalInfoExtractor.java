@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
-import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -17,9 +16,9 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
-import org.sosy_lab.cpachecker.cpa.smg.SMGAdditionalInfo;
-import org.sosy_lab.cpachecker.cpa.smg.SMGAdditionalInfo.Level;
-import org.sosy_lab.cpachecker.cpa.smg.SMGConvertingTags;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ConvertingTags;
+import org.sosy_lab.cpachecker.cpa.smg2.AdditionalInfoExtractor.SMGAdditionalInfo.Level;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
@@ -61,7 +60,7 @@ public class AdditionalInfoExtractor {
           // We assume that there is only 1 error info per state (as the SV-COMP rules dictate)
           edgeWithAdditionalInfo.addInfo(
               SMGConvertingTags.NOTE,
-              SMGAdditionalInfo.of(errorInfos.get(0).getErrorDescription(), Level.ERROR));
+              SMGAdditionalInfo.of(errorInfos.getFirst().getErrorDescription(), Level.ERROR));
           errorInfos = null;
         }
 
@@ -75,7 +74,7 @@ public class AdditionalInfoExtractor {
         pathWithExtendedInfo.add(edgeWithAdditionalInfo);
       }
     }
-    return CFAPathWithAdditionalInfo.of(Lists.reverse(pathWithExtendedInfo));
+    return CFAPathWithAdditionalInfo.of(pathWithExtendedInfo.reversed());
   }
 
   /**
@@ -96,7 +95,7 @@ public class AdditionalInfoExtractor {
         if (!containsInvalidElement(smgState, elem)) {
           visitedElems.add(elem);
           if (!prevSMGState.getErrorInfo().isEmpty()) {
-            for (Object additionalElem : prevSMGState.getErrorInfo().get(0).getInvalidChain()) {
+            for (Object additionalElem : prevSMGState.getErrorInfo().getFirst().getInvalidChain()) {
               if (!visitedElems.contains(additionalElem)
                   && !invalidChain.contains(additionalElem)) {
                 toCheck.add(additionalElem);
@@ -120,21 +119,65 @@ public class AdditionalInfoExtractor {
   }
 
   private boolean containsInvalidElement(SMGState pSMGState, Object elem) {
-    if (elem instanceof SMGObject smgObject) {
-      return pSMGState.getMemoryModel().isHeapObject(smgObject)
-          || pSMGState.getMemoryModel().getGlobalVariableToSmgObjectMap().containsValue(smgObject)
-          || pSMGState.isSMGObjectAStackVariable(smgObject);
-    } else if (elem instanceof SMGHasValueEdge hasValueEdge) {
-      return pSMGState.getMemoryModel().getSmg().getHVEdges().contains(hasValueEdge);
-    } else if (elem instanceof SMGPointsToEdge pointsToEdge) {
-      return pSMGState.getMemoryModel().getSmg().getPTEdges().contains(pointsToEdge);
-    } else if (elem instanceof SMGValue smgValue) {
-      return pSMGState.getMemoryModel().getSmg().getValues().containsKey(smgValue);
-    } else if (elem instanceof Value value) {
-      return pSMGState.getMemoryModel().getSMGValueFromValue(value).isPresent()
-          && containsInvalidElement(
-              pSMGState, pSMGState.getMemoryModel().getSMGValueFromValue(value));
+    return switch (elem) {
+      case SMGObject smgObject ->
+          pSMGState.getMemoryModel().isHeapObject(smgObject)
+              || pSMGState
+                  .getMemoryModel()
+                  .getGlobalVariableToSmgObjectMap()
+                  .containsValue(smgObject)
+              || pSMGState.isSMGObjectAStackVariable(smgObject);
+      case SMGHasValueEdge hasValueEdge ->
+          pSMGState.getMemoryModel().getSmg().getHVEdges().contains(hasValueEdge);
+      case SMGPointsToEdge pointsToEdge ->
+          pSMGState.getMemoryModel().getSmg().getPTEdges().contains(pointsToEdge);
+      case SMGValue smgValue ->
+          pSMGState.getMemoryModel().getSmg().getValues().containsKey(smgValue);
+      case Value value ->
+          pSMGState.getMemoryModel().getSMGValueFromValue(value).isPresent()
+              && containsInvalidElement(
+                  pSMGState, pSMGState.getMemoryModel().getSMGValueFromValue(value));
+      case null /*TODO check if null is necessary*/, default -> false;
+    };
+  }
+
+  /**
+   * Intermediate enum for {@link AdditionalInfoConverter} used at {@link
+   * org.sosy_lab.cpachecker.cpa.smg2.SMGCPA}
+   */
+  public enum SMGConvertingTags implements ConvertingTags {
+    NOTE
+  }
+
+  public static class SMGAdditionalInfo {
+    public enum Level {
+      ERROR,
+      WARNING,
+      NOTE,
+      INFO
     }
-    return false;
+
+    private final String value;
+    private final Level level;
+    private final boolean hide;
+
+    private SMGAdditionalInfo(String pValue, Level pLevel, boolean pHide) {
+      value = pValue;
+      level = pLevel;
+      hide = pHide;
+    }
+
+    public static SMGAdditionalInfo of(String pValue, Level pLevel, boolean pHide) {
+      return new SMGAdditionalInfo(pValue, pLevel, pHide);
+    }
+
+    public static SMGAdditionalInfo of(String pValue, Level pLevel) {
+      return new SMGAdditionalInfo(pValue, pLevel, false);
+    }
+
+    @Override
+    public String toString() {
+      return "level=\"" + level + "\" hide=\"" + hide + "\" value=\"" + value + "\"";
+    }
   }
 }

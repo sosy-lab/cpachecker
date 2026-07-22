@@ -107,6 +107,13 @@ public final class AbstractionManager {
     }
   }
 
+  public AbstractionPredicate parsePredicate(String predicate) {
+    if (predicate.isBlank()) {
+      return makeFalsePredicate();
+    }
+    return makePredicate(fmgr.parse(predicate));
+  }
+
   public int getNumberOfPredicates() {
     return symbVarToPredicate.size();
   }
@@ -125,8 +132,8 @@ public final class AbstractionManager {
       BooleanFormula symbVar =
           fmgr.createPredicateVariable("PRED" + numberOfPredicates.getFreshId());
       Region absVar =
-          (rmgr instanceof SymbolicRegionManager)
-              ? ((SymbolicRegionManager) rmgr).createPredicate(atom)
+          (rmgr instanceof SymbolicRegionManager symbolicRegionManager)
+              ? symbolicRegionManager.createPredicate(atom)
               : rmgr.createPredicate();
 
       logger.log(
@@ -182,9 +189,9 @@ public final class AbstractionManager {
    * @return An uninstantiated BooleanFormula.
    */
   public BooleanFormula convertRegionToFormula(Region af) {
-    if (rmgr instanceof SymbolicRegionManager) {
+    if (rmgr instanceof SymbolicRegionManager symbolicRegionManager) {
       // optimization shortcut
-      return ((SymbolicRegionManager) rmgr).toFormula(af);
+      return symbolicRegionManager.toFormula(af);
     }
 
     Map<Region, BooleanFormula> cache;

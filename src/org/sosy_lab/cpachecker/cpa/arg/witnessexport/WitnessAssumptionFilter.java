@@ -57,11 +57,11 @@ final class WitnessAssumptionFilter {
    * of constants to pointers are not relevant.
    */
   private static boolean isRelevantExpression(final AExpression assumption) {
-    if (!(assumption instanceof CBinaryExpression)) {
+    if (!(assumption instanceof CBinaryExpression binExpAssumption)) {
       return true;
 
     } else {
-      CBinaryExpression binExpAssumption = (CBinaryExpression) assumption;
+
       CExpression leftSide = binExpAssumption.getOperand1();
       CExpression rightSide = binExpAssumption.getOperand2();
 

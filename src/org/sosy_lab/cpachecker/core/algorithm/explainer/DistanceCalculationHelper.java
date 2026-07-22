@@ -67,7 +67,7 @@ public class DistanceCalculationHelper {
     for (CFAEdge f : path) {
       if (f.getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
         List<String> code = Splitter.onPattern("\\s*[()]\\s*").splitToList(f.getCode());
-        if (code.get(0).equals("__VERIFIER_assert")) {
+        if (code.getFirst().equals("__VERIFIER_assert")) {
           break;
         }
       }
@@ -180,7 +180,7 @@ public class DistanceCalculationHelper {
     List<ARGPath> paths = new ArrayList<>();
     List<List<ARGState>> nodeWaitList = new ArrayList<>();
     nodeWaitList.add(new ArrayList<>());
-    nodeWaitList.get(0).add(root);
+    nodeWaitList.getFirst().add(root);
     int numberOfCurrentPath = -1;
     ARGState currentNode;
     for (int i = 0; i < nodeWaitList.size(); i++) {
@@ -208,8 +208,8 @@ public class DistanceCalculationHelper {
           // add new paths to nodeWaitList
           handleChildren(nodeWaitList, numberOfCurrentPath, children);
         }
-        currentPath.add(children.get(0));
-        currentNode = children.get(0);
+        currentPath.add(children.getFirst());
+        currentNode = children.getFirst();
         children =
             filterChildren
                 ? from(currentNode.getChildren()).filter(pStatesOnPathTo::contains).toList()
@@ -248,6 +248,6 @@ public class DistanceCalculationHelper {
               anotherPath.add(children.get(j));
               nodeWaitList.add(anotherPath);
             });
-    nodeWaitList.get(numberOfCurrentPath).add(children.get(0));
+    nodeWaitList.get(numberOfCurrentPath).add(children.getFirst());
   }
 }

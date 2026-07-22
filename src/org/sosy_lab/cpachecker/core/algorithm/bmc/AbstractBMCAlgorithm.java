@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.errorprone.annotations.ForOverride;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.file.Path;
@@ -58,6 +59,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -127,7 +129,7 @@ import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
-@Options(prefix = "bmc")
+@Options
 abstract class AbstractBMCAlgorithm
     implements StatisticsProvider, ConditionAdjustmentEventSubscriber {
 
@@ -143,12 +145,21 @@ abstract class AbstractBMCAlgorithm
         != ReachabilityState.IRRELEVANT_TO_TARGET;
   }
 
+  // Option copied from PathChecker, keep in sync (and hopefully remove at some point)
+  @Option(
+      name = "counterexample.export.allowImpreciseCounterexamples",
+      secure = true,
+      description =
+          "An imprecise counterexample of the Predicate CPA is usually a bug,"
+              + " but expected in some configurations. Should it be treated as a bug or accepted?")
+  protected boolean allowImpreciseCounterexamples = false;
+
   @Option(
       secure = true,
       description =
           "File with predicate precisions "
               + "that should be used as candidate invariants in k-induction",
-      name = "kinduction.predicatePrecisionFile")
+      name = "bmc.kinduction.predicatePrecisionFile")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPredicatePrecisionFile = null;
 
@@ -158,7 +169,7 @@ abstract class AbstractBMCAlgorithm
           "Correctness witness in 2.x format (for previous program version) "
               + "that should be used in regression verification"
               + "to get candidate invariants for k-induction",
-      name = "kinduction.regression.witnessFile")
+      name = "bmc.kinduction.regression.witnessFile")
   @FileOption(value = Type.OPTIONAL_INPUT_FILE)
   private @Nullable Path witnessFileForRegressionVerification = null;
 
@@ -167,20 +178,28 @@ abstract class AbstractBMCAlgorithm
       description =
           "If BMC did not find a bug, check whether "
               + "the bounding did actually remove parts of the state space "
-              + "(this is similar to CBMC's unwinding assertions).")
+              + "(this is similar to CBMC's unwinding assertions).",
+      name = "bmc.boundingAssertions")
   private boolean boundingAssertions = true;
 
   @Option(
       secure = true,
       description =
           "If BMC did not find a bug, check which parts of the boundary actually reachable"
-              + "and prevent them from being unrolled any further.")
+              + "and prevent them from being unrolled any further.",
+      name = "bmc.boundingAssertionsSlicing")
   private boolean boundingAssertionsSlicing = false;
 
-  @Option(secure = true, description = "try using induction to verify programs with loops")
+  @Option(
+      secure = true,
+      description = "try using induction to verify programs with loops",
+      name = "bmc.induction")
   private boolean induction = false;
 
-  @Option(secure = true, description = "Strategy for generating auxiliary invariants")
+  @Option(
+      secure = true,
+      description = "Strategy for generating auxiliary invariants",
+      name = "bmc.invariantGenerationStrategy")
   private InvariantGeneratorFactory invariantGenerationStrategy =
       InvariantGeneratorFactory.REACHED_SET;
 
@@ -188,7 +207,8 @@ abstract class AbstractBMCAlgorithm
       secure = true,
       description =
           "Controls how long the invariant generator is allowed to run before the k-induction"
-              + " procedure starts.")
+              + " procedure starts.",
+      name = "bmc.invariantGeneratorHeadStartStrategy")
   private InvariantGeneratorHeadStartFactories invariantGeneratorHeadStartStrategy =
       InvariantGeneratorHeadStartFactories.NONE;
 
@@ -196,23 +216,29 @@ abstract class AbstractBMCAlgorithm
       secure = true,
       description =
           "k-induction configuration to be used as an invariant generator for k-induction"
-              + " (ki-ki(-ai)).")
+              + " (ki-ki(-ai)).",
+      name = "bmc.invariantGeneratorConfig")
   @FileOption(value = Type.OPTIONAL_INPUT_FILE)
   private @Nullable Path invariantGeneratorConfig = null;
 
-  @Option(secure = true, description = "Propagates the interrupts of the invariant generator.")
+  @Option(
+      secure = true,
+      description = "Propagates the interrupts of the invariant generator.",
+      name = "bmc.propagateInvGenInterrupts")
   private boolean propagateInvGenInterrupts = false;
 
   @Option(
       secure = true,
-      description = "Use generalized counterexamples to induction as candidate invariants.")
+      description = "Use generalized counterexamples to induction as candidate invariants.",
+      name = "bmc.usePropertyDirection")
   private boolean usePropertyDirection = false;
 
   @Option(
       secure = true,
       description =
           "Try to simplify the structure of formulas for the sat check of BMC. "
-              + "The improvement depends on the underlying SMT solver.")
+              + "The improvement depends on the underlying SMT solver.",
+      name = "bmc.simplifyBooleanFormula")
   private boolean simplifyBooleanFormula = false;
 
   protected final BMCStatistics stats;
@@ -366,9 +392,9 @@ abstract class AbstractBMCAlgorithm
     } else {
       propagateSafetyInterrupt = null;
     }
-    if (invariantGenerator instanceof ConditionAdjustmentEventSubscriber) {
-      conditionAdjustmentEventSubscribers.add(
-          (ConditionAdjustmentEventSubscriber) invariantGenerator);
+    if (invariantGenerator
+        instanceof ConditionAdjustmentEventSubscriber conditionAdjustmentEventSubscriber) {
+      conditionAdjustmentEventSubscribers.add(conditionAdjustmentEventSubscriber);
     }
     invariantGeneratorHeadStart = invariantGeneratorHeadStartStrategy.createFor(this);
 
@@ -416,30 +442,38 @@ abstract class AbstractBMCAlgorithm
 
   public AlgorithmStatus run(final ReachedSet reachedSet)
       throws CPAException, SolverException, InterruptedException {
-    CFANode initialLocation = extractLocation(reachedSet.getFirstState());
-    invariantGenerator.start(initialLocation);
-
-    // The set of candidate invariants that still need to be checked.
-    // Successfully proven invariants are removed from the set.
-    final CandidateGenerator candidateGenerator = getCandidateInvariants();
-    Set<Obligation> ctiBlockingClauses = new TreeSet<>();
-    Map<SymbolicCandiateInvariant, BmcResult> checkedClauses = new HashMap<>();
-
-    if (!candidateGenerator.produceMoreCandidates()) {
-      reachedSet.clearWaitlist();
-      return AlgorithmStatus.SOUND_AND_PRECISE;
-    }
-
+    final CandidateGenerator candidateGenerator;
     AlgorithmStatus status;
+    final Set<Obligation> ctiBlockingClauses;
+    final Map<SymbolicCandiateInvariant, BmcResult> checkedClauses;
 
-    // suggest candidates from predicate precision file
-    if (!predicatePrecisionCandidates.isEmpty()) {
-      candidateGenerator.suggestCandidates(predicatePrecisionCandidates);
-    }
+    stats.bmcPreparation.start();
+    try {
+      CFANode initialLocation = extractLocation(reachedSet.getFirstState());
+      invariantGenerator.start(initialLocation);
 
-    // suggest candidates from Witness 2.0 file
-    if (!candidateInvariantsFromWitness.isEmpty()) {
-      candidateGenerator.suggestCandidates(candidateInvariantsFromWitness);
+      // The set of candidate invariants that still need to be checked.
+      // Successfully proven invariants are removed from the set.
+      candidateGenerator = getCandidateInvariants();
+      ctiBlockingClauses = new TreeSet<>();
+      checkedClauses = new HashMap<>();
+
+      if (!candidateGenerator.produceMoreCandidates()) {
+        reachedSet.clearWaitlist();
+        return AlgorithmStatus.SOUND_AND_PRECISE;
+      }
+
+      // suggest candidates from predicate precision file
+      if (!predicatePrecisionCandidates.isEmpty()) {
+        candidateGenerator.suggestCandidates(predicatePrecisionCandidates);
+      }
+
+      // suggest candidates from Witness 2.0 file
+      if (!candidateInvariantsFromWitness.isEmpty()) {
+        candidateGenerator.suggestCandidates(candidateInvariantsFromWitness);
+      }
+    } finally {
+      stats.bmcPreparation.stop();
     }
 
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
@@ -449,11 +483,11 @@ abstract class AbstractBMCAlgorithm
         shutdownNotifier.shutdownIfNecessary();
 
         logger.log(Level.INFO, "Creating formula for program");
-        stats.bmcPreparation.start();
+        stats.bmcUnrolling.start();
         try {
           status = BMCHelper.unroll(logger, reachedSet, algorithm, cpa);
         } finally {
-          stats.bmcPreparation.stop();
+          stats.bmcUnrolling.stop();
         }
         if (from(reachedSet)
             .skip(1) // first state of reached is always an abstraction state, so skip it
@@ -564,8 +598,8 @@ abstract class AbstractBMCAlgorithm
     Iterable<CandidateInvariant> candidatesToCheck = candidates;
     for (CandidateInvariant candidate : candidatesToCheck) {
       // No need to check the same clause twice
-      if (candidate instanceof Obligation) {
-        if (!checked.add(((Obligation) candidate).getBlockingClause())) {
+      if (candidate instanceof Obligation obligation) {
+        if (!checked.add(obligation.getBlockingClause())) {
           continue;
         }
         pCtiBlockingClauses.remove(candidate);
@@ -581,10 +615,10 @@ abstract class AbstractBMCAlgorithm
 
       // If we are not running KI-PDR and the candidate invariant is specified at a certain
       // location, checked keys (i.e., loop-bound states) should come from this location.
-      if (!extractCtiBlockingClauses && candidate instanceof SingleLocationFormulaInvariant) {
+      if (!extractCtiBlockingClauses
+          && candidate instanceof SingleLocationFormulaInvariant singleLocationFormulaInvariant) {
         checkedKeys =
-            getCheckedKeysAtLocation(
-                reachedSet, ((SingleLocationFormulaInvariant) candidate).getLocation());
+            getCheckedKeysAtLocation(reachedSet, singleLocationFormulaInvariant.getLocation());
       }
 
       InductionResult<CandidateInvariant> inductionResult =
@@ -690,7 +724,7 @@ abstract class AbstractBMCAlgorithm
    * @return {@code true} if the conditions were adjusted, {@code false} if no further adjustment is
    *     possible.
    */
-  protected boolean adjustConditions() {
+  protected final boolean adjustConditions() {
     FluentIterable<AdjustableConditionCPA> conditionCPAs =
         CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class);
     boolean adjusted = conditionCPAs.anyMatch(AdjustableConditionCPA::adjustPrecision);
@@ -706,6 +740,7 @@ abstract class AbstractBMCAlgorithm
     return adjusted;
   }
 
+  @ForOverride
   protected boolean boundedModelCheck(
       final ReachedSet pReachedSet,
       final BasicProverEnvironment<?> pProver,
@@ -849,8 +884,7 @@ abstract class AbstractBMCAlgorithm
 
   /**
    * This method is called after a violation has been found (i.e., the bounded-model-checking
-   * formula was satisfied). The formula is still on the solver stack. Subclasses can use this
-   * method to further analyze the counterexample if necessary.
+   * formula was satisfied). The formula is still on the solver stack.
    *
    * @param pCounterexample the satisfiable formula that contains the specification violation
    * @param pReachedSet the reached used for analyzing
@@ -858,7 +892,7 @@ abstract class AbstractBMCAlgorithm
    * @throws CPATransferException may be thrown in subclasses
    * @throws InterruptedException may be thrown in subclasses
    */
-  protected void analyzeCounterexample(
+  protected final void analyzeCounterexample(
       final BooleanFormula pCounterexample,
       final ReachedSet pReachedSet,
       final BasicProverEnvironment<?> pProver)
@@ -866,7 +900,18 @@ abstract class AbstractBMCAlgorithm
     // Subclasses can perform their own violation handling (e.g., allow imprecise counterexamples)
     // by overriding this method, and call analyzeCounterexample0() to find satisfying assignments
     analyzeCounterexample0(pCounterexample, pReachedSet, pProver)
-        .ifPresent(cex -> cex.getTargetState().addCounterexampleInformation(cex));
+        .ifPresentOrElse(
+            cex -> cex.getTargetState().addCounterexampleInformation(cex),
+            () -> {
+              if (!allowImpreciseCounterexamples) {
+                throw new AssertionError(
+                    "Found imprecise counterexample with BMC. "
+                        + "If this is expected for this configuration "
+                        + "(e.g., because of UF-based heap encoding), "
+                        + "set counterexample.export.allowImpreciseCounterexamples=true. "
+                        + "Otherwise please report this as a bug.");
+              }
+            });
   }
 
   /**
@@ -874,7 +919,7 @@ abstract class AbstractBMCAlgorithm
    * the solver for a satisfying assignment.
    */
   @SuppressWarnings("resource")
-  protected Optional<CounterexampleInfo> analyzeCounterexample0(
+  private Optional<CounterexampleInfo> analyzeCounterexample0(
       final BooleanFormula pCounterexampleFormula,
       final ReachedSet pReachedSet,
       final BasicProverEnvironment<?> pProver)
@@ -1027,8 +1072,8 @@ abstract class AbstractBMCAlgorithm
         }
         for (AbstractState s : toRemove) {
           pReachedSet.remove(s);
-          if (s instanceof ARGState) {
-            ((ARGState) s).removeFromARG();
+          if (s instanceof ARGState aRGState) {
+            aRGState.removeFromARG();
           }
         }
       }
@@ -1043,18 +1088,19 @@ abstract class AbstractBMCAlgorithm
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) algorithm).collectStatistics(pStatsCollection);
+    if (algorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(stats);
-    if (invariantGenerator instanceof StatisticsProvider) {
-      ((StatisticsProvider) invariantGenerator).collectStatistics(pStatsCollection);
+    if (invariantGenerator instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
     if (predToKIndInv != null) {
       pStatsCollection.add(predToKIndInv);
     }
   }
 
+  @ForOverride
   protected KInductionProver createInductionProver() {
     assert induction;
     return new KInductionProver(
@@ -1075,7 +1121,7 @@ abstract class AbstractBMCAlgorithm
    *
    * @return the potential target locations.
    */
-  protected Collection<CFANode> getTargetLocations() {
+  protected final Collection<CFANode> getTargetLocations() {
     return targetLocationProvider.tryGetAutomatonTargetLocations(
         cfa.getMainFunction(), specification);
   }
@@ -1085,7 +1131,7 @@ abstract class AbstractBMCAlgorithm
    *
    * @return the loop heads.
    */
-  protected Set<CFANode> getLoopHeads() {
+  private Set<CFANode> getLoopHeads() {
     return BMCHelper.getLoopHeads(cfa, targetLocationProvider);
   }
 
@@ -1187,7 +1233,8 @@ abstract class AbstractBMCAlgorithm
         throws InvalidConfigurationException, CPAException, InterruptedException;
   }
 
-  protected FluentIterable<CandidateInvariant> getConfirmedCandidates(final CFANode pLocation) {
+  protected final FluentIterable<CandidateInvariant> getConfirmedCandidates(
+      final CFANode pLocation) {
     return from(confirmedCandidates)
         .filter(pConfirmedCandidate -> pConfirmedCandidate.appliesTo(pLocation));
   }
@@ -1273,8 +1320,8 @@ abstract class AbstractBMCAlgorithm
         CandidateInvariant pCause,
         SymbolicCandiateInvariant pBlockingClause,
         List<SymbolicCandiateInvariant> pStrengthening) {
-      if (pCause instanceof Obligation) {
-        causingObligation = (Obligation) pCause;
+      if (pCause instanceof Obligation obligation) {
+        causingObligation = obligation;
         causingCandidateInvariant = causingObligation.causingCandidateInvariant;
       } else {
         causingCandidateInvariant = Objects.requireNonNull(pCause);
@@ -1284,11 +1331,11 @@ abstract class AbstractBMCAlgorithm
       weakenings = ImmutableList.copyOf(pStrengthening);
     }
 
-    public Obligation(CandidateInvariant pCause, SymbolicCandiateInvariant pBlockingClause) {
+    Obligation(CandidateInvariant pCause, SymbolicCandiateInvariant pBlockingClause) {
       this(pCause, pBlockingClause, ImmutableList.of());
     }
 
-    public int getDepth() {
+    int getDepth() {
       int depth = 0;
       Obligation current = this;
       while (current.causingObligation != null) {
@@ -1304,19 +1351,19 @@ abstract class AbstractBMCAlgorithm
       return blockingClause.toString();
     }
 
-    public CandidateInvariant getRootCause() {
+    CandidateInvariant getRootCause() {
       return causingCandidateInvariant;
     }
 
-    public SymbolicCandiateInvariant getBlockingClause() {
+    SymbolicCandiateInvariant getBlockingClause() {
       return blockingClause;
     }
 
-    public List<SymbolicCandiateInvariant> getWeakenings() {
+    List<SymbolicCandiateInvariant> getWeakenings() {
       return weakenings;
     }
 
-    public Obligation refineWith(
+    Obligation refineWith(
         FormulaManagerView pFmgr, SymbolicCandiateInvariant pRefinedBlockingClause)
         throws InterruptedException {
       if (pRefinedBlockingClause == blockingClause) {
@@ -1427,20 +1474,20 @@ abstract class AbstractBMCAlgorithm
 
     private boolean safe = true;
 
-    public void addSafeStates(Iterable<AbstractState> pSafeStates) {
+    void addSafeStates(Iterable<AbstractState> pSafeStates) {
       Iterables.addAll(checkedStates, pSafeStates);
     }
 
-    public void declareUnsafe() {
+    void declareUnsafe() {
       safe = false;
       checkedStates.clear();
     }
 
-    public boolean isSafe() {
+    boolean isSafe() {
       return safe;
     }
 
-    public Iterable<AbstractState> filterUnchecked(Iterable<AbstractState> pStates) {
+    Iterable<AbstractState> filterUnchecked(Iterable<AbstractState> pStates) {
       checkState(isSafe(), "A counterexample was found already.");
       return Iterables.filter(pStates, Predicates.not(Predicates.in(checkedStates)));
     }
@@ -1518,6 +1565,7 @@ abstract class AbstractBMCAlgorithm
 
     private static final class HeadStartWithLatch implements InvariantGeneratorHeadStart {
 
+      private final Timer waitTimer;
       private final CountDownLatch latch;
 
       @SuppressWarnings("UnnecessaryAnonymousClass") // ShutdownNotifier needs a strong reference
@@ -1530,14 +1578,20 @@ abstract class AbstractBMCAlgorithm
             }
           };
 
-      public HeadStartWithLatch(AbstractBMCAlgorithm pBmcAlgorithm, CountDownLatch pLatch) {
+      HeadStartWithLatch(AbstractBMCAlgorithm pBmcAlgorithm, CountDownLatch pLatch) {
         latch = Objects.requireNonNull(pLatch);
+        waitTimer = pBmcAlgorithm.stats.bmcWaitForInvariantHeadStart;
         pBmcAlgorithm.shutdownNotifier.registerAndCheckImmediately(shutdownListener);
       }
 
       @Override
       public void waitForInvariantGenerator() throws InterruptedException {
-        latch.await();
+        waitTimer.start();
+        try {
+          latch.await();
+        } finally {
+          waitTimer.stop();
+        }
       }
     }
 

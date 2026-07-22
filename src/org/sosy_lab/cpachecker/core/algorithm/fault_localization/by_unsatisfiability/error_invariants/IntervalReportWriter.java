@@ -39,13 +39,13 @@ public class IntervalReportWriter extends FaultReportWriter {
 
   @Override
   public String toHtml(Fault pFault) {
-    if (pFault instanceof Interval) {
+    if (pFault instanceof Interval interval) {
       List<CFAEdge> edges =
           pFault.stream()
               .map(FaultContribution::correspondingEdge)
               .sorted(Comparator.comparingInt(l -> l.getFileLocation().getStartingLineInOrigin()))
               .collect(ImmutableList.toImmutableList());
-      return intervalToHtml((Interval) pFault, pFault.getInfos(), edges);
+      return intervalToHtml(interval, pFault.getInfos(), edges);
     } else {
       return super.toHtml(pFault);
     }

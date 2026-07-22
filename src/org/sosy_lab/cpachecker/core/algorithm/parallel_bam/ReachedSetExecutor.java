@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
@@ -115,7 +116,7 @@ class ReachedSetExecutor {
    * <p>Synchronized access guaranteed by only instance-local access in the current {@link
    * ReachedSetExecutor}!
    */
-  private final Set<AbstractState> dependsOn = new LinkedHashSet<>();
+  private final SequencedSet<AbstractState> dependsOn = new LinkedHashSet<>();
 
   /**
    * This mapping contains all {@link ReachedSetExecutor}s (known as parents) that wait for the
@@ -254,8 +255,8 @@ class ReachedSetExecutor {
 
       if (bamcpa.doesBreakForMissingBlock()) {
         AbstractState lastState = rs.getLastState();
-        if (lastState instanceof MissingBlockAbstractionState) {
-          handleMissingBlock((MissingBlockAbstractionState) lastState);
+        if (lastState instanceof MissingBlockAbstractionState missingBlockAbstractionState) {
+          handleMissingBlock(missingBlockAbstractionState);
         }
       } else {
         // create local copy of important states, because RS will be modified later.

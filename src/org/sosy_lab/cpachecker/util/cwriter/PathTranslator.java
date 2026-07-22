@@ -144,7 +144,7 @@ public abstract class PathTranslator {
       Collections.sort(waitlist);
 
       // get the first element in the list (this is the smallest element when topologically sorted)
-      Edge nextEdge = waitlist.remove(0);
+      Edge nextEdge = waitlist.removeFirst();
 
       waitlist.addAll(handleEdge(nextEdge, mergeNodes, elementsOnPath, callback));
     }
@@ -289,21 +289,19 @@ public abstract class PathTranslator {
         from(currentElement.getChildren()).filter(in(elementsOnPath)).toList();
     relevantChildrenOfElement = chooseIfArbitrary(currentElement, relevantChildrenOfElement);
 
-    switch (relevantChildrenOfElement.size()) {
-      case 0 -> {
-        return ImmutableList.of();
-      }
+    return switch (relevantChildrenOfElement.size()) {
+      case 0 -> ImmutableList.of();
       case 1 -> {
         // If there is only one child on the path, get the next ARG state, create a new edge using
         // the same stack and add it to the waitlist.
         ARGState elem = Iterables.getOnlyElement(relevantChildrenOfElement);
         CFAEdge e = currentElement.getEdgeToChild(elem);
-        return ImmutableList.of(new Edge(elem, currentElement, e, functionStack));
+        yield ImmutableList.of(new Edge(elem, currentElement, e, functionStack));
       }
       case 2 -> {
         // If there are more than one relevant child, then this is a condition.
         // We need to update the stack.
-        ARGState child1 = relevantChildrenOfElement.get(0);
+        ARGState child1 = relevantChildrenOfElement.getFirst();
         ARGState child2 = relevantChildrenOfElement.get(1);
         CAssumeEdge edge1 = (CAssumeEdge) currentElement.getEdgeToChild(child1);
         CAssumeEdge edge2 = (CAssumeEdge) currentElement.getEdgeToChild(child2);
@@ -322,12 +320,12 @@ public abstract class PathTranslator {
 
         String cond = "if (" + edge1.getExpression().toASTString() + ")";
 
-        return ImmutableList.of(
+        yield ImmutableList.of(
             createNewBasicBlock(currentElement, child1, edge1, cond, functionStack),
             createNewBasicBlock(currentElement, child2, edge2, "else", functionStack));
       }
       default -> throw new AssertionError();
-    }
+    };
   }
 
   private List<ARGState> chooseIfArbitrary(

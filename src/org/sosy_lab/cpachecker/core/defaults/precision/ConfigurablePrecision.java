@@ -118,9 +118,9 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
     if (trackFloatVariables) {
       return isTracking(pVariable);
     } else {
-      return !((pType instanceof CSimpleType
-                  && ((CSimpleType) pType).getType().isFloatingPointType())
-              || (pType instanceof JSimpleType && ((JSimpleType) pType).isFloatingPointType()))
+      return !((pType instanceof CSimpleType cSimpleType
+                  && cSimpleType.getType().isFloatingPointType())
+              || (pType instanceof JSimpleType jSimpleType && jSimpleType.isFloatingPointType()))
           && isTracking(pVariable);
     }
   }
@@ -273,9 +273,8 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
   }
 
   @Override
-  public boolean equals(Object other) {
-    return other instanceof ConfigurablePrecision
-        && tracksTheSameVariablesAs((ConfigurablePrecision) other);
+  public boolean equals(Object pObj) {
+    return pObj instanceof ConfigurablePrecision other && tracksTheSameVariablesAs(other);
   }
 
   @Override

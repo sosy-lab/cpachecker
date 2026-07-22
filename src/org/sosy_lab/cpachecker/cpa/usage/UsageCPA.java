@@ -79,8 +79,8 @@ public class UsageCPA extends AbstractSingleWrapperCPA
             pCfa,
             lockCPA != null ? (LockTransferRelation) lockCPA.getTransferRelation() : null);
     precisionAdjustment = new UsagePrecisionAdjustment(pCpa.getPrecisionAdjustment());
-    if (pCpa instanceof ConfigurableProgramAnalysisWithBAM) {
-      Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM) pCpa).getReducer();
+    if (pCpa instanceof ConfigurableProgramAnalysisWithBAM configurableProgramAnalysisWithBAM) {
+      Reducer wrappedReducer = configurableProgramAnalysisWithBAM.getReducer();
       reducer = new UsageReducer(wrappedReducer);
     } else {
       reducer = null;

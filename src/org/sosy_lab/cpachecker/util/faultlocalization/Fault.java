@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.SequencedSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 
@@ -182,7 +183,7 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
   }
 
   public static Fault merge(Fault f1, Fault f2) {
-    Set<FaultContribution> contributions = new LinkedHashSet<>(f1);
+    SequencedSet<FaultContribution> contributions = new LinkedHashSet<>(f1);
     contributions.addAll(f2);
     List<FaultInfo> infos = new ArrayList<>(f1.infos);
     infos.addAll(f2.infos);

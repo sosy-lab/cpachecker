@@ -231,14 +231,14 @@ public class BaseSizeofVisitor<X extends Exception> implements CTypeVisitor<BigI
           fieldSizeInBits = model.getSizeofInBits(type, this);
         }
 
-        if (type instanceof CBitFieldType) {
+        if (type instanceof CBitFieldType cBitFieldType) {
           if (typeMember.getName().equals(pFieldName)) {
             // just escape the loop and return the current offset
             bitOffset = bitOffset.add(sizeOfConsecutiveBitFields);
             return bitOffset;
           }
 
-          CType innerType = ((CBitFieldType) type).getType();
+          CType innerType = cBitFieldType.getType();
 
           if (fieldSizeInBits.compareTo(BigInteger.ZERO) == 0) {
             // Bitfields with length 0 guarantee that

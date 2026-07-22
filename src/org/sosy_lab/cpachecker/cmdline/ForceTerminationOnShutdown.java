@@ -36,7 +36,6 @@ class ForceTerminationOnShutdown implements Runnable {
 
   // Time that a shutdown may last before we kill the program.
   private static final int SHUTDOWN_GRACE_PERIOD = 10; // seconds
-  private static final int SHUTDOWN_GRACE_PERIOD_2 = 1; // seconds
 
   private final LogManager logger;
   private final Thread mainThread;
@@ -139,25 +138,7 @@ class ForceTerminationOnShutdown implements Runnable {
     logger.flush();
 
     // Now we need to kill the JVM.
-
-    // If the main thread hangs in Java code, this will work:
-    try {
-      mainThread.stop();
-    } catch (UnsupportedOperationException e) {
-      // Java 20+
-      // We cannot really do better instead of continuing and eventually calling System.exit()
-    }
-    try {
-      TimeUnit.SECONDS.sleep(SHUTDOWN_GRACE_PERIOD_2);
-    } catch (InterruptedException e) {
-      return;
-    }
-    if (canceled.get()) {
-      return;
-    }
-
-    // If we come here, stop() did not work,
-    // probably because the main thread hangs in native code.
+    // Thread.stop() no longer exists and would not work for native code.
     // System.exit() will work, but there is a ShutdownHook
     // that blocks it until the main thread terminates,
     // so we have to disable that ShutdownHook.

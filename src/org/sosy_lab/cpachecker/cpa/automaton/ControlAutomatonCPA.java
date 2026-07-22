@@ -220,7 +220,7 @@ public class ControlAutomatonCPA
               + " The CPA can only handle ONE Automaton!");
     }
 
-    return lst.get(0);
+    return lst.getFirst();
   }
 
   Automaton getAutomaton() {

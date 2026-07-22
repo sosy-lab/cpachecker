@@ -56,8 +56,8 @@ public class UnsafeDetector {
   public Pair<UsageInfo, UsageInfo> getUnsafePair(AbstractUsagePointSet set) {
     assert isUnsafe(set);
 
-    if (set instanceof RefinedUsagePointSet) {
-      return ((RefinedUsagePointSet) set).getUnsafePair();
+    if (set instanceof RefinedUsagePointSet refinedUsagePointSet) {
+      return refinedUsagePointSet.getUnsafePair();
     } else {
       UnrefinedUsagePointSet unrefinedSet = (UnrefinedUsagePointSet) set;
       Pair<UsagePoint, UsagePoint> result = getUnsafePair(unrefinedSet.getTopUsages());

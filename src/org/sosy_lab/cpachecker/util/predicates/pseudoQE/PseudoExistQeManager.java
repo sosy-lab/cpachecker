@@ -100,10 +100,10 @@ public class PseudoExistQeManager implements StatisticsProvider {
           // TODO this code assumes that equality has exactly two arguments.
           // We might have more than two.
           // check those functions that represent equality
-          if (boundVars.contains(pArgs.get(0))) {
-            return ImmutableMap.of(pArgs.get(0), pArgs.get(1));
+          if (boundVars.contains(pArgs.getFirst())) {
+            return ImmutableMap.of(pArgs.getFirst(), pArgs.get(1));
           } else if (boundVars.contains(pArgs.get(1))) {
-            return ImmutableMap.of(pArgs.get(1), pArgs.get(0));
+            return ImmutableMap.of(pArgs.get(1), pArgs.getFirst());
           } else {
             return null;
           }
@@ -388,16 +388,16 @@ public class PseudoExistQeManager implements StatisticsProvider {
 
       BooleanFormula afterQE = quantifiedFormula;
       // Apply the Quantifier elimination tactic
-      if (solverQeTactic == SolverQeTactic.LIGHT || solverQeTactic == SolverQeTactic.FULL) {
-        afterQE = fmgr.applyTactic(quantifiedFormula, Tactic.QE_LIGHT);
-      }
-      if (solverQeTactic == SolverQeTactic.FULL) {
-        try {
-          afterQE = qFmgr.orElseThrow().eliminateQuantifiers(quantifiedFormula);
-        } catch (SolverException e) {
-          logger.log(
-              Level.FINER, "Solver based Quantifier Elimination failed with SolverException!", e);
+      try {
+        if (solverQeTactic == SolverQeTactic.LIGHT || solverQeTactic == SolverQeTactic.FULL) {
+          afterQE = fmgr.applyTactic(quantifiedFormula, Tactic.QE_LIGHT);
         }
+        if (solverQeTactic == SolverQeTactic.FULL) {
+          afterQE = qFmgr.orElseThrow().eliminateQuantifiers(quantifiedFormula);
+        }
+      } catch (SolverException e) {
+        logger.log(
+            Level.FINER, "Solver based Quantifier Elimination failed with SolverException!", e);
       }
       int numberQuantifiers = numberQuantifiers(afterQE);
       // Check if number of quantified vars less than before

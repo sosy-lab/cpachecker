@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.Typed;
  *
  * @param <T> the type of the constant value.
  */
-public class Constant<T> extends AbstractFormula<T> implements NumeralFormula<T> {
+public final class Constant<T> extends AbstractFormula<T> {
 
   /** The value of the constant. */
   private final T value;
@@ -32,8 +32,8 @@ public class Constant<T> extends AbstractFormula<T> implements NumeralFormula<T>
   private Constant(TypeInfo pInfo, T pValue) {
     super(pInfo);
     Preconditions.checkNotNull(pValue);
-    if (pValue instanceof Typed) {
-      Preconditions.checkArgument(pInfo.equals(((Typed) pValue).getTypeInfo()));
+    if (pValue instanceof Typed typed) {
+      Preconditions.checkArgument(pInfo.equals(typed.getTypeInfo()));
     }
     value = pValue;
   }

@@ -8,14 +8,15 @@
 
 package org.sosy_lab.cpachecker.util;
 
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Ascii;
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -74,12 +75,14 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
+import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
 public class CParserUtils {
 
@@ -90,7 +93,8 @@ public class CParserUtils {
     return parse(addFunctionDeclaration(pSource), parser, scope);
   }
 
-  public static List<CStatement> parseListOfStatements(String pSource, CParser parser, Scope scope)
+  public static ImmutableList<CStatement> parseListOfStatements(
+      String pSource, CParser parser, Scope scope)
       throws InvalidAutomatonException, InterruptedException {
     return parseBlockOfStatements(addFunctionDeclaration(pSource), parser, scope);
   }
@@ -118,8 +122,8 @@ public class CParserUtils {
                   + assignment.getRightHandSide().toASTString()
                   + "' is not supported in automaton assumption");
         }
-      } else if (statement instanceof CExpressionStatement) {
-        result.add(((CExpressionStatement) statement).getExpression());
+      } else if (statement instanceof CExpressionStatement cExpressionStatement) {
+        result.add(cExpressionStatement.getExpression());
       } else {
         throw new InvalidAutomatonException(
             "Statement '" + statement.toASTString() + "' is not supported in automaton assumption");
@@ -156,10 +160,10 @@ public class CParserUtils {
       throws InvalidAutomatonException, InterruptedException {
     try {
       CAstNode statement = parser.parseSingleStatement(code, scope);
-      if (!(statement instanceof CStatement)) {
+      if (!(statement instanceof CStatement cStatement)) {
         throw new InvalidAutomatonException("Not a valid statement: " + statement.toASTString());
       }
-      return (CStatement) statement;
+      return cStatement;
     } catch (ParserException e) {
       throw new InvalidAutomatonException(
           "Error during parsing C code \"" + code + "\": " + e.getMessage());
@@ -174,7 +178,8 @@ public class CParserUtils {
    * @param code The C code to parse.
    * @return The AST.
    */
-  private static List<CStatement> parseBlockOfStatements(String code, CParser parser, Scope scope)
+  private static ImmutableList<CStatement> parseBlockOfStatements(
+      String code, CParser parser, Scope scope)
       throws InvalidAutomatonException, InterruptedException {
     List<CAstNode> statements;
     try {
@@ -204,39 +209,39 @@ public class CParserUtils {
    * @return a collection of C statements.
    * @throws InvalidAutomatonException if the input strings cannot be interpreted as C statements.
    */
-  public static Collection<CStatement> parseStatements(
+  public static ImmutableSet<CStatement> parseStatements(
       Set<String> pStatements,
       Optional<String> pResultFunction,
       CParser pCParser,
       Scope pScope,
       ParserTools pParserTools)
       throws InvalidAutomatonException, InterruptedException {
-    if (!pStatements.isEmpty()) {
 
-      Set<CStatement> result = new HashSet<>();
-      for (String assumeCode : pStatements) {
-        Collection<CStatement> statements =
-            parseAsCStatements(assumeCode, pResultFunction, pCParser, pScope, pParserTools);
-        result.addAll(
-            removeDuplicates(
-                from(statements).transform(CParserUtils::adjustCharAssignmentSignedness)));
-      }
-      return result;
+    ImmutableSet.Builder<CStatement> result = ImmutableSet.builder();
+    for (String assumeCode : pStatements) {
+      Collection<CStatement> statements =
+          parseAsCStatements(assumeCode, pResultFunction, pCParser, pScope, pParserTools);
+      result.addAll(
+          removeDuplicates(
+              Collections2.transform(statements, CParserUtils::adjustCharAssignmentSignedness)));
     }
-    return ImmutableSet.of();
+    return result.build();
   }
 
-  private static Collection<CStatement> parseAsCStatements(
+  private static ImmutableCollection<CStatement> parseAsCStatements(
       String pCode,
       Optional<String> pResultFunction,
       CParser pCParser,
       Scope pScope,
       ParserTools pParserTools)
       throws InvalidAutomatonException, InterruptedException {
-    Collection<CStatement> result = new HashSet<>();
+    ImmutableSet.Builder<CStatement> result = ImmutableSet.builder();
     boolean fallBack = false;
     ExpressionTree<AExpression> tree =
         parseStatement(pCode, pResultFunction, pCParser, pScope, pParserTools);
+    ToCExpressionVisitor toCExpressionVisitor =
+        new ToCExpressionVisitor(pParserTools.machineModel, pParserTools.logger);
+
     if (!tree.equals(ExpressionTrees.getTrue())) {
       if (tree.equals(ExpressionTrees.getFalse())) {
         return ImmutableSet.of(
@@ -245,21 +250,20 @@ public class CParserUtils {
                 new CIntegerLiteralExpression(
                     FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO)));
       }
-      if (tree instanceof LeafExpression) {
-        LeafExpression<AExpression> leaf = (LeafExpression<AExpression>) tree;
-        AExpression expression = leaf.getExpression();
-        if (expression instanceof CExpression) {
-          result.add(new CExpressionStatement(FileLocation.DUMMY, (CExpression) expression));
-        } else {
+      if (tree instanceof LeafExpression<AExpression> leaf) {
+        try {
+          result.add(
+              new CExpressionStatement(FileLocation.DUMMY, toCExpressionVisitor.visit(leaf)));
+        } catch (UnrecognizedCodeException e) {
           fallBack = true;
         }
       } else if (ExpressionTrees.isAnd(tree)) {
         for (ExpressionTree<AExpression> child : ExpressionTrees.getChildren(tree)) {
-          if (child instanceof LeafExpression) {
-            AExpression expression = ((LeafExpression<AExpression>) child).getExpression();
-            if (expression instanceof CExpression) {
-              result.add(new CExpressionStatement(FileLocation.DUMMY, (CExpression) expression));
-            } else {
+          if (child instanceof LeafExpression<AExpression> leaf) {
+            try {
+              result.add(
+                  new CExpressionStatement(FileLocation.DUMMY, toCExpressionVisitor.visit(leaf)));
+            } catch (UnrecognizedCodeException e) {
               fallBack = true;
             }
           } else {
@@ -274,7 +278,7 @@ public class CParserUtils {
       String code = tryFixACSL(tryFixArrayInitializers(pCode), pResultFunction, pScope);
       return CParserUtils.parseListOfStatements(code, pCParser, pScope);
     }
-    return result;
+    return result.build();
   }
 
   /**
@@ -323,7 +327,7 @@ public class CParserUtils {
     // Try the old method first; it works for simple expressions
     // and also supports assignment statements and multiple statements easily
     String assumeCode = tryFixArrayInitializers(pAssumeCode);
-    Collection<CStatement> statements = null;
+    ImmutableCollection<CStatement> statements;
     try {
       statements = CParserUtils.parseListOfStatements(assumeCode, pCParser, pScope);
     } catch (RuntimeException e) {
@@ -340,7 +344,8 @@ public class CParserUtils {
               tryFixACSL(assumeCode, pResultFunction, pScope), pCParser, pScope);
     }
     statements =
-        removeDuplicates(from(statements).transform(CParserUtils::adjustCharAssignmentSignedness));
+        removeDuplicates(
+            Collections2.transform(statements, CParserUtils::adjustCharAssignmentSignedness));
     {
       CBinaryExpressionBuilder binaryExpressionBuilder =
           new CBinaryExpressionBuilder(pParserTools.machineModel, pParserTools.logger);
@@ -457,7 +462,7 @@ public class CParserUtils {
       ExpressionTree<AExpression> currentTree = memo.get(current);
 
       // Compute successor trees
-      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
+      for (CFAEdge leavingEdge : current.getLeavingEdges()) {
 
         CFANode succ = leavingEdge.getSuccessor();
 
@@ -477,10 +482,10 @@ public class CParserUtils {
             return ExpressionTrees.getTrue();
           }
           AExpression expression = optExpression.get();
-          if (!(expression instanceof AIntegerLiteralExpression)) {
+          if (!(expression instanceof AIntegerLiteralExpression literal)) {
             return ExpressionTrees.getTrue();
           }
-          AIntegerLiteralExpression literal = (AIntegerLiteralExpression) expression;
+
           // If the value is zero, the current path is 'false', so we do not add it.
           // If the value is one, we add the current path
           if (!literal.getValue().equals(BigInteger.ZERO)) {
@@ -492,7 +497,7 @@ public class CParserUtils {
           AExpression expression = assumeEdge.getExpression();
 
           if (expression.toString().contains(CPACHECKER_TMP_PREFIX)) {
-            for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current)) {
+            for (CFAEdge enteringEdge : current.getEnteringEdges()) {
               Map<AExpression, AExpression> tmpVariableValues =
                   collectCPAcheckerTMPValues(enteringEdge);
               if (!tmpVariableValues.isEmpty()) {
@@ -571,12 +576,12 @@ public class CParserUtils {
   }
 
   private static Map<AExpression, AExpression> collectCPAcheckerTMPValues(CFAEdge pEdge) {
-    if (pEdge instanceof AStatementEdge) {
-      AStatement statement = ((AStatementEdge) pEdge).getStatement();
+    if (pEdge instanceof AStatementEdge aStatementEdge) {
+      AStatement statement = aStatementEdge.getStatement();
       if (statement instanceof AExpressionAssignmentStatement expAssignStmt) {
         ALeftHandSide lhs = expAssignStmt.getLeftHandSide();
-        if (lhs instanceof AIdExpression
-            && ((AIdExpression) lhs).getName().contains(CPACHECKER_TMP_PREFIX)) {
+        if (lhs instanceof AIdExpression aIdExpression
+            && aIdExpression.getName().contains(CPACHECKER_TMP_PREFIX)) {
           AExpression rhs = expAssignStmt.getRightHandSide();
           return ImmutableMap.of(lhs, rhs);
         }
@@ -596,9 +601,10 @@ public class CParserUtils {
    * @param pStatements the assumptions.
    * @return the duplicate-free assumptions.
    */
-  private static Collection<CStatement> removeDuplicates(
-      Iterable<? extends CStatement> pStatements) {
-    Map<Object, CStatement> result = new HashMap<>();
+  private static ImmutableCollection<CStatement> removeDuplicates(
+      Collection<? extends CStatement> pStatements) {
+    ImmutableMap.Builder<Object, CStatement> result =
+        ImmutableMap.builderWithExpectedSize(pStatements.size());
     for (CStatement statement : pStatements) {
       if (statement instanceof CExpressionAssignmentStatement assignmentStatement) {
         result.put(assignmentStatement.getLeftHandSide(), assignmentStatement);
@@ -606,7 +612,7 @@ public class CParserUtils {
         result.put(statement, statement);
       }
     }
-    return result.values();
+    return result.buildKeepingLast().values();
   }
 
   /**

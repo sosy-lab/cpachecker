@@ -254,11 +254,11 @@ public class PJBDDRegionManager implements RegionManager {
       pConfig.inject(this);
     }
 
-    protected String getUseBDDType() {
+    String getUseBDDType() {
       return useBDDType;
     }
 
-    protected List<String> getAllValidBDDTypes() {
+    List<String> getAllValidBDDTypes() {
       return ALL_BDD_TYPES;
     }
 
@@ -339,11 +339,6 @@ public class PJBDDRegionManager implements RegionManager {
     @Override
     public DD visitConstant(boolean pB) {
       return pB ? bddCreator.makeTrue() : bddCreator.makeFalse();
-    }
-
-    @Override
-    public DD visitBoundVar(BooleanFormula pBooleanFormula, int pI) {
-      throw new UnsupportedOperationException("Not yet implemented"); // TODO
     }
 
     @Override

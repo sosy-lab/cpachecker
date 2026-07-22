@@ -119,8 +119,8 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
       case DIVIDE -> interval1.divide(interval2);
       case SHIFT_LEFT -> interval1.shiftLeft(interval2);
       case SHIFT_RIGHT -> interval1.shiftRight(interval2);
-      case MODULO -> interval1.modulo(interval2);
-      case BINARY_AND, BINARY_OR, BINARY_XOR -> Interval.UNBOUND;
+      case REMAINDER -> interval1.modulo(interval2);
+      case BITWISE_AND, BITWISE_OR, BITWISE_XOR -> Interval.UNBOUND;
       default -> throw new AssertionError("unknown binary operator: " + operator);
     };
   }
@@ -153,8 +153,8 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
 
   @Override
   public Interval visit(CIdExpression identifier) {
-    if (identifier.getDeclaration() instanceof CEnumerator) {
-      BigInteger enumConstant = ((CEnumerator) identifier.getDeclaration()).getValue();
+    if (identifier.getDeclaration() instanceof CEnumerator cEnumerator) {
+      BigInteger enumConstant = cEnumerator.getValue();
       return getIntervalFor(enumConstant);
     }
 

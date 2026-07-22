@@ -37,6 +37,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.SequencedMap;
+import java.util.SequencedSet;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -270,7 +272,7 @@ public class ARGToAutomatonConverter {
     if (locationQueries.isEmpty()) {
       return AutomatonBoolExpr.TRUE;
     }
-    AutomatonBoolExpr otherwise = locationQueries.get(0);
+    AutomatonBoolExpr otherwise = locationQueries.getFirst();
     for (AutomatonBoolExpr expr : Iterables.skip(locationQueries, 1)) {
       otherwise = new AutomatonBoolExpr.And(otherwise, expr);
     }
@@ -377,7 +379,7 @@ public class ARGToAutomatonConverter {
   /** return the frontier states after skipping N states */
   private Set<ARGState> getTopStatesForAutomata(
       ARGState root, Map<ARGState, BranchingInfo> pDependencies) {
-    Set<ARGState> alwaysExport = new LinkedHashSet<>();
+    SequencedSet<ARGState> alwaysExport = new LinkedHashSet<>();
     Collection<ARGState> finished = new LinkedHashSet<>();
     Deque<ARGState> waitlist = new ArrayDeque<>();
     waitlist.add(root);
@@ -579,7 +581,7 @@ public class ARGToAutomatonConverter {
 
   private Map<ARGState, BranchingInfo> getGlobalBranchingTree(ARGState pRoot) {
     Preconditions.checkArgument(!pRoot.isCovered());
-    Map<ARGState, BranchingInfo> branchingTree = new LinkedHashMap<>();
+    SequencedMap<ARGState, BranchingInfo> branchingTree = new LinkedHashMap<>();
     Deque<ARGState> waitlist = new ArrayDeque<>();
     Collection<ARGState> finished = new HashSet<>();
     waitlist.add(pRoot);
@@ -610,7 +612,7 @@ public class ARGToAutomatonConverter {
     markLoopStates(pDependencies);
 
     // then build new dependencies without loops
-    Map<ARGState, BranchingInfo> branchingTree = new LinkedHashMap<>();
+    SequencedMap<ARGState, BranchingInfo> branchingTree = new LinkedHashMap<>();
     Deque<ARGState> waitlist = new ArrayDeque<>();
     Collection<ARGState> finished = new HashSet<>();
     waitlist.add(root);
@@ -764,7 +766,7 @@ public class ARGToAutomatonConverter {
 
     // build the call graph, i.e., a directed tree starting at main-entry
     final Multimap<CallstackState, CallstackState> callstacks = LinkedHashMultimap.create();
-    final Map<CallstackState, CallstackState> inverseCallstacks = new LinkedHashMap<>();
+    final SequencedMap<CallstackState, CallstackState> inverseCallstacks = new LinkedHashMap<>();
     final Multimap<CallstackState, ARGState> callstackToLeaves = LinkedHashMultimap.create();
     final Multimap<CallstackState, ARGState> callstackToLeafWithParentAssumptions =
         LinkedHashMultimap.create();
@@ -772,10 +774,10 @@ public class ARGToAutomatonConverter {
       CallstackState callstack = AbstractStates.extractStateByType(leaf, CallstackState.class);
       Preconditions.checkNotNull(callstack);
       Preconditions.checkArgument(leaf.getParents().size() == 1);
-      Preconditions.checkArgument(leaf.getParents().iterator().next().getEdgeToChild(leaf) != null);
+      Preconditions.checkArgument(leaf.getParents().getFirst().getEdgeToChild(leaf) != null);
       // if an error occurs when entering the function, we need to remove the last entry from the
       // stack (at least for assumption handling, otherwise this probably does not happen any way):
-      if (leaf.getParents().iterator().next().getEdgeToChild(leaf) instanceof FunctionCallEdge) {
+      if (leaf.getParents().getFirst().getEdgeToChild(leaf) instanceof FunctionCallEdge) {
         callstack = callstack.getPreviousState();
       }
       callstackToLeaves.put(callstack, leaf);
@@ -830,7 +832,7 @@ public class ARGToAutomatonConverter {
                   withTargetStates ? AutomatonInternalState.ERROR.getName() : id(leaf)));
         } else {
           // assumptions present, bend transition to parent instead:
-          ARGState parent = leaf.getParents().iterator().next();
+          ARGState parent = leaf.getParents().getFirst();
           stacksWithAssumptions.add(elem);
           transitions.add(
               makeLocationTransition(
@@ -882,7 +884,7 @@ public class ARGToAutomatonConverter {
       final Set<ARGState> parents = new HashSet<>();
       final Map<ARGState, CFANode> parentsToLeafNode = new HashMap<>();
       for (ARGState leaf : pCallstackToLeaves.get(callstack)) {
-        ARGState parent = leaf.getParents().iterator().next();
+        ARGState parent = leaf.getParents().getFirst();
         if (parents.add(parent)) {
           CFANode leafNode = AbstractStates.extractLocation(leaf);
           if (parentsToLeafNode.containsKey(parent)) {
@@ -1054,7 +1056,7 @@ public class ARGToAutomatonConverter {
     /** mapping of direct child-states towards nextStates. */
     private final ImmutableSetMultimap<ARGState, ARGState> children;
 
-    private final Set<ARGState> parents = new LinkedHashSet<>(); // lazily filled
+    private final SequencedSet<ARGState> parents = new LinkedHashSet<>(); // lazily filled
 
     private boolean isPartOfLoop = false; // lazy
 
@@ -1062,7 +1064,7 @@ public class ARGToAutomatonConverter {
      * current state can be reached via several paths. Ignored states cut off all other branches for
      * each of those paths. Each set represents a single path with its cut-off-states.
      */
-    private Set<PersistentSet<ARGState>> ignoreStates = new LinkedHashSet<>();
+    private SequencedSet<PersistentSet<ARGState>> ignoreStates = new LinkedHashSet<>();
 
     BranchingInfo(ARGState pCurrent, ImmutableSetMultimap<ARGState, ARGState> pChildren) {
       current = pCurrent;

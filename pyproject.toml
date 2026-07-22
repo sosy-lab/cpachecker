@@ -6,6 +6,8 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-[tool.black]
-include = '((contrib|scripts|test/util).*\.(ipynb|py)|bin/cpa-witness2test)$'
-target-version = ['py37']
+[project]
+requires-python = ">= 3.7"
+
+[tool.ruff]
+extend-include = ["bin/cpa-witness2test"]

@@ -70,7 +70,7 @@ public abstract class StaticRefiner {
         Pair<CFANode, Integer> v = queue.pop();
 
         // Each node that enters node v
-        for (CFAEdge e : CFAUtils.enteringEdges(v.getFirst())) {
+        for (CFAEdge e : v.getFirst().getEnteringEdges()) {
           CFANode u = e.getPredecessor();
 
           boolean isAssumeEdge = (e instanceof AssumeEdge);

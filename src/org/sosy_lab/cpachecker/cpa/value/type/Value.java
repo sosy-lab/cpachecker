@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.OptionalLong;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -36,12 +37,17 @@ public interface Value extends Serializable {
    */
   @Nullable NumericValue asNumericValue();
 
-  /** Return the long value if this is a long value, null otherwise. */
-  @Nullable Long asLong(CType type);
+  /** Return the long value if this is a long value. */
+  OptionalLong asLong(CType type);
 
   <T> T accept(ValueVisitor<T> pVisitor);
 
-  /** Singleton class used to signal that the value is unknown (could be anything). */
+  /**
+   * Singleton class used to signal that the value is unknown (could be anything). These values are
+   * typically not saved in the ValueAnalysis state and are without a type.
+   */
+  // TODO: their typelessness is a problem! As __verifier_nondet_bool() == 123456789 for example is
+  //  true, while it should not be!
   public static final class UnknownValue implements Value, Serializable {
 
     @Serial private static final long serialVersionUID = -300842115868319184L;
@@ -67,9 +73,9 @@ public interface Value extends Serializable {
     }
 
     @Override
-    public @Nullable Long asLong(CType type) {
+    public OptionalLong asLong(CType type) {
       checkNotNull(type);
-      return null;
+      return OptionalLong.empty();
     }
 
     @Override

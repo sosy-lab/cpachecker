@@ -1,18 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
-<!--
-This file is part of CPAchecker,
-a tool for configurable software verification:
-https://cpachecker.sosy-lab.org
-
-SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
-
-SPDX-License-Identifier: Apache-2.0
--->
-
 <project version="4">
   <component name="CompilerConfiguration">
-    <option name="DEFAULT_COMPILER" value="Eclipse" />
+    <option name="PARALLEL_COMPILATION_OPTION" value="Automatic" />
     <wildcardResourcePatterns>
       <entry name="!?*.java" />
       <entry name="!?*.form" />
@@ -24,12 +13,18 @@ SPDX-License-Identifier: Apache-2.0
       <entry name="!?*.clj" />
     </wildcardResourcePatterns>
     <annotationProcessing>
-      <profile default="true" name="Default" enabled="false">
-        <processorPath useClasspath="true" />
+      <profile default="true" name="Default" enabled="true">
+        <sourceOutputDir name=".apt-generated" />
+        <sourceTestOutputDir name=".apt-generated" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$PROJECT_DIR$/lib/java/runtime/common.jar" />
+          <entry name="$PROJECT_DIR$/lib/java/build" />
+        </processorPath>
       </profile>
     </annotationProcessing>
   </component>
-  <component name="EclipseCompilerSettings">
-    <option name="ECJ_TOOL_PATH" value="$PROJECT_DIR$/lib/java/build/ecj.jar" />
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_STRING" value="-classpath classes:lib/apron.jar:lib/gmp.jar:lib/jsylvan.jar:lib/mpfr_java.jar:lib/java/runtime/CVC4.jar:lib/java/runtime/animal-sniffer-annotations.jar:lib/java/runtime/antlr4-runtime.jar:lib/java/runtime/automaton.jar:lib/java/runtime/batik-awt-util.jar:lib/java/runtime/batik-constants.jar:lib/java/runtime/batik-dom.jar:lib/java/runtime/batik-ext.jar:lib/java/runtime/batik-i18n.jar:lib/java/runtime/batik-svggen.jar:lib/java/runtime/batik-util.jar:lib/java/runtime/batik-xml.jar:lib/java/runtime/bitwuzla.jar:lib/java/runtime/checker-qual.jar:lib/java/runtime/com.microsoft.z3.jar:lib/java/runtime/common.jar:lib/java/runtime/commons-io.jar:lib/java/runtime/cvc5.jar:lib/java/runtime/error_prone_annotations.jar:lib/java/runtime/failureaccess.jar:lib/java/runtime/fastparse_2.13.jar:lib/java/runtime/geny_2.13.jar:lib/java/runtime/guava.jar:lib/java/runtime/icu4j.jar:lib/java/runtime/j2objc-annotations.jar:lib/java/runtime/jackson-annotations.jar:lib/java/runtime/jackson-core.jar:lib/java/runtime/jackson-databind.jar:lib/java/runtime/jackson-dataformat-yaml.jar:lib/java/runtime/java-cup-runtime.jar:lib/java/runtime/java-smt.jar:lib/java/runtime/javabdd.jar:lib/java/runtime/jdd.jar:lib/java/runtime/jhoafparser.jar:lib/java/runtime/jna.jar:lib/java/runtime/jspecify.jar:lib/java/runtime/jsr305.jar:lib/java/runtime/lasso-ranker.jar:lib/java/runtime/listenablefuture.jar:lib/java/runtime/llvm-j.jar:lib/java/runtime/opensmt.jar:lib/java/runtime/org.eclipse.cdt.core.jar:lib/java/runtime/org.eclipse.core.contenttype.jar:lib/java/runtime/org.eclipse.core.jobs.jar:lib/java/runtime/org.eclipse.core.resources.jar:lib/java/runtime/org.eclipse.core.runtime.jar:lib/java/runtime/org.eclipse.equinox.common.jar:lib/java/runtime/org.eclipse.equinox.preferences.jar:lib/java/runtime/org.eclipse.jdt.core.compiler.batch.jar:lib/java/runtime/org.eclipse.jdt.core.jar:lib/java/runtime/org.eclipse.osgi.jar:lib/java/runtime/org.osgi.service.prefs.jar:lib/java/runtime/org.sat4j.core.jar:lib/java/runtime/ostrich-ecma2020-parser_2.13.jar:lib/java/runtime/ostrich_2.13.jar:lib/java/runtime/pjbdd.jar:lib/java/runtime/princess-parser_2.13.jar:lib/java/runtime/princess-smt-parser_2.13.jar:lib/java/runtime/princess_2.13.jar:lib/java/runtime/scala-library.jar:lib/java/runtime/scala-parser-combinators_2.13.jar:lib/java/runtime/smtinterpol.jar:lib/java/runtime/snakeyaml.jar:lib/java/runtime/sourcecode_2.13.jar:lib/java/runtime/spotbugs-annotations.jar:lib/java/runtime/ultimate-core-rcp.jar:lib/java/runtime/ultimate-core.jar:lib/java/runtime/ultimate-icfg-transformer.jar:lib/java/runtime/ultimate-java-cup.jar:lib/java/runtime/ultimate-library-smtlib-utils.jar:lib/java/runtime/ultimate-library-smtlib.jar:lib/java/runtime/ultimate-model-checker-utils.jar:lib/java/runtime/ultimate-model.jar:lib/java/runtime/ultimate-smt-solver-bridge.jar:lib/java/runtime/ultimate-util.jar:lib/java/test/asm.jar:lib/java/test/auto-value-annotations.jar:lib/java/test/byte-buddy-agent.jar:lib/java/test/byte-buddy.jar:lib/java/test/error_prone_annotations.jar:lib/java/test/failureaccess.jar:lib/java/test/guava-testlib.jar:lib/java/test/guava.jar:lib/java/test/hamcrest-core.jar:lib/java/test/j2objc-annotations.jar:lib/java/test/jspecify.jar:lib/java/test/junit.jar:lib/java/test/listenablefuture.jar:lib/java/test/mockito-core.jar:lib/java/test/objenesis.jar:lib/java/test/truth.jar -processorpath lib/java/build/ST4.jar:lib/java/build/ant-junit.jar:lib/java/build/ant-junit4.jar:lib/java/build/antlr-runtime.jar:lib/java/build/antlr4-runtime.jar:lib/java/build/antlr4.jar:lib/java/build/auto-common.jar:lib/java/build/auto-service-annotations.jar:lib/java/build/auto-value-annotations.jar:lib/java/build/byte-buddy-agent.jar:lib/java/build/byte-buddy.jar:lib/java/build/caffeine.jar:lib/java/build/checker-qual.jar:lib/java/build/dataflow-errorprone.jar:lib/java/build/ecj.jar:lib/java/build/error_prone_annotation.jar:lib/java/build/error_prone_annotations.jar:lib/java/build/error_prone_check_api.jar:lib/java/build/error_prone_core.jar:lib/java/build/failureaccess.jar:lib/java/build/forbiddenapis.jar:lib/java/build/google-java-format.jar:lib/java/build/guava.jar:lib/java/build/icu4j.jar:lib/java/build/ivy.jar:lib/java/build/j2objc-annotations.jar:lib/java/build/java-cup.jar:lib/java/build/java-diff-utils.jar:lib/java/build/javax.inject.jar:lib/java/build/jflex.jar:lib/java/build/jspecify.jar:lib/java/build/jsr305.jar:lib/java/build/listenablefuture.jar:lib/java/build/mockito-core.jar:lib/java/build/mockito-errorprone.jar:lib/java/build/objenesis.jar:lib/java/build/org.abego.treelayout.core.jar:lib/java/build/pcollections.jar:lib/java/build/protobuf-java.jar:lib/java/build/software-and-algorithms.jar:lib/java/runtime/common.jar -encoding UTF-8 -Xlint -Xlint:-fallthrough -Xlint:-serial -Xlint:-processing -Xlint:-options -Xlint:-this-escape" />
   </component>
 </project>

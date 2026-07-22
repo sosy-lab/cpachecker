@@ -52,4 +52,7 @@ public sealed interface CComplexType extends CType
       return Ascii.toLowerCase(name());
     }
   }
+
+  @Override
+  CComplexType withQualifiersSetTo(CTypeQualifiers newQualifiers);
 }

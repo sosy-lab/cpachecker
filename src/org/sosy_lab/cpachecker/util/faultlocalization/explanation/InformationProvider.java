@@ -51,8 +51,8 @@ public class InformationProvider implements FaultExplanation {
           List<String> parts = Splitter.on(" ").splitToList(curr);
           parts.removeIf(String::isBlank);
           if (parts.size() > 2) {
-            if (parts.get(0).equals(parts.get(2))) {
-              localIterationVariables.add(parts.get(0));
+            if (parts.getFirst().equals(parts.get(2))) {
+              localIterationVariables.add(parts.getFirst());
             }
           }
         }

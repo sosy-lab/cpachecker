@@ -52,8 +52,8 @@ public class ConstraintTrivialityChecker implements SymbolicValueVisitor<Boolean
   public Boolean visit(ConstantSymbolicExpression pExpression) {
     final Value value = pExpression.getValue();
 
-    if (value instanceof SymbolicValue) {
-      return ((SymbolicValue) value).accept(this);
+    if (value instanceof SymbolicValue symbolicValue) {
+      return symbolicValue.accept(this);
 
     } else {
       assert value.isExplicitlyKnown();

@@ -53,13 +53,13 @@ public class SMGEdgeHasValue extends SMGEdge implements Comparable<SMGEdgeHasVal
 
   @Override
   public boolean isConsistentWith(SMGEdge other) {
-    if (!(other instanceof SMGEdgeHasValue)) {
+    if (!(other instanceof SMGEdgeHasValue sMGEdgeHasValue)) {
       return false;
     }
 
     if (object == other.object
         && getOffset() == other.getOffset()
-        && sizeInBits.equals(((SMGEdgeHasValue) other).sizeInBits)) {
+        && sizeInBits.equals(sMGEdgeHasValue.sizeInBits)) {
       return value.equals(other.value);
     }
 

@@ -38,6 +38,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.SequencedMap;
 import java.util.logging.Level;
 import java.util.stream.Stream;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -205,7 +206,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     try (StringWriter stringWriter = new StringWriter()) {
-      Map<String, Object> analysisMap = new LinkedHashMap<>();
+      SequencedMap<String, Object> analysisMap = new LinkedHashMap<>();
 
       for (int i = 0; i < configFiles.size(); i++) {
         SubanalysisConfig subanalysis = subanalyses.get(i);

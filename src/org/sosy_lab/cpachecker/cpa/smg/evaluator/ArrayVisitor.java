@@ -116,7 +116,7 @@ class ArrayVisitor extends AddressVisitor
         // TODO support C11 6.7.6.3 7:
         // actual argument shall provide access to the first element of
         // an array with at least as many elements as specified by the size expression
-        type = new CPointerType(type.isConst(), type.isVolatile(), ((CArrayType) type).getType());
+        type = new CPointerType(type.getQualifiers(), ((CArrayType) type).getType());
       }
 
       List<SMGAddressAndState> result = new ArrayList<>();

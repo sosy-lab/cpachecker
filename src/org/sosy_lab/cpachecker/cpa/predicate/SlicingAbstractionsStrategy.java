@@ -22,6 +22,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -105,11 +106,11 @@ public final class SlicingAbstractionsStrategy extends RefinementStrategy
       SlicingAbstractionsStrategy.this.printStatistics(out);
     }
 
-    public void increaseRefinementCounter() {
+    void increaseRefinementCounter() {
       refinementCount++;
     }
 
-    public void increaseSolverCallCounter() {
+    void increaseSolverCallCounter() {
       solverCallCount++;
     }
   }
@@ -266,10 +267,7 @@ public final class SlicingAbstractionsStrategy extends RefinementStrategy
     } else {
       // TODO: refactor so that the caller provides the full abstractionStatesTrace including the
       // root state. Then handling more than one root state would be no problem.
-      rootState =
-          rootStates.stream()
-              .reduce((x, y) -> x.getStateId() < y.getStateId() ? x : y)
-              .orElseThrow();
+      rootState = Collections.min(rootStates, Comparator.comparingInt(ARGState::getStateId));
       logger.logf(
           Level.INFO,
           "More than one root state present!(%s)",
@@ -396,9 +394,9 @@ public final class SlicingAbstractionsStrategy extends RefinementStrategy
     for (ARGState currentState : allChangedStates) {
 
       // Optimization to reduce number of solver calls:
-      if (currentState instanceof SLARGState) {
-        SlicingAbstractionsUtils.removeIncomingEdgesWithLocationMismatch((SLARGState) currentState);
-        SlicingAbstractionsUtils.removeOutgoingEdgesWithLocationMismatch((SLARGState) currentState);
+      if (currentState instanceof SLARGState sLARGState) {
+        SlicingAbstractionsUtils.removeIncomingEdgesWithLocationMismatch(sLARGState);
+        SlicingAbstractionsUtils.removeOutgoingEdgesWithLocationMismatch(sLARGState);
       }
 
       Map<ARGState, PersistentList<ARGState>> segmentMap =
@@ -541,9 +539,9 @@ public final class SlicingAbstractionsStrategy extends RefinementStrategy
               + " must be infeasible!";
     }
 
-    assert !(startState instanceof SLARGState)
-        || ((SLARGState) startState).getEdgeSetToChild(endState) == null
-        || ((SLARGState) startState).getEdgeSetToChild(endState).size() > 0
+    assert !(startState instanceof SLARGState sLARGState)
+        || sLARGState.getEdgeSetToChild(endState) == null
+        || sLARGState.getEdgeSetToChild(endState).size() > 0
         || infeasible;
     return infeasible;
   }
@@ -619,7 +617,7 @@ public final class SlicingAbstractionsStrategy extends RefinementStrategy
 
     // root state needs special treatment:
     if (Objects.equals(parent, rootState)) {
-      ARGState firstAfterRoot = abstractionStatesTrace.get(0);
+      ARGState firstAfterRoot = abstractionStatesTrace.getFirst();
       ARGState s = forkedStateMap.get(firstAfterRoot);
       if (Objects.equals(s, child) && pChangedElements.contains(firstAfterRoot)) {
         return true;

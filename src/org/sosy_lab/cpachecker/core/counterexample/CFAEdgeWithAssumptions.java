@@ -88,10 +88,8 @@ public class CFAEdgeWithAssumptions {
     StringBuilder result = new StringBuilder();
 
     for (AExpressionStatement expressionStmt : expressionStmts) {
-      if (expressionStmt instanceof CExpressionStatement) {
-        result.append(
-            ((CExpressionStatement) expressionStmt)
-                .accept(CStatementToOriginalCodeVisitor.INSTANCE));
+      if (expressionStmt instanceof CExpressionStatement cExpressionStatement) {
+        result.append(cExpressionStatement.accept(CStatementToOriginalCodeVisitor.INSTANCE));
       } else {
         return "";
       }

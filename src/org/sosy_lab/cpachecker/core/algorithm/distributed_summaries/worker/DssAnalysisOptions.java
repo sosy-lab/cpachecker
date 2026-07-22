@@ -20,6 +20,18 @@ import org.sosy_lab.common.configuration.Options;
 public class DssAnalysisOptions {
 
   @Option(
+      name = "logging.reportFiles",
+      description = "output file for visualizing message exchange")
+  @FileOption(Type.OUTPUT_DIRECTORY)
+  private Path reportFiles = Path.of("block_analysis/messages");
+
+  @Option(
+      name = "logging.blockCFAFile",
+      description = "output file for visualizing the block graph")
+  @FileOption(Type.OUTPUT_FILE)
+  private Path blockCFAFile = Path.of("block_analysis/blocks.json");
+
+  @Option(
       name = "debug",
       description =
           "Whether to enable debug mode of block-summary analysis. This creates visual output for"
@@ -45,26 +57,49 @@ public class DssAnalysisOptions {
   @FileOption(Type.OUTPUT_DIRECTORY)
   private Path logDirectory = Path.of("block_analysis/logfiles");
 
-  private final Configuration parentConfig;
+  @Option(
+      description =
+          "Whether to reset the precision for each run of the analysis or to keep the transmitted"
+              + " one. The latter has disadvantages as unnecessary variables might be tracked due"
+              + " to a too precise precision.",
+      secure = true)
+  private boolean resetPrecisionForEveryRun = false;
+
+  @Option(
+      name = "combineVcsByHash",
+      description = "Whether to combine violation conditions at same program location",
+      secure = true)
+  private boolean combineByHash = true;
 
   public DssAnalysisOptions(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
-    parentConfig = pConfig;
+  }
+
+  public Path getBlockCFAFile() {
+    return blockCFAFile;
+  }
+
+  public Path getReportFiles() {
+    return reportFiles;
   }
 
   public boolean isDebugModeEnabled() {
     return debug;
   }
 
+  public boolean resetPrecisionsForEveryRun() {
+    return resetPrecisionForEveryRun;
+  }
+
   public Path getForwardConfiguration() {
     return forwardConfiguration;
   }
 
-  public Configuration getParentConfig() {
-    return parentConfig;
-  }
-
   public Path getLogDirectory() {
     return logDirectory;
+  }
+
+  public boolean combineByHash() {
+    return combineByHash;
   }
 }

@@ -24,10 +24,10 @@ public final class ValueWrapper extends Equivalence<Value> {
       // 0 has to be split into 3 categories, for non-floating point types, floats and doubles
       Number arg0Num = pArg0.asNumericValue().getNumber();
       Number arg1Num = pArg1.asNumericValue().getNumber();
-      if (arg0Num instanceof Float && arg1Num instanceof Float) {
-        return ((Float) arg0Num).compareTo(((Float) arg1Num)) == 0;
-      } else if (arg0Num instanceof Double && arg1Num instanceof Double) {
-        return ((Double) arg0Num).compareTo(((Double) arg1Num)) == 0;
+      if (arg0Num instanceof Float arg0 && arg1Num instanceof Float arg1) {
+        return arg0.compareTo(arg1) == 0;
+      } else if (arg0Num instanceof Double arg0 && arg1Num instanceof Double arg1) {
+        return arg0.compareTo(arg1) == 0;
       } else if (arg0Num instanceof FloatValue || arg1Num instanceof FloatValue) {
         return arg0Num.equals(arg1Num);
       } else if (!(arg0Num instanceof Double)

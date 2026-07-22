@@ -64,10 +64,6 @@ public class PCCStrategyBuilder {
     PCCStrategyBuilder builder = new PCCStrategyBuilder();
     pConfig.inject(builder);
 
-    ProofChecker proofChecker = pCpa instanceof ProofChecker ? (ProofChecker) pCpa : null;
-    PropertyCheckerCPA propertyChecker =
-        pCpa instanceof PropertyCheckerCPA ? (PropertyCheckerCPA) pCpa : null;
-
     return builder.strategy.create(
         pConfig,
         pLogger,
@@ -75,7 +71,7 @@ public class PCCStrategyBuilder {
         pProofFile,
         pCfa,
         pSpecification,
-        proofChecker,
-        propertyChecker);
+        pCpa instanceof ProofChecker proofChecker ? proofChecker : null,
+        pCpa instanceof PropertyCheckerCPA propertyCheckerCPA ? propertyCheckerCPA : null);
   }
 }

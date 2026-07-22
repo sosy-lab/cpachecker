@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.FormulaType;
 
@@ -170,15 +169,15 @@ public class SymbolEncoding {
 
   private Type<FormulaType<?>> getType(CType cType) {
     final FormulaType<?> fType;
-    if (cType instanceof CSimpleType && ((CSimpleType) cType).getType().isFloatingPointType()) {
+    if (cType instanceof CSimpleType cSimpleType && cSimpleType.getType().isFloatingPointType()) {
       fType = FormulaType.RationalType;
     } else {
       int length = machineModel.getSizeofInBits(cType).intValueExact();
       fType = FormulaType.getBitvectorTypeWithSize(length);
     }
     Type<FormulaType<?>> type = new Type<>(fType);
-    if (cType instanceof CSimpleType) {
-      type.setSigness(!((CSimpleType) cType).hasUnsignedSpecifier());
+    if (cType instanceof CSimpleType cSimpleType) {
+      type.setSigness(!cSimpleType.hasUnsignedSpecifier());
     }
     return type;
   }
@@ -188,15 +187,14 @@ public class SymbolEncoding {
     final Set<CSimpleDeclaration> sd = new HashSet<>();
     for (CFANode node : nodes) {
 
-      if (node instanceof CFunctionEntryNode) {
-        Optional<? extends CVariableDeclaration> retVar =
-            ((CFunctionEntryNode) node).getReturnVariable();
+      if (node instanceof CFunctionEntryNode cFunctionEntryNode) {
+        Optional<? extends CVariableDeclaration> retVar = cFunctionEntryNode.getReturnVariable();
         if (retVar.isPresent()) {
           sd.add(retVar.get());
         }
       }
 
-      final FluentIterable<CFAEdge> edges = CFAUtils.allLeavingEdges(node);
+      final FluentIterable<CFAEdge> edges = node.getAllLeavingEdges();
       for (CDeclarationEdge edge : edges.filter(CDeclarationEdge.class)) {
         sd.add(edge.getDeclaration());
       }

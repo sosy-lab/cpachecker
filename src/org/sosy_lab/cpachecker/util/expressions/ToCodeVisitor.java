@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.util.expressions;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Function;
-import com.google.common.base.Joiner;
+import java.util.List;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
 public class ToCodeVisitor<LeafType> extends CachingVisitor<LeafType, String, NoException> {
@@ -57,16 +57,30 @@ public class ToCodeVisitor<LeafType> extends CachingVisitor<LeafType, String, No
         });
   }
 
+  public static String binaryMerge(List<String> items, String separator) {
+    if (items.size() == 1) {
+      return items.getFirst();
+    }
+    if (items.size() == 2) {
+      return "(" + items.getFirst() + separator + items.get(1) + ")";
+    }
+
+    int mid = items.size() / 2;
+    String left = binaryMerge(items.subList(0, mid), separator);
+    String right = binaryMerge(items.subList(mid, items.size()), separator);
+    return "(" + left + separator + right + ")";
+  }
+
   @Override
   protected String cacheMissAnd(And<LeafType> pAnd) {
     assert pAnd.iterator().hasNext();
-    return from(pAnd).transform(this::toParenthesizedCode).join(Joiner.on(" && "));
+    return binaryMerge(from(pAnd).transform(this::toParenthesizedCode).toList(), " && ");
   }
 
   @Override
   protected String cacheMissOr(Or<LeafType> pOr) {
     assert pOr.iterator().hasNext();
-    return from(pOr).transform(this::toParenthesizedCode).join(Joiner.on(" || "));
+    return binaryMerge(from(pOr).transform(this::toParenthesizedCode).toList(), " || ");
   }
 
   @Override

@@ -12,7 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.math.BigInteger;
 
-public abstract class SMGKnownValue {
+public abstract sealed class SMGKnownValue permits SMGKnownExpValue, SMGKnownSymValue {
 
   /**
    * A symbolic value representing an explicit value. Depending on the subclass, this value either
@@ -27,7 +27,7 @@ public abstract class SMGKnownValue {
 
   @Override
   public boolean equals(Object pObj) {
-    return pObj instanceof SMGKnownValue && value.equals(((SMGKnownValue) pObj).value);
+    return pObj instanceof SMGKnownValue other && value.equals(other.value);
   }
 
   @Override

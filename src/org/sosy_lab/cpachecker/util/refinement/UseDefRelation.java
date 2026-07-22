@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedMap;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -106,7 +107,7 @@ public class UseDefRelation {
 
   public Map<ARGState, Collection<ASimpleDeclaration>> getExpandedUses(ARGPath path) {
 
-    Map<ARGState, Collection<ASimpleDeclaration>> expandedUses = new LinkedHashMap<>();
+    SequencedMap<ARGState, Collection<ASimpleDeclaration>> expandedUses = new LinkedHashMap<>();
     Collection<ASimpleDeclaration> unresolvedUsesOnPath = new HashSet<>();
 
     PathIterator it = path.reverseFullPathIterator();
@@ -302,12 +303,12 @@ public class UseDefRelation {
     CBinaryExpression binaryExpression = ((CBinaryExpression) expression);
 
     ASimpleDeclaration operand = null;
-    if (binaryExpression.getOperand1() instanceof CIdExpression
+    if (binaryExpression.getOperand1() instanceof CIdExpression cIdExpression
         && binaryExpression.getOperand2() instanceof CLiteralExpression) {
-      operand = ((CIdExpression) binaryExpression.getOperand1()).getDeclaration();
-    } else if (binaryExpression.getOperand2() instanceof CIdExpression
+      operand = cIdExpression.getDeclaration();
+    } else if (binaryExpression.getOperand2() instanceof CIdExpression cIdExpression
         && binaryExpression.getOperand1() instanceof CLiteralExpression) {
-      operand = ((CIdExpression) binaryExpression.getOperand2()).getDeclaration();
+      operand = cIdExpression.getDeclaration();
     }
 
     if (isEquality(assumeEdge, binaryExpression.getOperator()) && hasUnresolvedUse(operand)) {
@@ -365,25 +366,24 @@ public class UseDefRelation {
    * initializer.
    */
   private Set<ASimpleDeclaration> getVariablesUsedForInitialization(AInitializer initializer) {
-    if (initializer instanceof CDesignatedInitializer) {
-      // e.g. .x=b or .p.x.=1  as part of struct initialization
-      return getVariablesUsedForInitialization(
-          ((CDesignatedInitializer) initializer).getRightHandSide());
+    return switch (initializer) {
+      case CDesignatedInitializer cDesignatedInitializer ->
+          // e.g. .x=b or .p.x.=1  as part of struct initialization
+          getVariablesUsedForInitialization(cDesignatedInitializer.getRightHandSide());
 
-    } else if (initializer instanceof CInitializerList) {
-      // e.g. {a, b, s->x} (array) , {.x=1, .y=0} (initialization of struct, array)
-      Set<ASimpleDeclaration> readVars = new HashSet<>();
-
-      for (CInitializer initializerList : ((CInitializerList) initializer).getInitializers()) {
-        readVars.addAll(getVariablesUsedForInitialization(initializerList));
+      case CInitializerList cInitializerList -> {
+        // e.g. {a, b, s->x} (array) , {.x=1, .y=0} (initialization of struct, array)
+        Set<ASimpleDeclaration> readVars = new HashSet<>();
+        for (CInitializer initializerList : cInitializerList.getInitializers()) {
+          readVars.addAll(getVariablesUsedForInitialization(initializerList));
+        }
+        yield readVars;
       }
+      case AInitializerExpression aInitializerExpression ->
+          acceptAll(aInitializerExpression.getExpression());
 
-      return readVars;
-    } else if (initializer instanceof AInitializerExpression) {
-      return acceptAll(((AInitializerExpression) initializer).getExpression());
-    } else {
-      throw new AssertionError("Missing case for if-then-else statement.");
-    }
+      default -> throw new AssertionError("Missing case for if-then-else statement.");
+    };
   }
 
   private void handleAssignments(AAssignment assignment, CFAEdge edge, ARGState state) {

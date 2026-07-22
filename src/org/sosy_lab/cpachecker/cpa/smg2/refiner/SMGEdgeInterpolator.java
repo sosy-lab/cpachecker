@@ -55,7 +55,7 @@ public class SMGEdgeInterpolator
         pStrongestPostOperator,
         pFeasibilityChecker,
         SMGInterpolantManager.getInstance(
-            new SMGOptions(pConfig),
+            new SMGOptions(pConfig, pCfa),
             pCfa.getMachineModel(),
             pLogger,
             pCfa,
@@ -65,7 +65,7 @@ public class SMGEdgeInterpolator
         SMGState.of(
             pCfa.getMachineModel(),
             pLogger,
-            new SMGOptions(pConfig),
+            new SMGOptions(pConfig, pCfa),
             pCfa,
             pEvaluator,
             pStatistics),
@@ -205,8 +205,8 @@ public class SMGEdgeInterpolator
 
       FeasibilityChecker<SMGState> checker = getFeasibilityChecker();
       SMGFeasibilityChecker smgFeasibilityChecker;
-      if (checker instanceof SMGFeasibilityChecker) {
-        smgFeasibilityChecker = (SMGFeasibilityChecker) checker;
+      if (checker instanceof SMGFeasibilityChecker sMGFeasibilityChecker) {
+        smgFeasibilityChecker = sMGFeasibilityChecker;
       } else {
         break;
       }

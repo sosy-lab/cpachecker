@@ -578,8 +578,8 @@ public sealed class SMG implements UnmodifiableSMG permits CLangSMG {
       Preconditions.checkArgument(
           !pt_edges.containsEdgeWithValue(fresh)
               || fresh.equals(SMGZeroValue.INSTANCE)
-              || (old instanceof SMGKnownAddressValue
-                  && !isObjectValid(((SMGKnownAddressValue) old).getObject())));
+              || (old instanceof SMGKnownAddressValue sMGKnownAddressValue
+                  && !isObjectValid(sMGKnownAddressValue.getObject())));
       pt_edges =
           pt_edges.addAndCopy(
               new SMGEdgePointsTo(

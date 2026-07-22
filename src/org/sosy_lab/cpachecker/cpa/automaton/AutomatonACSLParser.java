@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -20,7 +21,6 @@ import java.util.List;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotations;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLPredicate;
@@ -45,11 +45,11 @@ import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
  */
 public class AutomatonACSLParser {
 
-  private CFAWithACSLAnnotations cfa;
+  private CFA cfa;
   private LogManager logger;
   private final ACSLPredicateToExpressionTreeVisitor visitor;
 
-  public AutomatonACSLParser(CFAWithACSLAnnotations pCFA, LogManager pLogger) {
+  public AutomatonACSLParser(CFA pCFA, LogManager pLogger) {
     cfa = pCFA;
     logger = pLogger;
     ACSLTermToCExpressionVisitor termVisitor = new ACSLTermToCExpressionVisitor(cfa, logger);
@@ -66,7 +66,8 @@ public class AutomatonACSLParser {
       String initialStateName = "VALID";
       ImmutableList.Builder<AutomatonTransition> transitions = ImmutableList.builder();
       for (CFAEdge edge : cfa.edges()) {
-        Collection<ACSLAnnotation> annotations = cfa.getEdgesToAnnotations().get(edge);
+        Collection<ACSLAnnotation> annotations =
+            cfa.getEdgesToAnnotations().orElse(ImmutableListMultimap.of()).get(edge);
         if (!annotations.isEmpty()) {
           ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
           List<ExpressionTree<Object>> representations = new ArrayList<>(annotations.size());

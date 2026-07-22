@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -28,8 +27,8 @@ public class FunctionCallCollector extends CFATraversal.DefaultCFAVisitor {
 
   private final List<AStatementEdge> functionCalls = new ArrayList<>();
 
-  public Collection<AStatementEdge> getFunctionCalls() {
-    return Collections.unmodifiableCollection(functionCalls);
+  public List<AStatementEdge> getFunctionCalls() {
+    return Collections.unmodifiableList(functionCalls);
   }
 
   @Override

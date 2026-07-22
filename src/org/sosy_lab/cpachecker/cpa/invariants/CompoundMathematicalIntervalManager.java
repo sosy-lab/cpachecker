@@ -95,8 +95,8 @@ enum CompoundMathematicalIntervalManager implements CompoundIntervalManager {
 
   @Override
   public CompoundInterval singleton(Number pValue) {
-    if (pValue instanceof BigInteger) {
-      return singleton((BigInteger) pValue);
+    if (pValue instanceof BigInteger bigInteger) {
+      return singleton(bigInteger);
     }
     if (pValue instanceof Long
         || pValue instanceof Integer

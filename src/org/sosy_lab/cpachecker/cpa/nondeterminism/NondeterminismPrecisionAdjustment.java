@@ -47,13 +47,13 @@ public enum NondeterminismPrecisionAdjustment implements PrecisionAdjustment {
 
   private AbstractState prec(AbstractState pState, Iterable<AbstractState> pOtherStates) {
     AbstractState result = pState;
-    if (pState instanceof NondeterminismNonAbstractionState
+    if (pState instanceof NondeterminismNonAbstractionState nondeterminismNonAbstractionState
         && from(pOtherStates)
             .filter(PredicateAbstractState.class)
             .anyMatch(PredicateAbstractState::isAbstractionState)) {
       result =
           new NondeterminismAbstractionState(
-              ((NondeterminismNonAbstractionState) pState).getNondetVariables());
+              nondeterminismNonAbstractionState.getNondetVariables());
     }
     return result;
   }

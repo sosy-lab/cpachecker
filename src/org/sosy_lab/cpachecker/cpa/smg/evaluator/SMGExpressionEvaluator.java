@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -118,8 +119,8 @@ public class SMGExpressionEvaluator {
       CFAEdge edge, CType pType, SMGState pState, Optional<CExpression> pExpression)
       throws CPATransferException {
 
-    if (pType instanceof CBitFieldType) {
-      return ((CBitFieldType) pType).getBitFieldSize();
+    if (pType instanceof CBitFieldType cBitFieldType) {
+      return cBitFieldType.getBitFieldSize();
     }
 
     CSizeOfVisitor v = getSizeOfVisitor(edge, pState, pExpression);
@@ -212,32 +213,22 @@ public class SMGExpressionEvaluator {
   }
 
   private SMGField getField(CType pOwnerType, String pFieldName) {
-
-    if (pOwnerType instanceof CElaboratedType) {
-
-      CType realType = ((CElaboratedType) pOwnerType).getRealType();
-
-      if (realType == null) {
-        return SMGField.getUnknownInstance();
+    return switch (pOwnerType) {
+      case CElaboratedType cElaboratedType -> {
+        CType realType = cElaboratedType.getRealType();
+        if (realType == null) {
+          yield SMGField.getUnknownInstance();
+        }
+        yield getField(realType, pFieldName);
       }
+      case CCompositeType cCompositeType -> getField(cCompositeType, pFieldName);
 
-      return getField(realType, pFieldName);
-    } else if (pOwnerType instanceof CCompositeType) {
-      return getField((CCompositeType) pOwnerType, pFieldName);
-    } else if (pOwnerType instanceof CPointerType) {
-
-      /* We do not explicitly transform x->b,
-      so when we try to get the field b the ownerType of x
-      is a pointer type.*/
-
-      CType type = ((CPointerType) pOwnerType).getType();
-
-      type = TypeUtils.getRealExpressionType(type);
-
-      return getField(type, pFieldName);
-    }
-
-    throw new AssertionError();
+      case CPointerType cPointerType -> {
+        CType type = TypeUtils.getRealExpressionType(cPointerType.getType());
+        yield getField(type, pFieldName);
+      }
+      default -> throw new AssertionError();
+    };
   }
 
   private SMGField getField(CCompositeType pOwnerType, String pFieldName) {
@@ -277,7 +268,7 @@ public class SMGExpressionEvaluator {
     List<SMGExplicitValueAndState> result = evaluateExplicitValue(smgState, cfaEdge, rValue);
 
     if (result.size() == 1) {
-      return result.get(0).getObject();
+      return result.getFirst().getObject();
     } else {
       return SMGUnknownValue.INSTANCE;
     }
@@ -294,7 +285,7 @@ public class SMGExpressionEvaluator {
     Value value = rValue.accept(visitor);
     SMGState newState = visitor.getState();
 
-    if (!value.isExplicitlyKnown() || !value.isNumericValue()) {
+    if (!(value instanceof NumericValue numValue)) {
 
       // Sometimes, we can get the explicit Value from SMGCPA, especially if the
       // result happens to
@@ -304,7 +295,7 @@ public class SMGExpressionEvaluator {
         result.add(deriveExplicitValueFromSymbolicValue(symbolicValueAndState));
       }
     } else {
-      BigInteger bigInteger = value.asNumericValue().bigIntegerValue();
+      BigInteger bigInteger = numValue.bigIntegerValue();
       result.add(SMGExplicitValueAndState.of(newState, SMGKnownExpValue.valueOf(bigInteger)));
     }
 
@@ -408,8 +399,8 @@ public class SMGExpressionEvaluator {
 
     if (expressionType instanceof CPointerType
         || (expressionType instanceof CFunctionType
-            && rValue instanceof CUnaryExpression
-            && ((CUnaryExpression) rValue).getOperator() == CUnaryExpression.UnaryOperator.AMPER)) {
+            && rValue instanceof CUnaryExpression cUnaryExpression
+            && cUnaryExpression.getOperator() == CUnaryExpression.UnaryOperator.AMPER)) {
       // CFA treats &foo as CFunctionType
 
       PointerVisitor visitor = getPointerVisitor(cfaEdge, pState);
@@ -473,8 +464,7 @@ public class SMGExpressionEvaluator {
             SMGObject target = addressValue.getObject();
             SMGExplicitValue addressOffset = addressValue.getOffset();
 
-            SMGExplicitValue newAddressOffset;
-            newAddressOffset =
+            SMGExplicitValue newAddressOffset =
                 switch (binaryOperator) {
                   case PLUS -> addressOffset.add(pointerOffsetValue);
                   case MINUS -> {
@@ -500,7 +490,14 @@ public class SMGExpressionEvaluator {
               "Misinterpreted the expression type of " + binaryExp + " as pointer type",
               cfaEdge,
               binaryExp);
-      case DIVIDE, MULTIPLY, MODULO, SHIFT_LEFT, SHIFT_RIGHT, BINARY_AND, BINARY_OR, BINARY_XOR ->
+      case DIVIDE,
+          MULTIPLY,
+          REMAINDER,
+          SHIFT_LEFT,
+          SHIFT_RIGHT,
+          BITWISE_AND,
+          BITWISE_OR,
+          BITWISE_XOR ->
           throw new UnrecognizedCodeException(
               "The operands of binary Expression "
                   + binaryExp.toASTString()
@@ -627,15 +624,15 @@ public class SMGExpressionEvaluator {
   List<SMGAddressValueAndState> getAddressFromSymbolicValue(SMGValueAndState pAddressValueAndState)
       throws SMGInconsistentException {
 
-    if (pAddressValueAndState instanceof SMGAddressValueAndState) {
-      return singletonList((SMGAddressValueAndState) pAddressValueAndState);
+    if (pAddressValueAndState instanceof SMGAddressValueAndState sMGAddressValueAndState) {
+      return singletonList(sMGAddressValueAndState);
     }
 
     SMGValue pAddressValue = pAddressValueAndState.getObject();
     SMGState smgState = pAddressValueAndState.getSmgState();
 
-    if (pAddressValue instanceof SMGAddressValue) {
-      return singletonList(SMGAddressValueAndState.of(smgState, (SMGAddressValue) pAddressValue));
+    if (pAddressValue instanceof SMGAddressValue sMGAddressValue) {
+      return singletonList(SMGAddressValueAndState.of(smgState, sMGAddressValue));
     }
 
     if (pAddressValue.isUnknown()) {

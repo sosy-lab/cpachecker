@@ -89,7 +89,7 @@ public abstract class RefinementStrategy {
     startRefinementOfPath();
 
     // The last state along the path is the target (error) state
-    ARGState lastElement = abstractionStatesTrace.get(abstractionStatesTrace.size() - 1);
+    ARGState lastElement = abstractionStatesTrace.getLast();
     // assert lastElement.isTarget();
 
     Pair<ARGState, List<ARGState>> rootOfInfeasibleArgAndChangedElements;

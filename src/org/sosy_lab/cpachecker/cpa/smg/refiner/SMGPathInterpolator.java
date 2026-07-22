@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedMap;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.UniqueIdGenerator;
@@ -139,7 +140,8 @@ public class SMGPathInterpolator {
     /*We may as well interpolate every possible target error if path contains more than one.*/
     boolean checkAllTargets = !checker.isFeasible(pErrorPath, true);
 
-    Map<ARGState, SMGInterpolant> pathInterpolants = new LinkedHashMap<>(pErrorPath.size());
+    SequencedMap<ARGState, SMGInterpolant> pathInterpolants =
+        new LinkedHashMap<>(pErrorPath.size());
 
     PathIterator pathIterator = pErrorPath.pathIterator();
 

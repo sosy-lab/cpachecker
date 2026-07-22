@@ -189,10 +189,10 @@ public abstract sealed class JClassOrInterfaceType implements JReferenceType
    *     of the described class
    */
   public Set<? extends JClassOrInterfaceType> getAllSuperTypesOfType() {
-    if (this instanceof JClassType) {
-      return ((JClassType) this).getAllSuperTypesOfClass();
-    } else if (this instanceof JInterfaceType) {
-      return ((JInterfaceType) this).getAllSuperInterfaces();
+    if (this instanceof JClassType jClassType) {
+      return jClassType.getAllSuperTypesOfClass();
+    } else if (this instanceof JInterfaceType jInterfaceType) {
+      return jInterfaceType.getAllSuperInterfaces();
     }
     return ImmutableSet.of();
   }
@@ -207,10 +207,10 @@ public abstract sealed class JClassOrInterfaceType implements JReferenceType
    *     that extends the described class
    */
   public Set<? extends JClassOrInterfaceType> getAllSubTypesOfType() {
-    if (this instanceof JClassType) {
-      return ((JClassType) this).getAllSubTypesOfClass();
-    } else if (this instanceof JInterfaceType) {
-      return ((JInterfaceType) this).getAllSuperInterfaces();
+    if (this instanceof JClassType jClassType) {
+      return jClassType.getAllSubTypesOfClass();
+    } else if (this instanceof JInterfaceType jInterfaceType) {
+      return jInterfaceType.getAllSuperInterfaces();
     }
     return ImmutableSet.of();
   }

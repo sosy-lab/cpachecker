@@ -111,9 +111,9 @@ public class CFACreationUtils {
       return;
     }
 
-    if (n instanceof FunctionExitNode) {
+    if (n instanceof FunctionExitNode functionExitNode) {
       // the function exit node is unreachable, so the entry node shouldn't have a reference to it
-      ((FunctionExitNode) n).getEntryNode().removeExitNode();
+      functionExitNode.getEntryNode().removeExitNode();
     }
 
     for (int i = n.getNumLeavingEdges() - 1; i >= 0; i--) {

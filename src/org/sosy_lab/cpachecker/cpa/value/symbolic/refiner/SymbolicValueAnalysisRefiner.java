@@ -294,9 +294,8 @@ public class SymbolicValueAnalysisRefiner
           Set<SymbolicIdentifier> usedIdentifiers = new HashSet<>();
           for (Entry<MemoryLocation, ValueAndType> e : currentValueState.getConstants()) {
             Value v = e.getValue().getValue();
-            if (v instanceof SymbolicValue) {
-              usedIdentifiers.addAll(
-                  ((SymbolicValue) v).accept(SymbolicIdentifierLocator.getInstance()));
+            if (v instanceof SymbolicValue symbolicValue) {
+              usedIdentifiers.addAll(symbolicValue.accept(SymbolicIdentifierLocator.getInstance()));
             }
           }
           ExpressionValueVisitor valueVisitor =
@@ -381,12 +380,12 @@ public class SymbolicValueAnalysisRefiner
         symbolicInfo.append(System.lineSeparator());
       }
       CFAEdgeWithAssumptions edgeWithAssumption =
-          new CFAEdgeWithAssumptions(p.getSecond().get(0), assumptions.build(), "");
+          new CFAEdgeWithAssumptions(p.getSecond().getFirst(), assumptions.build(), "");
       symbolicInfo.append(edgeWithAssumption.prettyPrintCode(1));
       currentState = nextState;
     }
 
-    currentState = stateSequence.get(stateSequence.size() - 1).getFirst();
+    currentState = stateSequence.getLast().getFirst();
     ConstraintsState finalConstraints = currentState.getConstraintsState();
 
     List<ValueAssignment> assignments = finalConstraints.getModel();

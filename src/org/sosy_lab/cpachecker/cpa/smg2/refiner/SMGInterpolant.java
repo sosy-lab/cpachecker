@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -97,7 +96,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     cfaEntryFunctionDeclaration = pCFAEntryFunctionDef;
     allowedHeapValues = ImmutableSet.of();
     memoryModel =
-        SymbolicProgramConfiguration.of(BigInteger.valueOf(pMachineModel.getSizeofPtrInBits()));
+        SymbolicProgramConfiguration.of(
+            BigInteger.valueOf(pMachineModel.getSizeofPtrInBits()), options);
     errorInfo = ImmutableList.of();
     evaluator = pEvaluator;
     statistics = pStatistics;
@@ -187,7 +187,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
               .getMemoryModel();
     } catch (SMGException | SMGSolverException e) {
       memoryModel =
-          SymbolicProgramConfiguration.of(BigInteger.valueOf(pMachineModel.getSizeofPtrInBits()));
+          SymbolicProgramConfiguration.of(
+              BigInteger.valueOf(pMachineModel.getSizeofPtrInBits()), options);
     }
     errorInfo = pErrorInfo;
   }
@@ -278,7 +279,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
 
   @Override
   public Set<MemoryLocation> getMemoryLocations() {
-    return isFalse() ? ImmutableSet.of() : Collections.unmodifiableSet(nonHeapAssignments.keySet());
+    return isFalse() ? ImmutableSet.of() : nonHeapAssignments.keySet();
   }
 
   /**
