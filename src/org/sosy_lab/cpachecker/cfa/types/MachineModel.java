@@ -722,7 +722,10 @@ public enum MachineModel {
     if (type.isAtomic()) {
       // C11 § 6.2.5 (27) / C23 § 6.2.5 (32): an atomic type may require a stricter alignment than
       // its non-atomic version. Following the platform ABI (and GCC), an atomic type whose size is
-      // a power of two of at most 16 bytes is aligned to its size to allow lock-free access.
+      // a power of two of at most 16 bytes is aligned to its size to allow lock-free access. This
+      // applies uniformly to scalar and composite (struct/union) atomic types alike. Cf.
+      // https://gcc.gnu.org/wiki/Atomic/GCCMM/UnalignedPolicy and
+      // https://docs.oracle.com/cd/E60778_01/html/E60745/gqfbq.html.
       int sizeof = getSizeof(type).intValueExact();
       if (sizeof > alignof && sizeof <= 16 && Integer.bitCount(sizeof) == 1) {
         return sizeof;

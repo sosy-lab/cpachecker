@@ -257,5 +257,13 @@ public class MachineModelSizeOfVisitorTest {
     // The size of an atomic type never differs from the size of its non-atomic version.
     assertThat(MODEL32.getSizeof(CNumericTypes.LONG_LONG_INT.withAtomic()))
         .isEqualTo(BigInteger.valueOf(MODEL32.getSizeofLongLongInt()));
+
+    // The same rule applies to composite (struct/union) types: STRUCT_1 (two 4-byte bitfields
+    // plus an int) has size 8 but natural alignment 4 in both models, so the atomic version is
+    // aligned to its size.
+    assertThat(MODEL32.getAlignof(STRUCT_1)).isEqualTo(4);
+    assertThat(MODEL32.getAlignof(STRUCT_1.withAtomic())).isEqualTo(8);
+    assertThat(MODEL64.getAlignof(STRUCT_1)).isEqualTo(4);
+    assertThat(MODEL64.getAlignof(STRUCT_1.withAtomic())).isEqualTo(8);
   }
 }
