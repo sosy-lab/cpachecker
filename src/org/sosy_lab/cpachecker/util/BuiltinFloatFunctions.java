@@ -365,6 +365,13 @@ public class BuiltinFloatFunctions {
         || FREMAINDER_LONG_DOUBLE.contains(pFunctionName);
   }
 
+  /**
+   * Check if the function is one of the {@code sqrt} variants from {@code math.h}.
+   *
+   * <p>Matches {@code sqrtf} for {@code float}, {@code sqrt} for {@code double} and {@code sqrtl}
+   * for {@code long double} values. Complex values are not supported, and {@code csqrt} from {@code
+   * complex.h} will not be matched
+   */
   public static boolean matchesSqrt(String pFunctionName) {
     return FluentIterable.concat(SQRT_FLOAT, SQRT, SQRT_LONG_DOUBLE).contains(pFunctionName);
   }
