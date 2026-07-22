@@ -12,12 +12,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
 
 import java.math.BigInteger;
+import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.IdentityHashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
+import java.util.NavigableSet;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.cdt.core.dom.ast.DOMException;
 import org.eclipse.cdt.core.dom.ast.IASTAttribute;
@@ -83,15 +81,16 @@ class ASTTypeConverter {
   private final ParseContext parseContext;
 
   // All cases of _Atomic that were not handled so far. This set is pre-filled and we need to remove
-  // locations once we handled their respective AST node.
-  private final Set<FileLocation> unhandledAtomicOccurrences;
+  // locations once we handled their respective AST node. Sorted so that the occurrences relevant
+  // to a given source region can be looked up in O(log n) instead of scanning the whole set.
+  private final NavigableSet<FileLocation> unhandledAtomicOccurrences;
 
   ASTTypeConverter(
       Scope pScope,
       ASTConverter pConverter,
       String pFilePrefix,
       ParseContext pParseContext,
-      Set<FileLocation> pUnhandledAtomicOccurrences) {
+      NavigableSet<FileLocation> pUnhandledAtomicOccurrences) {
     scope = pScope;
     converter = pConverter;
     filePrefix = pFilePrefix;
@@ -490,14 +489,14 @@ class ASTTypeConverter {
 
   /** returns a pointerType, that wraps the type. */
   CPointerType convert(final IASTPointerOperator po, final CType type) {
-    return convert(po, type, false);
+    return convert(po, type, /* pAtomic= */ false);
   }
 
   /**
    * Returns a pointerType that wraps the type. {@code pAtomic} tells whether the pointer itself is
    * atomic, e.g., for {@code int * _Atomic p}. CDT silently drops the attribute we use for _Atomic
    * from a pointer operator, so this information cannot be read from the pointer directly and has
-   * to be recovered separately (cf. {@link #findAtomicPointerOperators}, #1670).
+   * to be recovered separately (cf. {@link #isAtomicPointerOperator}, #1670).
    */
   CPointerType convert(final IASTPointerOperator po, final CType type, final boolean pAtomic) {
     if (po instanceof IASTPointer p) {
@@ -512,48 +511,50 @@ class ASTTypeConverter {
   }
 
   /**
-   * Determine which of the given declarator modifiers are pointer operators carrying an {@code
-   * _Atomic} qualifier (e.g., {@code int * _Atomic p}). CDT silently drops the attribute we use for
-   * _Atomic when it appears to the right of a {@code *}, but the location of the dropped {@code
-   * _Atomic} is still recorded in {@link #unhandledAtomicOccurrences}. We recover the qualifier by
-   * matching such an occurrence to the pointer operator whose qualifier region (between {@code *}
-   * and the next modifier or the end of the declarator) contains it, and mark the occurrence as
-   * handled. Cf. #1670.
+   * Returns a pointerType that wraps the type, recovering whether {@code po} itself carries a
+   * dropped {@code _Atomic} qualifier (e.g., for {@code int * _Atomic p}) from among the given
+   * declarator modifiers. Cf. {@link #isAtomicPointerOperator}, #1670.
    */
-  Set<IASTPointerOperator> findAtomicPointerOperators(
-      final List<IASTNode> modifiers, final IASTDeclarator declarator) {
-    List<Integer> modifierOffsets = new ArrayList<>(modifiers.size());
-    for (IASTNode modifier : modifiers) {
-      modifierOffsets.add(converter.getLocation(modifier).getNodeOffset());
-    }
+  CPointerType convert(
+      final IASTPointerOperator po,
+      final CType type,
+      final List<IASTNode> modifiers,
+      final IASTDeclarator declarator) {
+    return convert(po, type, isAtomicPointerOperator(po, modifiers, declarator));
+  }
+
+  /**
+   * Determine whether the given pointer operator carries an {@code _Atomic} qualifier (e.g., for
+   * {@code int * _Atomic p}). CDT silently drops the attribute we use for _Atomic when it appears
+   * to the right of a {@code *}, but the location of the dropped {@code _Atomic} is still recorded
+   * in {@link #unhandledAtomicOccurrences}. We recover the qualifier by checking whether such an
+   * occurrence falls into {@code pointer}'s qualifier region (between the {@code *} and the next
+   * modifier or the end of the declarator), and mark the occurrence as handled if so. Cf. #1670.
+   */
+  private boolean isAtomicPointerOperator(
+      final IASTPointerOperator pointer,
+      final List<IASTNode> modifiers,
+      final IASTDeclarator declarator) {
+    FileLocation pointerLocation = converter.getLocation(pointer);
     FileLocation declaratorLocation = converter.getLocation(declarator);
     int declaratorEnd = declaratorLocation.getNodeOffset() + declaratorLocation.getNodeLength();
 
-    Set<IASTPointerOperator> atomicPointers = Collections.newSetFromMap(new IdentityHashMap<>());
-    for (IASTNode modifier : modifiers) {
-      if (!(modifier instanceof IASTPointerOperator pointer)) {
-        continue;
-      }
-      FileLocation pointerLocation = converter.getLocation(pointer);
-      int regionStart = pointerLocation.getNodeOffset() + pointerLocation.getNodeLength();
-      int regionEnd = declaratorEnd;
-      for (int offset : modifierOffsets) {
-        if (offset > pointerLocation.getNodeOffset() && offset < regionEnd) {
-          regionEnd = offset;
-        }
-      }
-      for (Iterator<FileLocation> it = unhandledAtomicOccurrences.iterator(); it.hasNext(); ) {
-        FileLocation occurrence = it.next();
-        if (occurrence.getFileName().equals(pointerLocation.getFileName())
-            && occurrence.getNodeOffset() >= regionStart
-            && occurrence.getNodeOffset() < regionEnd) {
-          it.remove();
-          atomicPointers.add(pointer);
-          break;
-        }
-      }
-    }
-    return atomicPointers;
+    int regionStart = pointerLocation.getNodeOffset() + pointerLocation.getNodeLength();
+    int regionEnd =
+        modifiers.stream()
+            .mapToInt(modifier -> converter.getLocation(modifier).getNodeOffset())
+            .filter(offset -> offset > pointerLocation.getNodeOffset() && offset < declaratorEnd)
+            .min()
+            .orElse(declaratorEnd);
+
+    Path fileName = pointerLocation.getFileName();
+    NavigableSet<FileLocation> candidates =
+        unhandledAtomicOccurrences.subSet(
+            new FileLocation(fileName, regionStart, 0, 0, 0, 0, 0),
+            true,
+            new FileLocation(fileName, regionEnd, 0, 0, 0, 0, 0),
+            false);
+    return candidates.pollFirst() != null;
   }
 
   /** returns a pointerType, that wraps all the converted types. */
