@@ -15,7 +15,6 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Optional;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -54,7 +53,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
@@ -85,7 +83,10 @@ public class AcslToFormulaVisitorsTest {
   public void setUp() throws InvalidConfigurationException {
     // We need Z3 because some tests require quantifier support
     Configuration config =
-        TestUtils.configurationForTest().setOption("solver.solver", "Z3").setOption("cpa.predicate.useConstraintOptimization", "false").build();
+        TestUtils.configurationForTest()
+            .setOption("solver.solver", "Z3")
+            .setOption("cpa.predicate.useConstraintOptimization", "false")
+            .build();
     smtSolver = Solver.create(config, logger, ShutdownNotifier.createDummy());
     fmgr = smtSolver.getFormulaManager();
     b = new AcslTestBuilder();
@@ -548,125 +549,8 @@ public class AcslToFormulaVisitorsTest {
     assertThat(unsat).isTrue();
   }
 
-  @Ignore
   @Test
-  // This test cannot work because quantifying over an array is bad!!
-  public void testAcslPredicateOverArray()
-      throws InvalidConfigurationException, SolverException, InterruptedException {
-    // predicate P(int *a, integer i) = (i == 0) ? (a[0] == 0) : (P(a, i-1) && a[i] == 0);
-    // !(P(a, 2) => a[0] == 0 && a[1] == 0 && a[2] == 0) should be unsat
-
-    AcslParameterDeclaration a =
-        new AcslParameterDeclaration(
-            FileLocation.DUMMY,
-            new AcslCType(new CPointerType(CTypeQualifiers.NONE, basicInt())),
-            "a",
-            "P");
-
-    AcslParameterDeclaration index =
-        new AcslParameterDeclaration(FileLocation.DUMMY, new AcslCType(basicInt()), "i", "P");
-
-    AcslPredicateDeclaration declP =
-        new AcslPredicateDeclaration(
-            FileLocation.DUMMY,
-            // Function type: use INTEGER, because AcslCType can be cast to it,
-            // AcslPredicateApplicationPredicate expects the most general type here
-            new AcslPredicateType(
-                ImmutableList.of(a.getType(), new AcslCType(basicInt())), false),
-            "P",
-            "P",
-            // Polymorphic types
-            ImmutableList.of(),
-            // Parameters
-            ImmutableList.of(a, index));
-
-    CVariableDeclaration ci = createCVariableDeclaration("i");
-    AcslCExpression a0 =
-        b.arrayAcslCExpression(
-            basicInt(), Objects.requireNonNull(getCProgramScope().lookupVariable("a")), 0);
-    AcslCExpression a1 =
-        b.arrayAcslCExpression(
-            basicInt(), Objects.requireNonNull(getCProgramScope().lookupVariable("a")), 1);
-    AcslCExpression a2 =
-        b.arrayAcslCExpression(
-            basicInt(), Objects.requireNonNull(getCProgramScope().lookupVariable("a")), 2);
-    AcslCExpression ai =
-        b.arrayAcslCExpression(
-            basicInt(),
-            Objects.requireNonNull(getCProgramScope().lookupVariable("a")),
-            new CIdExpression(FileLocation.DUMMY, ci));
-
-    AcslLogicPredicateDefinition defP =
-        new AcslLogicPredicateDefinition(
-            FileLocation.DUMMY,
-            // Function declaration
-            declP,
-            // Function body
-            b.ite(
-                // if
-                b.eq(new AcslIdTerm(FileLocation.DUMMY, index), b.integer(0)),
-                // then
-                b.eq(a0, b.integer(0)),
-                // else
-                b.and(
-                    new AcslPredicateApplicationPredicate(
-                        FileLocation.DUMMY,
-                        declP,
-                        ImmutableList.of(
-                            new AcslIdTerm(FileLocation.DUMMY, a),
-                            b.minus(new AcslIdTerm(FileLocation.DUMMY, index), b.integer(1)))),
-                    b.eq(ai, b.integer(0)))));
-
-    // P(a,i)
-    AcslPredicateApplicationPredicate pai =
-        new AcslPredicateApplicationPredicate(
-            FileLocation.DUMMY,
-            declP,
-            ImmutableList.of(
-                new AcslIdTerm(FileLocation.DUMMY, a), new AcslIdTerm(FileLocation.DUMMY, index)));
-
-    // \forall a,i: P(a,i) <-> defP.body
-    BooleanFormula fDefinition =
-        translate(
-            new AcslForallPredicate(
-                FileLocation.DUMMY, ImmutableList.of(a, index), b.equivalent(pai, defP.getBody())));
-
-    AcslPredicateApplicationPredicate pa2 =
-        new AcslPredicateApplicationPredicate(
-            FileLocation.DUMMY,
-            declP,
-            ImmutableList.of(new AcslIdTerm(FileLocation.DUMMY, a), b.integer(2)));
-
-
-    // P(a,2) => a[0] == 0 && a[1] == 0 && a[2] == 0
-    AcslPredicate pred =
-        b.implies(
-            pa2,
-            b.and(b.eq(a0, b.integer(0)), b.and(b.eq(a1, b.integer(0)), b.eq(a2, b.integer(0)))));
-
-    // not(P(a,2) => a[0] == 0 && a[1] == 0 && a[2] == 0)
-    AcslPredicate unsatPred = b.not(pred);
-    BooleanFormula f = translate(unsatPred);
-
-    boolean unsat;
-
-    try (ProverEnvironment prover = smtSolver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      prover.addConstraint(fDefinition);
-      prover.addConstraint(f);
-      prover.addConstraint(constraints.get());
-      unsat = prover.isUnsat();
-      System.out.println("fDefinition:");
-      System.out.println(fmgr.dumpFormula(fDefinition));
-      System.out.println("f");
-      System.out.println(fmgr.dumpFormula(f));
-      //System.out.println("Model:");
-      //System.out.println(prover.getModel());
-    }
-    assertThat(unsat).isTrue();
-  }
-
-  @Test
-  public void testAcslPredicateWithoutQuantifier()
+  public void testUnrolledPredicateOverArray()
       throws InvalidConfigurationException, SolverException, InterruptedException {
     // predicate P(int *a, integer i):
     //      P(a,0) <-> a[0] == 0;
@@ -755,7 +639,7 @@ public class AcslToFormulaVisitorsTest {
   }
 
   @Test
-  public void testAcslPredicateOverArrayNoArrayInQF()
+  public void testPredicateOverArrayWithQuantifier()
       throws InvalidConfigurationException, SolverException, InterruptedException {
     // predicate P(i) = (i == 0) ? (a[0] == 0) : (P(i-1) && a[i] == 0);
     // !(P(2) => a[0] == 0 && a[1] == 0 && a[2] == 0) should be unsat
@@ -768,8 +652,7 @@ public class AcslToFormulaVisitorsTest {
             FileLocation.DUMMY,
             // Function type: use INTEGER, because AcslCType can be cast to it,
             // AcslPredicateApplicationPredicate expects the most general type here
-            new AcslPredicateType(
-                ImmutableList.of(new AcslCType(basicInt())), false),
+            new AcslPredicateType(ImmutableList.of(new AcslCType(basicInt())), false),
             "P",
             "P",
             // Polymorphic types
@@ -816,10 +699,7 @@ public class AcslToFormulaVisitorsTest {
     // P(i)
     AcslPredicateApplicationPredicate pai =
         new AcslPredicateApplicationPredicate(
-            FileLocation.DUMMY,
-            declP,
-            ImmutableList.of(
-                new AcslIdTerm(FileLocation.DUMMY, index)));
+            FileLocation.DUMMY, declP, ImmutableList.of(new AcslIdTerm(FileLocation.DUMMY, index)));
 
     // \forall i: P(i) <-> defP.body
     BooleanFormula fDefinition =
@@ -829,9 +709,7 @@ public class AcslToFormulaVisitorsTest {
 
     AcslPredicateApplicationPredicate pa2 =
         new AcslPredicateApplicationPredicate(
-            FileLocation.DUMMY,
-            declP,
-            ImmutableList.of( b.integer(2)));
+            FileLocation.DUMMY, declP, ImmutableList.of(b.integer(2)));
 
     // P(2) => a[0] == 0 && a[1] == 0 && a[2] == 0
     AcslPredicate pred =
@@ -853,5 +731,4 @@ public class AcslToFormulaVisitorsTest {
     }
     assertThat(unsat).isTrue();
   }
-
 }
