@@ -38,14 +38,14 @@ public final class AcslPredicateApplicationPredicate implements AcslPredicate {
         pPredicateDeclaration.getParameters().size(),
         pParameters.size());
 
-//    for (int i = 0; i < pParameters.size(); i++) {
-//      AcslType providedType = pParameters.get(i).getExpressionType();
-//      AcslType expectedType = (AcslType) pPredicateDeclaration.getType().getParameters().get(i);
-//      Verify.verify(
-//          providedTypeMatchesExpectedType(providedType, expectedType),
-//          "Provided parameter %s is not of the expected type.",
-//          i);
-//    }
+    for (int i = 0; i < pParameters.size(); i++) {
+      AcslType providedType = pParameters.get(i).getExpressionType();
+      AcslType expectedType = (AcslType) pPredicateDeclaration.getType().getParameters().get(i);
+      Verify.verify(
+          providedTypeMatchesExpectedType(providedType, expectedType),
+          "Provided parameter %s is not of the expected type.",
+          i);
+    }
 
     predicateDeclaration = pPredicateDeclaration;
     parameters = ImmutableList.copyOf(pParameters);
@@ -98,7 +98,7 @@ public final class AcslPredicateApplicationPredicate implements AcslPredicate {
 
   private boolean providedTypeMatchesExpectedType(AcslType provided, AcslType expected) {
     AcslType generalType = AcslType.mostGeneralType(provided, expected);
-    if (expected.equals(generalType)) {
+    if (expected.equals(generalType) || provided.equals(generalType)) {
       return true;
     }
     return false;
