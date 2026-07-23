@@ -102,7 +102,9 @@ public class AcslTypeHelper {
           } else {
             throw new UnsupportedOperationException("Not yet implemented");
           }
-        } else throw new UnsupportedOperationException("Not yet implemented");
+        } else {
+          throw new UnsupportedOperationException("Not yet implemented");
+        }
       }
       default -> throw new UnsupportedOperationException("Not yet implemented");
     }

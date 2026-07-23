@@ -384,7 +384,9 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
     CType ssaType;
     if (ssa.getType(name) instanceof AcslCType) {
       ssaType = ((AcslCType) ssa.getType(name)).getType();
-    } else ssaType = (CType) ssa.getType(name);
+    } else {
+      ssaType = (CType) ssa.getType(name);
+    }
 
     checkSsaSavedType(name, type, ssaType);
     return super.getExistingOrNewIndex(name, type, ssa);
