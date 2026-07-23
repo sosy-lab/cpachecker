@@ -83,24 +83,38 @@ public class ProgramTransformationRecoveryUtils {
     pCurrentARGState.removeFromARG();
   }
 
-  public static ARGState addFunctionCall(ARGState pARGState, CFANode pCallNode) {
+  public static ARGState addFunctionCall(ARGState pARGState, ARGState pParentState, CFANode pCallNode) {
     CompositeState currentCompositeState = ((CompositeState) pARGState.getWrappedState());
-    CallstackState newCallStackState = null;
+    List<AbstractState> newWrappedStates =
+        new ArrayList<>(currentCompositeState.getWrappedStates().size());
     for (AbstractState wrappedState : currentCompositeState.getWrappedStates()) {
       if (wrappedState instanceof CallstackState callStackState) {
-        newCallStackState = new CallstackState(callStackState, callStackState.getCurrentFunction(), pCallNode);
+        newWrappedStates.add(new CallstackState(callStackState, callStackState.getCurrentFunction(), pCallNode));
+      } else {
+        newWrappedStates.add(wrappedState);
       }
     }
-    return pARGState.forkWithReplacements(Collections.singleton(newCallStackState));
+    pARGState.removeParent(pParentState);
+    return new ARGState(new CompositeState(newWrappedStates), pParentState);
   }
 
-  public static ARGState takeValueState(ARGState pNewARGState, ARGState pAfterParaAssignments) {
+  public static ARGState takeValueState(ARGState pNewARGState, ARGState pParentState, ARGState pAfterParaAssignments) {
     CompositeState currentCompositeState = ((CompositeState) pAfterParaAssignments.getWrappedState());
+    List<AbstractState> newWrappedStates =
+        new ArrayList<>(currentCompositeState.getWrappedStates().size());
     for (AbstractState wrappedState : currentCompositeState.getWrappedStates()) {
       if (wrappedState instanceof ValueAnalysisState valueState) {
-        return pNewARGState.forkWithReplacements(Collections.singleton(valueState));
+        newWrappedStates.add(valueState);
+        break;
       }
     }
-    return pNewARGState;
+    currentCompositeState = ((CompositeState) pNewARGState.getWrappedState());
+    for (AbstractState wrappedState : currentCompositeState.getWrappedStates()) {
+      if (! (wrappedState instanceof ValueAnalysisState)) {
+        newWrappedStates.add(wrappedState);
+      }
+    }
+    pNewARGState.removeParent(pParentState);
+    return new ARGState(new CompositeState(newWrappedStates), pParentState);
   }
 }

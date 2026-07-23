@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.transformation;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -22,22 +21,16 @@ import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
@@ -142,8 +135,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
     CFANode nodeBeforeParams =
         nodeMap.get(transformationData.tmpVarDeclarationEdge.getPredecessor());
     ImmutableList<CExpression> parameterExpressions =
-        ((CFunctionSummaryEdge) transformationData.tmpVarAssignmentEdge)
-            .getExpression()
+        ((CFunctionCallEdge) transformationData.recursiveFunctionCallEdge)
             .getFunctionCallExpression()
             .getParameterExpressions();
 
@@ -204,10 +196,10 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
                 nodeMap.get(transformationData.nodeBeforeExitCondition),
                 parameterNodes.build(),
                 transformationData.tmpVarDeclarationEdge,
+                transformationData.recursiveFunctionCallEdge,
                 transformationData.tmpVarAssignmentEdge,
                 transformationData.tmpVarReturnEdge)));
   }
-
 
   private static Optional<TransformationData> canBeApplied(CFANode pNode) {
     // needed information
@@ -236,6 +228,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
             functionName,
             ((CDeclarationEdge) visitor.getTmpVarDeclarationEdge().orElseThrow()).getDeclaration().getQualifiedName(),
             visitor.getTmpVarDeclarationEdge().orElseThrow(),
+            visitor.getRecursiveFunctionCallEdge().orElseThrow(),
             visitor.getTmpVarAssignmentEdge().orElseThrow(),
             visitor.getTmpVarReturnEdge().orElseThrow(),
             visitor.getNodeBeforeExitCondition().orElseThrow()));
@@ -247,6 +240,7 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
       String functionName,
       String tmpVarName,
       CFAEdge tmpVarDeclarationEdge,
+      CFAEdge recursiveFunctionCallEdge,
       CFAEdge tmpVarAssignmentEdge,
       CFAEdge tmpVarReturnEdge,
       CFANode nodeBeforeExitCondition) {}

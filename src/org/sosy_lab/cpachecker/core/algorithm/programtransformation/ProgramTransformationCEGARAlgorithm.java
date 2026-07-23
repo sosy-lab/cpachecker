@@ -297,7 +297,8 @@ public class ProgramTransformationCEGARAlgorithm
 
         // revert to ARG/reached set to match the original CFA
         Optional<AbstractState> stateBeforeEntering =
-            detectNextProgramTransformation(reached.getFirstState());
+            //detectNextProgramTransformation(reached.getFirstState());
+            detectNextProgramTransformation(reached);
         if (stateBeforeEntering.isPresent()) {
           CFANode firstNodeInProgramTransformation = AbstractStates.extractLocation(((ARGState) stateBeforeEntering.orElseThrow()).getChildren().getFirst());
           nodeMap.get(firstNodeInProgramTransformation).programTransformationRecovery().revertProgramTransformation(stateBeforeEntering.orElseThrow(), nodeMap.get(firstNodeInProgramTransformation).subCFA(), reached, locationStateFactory);
@@ -390,6 +391,22 @@ public class ProgramTransformationCEGARAlgorithm
   @Override
   public void close() {
     CPAs.closeIfPossible(refiner, logger);
+  }
+
+  private Optional<AbstractState> detectNextProgramTransformation(ReachedSet reached) {
+    for (AbstractState state : reached) {
+      if (! nodesToProgramTransformations.containsKey(AbstractStates.extractLocation(state))) continue;
+      ARGState argState = (ARGState) state;
+      if (argState.getChildren().size() != 1) continue;
+      CFANode parentLocation = AbstractStates.extractLocation(argState);
+      CFANode childLocation = AbstractStates.extractLocation(argState.getChildren().getFirst());
+      ProgramTransformationInformation parentProgramTransformation = nodeMap.getOrDefault(parentLocation, null);
+      ProgramTransformationInformation childProgramTransformation = nodeMap.getOrDefault(childLocation, null);
+      if (parentProgramTransformation != childProgramTransformation) {
+        return Optional.of(state);
+      }
+    }
+    return Optional.empty();
   }
 
   /**

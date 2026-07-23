@@ -30,6 +30,7 @@ public record TailRecursionEliminationRecovery(
     CFANode exitConditionCheckNode,
     List<CFANode> parameterNodes,
     CFAEdge varDeclarationEdge,
+    CFAEdge functionCallEdge,
     CFAEdge varAssignmentEdge,
     CFAEdge varReturnEdge)
     implements ProgramTransformationRecovery {
@@ -61,6 +62,8 @@ public record TailRecursionEliminationRecovery(
           pAfterProgramTransformation.subCFAExitNode(),
           reached,
           pLocationStateFactory);
+      // clear waitlist before returning
+      reached.clearWaitlist();
     } else {
       throw new RuntimeException("Invalid use of revertProgramTransformation()!");
     }
@@ -110,6 +113,8 @@ public record TailRecursionEliminationRecovery(
           ARGState newARGState1 =
               ProgramTransformationRecoveryUtils.argStateWithLocation(currentARGState, pLocationStateFactory.getState(nodeBeforeTMPVarReturn), currentARGState);
           newARGState1 = newARGState1.forkWithReplacements(Collections.singleton(newCallstackState));
+          // forkWithReplacements removes parents
+          newARGState1.addParent(currentARGState);
           ARGState newARGState2 =
               ProgramTransformationRecoveryUtils.argStateWithLocation(newARGState1, pLocationStateFactory.getState(pExitNode), newARGState1);
           reached.add(newARGState1, reached.getPrecision(currentARGState));
@@ -120,8 +125,9 @@ public record TailRecursionEliminationRecovery(
           currentCompState = (CompositeState) currentARGState.getWrappedState();
         } else {
           // no recursion on callstack detected - return to previous function
-          stateAfterReturns.addParent(currentARGState);
-          stateAfterReturns.removeParent(pPreviousARGState.getChildren().getFirst());
+          // todo
+          //stateAfterReturns.addParent(currentARGState);
+          //stateAfterReturns.removeParent(pPreviousARGState.getChildren().getFirst());
           break;
         }
       }
@@ -223,12 +229,13 @@ public record TailRecursionEliminationRecovery(
         ProgramTransformationRecoveryUtils.argStateWithLocation(
             currentARGState,
             pLocationStateFactory.getState(
-                varDeclarationEdge.getSuccessor().getLeavingEdge(0).getSuccessor()),
+                //varDeclarationEdge.getSuccessor().getLeavingEdge(0).getSuccessor()
+                functionCallEdge.getSuccessor()),
             argStateAfterTMPVarDeclaration);
     // add recursive function call to callstack state
-    argStateAfterRecursiveFunctionCall = ProgramTransformationRecoveryUtils.addFunctionCall(argStateAfterRecursiveFunctionCall, AbstractStates.extractLocation(argStateAfterTMPVarDeclaration));
+    argStateAfterRecursiveFunctionCall = ProgramTransformationRecoveryUtils.addFunctionCall(argStateAfterRecursiveFunctionCall, argStateAfterTMPVarDeclaration, AbstractStates.extractLocation(argStateAfterTMPVarDeclaration));
     // if value state is present set it to the value state after all parameters have been assigned
-    argStateAfterRecursiveFunctionCall = ProgramTransformationRecoveryUtils.takeValueState(argStateAfterRecursiveFunctionCall, currentARGState);
+    argStateAfterRecursiveFunctionCall = ProgramTransformationRecoveryUtils.takeValueState(argStateAfterRecursiveFunctionCall, argStateAfterTMPVarDeclaration, currentARGState);
     ARGState argStateAfterFSDummyEdge =
         ProgramTransformationRecoveryUtils.argStateWithLocation(
             argStateAfterRecursiveFunctionCall,
