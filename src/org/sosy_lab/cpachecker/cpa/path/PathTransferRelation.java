@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
-public class PathTransferRelation extends SingleEdgeTransferRelation {
+class PathTransferRelation extends SingleEdgeTransferRelation {
 
   @Override
   public Collection<PathState> getAbstractSuccessorsForEdge(

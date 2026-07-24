@@ -71,9 +71,8 @@ public class DssWitnessExporter {
     Result result = resultWithWitness.getResult();
 
     if (result == Result.TRUE) {
-      reachedSet.clear();
       if (resultWithWitness.hasWitnessInformation()) {
-        if (resultWithWitness.getCorrectnessPreConditionCollector().recievedAllStates()) {
+        if (resultWithWitness.getCorrectnessPreConditionCollector().receivedAllStates()) {
           logger.log(Level.INFO, "Exporting Correctness Witness");
           exportCorrectnessWitness(resultWithWitness, reachedSet, pModification);
         } else {
@@ -82,6 +81,7 @@ public class DssWitnessExporter {
               "Unable to export Witness because not all necessary information has been recived");
         }
       }
+      reachedSet.clear();
     } else if (result == Result.FALSE) {
 
       if (resultWithWitness.hasWitnessInformation()) {

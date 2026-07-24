@@ -8,12 +8,13 @@
 
 package org.sosy_lab.cpachecker.cpa.path;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
-public class PathState implements AbstractState {
+class PathState implements AbstractState {
 
   final SegmentedPaths paths;
 
@@ -33,7 +34,7 @@ public class PathState implements AbstractState {
     this(pPaths, pSegmentIndex, pActivePath, pPathIndex, false);
   }
 
-  public PathState(
+  private PathState(
       SegmentedPaths pPaths,
       int pSegmentIndex,
       ImmutableList<String> pActivePath,
@@ -46,11 +47,14 @@ public class PathState implements AbstractState {
     isInitial = pIsInitial;
   }
 
-  public static PathState initialState(SegmentedPaths pPaths) {
+  static PathState initialState(SegmentedPaths pPaths) {
     return new PathState(pPaths, 0, null, 0, true);
   }
 
-  public static Iterable<PathState> initialStates(SegmentedPaths pPaths) {
+  static Iterable<PathState> initialStates(SegmentedPaths pPaths) {
+    Preconditions.checkNotNull(
+        pPaths,
+        "Uninitialized paths, PathCPA.getInitialState needs to be called after PathCPA.init");
 
     if (pPaths.paths.isEmpty()) {
       return ImmutableList.of(new PathState(pPaths, 0, null, 0));
@@ -70,7 +74,12 @@ public class PathState implements AbstractState {
     }
 
     return FluentIterable.from(pPaths.paths.get(segment))
-        .transform(nextPath -> new PathState(pPaths, segment, nextPath, 0));
+        .transformAndConcat(
+            nextPath ->
+                nextPath.isEmpty()
+                    // no decision edges chosen for this segment -> nothing to match here, move on
+                    ? startSegment(pPaths, segment + 1)
+                    : FluentIterable.of(new PathState(pPaths, segment, nextPath, 0)));
   }
 
   boolean isAtEndOfPath() {

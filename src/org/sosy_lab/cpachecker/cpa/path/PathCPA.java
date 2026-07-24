@@ -20,7 +20,7 @@ public class PathCPA extends AbstractCPA {
 
   private SegmentedPaths pathCollection;
 
-  public PathCPA() {
+  private PathCPA() {
     super("sep", "sep", new FlatLatticeDomain(), new PathTransferRelation());
   }
 
@@ -40,7 +40,7 @@ public class PathCPA extends AbstractCPA {
     return PathState.initialState(pathCollection);
   }
 
-  public static PathCPA create() {
+  static PathCPA create() {
     return new PathCPA();
   }
 }

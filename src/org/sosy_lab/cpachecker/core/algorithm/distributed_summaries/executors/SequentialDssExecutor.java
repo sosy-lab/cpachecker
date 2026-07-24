@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssWitnessArgStateCollector;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.ResultWithWitnessInformation;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActors;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
@@ -93,6 +94,13 @@ public class SequentialDssExecutor implements DssExecutor {
             finished.remove(actor.getId());
             DssMessage next = actor.nextMessage();
             if (next instanceof DssResultMessage resultMessage) {
+
+              if (resultMessage.getResult() == Result.FALSE) {
+                return new StatusAndResult(
+                    AlgorithmStatus.SOUND_AND_PRECISE,
+                    ResultWithWitnessInformation.ofViolationPath(resultMessage.getViolationPath()));
+              }
+
               return new StatusAndResult(
                   AlgorithmStatus.SOUND_AND_PRECISE, resultMessage.getResult());
             }

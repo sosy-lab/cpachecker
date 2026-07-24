@@ -12,10 +12,10 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.util.Collection;
@@ -47,6 +47,7 @@ public class DssWitnessArgStateCollector implements RelevantArgStatesCollector {
   private final LogManager logger;
   private final DssBlockAnalysis analysis;
   private final BlockGraph blockGraph;
+  private final ImmutableMap<String, BlockNode> idToNode;
 
   private final Modification modification;
 
@@ -75,6 +76,7 @@ public class DssWitnessArgStateCollector implements RelevantArgStatesCollector {
             ShutdownManager.create());
 
     blockGraph = pBlockGraph;
+    idToNode = Maps.uniqueIndex(pBlockGraph.getNodes(), BlockNode::getId);
     logger = pLogger;
     modification = pModification;
   }
@@ -83,10 +85,7 @@ public class DssWitnessArgStateCollector implements RelevantArgStatesCollector {
 
     messages++;
 
-    BlockNode senderBlock =
-        Iterables.getOnlyElement(
-            FluentIterable.from(blockGraph.getNodes())
-                .filter(b -> b.getId().equals(message.getSenderId())));
+    BlockNode senderBlock = Preconditions.checkNotNull(idToNode.get(message.getSenderId()));
 
     if (senderBlock.getInitialLocation().isLoopStart()) {
 
@@ -109,7 +108,7 @@ public class DssWitnessArgStateCollector implements RelevantArgStatesCollector {
     }
   }
 
-  public boolean recievedAllStates() {
+  public boolean receivedAllStates() {
     // We need to make sure that if we add some ARG states for a CFA node, we add all possible ARG
     // states to stay sound
     // currently this is the case: we only collect the information for loop heads, which will always

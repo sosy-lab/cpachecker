@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -44,6 +45,24 @@ public class SegmentedPaths {
   }
 
   public static final SegmentedPaths EMPTY = new SegmentedPaths(ImmutableList.of());
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    return obj instanceof SegmentedPaths other && Objects.equals(paths, other.paths);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(paths);
+  }
+
+  @Override
+  public String toString() {
+    return paths.toString();
+  }
 
   /**
    * Adds a new segment at the front which contains only the given path. Only the edges of the path
