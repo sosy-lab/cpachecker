@@ -142,7 +142,7 @@ public final class SegmentedPathsTest {
 
     SegmentedPaths merged = SegmentedPaths.merge(ImmutableList.of(first, second));
 
-    assertThat(merged.paths.get(0))
+    assertThat(merged.paths.getFirst())
         .containsExactly(
             ImmutableList.of(SegmentedPaths.edgeToString(branchA)),
             ImmutableList.of(SegmentedPaths.edgeToString(branchB)));
