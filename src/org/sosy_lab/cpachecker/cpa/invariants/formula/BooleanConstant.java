@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 
-public class BooleanConstant<ConstantType> implements BooleanFormula<ConstantType> {
+public final class BooleanConstant<ConstantType> implements BooleanFormula<ConstantType> {
 
   private static final BooleanConstant<?> FALSE = new BooleanConstant<>(false);
 

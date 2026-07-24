@@ -68,7 +68,7 @@ import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 
 /** Test that the bundled configuration files are all valid. */
 @RunWith(Parameterized.class)
@@ -412,7 +412,7 @@ public class ConfigurationFileChecks {
     if (options.language == Language.SVLIB) {
       // For SV-LIB Programs the specification is inside the program itself, so we do not need to
       // check anything
-      assertThat(spec).isEqualTo("specification/correct-tags.spc");
+      assertThat(spec).isEqualTo("specification/correct-annotations.spc");
     } else if (options.language == Language.JAVA) {
       assertThat(spec).endsWith("specification/JavaAssertion.spc");
     } else if (isOptionEnabled(config, "analysis.checkCounterexamplesWithBDDCPARestriction")) {
@@ -630,7 +630,7 @@ public class ConfigurationFileChecks {
   }
 
   private String createEmptyProgram(Language pLanguage) throws IOException {
-    return TestDataTools.getEmptyProgram(tempFolder, pLanguage);
+    return TestCfaUtils.getEmptyProgram(tempFolder, pLanguage);
   }
 
   private Stream<String> getSevereMessages(

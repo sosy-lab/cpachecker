@@ -52,6 +52,10 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
   private final ImmutableMap<String, Type> variableTypes;
   private final Map<String, CType> numericTypes;
 
+  // ObjectMapper is expensive in initialization, but thread safe;
+  // so we can reuse.
+  private static final ObjectMapper objectMapper = new ObjectMapper();
+
   public DeserializePredicateStateOperator(
       PredicateCPA pPredicateCPA,
       CFA pCFA,
@@ -90,7 +94,6 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
       Preconditions.checkNotNull(serializedSsaMap, "SSA Map must be provided");
 
       // parse JSON string into Map<String, Integer> using Jackson
-      ObjectMapper objectMapper = new ObjectMapper();
       Map<String, String> ssaMapContents;
       try {
         ssaMapContents = objectMapper.readValue(serializedSsaMap, new TypeReference<>() {});

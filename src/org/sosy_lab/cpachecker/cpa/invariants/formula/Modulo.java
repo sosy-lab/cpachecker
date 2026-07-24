@@ -13,8 +13,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formulae.
  */
-final class Modulo<ConstantType> extends AbstractBinaryFormula<ConstantType>
-    implements NumeralFormula<ConstantType> {
+final class Modulo<ConstantType> extends AbstractBinaryFormula<ConstantType> {
 
   /**
    * Creates a new modulo formula over the given numerator and denominator formulae.

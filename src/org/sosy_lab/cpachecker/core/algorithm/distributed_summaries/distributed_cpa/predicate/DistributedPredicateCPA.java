@@ -94,7 +94,8 @@ public class DistributedPredicateCPA
     combinePrecisionOperator =
         new CombinePredicatePrecisionOperator(predicateCPA.getSolver().getFormulaManager());
     combineViolationConditionsOperator =
-        new PredicateStateCombineViolationConditionOperator(predicateCPA.getPathFormulaManager());
+        new PredicateStateCombineViolationConditionOperator(
+            predicateCPA.getSolver().getFormulaManager(), predicateCPA.getPathFormulaManager());
   }
 
   @Override
@@ -152,6 +153,8 @@ public class DistributedPredicateCPA
 
   @Override
   public int computeProgramPointHash(AbstractState pAbstractState) {
+    // The predicate state has no information about the point in the program, so always
+    // return the same number (arbitrarily chosen)
     return 0;
   }
 

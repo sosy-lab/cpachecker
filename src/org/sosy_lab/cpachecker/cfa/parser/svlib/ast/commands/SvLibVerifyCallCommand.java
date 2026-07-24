@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands;
 
+import static com.google.common.collect.FluentIterable.from;
+
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
@@ -66,7 +69,7 @@ public final class SvLibVerifyCallCommand implements SvLibCommand {
     return "(verify-call "
         + procedureDeclaration.getName()
         + " ("
-        + terms.stream().map(t -> t.toASTString()).reduce((t1, t2) -> t1 + " " + t2).orElse("")
+        + from(terms).transform(SvLibTerm::toASTString).join(Joiner.on(" "))
         + "))";
   }
 

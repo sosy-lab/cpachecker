@@ -17,7 +17,18 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
   private final ImmutableSet<String> successorIds;
   private final CFANode violationConditionLocation;
 
-  BlockNode(
+  public BlockNode(
+      String pId,
+      CFANode pFirst,
+      CFANode pLast,
+      ImmutableSet<CFANode> pNodes,
+      ImmutableSet<CFAEdge> pEdges,
+      ImmutableSet<String> pPredecessorIds,
+      ImmutableSet<String> pSuccessorIds) {
+    this(pId, pFirst, pLast, pNodes, pEdges, pPredecessorIds, pSuccessorIds, pLast);
+  }
+
+  public BlockNode(
       String pId,
       CFANode pFirst,
       CFANode pLast,

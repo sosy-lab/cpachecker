@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Joiner;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
@@ -62,7 +64,7 @@ public abstract class SvLibGeneralSymbolApplicationTerm implements SvLibRelation
     return "("
         + symbol.toASTString(pAAstNodeRepresentation)
         + " "
-        + Joiner.on(" ").join(terms.stream().map(SvLibRelationalTerm::toASTString).toList())
+        + from(terms).transform(SvLibRelationalTerm::toASTString).join(Joiner.on(" "))
         + ")";
   }
 
@@ -71,7 +73,7 @@ public abstract class SvLibGeneralSymbolApplicationTerm implements SvLibRelation
     return "("
         + symbol.toASTString(pAAstNodeRepresentation)
         + " "
-        + Joiner.on(" ").join(terms.stream().map(SvLibRelationalTerm::toASTString).toList())
+        + from(terms).transform(SvLibRelationalTerm::toASTString).join(Joiner.on(" "))
         + ")";
   }
 

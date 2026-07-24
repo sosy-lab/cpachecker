@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.path.SegmentedPaths;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -47,6 +48,7 @@ public class BlockState
   private final ImmutableList<String> history;
   private List<? extends AbstractState> violationConditions;
   private final SegmentedPaths witness;
+  private boolean topSummaryFromNonTrivialState;
 
   public BlockState(
       CFANode pNode,
@@ -54,17 +56,28 @@ public class BlockState
       BlockStateType pType,
       List<? extends AbstractState> pViolationConditions,
       List<String> pHistory,
-      SegmentedPaths pWitness) {
+      SegmentedPaths pWitness,
+      boolean pTopSummaryFromNonTrivialState) {
     node = pNode;
     type = pType;
     blockNode = pTargetNode;
-    violationConditions = pViolationConditions;
+    violationConditions = ImmutableList.copyOf(pViolationConditions);
     history = ImmutableList.copyOf(pHistory);
     witness = pWitness;
+    witness = pWitness;
+    topSummaryFromNonTrivialState = pTopSummaryFromNonTrivialState;
+  }
+
+  public void setTopSummaryFromNonTrivialState(boolean pStemsFromTopState) {
+    topSummaryFromNonTrivialState = pStemsFromTopState;
   }
 
   public SegmentedPaths getWitness() {
     return witness;
+  }
+
+  public boolean hasNonTrivialSummaryForEachPredecessor() {
+    return topSummaryFromNonTrivialState;
   }
 
   public ImmutableList<String> getHistory() {
@@ -72,7 +85,7 @@ public class BlockState
   }
 
   public void setViolationConditions(List<? extends AbstractState> pViolationConditions) {
-    violationConditions = pViolationConditions;
+    violationConditions = ImmutableList.copyOf(pViolationConditions);
   }
 
   public BlockNode getBlockNode() {
@@ -117,6 +130,8 @@ public class BlockState
 
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
+    final BooleanFormulaManagerView bfmgr = manager.getBooleanFormulaManager();
+
     if (isTarget()) {
       ImmutableList.Builder<BooleanFormula> combined = ImmutableList.builder();
       for (AbstractState violationCondition : violationConditions) {
@@ -124,11 +139,11 @@ public class BlockState
             AbstractStates.asIterable(violationCondition)
                 .filter(ViolationConditionReportingState.class)
                 .transform(s -> s.getViolationCondition(manager));
-        combined.add(manager.getBooleanFormulaManager().and(approximations.toList()));
+        combined.add(bfmgr.and(approximations.toList()));
       }
-      return manager.getBooleanFormulaManager().or(combined.build());
+      return bfmgr.or(combined.build());
     }
-    return manager.getBooleanFormulaManager().makeTrue();
+    return bfmgr.makeTrue();
   }
 
   @Override

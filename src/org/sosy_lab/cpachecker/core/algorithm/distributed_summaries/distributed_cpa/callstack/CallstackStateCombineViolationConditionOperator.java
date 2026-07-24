@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
@@ -19,7 +20,7 @@ public class CallstackStateCombineViolationConditionOperator
     implements CombineViolationConditionsOperator {
   @Override
   public AbstractState combineViolationConditionsAtSameProgramHash(
-      Collection<AbstractState> states) {
+      Optional<AbstractState> origin, Collection<AbstractState> states) {
     if (states.size() == 1) {
       return Iterables.getOnlyElement(states);
     }

@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
 
 /**
  * Represents an overapproximating memory location that can be used to create partial order
@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
  *     location such as {@code malloc}.
  */
 public record SeqMemoryLocation(
-    Optional<CFAEdgeForThread> callContext,
+    SeqCallContext callContext,
     @Nullable CSimpleDeclaration declaration,
     Optional<CCompositeTypeMemberDeclaration> fieldMember,
     Optional<CFunctionCallExpression> functionCallExpression) {
@@ -61,14 +61,13 @@ public record SeqMemoryLocation(
     }
   }
 
-  public static SeqMemoryLocation of(
-      Optional<CFAEdgeForThread> pCallContext, CSimpleDeclaration pDeclaration) {
+  public static SeqMemoryLocation of(SeqCallContext pCallContext, CSimpleDeclaration pDeclaration) {
 
     return new SeqMemoryLocation(pCallContext, pDeclaration, Optional.empty(), Optional.empty());
   }
 
   public static SeqMemoryLocation of(
-      Optional<CFAEdgeForThread> pCallContext,
+      SeqCallContext pCallContext,
       CSimpleDeclaration pDeclaration,
       Optional<CCompositeTypeMemberDeclaration> pFieldMember) {
 
@@ -76,7 +75,7 @@ public record SeqMemoryLocation(
   }
 
   public static SeqMemoryLocation of(
-      Optional<CFAEdgeForThread> pCallContext,
+      SeqCallContext pCallContext,
       CSimpleDeclaration pDeclaration,
       Optional<CCompositeTypeMemberDeclaration> pFieldMember,
       Optional<CFunctionCallExpression> pFunctionCallExpression) {
@@ -91,7 +90,10 @@ public record SeqMemoryLocation(
     if (isGlobal()) {
       // use call context if possible, otherwise use 0 (only main() declarations have no context)
       name.append("T")
-          .append(callContext.isPresent() ? callContext.orElseThrow().threadId : 0)
+          .append(
+              callContext.cfaEdgeForThread().isPresent()
+                  ? callContext.cfaEdgeForThread().orElseThrow().threadId
+                  : 0)
           .append("_");
     }
 
@@ -169,7 +171,7 @@ public record SeqMemoryLocation(
     return pOther
             instanceof
             SeqMemoryLocation(
-                Optional<CFAEdgeForThread> pCallContext,
+                SeqCallContext pCallContext,
                 CVariableDeclaration pDeclaration,
                 Optional<CCompositeTypeMemberDeclaration> pFieldMember,
                 Optional<CFunctionCallExpression> pFunctionCallExpression)
@@ -186,7 +188,9 @@ public record SeqMemoryLocation(
 
     stringBuilder.append("name='").append(getName()).append("'");
 
-    callContext.ifPresent(cfaEdge -> stringBuilder.append(", thread=").append(cfaEdge.threadId));
+    callContext
+        .cfaEdgeForThread()
+        .ifPresent(cfaEdge -> stringBuilder.append(", thread=").append(cfaEdge.threadId));
 
     if (isGlobal()) {
       stringBuilder.append(", [GLOBAL]");

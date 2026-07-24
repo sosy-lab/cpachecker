@@ -12,7 +12,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
@@ -21,6 +20,11 @@ import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
 import org.sosy_lab.cpachecker.cpa.path.SegmentedPaths;
 
+/**
+ * Reverses the serialization performed by {@link SerializeBlockStateOperator}; see there for the
+ * documentation of the wire format (the {@code W:} witness and {@code H:} history markers and the
+ * omission of the history suffix when empty).
+ */
 public class DeserializeBlockStateOperator implements DeserializeOperator {
 
   private final BlockNode blockNode;
@@ -32,6 +36,12 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
   @Override
   public AbstractState deserialize(DssMessage pMessage) throws InterruptedException {
     String content = pMessage.getAbstractStateContent(BlockState.class).get(STATE_KEY);
+    boolean stemsFromTopState = content.startsWith("true ");
+    if (stemsFromTopState) {
+      content = content.substring("true ".length());
+    } else {
+      content = content.substring("false ".length());
+    }
     ParseResult parsed = parseWitness(content);
     Preconditions.checkNotNull(parsed.serializedBlockState());
     return new BlockState(
@@ -40,10 +50,11 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
         BlockStateType.INITIAL,
         ImmutableList.of(),
         parsed.history(),
-        parsed.witness());
+        parsed.witness(),
+        stemsFromTopState);
   }
 
-  public static @NonNull ParseResult parseWitness(String content) {
+  public static ParseResult parseWitness(String content) {
     List<String> idAndWitnessAndMaybeHistory = Splitter.on(" W:").limit(2).splitToList(content);
     Preconditions.checkArgument(idAndWitnessAndMaybeHistory.size() == 2);
     String serializedBlockState = idAndWitnessAndMaybeHistory.getFirst();

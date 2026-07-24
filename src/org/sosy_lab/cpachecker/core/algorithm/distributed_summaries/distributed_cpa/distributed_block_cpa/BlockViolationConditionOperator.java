@@ -54,15 +54,12 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
               topMost.getType(),
               topMost.getViolationConditions(),
               topMost.getHistory(),
-              currentWitness));
+              currentWitness,
+              false));
     }
     List<String> previousHistory =
         pPreviousCondition
-            .map(
-                state ->
-                    Objects.requireNonNull(
-                            AbstractStates.extractStateByType(state, BlockState.class))
-                        .getHistory())
+            .map(state -> AbstractStates.extractStateByType(state, BlockState.class).getHistory())
             .orElse(ImmutableList.of());
     BlockState withHistory =
         new BlockState(
@@ -71,7 +68,8 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
             topMost.getType(),
             topMost.getViolationConditions(),
             listAndElement(previousHistory, topMost.getBlockNode().getId()),
-            currentWitness);
+            currentWitness,
+            false);
     return Optional.of(withHistory);
   }
 }

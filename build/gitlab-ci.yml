@@ -66,15 +66,31 @@ build:jdk-25:
 
 
 # For checks that need the binaries
-.binary_check: &binary_check
+.check-binaries: &binary_check
   stage: checks
   interruptible: true
 
-# For checks that only need the source code, not the binaries
+.check-binaries-default-jdk:
+  extends: .check-binaries
+  dependencies:
+    - build-dependencies
+    - build:jdk-17
+  needs:
+    - build-dependencies
+    - build:jdk-17
+
+# For checks that only need build-dependencies and the source code, not the binaries
 .source_check: &source_check
   stage: checks
   needs:
     - build-dependencies
+  interruptible: true
+
+# For checks that only need the source, not even build-dependencies
+.check-without-dependencies:
+  stage: checks
+  dependencies: []
+  needs: []
   interruptible: true
 
 
@@ -111,23 +127,17 @@ checkstyle:
     when: on_failure
 
 javadoc:
-  <<: *binary_check
+  extends: .check-binaries-default-jdk
   script: "ant $ANT_PROPS_CHECKS javadoc"
-  needs:
-    - build-dependencies
-    - build:jdk-17
   artifacts:
     paths:
       - "Javadoc/"
 
 spotbugs:
-  <<: *binary_check
+  extends: .check-binaries-default-jdk
   script:
     - 'ant $ANT_PROPS_CHECKS spotbugs'
     - 'test \! -f SpotBugs.html'
-  needs:
-    - build-dependencies
-    - build:jdk-17
   artifacts:
     paths:
       - "SpotBugs.html"
@@ -198,9 +208,7 @@ refaster:
 
 # check license declarations etc.
 reuse:
-  stage: checks
-  dependencies: []
-  needs: []
+  extends: .check-without-dependencies
   image:
     name: fsfe/reuse:6
     entrypoint: [""]
@@ -227,18 +235,20 @@ deploy-gh-pages:
 
 
 # Build container images
-# following this guideline: https://docs.gitlab.com/ee/ci/docker/using_kaniko.html
 .build-docker:
   stage: images
   image:
-    name: gcr.io/kaniko-project/executor:debug
-    entrypoint: [""]
+    name: quay.io/podman/stable
   variables:
-    EXTRA_ARGS: ""
+    BUILD_CONTEXT: "-"
+  tags:
+    - podman
+  before_script:
+    - podman login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password "$CI_REGISTRY_PASSWORD"
   script:
-    - mkdir -p /root/.docker
-    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-    - /kaniko/executor --dockerfile $CI_PROJECT_DIR/$DOCKERFILE --destination $CI_REGISTRY_IMAGE$IMAGE $EXTRA_ARGS
+    - echo "Building $CI_REGISTRY_IMAGE$IMAGE from $DOCKERFILE"
+    - podman build --pull -t $CI_REGISTRY_IMAGE$IMAGE $BUILD_CONTEXT -f - < $DOCKERFILE
+    - podman push $CI_REGISTRY_IMAGE$IMAGE
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_PIPELINE_SOURCE == "web"

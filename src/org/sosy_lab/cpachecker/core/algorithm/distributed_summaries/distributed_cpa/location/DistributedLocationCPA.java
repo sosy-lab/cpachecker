@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
@@ -155,6 +154,6 @@ public class DistributedLocationCPA implements ForwardingDistributedConfigurable
     Preconditions.checkArgument(doesOperateOn(pAbstractState.getClass()));
     CFANode cfaNode = AbstractStates.extractLocation(pAbstractState);
     Preconditions.checkNotNull(cfaNode, "LocationState should always have a location");
-    return Objects.hash("N", cfaNode.getNodeNumber());
+    return cfaNode.getNodeNumber();
   }
 }

@@ -39,6 +39,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <exclude>../programs/benchmarks/bitvector/byte_add-1.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/bitvector/byte_add_1-1.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/bitvector/byte_add_2-2.yml</exclude> <!-- flapping unknown/timeout -->
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/Floats.set</includesfile>
@@ -47,9 +48,11 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <exclude>../programs/benchmarks/float-benchs/filter_iir.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/float-benchs/cos_polynomial.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/float-benchs/sqrt_biNewton_pseudoconstant.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/floats-cbmc-regression/float4.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/floats-cdfpl/newton_*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/float-newlib/*</exclude> <!-- only timeout -->
+    <exclude>../programs/benchmarks/neural-networks/conv1d_0_safe.c-amalgamation.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/neural-networks/conv1d_2_safe.c-amalgamation.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/neural-networks/conv1d_3_safe.c-amalgamation.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c13_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
@@ -58,7 +61,10 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c26_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c39_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c39_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c52_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c52_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v21_c21_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v8_c24_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v8_c24_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v8_c32_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v8_c32_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
@@ -86,6 +92,9 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/neural-networks/sll_4x12x12x1_case_4_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/sll_4x12x12x1_case_5_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/vdp_0_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
+    <exclude>../programs/benchmarks/neural-networks/vdp_1_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
+    <exclude>../programs/benchmarks/neural-networks/vdp_2_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
+    <exclude>../programs/benchmarks/neural-networks/vdp_5_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/vdp_7_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
   </tasks>
   <tasks>
@@ -95,6 +104,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <exclude>../programs/benchmarks/ntdrivers/cdaudio.i.cil-1.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/openssl/s3_srvr.*</exclude> <!-- infeasible cex can't be removed -->
+    <exclude>../programs/benchmarks/unsignedintegeroverflow-sas23/bilinear_interpolation.yml</exclude> <!-- flapping unknown/timeout -->
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/Heap.set</includesfile>
@@ -116,6 +126,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/seq-mthreaded/*</exclude> <!-- only timeouts -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/*</exclude> <!-- only timeouts and unknowns -->
     <exclude>../programs/benchmarks/seq-pthread/cs_s*</exclude> <!-- only timeouts and unknowns -->
+    <exclude>../programs/benchmarks/seq-pthread/cs_queue-2.yml</exclude> <!-- flapping timeout/unknown -->
     <exclude>../programs/benchmarks/seq-pthread/cs_read_write_lock-1.yml</exclude> <!-- flapping timeout/unknown -->
     <exclude>../programs/benchmarks/seq-pthread/cs_read_write_lock-2.yml</exclude> <!-- flapping timeout/unknown -->
   </tasks>

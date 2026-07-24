@@ -71,7 +71,8 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
                 BlockStateType.INITIAL,
                 ImmutableList.of(),
                 ImmutableList.of(),
-                SegmentedPaths.EMPTY);
+                SegmentedPaths.EMPTY,
+                false);
 
     serializeOperator = new SerializeBlockStateOperator();
     deserializeOperator = new DeserializeBlockStateOperator(pNode);

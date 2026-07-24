@@ -215,26 +215,25 @@ public class ExpressionSimplificationVisitor
     final TypeIdOperator idOperator = expr.getOperator();
     final CType innerType = expr.getType();
 
-    switch (idOperator) {
+    return switch (idOperator) {
       case SIZEOF -> {
         if (innerType.hasKnownConstantSize()) {
           BigInteger size = machineModel.getSizeof(innerType);
-          return new CIntegerLiteralExpression(
+          yield new CIntegerLiteralExpression(
               expr.getFileLocation(), expr.getExpressionType(), size);
         }
-        return visitDefault(expr);
+        yield visitDefault(expr);
         // TODO simplify inner part of expr?
       }
       case ALIGNOF -> {
         int alignment = machineModel.getAlignof(innerType);
-        return new CIntegerLiteralExpression(
+        yield new CIntegerLiteralExpression(
             expr.getFileLocation(), expr.getExpressionType(), BigInteger.valueOf(alignment));
       }
-      default -> {
-        // TODO support more operators
-        return visitDefault(expr);
-      }
-    }
+      default ->
+          // TODO support more operators
+          visitDefault(expr);
+    };
   }
 
   @Override
