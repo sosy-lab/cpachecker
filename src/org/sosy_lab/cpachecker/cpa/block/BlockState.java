@@ -64,7 +64,6 @@ public class BlockState
     violationConditions = ImmutableList.copyOf(pViolationConditions);
     history = ImmutableList.copyOf(pHistory);
     witness = pWitness;
-    witness = pWitness;
     topSummaryFromNonTrivialState = pTopSummaryFromNonTrivialState;
   }
 
