@@ -148,10 +148,14 @@ public class InliningDecomposition implements DssBlockDecomposition {
   }
 
   /**
-   * @param scc the current scc
-   * @param node the current node
-   * @param idsInScc the ids of all nodes in the current scc
-   * @param stack the current callstack
+   * Maps the IDs of successors to the Ids the copy will have for the specific call stack
+   *
+   * <p>Adds the stack. If we have a return or a call, the stack is adjusted accordingly.
+   *
+   * @param scc the scc of the block whose IDs are mapped
+   * @param node the block whose IDs are mapped
+   * @param idsInScc the ids of all nodes in the scc
+   * @param stack the callstack for which we copy the block
    * @return a function that adds the correct stack suffix to the successor ids
    */
   private Function<String, String> successorMapper(
@@ -181,11 +185,16 @@ public class InliningDecomposition implements DssBlockDecomposition {
   }
 
   /**
-   * @param scc the current scc
-   * @param node the current node
-   * @param idsInScc the ids of all nodes in the current scc
-   * @param stack the current callstack
-   * @param previousStack the current callstack with one call popped
+   * Maps the IDs of predecessors to the IDs the copy will have for the specific call stack
+   *
+   * <p>Adds the stack. If we have a return or a call, the stack is adjusted accordingly.
+   *
+   * @param scc the scc of the block whose IDs are mapped
+   * @param node the block whose IDs are mapped
+   * @param idsInScc the ids of all nodes in the scc
+   * @param callingBlockId the id of the block that made the last call
+   * @param stack the callstack for which we copy the block
+   * @param previousStack the stack of the calling block
    * @return a function that adds the correct stack suffix to the predecessor ids
    */
   private Function<String, String> predecessorMapper(

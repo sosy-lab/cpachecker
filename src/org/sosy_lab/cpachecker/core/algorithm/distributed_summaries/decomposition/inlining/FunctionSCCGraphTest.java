@@ -14,6 +14,7 @@ import com.google.common.truth.Truth;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.inlining.FunctionSCCGraph.FunctionSCC;
+import org.sosy_lab.cpachecker.util.graph.TopologicalTraversal;
 
 public class FunctionSCCGraphTest {
 

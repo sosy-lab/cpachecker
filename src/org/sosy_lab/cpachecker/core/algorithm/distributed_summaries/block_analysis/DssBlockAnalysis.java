@@ -693,7 +693,6 @@ public class DssBlockAnalysis {
         vcs.addAll(computeViolationConditionStatesFromOrigin(result.getTargetStates()));
       }
     }
-
     return new AnalysisResult(summaries.build(), vcs.build());
   }
 

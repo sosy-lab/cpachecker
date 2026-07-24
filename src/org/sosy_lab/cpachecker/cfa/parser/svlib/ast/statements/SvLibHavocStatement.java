@@ -8,10 +8,10 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
@@ -48,9 +48,9 @@ public final class SvLibHavocStatement extends SvLibStatement {
 
   @Override
   public String toASTStringWithoutTags() {
-    return "(havoc "
-        + Joiner.on(" ").join(variables.stream().map(SvLibParsingAstNode::toASTString).toList())
-        + ")";
+    return variables.stream()
+        .map(SvLibParsingAstNode::toASTString)
+        .collect(Collectors.joining(" ", "(havoc ", ")"));
   }
 
   @Override

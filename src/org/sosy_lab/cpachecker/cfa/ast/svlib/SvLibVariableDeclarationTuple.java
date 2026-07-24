@@ -10,10 +10,10 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibProductType;
@@ -47,12 +47,9 @@ public class SvLibVariableDeclarationTuple extends AVariableDeclaration implemen
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "("
-        + String.join(
-            ", ",
-            FluentIterable.from(declarations)
-                .transform(t -> t.toASTString(pAAstNodeRepresentation)))
-        + ")";
+    return declarations.stream()
+        .map(t -> t.toASTString(pAAstNodeRepresentation))
+        .collect(Collectors.joining(", ", "(", ")"));
   }
 
   @Override

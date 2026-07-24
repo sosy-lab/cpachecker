@@ -313,12 +313,11 @@ public class ARGReachedSet {
 
   private Set<ARGState> removeSubtree0(ARGState e) {
     Preconditions.checkNotNull(e);
-
-    if (e.isDestroyed()) {
-      // This subtree has been removed already
-      return ImmutableSet.of();
-    }
-
+    Preconditions.checkArgument(
+        !e.isDestroyed(),
+        "Trying to remove a state from the ARG/reached set that has already been destroyed.\n"
+            + "State: '%s'.",
+        e);
     Preconditions.checkArgument(
         !e.getParents().isEmpty(),
         "May not remove the initial state from the ARG/reached set.\nTrying to remove state '%s'.",

@@ -6,19 +6,18 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.inlining;
+package org.sosy_lab.cpachecker.util.graph;
 
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 import com.google.common.graph.SuccessorsFunction;
-import com.google.common.graph.Traverser;
 import java.util.ArrayList;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 
-/** Interface is inspired by {@link Traverser} */
-public class TopologicalTraversal<T> extends AbstractIterator<T> {
+// Interface is inspired by {@link Traverser}
+public final class TopologicalTraversal<T> extends AbstractIterator<T> {
 
   private final T root;
   private final SuccessorsFunction<T> edges;
@@ -80,10 +79,15 @@ public class TopologicalTraversal<T> extends AbstractIterator<T> {
   }
 
   /**
-   * Returns an iterator that traverses the nodes of a DAG in topological order.
+   * Returns an iterator that traverses the nodes of a DAG in topological order. Only nodes
+   * reachable from root are visited. If the graph is not a DAG, the traversal will not visit any
+   * nodes that are reachable through a loop.
    *
-   * @param <T> The nodes. The hash function of these elements should not change during the
-   *     traversal
+   * <p>Traverses the whole graph at setup and requires O(nodes) memory. If the predecessor
+   * relationship is known, a different implementation that avoids this should be used.
+   *
+   * @param <T> The type of the nodes. The hash function of these elements should not change during
+   *     the traversal
    */
   public static final <T> Iterable<T> traverse(T root, SuccessorsFunction<T> edges) {
     return () -> new TopologicalTraversal<>(root, edges);
