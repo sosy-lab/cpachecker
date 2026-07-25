@@ -78,15 +78,13 @@ public class AutomatonWitnessV2d0Parser {
           };
       return parser.createCorrectnessAutomatonFromEntries(entries);
     } else {
-      AutomatonWitnessViolationV2d0Parser parser =
-          switch (AutomatonWitnessV2ParserUtils.getWitnessVersion(entries).orElseThrow()) {
-            case V2 ->
-                new AutomatonWitnessViolationV2d0Parser(config, logger, shutdownNotifier, cfa);
-            case V2d1 ->
-                new AutomatonWitnessViolationV2d1Parser(config, logger, shutdownNotifier, cfa);
-            case V2d2 ->
-                new AutomatonWitnessViolationV2d2Parser(config, logger, shutdownNotifier, cfa);
-          };
+      AutomatonWitnessViolationV2Parser parser =
+          new AutomatonWitnessViolationV2Parser(
+              config,
+              logger,
+              shutdownNotifier,
+              cfa,
+              AutomatonWitnessV2ParserUtils.getWitnessVersion(entries).orElseThrow());
       return parser.createViolationAutomatonFromEntries(entries);
     }
   }

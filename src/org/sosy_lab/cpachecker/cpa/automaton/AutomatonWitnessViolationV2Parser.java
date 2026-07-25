@@ -8,13 +8,18 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import static org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.THREAD_ID_VAR_NAME;
+import static org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.getThreadIdAssignment;
+
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -38,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.And;
@@ -60,20 +66,39 @@ import org.sosy_lab.cpachecker.util.ast.AstUtils.BoundaryNodesComputationFailed;
 import org.sosy_lab.cpachecker.util.ast.IfElement;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessVersion;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.SegmentRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointAction;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointType;
 
-class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon {
+/**
+ * Parser building a witness automaton from a violation witness in one of the YAML witness format
+ * versions 2.0, 2.1 or 2.2.
+ *
+ * <p>The three versions differ only by a handful of features. Instead of modelling each version
+ * with its own subclass, this parser stores the {@link YAMLWitnessVersion} it was created for and
+ * asks a set of {@code supports...} feature predicates whether a given feature may be used. This
+ * keeps the shared logic in a single place and makes the version-specific behavior explicit at the
+ * point where it matters.
+ */
+class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
 
+  private final YAMLWitnessVersion version;
   private final CParser cparser;
   private final ParserTools parserTools;
 
-  AutomatonWitnessViolationV2d0Parser(
-      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
+  AutomatonWitnessViolationV2Parser(
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCFA,
+      YAMLWitnessVersion pVersion)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pShutdownNotifier, pCFA);
+    version = pVersion;
     cparser =
         CParser.Factory.getParser(
             /*
@@ -88,6 +113,48 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
             pShutdownNotifier);
     parserTools = ParserTools.create(ExpressionTrees.newFactory(), pCFA.getMachineModel(), pLogger);
   }
+
+  // ===========================================================================
+  // Feature predicates: which features of the YAML witness format are supported
+  // by the witness version this parser was created for.
+  // ===========================================================================
+
+  /**
+   * Cycle (lasso) waypoints, used to describe liveness violations, are available from witness
+   * version 2.1 on. Without them a witness can only describe a single reachability target.
+   */
+  private boolean supportsCycleWaypoints() {
+    return version != YAMLWitnessVersion.V2;
+  }
+
+  /**
+   * Multiple target waypoints in a single segment are used to describe data races, where two memory
+   * accesses have to be reached without a fixed order. This is a witness version 2.2 feature.
+   */
+  private boolean supportsMultipleTargetWaypoints() {
+    return version == YAMLWitnessVersion.V2d2;
+  }
+
+  /**
+   * Function-enter waypoints are required to validate violation witnesses for concurrent programs,
+   * since e.g. {@code pthread_create} needs a dedicated action to track the created thread. This is
+   * a witness version 2.2 feature.
+   */
+  private boolean supportsFunctionEnterWaypoints() {
+    return version == YAMLWitnessVersion.V2d2;
+  }
+
+  /**
+   * Per-waypoint thread identifiers, used to validate violation witnesses for concurrent programs,
+   * are a witness version 2.2 feature.
+   */
+  private boolean supportsThreadIdentifiers() {
+    return version == YAMLWitnessVersion.V2d2;
+  }
+
+  // ===========================================================================
+  // Waypoint handlers
+  // ===========================================================================
 
   protected AutomatonAction distanceToViolationAction(int pDistanceToViolation) {
     return new AutomatonAction.Assignment(
@@ -157,6 +224,50 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
             /* pIsTarget= */ false,
             /* pAllTransitions= */ false,
             /* pIsCycleStart= */ false));
+  }
+
+  /**
+   * Handle a state which is not the last in the automaton the same way a target state is handled.
+   * This is useful when dealing with data-race witnesses which have multi-target segments.
+   *
+   * @param nextStateId the id of the next state in the automaton being constructed
+   * @param followLine the line at which the target is
+   * @param followColumn the column at which the target is
+   * @param pDistanceToViolation the distance to the violation
+   * @param transitions of the automaton that we extended by transition for given waypoint
+   */
+  protected void handleIntermediateTarget(
+      String nextStateId,
+      Integer followLine,
+      OptionalInt followColumn,
+      OptionalInt threadId,
+      Integer pDistanceToViolation,
+      ImmutableList.Builder<AutomatonTransition> transitions) {
+    // The violation points to the largest full expression which produces the error.
+    //
+    // TODO: Currently we only deal with statements as targets. In the future we may want to
+    //  consider the full expression more closely.
+    ASTElement tightestStatementForStarting =
+        cfa.getAstCfaRelation()
+            .getTightestStatementForStarting(followLine, followColumn)
+            .orElseThrow();
+    AutomatonBoolExpr expr =
+        new Or(
+            new CheckMatchesColumnAndLine(
+                tightestStatementForStarting.location().getStartColumnInLine(),
+                followLine,
+                threadId),
+            new CheckClosestFullExpressionMatchesColumnAndLine(
+                // Check the full expression location
+                followColumn, followLine, cfa.getAstCfaRelation(), threadId));
+
+    AutomatonTransition.Builder transitionBuilder =
+        new AutomatonTransition.Builder(expr, nextStateId);
+    transitionBuilder = distanceToViolation(transitionBuilder, pDistanceToViolation);
+
+    // We need to copy the target information such that CPAchecker returns the correct information
+    // for the violated property. If this is not set it will return "WitnessAutomaton"
+    transitions.add(transitionBuilder.build());
   }
 
   /**
@@ -343,7 +454,10 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
   }
 
   /**
-   * Transform a function enter into automata transitions
+   * Transform a function enter into automata transitions.
+   *
+   * <p>Function-enter waypoints are only supported by witnesses that {@link
+   * #supportsFunctionEnterWaypoints() support them}; for older versions this method always throws.
    *
    * @param nextStateId the id of the next state in the automaton being constructed
    * @param followLine the line at which the target is
@@ -352,7 +466,6 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
    * @param startLineToCFAEdge a mapping from the start line to the CFA edge
    * @throws WitnessParseException if this waypoint is not supported
    */
-  @SuppressWarnings("unused")
   protected Integer handleFunctionEnter(
       String nextStateId,
       Integer followLine,
@@ -363,7 +476,80 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
       Multimap<Integer, CFAEdge> startLineToCFAEdge,
       ImmutableList.Builder<AutomatonTransition> transitions)
       throws WitnessParseException {
-    throw new WitnessParseException("We currently do not support function enter waypoints.");
+    if (!supportsFunctionEnterWaypoints()) {
+      throw new WitnessParseException("We currently do not support function enter waypoints.");
+    }
+
+    // Find out the edge which corresponds to this statement, it can either be a CFunctionCallEdge
+    // or a CStatementEdge
+    Optional<CFAEdge> inputEdge =
+        findFunctionEnterEdge(followLine, followColumn, startLineToCFAEdge);
+
+    if (inputEdge.isEmpty()) {
+      throw new WitnessParseException(
+          "No CFAEdge could be matched for the function enter waypoint passing line "
+              + followLine
+              + " and column "
+              + followColumn);
+    }
+
+    CFAEdge edge = inputEdge.orElseThrow();
+
+    // If we are matching a `pthread_create` function call we need to handle this specially
+    // to be able to correctly validate violation witnesses for concurrent programs,
+    // since they need to have an action to set the thread id of the creating thread
+    AutomatonBoolExpr expr =
+        new CheckPassesThroughNodes(
+            ImmutableSet.of(edge.getPredecessor()), ImmutableSet.of(edge.getSuccessor()), threadId);
+
+    AutomatonTransition.Builder transitionBuilder =
+        new AutomatonTransition.Builder(expr, nextStateId);
+    transitionBuilder.withActions(
+        ImmutableList.of(
+            getThreadIdAssignment(pPthreadFunctionEnterWaypoint),
+            distanceToViolationAction(pDistanceToViolation)));
+
+    transitions.add(transitionBuilder.build());
+    return pPthreadFunctionEnterWaypoint + 1;
+  }
+
+  /**
+   * Finds the CFA edge corresponding to a function-enter waypoint.
+   *
+   * <p>The matching edge is either a {@link FunctionCallEdge} or an {@link AStatementEdge}. The
+   * edges on the given line are sorted by their column so that the first one matching the requested
+   * column is returned.
+   *
+   * @param followLine the line the waypoint should pass through
+   * @param followColumn the column the waypoint should pass through, if given
+   * @param startLineToCFAEdge mapping from start lines to the CFA edges starting there
+   * @return the matching edge, or {@link Optional#empty()} if no edge matches
+   */
+  private static Optional<CFAEdge> findFunctionEnterEdge(
+      Integer followLine, OptionalInt followColumn, Multimap<Integer, CFAEdge> startLineToCFAEdge) {
+    // We sort the edges by their column, so we can take the first one which matches the given
+    // column
+    for (CFAEdge edge :
+        FluentIterable.from(startLineToCFAEdge.get(followLine))
+            .toSortedList(
+                Comparator.comparingInt(
+                    pCFAEdge -> pCFAEdge.getFileLocation().getStartColumnInLine()))) {
+      // Not a function call so we skip it
+      if (!(edge instanceof AStatementEdge || edge instanceof FunctionCallEdge)) {
+        continue;
+      }
+
+      // If the column does not match we continue by not matching this edge
+      if (followColumn.isPresent()
+          && followColumn.orElseThrow()
+              != edge.getFileLocation().getStartColumnInLine() + edge.getCode().indexOf("(")) {
+        continue;
+      }
+
+      return Optional.of(edge);
+    }
+
+    return Optional.empty();
   }
 
   /**
@@ -454,18 +640,105 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
     transitions.add(transitionBuilder.build());
   }
 
+  // ===========================================================================
+  // Segmentation and validity checks
+  // ===========================================================================
+
   /**
-   * Separate the entries into segments and check whether the witness is valid witness v2.0
+   * Separate the entries into segments whose waypoints should be passed one after the other.
+   *
+   * <p>Witnesses that {@link #supportsMultipleTargetWaypoints() support multiple targets per
+   * segment} may group several follow waypoints into a single segment, all others allow at most one
+   * follow or cycle waypoint per segment.
+   *
+   * @param pViolationEntry the violation entry to segmentize
+   * @return the segmentized entries
+   */
+  @Override
+  ImmutableList<PartitionedWaypoints> segmentize(ViolationSequenceEntry pViolationEntry)
+      throws InvalidYAMLWitnessException {
+    if (supportsMultipleTargetWaypoints()) {
+      return segmentizeAllowingMultipleFollows(pViolationEntry);
+    }
+    return super.segmentize(pViolationEntry);
+  }
+
+  private ImmutableList<PartitionedWaypoints> segmentizeAllowingMultipleFollows(
+      ViolationSequenceEntry pViolationEntry) throws InvalidYAMLWitnessException {
+    ImmutableList.Builder<PartitionedWaypoints> segments = new ImmutableList.Builder<>();
+
+    for (SegmentRecord segmentRecord : pViolationEntry.getContent()) {
+      boolean containsCycle = false;
+      boolean containsFollowOrCycle = false;
+      ImmutableList.Builder<WaypointRecord> avoids = new ImmutableList.Builder<>();
+      ImmutableList.Builder<WaypointRecord> follows = new ImmutableList.Builder<>();
+      for (WaypointRecord waypoint : segmentRecord.getSegment()) {
+        if (waypoint.getAction().equals(WaypointAction.AVOID)) {
+          avoids.add(waypoint);
+        } else {
+          if (containsCycle) {
+            throw new InvalidYAMLWitnessException(
+                "Witnesses in version 2.2 can contain at most one follow or cycle waypoint per"
+                    + " segment!");
+          }
+          containsFollowOrCycle = true;
+          if (waypoint.getAction().equals(WaypointAction.FOLLOW)) {
+            follows.add(waypoint);
+          } else if (waypoint.getAction().equals(WaypointAction.CYCLE)) {
+            containsCycle = true;
+            // TODO: It is a bug to build it here, since there may be avoid
+            //  waypoints which are not collected
+            segments.add(new PartitionedWaypoints(avoids.build(), waypoint));
+          }
+        }
+      }
+      if (!containsFollowOrCycle) {
+        throw new InvalidYAMLWitnessException(
+            "Every segment in witness version 2.1 must contain follow or cycle waypoint!");
+      }
+      segments.add(new PartitionedWaypoints(follows.build(), avoids.build()));
+    }
+    return segments.build();
+  }
+
+  @Override
+  protected void checkTargetIsAtEnd(WaypointRecord pLatest, int pNumTargetWaypoints)
+      throws InvalidYAMLWitnessException {
+    if (!supportsMultipleTargetWaypoints()) {
+      super.checkTargetIsAtEnd(pLatest, pNumTargetWaypoints);
+      return;
+    }
+
+    // Witnesses supporting multiple targets per segment (data races) may contain up to two target
+    // waypoints, which both have to be at the end of the witness.
+    switch (pNumTargetWaypoints) {
+      case 0 -> throw new InvalidYAMLWitnessException("No target waypoint in witness V2!");
+      case 1, 2 -> {
+        if (pLatest != null && !pLatest.getType().equals(WaypointType.TARGET)) {
+          throw new InvalidYAMLWitnessException("Target waypoint is not at the end in witness V2!");
+        }
+      }
+      default ->
+          throw new InvalidYAMLWitnessException("More than one target waypoint in witness V2!");
+    }
+  }
+
+  /**
+   * Separate the entries into segments and check whether the witness is valid for its version.
    *
    * @param pEntries the entries to segmentize
    * @return the segmentized entries
    * @throws InvalidYAMLWitnessException if the YAML witness is not valid
    */
-  protected ImmutableList<PartitionedWaypoints> segmentizeAndCheckV2d0(List<AbstractEntry> pEntries)
+  private ImmutableList<PartitionedWaypoints> segmentizeAndCheck(List<AbstractEntry> pEntries)
       throws InvalidYAMLWitnessException {
     ViolationSequenceEntry violationEntry = getViolationSequence(pEntries);
     ImmutableList<PartitionedWaypoints> segmentizedEntries = segmentize(violationEntry);
-    checkTarget(violationEntry);
+    if (supportsCycleWaypoints()) {
+      checkCycleOrTargetAtEnd(violationEntry);
+    } else {
+      checkTarget(violationEntry);
+    }
     return segmentizedEntries;
   }
 
@@ -478,9 +751,88 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
     return (ViolationSequenceEntry) pEntries.getFirst();
   }
 
+  // ===========================================================================
+  // Automaton construction
+  // ===========================================================================
+
+  protected void handleMultiTargetWaypoints(
+      List<WaypointRecord> pWaypointRecords,
+      String nextStateId,
+      String currentStateId,
+      Integer pDistanceToViolation,
+      ImmutableList.Builder<AutomatonInternalState> automatonStates) {
+    // Formally there is no ordering between the waypoints at the same segment.
+    // However, since CPAchecker is an interleaving based tool, all the interleavings
+    // are explicitly set in the ARG. Therefore, we can just check the multi-follow
+    // target waypoints, by first checking one, and then the other, so we need
+    // to branch in the automaton for this.
+
+    WaypointRecord firstWaypoint = pWaypointRecords.getFirst();
+    WaypointRecord secondWaypoint = pWaypointRecords.get(1);
+
+    ImmutableList.Builder<AutomatonTransition> currentStateTransitions =
+        new ImmutableList.Builder<>();
+
+    // First do waypoint1 then waypoint2
+    followFirstWaypointWithSecondAsTarget(
+        nextStateId,
+        pDistanceToViolation,
+        automatonStates,
+        "SI1-" + nextStateId,
+        firstWaypoint,
+        secondWaypoint,
+        currentStateTransitions);
+
+    // then do waypoint2 then waypoint1
+    followFirstWaypointWithSecondAsTarget(
+        nextStateId,
+        pDistanceToViolation,
+        automatonStates,
+        "SI2-" + nextStateId,
+        secondWaypoint,
+        firstWaypoint,
+        currentStateTransitions);
+
+    automatonStates.add(
+        new AutomatonInternalState(
+            currentStateId,
+            currentStateTransitions.build(),
+            /* pIsTarget= */ false,
+            /* pAllTransitions= */ false,
+            /* pIsCycleStart= */ false));
+  }
+
+  private void followFirstWaypointWithSecondAsTarget(
+      String pNextStateId,
+      Integer pDistanceToViolation,
+      ImmutableList.Builder<AutomatonInternalState> automatonStates,
+      String pIntermediateState,
+      WaypointRecord firstWaypoint,
+      WaypointRecord secondWaypoint,
+      ImmutableList.Builder<AutomatonTransition> currentStateTransitions) {
+
+    handleIntermediateTarget(
+        pIntermediateState,
+        firstWaypoint.getLocation().getLine(),
+        firstWaypoint.getLocation().getColumn(),
+        firstWaypoint.getThread(),
+        pDistanceToViolation - 1,
+        currentStateTransitions);
+
+    handleTarget(
+        pNextStateId,
+        secondWaypoint.getLocation().getLine(),
+        secondWaypoint.getLocation().getColumn(),
+        secondWaypoint.getThread(),
+        pDistanceToViolation - 2,
+        pIntermediateState,
+        new ImmutableList.Builder<>(),
+        automatonStates);
+  }
+
   Automaton createViolationAutomatonFromEntries(List<AbstractEntry> pEntries)
       throws InterruptedException, InvalidYAMLWitnessException, WitnessParseException {
-    List<PartitionedWaypoints> segments = segmentizeAndCheckV2d0(pEntries);
+    List<PartitionedWaypoints> segments = segmentizeAndCheck(pEntries);
     // this needs to be called exactly WitnessAutomaton for the option
     // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work
     final String automatonName = AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME;
@@ -491,25 +843,71 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
     final ImmutableList.Builder<AutomatonInternalState> automatonStates =
         new ImmutableList.Builder<>();
 
-    // add bottom state
+    // Add the bottom state so that avoid waypoints, which enter it by name, can be resolved.
     automatonStates.add(AutomatonInternalState.BOTTOM);
+
     String currentStateId = initState;
 
     int distance = segments.size() - 1;
+    Optional<String> cycleHeadName = Optional.empty();
+    Integer pthreadFunctionEnterWaypoint = 1;
+
+    ImmutableMap.Builder<String, AutomatonVariable> automatonVariablesBuilder =
+        new ImmutableMap.Builder<>();
+    automatonVariablesBuilder.put(
+        AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
+        AutomatonVariable.createAutomatonVariable(
+            /* pType= */ "int",
+            AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
+            Integer.toString(segments.size())));
 
     for (PartitionedWaypoints entry : segments) {
       ImmutableList.Builder<AutomatonTransition> transitions = new ImmutableList.Builder<>();
-      WaypointRecord follow = Iterables.getOnlyElement(entry.follow().orElseThrow());
+      // We call flow waypoint either cycle or follow waypoint as they ensure flow in the execution
+      List<WaypointRecord> followWaypoints =
+          entry.follow().isPresent()
+              ? entry.follow().orElseThrow()
+              : ImmutableList.of(entry.cycle().orElseThrow());
       String nextStateId = getStateName(stateCounter++);
 
-      handleWaypointsV2d0(
-          entry, follow, transitions, automatonStates, distance, 0, nextStateId, currentStateId);
-      ImmutableList<AutomatonTransition> transitionsList = transitions.build();
-      if (transitionsList.isEmpty()) {
-        continue;
+      if (followWaypoints.size() > 1) {
+        if (!FluentIterable.from(followWaypoints)
+            .transform(WaypointRecord::getType)
+            .allMatch(type -> type.equals(WaypointType.TARGET))) {
+          throw new WitnessParseException(
+              "Currently we cannot handle multiple non-target follow waypoints in the same"
+                  + " segment.");
+        }
+
+        handleMultiTargetWaypoints(followWaypoints, "X", currentStateId, distance, automatonStates);
+
+        currentStateId = "X";
+        break;
       }
 
-      if (follow.getType().equals(WaypointType.TARGET)) {
+      WaypointRecord followWaypoint = Iterables.getOnlyElement(followWaypoints);
+      if (supportsThreadIdentifiers() && followWaypoint.getThread().isPresent()) {
+        automatonVariablesBuilder.put(
+            THREAD_ID_VAR_NAME,
+            AutomatonVariable.createAutomatonVariable(
+                "int",
+                THREAD_ID_VAR_NAME,
+                // The initial thread always gets the identifier `0`
+                Integer.toString(0)));
+      }
+
+      pthreadFunctionEnterWaypoint =
+          handleWaypoints(
+              entry,
+              followWaypoint,
+              transitions,
+              automatonStates,
+              distance,
+              pthreadFunctionEnterWaypoint,
+              nextStateId,
+              currentStateId);
+
+      if (followWaypoint.getType().equals(WaypointType.TARGET)) {
         if (stateCounter != segments.size() + 1) {
           logger.log(
               Level.INFO,
@@ -520,42 +918,58 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
         break;
       }
 
+      if (followWaypoint.getAction().equals(WaypointAction.CYCLE) && cycleHeadName.isEmpty()) {
+        cycleHeadName = Optional.of(currentStateId);
+      }
+
       automatonStates.add(
           new AutomatonInternalState(
               currentStateId,
-              transitionsList,
+              transitions.build(),
               /* pIsTarget= */ false,
               /* pAllTransitions= */ false,
-              /* pIsCycleStart= */ false));
+              /* pIsCycleStart= */ currentStateId.equals(
+                  cycleHeadName.isPresent() ? cycleHeadName.orElseThrow() : "")));
 
       distance--;
       currentStateId = nextStateId;
     }
 
-    // add last state and stutter in it:
-    automatonStates.add(
-        new AutomatonInternalState(
-            currentStateId,
-            ImmutableList.of(
-                new AutomatonGraphmlParser.TargetInformationCopyingAutomatonTransition(
-                    new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, currentStateId)
-                        .withAssertion(createViolationAssertion()))),
-            /* pIsTarget= */ false,
-            /* pAllTransitions= */ false,
-            /* pIsCycleStart= */ false));
-
-    ImmutableMap<String, AutomatonVariable> automatonVariables =
-        ImmutableMap.of(
-            AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
-            AutomatonVariable.createAutomatonVariable(
-                /* pType= */ "int",
-                AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
-                Integer.toString(segments.size())));
+    // If there is no cycle in the witness, it is a reachability witness
+    if (cycleHeadName.isEmpty()) {
+      // add last state and stutter in it:
+      automatonStates.add(
+          new AutomatonInternalState(
+              currentStateId,
+              ImmutableList.of(
+                  new AutomatonGraphmlParser.TargetInformationCopyingAutomatonTransition(
+                      new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, currentStateId)
+                          .withAssertion(createViolationAssertion()))),
+              /* pIsTarget= */ false,
+              /* pAllTransitions= */ false,
+              /* pIsCycleStart= */ false));
+    } else {
+      // add last state and a transition to enclose the cycle
+      automatonStates.add(
+          new AutomatonInternalState(
+              currentStateId,
+              ImmutableList.of(
+                  new AutomatonTransition.Builder(
+                          AutomatonBoolExpr.TRUE, cycleHeadName.orElseThrow())
+                      .build()),
+              /* pIsTarget= */ false,
+              /* pAllTransitions= */ false,
+              /* pIsCycleStart= */ false));
+    }
 
     Automaton automaton;
     try {
       automaton =
-          new Automaton(automatonName, automatonVariables, automatonStates.build(), initState);
+          new Automaton(
+              automatonName,
+              automatonVariablesBuilder.buildKeepingLast(),
+              automatonStates.build(),
+              initState);
     } catch (InvalidAutomatonException e) {
       throw new WitnessParseException(
           "The witness automaton generated from the provided Witness V2 is invalid!", e);
@@ -569,7 +983,7 @@ class AutomatonWitnessViolationV2d0Parser extends AutomatonWitnessV2ParserCommon
     return automaton;
   }
 
-  protected Integer handleWaypointsV2d0(
+  protected Integer handleWaypoints(
       PartitionedWaypoints pEntry,
       WaypointRecord follow,
       ImmutableList.Builder<AutomatonTransition> transitions,
