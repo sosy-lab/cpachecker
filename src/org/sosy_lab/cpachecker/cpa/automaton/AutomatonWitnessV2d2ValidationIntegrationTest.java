@@ -29,7 +29,7 @@ public final class AutomatonWitnessV2d2ValidationIntegrationTest {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
     Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-unreach.c");
     Path witnessFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-unreach.witness-2.2.yml");
-    WitnessV2ValidationTestUtils.performValidationTest(
+    WitnessV2ValidationUtilsTest.performValidationTest(
         inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
   }
 
@@ -39,7 +39,7 @@ public final class AutomatonWitnessV2d2ValidationIntegrationTest {
     Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-data-race.c");
     Path witnessFilePath =
         Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-data-race.witness-2.2.yml");
-    WitnessV2ValidationTestUtils.performValidationTest(
+    WitnessV2ValidationUtilsTest.performValidationTest(
         inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
   }
 
@@ -47,7 +47,7 @@ public final class AutomatonWitnessV2d2ValidationIntegrationTest {
   public void validate_unreach_call_concurrency_roundtrip() throws Exception {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
     Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-unreach.c");
-    WitnessV2ValidationTestUtils.verificationPlusValidationTest(
+    WitnessV2ValidationUtilsTest.verificationPlusValidationTest(
         inputFilePath, Result.FALSE, specificationFilePath);
   }
 
@@ -60,7 +60,7 @@ public final class AutomatonWitnessV2d2ValidationIntegrationTest {
         Path.of(
             CONCURRENCY_TEST_DIR_PATH,
             "36-apron_41-threadenter-no-locals_unknown_1_neg.c.witness.yml");
-    WitnessV2ValidationTestUtils.performValidationTest(
+    WitnessV2ValidationUtilsTest.performValidationTest(
         inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
   }
 
@@ -73,7 +73,7 @@ public final class AutomatonWitnessV2d2ValidationIntegrationTest {
         Path.of(
             CONCURRENCY_TEST_DIR_PATH,
             "36-apron_41-threadenter-no-locals_unknown_1_neg.c.second.witness.yml");
-    WitnessV2ValidationTestUtils.performValidationTest(
+    WitnessV2ValidationUtilsTest.performValidationTest(
         inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
   }
 
@@ -81,7 +81,7 @@ public final class AutomatonWitnessV2d2ValidationIntegrationTest {
   public void validate_data_race_concurrency_roundtrip() throws Exception {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-data-race.prp");
     Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-data-race.c");
-    WitnessV2ValidationTestUtils.verificationPlusValidationTest(
+    WitnessV2ValidationUtilsTest.verificationPlusValidationTest(
         inputFilePath, Result.FALSE, specificationFilePath);
   }
 
@@ -89,7 +89,7 @@ public final class AutomatonWitnessV2d2ValidationIntegrationTest {
   public void validate_data_race_concurrency_roundtrip_gcd() throws Exception {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-data-race.prp");
     Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "gcd-2.i");
-    WitnessV2ValidationTestUtils.verificationPlusValidationTest(
+    WitnessV2ValidationUtilsTest.verificationPlusValidationTest(
         inputFilePath, Result.FALSE, specificationFilePath);
   }
 
@@ -97,7 +97,7 @@ public final class AutomatonWitnessV2d2ValidationIntegrationTest {
   public void validate_data_race_concurrency_roundtrip_qw2004_1() throws Exception {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-data-race.prp");
     Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "qw2004-1.i");
-    WitnessV2ValidationTestUtils.verificationPlusValidationTest(
+    WitnessV2ValidationUtilsTest.verificationPlusValidationTest(
         inputFilePath, Result.FALSE, specificationFilePath);
   }
 
@@ -105,7 +105,7 @@ public final class AutomatonWitnessV2d2ValidationIntegrationTest {
   public void validate_data_race_concurrency_roundtrip_qw2004_2() throws Exception {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-data-race.prp");
     Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "qw2004-2.i");
-    WitnessV2ValidationTestUtils.verificationPlusValidationTest(
+    WitnessV2ValidationUtilsTest.verificationPlusValidationTest(
         inputFilePath, Result.FALSE, specificationFilePath);
   }
 
@@ -113,7 +113,7 @@ public final class AutomatonWitnessV2d2ValidationIntegrationTest {
   public void validate_data_race_concurrency_roundtrip_read_write_lock() throws Exception {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-data-race.prp");
     Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "read_write_lock-2b.i");
-    WitnessV2ValidationTestUtils.verificationPlusValidationTest(
+    WitnessV2ValidationUtilsTest.verificationPlusValidationTest(
         inputFilePath, Result.FALSE, specificationFilePath);
   }
 }

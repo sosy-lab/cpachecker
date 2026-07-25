@@ -29,7 +29,7 @@ public final class AutomatonWitnessV2d0ValidationIntegrationTest {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-overflow.prp");
     Path inputFilePath = Path.of(TEST_DIR_PATH, "simple.c");
     Path witnessFilePath = Path.of(TEST_DIR_PATH, "simple-invalid-witness-v2--1.yml");
-    WitnessV2ValidationTestUtils.performValidationTest(
+    WitnessV2ValidationUtilsTest.performValidationTest(
         inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
   }
 
@@ -38,7 +38,7 @@ public final class AutomatonWitnessV2d0ValidationIntegrationTest {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-overflow.prp");
     Path inputFilePath = Path.of(TEST_DIR_PATH, "simple.c");
     Path witnessFilePath = Path.of(TEST_DIR_PATH, "simple-invalid-witness-v2--2.yml");
-    WitnessV2ValidationTestUtils.performValidationTest(
+    WitnessV2ValidationUtilsTest.performValidationTest(
         inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
   }
 
@@ -47,7 +47,7 @@ public final class AutomatonWitnessV2d0ValidationIntegrationTest {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-overflow.prp");
     Path inputFilePath = Path.of(TEST_DIR_PATH, "simple.c");
     Path witnessFilePath = Path.of(TEST_DIR_PATH, "simple-invalid-witness-v2--3.yml");
-    WitnessV2ValidationTestUtils.performValidationTest(
+    WitnessV2ValidationUtilsTest.performValidationTest(
         inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
   }
 
@@ -56,7 +56,7 @@ public final class AutomatonWitnessV2d0ValidationIntegrationTest {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-overflow.prp");
     Path inputFilePath = Path.of(TEST_DIR_PATH, "simple.c");
     Path witnessFilePath = Path.of(TEST_DIR_PATH, "simple-invalid-witness-v2--4.yml");
-    WitnessV2ValidationTestUtils.performValidationTest(
+    WitnessV2ValidationUtilsTest.performValidationTest(
         inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
   }
 
@@ -65,7 +65,7 @@ public final class AutomatonWitnessV2d0ValidationIntegrationTest {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-overflow.prp");
     Path inputFilePath = Path.of(TEST_DIR_PATH, "simple.c");
     Path witnessFilePath = Path.of(TEST_DIR_PATH, "simple-valid-witness-v2--1.yml");
-    WitnessV2ValidationTestUtils.performValidationTest(
+    WitnessV2ValidationUtilsTest.performValidationTest(
         inputFilePath, Result.TRUE, specificationFilePath, witnessFilePath);
   }
 
@@ -74,7 +74,7 @@ public final class AutomatonWitnessV2d0ValidationIntegrationTest {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-overflow.prp");
     Path inputFilePath = Path.of(TEST_DIR_PATH, "simple.c");
     Path witnessFilePath = Path.of(TEST_DIR_PATH, "simple-valid-witness-v2--2.yml");
-    WitnessV2ValidationTestUtils.performValidationTest(
+    WitnessV2ValidationUtilsTest.performValidationTest(
         inputFilePath, Result.TRUE, specificationFilePath, witnessFilePath);
   }
 }

@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import com.google.common.truth.Truth;
+import static com.google.common.truth.Truth.assertThat;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.sosy_lab.common.configuration.Configuration;
@@ -23,9 +24,9 @@ import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestRe
  * <p>These methods used to live in a common test base class. They were extracted here so that the
  * individual test classes no longer need to inherit from each other.
  */
-public final class WitnessV2ValidationTestUtils {
+public final class WitnessV2ValidationUtilsTest {
 
-  private WitnessV2ValidationTestUtils() {}
+  private WitnessV2ValidationUtilsTest() {}
 
   /**
    * Verifies the given software, exports the produced witness and validates it again.
@@ -56,7 +57,7 @@ public final class WitnessV2ValidationTestUtils {
     // Trigger statistics so that the witness is written to the file
     generationResult.cpaCheckerResult().writeOutputFiles();
 
-    Truth.assertThat(generationResult.cpaCheckerResult().getResult()).isEqualTo(pExpectedVerdict);
+    assertThat(generationResult.cpaCheckerResult().getResult()).isEqualTo(pExpectedVerdict);
 
     Path witnessFile = outputPath.resolve("witness.yml");
     performValidationTest(pFilePath, pExpectedVerdict, pSpecificationFilePath, witnessFile);
@@ -104,6 +105,6 @@ public final class WitnessV2ValidationTestUtils {
     IntegrationTestResult results =
         IntegrationTestRunner.run(generationConfig, pFilePath.toString());
 
-    Truth.assertThat(results.cpaCheckerResult().getResult()).isEqualTo(pExpectedVerdict);
+    assertThat(results.cpaCheckerResult().getResult()).isEqualTo(pExpectedVerdict);
   }
 }
