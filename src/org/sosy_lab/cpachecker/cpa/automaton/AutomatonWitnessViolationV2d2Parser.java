@@ -256,8 +256,53 @@ class AutomatonWitnessViolationV2d2Parser extends AutomatonWitnessViolationV2d0P
       Multimap<Integer, CFAEdge> startLineToCFAEdge,
       ImmutableList.Builder<AutomatonTransition> transitions)
       throws WitnessParseException {
-    // Find out the edge which corresponds to this statement, it can either be a CFunctionCallEgde
+    // Find out the edge which corresponds to this statement, it can either be a CFunctionCallEdge
     // or a CStatementEdge
+    Optional<CFAEdge> inputEdge =
+        findFunctionEnterEdge(followLine, followColumn, startLineToCFAEdge);
+
+    if (inputEdge.isEmpty()) {
+      throw new WitnessParseException(
+          "No CFAEdge could be matched for the function enter waypoint passing line "
+              + followLine
+              + " and column "
+              + followColumn);
+    }
+
+    CFAEdge edge = inputEdge.orElseThrow();
+
+    // If we are matching a `pthread_create` function call we need to handle this specially
+    // to be able to correctly validate violation witnesses for concurrent programs,
+    // since they need to have an action to set the thread id of the creating thread
+    AutomatonBoolExpr expr =
+        new CheckPassesThroughNodes(
+            ImmutableSet.of(edge.getPredecessor()), ImmutableSet.of(edge.getSuccessor()), threadId);
+
+    AutomatonTransition.Builder transitionBuilder =
+        new AutomatonTransition.Builder(expr, nextStateId);
+    transitionBuilder.withActions(
+        ImmutableList.of(
+            getThreadIdAssignment(pPthreadFunctionEnterWaypoint),
+            distanceToViolationAction(pDistanceToViolation)));
+
+    transitions.add(transitionBuilder.build());
+    return pPthreadFunctionEnterWaypoint + 1;
+  }
+
+  /**
+   * Finds the CFA edge corresponding to a function-enter waypoint.
+   *
+   * <p>The matching edge is either a {@link FunctionCallEdge} or an {@link AStatementEdge}. The
+   * edges on the given line are sorted by their column so that the first one matching the requested
+   * column is returned.
+   *
+   * @param followLine the line the waypoint should pass through
+   * @param followColumn the column the waypoint should pass through, if given
+   * @param startLineToCFAEdge mapping from start lines to the CFA edges starting there
+   * @return the matching edge, or {@link Optional#empty()} if no edge matches
+   */
+  private static Optional<CFAEdge> findFunctionEnterEdge(
+      Integer followLine, OptionalInt followColumn, Multimap<Integer, CFAEdge> startLineToCFAEdge) {
     // We sort the edges by their column, so we can take the first one which matches the given
     // column
     for (CFAEdge edge :
@@ -277,31 +322,10 @@ class AutomatonWitnessViolationV2d2Parser extends AutomatonWitnessViolationV2d0P
         continue;
       }
 
-      // If we are matching a `pthread_create` function call we need to handle this specially
-      // to be able to correctly validate violation witnesses for concurrent programs,
-      // since they need to have an action to set the thread id of the creating thread
-      AutomatonBoolExpr expr =
-          new CheckPassesThroughNodes(
-              ImmutableSet.of(edge.getPredecessor()),
-              ImmutableSet.of(edge.getSuccessor()),
-              threadId);
-
-      AutomatonTransition.Builder transitionBuilder =
-          new AutomatonTransition.Builder(expr, nextStateId);
-      transitionBuilder.withActions(
-          ImmutableList.of(
-              getThreadIdAssignment(pPthreadFunctionEnterWaypoint),
-              distanceToViolationAction(pDistanceToViolation)));
-
-      transitions.add(transitionBuilder.build());
-      return pPthreadFunctionEnterWaypoint + 1;
+      return Optional.of(edge);
     }
 
-    throw new WitnessParseException(
-        "No CFAEdge could be matched for the function enter waypoint passing line "
-            + followLine
-            + " and column "
-            + followColumn);
+    return Optional.empty();
   }
 
   @Override
