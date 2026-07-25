@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
 /** This CPA is for deriving invariants from ACSL annotations. */
 @Options(prefix = "cpa.acsl")
-public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis {
+public class ACSLCPADeprecated extends AbstractCPA implements ConfigurableProgramAnalysis {
 
   @Option(
       secure = true,
@@ -49,10 +49,10 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
   private final ToCExpressionVisitor expressionTreeVisitor;
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(ACSLCPA.class);
+    return AutomaticCPAFactory.forType(ACSLCPADeprecated.class);
   }
 
-  private ACSLCPA(CFA pCFA, LogManager pLogManager, Configuration pConfig)
+  private ACSLCPADeprecated(CFA pCFA, LogManager pLogManager, Configuration pConfig)
       throws InvalidConfigurationException {
     super("sep", "sep", null);
     logger = pLogManager;
@@ -68,7 +68,7 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new ACSLTransferRelation(
+    return new ACSLTransferRelationDeprecated(
         cfa, logger, acslVisitor, expressionTreeVisitor, usePureExpressionsOnly);
   }
 
@@ -88,6 +88,6 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
       }
       annotations.addAll(annotationsForEdge);
     }
-    return new ACSLState(annotations.build(), acslVisitor, expressionTreeVisitor, logger);
+    return new ACSLStateDeprecated(annotations.build(), acslVisitor, expressionTreeVisitor, logger);
   }
 }

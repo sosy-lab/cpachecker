@@ -96,7 +96,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
-import org.sosy_lab.cpachecker.cpa.acsl.ACSLState;
+import org.sosy_lab.cpachecker.cpa.acsl.ACSLStateDeprecated;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
@@ -1794,9 +1794,9 @@ class WitnessFactory implements EdgeAppender {
     }
     if (pFromState.isPresent()
         && pFromState.orElseThrow().stream()
-            .map(AbstractStates.toState(ACSLState.class))
+            .map(AbstractStates.toState(ACSLStateDeprecated.class))
             .filter(s -> s != null)
-            .anyMatch(ACSLState::hasAnnotations)) {
+            .anyMatch(ACSLStateDeprecated::hasAnnotations)) {
       return true;
     }
     if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {

@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
-public class ACSLTransferRelation extends SingleEdgeTransferRelation {
+public class ACSLTransferRelationDeprecated extends SingleEdgeTransferRelation {
 
   private final CFA cfa;
   private final LogManager logger;
@@ -34,7 +34,7 @@ public class ACSLTransferRelation extends SingleEdgeTransferRelation {
   private final ToCExpressionVisitor expressionTreeVisitor;
   private final boolean usePureExpressionsOnly;
 
-  public ACSLTransferRelation(
+  public ACSLTransferRelationDeprecated(
       CFA pCFA,
       LogManager pLogManager,
       ACSLPredicateToExpressionTreeVisitor pACSLVisitor,
@@ -61,9 +61,9 @@ public class ACSLTransferRelation extends SingleEdgeTransferRelation {
               .filter(x -> x.getPredicateRepresentation().accept(visitor).isEmpty())
               .toSet();
       return ImmutableList.of(
-          new ACSLState(annotations, acslVisitor, expressionTreeVisitor, logger));
+          new ACSLStateDeprecated(annotations, acslVisitor, expressionTreeVisitor, logger));
     }
     return ImmutableList.of(
-        new ACSLState(annotationsForEdge, acslVisitor, expressionTreeVisitor, logger));
+        new ACSLStateDeprecated(annotationsForEdge, acslVisitor, expressionTreeVisitor, logger));
   }
 }

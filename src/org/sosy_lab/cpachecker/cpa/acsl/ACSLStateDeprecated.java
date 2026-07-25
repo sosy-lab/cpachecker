@@ -35,14 +35,15 @@ import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
-public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeReportingState {
+public class ACSLStateDeprecated
+    implements AbstractStateWithAssumptions, ExpressionTreeReportingState {
 
   private final ImmutableSet<ACSLAnnotation> annotations;
   private final ACSLPredicateToExpressionTreeVisitor acslVisitor;
   private final ToCExpressionVisitor expressionTreeVisitor;
   private final LogManager logger;
 
-  public ACSLState(
+  public ACSLStateDeprecated(
       Set<ACSLAnnotation> pAnnotations,
       ACSLPredicateToExpressionTreeVisitor pACSLVisitor,
       ToCExpressionVisitor pExpressionTreeVisitor,
@@ -116,7 +117,7 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
     if (this == pO) {
       return true;
     }
-    return pO instanceof ACSLState that && annotations.equals(that.annotations);
+    return pO instanceof ACSLStateDeprecated that && annotations.equals(that.annotations);
   }
 
   @Override
