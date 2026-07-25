@@ -8,8 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import static com.google.common.truth.Truth.assertThat;
-
+import com.google.common.truth.Truth;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.sosy_lab.common.configuration.Configuration;
@@ -57,7 +56,7 @@ public final class WitnessV2ValidationTestUtils {
     // Trigger statistics so that the witness is written to the file
     generationResult.cpaCheckerResult().writeOutputFiles();
 
-    assertThat(generationResult.cpaCheckerResult().getResult()).isEqualTo(pExpectedVerdict);
+    Truth.assertThat(generationResult.cpaCheckerResult().getResult()).isEqualTo(pExpectedVerdict);
 
     Path witnessFile = outputPath.resolve("witness.yml");
     performValidationTest(pFilePath, pExpectedVerdict, pSpecificationFilePath, witnessFile);
@@ -105,6 +104,6 @@ public final class WitnessV2ValidationTestUtils {
     IntegrationTestResult results =
         IntegrationTestRunner.run(generationConfig, pFilePath.toString());
 
-    assertThat(results.cpaCheckerResult().getResult()).isEqualTo(pExpectedVerdict);
+    Truth.assertThat(results.cpaCheckerResult().getResult()).isEqualTo(pExpectedVerdict);
   }
 }
