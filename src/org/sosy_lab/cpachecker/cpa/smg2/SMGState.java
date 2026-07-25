@@ -4487,7 +4487,6 @@ public class SMGState
       // Perform free by invalidating the object behind the address and delete all its edges.
       SymbolicProgramConfiguration newSPC = currentMemModel.invalidateSMGObject(regionToFree, true);
       // state in our implementation.
-      // performConsistencyCheck(SMGRuntimeCheck.HALF);
       returnBuilder.add(currentState.copyAndReplaceMemoryModel(newSPC));
     }
     return returnBuilder.build();
