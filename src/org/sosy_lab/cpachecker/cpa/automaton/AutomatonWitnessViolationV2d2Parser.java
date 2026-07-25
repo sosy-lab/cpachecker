@@ -381,7 +381,8 @@ class AutomatonWitnessViolationV2d2Parser extends AutomatonWitnessViolationV2d0P
           if (stateCounter != segments.size() + 1) {
             logger.log(
                 Level.INFO,
-                "Target waypoint is not the last waypoint, following waypoints will be ignored!");
+                "In the violation witness the target waypoint is not the last waypoint, "
+                    + "following waypoints will be ignored!");
           }
           currentStateId = "X";
           break;
