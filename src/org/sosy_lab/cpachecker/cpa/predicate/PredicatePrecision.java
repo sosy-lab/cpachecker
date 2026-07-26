@@ -244,7 +244,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
             mLocalPredicates.values(),
             mLocationInstancePredicates.values(),
             mGlobalPredicates)
-        .transformAndConcat(a -> mgr.extractVariables(a.getSymbolicAtom()).keySet())
+        .transformAndConcat(a -> mgr.extractVariableNames(a.getSymbolicAtom()))
         .toSet();
   }
 
