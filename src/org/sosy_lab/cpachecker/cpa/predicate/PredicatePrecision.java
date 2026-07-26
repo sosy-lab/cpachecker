@@ -239,12 +239,11 @@ public final class PredicatePrecision implements AdjustablePrecision {
   }
 
   public Set<String> getVariables(FormulaManagerView mgr) {
-    return FluentIterable.<@NonNull AbstractionPredicate>from(
-            Iterables.concat(
-                mFunctionPredicates.values(),
-                mLocalPredicates.values(),
-                mLocationInstancePredicates.values(),
-                mGlobalPredicates))
+    return FluentIterable.<@NonNull AbstractionPredicate>concat(
+            mFunctionPredicates.values(),
+            mLocalPredicates.values(),
+            mLocationInstancePredicates.values(),
+            mGlobalPredicates)
         .transformAndConcat(a -> mgr.extractVariables(a.getSymbolicAtom()).keySet())
         .toSet();
   }
