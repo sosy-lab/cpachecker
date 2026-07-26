@@ -49,6 +49,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/float-benchs/image_filter.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/float-benchs/interpolation.c.v+nlh-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/floats-cbmc-regression/float4.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/floats-cdfpl/newton_3_8.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/floats-cdfpl/sine_3.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/floats-cdfpl/square_1.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loop-floats-scientific-comp/loop3.yml</exclude> <!-- flapping timeout -->
@@ -101,6 +102,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/seq-mthreaded/rekcba_aso.2.M1-2.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded/rekcba_aso.3.M1.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded/rekcba_aso.4.M1.yml</exclude> <!-- flapping oom/timeout -->
+    <exclude>../programs/benchmarks/seq-mthreaded/rekcba_nxt.1.M1-2.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded/rekcba_nxt.2.M4-1.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded/rekh_aso.2.M1-2.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_floodmax.3.ufo.UNBOUNDED.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->

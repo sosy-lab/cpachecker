@@ -84,6 +84,21 @@ public class ContentReader {
   }
 
   /**
+   * Gets the value for the given key, prefixed with the current levels. If the key does not exist,
+   * the default value is returned
+   *
+   * <p>Example: if the levels are ["level1", "level2"] and the key "key" is requested, the
+   * resulting key will be "level1.level2.key".
+   *
+   * @param pKey the key to get
+   * @param pDefault the default value to return if the key does not exist
+   * @return the value for the key, or null if the key does not exist
+   */
+  public String getOrDefault(String pKey, String pDefault) {
+    return content.getOrDefault(Joiner.on(".").join(listAndElement(level, pKey)), pDefault);
+  }
+
+  /**
    * Gets all key-value pairs that are prefixed with the current levels. The keys in the resulting
    * map will not contain the prefix.
    *

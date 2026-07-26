@@ -12,6 +12,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
+import java.util.Optional;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
@@ -30,7 +31,8 @@ public class ARGStateCombineViolationConditionOperator
   }
 
   @Override
-  public AbstractState combineViolationConditionsAtSameProgramHash(Collection<AbstractState> states)
+  public AbstractState combineViolationConditionsAtSameProgramHash(
+      Optional<AbstractState> origin, Collection<AbstractState> states)
       throws InterruptedException, CPAException {
     FluentIterable<@NonNull ARGState> argStates =
         FluentIterable.from(states).filter(ARGState.class);
@@ -40,7 +42,7 @@ public class ARGStateCombineViolationConditionOperator
     AbstractState combined =
         wrappedCpa
             .getCombineViolationConditionsOperator()
-            .combineViolationConditionsAtSameProgramHash(wrappedStates);
+            .combineViolationConditionsAtSameProgramHash(origin, wrappedStates);
     return new ARGState(combined, null);
   }
 }

@@ -17,9 +17,9 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Ordering;
 import java.io.IOException;
 import java.io.Writer;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -68,8 +68,8 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
   private static ImmutableSetMultimap.Builder<CFANode, MemoryLocation> createBuilder() {
     // sorted multimap so that we have deterministic output
     return ImmutableSetMultimap.<CFANode, MemoryLocation>builder()
-        .orderKeysBy(Ordering.natural())
-        .orderValuesBy(Ordering.natural());
+        .orderKeysBy(Comparator.naturalOrder())
+        .orderValuesBy(Comparator.naturalOrder());
   }
 
   @Override

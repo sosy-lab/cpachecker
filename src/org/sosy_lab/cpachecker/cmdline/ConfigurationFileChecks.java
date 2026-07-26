@@ -412,7 +412,7 @@ public class ConfigurationFileChecks {
     if (options.language == Language.SVLIB) {
       // For SV-LIB Programs the specification is inside the program itself, so we do not need to
       // check anything
-      assertThat(spec).isEqualTo("specification/correct-tags.spc");
+      assertThat(spec).isEqualTo("specification/correct-annotations.spc");
     } else if (options.language == Language.JAVA) {
       assertThat(spec).endsWith("specification/JavaAssertion.spc");
     } else if (isOptionEnabled(config, "analysis.checkCounterexamplesWithBDDCPARestriction")) {

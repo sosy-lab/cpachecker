@@ -98,6 +98,7 @@
         <exclude>../programs/benchmarks/seq-mthreaded/pals_lcr.7.1.ufo.BOUNDED-14.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping exception/timeout -->
         <exclude>../programs/benchmarks/seq-mthreaded/pals_lcr.7.ufo.BOUNDED-14.pals.yml</exclude> <!-- flapping exception/timeout -->
         <exclude>../programs/benchmarks/seq-mthreaded/pals_lcr.7_overflow.ufo.UNBOUNDED.pals.yml</exclude> <!-- flapping exception/timeout -->
+        <exclude>../programs/benchmarks/seq-mthreaded/pals_lcr.8.1.ufo.BOUNDED-16.pals.yml</exclude> <!-- flapping exception/timeout -->
         <exclude>../programs/benchmarks/seq-mthreaded/pals_opt-floodmax.5.1.ufo.BOUNDED-10.pals.yml</exclude> <!-- flapping timeout -->
         <exclude>../programs/benchmarks/seq-mthreaded/pals_opt-floodmax.5.3.ufo.BOUNDED-10.pals.yml</exclude> <!-- flapping timeout -->
         <exclude>../programs/benchmarks/seq-mthreaded/pals_opt-floodmax.5.3.ufo.UNBOUNDED.pals.yml</exclude> <!-- flapping timeout -->

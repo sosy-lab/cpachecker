@@ -2038,6 +2038,9 @@ cpa.bdd.useBlockAbstraction = false
 # Dump tracked variables to a file.
 cpa.bdd.variablesFile = "BDDCPA_ordered_variables.txt"
 
+# whether to travel over the ghost edge
+cpa.block.transfer.standardVcs = true
+
 # depth of recursion bound
 cpa.callstack.depth = 0
 
@@ -3940,10 +3943,6 @@ cpa.smg2.refinement.restart = PIVOT
 # Resolve definite assignments
 cpa.smg2.resolveDefinites = true
 
-# Sets the level of runtime checking: NONE, HALF, FULL
-cpa.smg2.runtimeCheck = NONE
-  enum:     [FORCED, NONE, HALF, FULL]
-
 # List of functions that are always considered as safe, i.e. they are not
 # evaluated, even if known to the analysis, nor are their inputs checked for
 # validity. They always return a new, unknown value and therefore
@@ -4652,7 +4651,8 @@ distributedSummaries.decomposition.blockCFAFile = "block_analysis/blocks.json"
 # The final number of blocks should converge to the number of functions in
 # the program. NO_DECOMPOSITION creates one block around the CFA.
 distributedSummaries.decomposition.decompositionType = MERGE_DECOMPOSITION
-  enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, NO_DECOMPOSITION]
+  enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, INLINING_DECOMPOSITION,
+             NO_DECOMPOSITION]
 
 # Whether to stop after exporting the blockgraph
 distributedSummaries.decomposition.generateBlockGraphOnly = false

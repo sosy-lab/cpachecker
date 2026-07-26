@@ -112,7 +112,8 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
             Optional.empty(),
             config,
             shutdownNotifier,
-            logger);
+            logger,
+            /* pEnableCounterexampleAnalysis= */ false);
 
     List<BooleanFormula> allFormulas = new ArrayList<>();
     allFormulas.add(errorTrace.getPrecondition().getPrecondition());
