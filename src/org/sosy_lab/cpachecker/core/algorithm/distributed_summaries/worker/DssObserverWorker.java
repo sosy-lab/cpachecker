@@ -66,8 +66,8 @@ public class DssObserverWorker extends DssWorker implements Statistics {
   public record StatusAndResult(AlgorithmStatus status, ResultWithWitnessInformation result) {
 
     // allows other executors that do not use this observer worker to remain unchanged
-    public StatusAndResult(AlgorithmStatus status, Result pResult) {
-      this(status, ResultWithWitnessInformation.ofResultWithoutInformation(pResult));
+    public StatusAndResult(AlgorithmStatus pStatus, Result pResult) {
+      this(pStatus, ResultWithWitnessInformation.ofResultWithoutInformation(pResult));
     }
   }
 
@@ -118,9 +118,9 @@ public class DssObserverWorker extends DssWorker implements Statistics {
           shutdown = true;
         } else {
           stats.put(pMessage.getSenderId(), pMessage.getStats());
-  stateCollector.collectFromMessage((DssStatisticsMessage) pMessage);
+          stateCollector.collectFromMessage((DssStatisticsMessage) pMessage);
 
-        shutdown = stats.size() == blockGraph.getNodes().size();
+          shutdown = stats.size() == blockGraph.getNodes().size();
         }
       }
     }

@@ -72,7 +72,6 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.path.SegmentedPaths;
-import org.sosy_lab.cpachecker.cpa.path.ViolationWitness;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -316,7 +315,7 @@ public class DssBlockAnalysis {
 
   /**
    * Serialize a list of states and precisions into a map of strings. Every entry in the list will
-   * be serialized under its own key (prefixed by state#num. The {@link #deserialize(DssMessage)}
+   * be serialized under its own key (prefixed by state#num). The {@link #deserialize(DssMessage)}
    * method restores the list of states and precisions.
    *
    * @param pStatesAndPrecisions List of abstract states and their corresponding precision.
@@ -376,10 +375,6 @@ public class DssBlockAnalysis {
       statesAndPrecisions.add(new StateAndPrecision(state, precision));
     }
     return statesAndPrecisions.build();
-  }
-
-  public ImmutableMap<String, String> serializedPreconditions() {
-    return serialize(ImmutableList.copyOf(preconditions.values()));
   }
 
   private Collection<ARGPath> collectPaths(Iterable<@NonNull ARGState> states) {
@@ -606,10 +601,14 @@ public class DssBlockAnalysis {
     logger.log(Level.INFO, "Running forward analysis with respect to error condition");
     // merge all states into the reached set
     ImmutableList<StateAndPrecision> deserializedStates = deserialize(pNewViolationCondition);
+    Collection<@NonNull StateAndPrecision> vcs;
+    if (combineByHash) {
+      vcs = violationConditions.get(pNewViolationCondition.getSenderId());
+    } else {
+      vcs = violationConditions.removeAll(pNewViolationCondition.getSenderId());
+    }
     Set<SegmentedPaths> oldVcs =
-        transformedImmutableSetCopy(
-            violationConditions.removeAll(pNewViolationCondition.getSenderId()),
-            sap -> extractWitnessFromState(sap.state()));
+        transformedImmutableSetCopy(vcs, sap -> extractWitnessFromState(sap.state()));
     int equal = 0;
     for (StateAndPrecision stateAndPrecision : deserializedStates) {
       if (oldVcs.contains(extractWitnessFromState(stateAndPrecision.state()))) {

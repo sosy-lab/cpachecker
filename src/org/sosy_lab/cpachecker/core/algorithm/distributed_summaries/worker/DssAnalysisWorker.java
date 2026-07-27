@@ -20,7 +20,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssMessageBroadcaster;
@@ -186,22 +185,9 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
           backwardAnalysisTime.stop();
         }
       }
-      case EXCEPTION -> {
+      case EXCEPTION, RESULT -> {
         shutdown = true;
         yield ImmutableSet.of(messageFactory.createDssStatisticsMessage(getBlockId(), getStats()));
-      }
-      case RESULT -> {
-        shutdown = true;
-        if (message.getResult() == Result.TRUE) {
-          yield ImmutableSet.of(
-              messageFactory.createDssStatisticsMessage(
-                  getBlockId(),
-                  getStats(),
-                  analysis.getDssBlockAnalysis().serializedPreconditions()));
-        } else {
-          yield ImmutableSet.of(
-              messageFactory.createDssStatisticsMessage(getBlockId(), getStats()));
-        }
       }
       case STATISTIC -> ImmutableSet.of();
     };

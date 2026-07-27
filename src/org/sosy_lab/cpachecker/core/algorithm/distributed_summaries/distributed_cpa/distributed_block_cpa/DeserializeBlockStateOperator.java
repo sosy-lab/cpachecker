@@ -37,21 +37,29 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
   @Override
   public AbstractState deserialize(DssMessage pMessage) throws InterruptedException {
     String content = pMessage.getAbstractStateContent(BlockState.class).get(STATE_KEY);
-    boolean stemsFromTopState = content.startsWith("true ");
-    if (stemsFromTopState) {
-      content = content.substring("true ".length());
-    } else {
-      content = content.substring("false ".length());
-    }
-    ParseResult parsed = parseWitness(content);
-    Preconditions.checkNotNull(parsed.serializedBlockState());
+
+    List<String> idAndWitnessAndMaybeHistory = Splitter.on(" W:").limit(2).splitToList(content);
+    Preconditions.checkArgument(idAndWitnessAndMaybeHistory.size() == 2);
+    String serializedBlockState = idAndWitnessAndMaybeHistory.getFirst();
+    List<String> witnessAndMaybeHistory =
+        Splitter.on(" H:").limit(2).splitToList(idAndWitnessAndMaybeHistory.getLast());
+
+    SegmentedPaths finalWitness = SegmentedPaths.deserialize(witnessAndMaybeHistory.getFirst());
+    List<String> history =
+        witnessAndMaybeHistory.size() == 2
+            ? Splitter.on(",").splitToList(witnessAndMaybeHistory.getLast())
+            : ImmutableList.of();
+    Preconditions.checkNotNull(serializedBlockState);
+    Preconditions.checkArgument(
+        blockNode.getPredecessorIds().contains(serializedBlockState)
+            || blockNode.getSuccessorIds().contains(serializedBlockState));
     return new BlockState(
         DeserializeOperator.startLocationFromMessageType(pMessage, blockNode),
         blockNode,
         BlockStateType.INITIAL,
         ImmutableList.of(),
-        BlockGraphPath.of(parsed.history()),
-        parsed.witness());
+        BlockGraphPath.of(history),
+        finalWitness);
   }
 
   public static ParseResult parseWitness(String content) {
