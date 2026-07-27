@@ -35,7 +35,6 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
     blockNode = pBlockNode;
   }
 
-
   @Override
   public AbstractState deserialize(DssMessage pMessage) throws InterruptedException {
     String content = pMessage.getAbstractStateContent(BlockState.class).get(STATE_KEY);
@@ -49,8 +48,8 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
     ViolationWitness finalWitness = ViolationWitness.deserialize(witnessAndMaybeHistory.getFirst());
     List<String> history =
         witnessAndMaybeHistory.size() == 2
-        ? Splitter.on(",").splitToList(witnessAndMaybeHistory.getLast())
-        : ImmutableList.of();
+            ? Splitter.on(",").splitToList(witnessAndMaybeHistory.getLast())
+            : ImmutableList.of();
     Preconditions.checkNotNull(serializedBlockState);
     Preconditions.checkArgument(
         blockNode.getPredecessorIds().contains(serializedBlockState)

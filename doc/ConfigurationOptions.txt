@@ -3937,6 +3937,10 @@ cpa.smg2.refinement.restart = PIVOT
 # Resolve definite assignments
 cpa.smg2.resolveDefinites = true
 
+# Sets the level of runtime checking: NONE, HALF, FULL
+cpa.smg2.runtimeCheck = NONE
+  enum:     [FORCED, NONE, HALF, FULL]
+
 # List of functions that are always considered as safe, i.e. they are not
 # evaluated, even if known to the analysis, nor are their inputs checked for
 # validity. They always return a new, unknown value and therefore
@@ -4709,6 +4713,10 @@ distributedSummaries.yamlProofWitness = "witness-dss-%s.yml"
 
 # Whether to query the SMT solver before proceeding backwards.
 dss.cpa.predicate.doSatChecksBeforeBackwardAnalysis = false
+
+# Whether to run symbolic execution to compute the violation condition for
+# value analysis.
+dss.cpa.value.runSymExec = no default value
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
@@ -5656,6 +5664,9 @@ stop = "SEP"
 # When checking SV-LIB programs use this configuration file instead of the
 # current one.
 svlib.config = no default value
+
+# Where to find the symbolic execution config without cegar.
+symbolicExecution.symbolicExecutionProperties = no default value
 
 # compress the produced violation-witness automata using GZIP compression.
 termination.compressWitness = true

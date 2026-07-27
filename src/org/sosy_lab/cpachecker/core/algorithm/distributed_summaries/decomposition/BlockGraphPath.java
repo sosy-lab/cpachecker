@@ -17,7 +17,7 @@ public record BlockGraphPath(ImmutableList<String> path) {
     SUFFIX_OR_EQUAL,
     OVERLAP,
     REAL_PREFIX,
-    OTHER;
+    OTHER
   }
 
   public static BlockGraphPath of(String... pathParts) {
