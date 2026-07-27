@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.path.PathState;
-import org.sosy_lab.cpachecker.cpa.path.ViolationWitness;
+import org.sosy_lab.cpachecker.cpa.path.SegmentedPaths;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -55,7 +55,7 @@ public class BlockState
   private final BlockNode blockNode;
   private BlockGraphPath history;
   private List<? extends AbstractState> violationConditions;
-  private final ViolationWitness witness;
+  private final SegmentedPaths witness;
 
   private final Optional<PathState> witnessCheckPathState;
 
@@ -65,7 +65,7 @@ public class BlockState
       BlockStateType pType,
       List<? extends AbstractState> pViolationConditions,
       BlockGraphPath pHistory,
-      ViolationWitness pWitness,
+      SegmentedPaths pWitness,
       PathState pWitnessCheckPathState) {
     Preconditions.checkArgument(
         pType == BlockStateType.WITNESS || pWitnessCheckPathState == null,
@@ -85,7 +85,7 @@ public class BlockState
       BlockStateType pType,
       List<? extends AbstractState> pViolationConditions,
       BlockGraphPath pHistory,
-      ViolationWitness pWitness) {
+      SegmentedPaths pWitness) {
     this(pNode, pTargetNode, pType, pViolationConditions, pHistory, pWitness, null);
   }
 
@@ -93,7 +93,7 @@ public class BlockState
     history = new BlockGraphPath(listAndElement(history.path(), pBlockNode.getId()));
   }
 
-  public ViolationWitness getWitness() {
+  public SegmentedPaths getWitness() {
     return witness;
   }
 
@@ -105,11 +105,7 @@ public class BlockState
     violationConditions =
         ImmutableList.sortedCopyOf(
             Comparator.comparingInt(
-                v ->
-                    AbstractStates.extractStateByType(v, BlockState.class)
-                        .getWitness()
-                        .witness()
-                        .size()),
+                v -> AbstractStates.extractStateByType(v, BlockState.class).getWitness().size()),
             pViolationConditions);
   }
 

@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
-import org.sosy_lab.cpachecker.cpa.path.ViolationWitness;
+import org.sosy_lab.cpachecker.cpa.path.SegmentedPaths;
 
 public class BlockCPA extends AbstractCPA {
 
@@ -47,7 +47,7 @@ public class BlockCPA extends AbstractCPA {
         BlockStateType.INITIAL,
         ImmutableList.of(),
         BlockGraphPath.of(),
-        ViolationWitness.EMPTY);
+        SegmentedPaths.EMPTY);
   }
 
   public static CPAFactory factory() {

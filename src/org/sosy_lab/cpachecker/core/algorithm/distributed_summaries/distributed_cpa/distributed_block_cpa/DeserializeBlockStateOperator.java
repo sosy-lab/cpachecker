@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
 import org.sosy_lab.cpachecker.cpa.path.SegmentedPaths;
-import org.sosy_lab.cpachecker.cpa.path.ViolationWitness;
 
 /**
  * Reverses the serialization performed by {@link SerializeBlockStateOperator}; see there for the
@@ -45,7 +44,7 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
     List<String> witnessAndMaybeHistory =
         Splitter.on(" H:").limit(2).splitToList(idAndWitnessAndMaybeHistory.getLast());
 
-    ViolationWitness finalWitness = ViolationWitness.deserialize(witnessAndMaybeHistory.getFirst());
+    SegmentedPaths finalWitness = SegmentedPaths.deserialize(witnessAndMaybeHistory.getFirst());
     List<String> history =
         witnessAndMaybeHistory.size() == 2
             ? Splitter.on(",").splitToList(witnessAndMaybeHistory.getLast())

@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +46,18 @@ public class SegmentedPaths {
   }
 
   public static final SegmentedPaths EMPTY = new SegmentedPaths(ImmutableList.of());
+
+  public int size() {
+    int maxLength = 0;
+    for (ImmutableSet<ImmutableList<String>> path : paths) {
+      maxLength +=
+          path.stream()
+              .max(Comparator.comparingInt(ImmutableList::size))
+              .map(ImmutableList::size)
+              .orElse(0);
+    }
+    return maxLength;
+  }
 
   @Override
   public boolean equals(Object obj) {

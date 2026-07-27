@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
-import org.sosy_lab.cpachecker.cpa.path.ViolationWitness;
+import org.sosy_lab.cpachecker.cpa.path.SegmentedPaths;
 
 public class BlockStateCombineViolationConditionOperator
     implements CombineViolationConditionsOperator {
@@ -30,8 +30,8 @@ public class BlockStateCombineViolationConditionOperator
             .filter(BlockState.class)
             .transform(BlockState::getLocationNode)
             .toSet();
-    ViolationWitness finalWitness =
-        ViolationWitness.merge(
+    SegmentedPaths finalWitness =
+        SegmentedPaths.merge(
             FluentIterable.from(states)
                 .filter(BlockState.class)
                 .transform(BlockState::getWitness)
