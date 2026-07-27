@@ -8,14 +8,14 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
-import static org.sosy_lab.common.collect.Collections3.listAndElement;
-
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
+import org.sosy_lab.common.collect.Collections3;
 
 public class ContentBuilder {
 
@@ -23,41 +23,27 @@ public class ContentBuilder {
 
   private final List<String> levels;
 
-  private ContentBuilder(int pExpectedSize) {
-    contentBuilder = ImmutableMap.builderWithExpectedSize(pExpectedSize);
+  private ContentBuilder() {
+    contentBuilder = ImmutableMap.builder();
     levels = new ArrayList<>();
   }
 
   /**
-   * Creates a new builder for message content.
-   * The builder produces a flat map of key-value pairs, where keys can be
-   * hierarchical using dot notation. Levels can be pushed and popped to
-   * create a hierarchy.
+   * Creates a new builder for message content. The builder produces a flat map of key-value pairs,
+   * where keys can be hierarchical using dot notation. Levels can be pushed and popped to create a
+   * hierarchy.
+   *
    * @return the new builder
    */
   public static ContentBuilder builder() {
-    // 4 is the default expected size (ImmutableCollection.Builder.DEFAULT_INITIAL_CAPACITY)
-    return new ContentBuilder(4);
+    return new ContentBuilder();
   }
 
   /**
-   * Creates a new builder for message content with the given expected size.
-   * The builder produces a flat map of key-value pairs, where keys can be
-   * hierarchical using dot notation. Levels can be pushed and popped to
-   * create a hierarchy.
-   * @param pExpectedSize the expected number of entries in the map
-   * @return the new builder
-   */
-  public static ContentBuilder builderWithExpectedSize(int pExpectedSize) {
-    return new ContentBuilder(pExpectedSize);
-  }
-
-  /**
-   * Pushes a new level to the hierarchy.
-   * If a key is added, it will be prefixed with the current levels,
-   * separated by dots. For example, if the levels are ["level1", "level2"]
-   * and the key "key" is added with value "value",
-   * the resulting entry will be "level1.level2.key=value".
+   * Pushes a new level to the hierarchy. If a key is added, it will be prefixed with the current
+   * levels, separated by dots. For example, if the levels are ["level1", "level2"] and the key
+   * "key" is added with value "value", the resulting entry will be "level1.level2.key=value".
+   *
    * @param pLevel the name of the new level
    * @return this builder
    */
@@ -69,6 +55,7 @@ public class ContentBuilder {
 
   /**
    * Adds the given key-value pair to the content if the condition is true.
+   *
    * @see #put(String, String)
    * @param pCondition the condition to check
    * @param pKey the key to add
@@ -76,16 +63,16 @@ public class ContentBuilder {
    * @return this builder
    */
   @CanIgnoreReturnValue
-  public ContentBuilder putIf(boolean pCondition, String pKey, String pValue) {
+  public ContentBuilder putIf(boolean pCondition, String pKey, Supplier<String> pValue) {
     if (pCondition) {
-      return put(pKey, pValue);
+      return put(pKey, pValue.get());
     }
     return this;
   }
 
   /**
-   * Pops the last level from the hierarchy.
-   * If there are no levels, nothing happens.
+   * Pops the last level from the hierarchy. If there are no levels, nothing happens.
+   *
    * @return this builder
    */
   @CanIgnoreReturnValue
@@ -97,28 +84,26 @@ public class ContentBuilder {
   }
 
   /**
-   * Adds the given key-value pair to the content.
-   * The key will be prefixed with the current levels,
-   * separated by dots. For example, if the levels are ["level1", "level2"]
-   * and the key "key" is added with value "value",
-   * the resulting entry will be "level1.level2.key=value".
+   * Adds the given key-value pair to the content. The key will be prefixed with the current levels,
+   * separated by dots. For example, if the levels are ["level1", "level2"] and the key "key" is
+   * added with value "value", the resulting entry will be "level1.level2.key=value".
+   *
    * @param pKey the key to add
    * @param pValue the value to add
    * @return this builder
    */
   @CanIgnoreReturnValue
   public ContentBuilder put(String pKey, String pValue) {
-    String fullKey = Joiner.on(".").join(listAndElement(levels, pKey));
+    String fullKey = Joiner.on(".").join(Collections3.listAndElement(levels, pKey));
     contentBuilder.put(fullKey, pValue);
     return this;
   }
 
   /**
-   * Adds all entries from the given map to the content.
-   * Each key will be prefixed with the current levels,
-   * separated by dots. For example, if the levels are ["level1", "level2"]
-   * and the map contains the entry "key"="value",
-   * the resulting entry will be "level1.level2.key=value".
+   * Adds all entries from the given map to the content. Each key will be prefixed with the current
+   * levels, separated by dots. For example, if the levels are ["level1", "level2"] and the map
+   * contains the entry "key"="value", the resulting entry will be "level1.level2.key=value".
+   *
    * @param pContent the map to add
    * @return this builder
    */
@@ -131,8 +116,8 @@ public class ContentBuilder {
   }
 
   /**
-   * Builds the content map.
-   * If a key was added multiple times, the last value is kept.
+   * Builds the content map. If a key was added multiple times, the last value is kept.
+   *
    * @return the built content map
    */
   public ImmutableMap<String, String> build() {

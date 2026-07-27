@@ -8,10 +8,13 @@
 
 package org.sosy_lab.cpachecker.cpa.block;
 
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -21,6 +24,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.ViolationConditionReportingState;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -28,8 +32,9 @@ import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.path.PathState;
-import org.sosy_lab.cpachecker.cpa.path.ViolationWitness;
+import org.sosy_lab.cpachecker.cpa.path.SegmentedPaths;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -48,10 +53,9 @@ public class BlockState
   private final CFANode node;
   private final BlockStateType type;
   private final BlockNode blockNode;
-  private final ImmutableList<String> history;
+  private BlockGraphPath history;
   private List<? extends AbstractState> violationConditions;
-  private final ViolationWitness witness;
-  private boolean topSummaryFromNonTrivialState;
+  private final SegmentedPaths witness;
 
   private final Optional<PathState> witnessCheckPathState;
 
@@ -60,17 +64,19 @@ public class BlockState
       BlockNode pTargetNode,
       BlockStateType pType,
       List<? extends AbstractState> pViolationConditions,
-      List<String> pHistory,
-      ViolationWitness pWitness,
-      boolean pTopSummaryFromNonTrivialState) {
+      BlockGraphPath pHistory,
+      SegmentedPaths pWitness,
+      PathState pWitnessCheckPathState) {
+    Preconditions.checkArgument(
+        pType == BlockStateType.WITNESS || pWitnessCheckPathState == null,
+        "Added path state while not being in Witnes state");
     node = pNode;
     type = pType;
     blockNode = pTargetNode;
-    violationConditions = pViolationConditions;
-    history = ImmutableList.copyOf(pHistory);
+    violationConditions = ImmutableList.copyOf(pViolationConditions);
+    history = pHistory;
     witness = pWitness;
-    topSummaryFromNonTrivialState = pTopSummaryFromNonTrivialState;
-    witnessCheckPathState = Optional.empty();
+    witnessCheckPathState = Optional.ofNullable(pWitnessCheckPathState);
   }
 
   public BlockState(
@@ -78,40 +84,32 @@ public class BlockState
       BlockNode pTargetNode,
       BlockStateType pType,
       List<? extends AbstractState> pViolationConditions,
-      List<String> pHistory,
-      ViolationWitness pWitness,
-      boolean pTopSummaryFromNonTrivialState,
-      PathState pWitnessCheckPathState) {
-    Preconditions.checkArgument(
-        pType == BlockStateType.WITNESS, "Added path state while not being in Witnes state");
-    node = pNode;
-    type = pType;
-    blockNode = pTargetNode;
-    violationConditions = pViolationConditions;
-    history = ImmutableList.copyOf(pHistory);
-    witness = pWitness;
-    topSummaryFromNonTrivialState = pTopSummaryFromNonTrivialState;
-    witnessCheckPathState = Optional.of(pWitnessCheckPathState);
+      BlockGraphPath pHistory,
+      SegmentedPaths pWitness) {
+    this(pNode, pTargetNode, pType, pViolationConditions, pHistory, pWitness, null);
   }
 
-  public void setTopSummaryFromNonTrivialState(boolean pStemsFromTopState) {
-    topSummaryFromNonTrivialState = pStemsFromTopState;
+  public void addHistory(BlockNode pBlockNode) {
+    history = new BlockGraphPath(listAndElement(history.path(), pBlockNode.getId()));
   }
 
-  public ViolationWitness getWitness() {
+  public SegmentedPaths getWitness() {
     return witness;
   }
 
-  public boolean hasNonTrivialSummaryForEachPredecessor() {
-    return topSummaryFromNonTrivialState;
-  }
-
-  public ImmutableList<String> getHistory() {
+  public BlockGraphPath getHistory() {
     return history;
   }
 
   public void setViolationConditions(List<? extends AbstractState> pViolationConditions) {
-    violationConditions = pViolationConditions;
+    violationConditions =
+        ImmutableList.sortedCopyOf(
+            Comparator.comparingInt(
+                v ->
+                    AbstractStates.extractStateByType(v, BlockState.class)
+                        .getWitness().serialize()
+                        .length()),
+            pViolationConditions);
   }
 
   public BlockNode getBlockNode() {
@@ -165,6 +163,8 @@ public class BlockState
 
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
+    final BooleanFormulaManagerView bfmgr = manager.getBooleanFormulaManager();
+
     if (isTarget()) {
       ImmutableList.Builder<BooleanFormula> combined = ImmutableList.builder();
       for (AbstractState violationCondition : violationConditions) {
@@ -172,11 +172,11 @@ public class BlockState
             AbstractStates.asIterable(violationCondition)
                 .filter(ViolationConditionReportingState.class)
                 .transform(s -> s.getViolationCondition(manager));
-        combined.add(manager.getBooleanFormulaManager().and(approximations.toList()));
+        combined.add(bfmgr.and(approximations.toList()));
       }
-      return manager.getBooleanFormulaManager().or(combined.build());
+      return bfmgr.or(combined.build());
     }
-    return manager.getBooleanFormulaManager().makeTrue();
+    return bfmgr.makeTrue();
   }
 
   @Override

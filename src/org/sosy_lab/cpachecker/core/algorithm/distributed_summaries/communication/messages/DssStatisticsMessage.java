@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 
 public class DssStatisticsMessage extends DssMessage {
 
@@ -52,9 +53,13 @@ public class DssStatisticsMessage extends DssMessage {
 
   @Override
   boolean isValid(Map<String, String> pContent) {
+
     return FluentIterable.from(StatisticsKey.values())
         .transform(StatisticsKey::name)
         .toSet()
-        .containsAll(pContent.keySet());
+        .containsAll(
+            FluentIterable.from(pContent.keySet())
+                .filter(key -> !key.startsWith(SerializeOperator.STATE_KEY))
+                .toList());
   }
 }

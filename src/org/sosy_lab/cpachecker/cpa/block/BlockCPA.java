@@ -9,23 +9,27 @@
 package org.sosy_lab.cpachecker.cpa.block;
 
 import com.google.common.collect.ImmutableList;
-import java.util.Optional;
+import com.google.errorprone.annotations.concurrent.LazyInit;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
-import org.sosy_lab.cpachecker.cpa.path.ViolationWitness;
+import org.sosy_lab.cpachecker.cpa.path.SegmentedPaths;
 
 public class BlockCPA extends AbstractCPA {
 
-  private BlockNode blockNode;
+  private @LazyInit BlockNode blockNode;
 
-  public BlockCPA() {
-    super("sep", "sep", new FlatLatticeDomain(), new BlockTransferRelation());
+  public BlockCPA(Configuration pConfiguration) throws InvalidConfigurationException {
+    super("sep", "sep", new FlatLatticeDomain(), new BlockTransferRelation(pConfiguration));
   }
 
   public void init(BlockNode pBlockNode) {
@@ -34,17 +38,19 @@ public class BlockCPA extends AbstractCPA {
     blockNode = pBlockNode;
   }
 
-  public static CPAFactory factory() {
-    return new BlockCPAFactory();
-  }
-
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return new BlockState(node, blockNode, BlockStateType.INITIAL, Optional.empty(), ImmutableList.of());
+    return new BlockState(
+        node,
+        blockNode,
+        BlockStateType.INITIAL,
+        ImmutableList.of(),
+        BlockGraphPath.of(),
+        SegmentedPaths.EMPTY);
   }
 
-  public static BlockCPA create() {
-    return new BlockCPA();
+  public static CPAFactory factory() {
+    return AutomaticCPAFactory.forType(BlockCPA.class);
   }
 }

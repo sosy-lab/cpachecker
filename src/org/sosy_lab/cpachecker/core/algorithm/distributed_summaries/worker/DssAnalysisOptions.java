@@ -15,6 +15,7 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.PathTemplate;
 
 @Options(prefix = "distributedSummaries")
 public class DssAnalysisOptions {
@@ -59,18 +60,33 @@ public class DssAnalysisOptions {
 
   @Option(
       description =
-          "If this option is set to true, the analysis will try to cover all violation conditions"
-              + " in the block, even if no valid ARG path exists. In some cases,"
-              + " ARGUtils#getAllPaths does not compute all paths as promised. However, setting"
-              + " this option to true may lead to a significant increase in analysis time.",
+          "Whether to reset the precision for each run of the analysis or to keep the transmitted"
+              + " one. The latter has disadvantages as unnecessary variables might be tracked due"
+              + " to a too precise precision.",
       secure = true)
-  private boolean forcefullyCollectAllViolationConditions = false;
+  private boolean resetPrecisionForEveryRun = false;
 
-  private final Configuration parentConfig;
+  @Option(
+      name = "combineVcsByHash",
+      description = "Whether to combine violation conditions at same program location",
+      secure = true)
+  private boolean combineByHash = true;
+
+  // TODO How to make sure the other Witness export does not overwrite this?
+  @Option(
+      secure = true,
+      name = "yamlProofWitness",
+      description =
+          "The template from which the different "
+              + "versions of the correctness witnesses will be exported. "
+              + "Each version replaces the string '%s' "
+              + "with its version number.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate yamlWitnessOutputFileTemplate =
+      PathTemplate.ofFormatString("witness-dss-%s.yml");
 
   public DssAnalysisOptions(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
-    parentConfig = pConfig;
   }
 
   public Path getBlockCFAFile() {
@@ -85,19 +101,23 @@ public class DssAnalysisOptions {
     return debug;
   }
 
-  public boolean forcefullyCollectAllViolationConditions() {
-    return forcefullyCollectAllViolationConditions;
+  public boolean resetPrecisionsForEveryRun() {
+    return resetPrecisionForEveryRun;
   }
 
   public Path getForwardConfiguration() {
     return forwardConfiguration;
   }
 
-  public Configuration getParentConfig() {
-    return parentConfig;
-  }
-
   public Path getLogDirectory() {
     return logDirectory;
+  }
+
+  public boolean combineByHash() {
+    return combineByHash;
+  }
+
+  public PathTemplate getYamlCorrectnessWitnessOutputFileTemplate() {
+    return yamlWitnessOutputFileTemplate;
   }
 }

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.path;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -22,11 +23,18 @@ public class PathTransferRelation extends SingleEdgeTransferRelation {
       AbstractState element, Precision prec, CFAEdge cfaEdge) {
     PathState pathState = (PathState) element;
 
-    if (pathState.isAtEndOfPath() || !ViolationWitness.isDecisionEdge(cfaEdge)) {
+    if (pathState.isInitial) {
+      // We can only return one single state as initial state -> create multiple states here
+      return FluentIterable.from(PathState.initialStates(pathState.paths))
+          .transformAndConcat(s -> getAbstractSuccessorsForEdge(s, prec, cfaEdge))
+          .toList();
+    }
+
+    if (pathState.isAtEndOfPath() || !SegmentedPaths.isDecisionEdge(cfaEdge)) {
       return ImmutableList.of(pathState);
     }
 
-    if (!ViolationWitness.edgeToString(cfaEdge)
+    if (!SegmentedPaths.edgeToString(cfaEdge)
         .equals(pathState.activePath.get(pathState.pathIndex))) {
       return ImmutableList.of();
     }
@@ -34,15 +42,7 @@ public class PathTransferRelation extends SingleEdgeTransferRelation {
     int nextPathIndex = pathState.pathIndex + 1;
 
     if (nextPathIndex == pathState.activePath.size()) {
-      // advance to next segment
-      int nextSegmentIndex = pathState.segmentIndex + 1;
-      if (nextSegmentIndex == pathState.paths.witness().size()) {
-        // last segment has been passed
-        return ImmutableList.of(new PathState(pathState.paths, nextSegmentIndex, null, 0));
-      }
-
-      return PathState.startSegment(pathState.paths, nextSegmentIndex).toList();
-
+      return PathState.startSegment(pathState.paths, pathState.segmentIndex + 1).toList();
     } else {
       return ImmutableList.of(
           new PathState(

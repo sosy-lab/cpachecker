@@ -186,9 +186,22 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
           backwardAnalysisTime.stop();
         }
       }
-      case EXCEPTION, RESULT -> {
+      case EXCEPTION -> {
         shutdown = true;
         yield ImmutableSet.of(messageFactory.createDssStatisticsMessage(getBlockId(), getStats()));
+      }
+      case RESULT -> {
+        shutdown = true;
+        if (message.getResult() == Result.TRUE) {
+          yield ImmutableSet.of(
+              messageFactory.createDssStatisticsMessage(
+                  getBlockId(),
+                  getStats(),
+                  analysis.getDssBlockAnalysis().serializedPreconditions()));
+        } else {
+          yield ImmutableSet.of(
+              messageFactory.createDssStatisticsMessage(getBlockId(), getStats()));
+        }
       }
       case STATISTIC -> ImmutableSet.of();
     };
@@ -230,8 +243,9 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
         }
         case VIOLATION_CONDITION -> {
           if (block.getPredecessorIds().isEmpty()) {
+            String violationPath = message.extractBlockStateWitnessString();
             broadcaster.broadcastToAll(
-                messageFactory.createDssResultMessage(getId(), Result.FALSE));
+                messageFactory.createDssViolationResultMessage(getId(), violationPath));
           } else {
             broadcaster.broadcastToObserver(message);
             broadcaster.broadcastToIds(message, block.getPredecessorIds());

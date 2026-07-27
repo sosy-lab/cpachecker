@@ -181,6 +181,9 @@ public class DistributedValueAnalysisCPA
 
   @Override
   public ValueAnalysisState getInitialState(CFANode node, StateSpacePartition partition) {
+    if (!runSymExec) {
+      return (ValueAnalysisState) valueCPA.getInitialState(node, partition);
+    }
     if (initialState.containsKey(blockNode.getId())) {
       return initialState.get(blockNode.getId());
     }

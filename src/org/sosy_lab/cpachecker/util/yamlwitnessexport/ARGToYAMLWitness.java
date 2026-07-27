@@ -48,11 +48,17 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
 
   private final Map<ARGState, CollectedARGStates> stateToStatesCollector = new HashMap<>();
+  private final RelevantArgStatesCollector argStatesCollector;
 
   public ARGToYAMLWitness(
-      Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
+      Configuration pConfig,
+      CFA pCfa,
+      Specification pSpecification,
+      LogManager pLogger,
+      RelevantArgStatesCollector pArgStatesCollector)
       throws InvalidConfigurationException {
     super(pConfig, pCfa, pSpecification, pLogger);
+    argStatesCollector = pArgStatesCollector;
   }
 
   /**
@@ -105,8 +111,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
    */
   CollectedARGStates getRelevantStates(ARGState pRootState) {
     if (!stateToStatesCollector.containsKey(pRootState)) {
-      stateToStatesCollector.put(
-          pRootState, RelevantArgStatesCollector.getRelevantStates(pRootState));
+      stateToStatesCollector.put(pRootState, argStatesCollector.getRelevantStates(pRootState));
     }
 
     return stateToStatesCollector.get(pRootState);

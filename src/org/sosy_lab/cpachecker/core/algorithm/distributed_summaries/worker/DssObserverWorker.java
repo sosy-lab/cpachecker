@@ -24,7 +24,11 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssWitnessArgStateCollector;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.ResultWithWitnessInformation;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -51,35 +55,56 @@ public class DssObserverWorker extends DssWorker implements Statistics {
   private final StatusObserver statusObserver;
   private boolean shutdown;
   private long receivedResult;
-  private Optional<Result> result;
+  private Optional<ResultWithWitnessInformation> result;
   private Optional<String> errorMessage;
 
   private final Map<String, Map<StatisticsKey, String>> stats = new HashMap<>();
 
-  private final int numberOfBlocks;
+  private final BlockGraph blockGraph;
+  private final DssWitnessArgStateCollector stateCollector;
 
-  public record StatusAndResult(AlgorithmStatus status, Result result) {}
+  public record StatusAndResult(AlgorithmStatus status, ResultWithWitnessInformation result) {
+
+    // allows other executors that do not use this observer worker to remain unchanged
+    public StatusAndResult(AlgorithmStatus status, Result pResult) {
+      this(status, ResultWithWitnessInformation.ofResultWithoutInformation(pResult));
+    }
+  }
 
   public DssObserverWorker(
       String pId,
       DssConnection pConnection,
-      int pNumberOfBlocks,
+      BlockGraph pBlockGraph,
       DssMessageFactory pMessageFactory,
-      LogManager pLogger) {
+      LogManager pLogger,
+      DssWitnessArgStateCollector pStateCollector) {
     super(pId, pMessageFactory, pLogger);
     shutdown = false;
     connection = pConnection;
     statusObserver = new StatusObserver();
     errorMessage = Optional.empty();
     result = Optional.empty();
-    numberOfBlocks = pNumberOfBlocks;
+    blockGraph = pBlockGraph;
+    stateCollector = pStateCollector;
   }
 
   @Override
   public Collection<DssMessage> processMessage(DssMessage pMessage) {
     switch (pMessage.getType()) {
       case RESULT -> {
-        result = Optional.of(pMessage.getResult());
+        if (pMessage.getResult() == Result.FALSE) {
+          result =
+              Optional.of(
+                  ResultWithWitnessInformation.ofViolationPath(pMessage.getViolationPath()));
+        } else if (pMessage.getResult() == Result.TRUE) {
+          result =
+              Optional.of(
+                  ResultWithWitnessInformation.ofCorrectnessPreConditionCollector(stateCollector));
+        } else {
+          result =
+              Optional.of(
+                  ResultWithWitnessInformation.ofResultWithoutInformation(pMessage.getResult()));
+        }
         statusObserver.updateStatus(pMessage);
         receivedResult = System.currentTimeMillis();
       }
@@ -93,7 +118,9 @@ public class DssObserverWorker extends DssWorker implements Statistics {
           shutdown = true;
         } else {
           stats.put(pMessage.getSenderId(), pMessage.getStats());
-          shutdown = stats.size() == numberOfBlocks;
+  stateCollector.collectFromMessage((DssStatisticsMessage) pMessage);
+
+        shutdown = stats.size() == blockGraph.getNodes().size();
         }
       }
     }
@@ -156,7 +183,7 @@ public class DssObserverWorker extends DssWorker implements Statistics {
     private AlgorithmStatus finish() {
       return statusMap.values().stream()
           .reduce(AlgorithmStatus::update)
-          .orElse(AlgorithmStatus.NO_PROPERTY_CHECKED);
+          .orElse(AlgorithmStatus.SOUND_AND_PRECISE);
     }
   }
 

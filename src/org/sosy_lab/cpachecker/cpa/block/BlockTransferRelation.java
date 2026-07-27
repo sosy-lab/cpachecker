@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.block;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -86,17 +88,18 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
     }
 
     if (blockState.getType() == BlockStateType.WITNESS) {
-      return FluentIterable.from(
-              pathTranferRelation.getAbstractSuccessorsForEdge(
-                  blockState.getWitnessCheckPathState(), prec, cfaEdge))
-          .transform(pnew -> copyBlockStateWithPath(cfaEdge, blockState, pnew))
-          .toList();
+      return transformedImmutableListCopy(
+          pathTranferRelation.getAbstractSuccessorsForEdge(
+              blockState.getWitnessCheckPathState(), prec, cfaEdge),
+          p -> copyBlockStateWithPath(cfaEdge, blockState, p));
     }
 
     Set<CFAEdge> intersection =
         Sets.intersection(node.getLeavingEdges().toSet(), blockState.getBlockNode().getEdges());
 
     if (intersection.contains(cfaEdge)) {
+      BlockStateType typeOfLocation =
+          getBlockStateTypeOfLocation(blockState.getBlockNode(), cfaEdge.getSuccessor());
       if (!blockState.getViolationConditions().isEmpty()
           && cfaEdge
               .getSuccessor()
@@ -107,11 +110,10 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
               new BlockState(
                   cfaEdge.getSuccessor(),
                   blockState.getBlockNode(),
-                  getBlockStateTypeOfLocation(blockState.getBlockNode(), cfaEdge.getSuccessor()),
+                  typeOfLocation,
                   ImmutableList.of(vc),
                   blockState.getHistory(),
-                  blockState.getWitness(),
-                  blockState.hasNonTrivialSummaryForEachPredecessor()));
+                  blockState.getWitness()));
         }
         return successors.build();
       }
@@ -119,11 +121,10 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
           new BlockState(
               cfaEdge.getSuccessor(),
               blockState.getBlockNode(),
-              getBlockStateTypeOfLocation(blockState.getBlockNode(), cfaEdge.getSuccessor()),
+              typeOfLocation,
               blockState.getViolationConditions(),
               blockState.getHistory(),
-              blockState.getWitness(),
-              blockState.hasNonTrivialSummaryForEachPredecessor()));
+              blockState.getWitness()));
     }
     return ImmutableList.of();
   }
@@ -137,7 +138,6 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
         blockState.getViolationConditions(),
         blockState.getHistory(),
         blockState.getWitness(),
-        blockState.hasNonTrivialSummaryForEachPredecessor(),
         pnew);
   }
 

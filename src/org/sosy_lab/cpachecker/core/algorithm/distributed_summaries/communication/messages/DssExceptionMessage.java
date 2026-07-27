@@ -12,9 +12,8 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 
 /**
- * Message for exceptions that occur during distributed summary computation.
- * The content contains a single key-value pair with the key "exception" and the value being the
- * exception message.
+ * Message for exceptions that occur during distributed summary computation. The content contains a
+ * single key-value pair with the key "exception" and the value being the exception message.
  */
 public class DssExceptionMessage extends DssMessage {
 

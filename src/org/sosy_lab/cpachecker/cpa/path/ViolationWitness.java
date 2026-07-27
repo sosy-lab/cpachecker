@@ -64,27 +64,12 @@ public record ViolationWitness(ImmutableList<ImmutableSet<ImmutableList<String>>
       return first;
     }
 
-    Preconditions.checkArgument(
-        toMerge.stream().allMatch(v -> first.equalExceptLast(v)),
-        "Merging witnesses whose path differs not only in the last segment");
-
     ImmutableSet<ImmutableList<String>> allLastSegmentsMerged =
         FluentIterable.from(toMerge).transformAndConcat(v -> v.witness.getLast()).toSet();
 
     return new ViolationWitness(
         Collections3.listAndElement(
             first.witness.subList(0, first.witness.size() - 1), allLastSegmentsMerged));
-  }
-
-  private boolean equalExceptLast(ViolationWitness other) {
-    if (witness.size() != other.witness.size()) {
-      return false;
-    }
-    int n = witness.size();
-    if (n <= 1) {
-      return true; // for size 0 or 1 the prefixes (empty) are equal
-    }
-    return witness.subList(0, n - 1).equals(other.witness.subList(0, n - 1));
   }
 
   private static final Joiner JOIN_LIST = Joiner.on(','); // join elements in inner list

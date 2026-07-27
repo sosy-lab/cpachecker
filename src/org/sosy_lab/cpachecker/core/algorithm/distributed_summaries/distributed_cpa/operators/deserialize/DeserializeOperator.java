@@ -21,8 +21,8 @@ public interface DeserializeOperator {
   static CFANode startLocationFromMessageType(DssMessage pMessage, BlockNode blockNode) {
     return switch (pMessage.getType()) {
       case VIOLATION_CONDITION -> blockNode.getFinalLocation();
-      case POST_CONDITION -> blockNode.getInitialLocation();
-      case EXCEPTION, RESULT, STATISTIC ->
+      case POST_CONDITION, STATISTIC -> blockNode.getInitialLocation();
+      case EXCEPTION, RESULT ->
           throw new IllegalArgumentException(
               "Cannot deserialize BlockState from message of type: "
                   + pMessage.getClass().getName());

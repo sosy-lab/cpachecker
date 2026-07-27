@@ -26,8 +26,13 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa.DeserializeBlockStateOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa.DeserializeBlockStateOperator.ParseResult;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.path.SegmentedPaths;
 
 /**
  * Abstract base class for messages used in distributed summary synthesis. Each message has a sender
@@ -117,7 +122,9 @@ public abstract class DssMessage {
 
   private ContentReader getArbitraryContent(String pKey) {
     checkArgument(
-        type == DssMessageType.POST_CONDITION || type == DssMessageType.VIOLATION_CONDITION,
+        type == DssMessageType.POST_CONDITION
+            || type == DssMessageType.VIOLATION_CONDITION
+            || type == DssMessageType.STATISTIC,
         "Cannot get content for type: %s",
         type);
     Map<String, String> stateContent = ContentReader.read(content).pushLevel(pKey).getContent();
@@ -169,6 +176,29 @@ public abstract class DssMessage {
     String resultString = content.get(DssResultMessage.DSS_MESSAGE_RESULT_KEY);
     Preconditions.checkNotNull(resultString, "Result content is missing in message: %s", this);
     return Result.valueOf(resultString);
+  }
+
+  public final SegmentedPaths getViolationPath() {
+    checkArgument(getResult() == Result.FALSE, "Cannot get content for type: " + "%s", type);
+    String violationPathString = content.get(DssResultMessage.DSS_MESSAGE_VIOLATION_PATH_KEY);
+
+    Preconditions.checkNotNull(violationPathString, "Violation path not set for False result");
+
+    ParseResult res = DeserializeBlockStateOperator.parseWitness(violationPathString);
+
+    return res.witness();
+  }
+
+  public final String extractBlockStateWitnessString() {
+    checkArgument(
+        type == DssMessageType.VIOLATION_CONDITION, "Cannot get content for type: " + "%s", type);
+
+    checkState(getNumberOfContainedStates().orElse(-1) >= 1, "No state to extract witness from");
+
+    return ContentReader.read(content)
+        .pushLevel(BlockState.class.getName())
+        .pushLevel(SerializeOperator.STATE_KEY + 0)
+        .get(SerializeOperator.STATE_KEY);
   }
 
   public final AlgorithmStatus getAlgorithmStatus() {
@@ -241,6 +271,9 @@ public abstract class DssMessage {
         type == DssMessageType.STATISTIC, "Cannot get stats for message type: " + "%s", type);
     ImmutableMap.Builder<StatisticsKey, String> statsBuilder = ImmutableMap.builder();
     for (Map.Entry<String, String> entry : content.entrySet()) {
+      if (entry.getKey().startsWith(SerializeOperator.STATE_KEY)) {
+        continue;
+      }
       StatisticsKey key = StatisticsKey.valueOf(entry.getKey());
       statsBuilder.put(key, entry.getValue());
     }

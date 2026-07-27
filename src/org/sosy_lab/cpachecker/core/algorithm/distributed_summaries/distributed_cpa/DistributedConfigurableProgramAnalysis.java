@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
 
+import java.util.Objects;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
@@ -21,6 +23,8 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
  * Extension of ConfigurableProgramAnalysis with serialization and deserialization capabilities for
@@ -33,7 +37,16 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
  */
 public interface DistributedConfigurableProgramAnalysis extends ConfigurableProgramAnalysis {
 
-  record StateAndPrecision(AbstractState state, Precision precision) {}
+  record StateAndPrecision(AbstractState state, Precision precision) {
+
+    public BlockState getBlockState() {
+      return Objects.requireNonNull(AbstractStates.extractStateByType(state, BlockState.class));
+    }
+
+    public BlockGraphPath getBlockGraphPath() {
+      return getBlockState().getHistory();
+    }
+  }
 
   String MULTIPLE_STATES_KEY = "states";
 

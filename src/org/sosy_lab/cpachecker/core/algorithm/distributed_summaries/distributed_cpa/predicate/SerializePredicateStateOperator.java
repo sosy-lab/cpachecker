@@ -94,12 +94,17 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     } finally {
       SerializationInfoStorage.clear();
     }
+
+    final BooleanFormula booleanFormulaForLambda = booleanFormula;
+
     return ContentBuilder.builder()
         .pushLevel(PredicateAbstractState.class.getName())
         .put(STATE_KEY, serializedFormula)
         .put(SSA_KEY, serializedSSAMap.toString())
         .put(PTS_KEY, pts)
-        .putIf(writeReadableFormulas, READABLE_KEY, booleanFormula.toString())
+        // currently, the toString() crashes in some circumstances
+        // TODO find permanent solution
+        .putIf(writeReadableFormulas, READABLE_KEY, () -> booleanFormulaForLambda.toString())
         .build();
   }
 }

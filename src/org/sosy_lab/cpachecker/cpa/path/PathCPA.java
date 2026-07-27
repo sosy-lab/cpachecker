@@ -18,13 +18,13 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 
 public class PathCPA extends AbstractCPA {
 
-  private ViolationWitness pathCollection;
+  private SegmentedPaths pathCollection;
 
-  public PathCPA() {
+  private PathCPA() {
     super("sep", "sep", new FlatLatticeDomain(), new PathTransferRelation());
   }
 
-  public void init(ViolationWitness pPathCollection) {
+  public void init(SegmentedPaths pPathCollection) {
     Preconditions.checkNotNull(pPathCollection);
     Preconditions.checkState(pathCollection == null);
     pathCollection = pPathCollection;
@@ -37,12 +37,10 @@ public class PathCPA extends AbstractCPA {
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    // TODO we can choose a path, because we can only return a single initial state ->
-    // Special Init state that chooses after the first edge?
-    throw new UnsupportedOperationException("TODO");
+    return PathState.initialState(pathCollection);
   }
 
-  public static PathCPA create() {
+  static PathCPA create() {
     return new PathCPA();
   }
 }

@@ -37,7 +37,7 @@ public class DeserializeConstraintsStateOperator implements DeserializeOperator 
       return new ConstraintsState(constraints.build());
 
     } catch (ClassCastException e) {
-      throw new RuntimeException("Could not deserialize constraints");
+      throw new AssertionError("Could not deserialize constraints", e);
     }
   }
 }

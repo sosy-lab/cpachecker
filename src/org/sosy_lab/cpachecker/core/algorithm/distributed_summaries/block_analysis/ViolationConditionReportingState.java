@@ -14,8 +14,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 /**
  * Interface for states that can report a violation condition.
  *
- * <p>This is used to extract the violation condition from the analysis state after block
- * analysis.
+ * <p>This is used to extract the violation condition from the analysis state after block analysis.
  */
 public interface ViolationConditionReportingState {
 
