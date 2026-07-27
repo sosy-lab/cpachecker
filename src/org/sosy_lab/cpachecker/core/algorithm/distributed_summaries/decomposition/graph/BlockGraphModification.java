@@ -12,14 +12,18 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCo
 import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph.GHOST_EDGE_DESCRIPTION;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.SequencedSet;
 import org.sosy_lab.common.configuration.Configuration;
@@ -69,9 +73,9 @@ public class BlockGraphModification {
       ImmutableSet<CFANode> unableToAbstract,
       ImmutableMap<CFANode, CFAEdge> abstractions) {}
 
-  private record MappingInformation(
-      Map<CFANode, CFANode> originalToInstrumentedNodes,
-      Map<CFAEdge, CFAEdge> originalToInstrumentedEdges) {}
+  public record MappingInformation(
+      BiMap<CFANode, CFANode> originalToInstrumentedNodes,
+      BiMap<CFAEdge, CFAEdge> originalToInstrumentedEdges) {}
 
   public static Modification instrumentCFA(
       CFA pCFA, BlockGraph pBlockGraph, Configuration pConfig, LogManager pLogger) {
@@ -82,10 +86,21 @@ public class BlockGraphModification {
     }
 
     MutableCFA mutableCfa = MutableCFA.copyOf(pCFA, pConfig, pLogger);
+
     ModificationMetadata modificationMetadata =
         addBlankEdgesAtBlockEnds(mutableCfa, pCFA, pBlockGraph);
     Map<CFANode, CFANode> originalInstrumentedMapping =
         modificationMetadata.mappingInfo().originalToInstrumentedNodes();
+
+    // We want this information for the correctness witnesses
+    // TODO probably the copy should also copy this attribute -> fix there?
+    for (Entry<CFANode, CFANode> entry : originalInstrumentedMapping.entrySet()) {
+
+      if (entry.getKey().isLoopStart()) {
+        entry.getValue().setLoopStart();
+      }
+    }
+
     // Adjust the block graph to the modified CFA
     BlockGraph adjustedBlockGraph =
         adaptBlockGraph(
@@ -106,15 +121,15 @@ public class BlockGraphModification {
   }
 
   private static Modification getUnchanged(CFA pCFA, BlockGraph pBlockGraph) {
-    ImmutableMap<CFANode, CFANode> identityMapping =
+    ImmutableBiMap<CFANode, CFANode> identityMapping =
         pCFA.nodes().stream()
             .map(n -> Map.entry(n, n))
-            .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
+            .collect(ImmutableBiMap.toImmutableBiMap(Map.Entry::getKey, Map.Entry::getValue));
     ModificationMetadata metadata =
         new ModificationMetadata(
             pCFA,
             pBlockGraph,
-            new MappingInformation(identityMapping, ImmutableMap.of()),
+            new MappingInformation(identityMapping, ImmutableBiMap.of()),
             // no abstraction happened, so no issues occurred
             /* unableToAbstract= */ ImmutableSet.of(),
             // no abstraction happened
@@ -291,8 +306,8 @@ public class BlockGraphModification {
     record NodePair(CFANode n1, CFANode n2) {}
 
     SequencedSet<CFANode> covered = new LinkedHashSet<>();
-    ImmutableMap.Builder<CFAEdge, CFAEdge> originalToInstrumentedEdges = ImmutableMap.builder();
-    ImmutableMap.Builder<CFANode, CFANode> originalToInstrumentedNodes = ImmutableMap.builder();
+    ImmutableBiMap.Builder<CFAEdge, CFAEdge> originalToInstrumentedEdges = ImmutableBiMap.builder();
+    Map<CFANode, CFANode> originalToInstrumentedNodes = new LinkedHashMap<>();
 
     List<NodePair> waitlist = new ArrayList<>();
     waitlist.add(new NodePair(pOriginal.getMainFunction(), pInstrumented.getMainFunction()));
@@ -307,21 +322,26 @@ public class BlockGraphModification {
       CFANode instrumentedNode = pair.n2();
       FluentIterable<CFAEdge> instrumentedOutgoing = instrumentedNode.getAllLeavingEdges();
       FluentIterable<CFAEdge> originalOutgoing = originalNode.getAllLeavingEdges();
-      SequencedSet<CFAEdge> foundCorrespondingEdges = new LinkedHashSet<>();
       for (CFAEdge cfaEdge : originalOutgoing) {
         CFAEdge corresponding = findCorrespondingEdge(cfaEdge, instrumentedOutgoing);
-        Preconditions.checkState(
-            !foundCorrespondingEdges.contains(corresponding),
-            "Corresponding edge already found: %s",
-            corresponding);
-        originalToInstrumentedNodes.put(cfaEdge.getSuccessor(), corresponding.getSuccessor());
         originalToInstrumentedEdges.put(cfaEdge, corresponding);
         waitlist.add(new NodePair(cfaEdge.getSuccessor(), corresponding.getSuccessor()));
-        foundCorrespondingEdges.add(corresponding);
+
+        CFANode successor = cfaEdge.getSuccessor();
+        CFANode correspondingSuccessor = corresponding.getSuccessor();
+        CFANode previous =
+            originalToInstrumentedNodes.putIfAbsent(successor, correspondingSuccessor);
+        Preconditions.checkState(
+            previous == null || previous.equals(correspondingSuccessor),
+            "Node %s was mapped to both %s and %s",
+            successor,
+            previous,
+            correspondingSuccessor);
       }
     }
     return new MappingInformation(
-        originalToInstrumentedNodes.buildKeepingLast(), originalToInstrumentedEdges.buildOrThrow());
+        ImmutableBiMap.copyOf(originalToInstrumentedNodes),
+        originalToInstrumentedEdges.buildOrThrow());
   }
 
   private static CFAEdge findCorrespondingEdge(CFAEdge edge, Iterable<CFAEdge> edges) {

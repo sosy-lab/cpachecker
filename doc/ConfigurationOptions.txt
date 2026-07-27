@@ -263,7 +263,6 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
-# SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -361,9 +360,10 @@ analysis.algorithm.MPOR.executeSingleActiveThreadFirst = true
 analysis.algorithm.MPOR.executeThreadsUntilConflict = false
 
 # Include original function declarations from the input program? Including
-# them may result in unsound analysis (e.g. false alarms for CBMC, or ignored
-# function calls through function pointers for CPAchecker).
-analysis.algorithm.MPOR.inputFunctionDeclarations = false
+# them may result in an unsound analysis (e.g. false alarms for CBMC). Not
+# including them may  result in the output program producing errors when
+# compiled e.g. by clang.
+analysis.algorithm.MPOR.inputFunctionDeclarations = true
 
 # Include original type declarations from the input file? Disabling may
 # result in parse errors for the output program.
@@ -2170,9 +2170,6 @@ cpa.constraints.cacheSubsets = false
 
 # Whether to use superset caching
 cpa.constraints.cacheSupersets = false
-
-# Reset symbolic identifier IDs when initializing globals
-cpa.constraints.globalsResetIdentifiers = true
 
 # Type of less-or-equal operator to use
 cpa.constraints.lessOrEqualType = SUBSET
@@ -4709,12 +4706,10 @@ distributedSummaries.worker.forwardConfiguration = "config/distributed-summary-s
 # the same name as the ID of the worker.
 distributedSummaries.worker.logDirectory = "block_analysis/logfiles"
 
-# Whether to query the SMT solver before proceeding backwards.
-dss.cpa.predicate.doSatChecksBeforeBackwardAnalysis = false
-
-# Whether to run symbolic execution to compute the violation condition for
-# value analysis.
-dss.cpa.value.runSymExec = true
+# The template from which the different versions of the correctness witnesses
+# will be exported. Each version replaces the string '%s' with its version
+# number.
+distributedSummaries.yamlProofWitness = "witness-dss-%s.yml"
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
@@ -5662,9 +5657,6 @@ stop = "SEP"
 # When checking SV-LIB programs use this configuration file instead of the
 # current one.
 svlib.config = no default value
-
-# Where to find the symbolic execution config without cegar.
-symbolicExecution.symbolicExecutionProperties = no default value
 
 # compress the produced violation-witness automata using GZIP compression.
 termination.compressWitness = true

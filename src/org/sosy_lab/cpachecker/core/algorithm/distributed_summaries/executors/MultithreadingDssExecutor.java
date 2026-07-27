@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssWitnessArgStateCollector;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActors;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
@@ -68,7 +69,8 @@ public class MultithreadingDssExecutor implements DssExecutor {
     stats = new ArrayList<>();
   }
 
-  private DssActors createDssActors(CFA cfa, BlockGraph blockGraph)
+  private DssActors createDssActors(
+      CFA cfa, BlockGraph blockGraph, DssWitnessArgStateCollector stateCollector)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     ImmutableSet<BlockNode> blocks = blockGraph.getNodes();
     DssWorkerBuilder builder =
@@ -79,14 +81,15 @@ public class MultithreadingDssExecutor implements DssExecutor {
     if (options.isDebugModeEnabled()) {
       builder = builder.addVisualizationWorker(blockGraph, options);
     }
-    builder.addObserverWorker(OBSERVER_WORKER_ID, blockGraph.getNodes().size(), options);
+    builder.addObserverWorker(OBSERVER_WORKER_ID, blockGraph, options, stateCollector);
     return builder.build();
   }
 
   @Override
-  public StatusAndResult execute(CFA cfa, BlockGraph blockGraph)
+  public StatusAndResult execute(
+      CFA cfa, BlockGraph blockGraph, DssWitnessArgStateCollector stateCollector)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    try (DssActors actors = createDssActors(cfa, blockGraph)) {
+    try (DssActors actors = createDssActors(cfa, blockGraph, stateCollector)) {
       stats.addAll(actors.getWorkersWithStats());
       DssObserverWorker observer = Iterables.getOnlyElement(actors.getObservers());
       Preconditions.checkState(
