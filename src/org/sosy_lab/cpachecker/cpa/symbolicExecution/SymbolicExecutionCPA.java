@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 
-@Options(prefix = "symbolicExecution")
+@Options(prefix = "cpa.symbolicExecution")
 public class SymbolicExecutionCPA implements ConfigurableProgramAnalysis {
 
   private final ValueAnalysisCPA valueAnalysisCPA;
@@ -53,7 +53,8 @@ public class SymbolicExecutionCPA implements ConfigurableProgramAnalysis {
 
   @FileOption(Type.REQUIRED_INPUT_FILE)
   @Option(description = "Where to find the symbolic execution config without cegar.")
-  private Path symbolicExecutionProperties = null;
+  private Path symbolicExecutionProperties =
+      Path.of("../../../../../../config/includes/symbolicExecutionForDss.properties");
 
   public SymbolicExecutionCPA(
       Configuration pConfiguration,

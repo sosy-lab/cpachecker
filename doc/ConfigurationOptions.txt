@@ -4043,6 +4043,9 @@ cpa.statistics.metric.structVariablesCount = true
 # target file to hold the statistics
 cpa.statistics.statisticsCPAFile = no default value
 
+# Where to find the symbolic execution config without cegar.
+cpa.symbolicExecution.symbolicExecutionProperties = no default value
+
 # Which refinement algorithm to use? (give class name, required for
 # termination algorithm with CEGAR) If the package name starts with
 # 'org.sosy_lab.cpachecker.', this prefix can be omitted.
@@ -5668,9 +5671,6 @@ stop = "SEP"
 # When checking SV-LIB programs use this configuration file instead of the
 # current one.
 svlib.config = no default value
-
-# Where to find the symbolic execution config without cegar.
-symbolicExecution.symbolicExecutionProperties = no default value
 
 # compress the produced violation-witness automata using GZIP compression.
 termination.compressWitness = true
