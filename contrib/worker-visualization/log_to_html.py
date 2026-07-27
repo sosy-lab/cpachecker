@@ -17,16 +17,15 @@ HTML visualization with filtering capabilities and a clean, professional interfa
 
 import argparse
 import json
+import networkx as nx
+import pydot
 import sys
 import webbrowser
-from pathlib import Path
-from typing import Dict, List, Any, Optional
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
-
-import networkx as nx
-import pydot
+from pathlib import Path
+from typing import Dict, List, Any, Optional
 
 ENCODING = "UTF-8"
 
@@ -54,7 +53,7 @@ class Message:
 
     @classmethod
     def from_json(
-        cls, json_data: Dict[str, Any], block_logs: Dict[str, Any]
+            cls, json_data: Dict[str, Any], block_logs: Dict[str, Any]
     ) -> "Message":
         """Create a Message instance from JSON data."""
         header = json_data["header"]
@@ -145,7 +144,7 @@ def load_json_file(json_file: Path) -> Dict[str, Any]:
 
 
 def filter_content_by_keys(
-    content: Dict[str, Any], export_keys: List[str]
+        content: Dict[str, Any], export_keys: List[str]
 ) -> Dict[str, Any]:
     """Filter message content based on export keys."""
     if not export_keys:
@@ -160,9 +159,9 @@ def filter_content_by_keys(
 
 
 def generate_message_html(
-    message: Optional[Dict[str, Any]],
-    block_logs: Dict[str, Any],
-    export_keys: List[str],
+        message: Optional[Dict[str, Any]],
+        block_logs: Dict[str, Any],
+        export_keys: List[str],
 ) -> str:
     """Generate HTML representation of a single message."""
     if not message:
@@ -216,7 +215,7 @@ def generate_message_html(
 
 
 def generate_html_table(
-    messages: List[Dict[str, Any]], block_logs: Dict[str, Any], export_keys: List[str]
+        messages: List[Dict[str, Any]], block_logs: Dict[str, Any], export_keys: List[str]
 ) -> str:
     """Generate HTML table from messages."""
     if not messages:
@@ -286,10 +285,10 @@ def generate_html_table(
 
 
 def visualize_block_graph(
-    block_structure_file: Path,
-    output_path: Path,
-    output_dot_name: str = "graph.dot",
-    output_png_name: str = "graph.png",
+        block_structure_file: Path,
+        output_path: Path,
+        output_dot_name: str = "graph.dot",
+        output_png_name: str = "graph.png",
 ) -> None:
     """Generate block structure graph visualization."""
     block_logs = load_json_file(block_structure_file)
@@ -332,7 +331,7 @@ def visualize_block_graph(
 
 
 def generate_timeline_view(
-    messages: List[Dict[str, Any]], block_logs: Dict[str, Any], export_keys: List[str]
+        messages: List[Dict[str, Any]], block_logs: Dict[str, Any], export_keys: List[str]
 ) -> str:
     """Generate timeline view HTML where messages are shown chronologically."""
     if not messages:
@@ -435,11 +434,11 @@ def generate_timeline_view(
 
 
 def generate_html_report(
-    messages: List[Dict[str, Any]],
-    block_logs: Dict[str, Any],
-    output_path: Path,
-    export_keys: Optional[List[str]] = None,
-    report_filename: str = "report.html",
+        messages: List[Dict[str, Any]],
+        block_logs: Dict[str, Any],
+        output_path: Path,
+        export_keys: Optional[List[str]] = None,
+        report_filename: str = "report.html",
 ) -> Path:
     """Generate the complete HTML report with embedded styles and scripts."""
     export_keys = export_keys or []
@@ -554,14 +553,14 @@ def generate_html_report(
                 <h1>Worker Events Visualization</h1>
                 <p class="subtitle">Distributed Block Analysis Messages</p>
             </header>
-    
+
             {controls_html}
             {stats_html}
             {views}
         </div>
-    
+
         <button class="floating-graph-btn" id="floatingGraphBtn" title="View Block Graph">📊</button>
-    
+
         <div class="modal" id="graphModal">
             <div class="modal-overlay" id="modalOverlay"></div>
             <div class="modal-content">
@@ -572,7 +571,7 @@ def generate_html_report(
                 </div>
             </div>
         </div>
-    
+
         <script>{js}</script>
     </body>
     </html>
@@ -589,10 +588,10 @@ def generate_html_report(
 
 
 def load_and_process_messages(
-    message_dir: Path,
-    block_structure_json: Path,
-    output_path: Path,
-    export_keys: Optional[List[str]] = None,
+        message_dir: Path,
+        block_structure_json: Path,
+        output_path: Path,
+        export_keys: Optional[List[str]] = None,
 ) -> Optional[Path]:
     """Load messages from directory and generate visualization."""
     all_messages = []
