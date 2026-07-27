@@ -3937,10 +3937,6 @@ cpa.smg2.refinement.restart = PIVOT
 # Resolve definite assignments
 cpa.smg2.resolveDefinites = true
 
-# Sets the level of runtime checking: NONE, HALF, FULL
-cpa.smg2.runtimeCheck = NONE
-  enum:     [FORCED, NONE, HALF, FULL]
-
 # List of functions that are always considered as safe, i.e. they are not
 # evaluated, even if known to the analysis, nor are their inputs checked for
 # validity. They always return a new, unknown value and therefore
@@ -4710,6 +4706,9 @@ distributedSummaries.worker.logDirectory = "block_analysis/logfiles"
 # will be exported. Each version replaces the string '%s' with its version
 # number.
 distributedSummaries.yamlProofWitness = "witness-dss-%s.yml"
+
+# Whether to query the SMT solver before proceeding backwards.
+dss.cpa.predicate.doSatChecksBeforeBackwardAnalysis = false
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.

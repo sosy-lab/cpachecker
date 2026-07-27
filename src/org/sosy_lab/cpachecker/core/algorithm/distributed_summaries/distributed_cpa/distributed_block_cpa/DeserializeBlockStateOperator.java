@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
+import org.sosy_lab.cpachecker.cpa.path.SegmentedPaths;
 import org.sosy_lab.cpachecker.cpa.path.ViolationWitness;
 
 /**
@@ -34,6 +35,7 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
     blockNode = pBlockNode;
   }
 
+
   @Override
   public AbstractState deserialize(DssMessage pMessage) throws InterruptedException {
     String content = pMessage.getAbstractStateContent(BlockState.class).get(STATE_KEY);
@@ -47,8 +49,8 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
     ViolationWitness finalWitness = ViolationWitness.deserialize(witnessAndMaybeHistory.getFirst());
     List<String> history =
         witnessAndMaybeHistory.size() == 2
-            ? Splitter.on(",").splitToList(witnessAndMaybeHistory.getLast())
-            : ImmutableList.of();
+        ? Splitter.on(",").splitToList(witnessAndMaybeHistory.getLast())
+        : ImmutableList.of();
     Preconditions.checkNotNull(serializedBlockState);
     Preconditions.checkArgument(
         blockNode.getPredecessorIds().contains(serializedBlockState)
@@ -61,4 +63,21 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
         BlockGraphPath.of(history),
         finalWitness);
   }
+
+  public static ParseResult parseWitness(String content) {
+    List<String> idAndWitnessAndMaybeHistory = Splitter.on(" W:").limit(2).splitToList(content);
+    Preconditions.checkArgument(idAndWitnessAndMaybeHistory.size() == 2);
+    String serializedBlockState = idAndWitnessAndMaybeHistory.getFirst();
+    List<String> witnessAndMaybeHistory =
+        Splitter.on(" H:").limit(2).splitToList(idAndWitnessAndMaybeHistory.getLast());
+    SegmentedPaths finalWitness = SegmentedPaths.deserialize(witnessAndMaybeHistory.getFirst());
+    List<String> history =
+        witnessAndMaybeHistory.size() == 2
+            ? Splitter.on(",").splitToList(witnessAndMaybeHistory.getLast())
+            : ImmutableList.of();
+    return new ParseResult(serializedBlockState, finalWitness, history);
+  }
+
+  public record ParseResult(
+      String serializedBlockState, SegmentedPaths witness, List<String> history) {}
 }

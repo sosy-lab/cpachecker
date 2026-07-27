@@ -56,8 +56,8 @@ public class SerializeBlockStateOperator implements SerializeOperator {
     suffix =
         suffix
             + (b.getHistory().path().isEmpty()
-                ? ""
-                : " H:" + Joiner.on(",").join(b.getHistory().path()));
+               ? ""
+               : " H:" + Joiner.on(",").join(b.getHistory().path()));
     return ContentBuilder.builder()
         .pushLevel(BlockState.class.getName())
         .put(STATE_KEY, b.getBlockNode().getId() + suffix)
