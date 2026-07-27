@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
-import org.sosy_lab.cpachecker.cpa.path.SegmentedPaths;
+import org.sosy_lab.cpachecker.cpa.path.ViolationWitness;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class BlockViolationConditionOperator implements ViolationConditionOperator {
@@ -37,15 +37,15 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
     BlockState topMost =
         Objects.requireNonNull(
             AbstractStates.extractStateByType(pARGPath.getFirstState(), BlockState.class));
-    SegmentedPaths previousWitness =
+    ViolationWitness previousWitness =
         pPreviousCondition
             .map(
                 state ->
                     Objects.requireNonNull(
                             AbstractStates.extractStateByType(state, BlockState.class))
                         .getWitness())
-            .orElse(SegmentedPaths.EMPTY);
-    SegmentedPaths currentWitness = previousWitness.addEdgesToFront(pARGPath.getFullPath());
+            .orElse(ViolationWitness.EMPTY);
+    ViolationWitness currentWitness = previousWitness.addEdges(pARGPath.getFullPath());
 
     if (!trackHistory) {
       return Optional.of(

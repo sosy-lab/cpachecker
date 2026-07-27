@@ -13,26 +13,25 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
-import org.sosy_lab.cpachecker.cpa.path.SegmentedPaths;
+import org.sosy_lab.cpachecker.cpa.path.ViolationWitness;
 
 public class BlockStateCombineViolationConditionOperator
     implements CombineViolationConditionsOperator {
 
   @Override
   public AbstractState combineViolationConditionsAtSameProgramHash(
-      Optional<AbstractState> origin, Collection<AbstractState> states) {
+      Collection<AbstractState> states) {
     ImmutableSet<CFANode> locations =
         FluentIterable.from(states)
             .filter(BlockState.class)
             .transform(BlockState::getLocationNode)
             .toSet();
-    SegmentedPaths finalWitness =
-        SegmentedPaths.merge(
+    ViolationWitness finalWitness =
+        ViolationWitness.merge(
             FluentIterable.from(states)
                 .filter(BlockState.class)
                 .transform(BlockState::getWitness)
