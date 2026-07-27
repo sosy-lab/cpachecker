@@ -121,10 +121,6 @@ public class BlockState
     return type;
   }
 
-  public PathState getWitnessCheckPathState() {
-    return witnessCheckPathState.orElseThrow();
-  }
-
   @Override
   public String getCPAName() {
     return BlockCPA.class.getSimpleName();

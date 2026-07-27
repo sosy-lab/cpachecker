@@ -4714,10 +4714,6 @@ distributedSummaries.yamlProofWitness = "witness-dss-%s.yml"
 # Whether to query the SMT solver before proceeding backwards.
 dss.cpa.predicate.doSatChecksBeforeBackwardAnalysis = false
 
-# Whether to run symbolic execution to compute the violation condition for
-# value analysis.
-dss.cpa.value.runSymExec = no default value
-
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
 enabledanalysis.allowLazyRefinement = false
@@ -5664,9 +5660,6 @@ stop = "SEP"
 # When checking SV-LIB programs use this configuration file instead of the
 # current one.
 svlib.config = no default value
-
-# Where to find the symbolic execution config without cegar.
-symbolicExecution.symbolicExecutionProperties = no default value
 
 # compress the produced violation-witness automata using GZIP compression.
 termination.compressWitness = true
