@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
@@ -24,7 +23,10 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssWitnessArgStateCollector;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.ResultWithWitnessInformation;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -51,13 +53,13 @@ public class DssObserverWorker extends DssWorker implements Statistics {
   private final DssConnection connection;
   private final StatusObserver statusObserver;
   private boolean shutdown;
-  private long receivedResult;
-  private Optional<Result> result;
+  private Optional<ResultWithWitnessInformation> result;
   private Optional<String> errorMessage;
 
   private final Map<String, Map<StatisticsKey, String>> stats = new HashMap<>();
 
-  private final int numberOfBlocks;
+  private final BlockGraph blockGraph;
+  private final DssWitnessArgStateCollector stateCollector;
 
   public record StatusAndResult(AlgorithmStatus status, ResultWithWitnessInformation result) {
 
@@ -70,25 +72,38 @@ public class DssObserverWorker extends DssWorker implements Statistics {
   public DssObserverWorker(
       String pId,
       DssConnection pConnection,
-      int pNumberOfBlocks,
+      BlockGraph pBlockGraph,
       DssMessageFactory pMessageFactory,
-      LogManager pLogger) {
+      LogManager pLogger,
+      DssWitnessArgStateCollector pStateCollector) {
     super(pId, pMessageFactory, pLogger);
     shutdown = false;
     connection = pConnection;
     statusObserver = new StatusObserver();
     errorMessage = Optional.empty();
     result = Optional.empty();
-    numberOfBlocks = pNumberOfBlocks;
+    blockGraph = pBlockGraph;
+    stateCollector = pStateCollector;
   }
 
   @Override
   public Collection<DssMessage> processMessage(DssMessage pMessage) {
     switch (pMessage.getType()) {
       case RESULT -> {
-        result = Optional.of(pMessage.getResult());
+        if (pMessage.getResult() == Result.FALSE) {
+          result =
+              Optional.of(
+                  ResultWithWitnessInformation.ofViolationPath(pMessage.getViolationPath()));
+        } else if (pMessage.getResult() == Result.TRUE) {
+          result =
+              Optional.of(
+                  ResultWithWitnessInformation.ofCorrectnessPreConditionCollector(stateCollector));
+        } else {
+          result =
+              Optional.of(
+                  ResultWithWitnessInformation.ofResultWithoutInformation(pMessage.getResult()));
+        }
         statusObserver.updateStatus(pMessage);
-        receivedResult = System.currentTimeMillis();
       }
       case VIOLATION_CONDITION, POST_CONDITION -> statusObserver.updateStatus(pMessage);
       case EXCEPTION -> {
@@ -96,31 +111,14 @@ public class DssObserverWorker extends DssWorker implements Statistics {
         shutdown = true;
       }
       case STATISTIC -> {
-        if (pMessage.getSenderId().equals(getId())) {
-          shutdown = true;
-        } else {
-          stats.put(pMessage.getSenderId(), pMessage.getStats());
-          shutdown = stats.size() == numberOfBlocks;
-        }
+        stats.put(pMessage.getSenderId(), pMessage.getStats());
+
+        stateCollector.collectFromMessage((DssStatisticsMessage) pMessage);
+
+        shutdown = stats.size() == blockGraph.getNodes().size();
       }
     }
     return ImmutableList.of();
-  }
-
-  @Override
-  public DssMessage nextMessage() throws InterruptedException {
-    if (receivedResult > 0) {
-      while (true) {
-        if (System.currentTimeMillis() - receivedResult >= 5000) {
-          return getMessageFactory().createDssStatisticsMessage(getId(), ImmutableMap.of());
-        }
-        if (getConnection().hasPendingMessages()) {
-          return getConnection().read();
-        }
-        Thread.sleep(100);
-      }
-    }
-    return super.nextMessage();
   }
 
   public StatusAndResult observe() throws CPAException {
@@ -163,7 +161,7 @@ public class DssObserverWorker extends DssWorker implements Statistics {
     private AlgorithmStatus finish() {
       return statusMap.values().stream()
           .reduce(AlgorithmStatus::update)
-          .orElse(AlgorithmStatus.SOUND_AND_PRECISE);
+          .orElse(AlgorithmStatus.NO_PROPERTY_CHECKED);
     }
   }
 

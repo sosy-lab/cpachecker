@@ -129,7 +129,7 @@ public class DssWorkerBuilder {
         new CommunicationId(pId, DssCommunicationEntity.OBSERVER),
         connection ->
             new DssObserverWorker(
-                pId, connection, pBlockGraph.getNodes().size(), messageFactory, logger));
+                pId, connection, pBlockGraph, messageFactory, logger, pStateCollector));
     return this;
   }
 
