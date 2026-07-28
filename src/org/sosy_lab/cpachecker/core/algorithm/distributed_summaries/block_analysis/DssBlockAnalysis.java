@@ -149,6 +149,7 @@ public abstract class DssBlockAnalysis<
       DssMessageFactory pMessageFactory,
       ShutdownManager pShutdownManager)
       throws CPAException, InterruptedException, InvalidConfigurationException {
+    status = AlgorithmStatus.SOUND_AND_PRECISE;
     messageFactory = pMessageFactory;
     AnalysisComponents parts =
         createBlockAlgorithm(
