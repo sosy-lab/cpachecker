@@ -47,13 +47,9 @@ public class SymbolicExecutionCPA implements ConfigurableProgramAnalysis {
   private final ValueAnalysisCPA valueAnalysisCPA;
   private final ConstraintsCPA constraintsCPA;
 
-  public ConstraintsCPA getConstraintsCPA() {
-    return constraintsCPA;
-  }
-
-  @FileOption(Type.REQUIRED_INPUT_FILE)
+  @FileOption(Type.OPTIONAL_INPUT_FILE)
   @Option(description = "Where to find the symbolic execution config without cegar.")
-  private Path symbolicExecutionProperties = Path.of("./symbolicExecutionForDss.properties");
+  private Path symbolicExecutionProperties = null;
 
   public SymbolicExecutionCPA(
       Configuration pConfiguration,
@@ -63,6 +59,9 @@ public class SymbolicExecutionCPA implements ConfigurableProgramAnalysis {
       Specification pSpecification)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     pConfiguration.inject(this);
+    if (symbolicExecutionProperties == null) {
+      symbolicExecutionProperties = Path.of("config/symbolicExecutionForDss.properties");
+    }
     try {
       ConfigurableProgramAnalysis cpa =
           new CoreComponentsFactory(
@@ -111,5 +110,9 @@ public class SymbolicExecutionCPA implements ConfigurableProgramAnalysis {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(SymbolicExecutionCPA.class);
+  }
+
+  public ConstraintsCPA getConstraintsCPA() {
+    return constraintsCPA;
   }
 }
