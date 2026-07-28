@@ -363,12 +363,9 @@ public class DssBlockAnalysis {
                   dcpa.getSerializePrecisionOperator()
                       .serializePrecision(stateAndPrecision.precision()))
               .buildOrThrow();
-      totalStateSize +=
-          content.entrySet().stream()
-              .mapToInt(e -> e.getKey().length() + e.getValue().length())
-              .sum();
       for (Entry<String, String> contents : content.entrySet()) {
         serializedContent.put(contents.getKey(), contents.getValue());
+        totalStateSize += contents.getKey().length() + contents.getValue().length();
       }
       serializedContent.popLevel();
     }
