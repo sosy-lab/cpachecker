@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries;
 
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -238,7 +239,13 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
 
       return interpretResult(
           executor.execute(cfa, blockGraph, stateCollector), reachedSet, modification);
-    } catch (InvalidConfigurationException | IOException | SolverException e) {
+    } catch (NoSuchMethodException
+        | InstantiationException
+        | IllegalAccessException
+        | InvocationTargetException
+        | InvalidConfigurationException
+        | IOException
+        | SolverException e) {
       logger.logException(Level.SEVERE, e, "Block analysis stopped unexpectedly.");
       throw new CPAException("Component Analysis run into an error.", e);
     } finally {

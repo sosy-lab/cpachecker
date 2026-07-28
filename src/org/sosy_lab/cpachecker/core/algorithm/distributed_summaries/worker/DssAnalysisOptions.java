@@ -16,9 +16,17 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.AlwaysReplaceDssBlockAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.PathBasedReplacementDssBlockAnalysis;
 
 @Options(prefix = "distributedSummaries")
 public class DssAnalysisOptions {
+
+  enum DssBlockAnalysisType {
+    PathBased,
+    AlwaysReplace
+  }
 
   @Option(
       name = "logging.reportFiles",
@@ -85,6 +93,11 @@ public class DssAnalysisOptions {
   private PathTemplate yamlWitnessOutputFileTemplate =
       PathTemplate.ofFormatString("witness-dss-%s.yml");
 
+  @Option(
+      description = "Which block analysis to use for the distributed summaries algorithm",
+      secure = true)
+  private DssBlockAnalysisType blockAnalysisType = DssBlockAnalysisType.PathBased;
+
   public DssAnalysisOptions(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
   }
@@ -119,5 +132,12 @@ public class DssAnalysisOptions {
 
   public PathTemplate getYamlCorrectnessWitnessOutputFileTemplate() {
     return yamlWitnessOutputFileTemplate;
+  }
+
+  public Class<? extends DssBlockAnalysis<?, ?>> getBlockAnalysisType() {
+    return switch (blockAnalysisType) {
+      case PathBased -> PathBasedReplacementDssBlockAnalysis.class;
+      case AlwaysReplace -> AlwaysReplaceDssBlockAnalysis.class;
+    };
   }
 }

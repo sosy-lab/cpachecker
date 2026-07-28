@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.logging.Level;
@@ -25,6 +26,7 @@ import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
@@ -35,7 +37,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector;
 
@@ -45,7 +46,7 @@ public class DssWitnessArgStateCollector implements RelevantArgStatesCollector {
   private boolean allStatsContainedStates = true;
 
   private final LogManager logger;
-  private final DssBlockAnalysis analysis;
+  private final DssBlockAnalysis<?, ?> analysis;
   private final BlockGraph blockGraph;
   private final ImmutableMap<String, BlockNode> idToNode;
 
@@ -60,20 +61,36 @@ public class DssWitnessArgStateCollector implements RelevantArgStatesCollector {
       Modification pModification,
       Specification spec,
       LogManager pLogger)
-      throws InvalidConfigurationException, IOException, CPAException, InterruptedException {
+      throws InvalidConfigurationException,
+          IOException,
+          InvocationTargetException,
+          InstantiationException,
+          IllegalAccessException,
+          NoSuchMethodException {
 
     Configuration forwardConfiguration =
         Configuration.builder().loadFromFile(options.getForwardConfiguration()).build();
     analysis =
-        new DssBlockAnalysis(
-            LogManager.createNullLogManager(),
-            pBlockGraph.getRoot(),
-            pModification.cfa(),
-            spec,
-            forwardConfiguration,
-            options,
-            new DssMessageFactory(options),
-            ShutdownManager.create());
+        options
+            .getBlockAnalysisType()
+            .getConstructor(
+                LogManager.class,
+                BlockNode.class,
+                CFA.class,
+                Specification.class,
+                Configuration.class,
+                DssAnalysisOptions.class,
+                DssMessageFactory.class,
+                ShutdownManager.class)
+            .newInstance(
+                LogManager.createNullLogManager(),
+                pBlockGraph.getRoot(),
+                pModification.cfa(),
+                spec,
+                forwardConfiguration,
+                options,
+                new DssMessageFactory(options),
+                ShutdownManager.create());
 
     blockGraph = pBlockGraph;
     idToNode = Maps.uniqueIndex(pBlockGraph.getNodes(), BlockNode::getId);
