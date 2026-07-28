@@ -4044,7 +4044,7 @@ cpa.statistics.metric.structVariablesCount = true
 cpa.statistics.statisticsCPAFile = no default value
 
 # Where to find the symbolic execution config without cegar.
-cpa.symbolicExecution.symbolicExecutionProperties = no default value
+cpa.symbolicExecution.symbolicExecutionProperties = "../../../../../../config/includes/symbolicExecutionForDss.properties"
 
 # Which refinement algorithm to use? (give class name, required for
 # termination algorithm with CEGAR) If the package name starts with
