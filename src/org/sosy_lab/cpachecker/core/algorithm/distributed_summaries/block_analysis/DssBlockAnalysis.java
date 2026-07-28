@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.path.SegmentedPaths;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -289,6 +290,11 @@ public abstract class DssBlockAnalysis<
     ImmutableMap<String, String> serialized = serialize(allVcs);
     return ImmutableSet.of(
         messageFactory.createViolationConditionMessage(block.getId(), status, serialized));
+  }
+
+  protected SegmentedPaths extractWitnessFromState(AbstractState state) {
+    return Objects.requireNonNull(AbstractStates.extractStateByType(state, BlockState.class))
+        .getWitness();
   }
 
   /**
