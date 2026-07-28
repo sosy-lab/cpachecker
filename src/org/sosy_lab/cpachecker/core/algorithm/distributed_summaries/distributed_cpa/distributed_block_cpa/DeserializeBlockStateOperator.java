@@ -38,28 +38,15 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
   public AbstractState deserialize(DssMessage pMessage) throws InterruptedException {
     String content = pMessage.getAbstractStateContent(BlockState.class).get(STATE_KEY);
 
-    List<String> idAndWitnessAndMaybeHistory = Splitter.on(" W:").limit(2).splitToList(content);
-    Preconditions.checkArgument(idAndWitnessAndMaybeHistory.size() == 2);
-    String serializedBlockState = idAndWitnessAndMaybeHistory.getFirst();
-    List<String> witnessAndMaybeHistory =
-        Splitter.on(" H:").limit(2).splitToList(idAndWitnessAndMaybeHistory.getLast());
-
-    SegmentedPaths finalWitness = SegmentedPaths.deserialize(witnessAndMaybeHistory.getFirst());
-    List<String> history =
-        witnessAndMaybeHistory.size() == 2
-            ? Splitter.on(",").splitToList(witnessAndMaybeHistory.getLast())
-            : ImmutableList.of();
-    Preconditions.checkNotNull(serializedBlockState);
-    Preconditions.checkArgument(
-        blockNode.getPredecessorIds().contains(serializedBlockState)
-            || blockNode.getSuccessorIds().contains(serializedBlockState));
+    ParseResult parsed = parseWitness(content);
+    Preconditions.checkNotNull(parsed.serializedBlockState);
     return new BlockState(
         DeserializeOperator.startLocationFromMessageType(pMessage, blockNode),
         blockNode,
         BlockStateType.INITIAL,
         ImmutableList.of(),
-        BlockGraphPath.of(history),
-        finalWitness);
+        parsed.history,
+        parsed.witness);
   }
 
   public static ParseResult parseWitness(String content) {
@@ -73,9 +60,9 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
         witnessAndMaybeHistory.size() == 2
             ? Splitter.on(",").splitToList(witnessAndMaybeHistory.getLast())
             : ImmutableList.of();
-    return new ParseResult(serializedBlockState, finalWitness, history);
+    return new ParseResult(serializedBlockState, finalWitness, BlockGraphPath.of(history));
   }
 
   public record ParseResult(
-      String serializedBlockState, SegmentedPaths witness, List<String> history) {}
+      String serializedBlockState, SegmentedPaths witness, BlockGraphPath history) {}
 }
