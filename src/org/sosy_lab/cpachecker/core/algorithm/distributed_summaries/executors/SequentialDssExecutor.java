@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAc
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActors;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisWorker;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusAndResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssWorkerBuilder;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -83,6 +82,8 @@ public class SequentialDssExecutor implements DssExecutor {
 
     Set<String> finished = new LinkedHashSet<>();
 
+    StatusObserver statusObserver = new StatusObserver();
+
     try {
       for (DssAnalysisWorker actor : actors.getAnalysisWorkers()) {
         actor.broadcastInitialMessages();
@@ -97,17 +98,22 @@ public class SequentialDssExecutor implements DssExecutor {
 
               if (resultMessage.getResult() == Result.FALSE) {
                 return new StatusAndResult(
-                    AlgorithmStatus.SOUND_AND_PRECISE,
+                    statusObserver.finish(),
                     ResultWithWitnessInformation.ofViolationPath(resultMessage.getViolationPath()));
               }
 
               return new StatusAndResult(
-                  AlgorithmStatus.SOUND_AND_PRECISE, resultMessage.getResult());
+                  statusObserver.finish(), resultMessage.getResult());
             }
             if (next instanceof DssExceptionMessage exceptionMessage) {
               throw new CPAException(exceptionMessage.getExceptionMessage());
             }
             Collection<DssMessage> results = actor.processMessage(next);
+
+            for (DssMessage message : results) {
+              statusObserver.updateStatus(message);
+            }
+
             actor.broadcast(results);
           } else {
             finished.add(actor.getId());
@@ -119,7 +125,7 @@ public class SequentialDssExecutor implements DssExecutor {
     }
 
     // blocks the thread until the result message is received
-    return new StatusAndResult(AlgorithmStatus.SOUND_AND_PRECISE, Result.TRUE);
+    return new StatusAndResult(statusObserver.finish(), Result.TRUE);
   }
 
   @Override

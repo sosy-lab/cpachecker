@@ -9,11 +9,16 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssWitnessArgStateCollector;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusAndResult;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.ResultWithWitnessInformation;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -42,4 +47,35 @@ public interface DssExecutor extends StatisticsProvider {
           InterruptedException,
           InvalidConfigurationException,
           SolverException;
+
+  record StatusAndResult(AlgorithmStatus status, ResultWithWitnessInformation result) {
+
+    // allows executors that do not provide witness information to remain unchanged
+    public StatusAndResult(AlgorithmStatus pStatus, Result pResult) {
+      this(pStatus, ResultWithWitnessInformation.ofResultWithoutInformation(pResult));
+    }
+  }
+
+  class StatusObserver {
+
+    private final Map<String, AlgorithmStatus> statusMap;
+
+    public StatusObserver() {
+      statusMap = new HashMap<>();
+    }
+
+    public void updateStatus(DssMessage pMessage) {
+      switch (pMessage.getType()) {
+        case VIOLATION_CONDITION, POST_CONDITION ->
+            statusMap.put(pMessage.getSenderId(), pMessage.getAlgorithmStatus());
+        case RESULT, EXCEPTION, STATISTIC -> {}
+      }
+    }
+
+    public AlgorithmStatus finish() {
+      return statusMap.values().stream()
+          .reduce(AlgorithmStatus::update)
+          .orElse(AlgorithmStatus.NO_PROPERTY_CHECKED);
+    }
+  }
 }

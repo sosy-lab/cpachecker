@@ -182,7 +182,7 @@ public abstract class DssMessage {
     checkArgument(getResult() == Result.FALSE, "Cannot get content for type: " + "%s", type);
     String violationPathString = content.get(DssResultMessage.DSS_MESSAGE_VIOLATION_PATH_KEY);
 
-    Preconditions.checkNotNull(violationPathString, "Violation path not set for False result");
+    Preconditions.checkNotNull(violationPathString, "No violation path available for counterexample to specification");
 
     ParseResult res = DeserializeBlockStateOperator.parseWitness(violationPathString);
 
