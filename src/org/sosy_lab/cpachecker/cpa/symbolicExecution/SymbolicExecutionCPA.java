@@ -53,7 +53,7 @@ public class SymbolicExecutionCPA implements ConfigurableProgramAnalysis {
 
   @FileOption(Type.REQUIRED_INPUT_FILE)
   @Option(description = "Where to find the symbolic execution config without cegar.")
-  private Path symbolicExecutionProperties = Path.of("symbolicExecutionForDss.properties");
+  private Path symbolicExecutionProperties = Path.of("./symbolicExecutionForDss.properties");
 
   public SymbolicExecutionCPA(
       Configuration pConfiguration,
