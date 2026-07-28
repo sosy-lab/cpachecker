@@ -96,7 +96,7 @@ public class DssAnalysisOptions {
   @Option(
       description = "Which block analysis to use for the distributed summaries algorithm",
       secure = true)
-  private DssBlockAnalysisType blockAnalysisType = DssBlockAnalysisType.PathBased;
+  private DssBlockAnalysisType blockAnalysisType = DssBlockAnalysisType.AlwaysReplace;
 
   public DssAnalysisOptions(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
