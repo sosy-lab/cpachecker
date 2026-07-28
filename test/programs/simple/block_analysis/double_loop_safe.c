@@ -7,6 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 extern int __VERIFIER_nondet_int();
+void reach_error();
 
 int main() {
 
@@ -21,9 +22,10 @@ int main() {
     y--;
   }
 
-  if (y == 1000)
-  ERROR:
+  if (y == 1000) {
+    ERROR: reach_error();
     return -1;
+  }
 
   return 0;
 }
