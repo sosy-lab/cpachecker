@@ -12,10 +12,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 
 /**
- * Message sent by analysis workers with the information required to construct a correctness
- * witness, e.g., serialized loop-head preconditions. The content may be empty, e.g., if the block
- * did not contribute to the correctness witness or the analysis did not finish with a correctness
- * result.
+ * Message sent by analysis workers after a TRUE result with the ARG states of all preconditions.
  */
 public class DssWitnessMessage extends DssMessage {
 
