@@ -85,9 +85,9 @@ public class DssAnalysisOptions {
       secure = true,
       name = "yamlProofWitness",
       description =
-          "The template from which the different "
+          "The path to which the different "
               + "versions of the correctness witnesses will be exported. "
-              + "Each version replaces the string '%s' "
+              + "Each witness version replaces the string '%s' "
               + "with its version number.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate yamlWitnessOutputFileTemplate =

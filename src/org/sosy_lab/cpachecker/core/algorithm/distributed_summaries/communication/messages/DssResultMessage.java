@@ -41,6 +41,7 @@ public class DssResultMessage extends DssMessage {
 
   @Override
   boolean isValid(Map<String, String> pContent) {
+    // For a FALSE message, we also send the paths collection that leads to the violation
     return (pContent.size() == 1 || pContent.size() == 2)
         && pContent.containsKey(DSS_MESSAGE_RESULT_KEY)
         && pContent.get(DSS_MESSAGE_RESULT_KEY) != null

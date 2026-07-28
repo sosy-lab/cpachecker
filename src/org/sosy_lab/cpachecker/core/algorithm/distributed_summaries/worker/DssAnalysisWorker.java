@@ -21,6 +21,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssMessageBroadcaster;
@@ -210,11 +211,21 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
           backwardAnalysisTime.stop();
         }
       }
-      case EXCEPTION, RESULT -> {
+      case EXCEPTION -> {
         shutdown = true;
         yield ImmutableSet.of(messageFactory.createDssStatisticsMessage(getBlockId(), getStats()));
       }
-      case STATISTIC -> ImmutableSet.of();
+      case RESULT -> {
+        shutdown = true;
+        ImmutableMap<String, String> witnessContent =
+            message.getResult() == Result.TRUE
+                ? analysis.getDssBlockAnalysis().serializedPreconditions()
+                : ImmutableMap.of();
+        yield ImmutableSet.of(
+            messageFactory.createDssStatisticsMessage(getBlockId(), getStats()),
+            messageFactory.createDssWitnessMessage(getBlockId(), witnessContent));
+      }
+      case STATISTIC, WITNESS -> ImmutableSet.of();
     };
   }
 
@@ -222,7 +233,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   public DssMessageProcessing storeMessage(DssMessage message)
       throws SolverException, InterruptedException, CPAException {
     return switch (message.getType()) {
-      case STATISTIC, RESULT, EXCEPTION -> DssMessageProcessing.stop();
+      case STATISTIC, WITNESS, RESULT, EXCEPTION -> DssMessageProcessing.stop();
       case VIOLATION_CONDITION ->
           analysis
               .getDssBlockAnalysis()
@@ -262,7 +273,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
             broadcaster.broadcastToIds(message, block.getPredecessorIds());
           }
         }
-        case EXCEPTION, RESULT, STATISTIC -> {
+        case EXCEPTION, RESULT, STATISTIC, WITNESS -> {
           broadcaster.broadcastToAll(message);
           close();
         }

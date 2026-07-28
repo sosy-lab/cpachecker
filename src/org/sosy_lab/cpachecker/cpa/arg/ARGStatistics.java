@@ -77,7 +77,7 @@ import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 import org.sosy_lab.cpachecker.util.pixelexport.GraphToPixelsWriter.PixelsWriterOptions;
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.ArgToSvLibCorrectnessWitnessExport;
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.WitnessExportUtils;
-import org.sosy_lab.cpachecker.util.witnesses.ReachedSetArgStateCollector;
+import org.sosy_lab.cpachecker.util.witnesses.RootExplorationArgStateCollector;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToYAMLWitnessExport;
 
 @Options(prefix = "cpa.arg")
@@ -284,7 +284,7 @@ public class ARGStatistics implements Statistics {
     if (exportYamlCorrectnessWitness && yamlWitnessOutputFileTemplate != null) {
       argToWitnessWriter =
           new ARGToYAMLWitnessExport(
-              config, pCFA, pSpecification, pLogger, new ReachedSetArgStateCollector());
+              config, pCFA, pSpecification, pLogger, new RootExplorationArgStateCollector());
     } else {
       argToWitnessWriter = null;
     }

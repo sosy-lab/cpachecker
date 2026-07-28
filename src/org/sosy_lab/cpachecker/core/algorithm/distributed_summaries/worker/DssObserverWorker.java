@@ -19,13 +19,14 @@ import java.util.concurrent.TimeUnit;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssWitnessMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.DssExecutor.StatusAndResult;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.DssExecutor.StatusObserver;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssWitnessArgStateCollector;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.ResultWithWitnessInformation;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -57,17 +58,10 @@ public class DssObserverWorker extends DssWorker implements Statistics {
   private Optional<String> errorMessage;
 
   private final Map<String, Map<StatisticsKey, String>> stats = new HashMap<>();
+  private int witnessMessagesReceived;
 
   private final BlockGraph blockGraph;
   private final DssWitnessArgStateCollector stateCollector;
-
-  public record StatusAndResult(AlgorithmStatus status, ResultWithWitnessInformation result) {
-
-    // allows other executors that do not use this observer worker to remain unchanged
-    public StatusAndResult(AlgorithmStatus pStatus, Result pResult) {
-      this(pStatus, ResultWithWitnessInformation.ofResultWithoutInformation(pResult));
-    }
-  }
 
   public DssObserverWorker(
       String pId,
@@ -112,13 +106,20 @@ public class DssObserverWorker extends DssWorker implements Statistics {
       }
       case STATISTIC -> {
         stats.put(pMessage.getSenderId(), pMessage.getStats());
-
-        stateCollector.collectFromMessage((DssStatisticsMessage) pMessage);
-
-        shutdown = stats.size() == blockGraph.getNodes().size();
+        shutdown = allMessagesReceived();
+      }
+      case WITNESS -> {
+        stateCollector.collectFromMessage((DssWitnessMessage) pMessage);
+        witnessMessagesReceived++;
+        shutdown = allMessagesReceived();
       }
     }
     return ImmutableList.of();
+  }
+
+  private boolean allMessagesReceived() {
+    return stats.size() == blockGraph.getNodes().size()
+        && witnessMessagesReceived == blockGraph.getNodes().size();
   }
 
   public StatusAndResult observe() throws CPAException {
@@ -140,29 +141,6 @@ public class DssObserverWorker extends DssWorker implements Statistics {
   @Override
   public boolean shutdownRequested() {
     return shutdown;
-  }
-
-  public static class StatusObserver {
-
-    private final Map<String, AlgorithmStatus> statusMap;
-
-    private StatusObserver() {
-      statusMap = new HashMap<>();
-    }
-
-    private void updateStatus(DssMessage pMessage) {
-      switch (pMessage.getType()) {
-        case VIOLATION_CONDITION, POST_CONDITION ->
-            statusMap.put(pMessage.getSenderId(), pMessage.getAlgorithmStatus());
-        case RESULT, EXCEPTION, STATISTIC -> {}
-      }
-    }
-
-    private AlgorithmStatus finish() {
-      return statusMap.values().stream()
-          .reduce(AlgorithmStatus::update)
-          .orElse(AlgorithmStatus.NO_PROPERTY_CHECKED);
-    }
   }
 
   private String convert(StatisticsKey pKey, String pNumber) {

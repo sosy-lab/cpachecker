@@ -180,6 +180,10 @@ public abstract class DssBlockAnalysis<
     combineByHash = pOptions.combineByHash();
   }
 
+  public ImmutableMap<String, String> serializedPreconditions() {
+    return serialize(ImmutableList.copyOf(preconditions.values()));
+  }
+
   /**
    * Creates the CPA algorithm to be used for the analysis of the given block node.
    *

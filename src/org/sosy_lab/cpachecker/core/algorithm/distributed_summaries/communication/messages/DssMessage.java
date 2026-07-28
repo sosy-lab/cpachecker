@@ -46,7 +46,8 @@ public abstract class DssMessage {
     VIOLATION_CONDITION,
     EXCEPTION,
     RESULT,
-    STATISTIC
+    STATISTIC,
+    WITNESS
   }
 
   private static class DssMessageProxy {
@@ -124,7 +125,7 @@ public abstract class DssMessage {
     checkArgument(
         type == DssMessageType.POST_CONDITION
             || type == DssMessageType.VIOLATION_CONDITION
-            || type == DssMessageType.STATISTIC,
+            || type == DssMessageType.WITNESS,
         "Cannot get content for type: %s",
         type);
     Map<String, String> stateContent = ContentReader.read(content).pushLevel(pKey).getContent();
@@ -182,7 +183,10 @@ public abstract class DssMessage {
     checkArgument(getResult() == Result.FALSE, "Cannot get content for type: " + "%s", type);
     String violationPathString = content.get(DssResultMessage.DSS_MESSAGE_VIOLATION_PATH_KEY);
 
-    Preconditions.checkNotNull(violationPathString, "Violation path not set for False result");
+    Preconditions.checkNotNull(
+        violationPathString,
+        "Result content for result FALSE is missing violationPath for witness: %s",
+        this);
 
     ParseResult res = DeserializeBlockStateOperator.parseWitness(violationPathString);
 
@@ -271,9 +275,6 @@ public abstract class DssMessage {
         type == DssMessageType.STATISTIC, "Cannot get stats for message type: " + "%s", type);
     ImmutableMap.Builder<StatisticsKey, String> statsBuilder = ImmutableMap.builder();
     for (Map.Entry<String, String> entry : content.entrySet()) {
-      if (entry.getKey().startsWith(SerializeOperator.STATE_KEY)) {
-        continue;
-      }
       StatisticsKey key = StatisticsKey.valueOf(entry.getKey());
       statsBuilder.put(key, entry.getValue());
     }
@@ -307,6 +308,7 @@ public abstract class DssMessage {
       case EXCEPTION -> new DssExceptionMessage(senderId, content);
       case RESULT -> new DssResultMessage(senderId, content);
       case STATISTIC -> new DssStatisticsMessage(senderId, content);
+      case WITNESS -> new DssWitnessMessage(senderId, content);
     };
   }
 }

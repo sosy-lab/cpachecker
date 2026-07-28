@@ -63,20 +63,16 @@ public class DssMessageFactory {
 
   public DssStatisticsMessage createDssStatisticsMessage(
       String pSenderId, ImmutableMap<StatisticsKey, String> pContent) {
-    return createDssStatisticsMessage(pSenderId, pContent, ImmutableMap.of());
-  }
-
-  public DssStatisticsMessage createDssStatisticsMessage(
-      String pSenderId,
-      ImmutableMap<StatisticsKey, String> pContent,
-      ImmutableMap<String, String> pSerializedRelevantPreconditions) {
-
     ImmutableMap.Builder<String, String> serializedContentBuilder = ImmutableMap.builder();
     for (Map.Entry<StatisticsKey, String> entry : pContent.entrySet()) {
       serializedContentBuilder.put(entry.getKey().name(), entry.getValue());
     }
-    serializedContentBuilder.putAll(pSerializedRelevantPreconditions);
     return new DssStatisticsMessage(pSenderId, serializedContentBuilder.buildOrThrow());
+  }
+
+  public DssWitnessMessage createDssWitnessMessage(
+      String pSenderId, ImmutableMap<String, String> pSerializedRelevantPreconditions) {
+    return new DssWitnessMessage(pSenderId, pSerializedRelevantPreconditions);
   }
 
   public DssResultMessage createDssCorrectnessResultMessage(String pSenderId) {
