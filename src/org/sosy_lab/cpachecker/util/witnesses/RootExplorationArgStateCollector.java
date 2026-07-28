@@ -27,7 +27,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class ReachedSetArgStateCollector implements RelevantArgStatesCollector {
+/** Traverses the ARG from the given root node to find all relevant ARG states for Witnesses */
+public class RootExplorationArgStateCollector implements RelevantArgStatesCollector {
 
   @Override
   public CollectedARGStates getRelevantStates(ARGState pRootState) {

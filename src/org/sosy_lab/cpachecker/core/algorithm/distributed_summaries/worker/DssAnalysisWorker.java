@@ -188,8 +188,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
       }
       case EXCEPTION -> {
         shutdown = true;
-        yield ImmutableSet.of(
-            messageFactory.createDssStatisticsMessage(getBlockId(), getStats()));
+        yield ImmutableSet.of(messageFactory.createDssStatisticsMessage(getBlockId(), getStats()));
       }
       case RESULT -> {
         shutdown = true;

@@ -19,7 +19,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssDefaultQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssExceptionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -102,8 +101,7 @@ public class SequentialDssExecutor implements DssExecutor {
                     ResultWithWitnessInformation.ofViolationPath(resultMessage.getViolationPath()));
               }
 
-              return new StatusAndResult(
-                  statusObserver.finish(), resultMessage.getResult());
+              return new StatusAndResult(statusObserver.finish(), resultMessage.getResult());
             }
             if (next instanceof DssExceptionMessage exceptionMessage) {
               throw new CPAException(exceptionMessage.getExceptionMessage());

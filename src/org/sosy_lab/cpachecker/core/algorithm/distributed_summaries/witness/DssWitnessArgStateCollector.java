@@ -136,6 +136,13 @@ public class DssWitnessArgStateCollector implements RelevantArgStatesCollector {
     return builder.build();
   }
 
+  /**
+   * Collects the states relevant to the witnesses from DSS witness messages instead of the local
+   * ARG that was not used
+   *
+   * @param pRootState ignored initial state
+   * @return all states deemed relevant
+   */
   @Override
   public CollectedARGStates getRelevantStates(ARGState pRootState) {
     return new CollectedARGStates(
