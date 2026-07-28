@@ -22,8 +22,8 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssWitnessMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.DssExecutor.StatusAndResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.DssExecutor.StatusObserver;
@@ -58,6 +58,7 @@ public class DssObserverWorker extends DssWorker implements Statistics {
   private Optional<String> errorMessage;
 
   private final Map<String, Map<StatisticsKey, String>> stats = new HashMap<>();
+  private int witnessMessagesReceived;
 
   private final BlockGraph blockGraph;
   private final DssWitnessArgStateCollector stateCollector;
@@ -105,13 +106,20 @@ public class DssObserverWorker extends DssWorker implements Statistics {
       }
       case STATISTIC -> {
         stats.put(pMessage.getSenderId(), pMessage.getStats());
-
-        stateCollector.collectFromMessage((DssStatisticsMessage) pMessage);
-
-        shutdown = stats.size() == blockGraph.getNodes().size();
+        shutdown = allMessagesReceived();
+      }
+      case WITNESS -> {
+        stateCollector.collectFromMessage((DssWitnessMessage) pMessage);
+        witnessMessagesReceived++;
+        shutdown = allMessagesReceived();
       }
     }
     return ImmutableList.of();
+  }
+
+  private boolean allMessagesReceived() {
+    return stats.size() == blockGraph.getNodes().size()
+        && witnessMessagesReceived == blockGraph.getNodes().size();
   }
 
   public StatusAndResult observe() throws CPAException {

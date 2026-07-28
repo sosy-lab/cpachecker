@@ -68,7 +68,7 @@ public interface DssExecutor extends StatisticsProvider {
       switch (pMessage.getType()) {
         case VIOLATION_CONDITION, POST_CONDITION ->
             statusMap.put(pMessage.getSenderId(), pMessage.getAlgorithmStatus());
-        case RESULT, EXCEPTION, STATISTIC -> {}
+        case RESULT, EXCEPTION, STATISTIC, WITNESS -> {}
       }
     }
 

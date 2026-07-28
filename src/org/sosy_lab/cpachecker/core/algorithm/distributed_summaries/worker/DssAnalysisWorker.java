@@ -188,22 +188,20 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
       }
       case EXCEPTION -> {
         shutdown = true;
-        yield ImmutableSet.of(messageFactory.createDssStatisticsMessage(getBlockId(), getStats()));
+        yield ImmutableSet.of(
+            messageFactory.createDssStatisticsMessage(getBlockId(), getStats()));
       }
       case RESULT -> {
         shutdown = true;
-        if (message.getResult() == Result.TRUE) {
-          yield ImmutableSet.of(
-              messageFactory.createDssStatisticsMessage(
-                  getBlockId(),
-                  getStats(),
-                  analysis.getDssBlockAnalysis().serializedPreconditions()));
-        } else {
-          yield ImmutableSet.of(
-              messageFactory.createDssStatisticsMessage(getBlockId(), getStats()));
-        }
+        ImmutableMap<String, String> witnessContent =
+            message.getResult() == Result.TRUE
+                ? analysis.getDssBlockAnalysis().serializedPreconditions()
+                : ImmutableMap.of();
+        yield ImmutableSet.of(
+            messageFactory.createDssStatisticsMessage(getBlockId(), getStats()),
+            messageFactory.createDssWitnessMessage(getBlockId(), witnessContent));
       }
-      case STATISTIC -> ImmutableSet.of();
+      case STATISTIC, WITNESS -> ImmutableSet.of();
     };
   }
 
@@ -211,7 +209,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   public DssMessageProcessing storeMessage(DssMessage message)
       throws SolverException, InterruptedException, CPAException {
     return switch (message.getType()) {
-      case STATISTIC, RESULT, EXCEPTION -> DssMessageProcessing.stop();
+      case STATISTIC, WITNESS, RESULT, EXCEPTION -> DssMessageProcessing.stop();
       case VIOLATION_CONDITION ->
           analysis
               .getDssBlockAnalysis()
@@ -251,7 +249,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
             broadcaster.broadcastToIds(message, block.getPredecessorIds());
           }
         }
-        case EXCEPTION, RESULT, STATISTIC -> {
+        case EXCEPTION, RESULT, STATISTIC, WITNESS -> {
           broadcaster.broadcastToAll(message);
           close();
         }
