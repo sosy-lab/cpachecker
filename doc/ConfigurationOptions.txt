@@ -4620,8 +4620,8 @@ differential.stopOnPointers = false
 differential.variableSetMerge = false
 
 # Which block analysis to use for the distributed summaries algorithm
-distributedSummaries.blockAnalysisType = AlwaysReplace
-  enum:     [PathBased, AlwaysReplace]
+distributedSummaries.blockAnalysisType = ALWAYS_REPLACE
+  enum:     [PATH_BASED, ALWAYS_REPLACE]
 
 # Whether to combine violation conditions at same program location
 distributedSummaries.combineVcsByHash = true

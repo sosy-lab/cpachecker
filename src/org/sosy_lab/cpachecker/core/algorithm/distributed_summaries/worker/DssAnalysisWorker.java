@@ -223,7 +223,8 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
               messageFactory.createDssWitnessMessage(
                   getBlockId(), analysis.getDssBlockAnalysis().serializedPreconditions()));
         } else {
-          yield ImmutableSet.of(messageFactory.createDssStatisticsMessage(getBlockId(), getStats()));
+          yield ImmutableSet.of(
+              messageFactory.createDssStatisticsMessage(getBlockId(), getStats()));
         }
       }
       case STATISTIC, WITNESS -> ImmutableSet.of();
