@@ -36,10 +36,10 @@ public class DssDebugUtils {
     return sb.toString();
   }
 
-  public static String prettyPrintBlock(
+  public static <Pre, Post> String prettyPrintBlock(
       String id,
-      Multimap<String, @NonNull StateAndPrecision> preconditions,
-      Multimap<String, @NonNull StateAndPrecision> violationConditions,
+      Multimap<Pre, @NonNull StateAndPrecision> preconditions,
+      Multimap<Post, @NonNull StateAndPrecision> violationConditions,
       Function<AbstractState, String> pStateToString) {
     String precondition =
         FluentIterable.from(preconditions.keySet())
@@ -64,10 +64,10 @@ public class DssDebugUtils {
     return "=".repeat(rep) + "\n" + header + "\n" + "=".repeat(rep);
   }
 
-  public static String prettyPrintPredicateAnalysisBlock(
+  public static <Pre, Post> String prettyPrintPredicateAnalysisBlock(
       BlockNode blockNode,
-      Multimap<String, @NonNull StateAndPrecision> preconditions,
-      Multimap<String, @NonNull StateAndPrecision> violationConditions) {
+      Multimap<Pre, @NonNull StateAndPrecision> preconditions,
+      Multimap<Post, @NonNull StateAndPrecision> violationConditions) {
     return prettyPrintBlock(
         blockNode.getId(),
         preconditions,
