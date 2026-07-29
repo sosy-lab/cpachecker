@@ -106,20 +106,22 @@ public class DssObserverWorker extends DssWorker implements Statistics {
       }
       case STATISTIC -> {
         stats.put(pMessage.getSenderId(), pMessage.getStats());
-        shutdown = allMessagesReceived();
+        shutdown = allPostAnalysisMessagesReceived();
       }
       case WITNESS -> {
         stateCollector.collectFromMessage((DssWitnessMessage) pMessage);
         witnessMessagesReceived++;
-        shutdown = allMessagesReceived();
+        shutdown = allPostAnalysisMessagesReceived();
       }
     }
     return ImmutableList.of();
   }
 
-  private boolean allMessagesReceived() {
+  private boolean allPostAnalysisMessagesReceived() {
+    boolean expectingWitnessMessages =
+        result.isPresent() && result.orElseThrow().getResult() == Result.TRUE;
     return stats.size() == blockGraph.getNodes().size()
-        && witnessMessagesReceived == blockGraph.getNodes().size();
+        && (!expectingWitnessMessages || witnessMessagesReceived == blockGraph.getNodes().size());
   }
 
   public StatusAndResult observe() throws CPAException {

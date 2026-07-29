@@ -192,13 +192,14 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
       }
       case RESULT -> {
         shutdown = true;
-        ImmutableMap<String, String> witnessContent =
-            message.getResult() == Result.TRUE
-                ? analysis.getDssBlockAnalysis().serializedPreconditions()
-                : ImmutableMap.of();
-        yield ImmutableSet.of(
-            messageFactory.createDssStatisticsMessage(getBlockId(), getStats()),
-            messageFactory.createDssWitnessMessage(getBlockId(), witnessContent));
+        if (message.getResult() == Result.TRUE) {
+          yield ImmutableSet.of(
+              messageFactory.createDssStatisticsMessage(getBlockId(), getStats()),
+              messageFactory.createDssWitnessMessage(
+                  getBlockId(), analysis.getDssBlockAnalysis().serializedPreconditions()));
+        } else {
+          yield ImmutableSet.of(messageFactory.createDssStatisticsMessage(getBlockId(), getStats()));
+        }
       }
       case STATISTIC, WITNESS -> ImmutableSet.of();
     };
