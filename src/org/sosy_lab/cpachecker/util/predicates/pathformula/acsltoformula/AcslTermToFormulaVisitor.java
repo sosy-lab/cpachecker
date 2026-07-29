@@ -122,16 +122,19 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
   @Override
   public Formula visit(AcslUnaryTerm pAcslUnaryTerm) throws NoException {
-    // TODO handle pointer and address operators
-    // TODO check negation vs bitwise complementation according to ACSL standard
+    // TODO check negation vs bitwise complementation according to ACSL standard, see Issue #1640
     Formula operandFormula = pAcslUnaryTerm.getOperand().accept(this);
 
     return switch (pAcslUnaryTerm.getOperator()) {
       case SIZEOF -> throw new UnsupportedOperationException("Not yet implemented");
       case PLUS -> operandFormula; // unary plus should not change the value
       case MINUS -> fmgr.makeNegate(operandFormula);
-      case POINTER_DEREFERENCE -> throw new UnsupportedOperationException("Not yet implemented");
-      case ADDRESS_OF -> throw new UnsupportedOperationException("Not yet implemented");
+      case POINTER_DEREFERENCE ->
+          throw new UnsupportedOperationException(
+              "Not yet implemented, use AcslCExpression instead");
+      case ADDRESS_OF ->
+          throw new UnsupportedOperationException(
+              "Not yet implemented, use AcslCExpression instead");
       case NEGATION -> fmgr.makeNot(operandFormula);
     };
   }
@@ -179,7 +182,6 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
     operand2Formula = result.f2();
 
     return switch (pAcslBinaryTerm.getOperator()) {
-      // TODO make sure that fmgr really does bitwise and, or etc. here as I suspect
       case BINARY_AND -> fmgr.makeAnd(operand1Formula, operand2Formula);
       case BINARY_OR -> fmgr.makeOr(operand1Formula, operand2Formula);
       // bitwise a -> b is the same as bitwise not a or b
@@ -272,8 +274,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
   @Override
   public Formula visit(AcslArraySubscriptTerm pAcslArraySubscriptTerm) throws NoException {
-    // TODO this will be needed for my thesis examples
-    throw new UnsupportedOperationException("Not yet implemented");
+    throw new UnsupportedOperationException("Not yet implemented, use AcslCExpression instead");
   }
 
   @Override
@@ -327,12 +328,12 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
     ErrorConditions errorConditions = new ErrorConditions(bfmgr);
 
+    // this has the side effect of sometimes adding to the constraints, if the CExpression contains
+    // an array access
     CRightHandSideVisitor<Formula, UnrecognizedCodeException> exprVisitor =
         ctoFormulaConverter.createCRightHandSideVisitor(
             dummyEdge, "dummy-function-name", currentSsa, pPts, constraints, errorConditions);
     Formula f = cExpr.accept(exprVisitor);
-
-    // TODO should the adding to the constraints really just be a side effect?
     return f;
   }
 }
