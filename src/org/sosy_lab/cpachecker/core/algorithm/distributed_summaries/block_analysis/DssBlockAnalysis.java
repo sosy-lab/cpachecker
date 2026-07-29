@@ -242,6 +242,8 @@ public abstract class DssBlockAnalysis<
     if (summaries.isEmpty()) {
       return ImmutableList.of();
     }
+
+    summaries.forEach(sap-> sap.getBlockState().addHistory(block));
     return ImmutableList.of(
         messageFactory.createDssPostConditionMessage(
             block.getId(), status, serialize(ImmutableList.copyOf(summaries))));
@@ -403,9 +405,7 @@ public abstract class DssBlockAnalysis<
   }
 
   protected AbstractState makeStartState() throws InterruptedException {
-    AbstractState state = makeTopState(block.getInitialLocation());
-    AbstractStates.extractStateByType(state, BlockState.class).addHistory(block);
-    return state;
+    return makeTopState(block.getInitialLocation());
   }
 
   protected Precision makeStartPrecision() throws InterruptedException {

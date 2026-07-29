@@ -17,6 +17,7 @@ public record BlockGraphPath(ImmutableList<String> path) implements DssIndexable
   public enum PathCase {
     SUFFIX_OR_EQUAL,
     OVERLAP,
+    REVERSE_OVERLAP,
     REAL_PREFIX,
     OTHER
   }
@@ -30,17 +31,7 @@ public record BlockGraphPath(ImmutableList<String> path) implements DssIndexable
   }
 
   public boolean isSuffixOf(BlockGraphPath other) {
-    if (other.path().size() < path.size()) {
-      return false;
-    }
-
-    for (int i = path.size() - 1; i >= 0; i--) {
-      if (!other.path().get(i).equals(path.get(i))) {
-        return false;
-      }
-    }
-
-    return true;
+    return BlockGraphPath.of(this.path().reverse()).isPrefixOf(BlockGraphPath.of(other.path().reverse()));
   }
 
   public boolean isPrefixOf(BlockGraphPath other) {
@@ -83,11 +74,14 @@ public record BlockGraphPath(ImmutableList<String> path) implements DssIndexable
     if (existingPath.isSuffixOf(this)) {
       return PathCase.SUFFIX_OR_EQUAL;
     }
+    if (existingPath.isPrefixOf(this)) {
+      return PathCase.REAL_PREFIX;
+    }
     if (overlapsWith(existingPath)) {
       return PathCase.OVERLAP;
     }
-    if (existingPath.isPrefixOf(this)) {
-      return PathCase.REAL_PREFIX;
+    if (existingPath.overlapsWith(this)) {
+      return PathCase.REVERSE_OVERLAP;
     }
     return PathCase.OTHER;
   }
