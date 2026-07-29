@@ -160,12 +160,6 @@ public class AlwaysReplaceDssBlockAnalysis extends DssBlockAnalysis<StringId, St
     return DssMessageProcessing.proceed();
   }
 
-  /**
-   * Adds a new abstract state to the known start states and execute the configured forward
-   * analysis.
-   *
-   * @return All violations and/or abstractions that occurred while running the forward analysis.
-   */
   @Override
   public Collection<DssMessage> analyzePreconditions(String idFromLastUpdate)
       throws SolverException, InterruptedException, CPAException {
@@ -183,14 +177,6 @@ public class AlwaysReplaceDssBlockAnalysis extends DssBlockAnalysis<StringId, St
     return messages.build();
   }
 
-  /**
-   * Analyzes the violation condition for the given sender ID. The violation condition is extracted
-   * from the violation conditions stored via {@link
-   * #storeViolationCondition(DssViolationConditionMessage)}
-   *
-   * @param idFormLastUpdate Sender ID of the violation-condition message to analyze.
-   * @return The messages resulting from the analysis of the violation condition.
-   */
   @Override
   public Collection<DssMessage> analyzeViolationConditions(String idFormLastUpdate)
       throws SolverException, InterruptedException, CPAException {

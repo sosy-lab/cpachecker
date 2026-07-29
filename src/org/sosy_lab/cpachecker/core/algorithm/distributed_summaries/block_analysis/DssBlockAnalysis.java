@@ -435,16 +435,50 @@ public abstract class DssBlockAnalysis<
   public abstract Collection<DssMessage> runInitialAnalysis()
       throws CPAException, InterruptedException, SolverException;
 
+  /**
+   * Adds a new precondition to the known preconditions. The method checks whether the new
+   * precondition is already covered by an existing one. If this is the case, the new precondition
+   * is discarded and the analysis will not proceed. Otherwise, the new precondition is added and
+   * the analysis will proceed.
+   *
+   * @param pReceived The new precondition to add.
+   * @return Whether the analysis should proceed.
+   * @throws InterruptedException thrown if thread is interrupted unexpectedly
+   * @throws SolverException thrown if solver runs into an error
+   * @throws CPAException thrown if CPA runs into an error
+   */
   public abstract DssMessageProcessing storePrecondition(DssPostConditionMessage pReceived)
       throws InterruptedException, SolverException, CPAException;
 
+  /**
+   * Adds a new abstract state to the known violation conditions.
+   *
+   * @param pNewViolationCondition The new violation condition to add.
+   * @return Whether the analysis should proceed.
+   * @throws InterruptedException thrown if thread is interrupted unexpectedly
+   * @throws SolverException thrown if solver runs into an error
+   */
   public abstract DssMessageProcessing storeViolationCondition(
       DssViolationConditionMessage pNewViolationCondition)
       throws InterruptedException, SolverException;
 
+  /**
+   * Adds a new abstract state to the known start states and execute the configured forward
+   * analysis.
+   *
+   * @return All violations and/or abstractions that occurred while running the forward analysis.
+   */
   public abstract Collection<DssMessage> analyzePreconditions(String idFormLastUpdate)
       throws SolverException, InterruptedException, CPAException;
 
+  /**
+   * Analyzes the violation condition for the given sender ID. The violation condition is extracted
+   * from the violation conditions stored via {@link
+   * #storeViolationCondition(DssViolationConditionMessage)}
+   *
+   * @param idFormLastUpdate Sender ID of the violation-condition message to analyze.
+   * @return The messages resulting from the analysis of the violation condition.
+   */
   public abstract Collection<DssMessage> analyzeViolationConditions(String idFormLastUpdate)
       throws SolverException, InterruptedException, CPAException;
 }

@@ -120,18 +120,6 @@ public class PathBasedReplacementDssBlockAnalysis
     return initialMessages.build();
   }
 
-  /**
-   * Adds a new precondition to the known preconditions. The method checks whether the new
-   * precondition is already covered by an existing one. If this is the case, the new precondition
-   * is discarded and the analysis will not proceed. Otherwise, the new precondition is added and
-   * the analysis will proceed.
-   *
-   * @param pReceived The new precondition to add.
-   * @return Whether the analysis should proceed.
-   * @throws InterruptedException thrown if thread is interrupted unexpectedly
-   * @throws SolverException thrown if solver runs into an error
-   * @throws CPAException thrown if CPA runs into an error
-   */
   @Override
   public DssMessageProcessing storePrecondition(DssPostConditionMessage pReceived)
       throws InterruptedException, SolverException, CPAException {
@@ -260,14 +248,6 @@ public class PathBasedReplacementDssBlockAnalysis
     return true;
   }
 
-  /**
-   * Adds a new abstract state to the known violation conditions.
-   *
-   * @param pNewViolationCondition The new violation condition to add.
-   * @return Whether the analysis should proceed.
-   * @throws InterruptedException thrown if thread is interrupted unexpectedly
-   * @throws SolverException thrown if solver runs into an error
-   */
   @Override
   public DssMessageProcessing storeViolationCondition(
       DssViolationConditionMessage pNewViolationCondition)
@@ -307,12 +287,6 @@ public class PathBasedReplacementDssBlockAnalysis
     return DssMessageProcessing.proceed();
   }
 
-  /**
-   * Adds a new abstract state to the known start states and execute the configured forward
-   * analysis.
-   *
-   * @return All violations and/or abstractions that occurred while running the forward analysis.
-   */
   @Override
   public Collection<DssMessage> analyzePreconditions(String idFromLastUpdate)
       throws SolverException, InterruptedException, CPAException {
@@ -330,14 +304,6 @@ public class PathBasedReplacementDssBlockAnalysis
     return messages.build();
   }
 
-  /**
-   * Analyzes the violation condition for the given sender ID. The violation condition is extracted
-   * from the violation conditions stored via {@link
-   * #storeViolationCondition(DssViolationConditionMessage)}
-   *
-   * @param idFormLastUpdate Sender ID of the violation-condition message to analyze.
-   * @return The messages resulting from the analysis of the violation condition.
-   */
   @Override
   public Collection<DssMessage> analyzeViolationConditions(String idFormLastUpdate)
       throws SolverException, InterruptedException, CPAException {
@@ -364,8 +330,8 @@ public class PathBasedReplacementDssBlockAnalysis
    * infeasible, we compute an abstraction. If no error condition is present, we run the CPA.
    *
    * @return Important messages for other blocks.
-   * @throws CPAException thrown if CPA runs into an error
    * @throws InterruptedException thrown if thread is interrupted unexpectedly
+   * @throws CPAException thrown if CPA runs into an error
    */
   private AnalysisResult analyzeViolationCondition(Optional<StringId> sender)
       throws CPAException, InterruptedException {
