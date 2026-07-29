@@ -432,6 +432,14 @@ public abstract class DssBlockAnalysis<
     return dcpa;
   }
 
+  /**
+   * Executes the configured CPA algorithm on the block with the initial state and precision.
+   *
+   * @return Important messages for other blocks.
+   * @throws CPAException thrown if CPA runs into an error
+   * @throws InterruptedException thrown if thread is interrupted unexpectedly
+   * @throws SolverException thrown if solver runs into an error
+   */
   public abstract Collection<DssMessage> runInitialAnalysis()
       throws CPAException, InterruptedException, SolverException;
 
