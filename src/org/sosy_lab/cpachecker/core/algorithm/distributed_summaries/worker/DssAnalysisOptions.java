@@ -24,8 +24,8 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analys
 public class DssAnalysisOptions {
 
   enum DssBlockAnalysisType {
-    PathBased,
-    AlwaysReplace
+    PATH_BASED,
+    ALWAYS_REPLACE
   }
 
   @Option(
@@ -96,7 +96,7 @@ public class DssAnalysisOptions {
   @Option(
       description = "Which block analysis to use for the distributed summaries algorithm",
       secure = true)
-  private DssBlockAnalysisType blockAnalysisType = DssBlockAnalysisType.AlwaysReplace;
+  private DssBlockAnalysisType blockAnalysisType = DssBlockAnalysisType.ALWAYS_REPLACE;
 
   public DssAnalysisOptions(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
@@ -136,8 +136,8 @@ public class DssAnalysisOptions {
 
   public Class<? extends DssBlockAnalysis<?, ?>> getBlockAnalysisType() {
     return switch (blockAnalysisType) {
-      case PathBased -> PathBasedReplacementDssBlockAnalysis.class;
-      case AlwaysReplace -> AlwaysReplaceDssBlockAnalysis.class;
+      case PATH_BASED -> PathBasedReplacementDssBlockAnalysis.class;
+      case ALWAYS_REPLACE -> AlwaysReplaceDssBlockAnalysis.class;
     };
   }
 }
