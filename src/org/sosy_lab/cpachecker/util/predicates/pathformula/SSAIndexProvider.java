@@ -14,11 +14,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 public abstract class SSAIndexProvider<T extends Type> {
 
   // Index that is used to read from variables that were not assigned yet
-  protected static final int VARIABLE_UNINITIALIZED = 1;
+  private static final int VARIABLE_UNINITIALIZED = 1;
 
   // Index to be used for first assignment to a variable (must be higher than
   // VARIABLE_UNINITIALIZED!)
-  protected static final int VARIABLE_FIRST_ASSIGNMENT = 2;
+  private static final int VARIABLE_FIRST_ASSIGNMENT = 2;
 
   /** Produces a fresh new SSA index for an assignment and updates the SSA map. */
   protected int makeFreshIndex(String name, T type, SSAMapBuilder ssa) {
@@ -38,7 +38,7 @@ public abstract class SSAIndexProvider<T extends Type> {
   protected int getFreshIndex(String name, T pType, SSAMapBuilder ssa) {
     int idx = ssa.getFreshIndex(name);
     if (idx <= 0) {
-      idx = LanguageToSmtConverter.VARIABLE_FIRST_ASSIGNMENT;
+      idx = SSAIndexProvider.VARIABLE_FIRST_ASSIGNMENT;
     }
     return idx;
   }
@@ -55,7 +55,7 @@ public abstract class SSAIndexProvider<T extends Type> {
   public int getExistingOrNewIndex(String name, T type, SSAMapBuilder ssa) {
     int idx = ssa.getIndex(name);
     if (idx <= 0) {
-      idx = LanguageToSmtConverter.VARIABLE_UNINITIALIZED;
+      idx = SSAIndexProvider.VARIABLE_UNINITIALIZED;
 
       // It is important to store the index in the variable here.
       // If getIndex() was called with a specific name,
