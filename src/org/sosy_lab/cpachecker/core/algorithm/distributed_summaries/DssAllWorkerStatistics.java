@@ -58,7 +58,7 @@ public class DssAllWorkerStatistics implements Statistics {
           key.isFormattedAsTime()
               ? DssSingleWorkerStatistics.formatNanos(total)
               : Long.toString(total);
-      writer.put(key.getKey(), formatted);
+      writer.put(key.getLabel(), formatted);
     }
   }
 

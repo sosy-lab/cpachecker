@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 /** Statistics collected by a single DSS analysis worker. */
 public class DssSingleWorkerStatistics implements Statistics {
 
-  /** Keys used to label statistics collected from DSS analysis workers. */
+  /** Keys defining the statistics that are collected for a single DSS analysis worker. */
   public enum StatisticsKey {
     SERIALIZATION_COUNT("number of serialized states", false),
     DESERIALIZATION_COUNT("number of deserialized states", false),
@@ -33,26 +33,24 @@ public class DssSingleWorkerStatistics implements Statistics {
     SERIALIZATION_TIME("time spent serializing states", true),
     DESERIALIZATION_TIME("time spent deserializing states", true),
     PROCEED_TIME("time spent processing states", true),
-    ANALYZE_PRECONDITION_COUNT("number of preconditions analyzed", false),
-    ANALYZE_PRECONDITION_TIME("time spent in analyzing preconditions", true),
-    STORE_PRECONDITION_COUNT("number of preconditions stored", false),
-    STORE_PRECONDITION_TIME("time spent in storing preconditions", true),
-    ANALYZE_VIOLATION_CONDITION_COUNT("number of violation conditions analyzed", false),
-    ANALYZE_VIOLATION_CONDITION_TIME("time spent in analyzing violation conditions", true),
-    STORE_VIOLATION_CONDITION_COUNT("number of violation conditions stored", false),
-    STORE_VIOLATION_CONDITION_TIME("time spent in storing violation conditions", true),
+    BLOCK_ANALYSIS_COUNT("number of block analyses", false),
+    BLOCK_ANALYSIS_TIME("time spent in block analyses", true),
+    STORE_PRECONDITION_STATES_COUNT("number of precondition states stored", false),
+    STORE_PRECONDITION_STATES_TIME("time spent in storing precondition states", true),
+    STORE_VIOLATION_CONDITION_STATES_COUNT("number of violation condition states stored", false),
+    STORE_VIOLATION_CONDITION_STATES_TIME("time spent in storing violation condition states", true),
     SERIALIZED_STATES_SIZE("serialized states size (chars)", false);
 
-    private final String key;
+    private final String label;
     private final boolean formatAsTime;
 
-    StatisticsKey(String pKey, boolean pFormatAsTime) {
-      key = pKey;
+    StatisticsKey(String pLabel, boolean pFormatAsTime) {
+      label = pLabel;
       formatAsTime = pFormatAsTime;
     }
 
-    public String getKey() {
-      return key;
+    public String getLabel() {
+      return label;
     }
 
     public boolean isFormattedAsTime() {
@@ -62,63 +60,54 @@ public class DssSingleWorkerStatistics implements Statistics {
 
   private final String blockId;
 
-  private final DssThreadCpuTimer analyzePreconditionTime =
-      new DssThreadCpuTimer("Analyze Precondition");
-  private final DssThreadCpuTimer storePreconditionTime =
-      new DssThreadCpuTimer("Store Precondition");
-  private final DssThreadCpuTimer analyzeViolationConditionTime =
-      new DssThreadCpuTimer("Analyze Violation Condition");
-  private final DssThreadCpuTimer storeViolationConditionTime =
-      new DssThreadCpuTimer("Store Violation Condition");
+  private final DssThreadCpuTimer storeViolationConditionStatesTime =
+      new DssThreadCpuTimer(StatisticsKey.STORE_VIOLATION_CONDITION_STATES_TIME.getLabel());
+  private final DssThreadCpuTimer storePreconditionStatesTime =
+      new DssThreadCpuTimer(StatisticsKey.STORE_PRECONDITION_STATES_TIME.getLabel());
+  private final DssThreadCpuTimer blockAnalysisTime =
+      new DssThreadCpuTimer(StatisticsKey.BLOCK_ANALYSIS_TIME.getLabel());
 
   private @Nullable DssBlockAnalysisStatistics dcpaStatistics;
 
-  private final StatCounter analyzePreconditionCount = new StatCounter("Analyze Precondition");
-  private final StatCounter storePreconditionCount = new StatCounter("Store Precondition");
-  private final StatCounter analyzeViolationConditionCount =
-      new StatCounter("Analyze Violation Condition");
-  private final StatCounter storeViolationConditionCount =
-      new StatCounter("Store Violation Condition");
-  private final StatInt serializedStatesSize = new StatInt(StatKind.SUM, "Serialized States Size");
+  private final StatCounter blockAnalysisCount =
+      new StatCounter(StatisticsKey.BLOCK_ANALYSIS_COUNT.getLabel());
+  private final StatCounter storePreconditionStatesCount =
+      new StatCounter(StatisticsKey.STORE_PRECONDITION_STATES_COUNT.getLabel());
+  private final StatCounter storeViolationConditionStatesCount =
+      new StatCounter(StatisticsKey.STORE_VIOLATION_CONDITION_STATES_COUNT.getLabel());
+  private final StatInt serializedStatesSize =
+      new StatInt(StatKind.SUM, StatisticsKey.SERIALIZED_STATES_SIZE.getLabel());
 
   public DssSingleWorkerStatistics(String pBlockId) {
     blockId = pBlockId;
   }
 
-  public DssThreadCpuTimer getAnalyzePreconditionTimer() {
-    return analyzePreconditionTime;
+  public DssThreadCpuTimer getBlockAnalysisTimer() {
+    return blockAnalysisTime;
   }
 
-  public DssThreadCpuTimer getStorePreconditionTimer() {
-    return storePreconditionTime;
+  public DssThreadCpuTimer getStorePreconditionStatesTimer() {
+    return storePreconditionStatesTime;
   }
 
-  public DssThreadCpuTimer getAnalyzeViolationConditionTimer() {
-    return analyzeViolationConditionTime;
-  }
-
-  public DssThreadCpuTimer getStoreViolationConditionTimer() {
-    return storeViolationConditionTime;
+  public DssThreadCpuTimer getStoreViolationConditionStatesTimer() {
+    return storeViolationConditionStatesTime;
   }
 
   public void setDcpaStatistics(DssBlockAnalysisStatistics pDcpaStatistics) {
     dcpaStatistics = pDcpaStatistics;
   }
 
-  public StatCounter getAnalyzePreconditionCounter() {
-    return analyzePreconditionCount;
+  public StatCounter getBlockAnalysisCounter() {
+    return blockAnalysisCount;
   }
 
-  public StatCounter getStorePreconditionCounter() {
-    return storePreconditionCount;
+  public StatCounter getStorePreconditionStatesCounter() {
+    return storePreconditionStatesCount;
   }
 
-  public StatCounter getAnalyzeViolationConditionCounter() {
-    return analyzeViolationConditionCount;
-  }
-
-  public StatCounter getStoreViolationConditionCounter() {
-    return storeViolationConditionCount;
+  public StatCounter getStoreViolationConditionStatesCounter() {
+    return storeViolationConditionStatesCount;
   }
 
   public StatInt getSerializedStatesSizeStats() {
@@ -142,14 +131,13 @@ public class DssSingleWorkerStatistics implements Statistics {
       case DESERIALIZATION_TIME ->
           dcpaStatistics != null ? dcpaStatistics.getDeserializationTime().nanos() : 0;
       case PROCEED_TIME -> dcpaStatistics != null ? dcpaStatistics.getProceedTime().nanos() : 0;
-      case ANALYZE_PRECONDITION_COUNT -> analyzePreconditionCount.getUpdateCount();
-      case ANALYZE_PRECONDITION_TIME -> analyzePreconditionTime.nanos();
-      case STORE_PRECONDITION_COUNT -> storePreconditionCount.getUpdateCount();
-      case STORE_PRECONDITION_TIME -> storePreconditionTime.nanos();
-      case ANALYZE_VIOLATION_CONDITION_COUNT -> analyzeViolationConditionCount.getUpdateCount();
-      case ANALYZE_VIOLATION_CONDITION_TIME -> analyzeViolationConditionTime.nanos();
-      case STORE_VIOLATION_CONDITION_COUNT -> storeViolationConditionCount.getUpdateCount();
-      case STORE_VIOLATION_CONDITION_TIME -> storeViolationConditionTime.nanos();
+      case BLOCK_ANALYSIS_COUNT -> blockAnalysisCount.getUpdateCount();
+      case BLOCK_ANALYSIS_TIME -> blockAnalysisTime.nanos();
+      case STORE_PRECONDITION_STATES_COUNT -> storePreconditionStatesCount.getUpdateCount();
+      case STORE_PRECONDITION_STATES_TIME -> storePreconditionStatesTime.nanos();
+      case STORE_VIOLATION_CONDITION_STATES_COUNT ->
+          storeViolationConditionStatesCount.getUpdateCount();
+      case STORE_VIOLATION_CONDITION_STATES_TIME -> storeViolationConditionStatesTime.nanos();
       case SERIALIZED_STATES_SIZE -> serializedStatesSize.getValueSum();
     };
   }
@@ -164,51 +152,41 @@ public class DssSingleWorkerStatistics implements Statistics {
     if (dcpaStatistics != null) {
       writer
           .put(
-              StatisticsKey.SERIALIZATION_COUNT.getKey(),
+              StatisticsKey.SERIALIZATION_COUNT.getLabel(),
               dcpaStatistics.getSerializationCount().getUpdateCount())
           .put(
-              StatisticsKey.DESERIALIZATION_COUNT.getKey(),
+              StatisticsKey.DESERIALIZATION_COUNT.getLabel(),
               dcpaStatistics.getDeserializationCount().getUpdateCount())
           .put(
-              StatisticsKey.PROCEED_COUNT.getKey(),
+              StatisticsKey.PROCEED_COUNT.getLabel(),
               dcpaStatistics.getProceedCount().getUpdateCount())
           .put(
-              StatisticsKey.SERIALIZATION_TIME.getKey(),
+              StatisticsKey.SERIALIZATION_TIME.getLabel(),
               formatNanos(dcpaStatistics.getSerializationTime().nanos()))
           .put(
-              StatisticsKey.DESERIALIZATION_TIME.getKey(),
+              StatisticsKey.DESERIALIZATION_TIME.getLabel(),
               formatNanos(dcpaStatistics.getDeserializationTime().nanos()))
           .put(
-              StatisticsKey.PROCEED_TIME.getKey(),
+              StatisticsKey.PROCEED_TIME.getLabel(),
               formatNanos(dcpaStatistics.getProceedTime().nanos()));
     }
 
     writer
+        .put(StatisticsKey.BLOCK_ANALYSIS_COUNT.getLabel(), blockAnalysisCount.getUpdateCount())
+        .put(StatisticsKey.BLOCK_ANALYSIS_TIME.getLabel(), formatNanos(blockAnalysisTime.nanos()))
         .put(
-            StatisticsKey.ANALYZE_PRECONDITION_COUNT.getKey(),
-            analyzePreconditionCount.getUpdateCount())
+            StatisticsKey.STORE_PRECONDITION_STATES_COUNT.getLabel(),
+            storePreconditionStatesCount.getUpdateCount())
         .put(
-            StatisticsKey.ANALYZE_PRECONDITION_TIME.getKey(),
-            formatNanos(analyzePreconditionTime.nanos()))
+            StatisticsKey.STORE_PRECONDITION_STATES_TIME.getLabel(),
+            formatNanos(storePreconditionStatesTime.nanos()))
         .put(
-            StatisticsKey.STORE_PRECONDITION_COUNT.getKey(),
-            storePreconditionCount.getUpdateCount())
+            StatisticsKey.STORE_VIOLATION_CONDITION_STATES_COUNT.getLabel(),
+            storeViolationConditionStatesCount.getUpdateCount())
         .put(
-            StatisticsKey.STORE_PRECONDITION_TIME.getKey(),
-            formatNanos(storePreconditionTime.nanos()))
-        .put(
-            StatisticsKey.ANALYZE_VIOLATION_CONDITION_COUNT.getKey(),
-            analyzeViolationConditionCount.getUpdateCount())
-        .put(
-            StatisticsKey.ANALYZE_VIOLATION_CONDITION_TIME.getKey(),
-            formatNanos(analyzeViolationConditionTime.nanos()))
-        .put(
-            StatisticsKey.STORE_VIOLATION_CONDITION_COUNT.getKey(),
-            storeViolationConditionCount.getUpdateCount())
-        .put(
-            StatisticsKey.STORE_VIOLATION_CONDITION_TIME.getKey(),
-            formatNanos(storeViolationConditionTime.nanos()))
-        .put(StatisticsKey.SERIALIZED_STATES_SIZE.getKey(), serializedStatesSize.toString());
+            StatisticsKey.STORE_VIOLATION_CONDITION_STATES_TIME.getLabel(),
+            formatNanos(storeViolationConditionStatesTime.nanos()))
+        .put(StatisticsKey.SERIALIZED_STATES_SIZE.getLabel(), serializedStatesSize.toString());
   }
 
   static String formatNanos(long nanos) {

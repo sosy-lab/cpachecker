@@ -555,7 +555,7 @@ public class DssBlockAnalysis {
   public DssMessageProcessing storePrecondition(DssPostConditionMessage pReceived)
       throws InterruptedException, SolverException, CPAException {
     ImmutableList<@NonNull StateAndPrecision> deserializedStatesAndPrecisions = ImmutableList.of();
-    workerStats.getStorePreconditionTimer().start();
+    workerStats.getStorePreconditionStatesTimer().start();
     try {
       relevant.clear();
       logger.log(Level.INFO, "Running forward analysis with new precondition");
@@ -606,8 +606,8 @@ public class DssBlockAnalysis {
       appendTopToRelevantIfNecessary(pReceived.getSenderId());
       return processing;
     } finally {
-      workerStats.getStorePreconditionTimer().stop();
-      workerStats.getStorePreconditionCounter().add(deserializedStatesAndPrecisions.size());
+      workerStats.getStorePreconditionStatesTimer().stop();
+      workerStats.getStorePreconditionStatesCounter().add(deserializedStatesAndPrecisions.size());
     }
   }
 
@@ -628,7 +628,7 @@ public class DssBlockAnalysis {
       DssViolationConditionMessage pNewViolationCondition)
       throws InterruptedException, SolverException {
     ImmutableList<StateAndPrecision> deserializedStates = ImmutableList.of();
-    workerStats.getStoreViolationConditionTimer().start();
+    workerStats.getStoreViolationConditionStatesTimer().start();
     try {
       logger.log(Level.INFO, "Running forward analysis with respect to error condition");
       // merge all states into the reached set
@@ -654,8 +654,8 @@ public class DssBlockAnalysis {
       }
       return DssMessageProcessing.proceed();
     } finally {
-      workerStats.getStoreViolationConditionTimer().stop();
-      workerStats.getStoreViolationConditionCounter().add(deserializedStates.size());
+      workerStats.getStoreViolationConditionStatesTimer().stop();
+      workerStats.getStoreViolationConditionStatesCounter().add(deserializedStates.size());
     }
   }
 
@@ -670,24 +670,18 @@ public class DssBlockAnalysis {
     if (!containsViolationInsideBlock && violationConditions.isEmpty()) {
       return ImmutableSet.of();
     }
-    workerStats.getAnalyzePreconditionTimer().start();
-    try {
-      ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
-      AnalysisResult result =
-          analyzeViolationCondition(
-              transformedImmutableListCopy(violationConditions.values(), v -> (ARGState) v.state()),
-              true);
-      if (!result.violationConditions().isEmpty()) {
-        messages.addAll(reportViolationConditions(result.violationConditions()));
-      }
-      if (!result.summaries().isEmpty()) {
-        messages.addAll(reportPostconditions(result.summaries()));
-      }
-      return messages.build();
-    } finally {
-      workerStats.getAnalyzePreconditionTimer().stop();
-      workerStats.getAnalyzePreconditionCounter().add(violationConditions.values().size());
+    ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
+    AnalysisResult result =
+        analyzeViolationCondition(
+            transformedImmutableListCopy(violationConditions.values(), v -> (ARGState) v.state()),
+            true);
+    if (!result.violationConditions().isEmpty()) {
+      messages.addAll(reportViolationConditions(result.violationConditions()));
     }
+    if (!result.summaries().isEmpty()) {
+      messages.addAll(reportPostconditions(result.summaries()));
+    }
+    return messages.build();
   }
 
   /**
@@ -706,23 +700,17 @@ public class DssBlockAnalysis {
       throw new IllegalArgumentException(
           "No violation condition found for sender ID: " + pSenderId);
     }
-    workerStats.getAnalyzeViolationConditionTimer().start();
-    try {
-      ImmutableList.Builder<DssMessage> messages = ImmutableList.builder();
-      AnalysisResult result =
-          analyzeViolationCondition(
-              transformedImmutableListCopy(violations, v -> (ARGState) v.state()), false);
-      if (!result.summaries().isEmpty()) {
-        messages.addAll(reportPostconditions(result.summaries()));
-      }
-      if (!result.violationConditions().isEmpty()) {
-        messages.addAll(reportViolationConditions(result.violationConditions()));
-      }
-      return messages.build();
-    } finally {
-      workerStats.getAnalyzeViolationConditionTimer().stop();
-      workerStats.getAnalyzeViolationConditionCounter().add(violations.size());
+    ImmutableList.Builder<DssMessage> messages = ImmutableList.builder();
+    AnalysisResult result =
+        analyzeViolationCondition(
+            transformedImmutableListCopy(violations, v -> (ARGState) v.state()), false);
+    if (!result.summaries().isEmpty()) {
+      messages.addAll(reportPostconditions(result.summaries()));
     }
+    if (!result.violationConditions().isEmpty()) {
+      messages.addAll(reportViolationConditions(result.violationConditions()));
+    }
+    return messages.build();
   }
 
   /**
@@ -795,7 +783,14 @@ public class DssBlockAnalysis {
               AbstractStates.extractStateByType(stateAndPrecision.state(), BlockState.class))
           .setViolationConditions(violations);
 
-      DssBlockAnalysisResult result = DssBlockAnalyses.runAlgorithm(algorithm, reachedSet, block);
+      DssBlockAnalysisResult result;
+      try {
+        workerStats.getBlockAnalysisTimer().start();
+        result = DssBlockAnalyses.runAlgorithm(algorithm, reachedSet, block);
+      } finally {
+        workerStats.getBlockAnalysisTimer().stop();
+        workerStats.getBlockAnalysisCounter().inc();
+      }
 
       status = status.update(result.getStatus());
 
