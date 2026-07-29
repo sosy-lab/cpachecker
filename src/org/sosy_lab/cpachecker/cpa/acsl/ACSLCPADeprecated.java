@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
 /** This CPA is for deriving invariants from ACSL annotations. */
-@Options(prefix = "cpa.acsl")
+@Options(prefix = "cpa.acsldeprecated")
 public class ACSLCPADeprecated extends AbstractCPA implements ConfigurableProgramAnalysis {
 
   @Option(
