@@ -130,7 +130,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     configuration.inject(this);
 
     decompositionOptions = new DssDecompositionOptions(configuration, pInitialCFA);
-    dssStats = new DistributedSummarySynthesisStatistics();
+    dssStats = new DistributedSummarySynthesisStatistics(configuration);
 
     logger = pLogger;
     initialCFA = pInitialCFA;
@@ -141,9 +141,10 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
   private DssExecutor getExecutor(Specification specification)
       throws InvalidConfigurationException {
     return switch (executorType) {
-      case DSS -> new MultithreadingDssExecutor(configuration, specification);
-      case SINGLE_WORKER -> new SingleWorkerDssExecutor(configuration, specification);
-      case SEQUENTIAL -> new SequentialDssExecutor(configuration, specification);
+      case DSS -> new MultithreadingDssExecutor(configuration, specification, shutdownManager);
+      case SINGLE_WORKER ->
+          new SingleWorkerDssExecutor(configuration, specification, shutdownManager);
+      case SEQUENTIAL -> new SequentialDssExecutor(configuration, specification, shutdownManager);
     };
   }
 
@@ -234,7 +235,8 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
           blockGraph.getNodes().size(),
           decompositionOptions.getDecompositionType());
 
-      return interpretResult(executor.execute(cfa, blockGraph), reachedSet);
+      return interpretResult(
+          executor.execute(cfa, blockGraph, dssStats.getAllWorkerStatistics()), reachedSet);
     } catch (InvalidConfigurationException | IOException | SolverException e) {
       logger.logException(Level.SEVERE, e, "Block analysis stopped unexpectedly.");
       throw new CPAException("Component Analysis run into an error.", e);
@@ -246,6 +248,5 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     statsCollection.add(dssStats);
-    executor.collectStatistics(statsCollection);
   }
 }

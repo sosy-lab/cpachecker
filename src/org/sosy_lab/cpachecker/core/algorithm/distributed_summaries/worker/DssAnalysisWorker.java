@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
@@ -21,19 +20,17 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssAllWorkerStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssMessageBroadcaster;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPostConditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssBlockAnalysisStatistics.ThreadCPUTimer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -87,8 +84,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
 
   private final DssConnection connection;
 
-  private final ThreadCPUTimer forwardAnalysisTime = new ThreadCPUTimer("Forward Analysis");
-  private final ThreadCPUTimer backwardAnalysisTime = new ThreadCPUTimer("Backward Analysis");
+  private final DssSingleWorkerStatistics workerStats;
 
   private boolean shutdown;
   private boolean closed;
@@ -116,6 +112,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
       Specification pSpecification,
       DssMessageFactory pMessageFactory,
       ShutdownManager pShutdownManager,
+      DssAllWorkerStatistics pWorkerStatistics,
       LogManager pLogger)
       throws InvalidConfigurationException, IOException {
     super("analysis-worker-" + pId, pMessageFactory, pLogger);
@@ -132,6 +129,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
 
     messageFactory = pMessageFactory;
     logger = pLogger;
+    workerStats = pWorkerStatistics.createWorkerStats(pId);
     analysis =
         new CreateOrRetrieveThreadLocalAnalysis(
             () ->
@@ -143,7 +141,8 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
                     forwardConfiguration,
                     pOptions,
                     pMessageFactory,
-                    pShutdownManager));
+                    pShutdownManager,
+                    workerStats));
   }
 
   public Collection<DssMessage> runInitialAnalysis()
@@ -156,7 +155,6 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
     return switch (message.getType()) {
       case POST_CONDITION -> {
         try {
-          forwardAnalysisTime.start();
           DssMessageProcessing processing =
               analysis.getDssBlockAnalysis().storePrecondition((DssPostConditionMessage) message);
           if (!processing.shouldProceed()) {
@@ -165,13 +163,10 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
           yield analysis.getDssBlockAnalysis().analyzePrecondition();
         } catch (Exception | Error e) {
           yield ImmutableSet.of(messageFactory.createDssExceptionMessage(getBlockId(), e));
-        } finally {
-          forwardAnalysisTime.stop();
         }
       }
       case VIOLATION_CONDITION -> {
         try {
-          backwardAnalysisTime.start();
           DssMessageProcessing processing =
               analysis
                   .getDssBlockAnalysis()
@@ -182,15 +177,12 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
           yield analysis.getDssBlockAnalysis().analyzeViolationCondition(message.getSenderId());
         } catch (Exception | Error e) {
           yield ImmutableSet.of(messageFactory.createDssExceptionMessage(getBlockId(), e));
-        } finally {
-          backwardAnalysisTime.stop();
         }
       }
       case EXCEPTION, RESULT -> {
         shutdown = true;
-        yield ImmutableSet.of(messageFactory.createDssStatisticsMessage(getBlockId(), getStats()));
+        yield ImmutableSet.of();
       }
-      case STATISTIC -> ImmutableSet.of();
     };
   }
 
@@ -198,7 +190,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   public DssMessageProcessing storeMessage(DssMessage message)
       throws SolverException, InterruptedException, CPAException {
     return switch (message.getType()) {
-      case STATISTIC, RESULT, EXCEPTION -> DssMessageProcessing.stop();
+      case RESULT, EXCEPTION -> DssMessageProcessing.stop();
       case VIOLATION_CONDITION ->
           analysis
               .getDssBlockAnalysis()
@@ -222,7 +214,6 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   public void broadcast(Collection<DssMessage> pMessages) throws InterruptedException {
     DssMessageBroadcaster broadcaster = getConnection().getBroadcaster();
     for (DssMessage message : pMessages) {
-      sentMessages.inc();
       switch (message.getType()) {
         case POST_CONDITION -> {
           broadcaster.broadcastToObserver(message);
@@ -237,9 +228,10 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
             broadcaster.broadcastToIds(message, block.getPredecessorIds());
           }
         }
-        case EXCEPTION, RESULT, STATISTIC -> {
+        case EXCEPTION, RESULT -> {
+          // the worker will also broadcast to itself and react
+          // appropriately in processMessage
           broadcaster.broadcastToAll(message);
-          close();
         }
       }
     }
@@ -259,7 +251,6 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
       logger.logException(Level.SEVERE, e, "Worker stopped working due to an error...");
       broadcastOrLogException(
           ImmutableSet.of(messageFactory.createDssExceptionMessage(getBlockId(), e)));
-      close();
       shutdown = true;
     }
   }
@@ -271,25 +262,6 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   @Override
   public String toString() {
     return "Worker{block=" + block + ", finished=" + shutdownRequested() + '}';
-  }
-
-  private ImmutableMap<StatisticsKey, String> getStats() {
-    ImmutableMap.Builder<StatisticsKey, String> stats = ImmutableMap.builder();
-
-    if (analysis.getDssBlockAnalysis().getDcpa() instanceof DistributedARGCPA arg
-        && arg.getWrappedCPA() instanceof DistributedCompositeCPA composite) {
-      stats.putAll(composite.getStatistics().getStatistics());
-    }
-
-    return stats
-        .put(
-            StatisticsKey.PRECONDITION_CALCULATION_TIME, Long.toString(forwardAnalysisTime.nanos()))
-        .put(
-            StatisticsKey.VIOLATION_CONDITION_CALCULATION_TIME,
-            Long.toString(backwardAnalysisTime.nanos()))
-        .put(StatisticsKey.MESSAGES_SENT, Integer.toString(getSentMessages()))
-        .put(StatisticsKey.MESSAGES_RECEIVED, Integer.toString(getReceivedMessages()))
-        .buildOrThrow();
   }
 
   @Override
