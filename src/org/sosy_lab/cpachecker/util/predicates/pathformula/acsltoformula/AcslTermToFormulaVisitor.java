@@ -329,7 +329,6 @@ public class AcslTermToFormulaVisitor extends SSAIndexProvider<AcslType>
     CRightHandSideVisitor<Formula, UnrecognizedCodeException> exprVisitor =
         ctoFormulaConverter.createCRightHandSideVisitor(
             dummyEdge, "dummy-function-name", currentSsa, pPts, constraints, errorConditions);
-    Formula f = cExpr.accept(exprVisitor);
-    return f;
+    return cExpr.accept(exprVisitor);
   }
 }
