@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAIndexProvider;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula.AcslTypeHelper.BinaryTermData;
@@ -58,7 +59,8 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
-public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoException> {
+public class AcslTermToFormulaVisitor extends SSAIndexProvider<AcslType>
+    implements AcslTermVisitor<Formula, NoException> {
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
@@ -291,7 +293,6 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
 
   /**
    * Returns the index of a variable in the ssa map, or creates one with value 1 for new variables
-   * (A bit ugly because of code duplication, might remove later if there is another way)
    *
    * @return the index of the variable
    */
@@ -307,12 +308,7 @@ public class AcslTermToFormulaVisitor implements AcslTermVisitor<Formula, NoExce
               + type);
     }
 
-    int idx = currentSsa.getIndex(name);
-    if (idx <= 0) {
-      idx = 1; // uninitialized variable
-      currentSsa.setIndex(name, type, idx);
-    }
-    return idx;
+    return super.getExistingOrNewIndex(name, type, currentSsa);
   }
 
   public Formula cExpressionToFormula(CExpression cExpr, PointerTargetSetBuilder pPts)
