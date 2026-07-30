@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssWitnessMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssWitnessMessage.WitnessType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.DssExecutor.StatusAndResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.DssExecutor.StatusObserver;
@@ -31,6 +32,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssW
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.ResultWithWitnessInformation;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.path.SegmentedPaths;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
@@ -54,7 +56,8 @@ public class DssObserverWorker extends DssWorker implements Statistics {
   private final DssConnection connection;
   private final StatusObserver statusObserver;
   private boolean shutdown;
-  private Optional<ResultWithWitnessInformation> result;
+  private Optional<Result> finalResult;
+  private Optional<SegmentedPaths> violationWitness;
   private Optional<String> errorMessage;
 
   private final Map<String, Map<StatisticsKey, String>> stats = new HashMap<>();
@@ -75,7 +78,8 @@ public class DssObserverWorker extends DssWorker implements Statistics {
     connection = pConnection;
     statusObserver = new StatusObserver();
     errorMessage = Optional.empty();
-    result = Optional.empty();
+    finalResult = Optional.empty();
+    violationWitness = Optional.empty();
     blockGraph = pBlockGraph;
     stateCollector = pStateCollector;
   }
@@ -84,20 +88,9 @@ public class DssObserverWorker extends DssWorker implements Statistics {
   public Collection<DssMessage> processMessage(DssMessage pMessage) {
     switch (pMessage.getType()) {
       case RESULT -> {
-        if (pMessage.getResult() == Result.FALSE) {
-          result =
-              Optional.of(
-                  ResultWithWitnessInformation.ofViolationPath(pMessage.getViolationPath()));
-        } else if (pMessage.getResult() == Result.TRUE) {
-          result =
-              Optional.of(
-                  ResultWithWitnessInformation.ofCorrectnessPreConditionCollector(stateCollector));
-        } else {
-          result =
-              Optional.of(
-                  ResultWithWitnessInformation.ofResultWithoutInformation(pMessage.getResult()));
-        }
+        finalResult = Optional.of(pMessage.getResult());
         statusObserver.updateStatus(pMessage);
+        shutdown = allPostAnalysisMessagesReceived();
       }
       case VIOLATION_CONDITION, POST_CONDITION -> statusObserver.updateStatus(pMessage);
       case EXCEPTION -> {
@@ -109,7 +102,11 @@ public class DssObserverWorker extends DssWorker implements Statistics {
         shutdown = allPostAnalysisMessagesReceived();
       }
       case WITNESS -> {
-        stateCollector.collectFromMessage((DssWitnessMessage) pMessage);
+        if (pMessage.getWitnessType() == WitnessType.VIOLATION) {
+          violationWitness = Optional.of(pMessage.getViolationPath());
+        } else {
+          stateCollector.collectFromMessage((DssWitnessMessage) pMessage);
+        }
         witnessMessagesReceived++;
         shutdown = allPostAnalysisMessagesReceived();
       }
@@ -118,10 +115,17 @@ public class DssObserverWorker extends DssWorker implements Statistics {
   }
 
   private boolean allPostAnalysisMessagesReceived() {
-    boolean expectingWitnessMessages =
-        result.isPresent() && result.orElseThrow().getResult() == Result.TRUE;
+    if (finalResult.isEmpty()) {
+      return false;
+    }
+    int expectedWitnessMessages =
+        switch (finalResult.orElseThrow()) {
+          case TRUE -> blockGraph.getNodes().size();
+          case FALSE -> 1;
+          default -> 0;
+        };
     return stats.size() == blockGraph.getNodes().size()
-        && (!expectingWitnessMessages || witnessMessagesReceived == blockGraph.getNodes().size());
+        && witnessMessagesReceived == expectedWitnessMessages;
   }
 
   public StatusAndResult observe() throws CPAException {
@@ -129,10 +133,19 @@ public class DssObserverWorker extends DssWorker implements Statistics {
     if (errorMessage.isPresent()) {
       throw new CPAException(errorMessage.orElseThrow());
     }
-    if (result.isEmpty()) {
+    if (finalResult.isEmpty()) {
       throw new CPAException("Analysis finished but no result is present...");
     }
-    return new StatusAndResult(statusObserver.finish(), result.orElseThrow());
+    ResultWithWitnessInformation result =
+        switch (finalResult.orElseThrow()) {
+          case TRUE ->
+              ResultWithWitnessInformation.ofCorrectnessPreConditionCollector(stateCollector);
+          case FALSE ->
+              ResultWithWitnessInformation.ofViolationPath(violationWitness.orElseThrow());
+          default ->
+              ResultWithWitnessInformation.ofResultWithoutInformation(finalResult.orElseThrow());
+        };
+    return new StatusAndResult(statusObserver.finish(), result);
   }
 
   @Override

@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssWitnessArgStateCollector;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.ResultWithWitnessInformation;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActors;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
@@ -95,12 +94,9 @@ public class SequentialDssExecutor implements DssExecutor {
             DssMessage next = actor.nextMessage();
             if (next instanceof DssResultMessage resultMessage) {
 
-              if (resultMessage.getResult() == Result.FALSE) {
-                return new StatusAndResult(
-                    statusObserver.finish(),
-                    ResultWithWitnessInformation.ofViolationPath(resultMessage.getViolationPath()));
-              }
-
+              // The violation/correctness witness is sent in a separate WITNESS message that
+              // follows this RESULT message; this executor does not wait for it and reports the
+              // result without witness information.
               return new StatusAndResult(statusObserver.finish(), resultMessage.getResult());
             }
             if (next instanceof DssExceptionMessage exceptionMessage) {

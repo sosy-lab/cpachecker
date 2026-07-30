@@ -34,7 +34,9 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa.DeserializeBlockStateOperator;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.path.SegmentedPaths;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -195,10 +197,11 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
         if (message.getResult() == Result.TRUE) {
           yield ImmutableSet.of(
               messageFactory.createDssStatisticsMessage(getBlockId(), getStats()),
-              messageFactory.createDssWitnessMessage(
+              messageFactory.createDssCorrectnessWitnessMessage(
                   getBlockId(), analysis.getDssBlockAnalysis().serializedPreconditions()));
         } else {
-          yield ImmutableSet.of(messageFactory.createDssStatisticsMessage(getBlockId(), getStats()));
+          yield ImmutableSet.of(
+              messageFactory.createDssStatisticsMessage(getBlockId(), getStats()));
         }
       }
       case STATISTIC, WITNESS -> ImmutableSet.of();
@@ -241,9 +244,13 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
         }
         case VIOLATION_CONDITION -> {
           if (block.getPredecessorIds().isEmpty()) {
-            String violationPath = message.extractBlockStateWitnessString();
+            String violationPathString = message.extractBlockStateWitnessString();
+            SegmentedPaths violationPath =
+                DeserializeBlockStateOperator.parseWitness(violationPathString).witness();
             broadcaster.broadcastToAll(
-                messageFactory.createDssViolationResultMessage(getId(), violationPath));
+                messageFactory.createDssResultMessage(getId(), Result.FALSE));
+            broadcaster.broadcastToAll(
+                messageFactory.createDssViolationWitnessMessage(getId(), violationPath));
           } else {
             broadcaster.broadcastToObserver(message);
             broadcaster.broadcastToIds(message, block.getPredecessorIds());

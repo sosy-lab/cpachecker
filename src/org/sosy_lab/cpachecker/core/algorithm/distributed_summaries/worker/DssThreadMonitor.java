@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 
@@ -55,7 +56,7 @@ public class DssThreadMonitor extends Thread {
       if (allWaiting && connection.getBroadcaster().isEmpty() && active.isEmpty()) {
         connection
             .getBroadcaster()
-            .broadcastToAll(messageFactory.createDssCorrectnessResultMessage(THREAD_NAME));
+            .broadcastToAll(messageFactory.createDssResultMessage(THREAD_NAME, Result.TRUE));
         return;
       }
 
