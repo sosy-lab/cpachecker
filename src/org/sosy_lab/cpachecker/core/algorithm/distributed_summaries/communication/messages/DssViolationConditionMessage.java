@@ -13,23 +13,12 @@ import java.util.Map;
 
 public class DssViolationConditionMessage extends DssMessage {
 
-  public static final String DSS_MESSAGE_FIRST_KEY = "first";
-
-  private final boolean first;
-
   DssViolationConditionMessage(String pSenderId, ImmutableMap<String, String> pContent) {
     super(pSenderId, DssMessageType.VIOLATION_CONDITION, pContent);
-    first = Boolean.parseBoolean(pContent.get(DSS_MESSAGE_FIRST_KEY));
   }
 
   @Override
   boolean isValid(Map<String, String> pContent) {
-    return !pContent.isEmpty()
-        && pContent.containsKey(DSS_MESSAGE_FIRST_KEY)
-        && pContent.get(DSS_MESSAGE_FIRST_KEY) != null;
-  }
-
-  public boolean isFirst() {
-    return first;
+    return !pContent.isEmpty();
   }
 }

@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.cfa.types;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.ObjectArrays;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Arrays;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -46,12 +46,11 @@ public class MachineModelTest {
     for (int m = 0; m < machineModels.length; m++) {
       int offset = m * types.length;
       for (int t = 0; t < types.length; t++) {
-        result[offset + t] = Arrays.copyOf(types[t], types[t].length + 1);
+        result[offset + t] = ObjectArrays.concat(types[t], machineModels[m]);
         if (types[t][0] == CNumericTypes.CHAR && !machineModels[m].isDefaultCharSigned()) {
           result[offset + t][2] = 0;
           result[offset + t][3] = 255;
         }
-        result[offset + t][types[t].length] = machineModels[m];
       }
     }
 

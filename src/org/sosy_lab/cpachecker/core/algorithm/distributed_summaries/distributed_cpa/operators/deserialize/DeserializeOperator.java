@@ -22,7 +22,7 @@ public interface DeserializeOperator {
     return switch (pMessage.getType()) {
       case VIOLATION_CONDITION -> blockNode.getFinalLocation();
       case POST_CONDITION -> blockNode.getInitialLocation();
-      case EXCEPTION, RESULT, STATISTIC ->
+      case EXCEPTION, RESULT ->
           throw new IllegalArgumentException(
               "Cannot deserialize BlockState from message of type: "
                   + pMessage.getClass().getName());

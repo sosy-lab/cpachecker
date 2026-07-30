@@ -13,18 +13,13 @@ import static org.sosy_lab.common.collect.Collections3.elementAndList;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
@@ -50,23 +45,12 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CWhileLoopStatement;
 /** A class to represent the {@code main()} function in the sequentialization. */
 public final class SeqMainFunctionBuilder {
 
-  // CFunctionType
-
-  private static final CFunctionType MAIN_FUNCTION_TYPE =
-      new CFunctionType(CNumericTypes.INT, ImmutableList.of(), false);
-
-  // CFunctionDeclaration
-
-  public static final CFunctionDeclaration MAIN_FUNCTION_DECLARATION =
-      new CFunctionDeclaration(
-          FileLocation.DUMMY, MAIN_FUNCTION_TYPE, "main", ImmutableList.of(), ImmutableSet.of());
-
   public static CExportFunctionDefinition buildFunctionDefinition(
       MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     return new CExportFunctionDefinition(
-        MAIN_FUNCTION_DECLARATION, buildBody(pOptions, pFields, pUtils));
+        pFields.outputMainFunctionDeclaration, buildBody(pOptions, pFields, pUtils));
   }
 
   private static CCompoundStatement buildBody(

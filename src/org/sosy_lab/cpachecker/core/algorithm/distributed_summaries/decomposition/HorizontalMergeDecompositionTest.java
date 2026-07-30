@@ -59,7 +59,8 @@ public class HorizontalMergeDecompositionTest {
         new LinearBlockNodeDecomposition(isBlockEnd),
         2,
         mergeLimit,
-        Comparator.comparing(BlockNodeWithoutGraphInformation::getId));
+        Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
+        true);
   }
 
   @Test

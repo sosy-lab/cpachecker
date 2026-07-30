@@ -18,7 +18,7 @@ import java.util.Comparator;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 
 public class HorizontalMergeDecomposition implements DssBlockDecomposition {
 
@@ -26,27 +26,31 @@ public class HorizontalMergeDecomposition implements DssBlockDecomposition {
 
   private final DssBlockDecomposition decomposer;
   private final long targetNumber;
-  private final Comparator<BlockNodeWithoutGraphInformation> sort;
+  private final Comparator<BlockNode> sort;
   private int id;
   private int mergeLimit;
 
-  private record BlockScope(CFANode start, CFANode last) {}
+  private final boolean mergeFunctionCalls;
+
+  private record BlockScope(
+      ImmutableSet<String> predecessors, ImmutableSet<String> successors, CFANode finalLocation) {}
 
   public HorizontalMergeDecomposition(
       DssBlockDecomposition pDecomposition,
       long pTargetNumber,
       int pMergeLimit,
-      Comparator<BlockNodeWithoutGraphInformation> pSort) {
+      Comparator<BlockNode> pSort,
+      boolean pMergeFunctionCalls) {
     decomposer = pDecomposition;
     targetNumber = pTargetNumber;
     mergeLimit = pMergeLimit;
     sort = pSort;
+    mergeFunctionCalls = pMergeFunctionCalls;
   }
 
   @Override
   public BlockGraph decompose(CFA pCfa) throws InterruptedException {
-    Collection<? extends BlockNodeWithoutGraphInformation> nodes =
-        decomposer.decompose(pCfa).getNodes();
+    Collection<BlockNode> nodes = decomposer.decompose(pCfa).getNodes();
     while (nodes.size() > targetNumber) {
       int sizeBefore = nodes.size();
       nodes = sorted(mergeHorizontally(nodes));
@@ -54,26 +58,32 @@ public class HorizontalMergeDecomposition implements DssBlockDecomposition {
         break;
       }
     }
-    return BlockGraph.fromBlockNodesWithoutGraphInformation(nodes);
+    return new BlockGraph(ImmutableSet.copyOf(nodes));
   }
 
-  private Collection<BlockNodeWithoutGraphInformation> sorted(
-      Collection<BlockNodeWithoutGraphInformation> pSort) {
+  private Collection<BlockNode> sorted(Collection<BlockNode> pSort) {
     if (sort == null) {
       return pSort;
     }
     return ImmutableList.sortedCopyOf(sort, pSort);
   }
 
-  Collection<BlockNodeWithoutGraphInformation> mergeHorizontally(
-      Collection<? extends BlockNodeWithoutGraphInformation> pNodes) {
-    Multimap<BlockScope, BlockNodeWithoutGraphInformation> blockScopes = ArrayListMultimap.create();
+  Collection<BlockNode> mergeHorizontally(Collection<BlockNode> pNodes) {
+    Multimap<BlockScope, BlockNode> blockScopes = ArrayListMultimap.create();
     pNodes.forEach(
-        n -> blockScopes.put(new BlockScope(n.getInitialLocation(), n.getFinalLocation()), n));
+        n ->
+            blockScopes.put(
+                new BlockScope(n.getPredecessorIds(), n.getSuccessorIds(), n.getFinalLocation()),
+                n));
+
+    MergeIDTracker idTracker =
+        new MergeIDTracker(FluentIterable.from(pNodes).transform(n -> n.getId()));
+
     for (BlockScope blockScope : ImmutableSet.copyOf(blockScopes.keySet())) {
       if (blockScopes.get(blockScope).size() <= 1) {
         continue;
       }
+
       long largeBlocks =
           blockScopes.get(blockScope).stream()
               .mapToInt(n -> n.getNodes().size())
@@ -83,34 +93,43 @@ public class HorizontalMergeDecomposition implements DssBlockDecomposition {
         continue;
       }
 
-      BlockNodeWithoutGraphInformation result =
-          mergeBlocksHorizontally(blockScopes.removeAll(blockScope), blockScope);
+      if (!mergeFunctionCalls
+          && MergeBlockNodesDecomposition.containCallsOrReturnsOfSameFunction(
+              blockScopes.get(blockScope))) {
+        continue;
+      }
+
+      Collection<BlockNode> toMerge = blockScopes.removeAll(blockScope);
+      BlockNode result = mergeBlocksHorizontally(toMerge, blockScope);
+
+      idTracker.merge(FluentIterable.from(toMerge).transform(n -> n.getId()), result.getId());
+
       blockScopes.put(blockScope, result);
       if (blockScopes.size() <= targetNumber) {
-        return blockScopes.values();
+        break;
       }
     }
-    return blockScopes.values();
+    return idTracker.mapBlockNodeEdges(blockScopes.values());
   }
 
-  private BlockNodeWithoutGraphInformation mergeBlocksHorizontally(
-      Collection<BlockNodeWithoutGraphInformation> pNodes, BlockScope pScope) {
+  private BlockNode mergeBlocksHorizontally(Collection<BlockNode> pCollection, BlockScope pScope) {
     Preconditions.checkArgument(
-        pNodes.stream()
+        pCollection.stream()
             .allMatch(
                 b ->
-                    b.getInitialLocation().equals(pScope.start())
-                        && b.getFinalLocation().equals(pScope.last())),
+                    b.getSuccessorIds().equals(pScope.successors())
+                        && b.getPredecessorIds().equals(pScope.predecessors())),
         "Some of the given nodes do not have the same scope.");
-    return new BlockNodeWithoutGraphInformation(
+
+    BlockNode first = pCollection.iterator().next();
+
+    return new BlockNode(
         "MH" + id++,
-        pScope.start(),
-        pScope.last(),
-        FluentIterable.from(pNodes)
-            .transformAndConcat(BlockNodeWithoutGraphInformation::getNodes)
-            .toSet(),
-        FluentIterable.from(pNodes)
-            .transformAndConcat(BlockNodeWithoutGraphInformation::getEdges)
-            .toSet());
+        first.getInitialLocation(),
+        first.getFinalLocation(),
+        FluentIterable.from(pCollection).transformAndConcat(BlockNode::getNodes).toSet(),
+        FluentIterable.from(pCollection).transformAndConcat(BlockNode::getEdges).toSet(),
+        first.getPredecessorIds(),
+        first.getSuccessorIds());
   }
 }

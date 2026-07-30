@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class AcceptSpecifiedVariableSelection<ConstantType>
+public final class AcceptSpecifiedVariableSelection<ConstantType>
     implements VariableSelection<ConstantType> {
 
   private final CollectVarsVisitor<ConstantType> collectVarsVisitor = new CollectVarsVisitor<>();

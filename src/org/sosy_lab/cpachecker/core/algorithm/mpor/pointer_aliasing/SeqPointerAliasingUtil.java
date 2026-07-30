@@ -518,19 +518,18 @@ public class SeqPointerAliasingUtil {
     }
   }
 
-  public static class CExpressionCollector<T extends CExpression>
-      extends CExpressionTraversalVisitor {
+  static class CExpressionCollector<T extends CExpression> extends CExpressionTraversalVisitor {
 
     private final Class<T> expressionToCollect;
 
     private final ImmutableSet.Builder<T> collected = ImmutableSet.builder();
 
-    public CExpressionCollector(Class<T> pExpressionToCollect) {
+    CExpressionCollector(Class<T> pExpressionToCollect) {
       expressionToCollect = pExpressionToCollect;
     }
 
     /** Returns the possibly empty set collected expressions during the search. */
-    public ImmutableSet<T> getCollected() {
+    ImmutableSet<T> getCollected() {
       return collected.build();
     }
 

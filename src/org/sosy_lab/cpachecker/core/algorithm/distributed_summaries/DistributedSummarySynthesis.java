@@ -35,11 +35,9 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.DssExecutor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.MultithreadingDssExecutor;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.SequentialDssExecutor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.SingleWorkerDssExecutor;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusAndResult;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssWorkerBuilder;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -66,24 +64,36 @@ import org.sosy_lab.java_smt.api.SolverException;
  *
  * <h2>2. Worker Creation</h2>
  *
- * <p>DSS spawns multiple workers through {@link DssWorkerBuilder}:
+ * Workers are spawned for all blocks resulting from the decomposition. Special workers like the
+ * {@link org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssVisualizationWorker
+ * visualization worker} are created in debug mode to get an overview of all messages. The {@link
+ * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker observer
+ * worker} is used to collect statistics.
  *
- * <p>For each block, an {@link DssWorkerBuilder#addAnalysisWorker(BlockNode, DssAnalysisOptions)}
- * is created. If {@link DssAnalysisOptions#isDebugModeEnabled() debug mode} is enabled, a {@link
- * DssWorkerBuilder#addVisualizationWorker(BlockGraph, DssAnalysisOptions) visualization worker} is
- * used to provide a visualization of the message exchange between analysis workers.
+ * <h2>3. Execution and Coordination</h2>
  *
- * <p>DSS also manually creates the {@link DssObserverWorker}, which monitors message exchange and
- * detects when the DSS algorithm reaches a final verdict.
+ * <p>After worker creation, DistributedSummarySynthesis coordinates the analysis execution based on
+ * the configured executor. However, they all have common steps:
  *
- * <h2>3. Execution</h2>
+ * <ul>
+ *   <li>Execute one of three {@link DssExecutor executors} to either run DSS, a single block
+ *       analysis, or DSS but every worker is scheduled after the other in deterministic order
+ *   <li>Delegating the interpretation of messages to conclude a final verdict to observers.
+ *   <li>Processes the final result by updating the {@link ReachedSet}:
+ *       <ul>
+ *         <li>For UNSAFE results: Adds a {@link DummyTargetState} to indicate property violation
+ *         <li>For SAFE results: Clears the reached set to indicate successful verification
+ *       </ul>
+ * </ul>
  *
  * There are two execution strategies implemented in DSS:
  *
  * <ul>
- *   <li>{@link MultithreadingDssExecutor}: All workers are started simultaneously, and the
- *       algorithm runs until a final result is reached.
- *   <li>{@link SingleWorkerDssExecutor}: Only one worker is active.
+ *   <li><strong>Block Graph Export Only:</strong> When {@link
+ *       DssDecompositionOptions#generateBlockGraphOnly()} is enabled, the analysis stops after
+ *       decomposition and exports the block graph to JSON format
+ *   <li><strong>Incremental Analysis:</strong> You can provide one of three executors to run
+ *       different strategies.
  * </ul>
  */
 @Options(prefix = "distributedSummaries")
@@ -102,7 +112,8 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
 
   private enum ExecutorType {
     DSS,
-    SINGLE_WORKER
+    SINGLE_WORKER,
+    SEQUENTIAL
   }
 
   // Cache is static because it is shared between different instances of DistributedSummarySynthesis
@@ -119,7 +130,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     configuration.inject(this);
 
     decompositionOptions = new DssDecompositionOptions(configuration, pInitialCFA);
-    dssStats = new DistributedSummarySynthesisStatistics();
+    dssStats = new DistributedSummarySynthesisStatistics(configuration);
 
     logger = pLogger;
     initialCFA = pInitialCFA;
@@ -130,8 +141,10 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
   private DssExecutor getExecutor(Specification specification)
       throws InvalidConfigurationException {
     return switch (executorType) {
-      case DSS -> new MultithreadingDssExecutor(configuration, specification);
-      case SINGLE_WORKER -> new SingleWorkerDssExecutor(configuration, specification);
+      case DSS -> new MultithreadingDssExecutor(configuration, specification, shutdownManager);
+      case SINGLE_WORKER ->
+          new SingleWorkerDssExecutor(configuration, specification, shutdownManager);
+      case SEQUENTIAL -> new SequentialDssExecutor(configuration, specification, shutdownManager);
     };
   }
 
@@ -167,6 +180,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     for (BlockNode node : modification.blockGraph().getNodes()) {
       dssStats.getAverageNumberOfEdges().setNextValue(node.getEdges().size());
     }
+    dssStats.getNumberWorkers().setNextValue(blockGraph.getNodes().size());
     return modification;
   }
 
@@ -221,7 +235,8 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
           blockGraph.getNodes().size(),
           decompositionOptions.getDecompositionType());
 
-      return interpretResult(executor.execute(cfa, blockGraph), reachedSet);
+      return interpretResult(
+          executor.execute(cfa, blockGraph, dssStats.getAllWorkerStatistics()), reachedSet);
     } catch (InvalidConfigurationException | IOException | SolverException e) {
       logger.logException(Level.SEVERE, e, "Block analysis stopped unexpectedly.");
       throw new CPAException("Component Analysis run into an error.", e);
@@ -233,6 +248,5 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     statsCollection.add(dssStats);
-    executor.collectStatistics(statsCollection);
   }
 }

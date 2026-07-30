@@ -9,13 +9,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -25,19 +23,22 @@ import java.util.Objects;
 import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
+/**
+ * Abstract base class for messages used in distributed summary synthesis. Each message has a sender
+ * ID, a type, a timestamp, and content. The content is a flat map of key-value pairs, where keys
+ * can be hierarchical using dot notation.
+ */
 public abstract class DssMessage {
 
   public enum DssMessageType {
     POST_CONDITION,
     VIOLATION_CONDITION,
     EXCEPTION,
-    RESULT,
-    STATISTIC
+    RESULT
   }
 
   private static class DssMessageProxy {
@@ -76,6 +77,13 @@ public abstract class DssMessage {
   private final Instant timestamp;
   private final ImmutableMap<String, String> content;
 
+  /**
+   * Creates a new message with the given sender ID, type, and content.
+   *
+   * @param pSenderId the ID of the sender
+   * @param pType the type of the message
+   * @param pContent the content of the message
+   */
   DssMessage(String pSenderId, DssMessageType pType, Map<String, String> pContent) {
     checkArgument(isValid(pContent), "Invalid content for message type: %s", pType);
     senderId = pSenderId;
@@ -84,6 +92,12 @@ public abstract class DssMessage {
     content = ImmutableMap.copyOf(pContent);
   }
 
+  /**
+   * Checks whether the given content is valid for this message type.
+   *
+   * @param pContent the content to check
+   * @return true if the content is valid, false otherwise
+   */
   abstract boolean isValid(Map<String, String> pContent);
 
   public final Instant getTimestamp() {
@@ -219,17 +233,6 @@ public abstract class DssMessage {
     return asJsonWithIdentifier(0);
   }
 
-  public final Map<StatisticsKey, String> getStats() {
-    checkState(
-        type == DssMessageType.STATISTIC, "Cannot get stats for message type: " + "%s", type);
-    ImmutableMap.Builder<StatisticsKey, String> statsBuilder = ImmutableMap.builder();
-    for (Map.Entry<String, String> entry : content.entrySet()) {
-      StatisticsKey key = StatisticsKey.valueOf(entry.getKey());
-      statsBuilder.put(key, entry.getValue());
-    }
-    return statsBuilder.buildOrThrow();
-  }
-
   public static DssMessage fromJson(Path pJson) throws IOException {
     ObjectMapper mapper = new ObjectMapper();
     DssMessageProxy proxy = mapper.readValue(pJson.toFile(), DssMessageProxy.class);
@@ -252,11 +255,10 @@ public abstract class DssMessage {
     DssMessageType type = DssMessageType.valueOf(header.get(DSS_MESSAGE_HEADER_TYPE_KEY));
 
     return switch (type) {
-      case POST_CONDITION -> new DssPostConditionMessage(senderId, ImmutableList.of(), content);
+      case POST_CONDITION -> new DssPostConditionMessage(senderId, content);
       case VIOLATION_CONDITION -> new DssViolationConditionMessage(senderId, content);
       case EXCEPTION -> new DssExceptionMessage(senderId, content);
       case RESULT -> new DssResultMessage(senderId, content);
-      case STATISTIC -> new DssStatisticsMessage(senderId, content);
     };
   }
 }

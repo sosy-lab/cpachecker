@@ -11,12 +11,10 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 
 public class DssMessageFactory {
@@ -42,43 +40,24 @@ public class DssMessageFactory {
         .build();
   }
 
-  public DssPostConditionMessage createDssPreconditionMessage(
-      String pSenderId,
-      boolean pReachable,
-      AlgorithmStatus pStatus,
-      List<String> pReceivers,
-      ImmutableMap<String, String> pStateContent) {
+  public DssPostConditionMessage createDssPostConditionMessage(
+      String pSenderId, AlgorithmStatus pStatus, ImmutableMap<String, String> pStateContent) {
     return new DssPostConditionMessage(
         pSenderId,
-        pReceivers,
         ImmutableMap.<String, String>builder()
             .putAll(serializeStatus(pStatus))
-            .put(DssPostConditionMessage.DSS_MESSAGE_REACHABLE_KEY, Boolean.toString(pReachable))
             .putAll(pStateContent)
             .buildOrThrow());
   }
 
   public DssViolationConditionMessage createViolationConditionMessage(
-      String pSenderId,
-      AlgorithmStatus pStatus,
-      boolean isFirst,
-      ImmutableMap<String, String> pStateContent) {
+      String pSenderId, AlgorithmStatus pStatus, ImmutableMap<String, String> pStateContent) {
     return new DssViolationConditionMessage(
         pSenderId,
         ImmutableMap.<String, String>builder()
             .putAll(serializeStatus(pStatus))
             .putAll(pStateContent)
-            .put(DssViolationConditionMessage.DSS_MESSAGE_FIRST_KEY, Boolean.toString(isFirst))
             .buildOrThrow());
-  }
-
-  public DssStatisticsMessage createDssStatisticsMessage(
-      String pSenderId, ImmutableMap<StatisticsKey, String> pContent) {
-    ImmutableMap.Builder<String, String> serializedContentBuilder = ImmutableMap.builder();
-    for (Map.Entry<StatisticsKey, String> entry : pContent.entrySet()) {
-      serializedContentBuilder.put(entry.getKey().name(), entry.getValue());
-    }
-    return new DssStatisticsMessage(pSenderId, serializedContentBuilder.buildOrThrow());
   }
 
   public DssResultMessage createDssResultMessage(String pSenderId, Result pResult) {

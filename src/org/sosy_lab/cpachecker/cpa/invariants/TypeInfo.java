@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 
-public interface TypeInfo {
+public sealed interface TypeInfo permits BitVectorInfo, FloatingPointTypeInfo {
 
   boolean isSigned();
 

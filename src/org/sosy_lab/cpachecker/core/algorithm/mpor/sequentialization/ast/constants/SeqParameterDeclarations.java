@@ -15,5 +15,5 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 public class SeqParameterDeclarations {
 
   public static final CParameterDeclaration SIZE_PARAMETER_MALLOC =
-      new CParameterDeclaration(FileLocation.DUMMY, CNumericTypes.UNSIGNED_INT, "size");
+      new CParameterDeclaration(FileLocation.DUMMY, CNumericTypes.UNSIGNED_LONG_INT, "size");
 }

@@ -63,7 +63,7 @@ public class DssPrioritizeViolationConditionQueue extends ForwardingBlockingQueu
       DssMessage message = queue.take();
       Deque<DssMessage> queueForMessage =
           switch (message.getType()) {
-            case STATISTIC, RESULT, EXCEPTION -> highestPriority;
+            case RESULT, EXCEPTION -> highestPriority;
             case VIOLATION_CONDITION, POST_CONDITION -> next.get(message.getType());
           };
       queueForMessage.add(message);

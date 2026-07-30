@@ -503,7 +503,14 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     bfmgr = fmgr.getBooleanFormulaManager();
     itpMgr =
         new InterpolationManager(
-            pfmgr, solver, Optional.empty(), Optional.empty(), pConfig, shutdownNotifier, logger);
+            pfmgr,
+            solver,
+            Optional.empty(),
+            Optional.empty(),
+            pConfig,
+            shutdownNotifier,
+            logger,
+            /* pEnableCounterexampleAnalysis= */ false);
 
     isPrefixItpPrecise = false;
     finalFixedPoint = bfmgr.makeFalse();

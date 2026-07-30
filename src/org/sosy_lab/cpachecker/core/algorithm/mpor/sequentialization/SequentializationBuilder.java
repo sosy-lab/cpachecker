@@ -56,7 +56,10 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
 public class SequentializationBuilder {
 
   public static String buildInputFunctionAndTypeDeclarations(
-      MPOROptions pOptions, ImmutableList<MPORThread> pThreads) throws UnrecognizedCodeException {
+      MPOROptions pOptions,
+      CFunctionDeclaration pInputMainFunctionDeclaration,
+      ImmutableList<MPORThread> pThreads)
+      throws UnrecognizedCodeException {
 
     StringJoiner rDeclarations = new StringJoiner(System.lineSeparator());
     if (pOptions.comments()) {
@@ -67,47 +70,64 @@ public class SequentializationBuilder {
       ImmutableList<CDeclaration> nonVariableDeclarations =
           MPORThreadUtil.extractNonVariableDeclarations(thread);
       for (CDeclaration declaration : nonVariableDeclarations) {
-        // add function and type declaration only if enabled in options
-        if (!(declaration instanceof CFunctionDeclaration)
-            || pOptions.inputFunctionDeclarations()) {
-          if (!(declaration instanceof CTypeDeclaration) || pOptions.inputTypeDeclarations()) {
-            if (declaration instanceof CTypeDeclaration typeDeclaration) {
-              switch (typeDeclaration) {
-                case CComplexTypeDeclaration complexTypeDeclaration -> {
-                  CType typeSubstitute =
-                      PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                          complexTypeDeclaration.getType(), ImmutableSet.of(CCompositeType.class));
-                  CComplexTypeDeclaration newComplexTypeDeclaration =
-                      new CComplexTypeDeclaration(
-                          complexTypeDeclaration.getFileLocation(),
-                          complexTypeDeclaration.isGlobal(),
-                          (CComplexType) typeSubstitute);
-                  rDeclarations.add(newComplexTypeDeclaration.toASTString());
-                }
-                case CTypeDefDeclaration typeDefDeclaration -> {
-                  CType typeSubstitute =
-                      PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                          typeDefDeclaration.getType(), ImmutableSet.of(CElaboratedType.class));
-                  CTypeDefDeclaration newTypeDefDeclaration =
-                      new CTypeDefDeclaration(
-                          typeDefDeclaration.getFileLocation(),
-                          typeDefDeclaration.isGlobal(),
-                          typeSubstitute,
-                          typeDefDeclaration.getName(),
-                          typeDefDeclaration.getOrigName());
-                  rDeclarations.add(newTypeDefDeclaration.toASTString());
-                }
-                default ->
-                    throw new AssertionError("Unhandled CTypeDeclaration: " + typeDeclaration);
+        if (isIncludedDeclaration(pOptions, declaration, pInputMainFunctionDeclaration)) {
+          if (declaration instanceof CTypeDeclaration typeDeclaration) {
+            // For CTypeDeclaration, substitute pthread types such as pthread_mutex_t so that they
+            // can be simulated.
+            switch (typeDeclaration) {
+              case CComplexTypeDeclaration complexTypeDeclaration -> {
+                CType typeSubstitute =
+                    PthreadObjectSubstitution.substitutePthreadObjectTypes(
+                        complexTypeDeclaration.getType(), ImmutableSet.of(CCompositeType.class));
+                CComplexTypeDeclaration newComplexTypeDeclaration =
+                    new CComplexTypeDeclaration(
+                        complexTypeDeclaration.getFileLocation(),
+                        complexTypeDeclaration.isGlobal(),
+                        (CComplexType) typeSubstitute);
+                rDeclarations.add(newComplexTypeDeclaration.toASTString());
               }
-            } else {
-              rDeclarations.add(declaration.toASTString());
+              case CTypeDefDeclaration typeDefDeclaration -> {
+                CType typeSubstitute =
+                    PthreadObjectSubstitution.substitutePthreadObjectTypes(
+                        typeDefDeclaration.getType(), ImmutableSet.of(CElaboratedType.class));
+                CTypeDefDeclaration newTypeDefDeclaration =
+                    new CTypeDefDeclaration(
+                        typeDefDeclaration.getFileLocation(),
+                        typeDefDeclaration.isGlobal(),
+                        typeSubstitute,
+                        typeDefDeclaration.getName(),
+                        typeDefDeclaration.getOrigName());
+                rDeclarations.add(newTypeDefDeclaration.toASTString());
+              }
+              default -> throw new AssertionError("Unhandled CTypeDeclaration: " + typeDeclaration);
             }
+          } else {
+            rDeclarations.add(declaration.toASTString());
           }
         }
       }
     }
     return rDeclarations.toString();
+  }
+
+  private static boolean isIncludedDeclaration(
+      MPOROptions pOptions,
+      CDeclaration pDeclaration,
+      CFunctionDeclaration pInputMainFunctionDeclaration) {
+
+    if (pDeclaration instanceof CFunctionDeclaration functionDeclaration) {
+      if (!pOptions.inputFunctionDeclarations()
+          // The main function declaration from the input is not included, we declare it ourselves.
+          || functionDeclaration.equals(pInputMainFunctionDeclaration)) {
+        return false;
+      }
+    }
+    if (pDeclaration instanceof CTypeDeclaration) {
+      if (!pOptions.inputTypeDeclarations()) {
+        return false;
+      }
+    }
+    return true;
   }
 
   // Input Variable Declarations ===================================================================
@@ -296,18 +316,22 @@ public class SequentializationBuilder {
       rDeclarations.add(SeqComment.CUSTOM_FUNCTION_DECLARATIONS.toASTString());
     }
 
-    // reach_error, abort, assert, nondet_int may be duplicate depending on the input program
-    if (pOptions.nondeterminismSigned()) {
-      rDeclarations.add(VerifierNondetFunctionType.INT.getFunctionDeclaration().toASTString());
-    } else {
-      rDeclarations.add(VerifierNondetFunctionType.UINT.getFunctionDeclaration().toASTString());
+    // nondet_..., reach_error and abort may be duplicate depending on the input program
+    for (VerifierNondetFunctionType nondetFunctionType : VerifierNondetFunctionType.values()) {
+      rDeclarations.add(nondetFunctionType.getFunctionDeclaration().toASTString());
     }
     rDeclarations.add(SeqThreadStatementBuilder.REACH_ERROR_FUNCTION_DECLARATION.toASTString());
     rDeclarations.add(SeqAssumeFunctionBuilder.ASSUME_FUNCTION_DECLARATION.toASTString());
     rDeclarations.add(SeqAssumeFunctionBuilder.ABORT_FUNCTION_DECLARATION.toASTString());
 
-    // malloc is required for valid-memsafety tasks
-    rDeclarations.add(SeqFunctionDeclarations.MALLOC.toASTString());
+    // malloc is required for valid-memsafety tasks for CBMC, but only if the input programs
+    // function declarations are excluded (which should be done for CBMC). This is because if the
+    // input program contains a call to malloc, then its declaration is included in the input
+    // program. But since we exclude these for CBMC, and because CBMC still needs a function
+    // declaration (it produces incorrect results otherwise), we add it here.
+    if (!pOptions.inputFunctionDeclarations()) {
+      rDeclarations.add(SeqFunctionDeclarations.MALLOC.toASTString());
+    }
 
     // thread simulation functions, only enabled when loop is unrolled
     if (pOptions.threadSimulationUnrolling()) {
@@ -317,8 +341,13 @@ public class SequentializationBuilder {
           .values()
           .forEach(f -> rDeclarations.add(f.getDeclaration().toASTString()));
     }
-    // main should always be duplicate
-    rDeclarations.add(SeqMainFunctionBuilder.MAIN_FUNCTION_DECLARATION.toASTString());
+
+    // The main function declaration should always be included, regardless of whether the input
+    // programs function declarations are included, because the main function declaration from the
+    // input is never included to prevent type mismatches of duplicate declarations such as:
+    // 'int main();' as declared by the sequentialization and 'int main(int arg);' from the input.
+    rDeclarations.add(pFields.outputMainFunctionDeclaration.toASTString());
+
     return rDeclarations.toString();
   }
 
