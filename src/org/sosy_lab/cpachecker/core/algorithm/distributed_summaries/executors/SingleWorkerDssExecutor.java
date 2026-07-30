@@ -13,11 +13,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 import org.sosy_lab.common.JSON;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -27,6 +27,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssAllWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssDefaultQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
@@ -38,7 +39,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAn
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisWorker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusAndResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssWorkerBuilder;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -58,6 +58,7 @@ public class SingleWorkerDssExecutor implements DssExecutor {
   private final Specification specification;
   private final DssAnalysisOptions options;
   private final DssMessageFactory messageFactory;
+  private final ShutdownManager shutdownManager;
 
   @FileOption(Type.OUTPUT_DIRECTORY)
   @Option(description = "Where to write responses", secure = true)
@@ -94,12 +95,14 @@ public class SingleWorkerDssExecutor implements DssExecutor {
   @Option(description = "Whether to spawn a worker for only one block id", secure = true)
   private String spawnWorkerForId = "";
 
-  public SingleWorkerDssExecutor(Configuration pConfiguration, Specification pSpecification)
+  public SingleWorkerDssExecutor(
+      Configuration pConfiguration, Specification pSpecification, ShutdownManager pShutdownManager)
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
     options = new DssAnalysisOptions(pConfiguration);
     messageFactory = new DssMessageFactory(options);
     specification = pSpecification;
+    shutdownManager = pShutdownManager;
     if (Stream.concat(knownConditions.stream(), newConditions.stream())
         .anyMatch(f -> !Files.isRegularFile(f))) {
       throw new InvalidConfigurationException(
@@ -156,7 +159,8 @@ public class SingleWorkerDssExecutor implements DssExecutor {
   }
 
   @Override
-  public StatusAndResult execute(CFA cfa, BlockGraph blockGraph)
+  public StatusAndResult execute(
+      CFA cfa, BlockGraph blockGraph, DssAllWorkerStatistics workerStatistics)
       throws CPAException,
           SolverException,
           InterruptedException,
@@ -171,7 +175,13 @@ public class SingleWorkerDssExecutor implements DssExecutor {
                     new IllegalArgumentException(
                         "No block with id '" + spawnWorkerForId + "' found in the block graph."));
     try (DssActors actors =
-        new DssWorkerBuilder(cfa, specification, () -> new DssDefaultQueue(), messageFactory)
+        new DssWorkerBuilder(
+                cfa,
+                specification,
+                () -> new DssDefaultQueue(),
+                messageFactory,
+                workerStatistics,
+                shutdownManager)
             .addAnalysisWorker(blockNode, options)
             .build()) {
 
@@ -196,7 +206,4 @@ public class SingleWorkerDssExecutor implements DssExecutor {
     }
     return new StatusAndResult(AlgorithmStatus.NO_PROPERTY_CHECKED, Result.UNKNOWN);
   }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> statsCollection) {}
 }
