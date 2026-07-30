@@ -34,8 +34,8 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
-import org.sosy_lab.cpachecker.cpa.path.PathCPA;
-import org.sosy_lab.cpachecker.cpa.path.SegmentedPaths;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.PathRestrictionCPA;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -144,7 +144,7 @@ public class DssWitnessExporter {
       throws CPAException, InterruptedException, InvalidConfigurationException {
 
     SegmentedPaths mappedViolation = convertToOriginalEdges(pViolationPath, modification);
-    Optional.ofNullable(CPAs.retrieveCPA(violationCPA, PathCPA.class))
+    Optional.ofNullable(CPAs.retrieveCPA(violationCPA, PathRestrictionCPA.class))
         .ifPresent(p -> p.init(mappedViolation));
 
     reachedSet.clear();

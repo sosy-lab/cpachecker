@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.path;
+package org.sosy_lab.cpachecker.cpa.pathrestriction;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
@@ -190,7 +190,7 @@ public class SegmentedPaths {
         top.add(ImmutableSet.of());
         continue;
       }
-      ImmutableSet.Builder<ImmutableList<String>> innerLists =  ImmutableSet.builder();
+      ImmutableSet.Builder<ImmutableList<String>> innerLists = ImmutableSet.builder();
       for (String innerToken : SPLIT_SET.split(setToken)) {
         if (innerToken.isEmpty()) {
           innerLists.add(ImmutableList.of());
