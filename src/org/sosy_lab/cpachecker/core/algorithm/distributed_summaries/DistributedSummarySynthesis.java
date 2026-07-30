@@ -234,7 +234,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
 
       DssWitnessArgStateCollector stateCollector =
           new DssWitnessArgStateCollector(
-              new DssAnalysisOptions(configuration), blockGraph, modification, spec, logger);
+              new DssAnalysisOptions(configuration), blockGraph, modification, spec);
 
       return interpretResult(
           executor.execute(cfa, blockGraph, stateCollector), reachedSet, modification);

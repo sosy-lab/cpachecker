@@ -20,7 +20,6 @@ import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map.Entry;
-import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -42,9 +41,7 @@ import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector;
 public class DssWitnessArgStateCollector implements RelevantArgStatesCollector {
 
   private final Multimap<CFANode, ARGState> collectedLoopHeadPreconditions = HashMultimap.create();
-  private boolean allStatesExtractedSuccessfully = true;
 
-  private final LogManager logger;
   private final DssBlockAnalysis analysis;
   private final BlockGraph blockGraph;
   private final ImmutableMap<String, BlockNode> idToNode;
@@ -58,8 +55,7 @@ public class DssWitnessArgStateCollector implements RelevantArgStatesCollector {
       DssAnalysisOptions options,
       BlockGraph pBlockGraph,
       Modification pModification,
-      Specification spec,
-      LogManager pLogger)
+      Specification spec)
       throws InvalidConfigurationException, IOException, CPAException, InterruptedException {
 
     Configuration forwardConfiguration =
@@ -77,11 +73,10 @@ public class DssWitnessArgStateCollector implements RelevantArgStatesCollector {
 
     blockGraph = pBlockGraph;
     idToNode = Maps.uniqueIndex(pBlockGraph.getNodes(), BlockNode::getId);
-    logger = pLogger;
     modification = pModification;
   }
 
-  public void collectFromMessage(DssWitnessMessage message) {
+  public void collectFromMessage(DssWitnessMessage message) throws InterruptedException {
 
     messages++;
 
@@ -89,17 +84,11 @@ public class DssWitnessArgStateCollector implements RelevantArgStatesCollector {
 
     if (senderBlock.getInitialLocation().isLoopStart()) {
 
-      try {
-        Collection<ARGState> states =
-            transformedImmutableListCopy(
-                analysis.deserialize(message),
-                sp -> AbstractStates.extractStateByType(sp.state(), ARGState.class));
-        collectedLoopHeadPreconditions.putAll(senderBlock.getInitialLocation(), states);
-      } catch (InterruptedException e) {
-        allStatesExtractedSuccessfully = false;
-        logger.logUserException(
-            Level.WARNING, e, "Could not collect states for witness due to interruption");
-      }
+      Collection<ARGState> states =
+          transformedImmutableListCopy(
+              analysis.deserialize(message),
+              sp -> AbstractStates.extractStateByType(sp.state(), ARGState.class));
+      collectedLoopHeadPreconditions.putAll(senderBlock.getInitialLocation(), states);
     }
   }
 
@@ -109,7 +98,10 @@ public class DssWitnessArgStateCollector implements RelevantArgStatesCollector {
     // currently this is the case: we only collect the information for loop heads, which will always
     // be entry nodes and never in the middle of one block
     // also, we ensure that we waited for all blocks to return a witness message
-    return allStatesExtractedSuccessfully && blockGraph.getNodes().size() == messages;
+
+    // TODO: A future extension could collect other preconditions and keep track for which CFANodes
+    // it received all necessary information
+    return blockGraph.getNodes().size() == messages;
   }
 
   /**

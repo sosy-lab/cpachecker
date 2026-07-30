@@ -84,7 +84,6 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
 
   private final BlockNode block;
 
-  private final LogManager logger;
   private final DssMessageFactory messageFactory;
 
   private final DssConnection connection;
@@ -133,7 +132,6 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
             .build();
 
     messageFactory = pMessageFactory;
-    logger = pLogger;
     analysis =
         new CreateOrRetrieveThreadLocalAnalysis(
             () ->

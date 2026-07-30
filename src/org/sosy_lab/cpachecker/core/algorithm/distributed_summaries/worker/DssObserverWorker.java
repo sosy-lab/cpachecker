@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -85,10 +86,12 @@ public class DssObserverWorker extends DssWorker implements Statistics {
   }
 
   @Override
-  public Collection<DssMessage> processMessage(DssMessage pMessage) {
+  public Collection<DssMessage> processMessage(DssMessage pMessage) throws InterruptedException {
     switch (pMessage.getType()) {
       case RESULT -> {
         finalResult = Optional.of(pMessage.getResult());
+        logger.log(
+            Level.INFO, "Received result", pMessage.getResult(), ", waiting for witness messages");
         statusObserver.updateStatus(pMessage);
         shutdown = allPostAnalysisMessagesReceived();
       }
