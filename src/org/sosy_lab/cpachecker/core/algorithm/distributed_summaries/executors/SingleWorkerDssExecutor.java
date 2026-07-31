@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssAllWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssDefaultQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -122,40 +121,17 @@ public class SingleWorkerDssExecutor implements DssExecutor {
     }
   }
 
+  private static List<DssMessage> readMessages(List<Path> pPaths) throws IOException {
+    List<DssMessage> messages = new ArrayList<>(pPaths.size());
+    for (Path path : pPaths) {
+      messages.add(DssMessage.fromJson(path));
+    }
+    return messages;
+  }
+
   private OldAndNewMessages prepareOldAndNewMessages(
       List<Path> pKnownConditions, List<Path> pNewConditions) throws IOException {
-    List<DssMessage> toBeConsideredOld = new ArrayList<>();
-    List<DssMessage> toBeConsideredNew = new ArrayList<>();
-    // known conditions always stay 'old' and never become 'true'
-    for (Path knownMessageFile : pKnownConditions) {
-      DssMessage message = DssMessage.fromJson(knownMessageFile);
-      toBeConsideredOld.add(message);
-    }
-
-    // new conditions can be considered 'new' (the default), but under certain conditions
-    // we can avoid unnecessary analysis when we know that considering them 'old' is semantically
-    // equivalent.
-    // effect of a new postcondition: starts for each verification condition a new analysis run that
-    // considers all known + the new postcondition
-    // Multiple new postconditions have the same effect as only taking one of them as 'new' and the
-    // others as 'old'.
-    boolean isFirstPostcondition = true;
-    for (Path newMessageFile : pNewConditions) {
-      DssMessage message = DssMessage.fromJson(newMessageFile);
-      if (message.getType() == DssMessageType.POST_CONDITION) {
-        if (isFirstPostcondition) {
-          // Do postconditions first, so that information is known before error conditions are
-          // checked
-          toBeConsideredNew.addFirst(message);
-          isFirstPostcondition = false;
-        } else {
-          toBeConsideredOld.add(message);
-        }
-      } else {
-        toBeConsideredNew.add(message);
-      }
-    }
-    return new OldAndNewMessages(toBeConsideredOld, toBeConsideredNew);
+    return new OldAndNewMessages(readMessages(pKnownConditions), readMessages(pNewConditions));
   }
 
   @Override
