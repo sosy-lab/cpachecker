@@ -163,9 +163,6 @@ public class AlwaysReplaceDssBlockAnalysis extends DssBlockAnalysis<StringId, St
   @Override
   public Collection<DssMessage> analyzePreconditions(String idFromLastUpdate)
       throws SolverException, InterruptedException, CPAException {
-    if (!containsViolationInsideBlock && violationConditions.isEmpty()) {
-      return ImmutableSet.of();
-    }
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     AnalysisResult result = analyzeViolationCondition();
     if (!result.violationConditions().isEmpty()) {
@@ -198,9 +195,6 @@ public class AlwaysReplaceDssBlockAnalysis extends DssBlockAnalysis<StringId, St
   }
 
   private AnalysisResult analyzeViolationCondition() throws CPAException, InterruptedException {
-    if (violationConditions.isEmpty()) {
-      return new AnalysisResult(ImmutableList.of(), ImmutableSet.of());
-    }
 
     ImmutableSet.Builder<StateAndPrecision> summaries = ImmutableSet.builder();
     ImmutableSet.Builder<ArgPathAndCondition> vcs = ImmutableSet.builder();
