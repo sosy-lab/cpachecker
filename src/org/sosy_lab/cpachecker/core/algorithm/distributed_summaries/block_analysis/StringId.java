@@ -29,4 +29,9 @@ public class StringId implements DssIndexable {
   public boolean equals(Object obj) {
     return obj instanceof StringId stringId && id.equals(stringId.id);
   }
+
+  @Override
+  public String toString() {
+    return id;
+  }
 }

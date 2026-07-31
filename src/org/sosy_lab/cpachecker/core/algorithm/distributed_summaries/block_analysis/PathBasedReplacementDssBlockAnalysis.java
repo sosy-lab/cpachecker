@@ -171,10 +171,9 @@ public class PathBasedReplacementDssBlockAnalysis
         addNewPath = true;
         fixPointReached &= allowedToStop;
       } else if (cases.containsKey(PathCase.REVERSE_OVERLAP)) {
+        System.out.println("Reverse overlap found, new preconditions with path " + newPath + " ignored");
         continue;
       } else if (cases.containsKey(PathCase.OVERLAP)) {
-        // ABCCC (incoming)
-        // ABC (existing)
         cases.get(PathCase.OVERLAP).forEach(preconditions::removeAll);
         addNewPath  = true;
         fixPointReached = false;
@@ -188,6 +187,8 @@ public class PathBasedReplacementDssBlockAnalysis
         }
         if (!allowedToStop) {
           addNewPath  = true;
+        } else {
+          System.out.println("Real prefix + covered, new preconditions with path " + newPath + " ignored");
         }
         fixPointReached &= allowedToStop;
       } else {
@@ -273,9 +274,6 @@ public class PathBasedReplacementDssBlockAnalysis
   @Override
   public Collection<DssMessage> analyzePreconditions(String idFromLastUpdate)
       throws SolverException, InterruptedException, CPAException {
-    if (!containsViolationInsideBlock && violationConditions.isEmpty()) {
-      return ImmutableSet.of();
-    }
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     AnalysisResult result = analyzeViolationCondition();
     if (!result.violationConditions().isEmpty()) {
@@ -320,9 +318,6 @@ public class PathBasedReplacementDssBlockAnalysis
       throws CPAException, InterruptedException {
     System.out.println(
         DssDebugUtils.prettyPrintPredicateAnalysisBlock(block, preconditions, violationConditions));
-    if (violationConditions.isEmpty()) {
-      return new AnalysisResult(ImmutableList.of(), ImmutableSet.of());
-    }
 
     ImmutableList.Builder<StateAndPrecision> summaries = ImmutableList.builder();
     ImmutableSet.Builder<ArgPathAndCondition> vcs = ImmutableSet.builder();
