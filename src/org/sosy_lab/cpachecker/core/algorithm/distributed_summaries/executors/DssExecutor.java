@@ -75,7 +75,7 @@ public interface DssExecutor extends StatisticsProvider {
     public AlgorithmStatus finish() {
       return statusMap.values().stream()
           .reduce(AlgorithmStatus::update)
-          .orElse(AlgorithmStatus.NO_PROPERTY_CHECKED);
+          .orElse(AlgorithmStatus.SOUND_AND_PRECISE);
     }
   }
 }

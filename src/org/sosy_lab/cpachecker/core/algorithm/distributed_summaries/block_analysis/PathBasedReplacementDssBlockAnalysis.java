@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -149,7 +150,7 @@ public class PathBasedReplacementDssBlockAnalysis
       return DssMessageProcessing.proceed();
     }
     boolean fixPointReached = true;
-    ArrayListMultimap<@NonNull BlockGraphPath, StateAndPrecision> oldAndProcessedNewPaths = ArrayListMultimap.create(preconditions);
+    Multimap<@NonNull BlockGraphPath, StateAndPrecision> oldAndProcessedNewPaths = ArrayListMultimap.create(preconditions);
     for (BlockGraphPath newPath : newPreconditions.keySet()) {
       ImmutableListMultimap.Builder<PathCase, BlockGraphPath> caseBuilder =
           ImmutableListMultimap.builder();
