@@ -26,7 +26,7 @@ public class AffineLoopRepresentation {
     iterationConstants = pIterationConstants;
   }
 
-  public List<? extends List<Integer>> getIteraionMatrix() {
+  public List<? extends List<Integer>> getIterationMatrix() {
     return iteraionMatrix;
   }
 

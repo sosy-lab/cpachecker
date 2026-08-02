@@ -14,23 +14,28 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.matheclipse.core.eval.ExprEvaluator;
 import org.matheclipse.core.expression.F;
 import org.matheclipse.core.interfaces.IAST;
 import org.matheclipse.core.interfaces.IExpr;
+import org.matheclipse.core.interfaces.ISymbol;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.transformation.AffineLoopClosedFormRepresentation.RowSummand;
 import org.sosy_lab.cpachecker.cfa.transformation.AffineLoopClosedFormRepresentation.Summand;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 
 public class LoopAccelerationUtils {
 
@@ -40,7 +45,7 @@ public class LoopAccelerationUtils {
    * @return closed form as a matrix of RowSummands
    */
   public static Optional<AffineLoopClosedFormRepresentation> closedFormAffine(AffineLoopRepresentation pLoop) {
-    List<List<Integer>> A = (List<List<Integer>>) pLoop.getIteraionMatrix();
+    List<List<Integer>> A = (List<List<Integer>>) pLoop.getIterationMatrix();
     List<CIdExpression> x = pLoop.getVariables();
     List<Integer> b = pLoop.getIterationConstants();
 
@@ -243,73 +248,285 @@ public class LoopAccelerationUtils {
   }
 
   /**
-   * Calculate the exact value of a coefficient for n loop iterations.
-   * @param n the number of loop iterations
-   * @param rowSummand list of RowSummands which get assigned to the same variable
-   * @return a list of Coefficients (int, variable)
+   * This function tries to calculate CExpressions for a number of loop iterations for which the guard becomes true/false.
+   * Only for loop guards of the form a (< | <= |!= | > | >=) b where a and b are terms in integer arithmetic.
+   * @param pLoopCondition the loop guard as CExpression
+   * @param pClosedForm the closed form representation of the loop
+   * @return an Optional containing a List of possible loop iteration CExpressions on success or Optional.empty()
    */
-  public static List<Coefficient> simplifyClosedFormAssignment(int n, List<RowSummand> rowSummand) {
-    ImmutableList.Builder<Coefficient> coefficients = new ImmutableList.Builder<>();
-    ArrayList<RowSummand> tmpList = new ArrayList<>();
-    ExprEvaluator util = new ExprEvaluator(false, (short) 100);
-    for (RowSummand summand : rowSummand) {
-      IExpr coeff = summand.coeff().multiply((util.eval(String.valueOf(n)).pow(summand.power())).multiply(summand.lambda().pow(n)));
-      boolean alreadyPresent = false;
-      for (RowSummand summand2 : tmpList) {
-        if (summand2.variable() == summand.variable()) {
-          tmpList.add(new RowSummand(summand2.coeff().plus(coeff), summand.variable(), 0, null));
-          tmpList.remove(summand2);
-          alreadyPresent = true;
+  public static Optional<ImmutableList<CExpression>> getNumberOfIterations(CExpression pLoopCondition, AffineLoopClosedFormRepresentation pClosedForm) {
+    ExprEvaluator util = new ExprEvaluator();
+    IExpr symbolicExpression;
+    ImmutableList<BinaryOperator> supportedBinaryOperators = ImmutableList.of(
+        BinaryOperator.EQUALS,
+        BinaryOperator.GREATER_EQUAL,
+        BinaryOperator.GREATER_THAN,
+        BinaryOperator.LESS_EQUAL,
+        BinaryOperator.LESS_THAN,
+        BinaryOperator.NOT_EQUALS
+    );
+    ImmutableList.Builder<CIdExpression> encounteredVariables = ImmutableList.builder();
+
+
+    // First create a symbolic expression for the falsified loop guard
+    // Only supporting loop guards: arithm. expression <,<=,!=,>,>= arithm. expression
+    switch (pLoopCondition) {
+      case CBinaryExpression binaryExpression:
+        if (!supportedBinaryOperators.contains(binaryExpression.getOperator())) return Optional.empty();
+        IntegerArithmaticExpressionVisitor lhsVisitor = new IntegerArithmaticExpressionVisitor();
+        IntegerArithmaticExpressionVisitor rhsVisitor = new IntegerArithmaticExpressionVisitor();
+        try {
+          IExpr lhs = lhsVisitor.visit(binaryExpression.getOperand1());
+          IExpr rhs = rhsVisitor.visit(binaryExpression.getOperand2());
+          symbolicExpression = switch (binaryExpression.getOperator()) {
+            case LESS_THAN -> F.Equal(lhs, rhs);
+            case LESS_EQUAL -> F.Equal(lhs, F.Plus(rhs, F.C1));
+            case GREATER_THAN -> F.Equal(lhs, rhs);
+            case GREATER_EQUAL -> F.Equal(lhs, F.Subtract(rhs, F.C1));
+            case NOT_EQUALS -> F.Equal(lhs, rhs);
+            default -> null;
+          };
+          if (symbolicExpression == null || lhsVisitor.failed() || rhsVisitor.failed()) {
+            return Optional.empty();}
+          encounteredVariables.addAll(lhsVisitor.getEncounteredVariables());
+          encounteredVariables.addAll(rhsVisitor.getEncounteredVariables());
+        } catch (Exception pE) {
+          return Optional.empty();
+        }
+        break;
+      case CIdExpression idExpression:
+        IntegerArithmaticExpressionVisitor idVisitor = new IntegerArithmaticExpressionVisitor();
+        try {
+          symbolicExpression = idVisitor.visit(idExpression);
+          if (idVisitor.failed()) return Optional.empty();
+          // the proposition a is equal to a != 0
+          symbolicExpression = symbolicExpression.unequalTo(F.C0);
+          encounteredVariables.addAll(idVisitor.getEncounteredVariables());
+        } catch (Exception pE) {
+          return Optional.empty();
+        }
+        break;
+      case CIntegerLiteralExpression literalExpression:
+        IntegerArithmaticExpressionVisitor literalVisitor = new IntegerArithmaticExpressionVisitor();
+        try {
+          symbolicExpression = literalVisitor.visit(literalExpression);
+          if (literalVisitor.failed()) return Optional.empty();
+          // a constant integer != 0 as loop guard results in an infinite loop
+          if (!symbolicExpression.isZero()) return Optional.empty();
+          // a constant 0 means we never enter the loop
+          return Optional.of(ImmutableList.of(literalExpression));
+        } catch (Exception pE) {
+          return Optional.empty();
+        }
+      default:
+        return Optional.empty();
+    }
+
+    // insert closed form of accelerated variables
+    ISymbol iterVar = F.$s("LOOPACCELERATIONITERATIONS");
+    for (CIdExpression var : encounteredVariables.build()) {
+      IExpr assignment = pClosedForm.assignmentSymbolicExpression(var, iterVar);
+      symbolicExpression = util.eval(F.ReplaceAll(symbolicExpression, assignment));
+    }
+
+    // two cases: n is even or odd
+    // Relevant because of the term (-1)^n
+    ISymbol kEven = F.$s("kEven");
+    ISymbol kOdd = F.$s("kOdd");
+    IExpr kEvenIdentity = F.Rule(iterVar, F.Times(F.C2, kEven));
+    IExpr kOddIdentity = F.Rule(iterVar, F.Plus(F.C1, F.Times(F.C2, kOdd)));
+    IExpr newRuleEven = F.Rule(F.Power(F.CN1, iterVar), F.C1);
+    IExpr newRuleOdd = F.Rule(F.Power(F.CN1, iterVar), F.CN1);
+    IExpr symbolicExpressionEven = util.eval(F.ReplaceAll(symbolicExpression, newRuleEven));
+    IExpr symbolicExpressionOdd = util.eval(F.ReplaceAll(symbolicExpression, newRuleOdd));
+    symbolicExpressionEven = util.eval(F.ReplaceAll(symbolicExpressionEven, kEvenIdentity));
+    symbolicExpressionOdd = util.eval(F.ReplaceAll(symbolicExpressionOdd, kOddIdentity));
+
+    // solve for n_even/n_odd
+    // with Solve as String input, because F.Solve behaves differently
+    IExpr solutionEven = util.eval("Solve("+symbolicExpressionEven+", "+kEven+")");
+    IExpr solutionOdd = util.eval("Solve("+symbolicExpressionOdd+", "+kOdd+")");
+
+    // reinsert n for n_even = n/2, n_odd = (n-1)/2
+    ImmutableList.Builder<IExpr> solutionsBuilder = ImmutableList.builder();
+    if (solutionEven.first().isEmpty() && solutionOdd.first().isEmpty()) {
+      // cannot determine the number of iterations
+      return Optional.empty();
+    } else {
+      // collect all possible solutions
+      IExpr solutionsEven = solutionEven.first();
+      if (solutionsEven.isListOfRules()) {
+        while (!solutionsEven.isEmpty()) {
+          IExpr solution = solutionsEven.first();
+          solutionsBuilder.add(util.eval(F.Times(F.C2, solution.second())));
+          solutionsEven = solutionsEven.rest();
         }
       }
-      if (!alreadyPresent) {
-        tmpList.add(new RowSummand(coeff, summand.variable(), 0, null));
+      IExpr solutionsOdd = solutionOdd.first();
+      if (solutionsOdd.isListOfRules()) {
+        while (!solutionsOdd.isEmpty()) {
+          IExpr solution = solutionsOdd.first();
+          solutionsBuilder.add(util.eval( F.Simplify(F.Times(F.C2, F.Plus(solution.second(), F.C1)))));
+          solutionsOdd = solutionsOdd.rest();
+        }
       }
+      // create CExpressions for all possible solutions
+      ImmutableList.Builder<CExpression> possibleSolutions = ImmutableList.builder();
+      ImmutableList<IExpr> solutions  = solutionsBuilder.build();
+      if (solutions.isEmpty()) return Optional.empty();
+      for (IExpr solution : solutions) {
+        Optional<CExpression> expression = expressionFromIExpr(solution, pClosedForm.getVariables());
+        if (expression.isPresent()) {
+          possibleSolutions.add(expression.orElseThrow());
+        }
+      }
+      return Optional.of(possibleSolutions.build());
     }
+  }
 
-    for (RowSummand summand : tmpList) {
-        coefficients.add(new Coefficient(summand.coeff().toIntDefault(), summand.variable()));
+  public static Optional<CExpression> expressionFromIExpr(IExpr pExpression, Set<CIdExpression> pVariables) {
+    if (pExpression.isNumber()) {
+      if (pExpression.isInteger()) {
+        return Optional.of(new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(pExpression.toLongDefault())));
+      } else if (pExpression.isRational() || pExpression.isReal()) {
+        return Optional.of(
+            new CFloatLiteralExpression(
+                FileLocation.DUMMY,
+                MachineModel.LINUX64,
+                CNumericTypes.DOUBLE,
+                FloatValue.fromDouble(pExpression.toDoubleDefault())));
+      }
+      return Optional.empty();
+    } else if (pExpression.isSymbol()) {
+      for (CIdExpression var : pVariables) {
+        if (var.getName().equals(pExpression.toString())) {
+          return Optional.of(var);
+        }
+      }
+      return Optional.empty();
+    } else if (pExpression.isPlus() || pExpression.isTimes()) {
+      if (pExpression.argSize() != 2) return Optional.empty();
+      Optional<CExpression> lhs = expressionFromIExpr(pExpression.first(), pVariables);
+      Optional<CExpression> rhs = expressionFromIExpr(pExpression.second(), pVariables);
+      if (lhs.isEmpty() || rhs.isEmpty()) return Optional.empty();
+      CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(MachineModel.LINUX64, LogManager.createNullLogManager());
+      CBinaryExpression cBinaryExpression;
+      try {
+        cBinaryExpression = expressionBuilder.buildBinaryExpression(lhs.orElseThrow(), rhs.orElseThrow(), pExpression.isPlus() ? BinaryOperator.PLUS : BinaryOperator.MULTIPLY);
+      } catch (UnrecognizedCodeException pE) {
+        return Optional.empty();
+      }
+      return Optional.of(cBinaryExpression);
     }
-
-    return coefficients.build();
+    return Optional.empty();
   }
 
   /**
-   * Create the CRightHandSide for a list of Coefficients.
-   * @param coefficients list of coefficient, variable pairs
-   * @return a CRightHandSide expression for an assignment statement
+   * For two int expressions a b return the smaller number of a,b greater 0 or 0 if a <= 0 and b <= 0.
+   * @param pIntExpression1 CExpression with type int
+   * @param pIntExpression2 CExpression with type int
+   * @return a Cexpression equivalent to min(a,b), for a,b > 0
+   * @throws UnrecognizedCodeException
    */
-  public static CExpression expressionFromCoefficients(List<Coefficient> coefficients) {
-    int num = coefficients.size();
-    if (num == 1) {
-      // constant
-      if (coefficients.getFirst().variable == null) {
-        return new CIntegerLiteralExpression(
-            FileLocation.DUMMY,
-            CNumericTypes.INT,
-            BigInteger.valueOf(coefficients.getFirst().coeff)
-        );
-      }
-      return new CBinaryExpression(
-          FileLocation.DUMMY,
-          CNumericTypes.INT,
-          CNumericTypes.INT,
-          new CIntegerLiteralExpression(
-              FileLocation.DUMMY,
-              CNumericTypes.INT,
-              BigInteger.valueOf(coefficients.getFirst().coeff)),
-          coefficients.getFirst().variable,
-          BinaryOperator.MULTIPLY);
-
-    } else {
-      return new CBinaryExpression(
-          FileLocation.DUMMY,
-          CNumericTypes.INT,
-          CNumericTypes.INT,
-          expressionFromCoefficients(coefficients.subList(0, 1)),
-          expressionFromCoefficients(coefficients.subList(1, num)),
-          BinaryOperator.PLUS
-      );
-    }
+  public static CExpression minOfTwoIntGreaterZero(CExpression pIntExpression1,  CExpression pIntExpression2)
+      throws UnrecognizedCodeException {
+    CBinaryExpressionBuilder binaryExpressionBuilder = new CBinaryExpressionBuilder(MachineModel.LINUX64, LogManager.createNullLogManager());
+    return binaryExpressionBuilder.buildBinaryExpression(
+        binaryExpressionBuilder.buildBinaryExpression(
+            // (a > 0) * (b <= 0) * a
+            binaryExpressionBuilder.buildBinaryExpression(
+                binaryExpressionBuilder.buildBinaryExpression(
+                    pIntExpression1,
+                    new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
+                    BinaryOperator.GREATER_THAN
+                ),
+                binaryExpressionBuilder.buildBinaryExpression(
+                    binaryExpressionBuilder.buildBinaryExpression(
+                        pIntExpression2,
+                        new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
+                        BinaryOperator.LESS_EQUAL
+                    ),
+                    pIntExpression1,
+                    BinaryOperator.MULTIPLY
+                ),
+                BinaryOperator.MULTIPLY
+            ),
+            // (a > 0) * (b > 0) * (a <= b) * a
+            binaryExpressionBuilder.buildBinaryExpression(
+                binaryExpressionBuilder.buildBinaryExpression(
+                    pIntExpression1,
+                    new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
+                    BinaryOperator.GREATER_THAN
+                ),
+                binaryExpressionBuilder.buildBinaryExpression(
+                    binaryExpressionBuilder.buildBinaryExpression(
+                        pIntExpression2,
+                        new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
+                        BinaryOperator.GREATER_THAN
+                    ),
+                    binaryExpressionBuilder.buildBinaryExpression(
+                        binaryExpressionBuilder.buildBinaryExpression(
+                            pIntExpression1,
+                            pIntExpression2,
+                            BinaryOperator.LESS_EQUAL
+                        ),
+                        pIntExpression1,
+                        BinaryOperator.MULTIPLY
+                    ),
+                    BinaryOperator.MULTIPLY
+                ),
+                BinaryOperator.MULTIPLY
+            ),
+            BinaryOperator.PLUS
+        ),
+        binaryExpressionBuilder.buildBinaryExpression(
+            // (b > 0) * (a <= 0) * b
+            binaryExpressionBuilder.buildBinaryExpression(
+                binaryExpressionBuilder.buildBinaryExpression(
+                    pIntExpression2,
+                    new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
+                    BinaryOperator.GREATER_THAN
+                ),
+                binaryExpressionBuilder.buildBinaryExpression(
+                    binaryExpressionBuilder.buildBinaryExpression(
+                        pIntExpression1,
+                        new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
+                        BinaryOperator.LESS_EQUAL
+                    ),
+                    pIntExpression2,
+                    BinaryOperator.MULTIPLY
+                ),
+                BinaryOperator.MULTIPLY
+            ),
+            // (b > 0) * (a > 0) * (b < a) * b
+            binaryExpressionBuilder.buildBinaryExpression(
+                binaryExpressionBuilder.buildBinaryExpression(
+                    pIntExpression2,
+                    new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
+                    BinaryOperator.GREATER_THAN
+                ),
+                binaryExpressionBuilder.buildBinaryExpression(
+                    binaryExpressionBuilder.buildBinaryExpression(
+                        pIntExpression1,
+                        new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
+                        BinaryOperator.GREATER_THAN
+                    ),
+                    binaryExpressionBuilder.buildBinaryExpression(
+                        binaryExpressionBuilder.buildBinaryExpression(
+                            pIntExpression2,
+                            pIntExpression1,
+                            BinaryOperator.LESS_THAN
+                        ),
+                        pIntExpression2,
+                        BinaryOperator.MULTIPLY
+                    ),
+                    BinaryOperator.MULTIPLY
+                ),
+                BinaryOperator.MULTIPLY
+            ),
+            BinaryOperator.PLUS
+        ),
+        BinaryOperator.PLUS
+    );
   }
 }

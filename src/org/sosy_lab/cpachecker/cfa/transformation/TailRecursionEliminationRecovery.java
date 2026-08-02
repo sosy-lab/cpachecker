@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.transformation;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
@@ -51,7 +52,7 @@ public record TailRecursionEliminationRecovery(
       // remove the initial ARGState in the program transformation
       currentARGState = ProgramTransformationRecoveryUtils.handleEntry(previousARGState, currentARGState, reached);
       // in tail recursion elimination we must have only one child state, i.e. a Function start dummy edge
-      assert (currentARGState.getChildren().size() == 1) : "More than one child ARG state at the start of the function!";
+      Verify.verify(currentARGState.getChildren().size() == 1, "More than one child ARG state at the start of the function!");
       ARGState childARGState = currentARGState.getChildren().getFirst();
       // recover all ARGStates belonging to this program transformation
       recoverARG(

@@ -17,7 +17,7 @@ int main() {
     i = i + 1;
   }
 
-  if(y > 32){
+  if(y == 23){
     ERROR: return 0;
   }
 

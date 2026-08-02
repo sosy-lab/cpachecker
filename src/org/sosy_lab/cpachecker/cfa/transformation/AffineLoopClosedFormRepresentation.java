@@ -17,7 +17,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import org.matheclipse.core.expression.F;
 import org.matheclipse.core.interfaces.IExpr;
+import org.matheclipse.core.interfaces.ISymbol;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -263,6 +265,29 @@ public class AffineLoopClosedFormRepresentation {
     assignEdge.getSuccessor().addEnteringEdge(assignEdge);
 
     return Optional.of(assignEdge);
+  }
+
+  /**
+   * Get a symbolic expression for the closed form assignment of a certain variable.
+   * @param pVariable CIDExpression
+   * @param pIterVar ISymbol for the number of loop iterations variable
+   * @return an IExpr representing the closed form assignment for pVariable
+   */
+  public IExpr assignmentSymbolicExpression(CIdExpression pVariable, ISymbol pIterVar) {
+    if (!closedForm.containsKey(pVariable)) throw new RuntimeException("Variable not part of closed form!");
+    IExpr variable = F.$s(pVariable.getName()+"-");
+    IExpr assignment = F.C0;
+    for (RowSummand summand : closedForm.get(pVariable)) {
+      IExpr newSummand = F.Power(summand.lambda(), pIterVar);
+      newSummand = F.Times(newSummand, summand.coeff);
+      if (summand.variable != null) {
+        newSummand = F.Times(newSummand, F.$s(summand.variable.getName()));
+      }
+      newSummand = F.Times(newSummand, F.Power(pIterVar, summand.power));
+      assignment = F.evalSimplify(F.Plus(assignment, newSummand));
+    }
+
+    return F.Rule(variable, assignment);
   }
 
 }

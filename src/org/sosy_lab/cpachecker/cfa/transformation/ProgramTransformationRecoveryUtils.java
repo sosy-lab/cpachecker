@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.transformation;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -43,6 +42,28 @@ public class ProgramTransformationRecoveryUtils {
       }
     }
     return new ARGState(new CompositeState(newWrappedStates), pParentState);
+  }
+
+  /**
+   * Copy all wrapped states from pARGState, with a new ValueAnalysisState and parent ARGState.
+   * @param pARGState the ARGState to copy from
+   * @param pValueState the new ValueAnalysisState
+   * @param pParentState the new parent ARGState
+   * @return newly created ARGState
+   */
+  public static ARGState argStateWithValue(ARGState pARGState, ValueAnalysisState pValueState, ARGState pParentState) {
+    CompositeState currentCompositeState = ((CompositeState) pARGState.getWrappedState());
+    List<AbstractState> newWrappedStates =
+        new ArrayList<>(currentCompositeState.getWrappedStates().size());
+    for (AbstractState wrappedState : currentCompositeState.getWrappedStates()) {
+      if (wrappedState instanceof ValueAnalysisState) {
+        newWrappedStates.add(pValueState);
+      } else {
+        newWrappedStates.add(wrappedState);
+      }
+    }
+    return new ARGState(new CompositeState(newWrappedStates), pParentState);
+
   }
 
   /**
