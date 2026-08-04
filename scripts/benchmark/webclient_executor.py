@@ -207,7 +207,7 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
 
 def _log_future_exception(result):
     if result.exception() is not None:
-        logging.warning("Error during result processing.", exc_info=True)
+        logging.warning("Error during result processing.", exc_info=True)  # noqa: LOG014 TODO unclear whether exc_info does something
 
 
 def _handle_results(result_futures, output_handler, benchmark, run_set):

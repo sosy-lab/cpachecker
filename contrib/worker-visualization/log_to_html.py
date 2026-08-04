@@ -327,7 +327,7 @@ def visualize_block_graph(
         (pydot_graph,) = pydot.graph_from_dot_file(str(graph_dot_path))
         pydot_graph.write_png(str(output_path / output_png_name))
         print(f"Block graph visualization saved to {output_path / output_png_name}")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 TODO more specific type
         print(f"WARNING: Failed to generate PNG from DOT file: {e}", file=sys.stderr)
 
 

@@ -210,9 +210,9 @@ if HAS_SSECLIENT:
                     and str(e) == "'NoneType' object has no attribute 'read'"
                 ):
                     # This is harmless, it occurs because SSEClient reads on closed connection.
-                    logging.debug("Error during result processing:", exc_info=True)
+                    logging.debug("Error during result processing:", exc_info=True)  # noqa: LOG014 TODO unclear whether exc_info does something
                 else:
-                    logging.warning("Error during result processing:", exc_info=True)
+                    logging.warning("Error during result processing:", exc_info=True)  # noqa: LOG014 TODO unclear whether exc_info does something
 
                 if not self._shutdown:
                     self._fall_back()
@@ -256,7 +256,7 @@ if HAS_SSECLIENT:
                         data=params,
                     )
 
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001 TODO more specific type
                     logging.warning("Creating SSE connection failed: %s", e)
                     self._fall_back()
                     return
@@ -519,7 +519,7 @@ class WebInterface:
                 print("===================================\n")
                 sleep(10)
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 TODO more specific type
             logging.debug("Could not fetch banner: %s", e)
 
     def _get_sha256_hash(self, path):
