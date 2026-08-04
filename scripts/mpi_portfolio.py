@@ -50,8 +50,6 @@ class MPIMain:
     """
 
     comm = MPI.COMM_WORLD
-    input_args = {}
-    analysis_param = {}
 
     run_subanalysis = False
     process = None
@@ -62,6 +60,8 @@ class MPIMain:
     main_node_network_config = None
 
     def __init__(self, argv):
+        self.input_args = {}
+        self.analysis_param = {}
         self.setup_mpi()
         self.setup_logger()
         self.parse_input_args(argv)
