@@ -138,7 +138,7 @@ def load_json_file(json_file: Path) -> dict[str, Any]:
     except json.JSONDecodeError as e:
         print(f"WARNING: JSON decoding error in {json_file}: {e}", file=sys.stderr)
         return {}
-    except Exception as e:
+    except OSError as e:
         print(f"WARNING: Error reading {json_file}: {e}", file=sys.stderr)
         return {}
 
@@ -608,7 +608,7 @@ def load_and_process_messages(
             ],
             key=lambda name: name[1:-5] if name[0].isdigit() else name,
         )
-    except Exception as e:
+    except OSError as e:
         print(f"ERROR: Failed to read message directory: {e}", file=sys.stderr)
         return None
 
