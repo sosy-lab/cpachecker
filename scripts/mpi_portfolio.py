@@ -259,10 +259,10 @@ class MPIMain:
         cmdline = self.analysis_param[CMDLINE]
         if cmdline is None:
             logger.warning(
-                "Cmdline does not contain any input; nothing to do. ",
-                "This is probably because there are more processors available ",
-                "than analyses to perform.",
-                "Exiting with status 0",
+                "Cmdline does not contain any input; nothing to do. "
+                "This is probably because there are more processors available "
+                "than analyses to perform. "
+                "Exiting with status 0."
             )
             sys.exit(0)
         else:
