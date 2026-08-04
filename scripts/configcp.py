@@ -151,38 +151,41 @@ def collectChildren(filename):
     children = {}
     try:
         multilineBuffer = ""
-        for line in open(filename):
-            if (
-                not line.startswith(("#", "//"))
-                and line.rstrip() != line
-                and line.rstrip() != line[:-1]
-            ):
-                log(
-                    2,
-                    f"trailing whitespace in config '{filename}' in line '{line.strip()}'",
-                )
-
-            if line.strip().endswith("\\"):
-                # multiline statement
-                multilineBuffer += line.strip()[:-1]  # remove ending
-                continue
-            else:
-                # single line or end of multiline statement
-                multilineBuffer += line
-                line = multilineBuffer
-                multilineBuffer = ""  # reset
-
-            (filenames, typ) = getFilenamesFromLine(line)
-
-            for child in filenames:
-                child = os.path.normpath(os.path.join(os.path.dirname(filename), child))
-                if os.path.exists(child):
-                    children[child] = typ
-                else:
+        with open(filename) as f:
+            for line in f:
+                if (
+                    not line.startswith(("#", "//"))
+                    and line.rstrip() != line
+                    and line.rstrip() != line[:-1]
+                ):
                     log(
-                        1,
-                        f"file '{child}' referenced in '{filename}' does not exists",
+                        2,
+                        f"trailing whitespace in config '{filename}' in line '{line.strip()}'",
                     )
+
+                if line.strip().endswith("\\"):
+                    # multiline statement
+                    multilineBuffer += line.strip()[:-1]  # remove ending
+                    continue
+                else:
+                    # single line or end of multiline statement
+                    multilineBuffer += line
+                    line = multilineBuffer
+                    multilineBuffer = ""  # reset
+
+                (filenames, typ) = getFilenamesFromLine(line)
+
+                for child in filenames:
+                    child = os.path.normpath(
+                        os.path.join(os.path.dirname(filename), child)
+                    )
+                    if os.path.exists(child):
+                        children[child] = typ
+                    else:
+                        log(
+                            1,
+                            f"file '{child}' referenced in '{filename}' does not exists",
+                        )
     except UnicodeDecodeError:
         log(3, f"Cannot read file '{filename}'")
     return children
