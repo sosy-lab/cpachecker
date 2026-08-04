@@ -8,18 +8,16 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-import sys
-import os
-import glob
-import subprocess
-import shutil
 import argparse
-import tempfile
-
-from typing import Optional, NamedTuple
-
+import glob
 import logging
+import os
 import re
+import shutil
+import subprocess
+import sys
+import tempfile
+from typing import NamedTuple, Optional
 
 """
 CPA-witness2test module for validating witness files by using a generate-and-validate approach.

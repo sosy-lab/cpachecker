@@ -10,17 +10,18 @@
 
 import ast
 import copy
-from enum import Enum
 import getopt
 import json
 import logging
-from mpi4py import MPI
 import os
 import signal
 import socket
 import subprocess
 import sys
 import threading
+from enum import Enum
+
+from mpi4py import MPI
 
 # MPI message tags
 tags = Enum("Status", "READY DONE")

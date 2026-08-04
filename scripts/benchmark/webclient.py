@@ -18,23 +18,19 @@ import os
 import platform
 import random
 import re
+import ssl
 import tempfile
 import threading
-import ssl
+import urllib.parse
 import zipfile
 import zlib
-
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from getpass import getpass
-from time import sleep
-from time import time
+from time import sleep, time
 
 import requests
-from requests import HTTPError
-import urllib.parse
-from concurrent.futures import ThreadPoolExecutor
-from concurrent.futures import as_completed
-from concurrent.futures import Future
 from benchexec.util import get_files
+from requests import HTTPError
 
 try:
     import sseclient  # @UnresolvedImport
@@ -48,20 +44,20 @@ This module provides helpers for accessing the web interface of the VerifierClou
 """
 
 __all__ = [
-    "WebClientError",
+    "CORELIMIT",
+    "MEMLIMIT",
+    "RESULT_FILE_HOST_INFO",
+    "RESULT_FILE_LOG",
+    "RESULT_FILE_RUN_DESCRIPTION",
+    "RESULT_FILE_RUN_INFO",
+    "RESULT_FILE_STDERR",
+    "SOFTTIMELIMIT",
+    "SPECIAL_RESULT_FILES",
+    "TIMELIMIT",
     "UserAbortError",
+    "WebClientError",
     "WebInterface",
     "handle_result",
-    "MEMLIMIT",
-    "TIMELIMIT",
-    "SOFTTIMELIMIT",
-    "CORELIMIT",
-    "RESULT_FILE_LOG",
-    "RESULT_FILE_STDERR",
-    "RESULT_FILE_RUN_INFO",
-    "RESULT_FILE_HOST_INFO",
-    "RESULT_FILE_RUN_DESCRIPTION",
-    "SPECIAL_RESULT_FILES",
 ]
 
 MEMLIMIT = "memlimit"

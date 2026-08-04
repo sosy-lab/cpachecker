@@ -16,20 +16,19 @@ import logging
 import os
 import shutil
 import threading
-
-from requests import HTTPError
-from concurrent.futures import ThreadPoolExecutor
-from concurrent.futures import as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import benchexec
 import benchexec.tooladapter
+from requests import HTTPError
+
 from . import vcloudutil
 from .webclient import (
-    WebInterface,
-    WebClientError,
-    UserAbortError,
-    handle_result,
     RESULT_FILE_STDERR,
+    UserAbortError,
+    WebClientError,
+    WebInterface,
+    handle_result,
 )
 
 """

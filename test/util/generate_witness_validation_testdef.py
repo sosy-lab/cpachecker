@@ -8,8 +8,9 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-import sys
 import os
+import sys
+
 from lxml import etree
 
 sys.dont_write_bytecode = True  # prevent creation of .pyc files

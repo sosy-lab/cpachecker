@@ -19,10 +19,10 @@ import argparse
 import json
 import sys
 import webbrowser
-from pathlib import Path
-from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 import networkx as nx
 import pydot

@@ -8,15 +8,16 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from argparse import ArgumentParser, Namespace
-from pathlib import Path
-import shutil
-from typing import Dict, Sequence
 import os
-from logging import log
 import re
+import shutil
 import sys
+from argparse import ArgumentParser, Namespace
+from collections.abc import Sequence
 from enum import Enum
+from logging import log
+from pathlib import Path
+from typing import Dict
 
 
 class EdgeType(Enum):

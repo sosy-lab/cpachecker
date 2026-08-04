@@ -12,7 +12,7 @@
 import logging
 import sys
 
-import post_processing.coverage.generate_coverage as generate_coverage
+from post_processing.coverage import generate_coverage
 
 if __name__ == "__main__":
     if sys.version_info[0] < 3:
