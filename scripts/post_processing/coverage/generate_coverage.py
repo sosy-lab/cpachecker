@@ -194,7 +194,7 @@ class NoPropertyViolationFound:
         return False
 
     def found_bug(self):
-        raise Exception("This method should not have been called")
+        raise AssertionError("This method should not have been called")
 
 
 def parse_result(output, logger):
@@ -378,7 +378,7 @@ def create_generator(
     timer,
 ):
     if name not in available_generators:
-        raise Exception("Invalid generator name.")
+        raise ValueError("Invalid generator name.")
     if name == "fixpoint":
         return FixPointOnCoveredLines(
             instance=instance,
@@ -412,7 +412,7 @@ def create_generator(
             start_time=start_time,
             timer=timer,
         )
-    raise Exception("Missing generator constructor.")
+    raise AssertionError("Missing generator constructor.")
 
 
 def define_iteration_timelimit_from_global_timelimit(
