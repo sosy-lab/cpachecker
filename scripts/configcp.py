@@ -160,8 +160,7 @@ def collectChildren(filename):
             ):
                 log(
                     2,
-                    "trailing whitespace in config '%s' in line '%s'"
-                    % (filename, line.strip()),
+                    f"trailing whitespace in config '{filename}' in line '{line.strip()}'",
                 )
 
             if line.strip().endswith("\\"):
@@ -183,11 +182,10 @@ def collectChildren(filename):
                 else:
                     log(
                         1,
-                        "file '%s' referenced in '%s' does not exists"
-                        % (child, filename),
+                        f"file '{child}' referenced in '{filename}' does not exists",
                     )
     except UnicodeDecodeError:
-        log(3, "Cannot read file '%s'" % filename)
+        log(3, f"Cannot read file '{filename}'")
     return children
 
 
@@ -232,7 +230,7 @@ def updateChildren(filename, updates: Dict[str, str]):
             fd.flush()
 
     except UnicodeDecodeError:
-        log(3, "Cannot read file '%s'" % filename)
+        log(3, f"Cannot read file '{filename}'")
 
 
 def listFiles(paths):
@@ -282,7 +280,7 @@ def main(argv: Sequence[str]):
 
     children = []
     if args.root not in nodes:
-        log(40, "Root file '%s' not found." % args.root)
+        log(40, f"Root file '{args.root}' not found.")
     else:
         children.extend(getTransitiveChildren(args.root, nodes))
 

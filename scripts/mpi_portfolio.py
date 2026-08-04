@@ -92,7 +92,7 @@ class MPIMain:
             logger = logging.getLogger(__name__)
 
         logging_format = logging.Formatter(
-            fmt="Rank {} - %(asctime)s - %(levelname)-9s %(message)s".format(self.rank),
+            fmt=f"Rank {self.rank} - %(asctime)s - %(levelname)-9s %(message)s",
             datefmt="%H:%M:%S",
         )
 
@@ -301,7 +301,7 @@ class MPIMain:
         logger.debug("Running analysis with number: %d", self.rank)
         analysis_args = None
         if self.rank <= len(self.input_args) - 1:
-            analysis_args = self.input_args.get("Analysis_{}".format(self.rank))
+            analysis_args = self.input_args.get(f"Analysis_{self.rank}")
         if analysis_args is None:
             logger.info("No arguments for the analysis found.")
         else:

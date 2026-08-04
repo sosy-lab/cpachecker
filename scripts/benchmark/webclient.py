@@ -371,27 +371,19 @@ class WebInterface:
 
         if not (1 <= thread_count <= MAX_SUBMISSION_THREADS):
             sys.exit(
-                "Invalid number {} of client threads, needs to be between 1 and {}.".format(
-                    thread_count, MAX_SUBMISSION_THREADS
-                )
+                f"Invalid number {thread_count} of client threads, needs to be between 1 and {MAX_SUBMISSION_THREADS}."
             )
         if not 1 <= result_poll_interval:
             sys.exit(
-                "Poll interval {} is too small, needs to be at least 1s.".format(
-                    result_poll_interval
-                )
+                f"Poll interval {result_poll_interval} is too small, needs to be at least 1s."
             )
         if not web_interface_url[-1] == "/":
             web_interface_url += "/"
 
         default_headers = {"Connection": "Keep-Alive"}
         if user_agent:
-            default_headers["User-Agent"] = "{}/{} (Python/{} {}/{})".format(
-                user_agent,
-                version,
-                platform.python_version(),
-                platform.system(),
-                platform.release(),
+            default_headers["User-Agent"] = (
+                f"{user_agent}/{version} (Python/{platform.python_version()} {platform.system()}/{platform.release()})"
             )
 
         urllib.parse.urlparse(web_interface_url)  # sanity check
@@ -592,9 +584,7 @@ class WebInterface:
             run_id = response.decode("UTF-8")
         except UnicodeDecodeError as e:
             raise WebClientError(
-                "Malformed response from server while submitting witness-validation run:\n{}".format(
-                    response
-                )
+                f"Malformed response from server while submitting witness-validation run:\n{response}"
             ) from e
         logging.debug("Submitted witness validation run with id %s", run_id)
 
@@ -718,9 +708,7 @@ class WebInterface:
         opened_files.extend(files)
         if invalidOption:
             raise WebClientError(
-                'Command {0}  contains option "{1}" that is not usable with the webclient. '.format(
-                    run.options, invalidOption
-                )
+                f'Command {run.options}  contains option "{invalidOption}" that is not usable with the webclient. '
             )
 
         params.append(("groupId", str(self._group_id)))
@@ -746,9 +734,7 @@ class WebInterface:
         if statusCode == 412:
             if counter >= 1:
                 raise WebClientError(
-                    "Files still missing on server for run {0} even after uploading them:\n{1}".format(
-                        run.identifier, response
-                    )
+                    f"Files still missing on server for run {run.identifier} even after uploading them:\n{response}"
                 )
             headers = {
                 "Content-Type": "application/octet-stream",
@@ -801,15 +787,11 @@ class WebInterface:
                 run_id = response.decode("UTF-8")
             except UnicodeDecodeError as e:
                 raise WebClientError(
-                    "Malformed response from server while submitting run {0}:\n{1}".format(
-                        run.identifier, response
-                    )
+                    f"Malformed response from server while submitting run {run.identifier}:\n{response}"
                 ) from e
             if not VALID_RUN_ID.match(run_id):
                 raise WebClientError(
-                    "Malformed response from server while submitting run {0}:\n{1}".format(
-                        run.identifier, run_id
-                    )
+                    f"Malformed response from server while submitting run {run.identifier}:\n{run_id}"
                 )
             logging.debug("Submitted run with id %s", run_id)
             return self._create_and_add_run_future(run_id)
@@ -841,9 +823,7 @@ class WebInterface:
                         )
                     else:
                         raise WebClientError(
-                            "Unsupported data_model '{}' defined for task '{}'".format(
-                                data_model, run.identifier
-                            )
+                            f"Unsupported data_model '{data_model}' defined for task '{run.identifier}'"
                         )
 
         if run.options:
@@ -943,9 +923,7 @@ class WebInterface:
                     elif option[0] == "-":
                         if config:
                             raise WebClientError(
-                                "More than one configuration: '{}' and '{}'".format(
-                                    config, option[1:]
-                                )
+                                f"More than one configuration: '{config}' and '{option[1:]}'"
                             )
                         else:
                             if option[1] == "-":
@@ -1089,7 +1067,7 @@ class WebInterface:
             error_msg = getErrorForRun(run_id)
             logging.warning("Execution of run %s failed. Error(%s)", run_id, error_msg)
             run_result_future.set_exception(
-                WebClientError("Execution failed. Error({})".format(error_msg))
+                WebClientError(f"Execution failed. Error({error_msg})")
             )
 
     def shutdown(self):

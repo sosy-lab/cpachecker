@@ -144,7 +144,7 @@ def create_parser(args_style: ArgumentStyle):
     parser.add_argument(flag("help"), "-h", action="help")
 
     parser.add_argument(
-        flag("version"), action="version", version="{}".format(get_cpachecker_version())
+        flag("version"), action="version", version=f"{get_cpachecker_version()}"
     )
 
     machine_model_args = parser.add_mutually_exclusive_group(required=False)
@@ -278,7 +278,7 @@ def create_compile_cmd(
         compiler = "gcc"
 
     compile_cmd = [compiler] + _create_compile_basic_args(args)
-    compile_cmd.append("-std={}".format(c_version))
+    compile_cmd.append(f"-std={c_version}")
 
     sanitizer_in_use = False
     if specification.no_overflow:
@@ -475,7 +475,7 @@ def get_spec(specification_file):
         raise ValidationError("No specification file given.")
     if not os.path.isfile(specification_file):
         raise ValidationError(
-            "Specification file does not exist: %s" % specification_file
+            f"Specification file does not exist: {specification_file}"
         )
 
     with open(specification_file, "r") as inp:
@@ -662,14 +662,11 @@ def run(argv=None):
         print()
 
     if result.successful_harness:
-        print("Harness %s was successful." % result.successful_harness)
+        print(f"Harness {result.successful_harness} was successful.")
 
-    result_str = "Verification result: %s" % result.verdict
+    result_str = f"Verification result: {result.verdict}"
     if result.violated_property:
-        result_str += (
-            ". Property violation (%s) found by chosen configuration."
-            % result.violated_property
-        )
+        result_str += f". Property violation ({result.violated_property}) found by chosen configuration."
     print(result_str)
 
 

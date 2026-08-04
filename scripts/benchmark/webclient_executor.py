@@ -193,9 +193,7 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
             except HTTPError as e:
                 output_handler.set_error("VerifierCloud problem", runSet)
                 raise WebClientError(
-                    'Could not submit run {}, got error "{}"'.format(
-                        run.identifier, e.strerror
-                    )
+                    f'Could not submit run {run.identifier}, got error "{e.strerror}"'
                 )
 
             finally:
