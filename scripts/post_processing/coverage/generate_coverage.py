@@ -48,20 +48,20 @@ coverage_test_case_message = "Found covering test case"
 
 def gen_reach_exit_spec(f):
     print("CONTROL AUTOMATON CoverageAutomaton", file=f)
-    print("", file=f)
+    print(file=f)
     print("INITIAL STATE WaitForExit;", file=f)
-    print("", file=f)
+    print(file=f)
     print("STATE USEFIRST WaitForExit:", file=f)
     print('  MATCH EXIT -> ERROR("' + coverage_test_case_message + '");', file=f)
-    print("", file=f)
+    print(file=f)
     print("END AUTOMATON", file=f)
 
 
 def gen_covers_any_line_in_set_then_reach_exit_spec(lines_to_cover, f):
     print("CONTROL AUTOMATON CoverageAutomaton", file=f)
-    print("", file=f)
+    print(file=f)
     print("INITIAL STATE LookingForLine;", file=f)
-    print("", file=f)
+    print(file=f)
     print("STATE USEFIRST LookingForLine:", file=f)
     print(
         "  CHECK("
@@ -71,10 +71,10 @@ def gen_covers_any_line_in_set_then_reach_exit_spec(lines_to_cover, f):
     )
     lines = map(str, lines_to_cover)
     print("  COVERS_LINES(" + " ".join(lines) + ") -> GOTO WaitForExit;", file=f)
-    print("", file=f)
+    print(file=f)
     print("STATE USEFIRST WaitForExit:", file=f)
     print('  MATCH EXIT -> ERROR("' + coverage_test_case_message + '");', file=f)
-    print("", file=f)
+    print(file=f)
     print("END AUTOMATON", file=f)
 
 

@@ -199,7 +199,7 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
             finally:
                 submissonCounter += 1
     finally:
-        for future in submission_futures.keys():
+        for future in submission_futures:
             future.cancel()  # for example in case of interrupt
 
     threadlocal_webclient = _webclient

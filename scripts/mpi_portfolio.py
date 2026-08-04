@@ -206,7 +206,7 @@ class MPIMain:
             logger.debug("event set? %s", event_listener.isSet())
 
     def broadcast_except_to_self(self, data, tag):
-        for i in range(0, self.size):
+        for i in range(self.size):
             if self.rank != i:
                 self.comm.send(data, dest=i, tag=tag)
 

@@ -513,7 +513,7 @@ def transitiveReductionCheck(nodes):
         while wlist2:
             current2 = wlist2.pop()
             for c in filterChildren(current2):
-                if c in reach.keys():
+                if c in reach:
                     if reach[c] != current and current2 != current:
                         continue  # only consider cases where one of the includes is the common ancestor
                     if current2.childrenToType[
