@@ -44,7 +44,7 @@ def download_required_jars():
         ["ant", "resolve-benchmark-dependencies"],
         check=False,  # to continue on download errors etc.
         cwd=_ROOT_DIR,
-        shell=vcloudutil.is_windows(),  # noqa: S602
+        shell=vcloudutil.is_windows(),
     )
 
 
@@ -149,7 +149,7 @@ class Benchmark(VcloudBenchmarkBase):
                             ["ant", "-q", "jar"],
                             check=False,
                             cwd=base_dir,
-                            shell=vcloudutil.is_windows(),  # noqa: S602
+                            shell=vcloudutil.is_windows(),
                         ).returncode
                     ):
                         sys.exit(

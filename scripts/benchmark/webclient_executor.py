@@ -246,7 +246,7 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
     def _open_output_log(output_path=None):
         nonlocal log_present
         log_present = True
-        log_file = open(run.log_file, "wb")
+        log_file = open(run.log_file, "wb")  # noqa: SIM115
         log_header = (
             " ".join(run.cmdline())
             + "\n\n\n--------------------------------------------------------------------------------\n"

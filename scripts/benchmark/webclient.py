@@ -416,7 +416,7 @@ class WebInterface:
         self._executor = ThreadPoolExecutor(thread_count)
         self._thread_local = threading.local()
         self._hash_code_cache = {}
-        self._group_id = str(random.randint(0, 1000000))  # noqa: S311
+        self._group_id = str(random.randint(0, 1000000))
         self._read_hash_code_cache()
         self._revision = self._request_tool_revision(revision)
         self._tool_name = self._request_tool_name()
@@ -944,7 +944,7 @@ class WebInterface:
 
     def _add_file_to_params(self, params, name, path):
         norm_path = self._normalize_path_for_cloud(path)
-        opened_file = open(path, "rb")
+        opened_file = open(path, "rb")  # noqa: SIM115
         params.append((name, (norm_path, opened_file)))
         return opened_file
 

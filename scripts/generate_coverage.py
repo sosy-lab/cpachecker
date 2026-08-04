@@ -15,7 +15,7 @@ import sys
 from post_processing.coverage import generate_coverage
 
 if __name__ == "__main__":
-    if sys.version_info[0] < 3:
+    if sys.version_info[0] < 3:  # noqa: UP036 nicer errors for Python 2 users
         sys.exit("This script requires Python 3.")
 
     logging.basicConfig()

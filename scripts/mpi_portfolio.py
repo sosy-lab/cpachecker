@@ -85,7 +85,7 @@ class MPIMain:
         global logger
 
         class InfoFilter(logging.Filter):
-            def filter(self, rec):  # noqa: A003
+            def filter(self, rec):
                 return rec.levelno in (logging.DEBUG, logging.INFO)
 
         if logger is None:
