@@ -17,7 +17,6 @@ from collections.abc import Sequence
 from enum import Enum
 from logging import log
 from pathlib import Path
-from typing import Dict
 
 
 class EdgeType(Enum):
@@ -189,7 +188,7 @@ def collectChildren(filename):
     return children
 
 
-def updateChildren(filename, updates: Dict[str, str]):
+def updateChildren(filename, updates: dict[str, str]):
     try:
         multilineBuffer = ""
         with open(filename, "r+") as fd:
@@ -242,9 +241,9 @@ def listFiles(paths):
                     yield os.path.normpath(os.path.join(root, item))
 
 
-def getNodes(configDirectories) -> Dict[str, Node]:
+def getNodes(configDirectories) -> dict[str, Node]:
     """collect all files and build a graph"""
-    nodes: Dict[str, Node] = {}
+    nodes: dict[str, Node] = {}
 
     # collect nodes and their children
     waitlist = list(listFiles(configDirectories))
@@ -291,7 +290,7 @@ def main(argv: Sequence[str]):
             k: v for k, v in nodesFromRoot.items() if matchesFilter(args.filter, k)
         }
 
-    updates: Dict[str, str] = {}
+    updates: dict[str, str] = {}
     for _name in nodesFromRoot.keys():
         path = Path(_name)
         relative = path.relative_to(dirpath)

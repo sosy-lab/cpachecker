@@ -17,7 +17,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from typing import NamedTuple, Optional
+from typing import NamedTuple
 
 """
 CPA-witness2test module for validating witness files by using a generate-and-validate approach.
@@ -82,8 +82,8 @@ class ArgumentStyle:
 
 class ValidationResult(NamedTuple):
     verdict: str
-    violated_property: Optional[str] = None
-    successful_harness: Optional[str] = None
+    violated_property: str | None = None
+    successful_harness: str | None = None
 
 
 class Specification(NamedTuple):
@@ -91,7 +91,7 @@ class Specification(NamedTuple):
     mem_free: bool
     mem_deref: bool
     mem_memtrack: bool
-    reach_method_call: Optional[str]
+    reach_method_call: str | None
 
     def is_reach_call(self):
         return self.reach_method_call is not None
