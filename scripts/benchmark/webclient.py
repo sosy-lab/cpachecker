@@ -453,7 +453,7 @@ class WebInterface:
         if not os.path.isfile(HASH_CODE_CACHE_PATH):
             return
 
-        with open(HASH_CODE_CACHE_PATH, mode="r") as hashCodeCacheFile:
+        with open(HASH_CODE_CACHE_PATH) as hashCodeCacheFile:
             for line in hashCodeCacheFile:
                 tokens = line.strip().split("\t")
                 if len(tokens) == 3:
@@ -1279,7 +1279,7 @@ def handle_result(
             with open(output_path + ".zip", "wb") as zip_file:
                 zip_file.write(zip_content)
 
-    except IOError as e:
+    except OSError as e:
         logging.warning("Error while writing results of run %s: %s", run_identifier, e)
 
     return return_value

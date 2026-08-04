@@ -101,7 +101,7 @@ def collectChildren(filename):
     children = {}
     try:
         multilineBuffer = ""
-        for line in open(filename, "r"):
+        for line in open(filename):
             if (
                 not line.startswith(("#", "//"))
                 and line.rstrip() != line
@@ -277,7 +277,7 @@ def determineNode(node, dependencyNode=False):
     if os.path.isfile(filename):
         content = ""
         try:
-            content = re.sub("\n", "&#10;", open(filename, "r").read())
+            content = re.sub("\n", "&#10;", open(filename).read())
         except UnicodeDecodeError:
             log(f"Cannot read file '{filename}'", level=3)
         content = content.replace("\\", "\\\\").replace('"', '\\"')

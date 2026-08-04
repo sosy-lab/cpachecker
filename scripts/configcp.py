@@ -151,7 +151,7 @@ def collectChildren(filename):
     children = {}
     try:
         multilineBuffer = ""
-        for line in open(filename, "r"):
+        for line in open(filename):
             if (
                 not line.startswith(("#", "//"))
                 and line.rstrip() != line

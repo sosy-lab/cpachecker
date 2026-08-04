@@ -388,9 +388,7 @@ def execute(command, quiet=False):
     """
     if not quiet:
         logging.info(" ".join(command))
-    return subprocess.run(
-        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True
-    )
+    return subprocess.run(command, capture_output=True, text=True)
 
 
 def analyze_result(test_result, harness, specification):
@@ -478,7 +476,7 @@ def get_spec(specification_file):
             f"Specification file does not exist: {specification_file}"
         )
 
-    with open(specification_file, "r") as inp:
+    with open(specification_file) as inp:
         content = inp.read().strip()
 
     spec_matches = re.match(r"CHECK\(\s*init\(.*\),\s*LTL\(\s*(.+)\s*\)", content)
@@ -508,7 +506,7 @@ def get_spec(specification_file):
 
 
 def _preprocess(program: str, spec: Specification, target: str):
-    with open(program, "r") as inp:
+    with open(program) as inp:
         content = inp.read()
 
     # IMPORTANT: This assumes that any target function is not defined or defined on a single line of code
