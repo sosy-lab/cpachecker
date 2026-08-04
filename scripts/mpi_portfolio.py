@@ -112,7 +112,7 @@ class MPIMain:
     def parse_input_args(self, argv):
         # TODO: use argparse for parsing input
         try:
-            opts, args = getopt.getopt(argv, "di:w", ["input="])
+            opts, _args = getopt.getopt(argv, "di:w", ["input="])
         except getopt.GetoptError:
             logger.exception(
                 "Unable to parse user input. Usage: %s -d -i <input>", __file__
@@ -375,7 +375,10 @@ class MPIMain:
                         ),
                     ]
                     logger.debug("Command for scp: %s", scp_cmd)
-                    scp_proc = subprocess.run(scp_cmd)
+                    scp_proc = subprocess.run(
+                        scp_cmd,
+                        check=False,  # TODO add error handling
+                    )
                     logger.debug(
                         "Process for copying the output back to the main node "
                         "completed with status code %d",

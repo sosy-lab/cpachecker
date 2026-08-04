@@ -230,7 +230,7 @@ def _parse_args(argv):
         use_single_dash_flags = False
     args_style = ArgumentStyle(use_single_dash_flags)
     parser = create_parser(args_style)
-    args, remainder = parser.parse_known_args(argv)
+    args, _remainder = parser.parse_known_args(argv)
     args.file = _determine_file_args(argv)
     if not args.file:
         raise ValueError("The following arguments are required: program file")
@@ -389,7 +389,12 @@ def execute(command, quiet=False):
     """
     if not quiet:
         logging.info(" ".join(command))
-    return subprocess.run(command, capture_output=True, text=True)
+    return subprocess.run(
+        command,
+        capture_output=True,
+        text=True,
+        check=False,  # TODO add error handling
+    )
 
 
 def analyze_result(test_result, harness, specification):

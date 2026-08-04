@@ -42,6 +42,7 @@ def download_required_jars():
     # install cloud and dependencies
     subprocess.run(
         ["ant", "resolve-benchmark-dependencies"],
+        check=False,  # to continue on download errors etc.
         cwd=_ROOT_DIR,
         shell=vcloudutil.is_windows(),  # noqa: S602
     )
@@ -146,6 +147,7 @@ class Benchmark(VcloudBenchmarkBase):
                         os.path.exists(build_file)
                         and subprocess.run(
                             ["ant", "-q", "jar"],
+                            check=False,
                             cwd=base_dir,
                             shell=vcloudutil.is_windows(),  # noqa: S602
                         ).returncode
