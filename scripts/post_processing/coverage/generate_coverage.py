@@ -396,11 +396,9 @@ def create_generator(
     if name == "blind":
         if not cex_count:
             logger.error(
-                (
-                    "Invalid option: when using '-generator_type blind', "
-                    "a limit to the number of counterexamples has to be provided "
-                    "using -cex_count."
-                )
+                "Invalid option: when using '-generator_type blind', "
+                "a limit to the number of counterexamples has to be provided "
+                "using -cex_count."
             )
             sys.exit(0)
         return GenerateFirstThenCollect(
@@ -791,10 +789,8 @@ def check_args(args, logger):
 
     if (args.cex_count or args.timelimit) and (args.only_collect_coverage):
         logger.error(
-            (
-                "Invalid options: Options -cex_count can only be "
-                "present when -only_collect_coverage is not present."
-            )
+            "Invalid options: Options -cex_count can only be "
+            "present when -only_collect_coverage is not present."
         )
         sys.exit(0)
     if not args.only_collect_coverage:
@@ -814,10 +810,8 @@ def check_args(args, logger):
             sys.exit(0)
     elif args.cex_count or args.timelimit:
         logger.error(
-            (
-                "Invalid options: Options -cex_count and -timelimit can only "
-                "be present when -only_collect_coverage is not present."
-            )
+            "Invalid options: Options -cex_count and -timelimit can only "
+            "be present when -only_collect_coverage is not present."
         )
         sys.exit(0)
 
