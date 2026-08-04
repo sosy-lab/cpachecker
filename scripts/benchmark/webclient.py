@@ -1314,10 +1314,12 @@ def _handle_result(
 
     # extract log file
     if RESULT_FILE_LOG in files:
-        with open_output_log(output_path) as log_file:
-            with resultZipFile.open(RESULT_FILE_LOG) as result_log_file:
-                for line in result_log_file:
-                    log_file.write(line)
+        with (
+            open_output_log(output_path) as log_file,
+            resultZipFile.open(RESULT_FILE_LOG) as result_log_file,
+        ):
+            for line in result_log_file:
+                log_file.write(line)
     else:
         logging.warning("Missing log file for run %s.", run_identifier)
 

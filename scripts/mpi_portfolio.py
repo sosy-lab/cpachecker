@@ -275,21 +275,23 @@ class MPIMain:
                 os.makedirs(self.analysis_param[OUTPUT_PATH])
 
             logger.info("Executing cmd: %s", cmdline)
-            with open(self.analysis_param[LOGFILE], "w+", buffering=1) as outputfile:
-                with subprocess.Popen(
+            with (
+                open(self.analysis_param[LOGFILE], "w+", buffering=1) as outputfile,
+                subprocess.Popen(
                     cmdline,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                     universal_newlines=True,
-                ) as self.process:
-                    try:
-                        proc_stdout, _ = self.process.communicate()
-                    except KeyboardInterrupt:
-                        mpi.interrupt_mpi_listener()
+                ) as self.process,
+            ):
+                try:
+                    proc_stdout, _ = self.process.communicate()
+                except KeyboardInterrupt:
+                    mpi.interrupt_mpi_listener()
 
-                    if proc_stdout is not None:
-                        outputfile.write(proc_stdout)
-                        proc_output = proc_stdout.split("\n")
+                if proc_stdout is not None:
+                    outputfile.write(proc_stdout)
+                    proc_output = proc_stdout.split("\n")
 
             logger.info("Process returned with status code %d", self.process.returncode)
             if not self.shutdown_requested:
