@@ -10,6 +10,7 @@
 
 import argparse
 import glob
+import itertools
 import logging
 import os
 import re
@@ -213,7 +214,7 @@ def _determine_file_args(argv):
     parameter_prefix = "-"
     files = []
     logging.debug("Determining file args from %s", argv)
-    for fst, snd in zip(argv[:-1], argv[1:]):
+    for fst, snd in itertools.pairwise(argv):
         if not fst.startswith(parameter_prefix) and not snd.startswith(
             parameter_prefix
         ):

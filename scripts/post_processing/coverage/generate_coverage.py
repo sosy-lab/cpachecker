@@ -167,7 +167,7 @@ def run_command(command, logger):
         output = check_output(command, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
         logger.error(e.output)
-        raise e
+        raise
     logger.debug("Finished Executing")
     logger.debug(output)
     return output
@@ -350,8 +350,7 @@ class ComputeCoverage:
 
 
 def gen_specs_from_dir(cex_dir):
-    for spec in counterexample_spec_files(cex_dir):
-        yield spec
+    yield from counterexample_spec_files(cex_dir)
 
 
 class Timer:

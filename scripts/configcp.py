@@ -291,7 +291,7 @@ def main(argv: Sequence[str]):
         }
 
     updates: dict[str, str] = {}
-    for _name in nodesFromRoot.keys():
+    for _name in nodesFromRoot:
         path = Path(_name)
         relative = path.relative_to(dirpath)
         name = path.name

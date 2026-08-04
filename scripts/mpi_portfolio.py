@@ -216,7 +216,7 @@ class MPIMain:
         result = [x for x in data if x.startswith("Verification result: ")]
         if len(result) == 1:
             result = result[0][21:].strip()
-            if result.startswith("TRUE") or result.startswith("FALSE"):
+            if result.startswith(("TRUE", "FALSE")):
                 status = results.SUCCESS
             else:
                 status = results.UNKNOWN

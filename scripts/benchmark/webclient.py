@@ -132,7 +132,7 @@ class PollingResultDownloader:
             states = {}
 
             with self._web_interface._unfinished_runs_lock:
-                for run_id in self._web_interface._unfinished_runs.keys():
+                for run_id in self._web_interface._unfinished_runs:
                     state_future = self._state_poll_executor.submit(
                         self._web_interface._is_finished, run_id
                     )
@@ -377,7 +377,7 @@ class WebInterface:
             sys.exit(
                 f"Poll interval {result_poll_interval} is too small, needs to be at least 1s."
             )
-        if not web_interface_url[-1] == "/":
+        if web_interface_url[-1] != "/":
             web_interface_url += "/"
 
         default_headers = {"Connection": "Keep-Alive"}
@@ -1082,7 +1082,7 @@ class WebInterface:
             stop_executor = ThreadPoolExecutor(max_workers=5 * self.thread_count)
             stop_tasks = set()
             with self._unfinished_runs_lock:
-                for runId in self._unfinished_runs.keys():
+                for runId in self._unfinished_runs:
                     stop_tasks.add(stop_executor.submit(self._stop_run, runId))
                     self._unfinished_runs[runId].set_exception(
                         UserAbortError(

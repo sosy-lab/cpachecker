@@ -596,4 +596,4 @@ if __name__ == "__main__":
             args.clusterKeywords,
         )
 
-    exit(errorFound)
+    sys.exit(errorFound)
