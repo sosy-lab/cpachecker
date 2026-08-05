@@ -82,7 +82,8 @@ public class AntlrLogicalDefinitionToLogicalDefinitionConverter
     return polymorphicTypes;
   }
 
-  private List<@NonNull AcslParameterDeclaration> parseParameters(ParametersContext ctx) {
+  private List<@NonNull AcslParameterDeclaration> parseParameters(
+      ParametersContext ctx, String functionName) {
     List<@NonNull AcslParameterDeclaration> parameters =
         FluentIterable.from(ctx.children)
             .filter(
@@ -95,7 +96,7 @@ public class AntlrLogicalDefinitionToLogicalDefinitionConverter
                   String variableName = parameter.getChild(1).getText();
                   AcslType type = antrlTypeExpressionToTypeConverter.visit(parameter.getChild(0));
                   return new AcslParameterDeclaration(
-                      fileLocationFromContext(ctx), type, variableName);
+                      fileLocationFromContext(ctx), type, variableName, functionName);
                 })
             .toList();
 
@@ -120,7 +121,8 @@ public class AntlrLogicalDefinitionToLogicalDefinitionConverter
 
     // Solving this through a visitor would be nicer, but seems like overkill
     ParametersContext parametersContext = ctx.parameters();
-    List<@NonNull AcslParameterDeclaration> parameters = parseParameters(parametersContext);
+    List<@NonNull AcslParameterDeclaration> parameters =
+        parseParameters(parametersContext, functionName);
 
     AcslPredicateDeclaration predicateDeclaration =
         new AcslPredicateDeclaration(
@@ -163,7 +165,8 @@ public class AntlrLogicalDefinitionToLogicalDefinitionConverter
 
     // Solving this through a visitor would be nicer, but seems like overkill
     ParametersContext parametersContext = ctx.parameters();
-    List<@NonNull AcslParameterDeclaration> parameters = parseParameters(parametersContext);
+    List<@NonNull AcslParameterDeclaration> parameters =
+        parseParameters(parametersContext, functionName);
 
     AcslFunctionDeclaration functionDeclaration =
         new AcslFunctionDeclaration(

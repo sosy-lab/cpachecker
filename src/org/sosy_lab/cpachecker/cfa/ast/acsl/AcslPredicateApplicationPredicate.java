@@ -64,6 +64,14 @@ public final class AcslPredicateApplicationPredicate implements AcslPredicate {
     return AcslBuiltinLogicType.BOOLEAN;
   }
 
+  public AcslPredicateDeclaration getPredicateDeclaration() {
+    return predicateDeclaration;
+  }
+
+  public List<AcslTerm> getParameters() {
+    return parameters;
+  }
+
   @Override
   public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
@@ -90,7 +98,7 @@ public final class AcslPredicateApplicationPredicate implements AcslPredicate {
 
   private boolean providedTypeMatchesExpectedType(AcslType provided, AcslType expected) {
     AcslType generalType = AcslType.mostGeneralType(provided, expected);
-    if (expected.equals(generalType)) {
+    if (expected.equals(generalType) || provided.equals(generalType)) {
       return true;
     }
     return false;

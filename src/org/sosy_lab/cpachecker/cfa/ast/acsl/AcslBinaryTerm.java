@@ -63,10 +63,6 @@ public final class AcslBinaryTerm extends ABinaryExpression implements AcslTerm 
   }
 
   public enum AcslBinaryTermOperator implements ABinaryExpression.ABinaryOperator, AcslAstNode {
-    LESS_EQUAL("<="),
-    GREATER_EQUAL(">="),
-    LESS_THAN("<"),
-    GREATER_THAN(">"),
     BINARY_AND("&"),
     BINARY_OR("|"),
     BINARY_IMPLICATION("-->"),
@@ -95,13 +91,6 @@ public final class AcslBinaryTerm extends ABinaryExpression implements AcslTerm 
         }
       }
       throw new IllegalArgumentException("Unknown operator: " + pOperator);
-    }
-
-    public static boolean isComparisonOperator(AcslBinaryTermOperator op) {
-      return switch (op) {
-        case LESS_EQUAL, GREATER_EQUAL, LESS_THAN, GREATER_THAN -> true;
-        default -> false;
-      };
     }
 
     public static boolean isBitwiseOperator(AcslBinaryTermOperator op) {

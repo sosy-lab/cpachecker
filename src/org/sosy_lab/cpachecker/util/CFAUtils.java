@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTe
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLabel;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
@@ -1261,7 +1262,7 @@ public class CFAUtils {
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(AcslIdTerm pAcslBinaryTerm) {
+    public Iterable<? extends AAstNode> visit(AcslIdTerm pAcslIdTerm) {
       return ImmutableList.of();
     }
 
@@ -1385,6 +1386,11 @@ public class CFAUtils {
     @Override
     public Iterable<? extends AAstNode> visit(AcslArraySubscriptTerm pAcslArraySubscriptTerm)
         throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(AcslCExpression pAcslCExpression) {
       return ImmutableList.of();
     }
 

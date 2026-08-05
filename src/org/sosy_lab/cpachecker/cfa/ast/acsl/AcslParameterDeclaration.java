@@ -18,12 +18,24 @@ public final class AcslParameterDeclaration extends AParameterDeclaration
     implements AcslSimpleDeclaration {
 
   @Serial private static final long serialVersionUID = 145675929875456789L;
+  private String qualifiedName;
 
   public AcslParameterDeclaration(FileLocation pFileLocation, AcslType pType, String pName) {
     super(pFileLocation, pType, pName);
     checkNotNull(pFileLocation);
     checkNotNull(pType);
     checkNotNull(pName);
+    this.qualifiedName = pName;
+  }
+
+  public AcslParameterDeclaration(
+      FileLocation pFileLocation, AcslType pType, String pName, String pFunctionName) {
+    super(pFileLocation, pType, pName);
+    checkNotNull(pFileLocation);
+    checkNotNull(pType);
+    checkNotNull(pName);
+    checkNotNull(pFunctionName);
+    this.qualifiedName = pFunctionName + "::" + pName;
   }
 
   @Override
@@ -33,7 +45,7 @@ public final class AcslParameterDeclaration extends AParameterDeclaration
 
   @Override
   public String getQualifiedName() {
-    return "";
+    return qualifiedName;
   }
 
   @Override

@@ -23,7 +23,8 @@ public sealed interface AcslTerm extends AcslAstNode, AExpression
         AcslOldTerm,
         AcslResultTerm,
         AcslTernaryTerm,
-        AcslUnaryTerm {
+        AcslUnaryTerm,
+        AcslCExpression {
 
   <R, X extends Exception> R accept(AcslTermVisitor<R, X> v) throws X;
 

@@ -30,6 +30,10 @@ public final class AcslOldPredicate extends AbstractExpression implements AcslPr
     expression = pExpression;
   }
 
+  public AcslPredicate getExpression() {
+    return expression;
+  }
+
   @Override
   public <R, X extends Exception> R accept(AcslPredicateVisitor<R, X> v) throws X {
     return v.visit(this);

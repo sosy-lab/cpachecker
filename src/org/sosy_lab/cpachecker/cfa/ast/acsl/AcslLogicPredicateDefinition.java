@@ -31,8 +31,8 @@ public final class AcslLogicPredicateDefinition extends AcslLogicDefinition {
   }
 
   @Override
-  public AcslTerm getBody() {
-    return (AcslTerm) super.getBody();
+  public AcslPredicate getBody() {
+    return (AcslPredicate) super.getBody();
   }
 
   @Override

@@ -40,18 +40,26 @@ public final class AcslBinaryPredicate extends ABinaryExpression implements Acsl
     return v.visit(this);
   }
 
+  @Override
+  public AcslPredicate getOperand1() {
+    return (AcslPredicate) super.getOperand1();
+  }
+
+  @Override
+  public AcslPredicate getOperand2() {
+    return (AcslPredicate) super.getOperand2();
+  }
+
+  @Override
+  public AcslBinaryPredicateOperator getOperator() {
+    return (AcslBinaryPredicateOperator) super.getOperator();
+  }
+
   public enum AcslBinaryPredicateOperator implements ABinaryOperator, AcslAstNode {
     IMPLICATION("==>"),
     EQUIVALENT("<==>"),
     AND("&&"),
-    OR("||"),
-    EQUALS("=="),
-    NOT_EQUALS("!="),
-    LESS_EQUAL("<="),
-    GREATER_EQUAL(">="),
-    LESS_THAN("<"),
-    GREATER_THAN(">"),
-    ;
+    OR("||");
 
     @Serial private static final long serialVersionUID = 701123361956900L;
 

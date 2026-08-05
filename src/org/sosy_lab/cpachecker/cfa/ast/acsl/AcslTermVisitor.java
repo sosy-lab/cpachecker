@@ -23,7 +23,7 @@ public interface AcslTermVisitor<R, X extends Exception> {
 
   R visit(AcslBinaryTerm pAcslBinaryTerm) throws X;
 
-  R visit(AcslIdTerm pAcslBinaryTerm) throws X;
+  R visit(AcslIdTerm pAcslIdTerm) throws X;
 
   R visit(AcslOldTerm pAcslOldTerm) throws X;
 
@@ -36,4 +36,6 @@ public interface AcslTermVisitor<R, X extends Exception> {
   R visit(AcslFunctionCallTerm pAcslFunctionCallTerm) throws X;
 
   R visit(AcslArraySubscriptTerm pAcslArraySubscriptTerm) throws X;
+
+  R visit(AcslCExpression pAcslCExpression);
 }
