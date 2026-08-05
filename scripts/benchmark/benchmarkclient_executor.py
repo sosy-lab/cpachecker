@@ -119,7 +119,7 @@ def execute_benchmark(benchmark, output_handler):
             cmdLine,
             stdin=subprocess.PIPE,
             universal_newlines=True,
-            shell=vcloudutil.is_windows(),  # noqa: S602
+            shell=vcloudutil.is_windows(),
         )
         try:
             cloud.communicate(cloudInput)
@@ -332,7 +332,7 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
                     values = parseCloudRunResultFile(dataFile)
                     if not benchmark.config.debug:
                         os.remove(dataFile)
-                except IOError as e:
+                except OSError as e:
                     logging.warning(
                         "Cannot extract measured values from output for file %s: %s",
                         run.identifier,
@@ -357,7 +357,6 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
             # BenchExec expects.
             # Move all output files from "sibling of log-file" to "sibling of parent directory".
             rawPath = run.log_file[: -len(".log")]
-            dirname, filename = os.path.split(rawPath)
             vcloudFilesDirectory = rawPath + ".files"
             benchexecFilesDirectory = run.result_files_folder
             if os.path.isdir(vcloudFilesDirectory) and not os.path.isdir(
@@ -381,7 +380,7 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
 def parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark):
     filePath = os.path.join(outputDir, "hostInformation.txt")
     try:
-        with open(filePath, "rt") as file:
+        with open(filePath) as file:
             # Parse first part of information about hosts until first blank line
             line = file.readline().strip()
             while True:
@@ -423,13 +422,13 @@ def parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark):
             output_handler.all_created_files.add(filePath)
         else:
             os.remove(filePath)
-    except IOError:
+    except OSError:
         logging.warning("Host information file not found: %s", filePath)
 
 
 def parseCloudRunResultFile(filePath):
     def read_items():
-        with open(filePath, "rt") as file:
+        with open(filePath) as file:
             for line in file:
                 key, value = line.split("=", 1)
                 yield key, value
