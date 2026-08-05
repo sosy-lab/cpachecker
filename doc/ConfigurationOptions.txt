@@ -2757,6 +2757,20 @@ cpa.predicate.delegatingRefinerHeuristics.InterpolationRate.decreaseFactorInterp
 # the PredicateDelegatingRefiner heuristic.
 cpa.predicate.delegatingRefinerHeuristics.InterpolationRate.increaseFactorInterpolants = 1.5
 
+# The maximum number of consecutive refinement iterations for which the
+# net-active interpolant rate of change may remain at or above
+# persistentRateThreshold before the heuristic signals divergence.
+cpa.predicate.delegatingRefinerHeuristics.InterpolationRate.maxPersistentIterations = 10
+
+# The minimum net-active interpolant rate of change that is considered
+# 'non-vanishing' for the purposes of detecting sustained, unbounded
+# predicate growth.
+cpa.predicate.delegatingRefinerHeuristics.InterpolationRate.persistentRateThreshold = 0.05
+
+# The size of the sliding window, in refinement iterations, used to compute
+# the recent net-active interpolant rate of change.
+cpa.predicate.delegatingRefinerHeuristics.InterpolationRate.rateWindowSize = 10
+
 # The maximum acceptable ratio of the number of abstraction locations to the
 # number of refinements before this heuristic should stop in favor of other
 # diagnostic heuristics.
