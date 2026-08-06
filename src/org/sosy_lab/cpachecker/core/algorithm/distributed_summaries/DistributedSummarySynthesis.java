@@ -131,7 +131,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     configuration.inject(this);
 
     decompositionOptions = new DssDecompositionOptions(configuration, pInitialCFA);
-    dssStats = new DistributedSummarySynthesisStatistics();
+    dssStats = new DistributedSummarySynthesisStatistics(configuration);
 
     logger = pLogger;
     initialCFA = pInitialCFA;
@@ -147,9 +147,10 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
   private DssExecutor getExecutor(Specification specification)
       throws InvalidConfigurationException {
     return switch (executorType) {
-      case DSS -> new MultithreadingDssExecutor(configuration, specification);
-      case SINGLE_WORKER -> new SingleWorkerDssExecutor(configuration, specification);
-      case SEQUENTIAL -> new SequentialDssExecutor(configuration, specification);
+      case DSS -> new MultithreadingDssExecutor(configuration, specification, shutdownManager);
+      case SINGLE_WORKER ->
+          new SingleWorkerDssExecutor(configuration, specification, shutdownManager);
+      case SEQUENTIAL -> new SequentialDssExecutor(configuration, specification, shutdownManager);
     };
   }
 
@@ -234,10 +235,16 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
 
       DssWitnessArgStateCollector stateCollector =
           new DssWitnessArgStateCollector(
-              new DssAnalysisOptions(configuration), blockGraph, modification, spec);
+              new DssAnalysisOptions(configuration),
+              blockGraph,
+              modification,
+              spec,
+              dssStats.getAllWorkerStatistics());
 
       return interpretResult(
-          executor.execute(cfa, blockGraph, stateCollector), reachedSet, modification);
+          executor.execute(cfa, blockGraph, stateCollector, dssStats.getAllWorkerStatistics()),
+          reachedSet,
+          modification);
     } catch (InvalidConfigurationException | IOException | SolverException e) {
       logger.logException(Level.SEVERE, e, "Block analysis stopped unexpectedly.");
       throw new CPAException("Component Analysis run into an error.", e);
@@ -249,6 +256,5 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     statsCollection.add(dssStats);
-    executor.collectStatistics(statsCollection);
   }
 }

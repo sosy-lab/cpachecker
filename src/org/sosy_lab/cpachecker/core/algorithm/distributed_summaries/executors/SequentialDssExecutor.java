@@ -10,15 +10,15 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors;
 
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Set;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssAllWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssDefaultQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssExceptionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAc
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisWorker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssWorkerBuilder;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -47,21 +46,29 @@ public class SequentialDssExecutor implements DssExecutor {
   private final DssMessageFactory messageFactory;
   private final DssAnalysisOptions options;
   private final Specification specification;
-  private final List<Statistics> stats;
+  private final ShutdownManager shutdownManager;
 
-  public SequentialDssExecutor(Configuration pConfiguration, Specification pSpecification)
+  public SequentialDssExecutor(
+      Configuration pConfiguration, Specification pSpecification, ShutdownManager pShutdownManager)
       throws InvalidConfigurationException {
     specification = pSpecification;
     options = new DssAnalysisOptions(pConfiguration);
     messageFactory = new DssMessageFactory(options);
-    stats = new ArrayList<>();
+    shutdownManager = pShutdownManager;
   }
 
-  private DssActors createDssActors(CFA cfa, BlockGraph blockGraph)
+  private DssActors createDssActors(
+      CFA cfa, BlockGraph blockGraph, DssAllWorkerStatistics workerStatistics)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     ImmutableSet<BlockNode> blocks = blockGraph.getNodes();
     DssWorkerBuilder builder =
-        new DssWorkerBuilder(cfa, specification, () -> new DssDefaultQueue(), messageFactory);
+        new DssWorkerBuilder(
+            cfa,
+            specification,
+            () -> new DssDefaultQueue(),
+            messageFactory,
+            workerStatistics,
+            shutdownManager);
     for (BlockNode distinctNode : blocks) {
       builder = builder.addAnalysisWorker(distinctNode, options);
     }
@@ -73,10 +80,12 @@ public class SequentialDssExecutor implements DssExecutor {
 
   @Override
   public StatusAndResult execute(
-      CFA cfa, BlockGraph blockGraph, DssWitnessArgStateCollector stateCollector)
+      CFA cfa,
+      BlockGraph blockGraph,
+      DssWitnessArgStateCollector stateCollector,
+      DssAllWorkerStatistics workerStatistics)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    DssActors actors = createDssActors(cfa, blockGraph);
-    stats.addAll(actors.getWorkersWithStats());
+    DssActors actors = createDssActors(cfa, blockGraph, workerStatistics);
 
     Set<String> finished = new LinkedHashSet<>();
 
@@ -118,12 +127,6 @@ public class SequentialDssExecutor implements DssExecutor {
       throw new CPAException("Solver exception", e);
     }
 
-    // blocks the thread until the result message is received
     return new StatusAndResult(statusObserver.finish(), Result.TRUE);
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> statsCollection) {
-    statsCollection.addAll(stats);
   }
 }

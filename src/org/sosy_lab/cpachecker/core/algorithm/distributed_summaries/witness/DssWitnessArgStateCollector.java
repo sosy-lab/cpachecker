@@ -25,6 +25,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssAllWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssWitnessMessage;
@@ -55,7 +56,8 @@ public class DssWitnessArgStateCollector implements RelevantArgStatesCollector {
       DssAnalysisOptions options,
       BlockGraph pBlockGraph,
       Modification pModification,
-      Specification spec)
+      Specification spec,
+      DssAllWorkerStatistics pAllWorkerStatistics)
       throws InvalidConfigurationException, IOException, CPAException, InterruptedException {
 
     Configuration forwardConfiguration =
@@ -69,7 +71,8 @@ public class DssWitnessArgStateCollector implements RelevantArgStatesCollector {
             forwardConfiguration,
             options,
             new DssMessageFactory(options),
-            ShutdownManager.create());
+            ShutdownManager.create(),
+            pAllWorkerStatistics.createWorkerStats("witness-collector"));
 
     blockGraph = pBlockGraph;
     idToNode = Maps.uniqueIndex(pBlockGraph.getNodes(), BlockNode::getId);

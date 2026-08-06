@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -52,6 +53,8 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
@@ -139,6 +142,8 @@ public class DssBlockAnalysis {
 
   private final LogManager logger;
 
+  private final DssSingleWorkerStatistics workerStats;
+
   private AlgorithmStatus status;
   private boolean containsViolationInsideBlock;
 
@@ -153,7 +158,8 @@ public class DssBlockAnalysis {
       Configuration pConfiguration,
       DssAnalysisOptions pOptions,
       DssMessageFactory pMessageFactory,
-      ShutdownManager pShutdownManager)
+      ShutdownManager pShutdownManager,
+      DssSingleWorkerStatistics pWorkerStats)
       throws CPAException, InterruptedException, InvalidConfigurationException {
     messageFactory = pMessageFactory;
     AnalysisComponents parts =
@@ -188,6 +194,13 @@ public class DssBlockAnalysis {
 
     containsViolationInsideBlock = false;
     combineByHash = pOptions.combineByHash();
+
+    workerStats = pWorkerStats;
+    // Register dcpa-level statistics with the worker stats object.
+    if (dcpa instanceof DistributedARGCPA arg
+        && arg.getWrappedCPA() instanceof DistributedCompositeCPA composite) {
+      pWorkerStats.setDcpaStatistics(composite.getStatistics());
+    }
   }
 
   /**
@@ -339,6 +352,7 @@ public class DssBlockAnalysis {
     serializedContent.put(
         DistributedConfigurableProgramAnalysis.MULTIPLE_STATES_KEY,
         Integer.toString(pStatesAndPrecisions.size()));
+    int totalStateSize = 0;
     for (int i = 0; i < pStatesAndPrecisions.size(); i++) {
       serializedContent.pushLevel(SerializeOperator.STATE_KEY + i);
       StateAndPrecision stateAndPrecision = pStatesAndPrecisions.get(i);
@@ -351,14 +365,16 @@ public class DssBlockAnalysis {
               .buildOrThrow();
       for (Entry<String, String> contents : content.entrySet()) {
         serializedContent.put(contents.getKey(), contents.getValue());
+        totalStateSize += contents.getKey().length() + contents.getValue().length();
       }
       serializedContent.popLevel();
     }
+    workerStats.getSerializedStatesSizeStats().setNextValue(totalStateSize);
     return serializedContent.build();
   }
 
   /**
-   * The method restores a lis of states and precisions from a DssMessage. In general, it should
+   * The method restores a list of states and precisions from a DssMessage. In general, it should
    * hold that the concretization of the list of states is a subset of the concretization after
    * serializing and deserializing them, i.e., [[states]] <= [[deserialize(serialize(states))]].
    *
@@ -542,54 +558,61 @@ public class DssBlockAnalysis {
    */
   public DssMessageProcessing storePrecondition(DssPostConditionMessage pReceived)
       throws InterruptedException, SolverException, CPAException {
-    relevant.clear();
-    logger.log(Level.INFO, "Running forward analysis with new precondition");
-    resetStates();
-    ImmutableList<@NonNull StateAndPrecision> deserializedStatesAndPrecisions =
-        deserialize(pReceived);
-    DssMessageProcessing processing = DssMessageProcessing.proceed();
-    for (StateAndPrecision stateAndPrecision : deserializedStatesAndPrecisions) {
-      processing =
-          processing.merge(
-              dcpa.getProceedOperator().processForward(stateAndPrecision.state()), true);
-    }
-    if (!processing.shouldProceed()) {
-      return processing;
-    }
+    ImmutableList<@NonNull StateAndPrecision> deserializedStatesAndPrecisions = ImmutableList.of();
+    workerStats.getStorePreconditionStatesTimer().start();
+    try {
+      relevant.clear();
+      logger.log(Level.INFO, "Running forward analysis with new precondition");
+      resetStates();
+      deserializedStatesAndPrecisions = deserialize(pReceived);
+      DssMessageProcessing processing = DssMessageProcessing.proceed();
+      for (StateAndPrecision stateAndPrecision : deserializedStatesAndPrecisions) {
+        processing =
+            processing.merge(
+                dcpa.getProceedOperator().processForward(stateAndPrecision.state()), true);
+      }
+      if (!processing.shouldProceed()) {
+        return processing;
+      }
 
-    if (preconditions.get(pReceived.getSenderId()).isEmpty()) {
-      preconditions.putAll(pReceived.getSenderId(), deserializedStatesAndPrecisions);
-      relevant.addAll(deserializedStatesAndPrecisions);
+      if (preconditions.get(pReceived.getSenderId()).isEmpty()) {
+        preconditions.putAll(pReceived.getSenderId(), deserializedStatesAndPrecisions);
+        relevant.addAll(deserializedStatesAndPrecisions);
+        appendTopToRelevantIfNecessary(pReceived.getSenderId());
+        return processing;
+      }
+      for (StateAndPrecision deserializedStateAndPrecision : deserializedStatesAndPrecisions) {
+        boolean isRelevant = true;
+        for (StateAndPrecision stateAndPrecision :
+            ImmutableSet.copyOf(preconditions.get(pReceived.getSenderId()))) {
+          if (dcpa.getCoverageOperator()
+              .isSubsumed(
+                  dcpa.reset(deserializedStateAndPrecision.state()), stateAndPrecision.state())) {
+            preconditions.remove(pReceived.getSenderId(), stateAndPrecision);
+          }
+          if (isRelevant
+              && dcpa.getCoverageOperator()
+                  .isSubsumed(
+                      stateAndPrecision.state(),
+                      dcpa.reset(deserializedStateAndPrecision.state()))) {
+            isRelevant = false;
+          }
+        }
+        if (isRelevant) {
+          relevant.add(deserializedStateAndPrecision);
+        }
+        preconditions.put(pReceived.getSenderId(), deserializedStateAndPrecision);
+      }
+      if (relevant.isEmpty()) {
+        return DssMessageProcessing.stop();
+      }
+
       appendTopToRelevantIfNecessary(pReceived.getSenderId());
       return processing;
+    } finally {
+      workerStats.getStorePreconditionStatesTimer().stop();
+      workerStats.getStorePreconditionStatesCounter().add(deserializedStatesAndPrecisions.size());
     }
-    for (StateAndPrecision deserializedStateAndPrecision : deserializedStatesAndPrecisions) {
-      boolean isRelevant = true;
-      for (StateAndPrecision stateAndPrecision :
-          ImmutableSet.copyOf(preconditions.get(pReceived.getSenderId()))) {
-        if (dcpa.getCoverageOperator()
-            .isSubsumed(
-                dcpa.reset(deserializedStateAndPrecision.state()), stateAndPrecision.state())) {
-          preconditions.remove(pReceived.getSenderId(), stateAndPrecision);
-        }
-        if (isRelevant
-            && dcpa.getCoverageOperator()
-                .isSubsumed(
-                    stateAndPrecision.state(), dcpa.reset(deserializedStateAndPrecision.state()))) {
-          isRelevant = false;
-        }
-      }
-      if (isRelevant) {
-        relevant.add(deserializedStateAndPrecision);
-      }
-      preconditions.put(pReceived.getSenderId(), deserializedStateAndPrecision);
-    }
-    if (relevant.isEmpty()) {
-      return DssMessageProcessing.stop();
-    }
-
-    appendTopToRelevantIfNecessary(pReceived.getSenderId());
-    return processing;
   }
 
   private SegmentedPaths extractWitnessFromState(AbstractState state) {
@@ -611,26 +634,32 @@ public class DssBlockAnalysis {
     logger.log(Level.INFO, "Running forward analysis with respect to error condition");
     // merge all states into the reached set
     ImmutableList<StateAndPrecision> deserializedStates = deserialize(pNewViolationCondition);
-    Set<SegmentedPaths> oldVcs =
-        transformedImmutableSetCopy(
-            violationConditions.removeAll(pNewViolationCondition.getSenderId()),
-            sap -> extractWitnessFromState(sap.state()));
-    int equal = 0;
-    for (StateAndPrecision stateAndPrecision : deserializedStates) {
-      if (oldVcs.contains(extractWitnessFromState(stateAndPrecision.state()))) {
-        equal++;
+    workerStats.getStoreViolationConditionStatesTimer().start();
+    try {
+      Set<SegmentedPaths> oldVcs =
+          transformedImmutableSetCopy(
+              violationConditions.removeAll(pNewViolationCondition.getSenderId()),
+              sap -> extractWitnessFromState(sap.state()));
+      int equal = 0;
+      for (StateAndPrecision stateAndPrecision : deserializedStates) {
+        if (oldVcs.contains(extractWitnessFromState(stateAndPrecision.state()))) {
+          equal++;
+        }
+        DssMessageProcessing current =
+            dcpa.getProceedOperator().processBackward(stateAndPrecision.state());
+        if (current.shouldProceed()) {
+          violationConditions.put(pNewViolationCondition.getSenderId(), stateAndPrecision);
+        }
       }
-      DssMessageProcessing current =
-          dcpa.getProceedOperator().processBackward(stateAndPrecision.state());
-      if (current.shouldProceed()) {
-        violationConditions.put(pNewViolationCondition.getSenderId(), stateAndPrecision);
+      if (violationConditions.get(pNewViolationCondition.getSenderId()).isEmpty()
+          || equal == deserializedStates.size()) {
+        return DssMessageProcessing.stop();
       }
+      return DssMessageProcessing.proceed();
+    } finally {
+      workerStats.getStoreViolationConditionStatesTimer().stop();
+      workerStats.getStoreViolationConditionStatesCounter().add(deserializedStates.size());
     }
-    if (violationConditions.get(pNewViolationCondition.getSenderId()).isEmpty()
-        || equal == deserializedStates.size()) {
-      return DssMessageProcessing.stop();
-    }
-    return DssMessageProcessing.proceed();
   }
 
   /**
@@ -757,7 +786,14 @@ public class DssBlockAnalysis {
               AbstractStates.extractStateByType(stateAndPrecision.state(), BlockState.class))
           .setViolationConditions(violations);
 
-      DssBlockAnalysisResult result = DssBlockAnalyses.runAlgorithm(algorithm, reachedSet, block);
+      DssBlockAnalysisResult result;
+      try {
+        workerStats.getBlockAnalysisTimer().start();
+        result = DssBlockAnalyses.runAlgorithm(algorithm, reachedSet, block);
+      } finally {
+        workerStats.getBlockAnalysisTimer().stop();
+        workerStats.getBlockAnalysisCounter().inc();
+      }
 
       status = status.update(result.getStatus());
 
