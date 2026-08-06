@@ -16,9 +16,17 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.AlwaysReplaceDssBlockAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.PathBasedReplacementDssBlockAnalysis;
 
 @Options(prefix = "distributedSummaries")
 public class DssAnalysisOptions {
+
+  enum DssBlockAnalysisType {
+    PATH_BASED,
+    ALWAYS_REPLACE
+  }
 
   @Option(
       name = "logging.reportFiles",
@@ -77,13 +85,18 @@ public class DssAnalysisOptions {
       secure = true,
       name = "yamlProofWitness",
       description =
-          "The template from which the different "
+          "The path to which the different "
               + "versions of the correctness witnesses will be exported. "
-              + "Each version replaces the string '%s' "
+              + "Each witness version replaces the string '%s' "
               + "with its version number.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate yamlWitnessOutputFileTemplate =
       PathTemplate.ofFormatString("witness-dss-%s.yml");
+
+  @Option(
+      description = "Which block analysis to use for the distributed summaries algorithm",
+      secure = true)
+  private DssBlockAnalysisType blockAnalysisType = DssBlockAnalysisType.ALWAYS_REPLACE;
 
   public DssAnalysisOptions(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
@@ -119,5 +132,12 @@ public class DssAnalysisOptions {
 
   public PathTemplate getYamlCorrectnessWitnessOutputFileTemplate() {
     return yamlWitnessOutputFileTemplate;
+  }
+
+  public Class<? extends DssBlockAnalysis<?, ?>> getBlockAnalysisType() {
+    return switch (blockAnalysisType) {
+      case PATH_BASED -> PathBasedReplacementDssBlockAnalysis.class;
+      case ALWAYS_REPLACE -> AlwaysReplaceDssBlockAnalysis.class;
+    };
   }
 }

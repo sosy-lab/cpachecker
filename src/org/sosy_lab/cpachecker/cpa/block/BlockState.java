@@ -31,8 +31,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
-import org.sosy_lab.cpachecker.cpa.path.PathState;
-import org.sosy_lab.cpachecker.cpa.path.SegmentedPaths;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -57,7 +56,7 @@ public class BlockState
   private List<? extends AbstractState> violationConditions;
   private final SegmentedPaths witness;
 
-  private final Optional<PathState> witnessCheckPathState;
+  private final Optional<SegmentedPaths> witnessCheckPathState;
 
   public BlockState(
       CFANode pNode,
@@ -66,7 +65,7 @@ public class BlockState
       List<? extends AbstractState> pViolationConditions,
       BlockGraphPath pHistory,
       SegmentedPaths pWitness,
-      PathState pWitnessCheckPathState) {
+      SegmentedPaths pWitnessCheckPathState) {
     Preconditions.checkArgument(
         pType == BlockStateType.WITNESS || pWitnessCheckPathState == null,
         "Added path state while not being in Witnes state");
@@ -119,10 +118,6 @@ public class BlockState
 
   public BlockStateType getType() {
     return type;
-  }
-
-  public PathState getWitnessCheckPathState() {
-    return witnessCheckPathState.orElseThrow();
   }
 
   @Override

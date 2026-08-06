@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness;
 
 import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.cpa.path.SegmentedPaths;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 
 public class ResultWithWitnessInformation {
 

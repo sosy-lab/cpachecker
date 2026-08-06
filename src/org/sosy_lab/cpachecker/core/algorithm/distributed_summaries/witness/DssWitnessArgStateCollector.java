@@ -18,34 +18,34 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.Map.Entry;
-import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssAllWorkerStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssWitnessMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification.Modification;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector;
 
 public class DssWitnessArgStateCollector implements RelevantArgStatesCollector {
 
   private final Multimap<CFANode, ARGState> collectedLoopHeadPreconditions = HashMultimap.create();
-  private boolean allStatsContainedStates = true;
 
-  private final LogManager logger;
-  private final DssBlockAnalysis analysis;
+  private final DssBlockAnalysis<?, ?> analysis;
   private final BlockGraph blockGraph;
   private final ImmutableMap<String, BlockNode> idToNode;
 
@@ -59,29 +59,45 @@ public class DssWitnessArgStateCollector implements RelevantArgStatesCollector {
       BlockGraph pBlockGraph,
       Modification pModification,
       Specification spec,
-      LogManager pLogger)
-      throws InvalidConfigurationException, IOException, CPAException, InterruptedException {
+      DssAllWorkerStatistics pAllWorkerStatistics)
+      throws InvalidConfigurationException,
+          IOException,
+          InvocationTargetException,
+          InstantiationException,
+          IllegalAccessException,
+          NoSuchMethodException {
 
     Configuration forwardConfiguration =
         Configuration.builder().loadFromFile(options.getForwardConfiguration()).build();
     analysis =
-        new DssBlockAnalysis(
-            LogManager.createNullLogManager(),
-            pBlockGraph.getRoot(),
-            pModification.cfa(),
-            spec,
-            forwardConfiguration,
-            options,
-            new DssMessageFactory(options),
-            ShutdownManager.create());
-
+        options
+            .getBlockAnalysisType()
+            .getConstructor(
+                LogManager.class,
+                BlockNode.class,
+                CFA.class,
+                Specification.class,
+                Configuration.class,
+                DssAnalysisOptions.class,
+                DssMessageFactory.class,
+                ShutdownManager.class,
+                DssSingleWorkerStatistics.class)
+            .newInstance(
+                LogManager.createNullLogManager(),
+                pBlockGraph.getRoot(),
+                pModification.cfa(),
+                spec,
+                forwardConfiguration,
+                options,
+                new DssMessageFactory(options),
+                ShutdownManager.create(),
+                pAllWorkerStatistics.createWorkerStats("witness-collector"));
     blockGraph = pBlockGraph;
     idToNode = Maps.uniqueIndex(pBlockGraph.getNodes(), BlockNode::getId);
-    logger = pLogger;
     modification = pModification;
   }
 
-  public void collectFromMessage(DssStatisticsMessage message) {
+  public void collectFromMessage(DssWitnessMessage message) throws InterruptedException {
 
     messages++;
 
@@ -89,22 +105,11 @@ public class DssWitnessArgStateCollector implements RelevantArgStatesCollector {
 
     if (senderBlock.getInitialLocation().isLoopStart()) {
 
-      allStatsContainedStates &= message.getNumberOfContainedStates().isPresent();
-
-      if (allStatsContainedStates) {
-        Collection<ARGState> states;
-        try {
-          states =
-              transformedImmutableListCopy(
-                  analysis.deserialize(message),
-                  sp -> AbstractStates.extractStateByType(sp.state(), ARGState.class));
-          collectedLoopHeadPreconditions.putAll(senderBlock.getInitialLocation(), states);
-        } catch (InterruptedException e) {
-          allStatsContainedStates = false;
-          logger.logUserException(
-              Level.WARNING, e, "Could not collect states for witness due to interruption");
-        }
-      }
+      Collection<ARGState> states =
+          transformedImmutableListCopy(
+              analysis.deserialize(message),
+              sp -> AbstractStates.extractStateByType(sp.state(), ARGState.class));
+      collectedLoopHeadPreconditions.putAll(senderBlock.getInitialLocation(), states);
     }
   }
 
@@ -113,8 +118,11 @@ public class DssWitnessArgStateCollector implements RelevantArgStatesCollector {
     // states to stay sound
     // currently this is the case: we only collect the information for loop heads, which will always
     // be entry nodes and never in the middle of one block
-    // also, we ensure that we waited for all blocks to return a statistic message
-    return allStatsContainedStates && blockGraph.getNodes().size() == messages;
+    // also, we ensure that we waited for all blocks to return a witness message
+
+    // TODO: A future extension could collect other preconditions and keep track for which CFANodes
+    // it received all necessary information
+    return blockGraph.getNodes().size() == messages;
   }
 
   /**
@@ -141,6 +149,13 @@ public class DssWitnessArgStateCollector implements RelevantArgStatesCollector {
     return builder.build();
   }
 
+  /**
+   * Collects the states relevant to the witnesses from DSS witness messages instead of the local
+   * ARG that was not used
+   *
+   * @param pRootState ignored initial state
+   * @return all states deemed relevant
+   */
   @Override
   public CollectedARGStates getRelevantStates(ARGState pRootState) {
     return new CollectedARGStates(
