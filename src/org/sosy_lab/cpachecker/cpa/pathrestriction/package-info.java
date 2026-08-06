@@ -7,4 +7,4 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /** A CPA that restricts the transitions to a collection of predetermined paths */
-package org.sosy_lab.cpachecker.cpa.path;
+package org.sosy_lab.cpachecker.cpa.pathrestriction;

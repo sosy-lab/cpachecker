@@ -25,13 +25,11 @@ import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa.DeserializeBlockStateOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa.DeserializeBlockStateOperator.ParseResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
-import org.sosy_lab.cpachecker.cpa.path.SegmentedPaths;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 
 /**
  * Abstract base class for messages used in distributed summary synthesis. Each message has a sender
@@ -171,23 +169,32 @@ public abstract class DssMessage {
 
   public final Result getResult() {
     checkArgument(type == DssMessageType.RESULT, "Cannot get content for type: " + "%s", type);
-    String resultString = content.get(DssResultMessage.DSS_MESSAGE_RESULT_KEY);
-    Preconditions.checkNotNull(resultString, "Result content is missing in message: %s", this);
-    return Result.valueOf(resultString);
+    return Result.valueOf(
+        Preconditions.checkNotNull(
+            content.get(DssResultMessage.DSS_MESSAGE_RESULT_KEY),
+            "Result content is missing in message: %s",
+            this));
+  }
+
+  public final DssWitnessMessage.WitnessType getWitnessType() {
+    checkArgument(type == DssMessageType.WITNESS, "Cannot get content for type: %s", type);
+    return DssWitnessMessage.WitnessType.valueOf(
+        Preconditions.checkNotNull(
+            content.get(DssWitnessMessage.DSS_MESSAGE_WITNESS_TYPE_KEY),
+            "Witness type is missing in message: %s",
+            this));
   }
 
   public final SegmentedPaths getViolationPath() {
-    checkArgument(getResult() == Result.FALSE, "Cannot get content for type: " + "%s", type);
-    String violationPathString = content.get(DssResultMessage.DSS_MESSAGE_VIOLATION_PATH_KEY);
-
-    Preconditions.checkNotNull(
-        violationPathString,
-        "Result content for result FALSE is missing violationPath for witness: %s",
-        this);
-
-    ParseResult res = DeserializeBlockStateOperator.parseWitness(violationPathString);
-
-    return res.witness();
+    checkArgument(
+        getWitnessType() == DssWitnessMessage.WitnessType.VIOLATION,
+        "Cannot get violation path for witness type: %s",
+        type);
+    return SegmentedPaths.deserialize(
+        Preconditions.checkNotNull(
+            content.get(DssWitnessMessage.DSS_MESSAGE_VIOLATION_PATH_KEY),
+            "No violation path present in witness message: %s",
+            this));
   }
 
   public final String extractBlockStateWitnessString() {
@@ -231,10 +238,10 @@ public abstract class DssMessage {
 
   public final String getExceptionMessage() {
     checkArgument(type == DssMessageType.EXCEPTION, "Cannot get content for type: " + "%s", type);
-    String exceptionMessage = content.get(DssExceptionMessage.DSS_MESSAGE_EXCEPTION_KEY);
-    Preconditions.checkNotNull(
-        exceptionMessage, "Exception message is missing in message: %s", this);
-    return exceptionMessage;
+    return Preconditions.checkNotNull(
+        content.get(DssExceptionMessage.DSS_MESSAGE_EXCEPTION_KEY),
+        "Exception message is missing in message: %s",
+        this);
   }
 
   /**

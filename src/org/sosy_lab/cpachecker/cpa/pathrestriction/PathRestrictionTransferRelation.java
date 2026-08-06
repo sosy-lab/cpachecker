@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.path;
+package org.sosy_lab.cpachecker.cpa.pathrestriction;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -16,16 +16,16 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
-class PathTransferRelation extends SingleEdgeTransferRelation {
+class PathRestrictionTransferRelation extends SingleEdgeTransferRelation {
 
   @Override
-  public Collection<PathState> getAbstractSuccessorsForEdge(
+  public Collection<PathRestrictionState> getAbstractSuccessorsForEdge(
       AbstractState element, Precision prec, CFAEdge cfaEdge) {
-    PathState pathState = (PathState) element;
+    PathRestrictionState pathState = (PathRestrictionState) element;
 
     if (pathState.isInitial) {
       // We can only return one single state as initial state -> create multiple states here
-      return FluentIterable.from(PathState.initialStates(pathState.paths))
+      return FluentIterable.from(PathRestrictionState.initialStates(pathState.paths))
           .transformAndConcat(s -> getAbstractSuccessorsForEdge(s, prec, cfaEdge))
           .toList();
     }
@@ -42,10 +42,11 @@ class PathTransferRelation extends SingleEdgeTransferRelation {
     int nextPathIndex = pathState.pathIndex + 1;
 
     if (nextPathIndex == pathState.activePath.size()) {
-      return PathState.startSegment(pathState.paths, pathState.segmentIndex + 1).toList();
+      return PathRestrictionState.startSegment(pathState.paths, pathState.segmentIndex + 1)
+          .toList();
     } else {
       return ImmutableList.of(
-          new PathState(
+          new PathRestrictionState(
               pathState.paths, pathState.segmentIndex, pathState.activePath, nextPathIndex));
     }
   }
