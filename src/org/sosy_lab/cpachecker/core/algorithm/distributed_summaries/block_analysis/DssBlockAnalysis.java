@@ -257,7 +257,7 @@ public abstract class DssBlockAnalysis<
       return ImmutableList.of();
     }
 
-    summaries.forEach(sap-> sap.getBlockState().addHistory(block));
+    summaries.forEach(sap -> sap.getBlockState().addHistory(block));
     return ImmutableList.of(
         messageFactory.createDssPostConditionMessage(
             block.getId(), status, serialize(ImmutableList.copyOf(summaries))));

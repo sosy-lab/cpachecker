@@ -31,7 +31,8 @@ public record BlockGraphPath(ImmutableList<String> path) implements DssIndexable
   }
 
   public boolean isSuffixOf(BlockGraphPath other) {
-    return BlockGraphPath.of(this.path().reverse()).isPrefixOf(BlockGraphPath.of(other.path().reverse()));
+    return BlockGraphPath.of(this.path().reverse())
+        .isPrefixOf(BlockGraphPath.of(other.path().reverse()));
   }
 
   public boolean isPrefixOf(BlockGraphPath other) {

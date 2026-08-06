@@ -16,13 +16,10 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.jspecify.annotations.NonNull;
@@ -39,7 +36,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath.PathCase;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
@@ -85,7 +81,6 @@ public class PathBasedReplacementDssBlockAnalysis
 
     resetPrecisionsForEveryRun = pOptions.resetPrecisionsForEveryRun();
     unifiedPrecision = makeStartPrecision();
-
   }
 
   @Override
@@ -148,71 +143,77 @@ public class PathBasedReplacementDssBlockAnalysis
           newPreconditionsBuilder.build();
 
       if (preconditions.isEmpty()) {
-      preconditions.putAll(newPreconditions);
-      pathsToAnalyze.addAll(newPreconditions.keySet());
-      return DssMessageProcessing.proceed();
-    }
-    boolean fixPointReached = true;
-    ArrayListMultimap<@NonNull BlockGraphPath, StateAndPrecision> oldAndProcessedNewPaths = ArrayListMultimap.create(preconditions);
+        preconditions.putAll(newPreconditions);
+        pathsToAnalyze.addAll(newPreconditions.keySet());
+        return DssMessageProcessing.proceed();
+      }
+      boolean fixPointReached = true;
+      ArrayListMultimap<@NonNull BlockGraphPath, StateAndPrecision> oldAndProcessedNewPaths =
+          ArrayListMultimap.create(preconditions);
       for (BlockGraphPath newPath : newPreconditions.keySet()) {
         ImmutableListMultimap.Builder<PathCase, BlockGraphPath> caseBuilder =
             ImmutableListMultimap.builder();
         for (BlockGraphPath oldPath : oldAndProcessedNewPaths.keySet()) {
           PathCase matching = newPath.getFirstMatchingCase(oldPath);
-        caseBuilder.put(matching, oldPath);
-      }
-      ImmutableListMultimap<PathCase, BlockGraphPath> cases = caseBuilder.build();
-      boolean addNewPath = false;
+          caseBuilder.put(matching, oldPath);
+        }
+        ImmutableListMultimap<PathCase, BlockGraphPath> cases = caseBuilder.build();
+        boolean addNewPath = false;
         if (cases.containsKey(PathCase.SUFFIX_OR_EQUAL)) {
           boolean allowedToStop = false;
           for (BlockGraphPath oldPathForCase : cases.get(PathCase.SUFFIX_OR_EQUAL)) {
             if (!allowedToStop
-                && isCoveredBy(newPreconditions.get(newPath), oldAndProcessedNewPaths.get(oldPathForCase))) {
+                && isCoveredBy(
+                    newPreconditions.get(newPath), oldAndProcessedNewPaths.get(oldPathForCase))) {
               allowedToStop = true;
             }
             preconditions.removeAll(oldPathForCase);
           }
           addNewPath = true;
-        fixPointReached &= allowedToStop;
-      } else if (cases.containsKey(PathCase.REVERSE_OVERLAP)) {
-        System.out.println("Reverse overlap found, new preconditions with path " + newPath + " ignored");
+          fixPointReached &= allowedToStop;
+        } else if (cases.containsKey(PathCase.REVERSE_OVERLAP)) {
+          System.out.println(
+              "Reverse overlap found, new preconditions with path " + newPath + " ignored");
           continue;
         } else if (cases.containsKey(PathCase.OVERLAP)) {
           cases.get(PathCase.OVERLAP).forEach(preconditions::removeAll);
-          addNewPath  = true;
+          addNewPath = true;
           fixPointReached = false;
         } else if (cases.containsKey(PathCase.REAL_PREFIX)) {
           boolean allowedToStop = false;
           for (BlockGraphPath oldPathForCase : cases.get(PathCase.REAL_PREFIX)) {
-            if (isCoveredBy(newPreconditions.get(newPath), oldAndProcessedNewPaths.get(oldPathForCase))) {
+            if (isCoveredBy(
+                newPreconditions.get(newPath), oldAndProcessedNewPaths.get(oldPathForCase))) {
               allowedToStop = true;
               break;
             }
           }
           if (!allowedToStop) {
-            addNewPath  = true;
-        } else {
-          System.out.println("Real prefix + covered, new preconditions with path " + newPath + " ignored");
-        }
+            addNewPath = true;
+          } else {
+            System.out.println(
+                "Real prefix + covered, new preconditions with path " + newPath + " ignored");
+          }
           fixPointReached &= allowedToStop;
         } else {
           Preconditions.checkState(cases.containsKey(PathCase.OTHER));
-          addNewPath  = true;
-          fixPointReached= false;
+          addNewPath = true;
+          fixPointReached = false;
+        }
+        if (addNewPath) {
+          Preconditions.checkState(newPreconditions.containsKey(newPath));
+          pathsToAnalyze.add(newPath);
+          oldAndProcessedNewPaths.putAll(newPath, newPreconditions.get(newPath));
+          preconditions.putAll(newPath, newPreconditions.get(newPath));
+        }
       }
-      if (addNewPath) {
-        Preconditions.checkState(newPreconditions.containsKey(newPath));
-        pathsToAnalyze.add(newPath);
-        oldAndProcessedNewPaths.putAll(newPath, newPreconditions.get(newPath));
-        preconditions.putAll(newPath, newPreconditions.get(newPath));
-      }
-    }
 
       if (fixPointReached) {
         return DssMessageProcessing.stop();
       }
 
-      return processing;} finally {
+      return processing;
+    } finally {
       workerStats.getStorePreconditionStatesTimer().stop();
       workerStats.getStorePreconditionStatesCounter().add(deserializedStatesAndPrecisions.size());
     }
@@ -277,7 +278,8 @@ public class PathBasedReplacementDssBlockAnalysis
         return DssMessageProcessing.stop();
       }
       pathsToAnalyze.addAll(preconditions.keySet());
-    return DssMessageProcessing.proceed();} finally {
+      return DssMessageProcessing.proceed();
+    } finally {
       workerStats.getStoreViolationConditionStatesTimer().stop();
       workerStats.getStoreViolationConditionStatesCounter().add(deserializedStates.size());
     }
@@ -326,8 +328,7 @@ public class PathBasedReplacementDssBlockAnalysis
    * @throws InterruptedException thrown if thread is interrupted unexpectedly
    * @throws CPAException thrown if CPA runs into an error
    */
-  private AnalysisResult analyzeViolationCondition()
-      throws CPAException, InterruptedException {
+  private AnalysisResult analyzeViolationCondition() throws CPAException, InterruptedException {
 
     ImmutableList.Builder<StateAndPrecision> summaries = ImmutableList.builder();
     ImmutableSet.Builder<ArgPathAndCondition> vcs = ImmutableSet.builder();
@@ -340,30 +341,31 @@ public class PathBasedReplacementDssBlockAnalysis
           FluentIterable.from(this.pathsToAnalyze).transformAndConcat(preconditions::get).toList();
     }
     for (StateAndPrecision stateAndPrecision : startStates) {
-        boolean isTrivial = dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state());
-        resetStates();
-        reachedSet.clear();
-        reachedSet.add(
-            stateAndPrecision.state(),
-            resetPrecisionsForEveryRun || isTrivial ? makeStartPrecision() : unifiedPrecision);
-        BlockState blockState = stateAndPrecision.getBlockState();
-        blockState.setViolationConditions(transformedImmutableListCopy(violationConditions.values(), StateAndPrecision::state));
+      boolean isTrivial = dcpa.isMostGeneralBlockEntryState(stateAndPrecision.state());
+      resetStates();
+      reachedSet.clear();
+      reachedSet.add(
+          stateAndPrecision.state(),
+          resetPrecisionsForEveryRun || isTrivial ? makeStartPrecision() : unifiedPrecision);
+      BlockState blockState = stateAndPrecision.getBlockState();
+      blockState.setViolationConditions(
+          transformedImmutableListCopy(violationConditions.values(), StateAndPrecision::state));
 
-        DssBlockAnalysisResult result = runBlockAnalysis();
+      DssBlockAnalysisResult result = runBlockAnalysis();
 
-        status = status.update(result.getStatus());
+      status = status.update(result.getStatus());
 
-        if (!preconditions.isEmpty() || block.isRoot()) {
-          for (ARGState summary : result.getFinalLocationStates()) {
-            summaries.add(new StateAndPrecision(summary, reachedSet.getPrecision(summary)));
-          }
-        }
-
-        if (!result.getAllViolations().isEmpty()) {
-          vcs.addAll(computeViolationConditionStates(result.getViolationConditionViolations()));
-          vcs.addAll(computeViolationConditionStatesFromOrigin(result.getTargetStates()));
+      if (!preconditions.isEmpty() || block.isRoot()) {
+        for (ARGState summary : result.getFinalLocationStates()) {
+          summaries.add(new StateAndPrecision(summary, reachedSet.getPrecision(summary)));
         }
       }
+
+      if (!result.getAllViolations().isEmpty()) {
+        vcs.addAll(computeViolationConditionStates(result.getViolationConditionViolations()));
+        vcs.addAll(computeViolationConditionStatesFromOrigin(result.getTargetStates()));
+      }
+    }
 
     return new AnalysisResult(summaries.build(), vcs.build());
   }

@@ -50,8 +50,7 @@ public class SegmentedPaths {
   public int size() {
     int maxLength = 0;
     for (ImmutableSet<ImmutableList<String>> path : paths) {
-      maxLength +=
-          path.stream().mapToInt(ImmutableList::size).max().orElse(0);
+      maxLength += path.stream().mapToInt(ImmutableList::size).max().orElse(0);
     }
     return maxLength;
   }
