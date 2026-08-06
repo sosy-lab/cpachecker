@@ -240,7 +240,6 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
               blockGraph,
               modification,
               spec,
-              logger,
               dssStats.getAllWorkerStatistics());
 
       return interpretResult(

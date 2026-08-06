@@ -143,7 +143,6 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
             .build();
 
     messageFactory = pMessageFactory;
-    logger = pLogger;
     workerStats = pWorkerStatistics.createWorkerStats(pId);
     analysis =
         new CreateOrRetrieveThreadLocalAnalysis(
