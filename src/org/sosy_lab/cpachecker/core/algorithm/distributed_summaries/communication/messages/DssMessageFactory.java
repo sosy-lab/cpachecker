@@ -15,8 +15,9 @@ import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssWitnessMessage.WitnessType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 
 public class DssMessageFactory {
 
@@ -41,6 +42,10 @@ public class DssMessageFactory {
         .build();
   }
 
+  private ImmutableMap<String, String> witnessType(WitnessType pWitnessType) {
+    return ImmutableMap.of(DssWitnessMessage.DSS_MESSAGE_WITNESS_TYPE_KEY, pWitnessType.name());
+  }
+
   public DssPostConditionMessage createDssPostConditionMessage(
       String pSenderId, AlgorithmStatus pStatus, ImmutableMap<String, String> pStateContent) {
     return new DssPostConditionMessage(
@@ -61,26 +66,28 @@ public class DssMessageFactory {
             .buildOrThrow());
   }
 
-  public DssStatisticsMessage createDssStatisticsMessage(
-      String pSenderId, ImmutableMap<StatisticsKey, String> pContent) {
-    ImmutableMap.Builder<String, String> serializedContentBuilder = ImmutableMap.builder();
-    for (Map.Entry<StatisticsKey, String> entry : pContent.entrySet()) {
-      serializedContentBuilder.put(entry.getKey().name(), entry.getValue());
-    }
-    return new DssStatisticsMessage(pSenderId, serializedContentBuilder.buildOrThrow());
-  }
-
-  public DssWitnessMessage createDssWitnessMessage(
+  public DssWitnessMessage createDssCorrectnessWitnessMessage(
       String pSenderId, ImmutableMap<String, String> pSerializedRelevantPreconditions) {
-    return new DssWitnessMessage(pSenderId, pSerializedRelevantPreconditions);
+    return new DssWitnessMessage(
+        pSenderId,
+        ImmutableMap.<String, String>builder()
+            .putAll(witnessType(WitnessType.CORRECTNESS))
+            .putAll(pSerializedRelevantPreconditions)
+            .buildOrThrow());
   }
 
-  public DssResultMessage createDssCorrectnessResultMessage(String pSenderId) {
-    return new DssResultMessage(pSenderId, Result.TRUE.name());
+  public DssWitnessMessage createDssViolationWitnessMessage(
+      String pSenderId, SegmentedPaths violationWitness) {
+    return new DssWitnessMessage(
+        pSenderId,
+        ImmutableMap.<String, String>builder()
+            .putAll(witnessType(WitnessType.VIOLATION))
+            .put(DssWitnessMessage.DSS_MESSAGE_VIOLATION_PATH_KEY, violationWitness.serialize())
+            .buildOrThrow());
   }
 
-  public DssResultMessage createDssViolationResultMessage(String pSenderId, String violationPath) {
-    return new DssResultMessage(pSenderId, Result.FALSE.name(), violationPath);
+  public DssResultMessage createDssResultMessage(String pSenderId, Result pResult) {
+    return new DssResultMessage(pSenderId, pResult.name());
   }
 
   public DssExceptionMessage createDssExceptionMessage(String pSenderId, Throwable pThrowable) {

@@ -2,9 +2,15 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2011-2013 Alexander von Rhein, University of Passau
+// SPDX-FileCopyrightText: 2011-2021 The SV-Benchmarks Community
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
+//
+// This is a heavily modified and simplified abstraction of the "email" product
+// line in SV-Benchmarks, closest to
+// product-lines/email_spec9_productSimulator.cil.c
 
 extern void __assert_fail(const char *, const char *, unsigned int, const char *);
 extern int __VERIFIER_nondet_int(void);

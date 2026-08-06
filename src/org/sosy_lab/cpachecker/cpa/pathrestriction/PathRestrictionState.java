@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.path;
+package org.sosy_lab.cpachecker.cpa.pathrestriction;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
@@ -14,7 +14,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
-public class PathState implements AbstractState {
+class PathRestrictionState implements AbstractState {
 
   final SegmentedPaths paths;
 
@@ -29,12 +29,12 @@ public class PathState implements AbstractState {
 
   final boolean isInitial;
 
-  PathState(
+  PathRestrictionState(
       SegmentedPaths pPaths, int pSegmentIndex, ImmutableList<String> pActivePath, int pPathIndex) {
     this(pPaths, pSegmentIndex, pActivePath, pPathIndex, false);
   }
 
-  private PathState(
+  private PathRestrictionState(
       SegmentedPaths pPaths,
       int pSegmentIndex,
       ImmutableList<String> pActivePath,
@@ -47,26 +47,27 @@ public class PathState implements AbstractState {
     isInitial = pIsInitial;
   }
 
-  static PathState initialState(SegmentedPaths pPaths) {
-    return new PathState(pPaths, 0, null, 0, true);
+  static PathRestrictionState initialState(SegmentedPaths pPaths) {
+    return new PathRestrictionState(pPaths, 0, null, 0, true);
   }
 
-  static Iterable<PathState> initialStates(SegmentedPaths pPaths) {
+  static Iterable<PathRestrictionState> initialStates(SegmentedPaths pPaths) {
     Preconditions.checkNotNull(
         pPaths,
-        "Uninitialized paths, PathCPA.getInitialState needs to be called after PathCPA.init");
+        "Uninitialized paths, PathRestrictionCPA.getInitialState needs to be called after"
+            + " PathRestrictionCPA.init");
 
     if (pPaths.paths.isEmpty()) {
-      return ImmutableList.of(new PathState(pPaths, 0, null, 0));
+      return ImmutableList.of(new PathRestrictionState(pPaths, 0, null, 0));
     }
 
     return startSegment(pPaths, 0);
   }
 
-  static FluentIterable<PathState> startSegment(SegmentedPaths pPaths, int segment) {
+  static FluentIterable<PathRestrictionState> startSegment(SegmentedPaths pPaths, int segment) {
 
     if (segment == pPaths.paths.size()) {
-      return FluentIterable.of(new PathState(pPaths, segment, null, -1));
+      return FluentIterable.of(new PathRestrictionState(pPaths, segment, null, -1));
     }
 
     if (pPaths.paths.get(segment).isEmpty()) {
@@ -79,7 +80,7 @@ public class PathState implements AbstractState {
                 nextPath.isEmpty()
                     // no decision edges chosen for this segment -> nothing to match here, move on
                     ? startSegment(pPaths, segment + 1)
-                    : FluentIterable.of(new PathState(pPaths, segment, nextPath, 0)));
+                    : FluentIterable.of(new PathRestrictionState(pPaths, segment, nextPath, 0)));
   }
 
   boolean isAtEndOfPath() {
@@ -97,7 +98,7 @@ public class PathState implements AbstractState {
       return true;
     }
 
-    return obj instanceof PathState other
+    return obj instanceof PathRestrictionState other
         && Objects.equals(paths, other.paths)
         && segmentIndex == other.segmentIndex
         && Objects.equals(activePath, other.activePath)

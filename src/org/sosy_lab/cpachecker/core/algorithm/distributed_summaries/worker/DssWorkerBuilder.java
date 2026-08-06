@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
@@ -22,6 +23,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssAllWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.CommunicationId;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssCommunicationEntity;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
@@ -43,16 +45,22 @@ public class DssWorkerBuilder {
   private final DssMessageFactory messageFactory;
   private final ImmutableMap.Builder<CommunicationId, WorkerGenerator> workerGenerators;
   private final Supplier<BlockingQueue<DssMessage>> queueFactory;
+  private final DssAllWorkerStatistics workerStatistics;
+  private final ShutdownManager shutdownManager;
 
   public DssWorkerBuilder(
       CFA pCFA,
       Specification pSpecification,
       Supplier<BlockingQueue<DssMessage>> pQueueFactory,
-      DssMessageFactory pMessageFactory) {
+      DssMessageFactory pMessageFactory,
+      DssAllWorkerStatistics pWorkerStatistics,
+      ShutdownManager pShutdownManager) {
     cfa = pCFA;
     specification = pSpecification;
     queueFactory = pQueueFactory;
     messageFactory = pMessageFactory;
+    workerStatistics = pWorkerStatistics;
+    shutdownManager = pShutdownManager;
     workerGenerators = ImmutableMap.builder();
   }
 
@@ -98,7 +106,8 @@ public class DssWorkerBuilder {
                 cfa,
                 specification,
                 messageFactory,
-                ShutdownManager.create(),
+                ShutdownManager.createWithParent(shutdownManager.getNotifier()),
+                workerStatistics,
                 logger));
     return this;
   }
@@ -137,10 +146,7 @@ public class DssWorkerBuilder {
     try {
       Path logDirectory = pOptions.getLogDirectory();
       if (logDirectory != null) {
-        boolean logDirectoryExists = logDirectory.toFile().mkdirs();
-        if (!logDirectoryExists) {
-          throw new IOException("Could not create log directory: " + logDirectory);
-        }
+        Files.createDirectories(logDirectory);
         return BasicLogManager.createWithHandler(
             new FileHandler(logDirectory + "/" + workerId + ".log"));
       }
