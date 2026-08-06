@@ -14,7 +14,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
-public class PathRestrictionState implements AbstractState {
+class PathRestrictionState implements AbstractState {
 
   final SegmentedPaths paths;
 
