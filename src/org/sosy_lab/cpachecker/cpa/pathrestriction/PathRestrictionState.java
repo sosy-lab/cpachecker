@@ -51,7 +51,7 @@ class PathRestrictionState implements AbstractState {
     return new PathRestrictionState(pPaths, 0, null, 0, true);
   }
 
-  public static Iterable<PathRestrictionState> initialStates(SegmentedPaths pPaths) {
+  static Iterable<PathRestrictionState> initialStates(SegmentedPaths pPaths) {
     Preconditions.checkNotNull(
         pPaths,
         "Uninitialized paths, PathRestrictionCPA.getInitialState needs to be called after"
