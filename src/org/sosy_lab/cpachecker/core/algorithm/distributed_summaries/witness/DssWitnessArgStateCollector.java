@@ -28,6 +28,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssAllWorkerStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssWitnessMessage;
@@ -60,7 +62,8 @@ public class DssWitnessArgStateCollector implements RelevantArgStatesCollector {
       BlockGraph pBlockGraph,
       Modification pModification,
       Specification spec,
-      LogManager pLogger)
+      LogManager pLogger,
+      DssAllWorkerStatistics pAllWorkerStatistics)
       throws InvalidConfigurationException,
           IOException,
           InvocationTargetException,
@@ -81,7 +84,8 @@ public class DssWitnessArgStateCollector implements RelevantArgStatesCollector {
                 Configuration.class,
                 DssAnalysisOptions.class,
                 DssMessageFactory.class,
-                ShutdownManager.class)
+                ShutdownManager.class,
+                DssSingleWorkerStatistics.class)
             .newInstance(
                 LogManager.createNullLogManager(),
                 pBlockGraph.getRoot(),
@@ -90,8 +94,8 @@ public class DssWitnessArgStateCollector implements RelevantArgStatesCollector {
                 forwardConfiguration,
                 options,
                 new DssMessageFactory(options),
-                ShutdownManager.create());
-
+                ShutdownManager.create(),
+                pAllWorkerStatistics.createWorkerStats("witness-collector"));
     blockGraph = pBlockGraph;
     idToNode = Maps.uniqueIndex(pBlockGraph.getNodes(), BlockNode::getId);
     logger = pLogger;

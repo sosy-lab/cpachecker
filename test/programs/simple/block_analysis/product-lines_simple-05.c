@@ -2,17 +2,14 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
-// This file is part of the SV-Benchmarks collection of verification tasks:
-// https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks
-//
 // SPDX-FileCopyrightText: 2011-2013 Alexander von Rhein, University of Passau
 // SPDX-FileCopyrightText: 2011-2021 The SV-Benchmarks Community
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
+//
+// This is a heavily modified and simplified version of
+// product-lines/minepump_spec2_product41.cil.c in SV-Benchmarks.
 
 extern void abort(void);
 void reach_error() {}

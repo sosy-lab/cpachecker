@@ -15,11 +15,11 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssAllWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssWitnessArgStateCollector;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.ResultWithWitnessInformation;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -30,7 +30,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  * <p>It is the executor's decision how to schedule the workers, e.g., using multiple threads or a
  * single worker.
  */
-public interface DssExecutor extends StatisticsProvider {
+public interface DssExecutor {
 
   /**
    * Execute the DSS analysis on the given CFA and its block decomposition.
@@ -38,10 +38,15 @@ public interface DssExecutor extends StatisticsProvider {
    * @param cfa The CFA to analyze
    * @param blockGraph The block decomposition of the CFA
    * @param stateCollector collecting states for correctness witness
+   * @param workerStatistics The statistics object to collect statistics from the workers created by
+   *     the executor
    * @return The status and result of the analysis
    */
   StatusAndResult execute(
-      CFA cfa, BlockGraph blockGraph, DssWitnessArgStateCollector stateCollector)
+      CFA cfa,
+      BlockGraph blockGraph,
+      DssWitnessArgStateCollector stateCollector,
+      DssAllWorkerStatistics workerStatistics)
       throws CPAException,
           IOException,
           InterruptedException,
@@ -68,7 +73,7 @@ public interface DssExecutor extends StatisticsProvider {
       switch (pMessage.getType()) {
         case VIOLATION_CONDITION, POST_CONDITION ->
             statusMap.put(pMessage.getSenderId(), pMessage.getAlgorithmStatus());
-        case RESULT, EXCEPTION, STATISTIC, WITNESS -> {}
+        case RESULT, EXCEPTION, WITNESS -> {}
       }
     }
 

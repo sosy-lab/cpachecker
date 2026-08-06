@@ -38,6 +38,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
@@ -49,6 +51,8 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
@@ -135,6 +139,8 @@ public abstract class DssBlockAnalysis<
   protected AlgorithmStatus status;
   protected boolean containsViolationInsideBlock;
 
+  protected final DssSingleWorkerStatistics workerStats;
+
   protected final boolean combineByHash;
 
   protected final LogManager logger;
@@ -147,7 +153,8 @@ public abstract class DssBlockAnalysis<
       Configuration pConfiguration,
       DssAnalysisOptions pOptions,
       DssMessageFactory pMessageFactory,
-      ShutdownManager pShutdownManager)
+      ShutdownManager pShutdownManager,
+      DssSingleWorkerStatistics pWorkerStats)
       throws CPAException, InterruptedException, InvalidConfigurationException {
     status = AlgorithmStatus.SOUND_AND_PRECISE;
     messageFactory = pMessageFactory;
@@ -178,6 +185,13 @@ public abstract class DssBlockAnalysis<
     preconditions = ArrayListMultimap.create();
     violationConditions = ArrayListMultimap.create();
     combineByHash = pOptions.combineByHash();
+
+    workerStats = pWorkerStats;
+    // Register dcpa-level statistics with the worker stats object.
+    if (dcpa instanceof DistributedARGCPA arg
+        && arg.getWrappedCPA() instanceof DistributedCompositeCPA composite) {
+      pWorkerStats.setDcpaStatistics(composite.getStatistics());
+    }
   }
 
   public ImmutableMap<String, String> serializedPreconditions() {
@@ -317,6 +331,7 @@ public abstract class DssBlockAnalysis<
     serializedContent.put(
         DistributedConfigurableProgramAnalysis.MULTIPLE_STATES_KEY,
         Integer.toString(pStatesAndPrecisions.size()));
+    int totalStateSize = 0;
     for (int i = 0; i < pStatesAndPrecisions.size(); i++) {
       serializedContent.pushLevel(SerializeOperator.STATE_KEY + i);
       StateAndPrecision stateAndPrecision = pStatesAndPrecisions.get(i);
@@ -329,14 +344,16 @@ public abstract class DssBlockAnalysis<
               .buildOrThrow();
       for (Entry<String, String> contents : content.entrySet()) {
         serializedContent.put(contents.getKey(), contents.getValue());
+        totalStateSize += contents.getKey().length() + contents.getValue().length();
       }
       serializedContent.popLevel();
     }
+    workerStats.getSerializedStatesSizeStats().setNextValue(totalStateSize);
     return serializedContent.build();
   }
 
   /**
-   * The method restores a lis of states and precisions from a DssMessage. In general, it should
+   * The method restores a list of states and precisions from a DssMessage. In general, it should
    * hold that the concretization of the list of states is a subset of the concretization after
    * serializing and deserializing them, i.e., [[states]] <= [[deserialize(serialize(states))]].
    *
@@ -430,6 +447,16 @@ public abstract class DssBlockAnalysis<
 
   public DistributedConfigurableProgramAnalysis getDcpa() {
     return dcpa;
+  }
+
+  final DssBlockAnalysisResult runBlockAnalysis() throws CPAException, InterruptedException {
+    try {
+      workerStats.getBlockAnalysisTimer().start();
+      return DssBlockAnalyses.runAlgorithm(algorithm, reachedSet, block);
+    } finally {
+      workerStats.getBlockAnalysisTimer().stop();
+      workerStats.getBlockAnalysisCounter().inc();
+    }
   }
 
   /**

@@ -22,6 +22,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
@@ -51,7 +52,8 @@ public class AlwaysReplaceDssBlockAnalysis extends DssBlockAnalysis<StringId, St
       Configuration pConfiguration,
       DssAnalysisOptions pOptions,
       DssMessageFactory pMessageFactory,
-      ShutdownManager pShutdownManager)
+      ShutdownManager pShutdownManager,
+      DssSingleWorkerStatistics pWorkerStats)
       throws CPAException, InterruptedException, InvalidConfigurationException {
     super(
         pLogger,
@@ -61,7 +63,8 @@ public class AlwaysReplaceDssBlockAnalysis extends DssBlockAnalysis<StringId, St
         pConfiguration,
         pOptions,
         pMessageFactory,
-        pShutdownManager);
+        pShutdownManager,
+        pWorkerStats);
     unifiedPrecision = makeStartPrecision();
   }
 
@@ -88,45 +91,51 @@ public class AlwaysReplaceDssBlockAnalysis extends DssBlockAnalysis<StringId, St
     resetStates();
     ImmutableList<@NonNull StateAndPrecision> deserializedStatesAndPrecisions =
         deserialize(pReceived);
-    DssMessageProcessing processing = DssMessageProcessing.proceed();
-    for (StateAndPrecision stateAndPrecision : deserializedStatesAndPrecisions) {
-      processing =
-          processing.merge(
-              dcpa.getProceedOperator().processForward(stateAndPrecision.state()), true);
-    }
-    if (!processing.shouldProceed()) {
-      return processing;
-    }
+    workerStats.getStorePreconditionStatesTimer().start();
+    try {
+      DssMessageProcessing processing = DssMessageProcessing.proceed();
+      for (StateAndPrecision stateAndPrecision : deserializedStatesAndPrecisions) {
+        processing =
+            processing.merge(
+                dcpa.getProceedOperator().processForward(stateAndPrecision.state()), true);
+      }
+      if (!processing.shouldProceed()) {
+        return processing;
+      }
 
-    unifiedPrecision =
-        dcpa.getCombinePrecisionOperator()
-            .combine(
-                ImmutableSet.<Precision>builder()
-                    .addAll(
-                        transformedImmutableSetCopy(
-                            deserializedStatesAndPrecisions, StateAndPrecision::precision))
-                    .add(unifiedPrecision)
-                    .build());
+      unifiedPrecision =
+          dcpa.getCombinePrecisionOperator()
+              .combine(
+                  ImmutableSet.<Precision>builder()
+                      .addAll(
+                          transformedImmutableSetCopy(
+                              deserializedStatesAndPrecisions, StateAndPrecision::precision))
+                      .add(unifiedPrecision)
+                      .build());
 
-    int equal = 0;
-    for (StateAndPrecision newSap : deserializedStatesAndPrecisions) {
-      for (StateAndPrecision oldSap : preconditions.get(StringId.of(pReceived.getSenderId()))) {
-        if (dcpa.getCoverageOperator().areStatesEqual(newSap.state(), oldSap.state())) {
-          equal++;
-          break;
+      int equal = 0;
+      for (StateAndPrecision newSap : deserializedStatesAndPrecisions) {
+        for (StateAndPrecision oldSap : preconditions.get(StringId.of(pReceived.getSenderId()))) {
+          if (dcpa.getCoverageOperator().areStatesEqual(newSap.state(), oldSap.state())) {
+            equal++;
+            break;
+          }
         }
       }
+
+      preconditions.removeAll(StringId.of(pReceived.getSenderId()));
+      preconditions.putAll(StringId.of(pReceived.getSenderId()), deserializedStatesAndPrecisions);
+
+      if (equal == deserializedStatesAndPrecisions.size()) {
+        // All states are equal, no need to proceed
+        return DssMessageProcessing.stop();
+      }
+
+      return DssMessageProcessing.proceed();
+    } finally {
+      workerStats.getStorePreconditionStatesTimer().stop();
+      workerStats.getStorePreconditionStatesCounter().add(deserializedStatesAndPrecisions.size());
     }
-
-    preconditions.removeAll(StringId.of(pReceived.getSenderId()));
-    preconditions.putAll(StringId.of(pReceived.getSenderId()), deserializedStatesAndPrecisions);
-
-    if (equal == deserializedStatesAndPrecisions.size()) {
-      // All states are equal, no need to proceed
-      return DssMessageProcessing.stop();
-    }
-
-    return DssMessageProcessing.proceed();
   }
 
   @Override
@@ -136,33 +145,40 @@ public class AlwaysReplaceDssBlockAnalysis extends DssBlockAnalysis<StringId, St
     logger.log(Level.INFO, "Running forward analysis with respect to error condition");
     // merge all states into the reached set
     ImmutableList<StateAndPrecision> newVcs = deserialize(pNewViolationCondition);
-    Collection<@NonNull StateAndPrecision> vcs =
-        violationConditions.removeAll(StringId.of(pNewViolationCondition.getSenderId()));
-    Set<SegmentedPaths> oldVcs =
-        transformedImmutableSetCopy(vcs, sap -> extractWitnessFromState(sap.state()));
-    int equal = 0;
-    for (StateAndPrecision newVc : newVcs) {
-      if (oldVcs.contains(extractWitnessFromState(newVc.state()))) {
-        equal++;
-        if (combineByHash) {
-          continue;
+    workerStats.getStoreViolationConditionStatesTimer().start();
+    try {
+      Collection<@NonNull StateAndPrecision> vcs =
+          violationConditions.removeAll(StringId.of(pNewViolationCondition.getSenderId()));
+      Set<SegmentedPaths> oldVcs =
+          transformedImmutableSetCopy(vcs, sap -> extractWitnessFromState(sap.state()));
+      int equal = 0;
+      for (StateAndPrecision newVc : newVcs) {
+        if (oldVcs.contains(extractWitnessFromState(newVc.state()))) {
+          equal++;
+          if (combineByHash) {
+            continue;
+          }
+        }
+        DssMessageProcessing current = dcpa.getProceedOperator().processBackward(newVc.state());
+        if (current.shouldProceed()) {
+          violationConditions.put(StringId.of(pNewViolationCondition.getSenderId()), newVc);
         }
       }
-      DssMessageProcessing current = dcpa.getProceedOperator().processBackward(newVc.state());
-      if (current.shouldProceed()) {
-        violationConditions.put(StringId.of(pNewViolationCondition.getSenderId()), newVc);
+      if (violationConditions.get(StringId.of(pNewViolationCondition.getSenderId())).isEmpty()
+          || equal == newVcs.size()) {
+        return DssMessageProcessing.stop();
       }
+      return DssMessageProcessing.proceed();
+    } finally {
+      workerStats.getStoreViolationConditionStatesTimer().stop();
+      workerStats.getStoreViolationConditionStatesCounter().add(newVcs.size());
     }
-    if (violationConditions.get(StringId.of(pNewViolationCondition.getSenderId())).isEmpty()
-        || equal == newVcs.size()) {
-      return DssMessageProcessing.stop();
-    }
-    return DssMessageProcessing.proceed();
   }
 
   @Override
   public Collection<DssMessage> analyzePreconditions(String idFromLastUpdate)
       throws SolverException, InterruptedException, CPAException {
+
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     AnalysisResult result = analyzeViolationCondition();
     if (!result.violationConditions().isEmpty()) {
@@ -214,7 +230,7 @@ public class AlwaysReplaceDssBlockAnalysis extends DssBlockAnalysis<StringId, St
       blockState.setViolationConditions(
           transformedImmutableListCopy(violationConditions.values(), sap -> sap.state()));
 
-      DssBlockAnalysisResult result = DssBlockAnalyses.runAlgorithm(algorithm, reachedSet, block);
+      DssBlockAnalysisResult result = runBlockAnalysis();
 
       status = status.update(result.getStatus());
       if (!result.getAllViolations().isEmpty()) {
