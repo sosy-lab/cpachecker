@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -165,19 +166,22 @@ public class SingleWorkerDssExecutor implements DssExecutor {
             .build()) {
 
       DssAnalysisWorker actor = (DssAnalysisWorker) Objects.requireNonNull(actors.getOnlyActor());
-      // use list instead of set. Each message has a unique timestamp,
-      // so there will be no duplicates that a set can remove.
-      // But the equality checks are unnecessarily expensive
       List<DssMessage> response = new ArrayList<>();
       if (knownConditions.isEmpty() && newConditions.isEmpty()) {
         response.addAll(actor.runInitialAnalysis());
       } else {
         OldAndNewMessages preparedBatches =
             prepareOldAndNewMessages(knownConditions, newConditions);
-        for (DssMessage message : preparedBatches.oldMessages()) {
+
+        List<DssMessage> oldMessages = new ArrayList<>(preparedBatches.oldMessages());
+        oldMessages.sort(Comparator.comparing(DssMessage::getTimestamp));
+        for (DssMessage message : oldMessages) {
           actor.storeMessage(message);
         }
-        for (DssMessage message : preparedBatches.newMessages()) {
+
+        List<DssMessage> newMessages = new ArrayList<>(preparedBatches.newMessages());
+        newMessages.sort(Comparator.comparing(DssMessage::getTimestamp));
+        for (DssMessage message : newMessages) {
           response.addAll(actor.processMessage(message));
         }
       }
