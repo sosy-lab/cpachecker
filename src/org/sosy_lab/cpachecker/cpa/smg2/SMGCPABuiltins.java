@@ -1199,11 +1199,6 @@ public class SMGCPABuiltins {
       return handleSafeFunction(functionName, state, funCallExpr, cfaEdge);
     }
 
-    // This mostly returns unknown if it does not find a function to handle
-    if (functionName.contains("pthread")) {
-      throw new SMGException("Concurrency analysis not supported in this configuration.");
-    }
-
     return switch (options.getHandleUnknownFunctions()) {
       case STRICT ->
           throw new CPATransferException(
