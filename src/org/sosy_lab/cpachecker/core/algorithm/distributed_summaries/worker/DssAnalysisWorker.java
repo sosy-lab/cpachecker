@@ -12,7 +12,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
@@ -44,38 +43,25 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   @FunctionalInterface
   private interface AnalysisCreation {
 
-    DssBlockAnalysis<?, ?> createDssBlockAnalysis()
-        throws CPAException,
-            InvalidConfigurationException,
-            InterruptedException,
-            NoSuchMethodException,
-            InstantiationException,
-            IllegalAccessException,
-            IllegalArgumentException,
-            InvocationTargetException;
+    DssBlockAnalysis createDssBlockAnalysis()
+        throws CPAException, InvalidConfigurationException, InterruptedException;
   }
 
   private static class CreateOrRetrieveThreadLocalAnalysis {
 
     private final AnalysisCreation createAnalysis;
-    private DssBlockAnalysis<?, ?> dssBlockAnalysis;
+    private DssBlockAnalysis dssBlockAnalysis;
     private String originalThreadName;
 
     private CreateOrRetrieveThreadLocalAnalysis(AnalysisCreation pAnalysisCreation) {
       createAnalysis = pAnalysisCreation;
     }
 
-    DssBlockAnalysis<?, ?> getDssBlockAnalysis() {
+    DssBlockAnalysis getDssBlockAnalysis() {
       if (dssBlockAnalysis == null) {
         try {
           dssBlockAnalysis = createAnalysis.createDssBlockAnalysis();
-        } catch (InterruptedException
-            | InvalidConfigurationException
-            | CPAException
-            | NoSuchMethodException
-            | InstantiationException
-            | IllegalAccessException
-            | InvocationTargetException e) {
+        } catch (InterruptedException | InvalidConfigurationException | CPAException e) {
           throw new AssertionError("Could not create DssBlockAnalysis but it is required", e);
         }
         originalThreadName = Thread.currentThread().getName();
@@ -147,28 +133,16 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
     analysis =
         new CreateOrRetrieveThreadLocalAnalysis(
             () ->
-                pOptions
-                    .getBlockAnalysisType()
-                    .getConstructor(
-                        LogManager.class,
-                        BlockNode.class,
-                        CFA.class,
-                        Specification.class,
-                        Configuration.class,
-                        DssAnalysisOptions.class,
-                        DssMessageFactory.class,
-                        ShutdownManager.class,
-                        DssSingleWorkerStatistics.class)
-                    .newInstance(
-                        logger,
-                        pBlock,
-                        pCFA,
-                        pSpecification,
-                        forwardConfiguration,
-                        pOptions,
-                        pMessageFactory,
-                        pShutdownManager,
-                        workerStats));
+                new DssBlockAnalysis(
+                    logger,
+                    pBlock,
+                    pCFA,
+                    pSpecification,
+                    forwardConfiguration,
+                    pOptions,
+                    pMessageFactory,
+                    pShutdownManager,
+                    workerStats));
   }
 
   public Collection<DssMessage> runInitialAnalysis()
@@ -186,7 +160,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
           if (!processing.shouldProceed()) {
             yield processing;
           }
-          yield analysis.getDssBlockAnalysis().analyzePreconditions(message.getSenderId());
+          yield analysis.getDssBlockAnalysis().analyzePreconditions();
         } catch (Exception | Error e) {
           yield ImmutableSet.of(messageFactory.createDssExceptionMessage(getBlockId(), e));
         }

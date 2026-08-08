@@ -10,9 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssIndexable;
 
-public record BlockGraphPath(ImmutableList<String> path) implements DssIndexable {
+public record BlockGraphPath(ImmutableList<String> path) {
 
   public enum PathCase {
     SUFFIX_OR_EQUAL,
