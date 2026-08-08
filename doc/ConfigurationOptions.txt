@@ -4035,6 +4035,9 @@ cpa.statistics.metric.structVariablesCount = true
 # target file to hold the statistics
 cpa.statistics.statisticsCPAFile = no default value
 
+# Where to find the symbolic execution config without cegar.
+cpa.symbolicExecution.symbolicExecutionProperties = no default value
+
 # Which refinement algorithm to use? (give class name, required for
 # termination algorithm with CEGAR) If the package name starts with
 # 'org.sosy_lab.cpachecker.', this prefix can be omitted.
@@ -4716,6 +4719,10 @@ distributedSummaries.yamlProofWitness = "witness-dss-%s.yml"
 
 # Whether to query the SMT solver before proceeding backwards.
 dss.cpa.predicate.doSatChecksBeforeBackwardAnalysis = false
+
+# Whether to run symbolic execution to compute the violation condition for
+# value analysis.
+dss.cpa.value.runSymExec = no default value
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.

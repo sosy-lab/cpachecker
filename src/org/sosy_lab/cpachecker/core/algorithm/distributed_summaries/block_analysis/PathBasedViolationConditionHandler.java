@@ -47,13 +47,15 @@ final class PathBasedViolationConditionHandler implements DssViolationConditionH
   @Override
   public DssMessageProcessing store(DssViolationConditionMessage pReceived)
       throws InterruptedException, SolverException {
-    analysis.logger().log(Level.INFO, "Running forward analysis with respect to error condition");
+    analysis
+        .getLogger()
+        .log(Level.INFO, "Running forward analysis with respect to error condition");
     ImmutableList<@NonNull StateAndPrecision> received = analysis.deserialize(pReceived);
     DssSingleWorkerStatistics stats = analysis.statistics();
     stats.getStoreViolationConditionStatesTimer().start();
     try {
       String sender = pReceived.getSenderId();
-      boolean combineByHash = analysis.options().combineByHash();
+      boolean combineByHash = analysis.getOptions().combineByHash();
 
       Collection<@NonNull StateAndPrecision> known =
           combineByHash ? conditions.get(sender) : conditions.removeAll(sender);
