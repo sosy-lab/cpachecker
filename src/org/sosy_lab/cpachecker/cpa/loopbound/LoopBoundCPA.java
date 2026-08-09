@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options(prefix = "cpa.loopbound")
@@ -65,6 +66,10 @@ public class LoopBoundCPA extends AbstractCPA
   private final LoopStructure loopStructure;
 
   private final LoopBoundPrecisionAdjustment precisionAdjustment;
+
+  private final StatTimer adjustReachedSetTimer = new StatTimer("Time for adjusting reached set");
+  private int adjustReachedSetCalls = 0;
+  private long adjustReachedSetCandidates = 0;
 
   LoopBoundCPA(Configuration pConfig, CFA pCFA, LogManager pLogger)
       throws InvalidConfigurationException, CPAException {
@@ -113,12 +118,19 @@ public class LoopBoundCPA extends AbstractCPA
 
   @Override
   public void adjustReachedSet(final ReachedSet pReachedSet) {
+    adjustReachedSetTimer.start();
     SequencedSet<AbstractState> toRemove = new LinkedHashSet<>();
-    for (AbstractState s : pReachedSet) {
-      LoopBoundState loopBoundState = extractStateByType(s, LoopBoundState.class);
-      if (loopBoundState != null && loopBoundState.mustDumpAssumptionForAvoidance()) {
-        toRemove.add(s);
+    try {
+      adjustReachedSetCalls++;
+      for (AbstractState s : pReachedSet) {
+        adjustReachedSetCandidates++;
+        LoopBoundState loopBoundState = extractStateByType(s, LoopBoundState.class);
+        if (loopBoundState != null && loopBoundState.mustDumpAssumptionForAvoidance()) {
+          toRemove.add(s);
+        }
       }
+    } finally {
+      adjustReachedSetTimer.stop();
     }
 
     // Never delete the first state
@@ -156,6 +168,10 @@ public class LoopBoundCPA extends AbstractCPA
           Math.max(maximumLoopIterationReached, state.getDeepestIteration());
     }
     writer.put("Maximum loop iteration reached", maximumLoopIterationReached);
+    writer.spacer();
+    writer.put("Calls to adjustReachedSet", adjustReachedSetCalls);
+    writer.put("States scanned in adjustReachedSet", adjustReachedSetCandidates);
+    writer.put(adjustReachedSetTimer);
     writer.spacer();
   }
 
