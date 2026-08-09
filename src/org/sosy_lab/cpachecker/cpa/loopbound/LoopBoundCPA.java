@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
+import org.sosy_lab.cpachecker.core.reachedset.DeltaTrackingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -121,8 +122,15 @@ public class LoopBoundCPA extends AbstractCPA
     adjustReachedSetTimer.start();
     SequencedSet<AbstractState> toRemove = new LinkedHashSet<>();
     try {
+      // When the reached set tracks its own increments, only states added since the last
+      // adjustment can have become removal candidates, so the full scan can be avoided.
+      Iterable<AbstractState> candidates =
+          pReachedSet instanceof DeltaTrackingReachedSet delta
+          ? delta.drainAddedSinceMark()
+          : pReachedSet;
+
       adjustReachedSetCalls++;
-      for (AbstractState s : pReachedSet) {
+      for (AbstractState s : candidates) {
         adjustReachedSetCandidates++;
         LoopBoundState loopBoundState = extractStateByType(s, LoopBoundState.class);
         if (loopBoundState != null && loopBoundState.mustDumpAssumptionForAvoidance()) {

@@ -88,6 +88,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
+import org.sosy_lab.cpachecker.core.reachedset.DeltaTrackingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -443,13 +444,19 @@ abstract class AbstractBMCAlgorithm
   public AlgorithmStatus run(final ReachedSet reachedSet)
       throws CPAException, SolverException, InterruptedException {
     final CandidateGenerator candidateGenerator;
+
+    final DeltaTrackingReachedSet trackedReachedSet =
+        reachedSet instanceof DeltaTrackingReachedSet dtrs
+        ? dtrs
+        : new DeltaTrackingReachedSet(reachedSet);
+
     AlgorithmStatus status;
     final Set<Obligation> ctiBlockingClauses;
     final Map<SymbolicCandiateInvariant, BmcResult> checkedClauses;
 
     stats.bmcPreparation.start();
     try {
-      CFANode initialLocation = extractLocation(reachedSet.getFirstState());
+      CFANode initialLocation = extractLocation(trackedReachedSet.getFirstState());
       invariantGenerator.start(initialLocation);
 
       // The set of candidate invariants that still need to be checked.
@@ -459,7 +466,7 @@ abstract class AbstractBMCAlgorithm
       checkedClauses = new HashMap<>();
 
       if (!candidateGenerator.produceMoreCandidates()) {
-        reachedSet.clearWaitlist();
+        trackedReachedSet.clearWaitlist();
         return AlgorithmStatus.SOUND_AND_PRECISE;
       }
 
@@ -485,11 +492,11 @@ abstract class AbstractBMCAlgorithm
         logger.log(Level.INFO, "Creating formula for program");
         stats.bmcUnrolling.start();
         try {
-          status = BMCHelper.unroll(logger, reachedSet, algorithm, cpa);
+          status = BMCHelper.unroll(logger, trackedReachedSet, algorithm, cpa);
         } finally {
           stats.bmcUnrolling.stop();
         }
-        if (from(reachedSet)
+        if (from(trackedReachedSet)
             .skip(1) // first state of reached is always an abstraction state, so skip it
             .filter(not(AbstractStates::isTargetState)) // target states may be abstraction states
             .anyMatch(PredicateAbstractState::containsAbstractionState)) {
@@ -502,7 +509,7 @@ abstract class AbstractBMCAlgorithm
         shutdownNotifier.shutdownIfNecessary();
 
         if (invariantGenerator.isProgramSafe()) {
-          TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
+          TargetLocationCandidateInvariant.INSTANCE.assumeTruth(trackedReachedSet);
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
 
@@ -513,7 +520,7 @@ abstract class AbstractBMCAlgorithm
           CandidateInvariant candidateInvariant = candidateInvariantIterator.next();
           // first check safety in k iterations
 
-          boolean safe = boundedModelCheck(reachedSet, prover, candidateInvariant);
+          boolean safe = boundedModelCheck(trackedReachedSet, prover, candidateInvariant);
           if (!safe) {
             if (candidateInvariant == TargetLocationCandidateInvariant.INSTANCE) {
               return AlgorithmStatus.UNSOUND_AND_PRECISE;
@@ -522,7 +529,7 @@ abstract class AbstractBMCAlgorithm
           }
 
           if (invariantGenerator.isProgramSafe()) {
-            TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
+            TargetLocationCandidateInvariant.INSTANCE.assumeTruth(trackedReachedSet);
             return AlgorithmStatus.SOUND_AND_PRECISE;
           }
         }
@@ -536,7 +543,7 @@ abstract class AbstractBMCAlgorithm
           // check bounding assertions
           sound =
               candidateGenerator.hasCandidatesAvailable()
-                  ? checkBoundingAssertions(reachedSet, prover)
+                  ? checkBoundingAssertions(trackedReachedSet, prover)
                   : true;
 
           if (invariantGenerator.isProgramSafe()) {
@@ -547,7 +554,7 @@ abstract class AbstractBMCAlgorithm
           if (induction && !sound) {
             if (usePropertyDirection) {
               usePropertyDirection =
-                  refineCtiBlockingClauses(reachedSet, prover, ctiBlockingClauses, checkedClauses);
+                  refineCtiBlockingClauses(trackedReachedSet, prover, ctiBlockingClauses, checkedClauses);
               if (!usePropertyDirection) {
                 ctiBlockingClauses.clear();
               }
@@ -556,7 +563,7 @@ abstract class AbstractBMCAlgorithm
                 KInductionProver kInductionProver = createInductionProver()) {
               sound =
                   checkStepCase(
-                      reachedSet, candidateGenerator, kInductionProver, ctiBlockingClauses);
+                      trackedReachedSet, candidateGenerator, kInductionProver, ctiBlockingClauses);
             }
           }
           if (invariantGenerator.isProgramSafe()
