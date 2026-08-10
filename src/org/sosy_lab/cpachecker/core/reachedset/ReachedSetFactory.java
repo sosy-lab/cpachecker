@@ -180,9 +180,9 @@ public class ReachedSetFactory {
 
   @Option(
       secure = true,
-      name = "reachedSet.withTracking",
+      name = "reachedSet.trackChanges",
       description = "enable tracking of changes for the reachedSet")
-  private boolean withTracking = false;
+  private boolean trackChanges = false;
 
   private @Nullable BlockConfiguration blockConfig;
   private @Nullable UsageConfiguration usageConfig;
@@ -282,7 +282,7 @@ public class ReachedSetFactory {
     if (withStatistics) {
       reached = new StatisticsReachedSet(reached);
     }
-    if (withTracking) {
+    if (trackChanges) {
       reached = new TrackingForwardingReachedSet(reached);
     }
 

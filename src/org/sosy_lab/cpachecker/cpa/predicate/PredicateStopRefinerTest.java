@@ -58,7 +58,7 @@ public class PredicateStopRefinerTest {
     config =
         TestUtils.configurationForTest()
             .setOption("cegar.refiner", "cpa.predicate.PredicateDelegatingRefiner")
-            .setOption("analysis.reachedSet.withTracking", "true")
+            .setOption("analysis.reachedSet.trackChanges", "true")
             .build();
     cfa =
         TestCfaUtils.toSingleFunctionCFA(

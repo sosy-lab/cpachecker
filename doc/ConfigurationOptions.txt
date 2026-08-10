@@ -704,11 +704,11 @@ analysis.programNames = []
 analysis.reachedSet = PARTITIONED
   enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED, USAGE]
 
+# enable tracking of changes for the reachedSet
+analysis.reachedSet.trackChanges = false
+
 # track more statistics about the reachedset
 analysis.reachedSet.withStatistics = false
-
-# enable tracking of changes for the reachedSet
-analysis.reachedSet.withTracking = false
 
 # Use if you are going to change function with function pionter parameter
 analysis.replaceFunctionWithParameterPointer = false

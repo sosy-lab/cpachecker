@@ -23,6 +23,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -74,6 +76,7 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
   private double categoryRedundancyThreshold = 0.6;
 
   @Option(secure = true, name = "dslRulePath", description = "Path to the DSL rules file")
+  @FileOption(Type.OPTIONAL_INPUT_FILE)
   private Path dslRulePath = null;
 
   private final FormulaManagerView formulaManager;
@@ -112,7 +115,11 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
 
     ImmutableList<DelegatingRefinerPatternRule> allPatternRules;
     try {
-      if (dslRulePath != null && Files.exists(dslRulePath)) {
+      if (dslRulePath != null) {
+        if (!Files.exists(dslRulePath)) {
+          throw new InvalidConfigurationException(
+              "The specified DSL rule file does not exist: " + dslRulePath);
+        }
         logger.logf(Level.FINEST, "Loading redundancy rules from file: %s ", dslRulePath);
         try (Reader reader = Files.newBufferedReader(dslRulePath)) {
           allPatternRules = DelegatingRefinerDslLoader.loadDsl(reader);
@@ -132,7 +139,8 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
         }
       }
     } catch (IOException e) {
-      throw new IllegalStateException("Failed to load DSL rules for redundancy matching.", e);
+      throw new InvalidConfigurationException(
+          "Failed to load DSL rules for redundancy matching.", e);
     }
 
     this.matcher = new DelegatingRefinerMatchingVisitor(allPatternRules);

@@ -102,7 +102,7 @@ public class PredicateDelegatingRefiner implements Refiner {
     if (!(pReached instanceof TrackingForwardingReachedSet trackingForwardingReachedSet)) {
       throw new CPAException(
           "To use the Delegating Refiner, you need to enable tracking via"
-              + " 'analysis.reachedSet.withTracking=true'");
+              + " 'analysis.reachedSet.trackChanges=true'");
     }
 
     deltaSequenceBuilder.add(trackingForwardingReachedSet.getDelta());
