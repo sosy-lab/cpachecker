@@ -311,12 +311,11 @@ public class ProgramTransformationCEGARAlgorithm
   }
 
   private boolean refinementNecessary(ReachedSet reached, AbstractState previousLastState) {
-    // Check only last state, but only if it is different from the last iteration.
-    // Otherwise, we would attempt to refine the same state twice if CEGARAlgorithm.run
-    // is called again but this time the inner algorithm does not find any successor states.
-    // TODO maybe need to change this
-    return !Objects.equals(reached.getLastState(), previousLastState)
-        && isTargetState(reached.getLastState());
+    // Do not perform refinement, because we only have precise transfromations at the moment.
+    // The commented out refinement removes program transformations.
+    return false;
+    //return !Objects.equals(reached.getLastState(), previousLastState)
+    //    && isTargetState(reached.getLastState());
   }
 
   @SuppressWarnings("NonAtomicVolatileUpdate") // statistics written only by one thread
