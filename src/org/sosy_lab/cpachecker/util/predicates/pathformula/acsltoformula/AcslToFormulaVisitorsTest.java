@@ -84,7 +84,7 @@ public class AcslToFormulaVisitorsTest {
     // We need Z3 because some tests require quantifier support
     Configuration config =
         TestUtils.configurationForTest()
-            .setOption("solver.solver", "Z3_WITH_INTERPOLATION")
+            .setOption("solver.solver", "Z3")
             .setOption("cpa.predicate.useConstraintOptimization", "false")
             .build();
     smtSolver = Solver.create(config, logger, ShutdownNotifier.createDummy());
