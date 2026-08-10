@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-//unsigned int rand_unsigned_int();
+unsigned int rand_unsigned_int();
 
 unsigned int add(unsigned int x, unsigned int y){
   if(y == 0){
@@ -18,14 +18,13 @@ unsigned int add(unsigned int x, unsigned int y){
 
 int main(){
 
-  //unsigned int x = rand_unsigned_int();
+  unsigned int x = rand_unsigned_int();
   //unsigned int y = rand_unsigned_int();
-  unsigned int x = 5;
-  unsigned int y = 3;
+  unsigned int y = 1;
 
   unsigned int z = add(x, y);
 
-  if(z == (x + y)){
+  if(z != (x + y)){
     return 1;
   }else{
     ERROR: return 0;
