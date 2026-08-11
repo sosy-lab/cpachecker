@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
@@ -82,12 +81,9 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
     // first pass: add new nodes
     for (CFANode currentNode : cfaNodeIterable) {
       // dont add nodes for tail recursive call nodes
-      if (currentNode
-              != transformationData.tmpVarDeclarationEdge.getSuccessor()
-          && currentNode
-              != transformationData.tmpVarAssignmentEdge.getSuccessor()
-          && currentNode
-              != ((FunctionEntryNode) pNode).getExitNode().get()) {
+      if (currentNode != transformationData.tmpVarDeclarationEdge.getSuccessor()
+          && currentNode != transformationData.tmpVarAssignmentEdge.getSuccessor()
+          && currentNode != ((FunctionEntryNode) pNode).getExitNode().get()) {
         CFANode newNode = CFANode.newDummyCFANode(transformationData.functionName);
         nodeMapBuilder.put(currentNode, newNode);
         if (currentNode.getNodeNumber() == pNode.getNodeNumber()) {
@@ -226,7 +222,9 @@ public class TailRecursionEliminationProgramTransformation extends ProgramTransf
             pNode,
             visitor.getNodeBeforeReturn().orElseThrow(),
             functionName,
-            ((CDeclarationEdge) visitor.getTmpVarDeclarationEdge().orElseThrow()).getDeclaration().getQualifiedName(),
+            ((CDeclarationEdge) visitor.getTmpVarDeclarationEdge().orElseThrow())
+                .getDeclaration()
+                .getQualifiedName(),
             visitor.getTmpVarDeclarationEdge().orElseThrow(),
             visitor.getRecursiveFunctionCallEdge().orElseThrow(),
             visitor.getTmpVarAssignmentEdge().orElseThrow(),

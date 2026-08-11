@@ -20,9 +20,11 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 /** Algorithm for performing all program transformations and adding them to the CFA. */
 public class CFAProgramTransformer {
 
-  public static MutableCFA applyTransformations(MutableCFA pCFA, List<ProgramTransformationEnum> pProgramTransformations) {
+  public static MutableCFA applyTransformations(
+      MutableCFA pCFA, List<ProgramTransformationEnum> pProgramTransformations) {
     // boolean finished = false;
-    ImmutableList.Builder<ProgramTransformation> programTransformationsBuilder = ImmutableList.builder();
+    ImmutableList.Builder<ProgramTransformation> programTransformationsBuilder =
+        ImmutableList.builder();
     for (ProgramTransformationEnum programTransformationEnum : pProgramTransformations) {
       switch (programTransformationEnum) {
         case LOOP_ACCELERATION:
@@ -32,22 +34,29 @@ public class CFAProgramTransformer {
           programTransformationsBuilder.add(new TailRecursionEliminationProgramTransformation());
           break;
         default:
-          throw new IllegalArgumentException("Unknown program transformation enum: " + programTransformationEnum);
+          throw new IllegalArgumentException(
+              "Unknown program transformation enum: " + programTransformationEnum);
       }
     }
-    ImmutableList<ProgramTransformation> programTransformations = programTransformationsBuilder.build();
-
+    ImmutableList<ProgramTransformation> programTransformations =
+        programTransformationsBuilder.build();
 
     ImmutableList.Builder<ProgramTransformationInformation> newProgramTransformations =
         new ImmutableList.Builder<>();
 
     for (FunctionEntryNode functionEntryNode : pCFA.entryNodes()) {
-      Iterable<CFANode> cfaNodeIterable = Traverser.forGraph(pCFA.asGraph()).breadthFirst(functionEntryNode);
+      Iterable<CFANode> cfaNodeIterable =
+          Traverser.forGraph(pCFA.asGraph()).breadthFirst(functionEntryNode);
 
       for (CFANode currentNode : cfaNodeIterable) {
         for (ProgramTransformation transformation : programTransformations) {
           // dont add duplicate program transformations
-          if (newProgramTransformations.build().stream().anyMatch(pti -> pti.subCFA().originalCFAEntryNode() == currentNode && pti.subCFA().programTransformationEnum() == transformation.getIdentifier())) continue;
+          if (newProgramTransformations.build().stream()
+              .anyMatch(
+                  pti ->
+                      pti.subCFA().originalCFAEntryNode() == currentNode
+                          && pti.subCFA().programTransformationEnum()
+                              == transformation.getIdentifier())) continue;
           Optional<ProgramTransformationInformation> transformationResult =
               transformation.transform(pCFA, currentNode);
           if (transformationResult.isPresent()) {
@@ -64,7 +73,8 @@ public class CFAProgramTransformer {
       // add new information to metadata
       ImmutableListMultimap.Builder<CFANode, ProgramTransformationInformation> newMapBuilder =
           ImmutableListMultimap.builder();
-      newMapBuilder.putAll(pCFA.getMetadata().getNodesToProgramTransformations().orElse(ImmutableListMultimap.of()));
+      newMapBuilder.putAll(
+          pCFA.getMetadata().getNodesToProgramTransformations().orElse(ImmutableListMultimap.of()));
       newMapBuilder.put(
           programTransformation.subCFA().originalCFAEntryNode(), programTransformation);
       pCFA.setMetadata(pCFA.getMetadata().withNodesToProgramTransformations(newMapBuilder.build()));

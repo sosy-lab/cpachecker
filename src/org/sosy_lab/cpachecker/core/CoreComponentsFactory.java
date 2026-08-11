@@ -785,7 +785,7 @@ public class CoreComponentsFactory {
       if (useProgramTransformationCEGAR) {
         algorithm =
             new ProgramTransformationCEGARAlgorithmFactory(
-                algorithm, cpa, logger, config, shutdownNotifier, cfa)
+                    algorithm, cpa, logger, config, shutdownNotifier, cfa)
                 .newInstance();
       }
 

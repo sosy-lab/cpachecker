@@ -726,7 +726,7 @@ public class CFACreator {
 
     // TODO is this the right place?
     // perform program transformations and insert the resulting subCFAs
-    if (! useProgramTransformations.isEmpty()) {
+    if (!useProgramTransformations.isEmpty()) {
       cfa = CFAProgramTransformer.applyTransformations(cfa, useProgramTransformations);
     }
 

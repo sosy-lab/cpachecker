@@ -133,7 +133,6 @@ public class ProgramTransformationRefiner implements Refiner {
         reached.removeSubtree(children.get(i));
       }
 
-
       return true;
     }
   }

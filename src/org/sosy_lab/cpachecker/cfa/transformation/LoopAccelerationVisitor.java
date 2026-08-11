@@ -19,9 +19,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
-/**
- * Visitor for traversing an affine loop. It collects every assignment statement it encounters.
- */
+/** Visitor for traversing an affine loop. It collects every assignment statement it encounters. */
 public class LoopAccelerationVisitor implements CFAVisitor {
 
   private final CFANode loopHead;

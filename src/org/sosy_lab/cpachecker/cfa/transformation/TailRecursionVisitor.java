@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -72,13 +71,18 @@ public class TailRecursionVisitor implements CFAVisitor {
         visitedEdges.add(functionReturnEdge);
         if (functionReturnEdge.getSuccessor().getFunctionName().equals(functionName)) {
           if (tmpVarReturnEdge.isEmpty()) {
-            tmpVarReturnEdge = Optional.of(functionReturnEdge.getSuccessor().getLeavingEdges().first().get());
+            tmpVarReturnEdge =
+                Optional.of(functionReturnEdge.getSuccessor().getLeavingEdges().first().get());
           }
         }
         return TraversalProcess.CONTINUE;
       case CFunctionCallEdge functionCallEdge:
         visitedEdges.add(functionCallEdge);
-        if (functionCallEdge.getFunctionCallExpression().getDeclaration().getQualifiedName().equals(functionName)) {
+        if (functionCallEdge
+            .getFunctionCallExpression()
+            .getDeclaration()
+            .getQualifiedName()
+            .equals(functionName)) {
           if (recursiveFunctionCallEdge.isEmpty()) {
             recursiveFunctionCallEdge = Optional.of(functionCallEdge);
           } else {
@@ -88,12 +92,18 @@ public class TailRecursionVisitor implements CFAVisitor {
         return TraversalProcess.CONTINUE;
       case CFunctionSummaryEdge functionSummaryEdge:
         visitedEdges.add(functionSummaryEdge);
-        if (functionSummaryEdge.getExpression().getFunctionCallExpression().getDeclaration().getQualifiedName().equals(functionName)) {
+        if (functionSummaryEdge
+            .getExpression()
+            .getFunctionCallExpression()
+            .getDeclaration()
+            .getQualifiedName()
+            .equals(functionName)) {
           if (functionSummaryEdge.getExpression() instanceof CFunctionCallAssignmentStatement) {
             if (tmpVarAssignmentEdge.isEmpty()) {
               tmpVarAssignmentEdge = Optional.of(functionSummaryEdge);
               if (tmpVarDeclarationEdge.isEmpty()) {
-                tmpVarDeclarationEdge = Optional.of(functionSummaryEdge.getPredecessor().getEnteringEdge(0));
+                tmpVarDeclarationEdge =
+                    Optional.of(functionSummaryEdge.getPredecessor().getEnteringEdge(0));
               }
             } else {
               return TraversalProcess.ABORT;
@@ -120,7 +130,7 @@ public class TailRecursionVisitor implements CFAVisitor {
         && getNodeBeforeReturn().isPresent()
         && tmpVarDeclarationEdge.isPresent()
         && tmpVarAssignmentEdge.isPresent()
-        &&  tmpVarReturnEdge.isPresent()
+        && tmpVarReturnEdge.isPresent()
         && recursiveFunctionCallEdge.isPresent());
   }
 

@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.programtransformation;
 
-import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
 import com.google.common.base.Preconditions;
@@ -19,7 +18,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
@@ -182,7 +180,8 @@ public class ProgramTransformationCEGARAlgorithm
       } catch (InterruptedException ire) {
         throw new RuntimeException(ire);
       }
-      locationStateFactory = ((ARGCPA) pCpa).retrieveWrappedCpa(LocationCPA.class).getStateFactory();
+      locationStateFactory =
+          ((ARGCPA) pCpa).retrieveWrappedCpa(LocationCPA.class).getStateFactory();
     }
 
     @Override
@@ -208,10 +207,10 @@ public class ProgramTransformationCEGARAlgorithm
   private final LogManager logger;
   private final Algorithm algorithm;
   private final Refiner refiner;
-  private final ImmutableMultimap<CFANode, ProgramTransformationInformation> nodesToProgramTransformations;
+  private final ImmutableMultimap<CFANode, ProgramTransformationInformation>
+      nodesToProgramTransformations;
   private final LocationStateFactory locationStateFactory;
   private final ImmutableMap<CFANode, ProgramTransformationInformation> nodeMap;
-
 
   private ProgramTransformationCEGARAlgorithm(
       Algorithm pAlgorithm,
@@ -297,11 +296,20 @@ public class ProgramTransformationCEGARAlgorithm
 
         // revert to ARG/reached set to match the original CFA
         Optional<AbstractState> stateBeforeEntering =
-            //detectNextProgramTransformation(reached.getFirstState());
+            // detectNextProgramTransformation(reached.getFirstState());
             detectNextProgramTransformation(reached);
         if (stateBeforeEntering.isPresent()) {
-          CFANode firstNodeInProgramTransformation = AbstractStates.extractLocation(((ARGState) stateBeforeEntering.orElseThrow()).getChildren().getFirst());
-          nodeMap.get(firstNodeInProgramTransformation).programTransformationRecovery().revertProgramTransformation(stateBeforeEntering.orElseThrow(), nodeMap.get(firstNodeInProgramTransformation).subCFA(), reached, locationStateFactory);
+          CFANode firstNodeInProgramTransformation =
+              AbstractStates.extractLocation(
+                  ((ARGState) stateBeforeEntering.orElseThrow()).getChildren().getFirst());
+          nodeMap
+              .get(firstNodeInProgramTransformation)
+              .programTransformationRecovery()
+              .revertProgramTransformation(
+                  stateBeforeEntering.orElseThrow(),
+                  nodeMap.get(firstNodeInProgramTransformation).subCFA(),
+                  reached,
+                  locationStateFactory);
           changed = true;
         }
       }
@@ -314,7 +322,7 @@ public class ProgramTransformationCEGARAlgorithm
     // Do not perform refinement, because we only have precise transfromations at the moment.
     // Additionally, the commented out refinement removes program transformations.
     return false;
-    //return !Objects.equals(reached.getLastState(), previousLastState)
+    // return !Objects.equals(reached.getLastState(), previousLastState)
     //    && isTargetState(reached.getLastState());
   }
 
@@ -394,13 +402,16 @@ public class ProgramTransformationCEGARAlgorithm
 
   private Optional<AbstractState> detectNextProgramTransformation(ReachedSet reached) {
     for (AbstractState state : reached) {
-      if (! nodesToProgramTransformations.containsKey(AbstractStates.extractLocation(state))) continue;
+      if (!nodesToProgramTransformations.containsKey(AbstractStates.extractLocation(state)))
+        continue;
       ARGState argState = (ARGState) state;
       if (argState.getChildren().size() != 1) continue;
       CFANode parentLocation = AbstractStates.extractLocation(argState);
       CFANode childLocation = AbstractStates.extractLocation(argState.getChildren().getFirst());
-      ProgramTransformationInformation parentProgramTransformation = nodeMap.getOrDefault(parentLocation, null);
-      ProgramTransformationInformation childProgramTransformation = nodeMap.getOrDefault(childLocation, null);
+      ProgramTransformationInformation parentProgramTransformation =
+          nodeMap.getOrDefault(parentLocation, null);
+      ProgramTransformationInformation childProgramTransformation =
+          nodeMap.getOrDefault(childLocation, null);
       if (parentProgramTransformation != childProgramTransformation) {
         return Optional.of(state);
       }

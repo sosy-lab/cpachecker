@@ -41,11 +41,13 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 public class AffineLoopClosedFormRepresentation {
   private final ImmutableMap<CIdExpression, ImmutableList<RowSummand>> closedForm;
 
-  private AffineLoopClosedFormRepresentation(Map<CIdExpression, ImmutableList<RowSummand>> pClosedForm) {
+  private AffineLoopClosedFormRepresentation(
+      Map<CIdExpression, ImmutableList<RowSummand>> pClosedForm) {
     closedForm = ImmutableMap.copyOf(pClosedForm);
   }
 
-  private AffineLoopClosedFormRepresentation(List<List<RowSummand>> pMatrix, List<CIdExpression> pVariables) {
+  private AffineLoopClosedFormRepresentation(
+      List<List<RowSummand>> pMatrix, List<CIdExpression> pVariables) {
     ImmutableMap.Builder<CIdExpression, ImmutableList<RowSummand>> builder = ImmutableMap.builder();
     for (int i = 0; i < pMatrix.size(); i++) {
       builder.put(pVariables.get(i), ImmutableList.copyOf(pMatrix.get(i)));
@@ -83,13 +85,15 @@ public class AffineLoopClosedFormRepresentation {
       return currentMatrix.get(i).get(j);
     }
 
-    public void addSummand(Summand  pSummand, CIdExpression pAssignedVariable, CIdExpression pVariable) {
+    public void addSummand(
+        Summand pSummand, CIdExpression pAssignedVariable, CIdExpression pVariable) {
       if (newVariables.contains(pAssignedVariable) && newVariables.contains(pVariable)) {
-        addSummand(pSummand, newVariables.indexOf(pAssignedVariable), newVariables.indexOf(pVariable));
+        addSummand(
+            pSummand, newVariables.indexOf(pAssignedVariable), newVariables.indexOf(pVariable));
       }
     }
 
-    public void addSummand(Summand  pSummand, int i, int j) {
+    public void addSummand(Summand pSummand, int i, int j) {
       currentMatrix.get(i).get(j).add(pSummand);
     }
 
@@ -124,11 +128,9 @@ public class AffineLoopClosedFormRepresentation {
         for (int j = 0; j < newVariables.size(); j++) {
           for (Summand summand : currentMatrix.get(i).get(j)) {
             if (!summand.coeff().isZero()) {
-              row.add(new RowSummand(
-                  summand.coeff(),
-                  newVariables.get(j),
-                  summand.power(),
-                  summand.lambda()));
+              row.add(
+                  new RowSummand(
+                      summand.coeff(), newVariables.get(j), summand.power(), summand.lambda()));
             }
           }
         }
@@ -148,7 +150,8 @@ public class AffineLoopClosedFormRepresentation {
           if (summand.variable != pVariable) {
             rowSummands.add(summand);
           } else {
-            rowSummands.add(new RowSummand(summand.coeff(), null, summand.power(), summand.lambda()));
+            rowSummands.add(
+                new RowSummand(summand.coeff(), null, summand.power(), summand.lambda()));
           }
         }
         builder.put(entry.getKey(), rowSummands.build());
@@ -160,86 +163,102 @@ public class AffineLoopClosedFormRepresentation {
 
   /**
    * Representation of a summand without variable: coeff * n^power * lambda^n
+   *
    * @param coeff
    * @param power
    * @param lambda
    */
-  public record Summand (
-      IExpr coeff,
-      int power,
-      IExpr lambda
-  ) {}
+  public record Summand(IExpr coeff, int power, IExpr lambda) {}
 
   /**
-   * Representation of a summand with the corresponding variable: coeff * variable * n^power * lambda^n
+   * Representation of a summand with the corresponding variable: coeff * variable * n^power *
+   * lambda^n
+   *
    * @param coeff
    * @param variable
    * @param power
    * @param lambda
    */
-  public record RowSummand (
-      IExpr coeff,
-      CIdExpression variable,
-      int power,
-      IExpr lambda
-  ) {}
+  public record RowSummand(IExpr coeff, CIdExpression variable, int power, IExpr lambda) {}
 
-  public static Optional<CFAEdge> getRowSummandStatements(CIdExpression pVariable, List<RowSummand> pRowSummands, CExpression pIterations, CFANode pPredecessor)
+  public static Optional<CFAEdge> getRowSummandStatements(
+      CIdExpression pVariable,
+      List<RowSummand> pRowSummands,
+      CExpression pIterations,
+      CFANode pPredecessor)
       throws UnrecognizedCodeException {
-    CBinaryExpressionBuilder binaryExpressionBuilder = new CBinaryExpressionBuilder(MachineModel.LINUX64, LogManager.createNullLogManager());
+    CBinaryExpressionBuilder binaryExpressionBuilder =
+        new CBinaryExpressionBuilder(MachineModel.LINUX64, LogManager.createNullLogManager());
 
     CFANode newNode = CFANode.newDummyCFANode(pPredecessor.getFunctionName());
-    ImmutableList.Builder<CExpression> summands =  ImmutableList.builder();
+    ImmutableList.Builder<CExpression> summands = ImmutableList.builder();
     for (RowSummand summand : pRowSummands) {
       // create expression for lam ^ n
       CExpression lamToN;
       if (summand.lambda().isMinusOne()) {
         // -1 if n is even 1 otherwise
-        CExpression modulo = binaryExpressionBuilder.buildBinaryExpression(
-            pIterations,
-            new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.TWO),
-            BinaryOperator.MODULO
-        );
-        CExpression moduloTimes2 = binaryExpressionBuilder.buildBinaryExpression(
-            new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.TWO),
-            modulo,
-            BinaryOperator.MULTIPLY);
-        lamToN = binaryExpressionBuilder.buildBinaryExpression(
-            new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ONE),
-            moduloTimes2,
-            BinaryOperator.MINUS
-        );
+        CExpression modulo =
+            binaryExpressionBuilder.buildBinaryExpression(
+                pIterations,
+                new CIntegerLiteralExpression(
+                    FileLocation.DUMMY, CNumericTypes.INT, BigInteger.TWO),
+                BinaryOperator.MODULO);
+        CExpression moduloTimes2 =
+            binaryExpressionBuilder.buildBinaryExpression(
+                new CIntegerLiteralExpression(
+                    FileLocation.DUMMY, CNumericTypes.INT, BigInteger.TWO),
+                modulo,
+                BinaryOperator.MULTIPLY);
+        lamToN =
+            binaryExpressionBuilder.buildBinaryExpression(
+                new CIntegerLiteralExpression(
+                    FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ONE),
+                moduloTimes2,
+                BinaryOperator.MINUS);
       } else {
         // simply 1
-        lamToN = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ONE);
+        lamToN =
+            new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ONE);
       }
       // create a CBinaryExpression for n ^ pow
       CExpression nPow;
       switch (summand.power) {
         case 0:
-          nPow = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ONE);
+          nPow =
+              new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ONE);
           break;
         case 1:
           nPow = pIterations;
           break;
         default:
           nPow = pIterations;
-          for (int i = 0; i < summand.power() - 1 ; i++) {
-            nPow = binaryExpressionBuilder.buildBinaryExpression(nPow, pIterations, BinaryOperator.MULTIPLY);
+          for (int i = 0; i < summand.power() - 1; i++) {
+            nPow =
+                binaryExpressionBuilder.buildBinaryExpression(
+                    nPow, pIterations, BinaryOperator.MULTIPLY);
           }
       }
       // create a CBinaryExpression for the summand = coeff * var * lambda ^ n * n ^ pow
       CExpression summandExpression =
+          binaryExpressionBuilder.buildBinaryExpression(lamToN, nPow, BinaryOperator.MULTIPLY);
+      summandExpression =
           binaryExpressionBuilder.buildBinaryExpression(
-              lamToN, nPow, BinaryOperator.MULTIPLY);
-      summandExpression = binaryExpressionBuilder.buildBinaryExpression(summandExpression, summand.variable() == null ? new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ONE) : summand.variable(), BinaryOperator.MULTIPLY);
+              summandExpression,
+              summand.variable() == null
+                  ? new CIntegerLiteralExpression(
+                      FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ONE)
+                  : summand.variable(),
+              BinaryOperator.MULTIPLY);
       summandExpression =
           binaryExpressionBuilder.buildBinaryExpression(
               summandExpression,
               new CFloatLiteralExpression(
-                  FileLocation.DUMMY, MachineModel.LINUX64, CNumericTypes.DOUBLE, FloatValue.fromDouble(summand.coeff().toDoubleDefault())), BinaryOperator.MULTIPLY);
+                  FileLocation.DUMMY,
+                  MachineModel.LINUX64,
+                  CNumericTypes.DOUBLE,
+                  FloatValue.fromDouble(summand.coeff().toDoubleDefault())),
+              BinaryOperator.MULTIPLY);
       summands.add(summandExpression);
-
     }
     // add all summands together, cast them to int and assign them to pVariable
     ImmutableList<CExpression> summandStatements = summands.build();
@@ -256,7 +275,9 @@ public class AffineLoopClosedFormRepresentation {
         new CStatementEdge(
             pVariable + " = (int) " + rightHandSide + ";",
             new CExpressionAssignmentStatement(
-                FileLocation.DUMMY, pVariable, new CCastExpression(FileLocation.DUMMY, CNumericTypes.INT, rightHandSide)),
+                FileLocation.DUMMY,
+                pVariable,
+                new CCastExpression(FileLocation.DUMMY, CNumericTypes.INT, rightHandSide)),
             FileLocation.DUMMY,
             pPredecessor,
             newNode);
@@ -269,13 +290,15 @@ public class AffineLoopClosedFormRepresentation {
 
   /**
    * Get a symbolic expression for the closed form assignment of a certain variable.
+   *
    * @param pVariable CIDExpression
    * @param pIterVar ISymbol for the number of loop iterations variable
    * @return an IExpr representing the closed form assignment for pVariable
    */
   public IExpr assignmentSymbolicExpression(CIdExpression pVariable, ISymbol pIterVar) {
-    if (!closedForm.containsKey(pVariable)) throw new RuntimeException("Variable not part of closed form!");
-    IExpr variable = F.$s(pVariable.getName()+"-");
+    if (!closedForm.containsKey(pVariable))
+      throw new RuntimeException("Variable not part of closed form!");
+    IExpr variable = F.$s(pVariable.getName() + "-");
     IExpr assignment = F.C0;
     for (RowSummand summand : closedForm.get(pVariable)) {
       IExpr newSummand = F.Power(summand.lambda(), pIterVar);
@@ -289,5 +312,4 @@ public class AffineLoopClosedFormRepresentation {
 
     return F.Rule(variable, assignment);
   }
-
 }

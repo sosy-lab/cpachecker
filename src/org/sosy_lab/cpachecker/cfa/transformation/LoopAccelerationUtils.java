@@ -41,16 +41,18 @@ public class LoopAccelerationUtils {
 
   /**
    * Calculate the closed form of an affine loop A * x + b.
+   *
    * @param pLoop the affine loop as AffineLoopRepresentation
    * @return closed form as a matrix of RowSummands
    */
-  public static Optional<AffineLoopClosedFormRepresentation> closedFormAffine(AffineLoopRepresentation pLoop) {
+  public static Optional<AffineLoopClosedFormRepresentation> closedFormAffine(
+      AffineLoopRepresentation pLoop) {
     List<List<Integer>> A = (List<List<Integer>>) pLoop.getIterationMatrix();
     List<CIdExpression> x = pLoop.getVariables();
     List<Integer> b = pLoop.getIterationConstants();
 
     if (b.isEmpty()) return closedFormLinear(pLoop);
-    try{
+    try {
       int d = A.size();
 
       // make A * x + b homogenous
@@ -66,27 +68,29 @@ public class LoopAccelerationUtils {
       extraRow.add(1);
       Ahom.add(extraRow.build());
 
-      CIdExpression x_fresh = new CIdExpression(
-          FileLocation.DUMMY,
-          CNumericTypes.INT,
-          "x_fresh",
-          new CVariableDeclaration(
+      CIdExpression x_fresh =
+          new CIdExpression(
               FileLocation.DUMMY,
-              true,
-              CStorageClass.AUTO,
               CNumericTypes.INT,
               "x_fresh",
-              "x_fresh",
-              "x_fresh",
-              null)
-      );
+              new CVariableDeclaration(
+                  FileLocation.DUMMY,
+                  true,
+                  CStorageClass.AUTO,
+                  CNumericTypes.INT,
+                  "x_fresh",
+                  "x_fresh",
+                  "x_fresh",
+                  null));
       ImmutableList.Builder<CIdExpression> xhom = new ImmutableList.Builder<>();
       xhom.addAll(x);
       xhom.add(x_fresh);
 
-      Optional<AffineLoopClosedFormRepresentation> closedFormOptional = closedFormLinear(new AffineLoopRepresentation(Ahom.build(), xhom.build(), ImmutableList.of()));
+      Optional<AffineLoopClosedFormRepresentation> closedFormOptional =
+          closedFormLinear(
+              new AffineLoopRepresentation(Ahom.build(), xhom.build(), ImmutableList.of()));
 
-      if(closedFormOptional.isPresent()) {
+      if (closedFormOptional.isPresent()) {
         // drop the last row & remove occurrences of x_fresh
         AffineLoopClosedFormRepresentation closedForm = closedFormOptional.orElseThrow();
         return Optional.of(closedForm.withoutVariable(x_fresh));
@@ -94,20 +98,22 @@ public class LoopAccelerationUtils {
         return Optional.empty();
       }
 
-    } catch(Exception e){
+    } catch (Exception e) {
       return Optional.empty();
     }
   }
 
   /**
    * Calculate the closed form of a linear loop A * x.
+   *
    * @param pLoop the linear loop as AffineLoopRepresentation with an empty iteration constants list
    * @return closed form as a matrix of RowSummands
    */
-  public static Optional<AffineLoopClosedFormRepresentation> closedFormLinear(AffineLoopRepresentation pLoop) {
-    if (! pLoop.getIterationConstants().isEmpty()) return closedFormAffine(pLoop);
+  public static Optional<AffineLoopClosedFormRepresentation> closedFormLinear(
+      AffineLoopRepresentation pLoop) {
+    if (!pLoop.getIterationConstants().isEmpty()) return closedFormAffine(pLoop);
     ExprEvaluator util = new ExprEvaluator(false, (short) 100);
-    try{
+    try {
       IExpr n = util.eval("n");
 
       // 1. calculate the jordan form of the loop: A = P * J * Pinv
@@ -125,12 +131,11 @@ public class LoopAccelerationUtils {
       for (int i = 0; i < d; i = i + m) {
         IExpr lambda = util.eval(getMatrixEntry(J, i, i));
         // only support -1, 0, 1 as eigenvalues
-        if (! (lambda.isMinusOne() || lambda.isOne() || lambda.isZero())) {
+        if (!(lambda.isMinusOne() || lambda.isOne() || lambda.isZero())) {
           return Optional.empty();
         }
         m = 1;
-        while (i + m < d &&
-            util.eval(getMatrixEntry(J, i + m - 1, i + m)).isOne()) {
+        while (i + m < d && util.eval(getMatrixEntry(J, i + m - 1, i + m)).isOne()) {
           m++;
         }
         blockInfos.add(new BlockInfo(i, m, lambda));
@@ -145,7 +150,8 @@ public class LoopAccelerationUtils {
       }
 
       // 4. Compute J^n
-      AffineLoopClosedFormRepresentation.Builder closedFormBuilder = new AffineLoopClosedFormRepresentation.Builder(pLoop.getVariables());
+      AffineLoopClosedFormRepresentation.Builder closedFormBuilder =
+          new AffineLoopClosedFormRepresentation.Builder(pLoop.getVariables());
       for (BlockInfo block : blockInfos) {
         for (int i = 0; i < block.blockSize; i++) {
           for (int j = 0; j < block.blockSize; j++) {
@@ -166,9 +172,12 @@ public class LoopAccelerationUtils {
               if (!block.lambda.isZero()) {
                 IExpr coeffList = util.eval(F.CoefficientList(poly, n));
                 for (int s = 0; s < deg + 1; s++) {
-                  IExpr coeff = coeffList.getAt(s+1).multiply(block.lambda.pow(-1 * r));
+                  IExpr coeff = coeffList.getAt(s + 1).multiply(block.lambda.pow(-1 * r));
                   if (!coeff.isZero()) {
-                    closedFormBuilder.addSummand(new Summand(coeff, s, block.lambda), block.startIndex + i, block.startIndex + j);
+                    closedFormBuilder.addSummand(
+                        new Summand(coeff, s, block.lambda),
+                        block.startIndex + i,
+                        block.startIndex + j);
                   }
                 }
               }
@@ -183,11 +192,15 @@ public class LoopAccelerationUtils {
         for (int j = 0; j < d; j++) {
           List<Summand> acc = new ArrayList<>();
           for (int k = 0; k < d; k++) {
-            if (! getMatrixEntry(P, i, k).isZero()) {
+            if (!getMatrixEntry(P, i, k).isZero()) {
               List<Summand> JnSummand = closedFormBuilder.getSummands(k, j);
               for (Summand summand : JnSummand) {
                 if (!summand.coeff().isZero()) {
-                  acc.add(new Summand(summand.coeff().multiply(getMatrixEntry(P, i, k)), summand.power(), summand.lambda()));
+                  acc.add(
+                      new Summand(
+                          summand.coeff().multiply(getMatrixEntry(P, i, k)),
+                          summand.power(),
+                          summand.lambda()));
                 }
               }
             }
@@ -203,11 +216,15 @@ public class LoopAccelerationUtils {
         for (int j = 0; j < d; j++) {
           List<Summand> acc = new ArrayList<>();
           for (int k = 0; k < d; k++) {
-            if (! getMatrixEntry(Pinv, k,j).isZero()) {
+            if (!getMatrixEntry(Pinv, k, j).isZero()) {
               List<Summand> JnSummand = closedFormBuilder.getSummands(i, k);
               for (Summand summand : JnSummand) {
                 if (!summand.coeff().isZero()) {
-                  acc.add(new Summand(summand.coeff().multiply(getMatrixEntry(Pinv, k, j)), summand.power(), summand.lambda()));
+                  acc.add(
+                      new Summand(
+                          summand.coeff().multiply(getMatrixEntry(Pinv, k, j)),
+                          summand.power(),
+                          summand.lambda()));
                 }
               }
             }
@@ -226,21 +243,15 @@ public class LoopAccelerationUtils {
     }
   }
 
-  private record BlockInfo (
-      int startIndex,
-      int blockSize,
-      IExpr lambda
-  ) {}
+  private record BlockInfo(int startIndex, int blockSize, IExpr lambda) {}
 
   /**
    * Representation of a single coefficient, variable pair.
+   *
    * @param coeff int
    * @param variable CIdExpression
    */
-  public record Coefficient (
-      int coeff,
-      CIdExpression variable
-  ) {}
+  public record Coefficient(int coeff, CIdExpression variable) {}
 
   private static IExpr getMatrixEntry(IExpr matrix, int i, int j) {
     IAST m = (IAST) matrix;
@@ -248,46 +259,52 @@ public class LoopAccelerationUtils {
   }
 
   /**
-   * This function tries to calculate CExpressions for a number of loop iterations for which the guard becomes true/false.
-   * Only for loop guards of the form a (< | <= |!= | > | >=) b where a and b are terms in integer arithmetic.
+   * This function tries to calculate CExpressions for a number of loop iterations for which the
+   * guard becomes true/false. Only for loop guards of the form a (< | <= |!= | > | >=) b where a
+   * and b are terms in integer arithmetic.
+   *
    * @param pLoopCondition the loop guard as CExpression
    * @param pClosedForm the closed form representation of the loop
-   * @return an Optional containing a List of possible loop iteration CExpressions on success or Optional.empty()
+   * @return an Optional containing a List of possible loop iteration CExpressions on success or
+   *     Optional.empty()
    */
-  public static Optional<ImmutableList<CExpression>> getNumberOfIterations(CExpression pLoopCondition, AffineLoopClosedFormRepresentation pClosedForm) {
+  public static Optional<ImmutableList<CExpression>> getNumberOfIterations(
+      CExpression pLoopCondition, AffineLoopClosedFormRepresentation pClosedForm) {
     ExprEvaluator util = new ExprEvaluator();
     IExpr symbolicExpression;
-    ImmutableList<BinaryOperator> supportedBinaryOperators = ImmutableList.of(
-        BinaryOperator.EQUALS,
-        BinaryOperator.GREATER_EQUAL,
-        BinaryOperator.GREATER_THAN,
-        BinaryOperator.LESS_EQUAL,
-        BinaryOperator.LESS_THAN,
-        BinaryOperator.NOT_EQUALS
-    );
+    ImmutableList<BinaryOperator> supportedBinaryOperators =
+        ImmutableList.of(
+            BinaryOperator.EQUALS,
+            BinaryOperator.GREATER_EQUAL,
+            BinaryOperator.GREATER_THAN,
+            BinaryOperator.LESS_EQUAL,
+            BinaryOperator.LESS_THAN,
+            BinaryOperator.NOT_EQUALS);
     ImmutableList.Builder<CIdExpression> encounteredVariables = ImmutableList.builder();
-
 
     // First create a symbolic expression for the falsified loop guard
     // Only supporting loop guards: arithm. expression <,<=,!=,>,>= arithm. expression
     switch (pLoopCondition) {
       case CBinaryExpression binaryExpression:
-        if (!supportedBinaryOperators.contains(binaryExpression.getOperator())) return Optional.empty();
+        if (!supportedBinaryOperators.contains(binaryExpression.getOperator()))
+          return Optional.empty();
         IntegerArithmaticExpressionVisitor lhsVisitor = new IntegerArithmaticExpressionVisitor();
         IntegerArithmaticExpressionVisitor rhsVisitor = new IntegerArithmaticExpressionVisitor();
         try {
           IExpr lhs = lhsVisitor.visit(binaryExpression.getOperand1());
           IExpr rhs = rhsVisitor.visit(binaryExpression.getOperand2());
-          symbolicExpression = switch (binaryExpression.getOperator()) {
-            case LESS_THAN -> F.Equal(lhs, rhs);
-            case LESS_EQUAL -> F.Equal(lhs, F.Plus(rhs, F.C1));
-            case GREATER_THAN -> F.Equal(lhs, rhs);
-            case GREATER_EQUAL -> F.Equal(lhs, F.Subtract(rhs, F.C1));
-            case NOT_EQUALS -> F.Equal(lhs, rhs);
-            default -> null;
-          };
+          symbolicExpression =
+              switch (binaryExpression.getOperator()) {
+                case LESS_THAN -> F.Equal(lhs, rhs);
+                case LESS_EQUAL -> F.Equal(lhs, F.Plus(rhs, F.C1));
+                case GREATER_THAN -> F.Equal(lhs, rhs);
+                case GREATER_EQUAL -> F.Equal(lhs, F.Subtract(rhs, F.C1));
+                case NOT_EQUALS -> F.Equal(lhs, rhs);
+                default -> null;
+              };
           if (symbolicExpression == null || lhsVisitor.failed() || rhsVisitor.failed()) {
-            return Optional.empty();}
+            return Optional.empty();
+          }
           encounteredVariables.addAll(lhsVisitor.getEncounteredVariables());
           encounteredVariables.addAll(rhsVisitor.getEncounteredVariables());
         } catch (Exception pE) {
@@ -307,7 +324,8 @@ public class LoopAccelerationUtils {
         }
         break;
       case CIntegerLiteralExpression literalExpression:
-        IntegerArithmaticExpressionVisitor literalVisitor = new IntegerArithmaticExpressionVisitor();
+        IntegerArithmaticExpressionVisitor literalVisitor =
+            new IntegerArithmaticExpressionVisitor();
         try {
           symbolicExpression = literalVisitor.visit(literalExpression);
           if (literalVisitor.failed()) return Optional.empty();
@@ -344,8 +362,8 @@ public class LoopAccelerationUtils {
 
     // solve for n_even/n_odd
     // with Solve as String input, because F.Solve behaves differently
-    IExpr solutionEven = util.eval("Solve("+symbolicExpressionEven+", "+kEven+")");
-    IExpr solutionOdd = util.eval("Solve("+symbolicExpressionOdd+", "+kOdd+")");
+    IExpr solutionEven = util.eval("Solve(" + symbolicExpressionEven + ", " + kEven + ")");
+    IExpr solutionOdd = util.eval("Solve(" + symbolicExpressionOdd + ", " + kOdd + ")");
 
     // reinsert n for n_even = n/2, n_odd = (n-1)/2
     ImmutableList.Builder<IExpr> solutionsBuilder = ImmutableList.builder();
@@ -366,16 +384,18 @@ public class LoopAccelerationUtils {
       if (solutionsOdd.isListOfRules()) {
         while (!solutionsOdd.isEmpty()) {
           IExpr solution = solutionsOdd.first();
-          solutionsBuilder.add(util.eval( F.Simplify(F.Times(F.C2, F.Plus(solution.second(), F.C1)))));
+          solutionsBuilder.add(
+              util.eval(F.Simplify(F.Times(F.C2, F.Plus(solution.second(), F.C1)))));
           solutionsOdd = solutionsOdd.rest();
         }
       }
       // create CExpressions for all possible solutions
       ImmutableList.Builder<CExpression> possibleSolutions = ImmutableList.builder();
-      ImmutableList<IExpr> solutions  = solutionsBuilder.build();
+      ImmutableList<IExpr> solutions = solutionsBuilder.build();
       if (solutions.isEmpty()) return Optional.empty();
       for (IExpr solution : solutions) {
-        Optional<CExpression> expression = expressionFromIExpr(solution, pClosedForm.getVariables());
+        Optional<CExpression> expression =
+            expressionFromIExpr(solution, pClosedForm.getVariables());
         if (expression.isPresent()) {
           possibleSolutions.add(expression.orElseThrow());
         }
@@ -384,10 +404,15 @@ public class LoopAccelerationUtils {
     }
   }
 
-  public static Optional<CExpression> expressionFromIExpr(IExpr pExpression, Set<CIdExpression> pVariables) {
+  public static Optional<CExpression> expressionFromIExpr(
+      IExpr pExpression, Set<CIdExpression> pVariables) {
     if (pExpression.isNumber()) {
       if (pExpression.isInteger()) {
-        return Optional.of(new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(pExpression.toLongDefault())));
+        return Optional.of(
+            new CIntegerLiteralExpression(
+                FileLocation.DUMMY,
+                CNumericTypes.INT,
+                BigInteger.valueOf(pExpression.toLongDefault())));
       } else if (pExpression.isRational() || pExpression.isReal()) {
         return Optional.of(
             new CFloatLiteralExpression(
@@ -409,10 +434,15 @@ public class LoopAccelerationUtils {
       Optional<CExpression> lhs = expressionFromIExpr(pExpression.first(), pVariables);
       Optional<CExpression> rhs = expressionFromIExpr(pExpression.second(), pVariables);
       if (lhs.isEmpty() || rhs.isEmpty()) return Optional.empty();
-      CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(MachineModel.LINUX64, LogManager.createNullLogManager());
+      CBinaryExpressionBuilder expressionBuilder =
+          new CBinaryExpressionBuilder(MachineModel.LINUX64, LogManager.createNullLogManager());
       CBinaryExpression cBinaryExpression;
       try {
-        cBinaryExpression = expressionBuilder.buildBinaryExpression(lhs.orElseThrow(), rhs.orElseThrow(), pExpression.isPlus() ? BinaryOperator.PLUS : BinaryOperator.MULTIPLY);
+        cBinaryExpression =
+            expressionBuilder.buildBinaryExpression(
+                lhs.orElseThrow(),
+                rhs.orElseThrow(),
+                pExpression.isPlus() ? BinaryOperator.PLUS : BinaryOperator.MULTIPLY);
       } catch (UnrecognizedCodeException pE) {
         return Optional.empty();
       }
@@ -422,111 +452,95 @@ public class LoopAccelerationUtils {
   }
 
   /**
-   * For two int expressions a b return the smaller number of a,b greater 0 or 0 if a <= 0 and b <= 0.
+   * For two int expressions a b return the smaller number of a,b greater 0 or 0 if a <= 0 and b <=
+   * 0.
+   *
    * @param pIntExpression1 CExpression with type int
    * @param pIntExpression2 CExpression with type int
    * @return a Cexpression equivalent to min(a,b), for a,b > 0
    * @throws UnrecognizedCodeException
    */
-  public static CExpression minOfTwoIntGreaterZero(CExpression pIntExpression1,  CExpression pIntExpression2)
-      throws UnrecognizedCodeException {
-    CBinaryExpressionBuilder binaryExpressionBuilder = new CBinaryExpressionBuilder(MachineModel.LINUX64, LogManager.createNullLogManager());
+  public static CExpression minOfTwoIntGreaterZero(
+      CExpression pIntExpression1, CExpression pIntExpression2) throws UnrecognizedCodeException {
+    CBinaryExpressionBuilder binaryExpressionBuilder =
+        new CBinaryExpressionBuilder(MachineModel.LINUX64, LogManager.createNullLogManager());
     return binaryExpressionBuilder.buildBinaryExpression(
         binaryExpressionBuilder.buildBinaryExpression(
             // (a > 0) * (b <= 0) * a
             binaryExpressionBuilder.buildBinaryExpression(
                 binaryExpressionBuilder.buildBinaryExpression(
                     pIntExpression1,
-                    new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
-                    BinaryOperator.GREATER_THAN
-                ),
+                    new CIntegerLiteralExpression(
+                        FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
+                    BinaryOperator.GREATER_THAN),
                 binaryExpressionBuilder.buildBinaryExpression(
                     binaryExpressionBuilder.buildBinaryExpression(
                         pIntExpression2,
-                        new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
-                        BinaryOperator.LESS_EQUAL
-                    ),
+                        new CIntegerLiteralExpression(
+                            FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
+                        BinaryOperator.LESS_EQUAL),
                     pIntExpression1,
-                    BinaryOperator.MULTIPLY
-                ),
-                BinaryOperator.MULTIPLY
-            ),
+                    BinaryOperator.MULTIPLY),
+                BinaryOperator.MULTIPLY),
             // (a > 0) * (b > 0) * (a <= b) * a
             binaryExpressionBuilder.buildBinaryExpression(
                 binaryExpressionBuilder.buildBinaryExpression(
                     pIntExpression1,
-                    new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
-                    BinaryOperator.GREATER_THAN
-                ),
+                    new CIntegerLiteralExpression(
+                        FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
+                    BinaryOperator.GREATER_THAN),
                 binaryExpressionBuilder.buildBinaryExpression(
                     binaryExpressionBuilder.buildBinaryExpression(
                         pIntExpression2,
-                        new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
-                        BinaryOperator.GREATER_THAN
-                    ),
+                        new CIntegerLiteralExpression(
+                            FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
+                        BinaryOperator.GREATER_THAN),
                     binaryExpressionBuilder.buildBinaryExpression(
                         binaryExpressionBuilder.buildBinaryExpression(
-                            pIntExpression1,
-                            pIntExpression2,
-                            BinaryOperator.LESS_EQUAL
-                        ),
+                            pIntExpression1, pIntExpression2, BinaryOperator.LESS_EQUAL),
                         pIntExpression1,
-                        BinaryOperator.MULTIPLY
-                    ),
-                    BinaryOperator.MULTIPLY
-                ),
-                BinaryOperator.MULTIPLY
-            ),
-            BinaryOperator.PLUS
-        ),
+                        BinaryOperator.MULTIPLY),
+                    BinaryOperator.MULTIPLY),
+                BinaryOperator.MULTIPLY),
+            BinaryOperator.PLUS),
         binaryExpressionBuilder.buildBinaryExpression(
             // (b > 0) * (a <= 0) * b
             binaryExpressionBuilder.buildBinaryExpression(
                 binaryExpressionBuilder.buildBinaryExpression(
                     pIntExpression2,
-                    new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
-                    BinaryOperator.GREATER_THAN
-                ),
+                    new CIntegerLiteralExpression(
+                        FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
+                    BinaryOperator.GREATER_THAN),
                 binaryExpressionBuilder.buildBinaryExpression(
                     binaryExpressionBuilder.buildBinaryExpression(
                         pIntExpression1,
-                        new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
-                        BinaryOperator.LESS_EQUAL
-                    ),
+                        new CIntegerLiteralExpression(
+                            FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
+                        BinaryOperator.LESS_EQUAL),
                     pIntExpression2,
-                    BinaryOperator.MULTIPLY
-                ),
-                BinaryOperator.MULTIPLY
-            ),
+                    BinaryOperator.MULTIPLY),
+                BinaryOperator.MULTIPLY),
             // (b > 0) * (a > 0) * (b < a) * b
             binaryExpressionBuilder.buildBinaryExpression(
                 binaryExpressionBuilder.buildBinaryExpression(
                     pIntExpression2,
-                    new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
-                    BinaryOperator.GREATER_THAN
-                ),
+                    new CIntegerLiteralExpression(
+                        FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
+                    BinaryOperator.GREATER_THAN),
                 binaryExpressionBuilder.buildBinaryExpression(
                     binaryExpressionBuilder.buildBinaryExpression(
                         pIntExpression1,
-                        new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
-                        BinaryOperator.GREATER_THAN
-                    ),
+                        new CIntegerLiteralExpression(
+                            FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
+                        BinaryOperator.GREATER_THAN),
                     binaryExpressionBuilder.buildBinaryExpression(
                         binaryExpressionBuilder.buildBinaryExpression(
-                            pIntExpression2,
-                            pIntExpression1,
-                            BinaryOperator.LESS_THAN
-                        ),
+                            pIntExpression2, pIntExpression1, BinaryOperator.LESS_THAN),
                         pIntExpression2,
-                        BinaryOperator.MULTIPLY
-                    ),
-                    BinaryOperator.MULTIPLY
-                ),
-                BinaryOperator.MULTIPLY
-            ),
-            BinaryOperator.PLUS
-        ),
-        BinaryOperator.PLUS
-    );
+                        BinaryOperator.MULTIPLY),
+                    BinaryOperator.MULTIPLY),
+                BinaryOperator.MULTIPLY),
+            BinaryOperator.PLUS),
+        BinaryOperator.PLUS);
   }
 }

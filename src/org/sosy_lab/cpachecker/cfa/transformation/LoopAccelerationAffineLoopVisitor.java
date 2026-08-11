@@ -41,7 +41,9 @@ public class LoopAccelerationAffineLoopVisitor {
     int i = 0;
     for (CIdExpression variable : variables) {
       Coefficients coefficients = visit(variable, pExpressions.get(i));
-      if (!coefficients.isLinear) { return TraversalProcess.ABORT;}
+      if (!coefficients.isLinear) {
+        return TraversalProcess.ABORT;
+      }
       assignments.put(coefficients.variable, coefficients.coefficients);
       i++;
     }
@@ -50,21 +52,25 @@ public class LoopAccelerationAffineLoopVisitor {
 
   /**
    * Visitor which checks if a CRighthandSide is an affine integer assignment.
+   *
    * @param pCurrentVar the variable from the CLeftHandSide
    * @param pExpression the expression
-   * @return a Coefficients record which has a BigInteger array with coefficients, the variable name and a flag isLinear
+   * @return a Coefficients record which has a BigInteger array with coefficients, the variable name
+   *     and a flag isLinear
    */
   private Coefficients visit(CIdExpression pCurrentVar, CExpression pExpression) {
     Coefficients child1;
     Coefficients child2;
     switch (pExpression) {
       case CIntegerLiteralExpression intExpression:
-        ArrayList<BigInteger> coeffsLiteral = new ArrayList<>(Collections.nCopies(variables.size()+1, BigInteger.ZERO));
+        ArrayList<BigInteger> coeffsLiteral =
+            new ArrayList<>(Collections.nCopies(variables.size() + 1, BigInteger.ZERO));
         coeffsLiteral.set(variables.size(), intExpression.getValue());
         return new Coefficients(coeffsLiteral, pCurrentVar, true);
       case CIdExpression idExpression:
         if (!variables.contains(idExpression)) return new Coefficients(null, pCurrentVar, false);
-        ArrayList<BigInteger> coeffsVar = new ArrayList<>(Collections.nCopies(variables.size()+1, BigInteger.ZERO));
+        ArrayList<BigInteger> coeffsVar =
+            new ArrayList<>(Collections.nCopies(variables.size() + 1, BigInteger.ZERO));
         coeffsVar.set(variables.indexOf(idExpression), BigInteger.ONE);
         return new Coefficients(coeffsVar, pCurrentVar, true);
       case CUnaryExpression unaryExpression:
@@ -77,8 +83,9 @@ public class LoopAccelerationAffineLoopVisitor {
             child1 = visit(pCurrentVar, unaryExpression.getOperand());
             if (child1.isLinear) {
               child1 = Coefficients.negate(child1);
-              child1.coefficients.set(variables.size(),
-                child1.coefficients.get(variables.size()).subtract(BigInteger.ONE));
+              child1.coefficients.set(
+                  variables.size(),
+                  child1.coefficients.get(variables.size()).subtract(BigInteger.ONE));
               return child1;
             } else {
               return new Coefficients(null, pCurrentVar, false);
@@ -120,7 +127,8 @@ public class LoopAccelerationAffineLoopVisitor {
                 }
               }
             }
-            if (!child1Constant && !child2Constant) return new Coefficients(null, pCurrentVar, false);
+            if (!child1Constant && !child2Constant)
+              return new Coefficients(null, pCurrentVar, false);
             if (child1Constant) {
               return Coefficients.factorMultiply(child2, child1.coefficients.getLast());
             } else {
@@ -134,13 +142,11 @@ public class LoopAccelerationAffineLoopVisitor {
     }
   }
 
-  private record Coefficients (
-      List<BigInteger> coefficients,
-      CIdExpression variable,
-      boolean isLinear
-  ) {
+  private record Coefficients(
+      List<BigInteger> coefficients, CIdExpression variable, boolean isLinear) {
     static Coefficients negate(Coefficients pChild) {
-      ArrayList<BigInteger> coefficients = new ArrayList<>(Collections.nCopies(pChild.coefficients.size(), BigInteger.ZERO));
+      ArrayList<BigInteger> coefficients =
+          new ArrayList<>(Collections.nCopies(pChild.coefficients.size(), BigInteger.ZERO));
       for (int i = 0; i < pChild.coefficients.size(); i++) {
         coefficients.set(i, pChild.coefficients.get(i).negate());
       }
@@ -148,7 +154,8 @@ public class LoopAccelerationAffineLoopVisitor {
     }
 
     static Coefficients addCoefficients(Coefficients pChild1, Coefficients pChild2) {
-      ArrayList<BigInteger> coefficients = new ArrayList<>(Collections.nCopies(pChild1.coefficients.size(), BigInteger.ZERO));
+      ArrayList<BigInteger> coefficients =
+          new ArrayList<>(Collections.nCopies(pChild1.coefficients.size(), BigInteger.ZERO));
       for (int i = 0; i < pChild1.coefficients.size(); i++) {
         coefficients.set(i, pChild1.coefficients.get(i).add(pChild2.coefficients.get(i)));
       }
@@ -156,7 +163,8 @@ public class LoopAccelerationAffineLoopVisitor {
     }
 
     static Coefficients factorMultiply(Coefficients pChild, BigInteger pFactor) {
-      ArrayList<BigInteger> coefficients = new ArrayList<>(Collections.nCopies(pChild.coefficients.size(), BigInteger.ZERO));
+      ArrayList<BigInteger> coefficients =
+          new ArrayList<>(Collections.nCopies(pChild.coefficients.size(), BigInteger.ZERO));
       for (int i = 0; i < pChild.coefficients.size(); i++) {
         coefficients.set(i, pChild.coefficients.get(i).multiply(pFactor));
       }

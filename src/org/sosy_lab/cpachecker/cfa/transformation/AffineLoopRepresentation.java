@@ -20,7 +20,10 @@ public class AffineLoopRepresentation {
   private final ImmutableList<CIdExpression> variables;
   private final ImmutableList<Integer> iterationConstants;
 
-  public AffineLoopRepresentation(ImmutableList<ImmutableList<Integer>> pIteraionMatrix, ImmutableList<CIdExpression> pVariables, ImmutableList<Integer> pIterationConstants) {
+  public AffineLoopRepresentation(
+      ImmutableList<ImmutableList<Integer>> pIteraionMatrix,
+      ImmutableList<CIdExpression> pVariables,
+      ImmutableList<Integer> pIterationConstants) {
     iteraionMatrix = pIteraionMatrix;
     variables = pVariables;
     iterationConstants = pIterationConstants;
@@ -80,11 +83,13 @@ public class AffineLoopRepresentation {
         }
         builder.add(rowBuilder.build());
       }
-      return new AffineLoopRepresentation(builder.build(), ImmutableList.copyOf(newVariables), ImmutableList.copyOf(newConstant));
+      return new AffineLoopRepresentation(
+          builder.build(), ImmutableList.copyOf(newVariables), ImmutableList.copyOf(newConstant));
     }
   }
 
-  public static AffineLoopRepresentation fromIterationMatrixMap(Map<CIdExpression, List<BigInteger>> pIterationMatrix) {
+  public static AffineLoopRepresentation fromIterationMatrixMap(
+      Map<CIdExpression, List<BigInteger>> pIterationMatrix) {
     Builder builder = Builder.builder();
     int counter = 0;
     for (Map.Entry<CIdExpression, List<BigInteger>> entry : pIterationMatrix.entrySet()) {

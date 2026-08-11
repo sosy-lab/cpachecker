@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.transformation;
 
-
 /** Record for holding the information of a program transformation. */
 public record ProgramTransformationInformation(
     SubCFA subCFA, ProgramTransformationRecovery programTransformationRecovery) {}

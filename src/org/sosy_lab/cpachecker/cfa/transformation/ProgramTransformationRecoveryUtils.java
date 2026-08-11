@@ -24,6 +24,7 @@ public class ProgramTransformationRecoveryUtils {
 
   /**
    * Copy all wrapped states from pARGState, with a new LocationState and parent ARGState.
+   *
    * @param pARGState the ARGState to copy from
    * @param pLocationState the new LocationState
    * @param pParentState the new parent ARGState
@@ -46,12 +47,14 @@ public class ProgramTransformationRecoveryUtils {
 
   /**
    * Copy all wrapped states from pARGState, with a new ValueAnalysisState and parent ARGState.
+   *
    * @param pARGState the ARGState to copy from
    * @param pValueState the new ValueAnalysisState
    * @param pParentState the new parent ARGState
    * @return newly created ARGState
    */
-  public static ARGState argStateWithValue(ARGState pARGState, ValueAnalysisState pValueState, ARGState pParentState) {
+  public static ARGState argStateWithValue(
+      ARGState pARGState, ValueAnalysisState pValueState, ARGState pParentState) {
     CompositeState currentCompositeState = ((CompositeState) pARGState.getWrappedState());
     List<AbstractState> newWrappedStates =
         new ArrayList<>(currentCompositeState.getWrappedStates().size());
@@ -63,21 +66,19 @@ public class ProgramTransformationRecoveryUtils {
       }
     }
     return new ARGState(new CompositeState(newWrappedStates), pParentState);
-
   }
 
   /**
    * Removes the initial ARGState in a program transformation, after a dummy entry edge.
+   *
    * @param pPreviousARGState the ARGState before entering the program transformation
    * @param pCurrentARGState the first ARGState in a program transformation
    * @param reached the reached set
    * @return the previous ARGState now connected to the former children of the removed ARGState
    */
   public static ARGState handleEntry(
-      ARGState pPreviousARGState,
-      ARGState pCurrentARGState,
-      ReachedSet reached) {
-    assert(pPreviousARGState.getEdgeToChild(pCurrentARGState) instanceof DummyCFAEdge);
+      ARGState pPreviousARGState, ARGState pCurrentARGState, ReachedSet reached) {
+    assert (pPreviousARGState.getEdgeToChild(pCurrentARGState) instanceof DummyCFAEdge);
     List<ARGState> childStates = List.copyOf(pCurrentARGState.getChildren());
     for (int i = 0; i < childStates.size(); i++) {
       childStates.get(i).addParent(pPreviousARGState);
@@ -89,14 +90,13 @@ public class ProgramTransformationRecoveryUtils {
 
   /**
    * Removes the last state before exiting a program transformation from the ARG and reached set.
+   *
    * @param pPreviousARGState previous ARGState
    * @param pCurrentARGState the last ARGState in this program transformation
    * @param reached the reached set
    */
   public static void handleExit(
-      ARGState pPreviousARGState,
-      ARGState pCurrentARGState,
-      ReachedSet reached) {
+      ARGState pPreviousARGState, ARGState pCurrentARGState, ReachedSet reached) {
     assert (pCurrentARGState.getChildren().size() == 1);
     ARGState childState = pCurrentARGState.getChildren().getFirst();
     childState.addParent(pPreviousARGState);
@@ -104,13 +104,15 @@ public class ProgramTransformationRecoveryUtils {
     pCurrentARGState.removeFromARG();
   }
 
-  public static ARGState addFunctionCall(ARGState pARGState, ARGState pParentState, CFANode pCallNode) {
+  public static ARGState addFunctionCall(
+      ARGState pARGState, ARGState pParentState, CFANode pCallNode) {
     CompositeState currentCompositeState = ((CompositeState) pARGState.getWrappedState());
     List<AbstractState> newWrappedStates =
         new ArrayList<>(currentCompositeState.getWrappedStates().size());
     for (AbstractState wrappedState : currentCompositeState.getWrappedStates()) {
       if (wrappedState instanceof CallstackState callStackState) {
-        newWrappedStates.add(new CallstackState(callStackState, callStackState.getCurrentFunction(), pCallNode));
+        newWrappedStates.add(
+            new CallstackState(callStackState, callStackState.getCurrentFunction(), pCallNode));
       } else {
         newWrappedStates.add(wrappedState);
       }
@@ -119,8 +121,10 @@ public class ProgramTransformationRecoveryUtils {
     return new ARGState(new CompositeState(newWrappedStates), pParentState);
   }
 
-  public static ARGState takeValueState(ARGState pNewARGState, ARGState pParentState, ARGState pAfterParaAssignments) {
-    CompositeState currentCompositeState = ((CompositeState) pAfterParaAssignments.getWrappedState());
+  public static ARGState takeValueState(
+      ARGState pNewARGState, ARGState pParentState, ARGState pAfterParaAssignments) {
+    CompositeState currentCompositeState =
+        ((CompositeState) pAfterParaAssignments.getWrappedState());
     List<AbstractState> newWrappedStates =
         new ArrayList<>(currentCompositeState.getWrappedStates().size());
     for (AbstractState wrappedState : currentCompositeState.getWrappedStates()) {
@@ -131,7 +135,7 @@ public class ProgramTransformationRecoveryUtils {
     }
     currentCompositeState = ((CompositeState) pNewARGState.getWrappedState());
     for (AbstractState wrappedState : currentCompositeState.getWrappedStates()) {
-      if (! (wrappedState instanceof ValueAnalysisState)) {
+      if (!(wrappedState instanceof ValueAnalysisState)) {
         newWrappedStates.add(wrappedState);
       }
     }

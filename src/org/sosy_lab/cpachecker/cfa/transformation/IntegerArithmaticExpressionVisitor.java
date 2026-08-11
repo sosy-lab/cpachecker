@@ -49,7 +49,9 @@ public class IntegerArithmaticExpressionVisitor implements CExpressionVisitor {
   }
 
   public IExpr visit(CExpression pExpression) throws Exception {
-    if (!success) {return null;}
+    if (!success) {
+      return null;
+    }
     IExpr symbolicExpression = null;
     switch (pExpression) {
       case CBinaryExpression binaryExpression:
@@ -63,7 +65,7 @@ public class IntegerArithmaticExpressionVisitor implements CExpressionVisitor {
         break;
       case CIdExpression idExpression:
         encounteredVariables.add(idExpression);
-        symbolicExpression = F.$s(idExpression.getName()+"-");
+        symbolicExpression = F.$s(idExpression.getName() + "-");
         break;
       default:
         break;
@@ -93,7 +95,7 @@ public class IntegerArithmaticExpressionVisitor implements CExpressionVisitor {
         symbolicExpression = util.eval(visit(lhs).divide(visit(rhs)));
         break;
       case MODULO:
-        symbolicExpression =  util.eval(visit(lhs).mod(visit(rhs)));
+        symbolicExpression = util.eval(visit(lhs).mod(visit(rhs)));
         break;
       default:
         success = false;
