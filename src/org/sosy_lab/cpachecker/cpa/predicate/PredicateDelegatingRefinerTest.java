@@ -103,7 +103,8 @@ public class PredicateDelegatingRefinerTest {
     Configuration pDefaultIndividualRunsConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.heuristicRefinerPairs", "REACHED_SET_RATIO:DEFAULT")
+                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
+                "REACHED_SET_RATIO:DEFAULT")
             .setOption(
                 "cpa.predicate.delegatingRefinerHeuristics.ReachedSetRatio.abstractionLocationRefinementRatio",
                 "5.0")
@@ -131,7 +132,7 @@ public class PredicateDelegatingRefinerTest {
     Configuration pNegatedConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.heuristicRefinerPairs",
+                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
                 "NEGATED(RUNREFINERNTIMES):DEFAULT,NEGATED(INTERPOLATION_RATE):DEFAULT")
             .build();
 
@@ -166,7 +167,8 @@ public class PredicateDelegatingRefinerTest {
     Configuration pRedundantCustomThresholdConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.heuristicRefinerPairs", "REDUNDANT_PREDICATES:DEFAULT")
+                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
+                "REDUNDANT_PREDICATES:DEFAULT")
             .setOption(
                 "cpa.predicate.delegatingRefinerHeuristics.RedundantPredicates.redundancyThreshold",
                 "0.1")
@@ -194,7 +196,7 @@ public class PredicateDelegatingRefinerTest {
     Configuration pMultipleConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.heuristicRefinerPairs",
+                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
                 "REDUNDANT_PREDICATES:STATIC,RUNREFINERNTIMES:STATIC")
             .build();
     PredicateCPARefinerFactory pMultipleRefinerFactory = setUpRefinerFactory(pMultipleConfig);
@@ -218,7 +220,7 @@ public class PredicateDelegatingRefinerTest {
     Configuration plowerCaseConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.heuristicRefinerPairs",
+                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
                 "runrefinerntimes:STATIC,RUNREFINERNTIMES:default")
             .build();
     PredicateCPARefinerFactory pLowerCaseRefinerFactory = setUpRefinerFactory(plowerCaseConfig);
@@ -244,7 +246,8 @@ public class PredicateDelegatingRefinerTest {
     Configuration pIgnoreWhiteSpaceColonConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.heuristicRefinerPairs", "RUNREFINERNTIMES : STATIC")
+                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
+                "RUNREFINERNTIMES : STATIC")
             .build();
     PredicateCPARefinerFactory pIgnoreWhiteSpaceColonConfigRefinerFactory =
         setUpRefinerFactory(pIgnoreWhiteSpaceColonConfig);
@@ -268,7 +271,7 @@ public class PredicateDelegatingRefinerTest {
     Configuration pIgnoreWhiteSpaceCommaConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.heuristicRefinerPairs",
+                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
                 "RUNREFINERNTIMES:STATIC, REACHED_SET_RATIO:DEFAULT ,REDUNDANT_PREDICATES:DEFAULT")
             .build();
     PredicateCPARefinerFactory pIgnoreWhiteSpaceCommaConfigRefinerFactory =
@@ -299,7 +302,7 @@ public class PredicateDelegatingRefinerTest {
     Configuration pOtherSeparatorsConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.heuristicRefinerPairs",
+                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
                 "RUNREFINERNTIMES:STATIC;REACHED_SET_RATIO:DEFAULT")
             .build();
     PredicateCPARefinerFactory pIgnoreOtherSeparatorsRefinerFactory =
@@ -321,7 +324,9 @@ public class PredicateDelegatingRefinerTest {
   public void checkMissingColon() throws Exception {
     Configuration pMissingColonConfig =
         TestUtils.configurationForTest()
-            .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "RUNREFINERNTIMESSTATIC")
+            .setOption(
+                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
+                "RUNREFINERNTIMESSTATIC")
             .build();
     PredicateCPARefinerFactory pMissingColonRefinerFactory =
         setUpRefinerFactory(pMissingColonConfig);
@@ -342,7 +347,9 @@ public class PredicateDelegatingRefinerTest {
   public void checkOnlyComponentInPair() throws Exception {
     Configuration pOnlyOneComponentConfig =
         TestUtils.configurationForTest()
-            .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "RUNREFINERNTIMES")
+            .setOption(
+                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
+                "RUNREFINERNTIMES")
             .build();
     PredicateCPARefinerFactory pOnlyOneComponentRefinerFactory =
         setUpRefinerFactory(pOnlyOneComponentConfig);
@@ -364,7 +371,7 @@ public class PredicateDelegatingRefinerTest {
     Configuration pThreeComponentsConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.heuristicRefinerPairs",
+                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
                 "RUNREFINERNTIMES:RUNREFINERNTIMES:STATIC")
             .build();
     PredicateCPARefinerFactory pThreeComponentsRefinerFactory =
@@ -386,7 +393,9 @@ public class PredicateDelegatingRefinerTest {
   public void checkUnknownHeuristic() throws Exception {
     Configuration pUnknownHeuristicConfig =
         TestUtils.configurationForTest()
-            .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "FOO:RUNREFINERNTIMES")
+            .setOption(
+                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
+                "FOO:RUNREFINERNTIMES")
             .build();
     PredicateCPARefinerFactory pUnknownHeuristicRefinerFactory =
         setUpRefinerFactory(pUnknownHeuristicConfig);
@@ -407,7 +416,9 @@ public class PredicateDelegatingRefinerTest {
   public void checkUnknownRefiner() throws Exception {
     Configuration pUnknownRefinerConfig =
         TestUtils.configurationForTest()
-            .setOption("cpa.predicate.refinement.heuristicRefinerPairs", "RUNREFINERNTIMES:FOO")
+            .setOption(
+                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
+                "RUNREFINERNTIMES:FOO")
             .build();
     PredicateCPARefinerFactory pUnknownRefinerRefinerFactory =
         setUpRefinerFactory(pUnknownRefinerConfig);
@@ -429,7 +440,8 @@ public class PredicateDelegatingRefinerTest {
     Configuration pNegativeFixedRunsConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.heuristicRefinerPairs", "REACHED_SET_RATIO:DEFAULT")
+                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
+                "REACHED_SET_RATIO:DEFAULT")
             .setOption(
                 "cpa.predicate.delegatingRefinerHeuristics.ReachedSetRatio.abstractionLocationRefinementRatio",
                 "-10")
@@ -454,7 +466,8 @@ public class PredicateDelegatingRefinerTest {
     Configuration pNegativeRedundancyConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.heuristicRefinerPairs", "REDUNDANT_PREDICATES:DEFAULT")
+                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
+                "REDUNDANT_PREDICATES:DEFAULT")
             .setOption(
                 "cpa.predicate.delegatingRefinerHeuristics.RedundantPredicates.redundancyThreshold",
                 "-0.1")
@@ -479,7 +492,8 @@ public class PredicateDelegatingRefinerTest {
     Configuration pTooLargeRedundancyConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.heuristicRefinerPairs", "REDUNDANT_PREDICATES:DEFAULT")
+                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
+                "REDUNDANT_PREDICATES:DEFAULT")
             .setOption(
                 "cpa.predicate.delegatingRefinerHeuristics.RedundantPredicates.redundancyThreshold",
                 "2.0")
@@ -504,7 +518,8 @@ public class PredicateDelegatingRefinerTest {
     Configuration pStringRedundancyThresholdConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.heuristicRefinerPairs", "REDUNDANT_PREDICATES:DEFAULT")
+                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
+                "REDUNDANT_PREDICATES:DEFAULT")
             .setOption(
                 "cpa.predicate.delegatingRefinerHeuristics.RedundantPredicates.redundancyThreshold",
                 "xyz")

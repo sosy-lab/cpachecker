@@ -2794,6 +2794,9 @@ cpa.predicate.delegatingRefinerHeuristics.RedundantPredicates.dslRulePath = no d
 # PredicateDelegatingRefiner heuristic (0.0 - 1.0).
 cpa.predicate.delegatingRefinerHeuristics.RedundantPredicates.redundancyThreshold = 0.2
 
+# Number of times the RunRefinerNTimes heuristic is allowed to run.
+cpa.predicate.delegatingRefinerHeuristics.RunRefinerNTimes.numberRuns = 1
+
 # Direction of the analysis?
 cpa.predicate.direction = FORWARD
   enum:     [FORWARD, BACKWARD]
@@ -3083,6 +3086,14 @@ cpa.predicate.refinement.cexTraceCheckDirection = ZIGZAG
   enum:     [FORWARDS, BACKWARDS, ZIGZAG, LOOP_FREE_FIRST, RANDOM, LOWEST_AVG_SCORE,
              HIGHEST_AVG_SCORE, LOOP_FREE_FIRST_BACKWARDS]
 
+# List of heuristic-refiner pairs for the PredicateDelegatingRefiner. Only
+# use when usePredicateDelegatingRefiner = true.
+cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs = [
+          "RUNREFINERNTIMES:STATIC",
+          "REACHED_SET_RATIO:DEFAULT",
+          "INTERPOLATION_RATE:DEFAULT",
+          "REDUNDANT_PREDICATES:DEFAULT"]
+
 # Actually compute an abstraction, otherwise just convert the interpolants to
 # BDDs as they are.
 cpa.predicate.refinement.doAbstractionComputation = false
@@ -3110,14 +3121,6 @@ cpa.predicate.refinement.global.stopAfterNRefinements = 0
 
 # BlockFormulaStrategy for graph-like ARGs (e.g. Slicing Abstractions)
 cpa.predicate.refinement.graphblockformulastrategy = false
-
-# List of heuristic-refiner pairs for the PredicateDelegatingRefiner. Only
-# use when usePredicateDelegatingRefiner = true.
-cpa.predicate.refinement.heuristicRefinerPairs = [
-          "RUNREFINERNTIMES:STATIC",
-          "REACHED_SET_RATIO:DEFAULT",
-          "INTERPOLATION_RATE:DEFAULT",
-          "REDUNDANT_PREDICATES:DEFAULT"]
 
 # Enable/Disable adding partial state invariants into the PathFormulas
 cpa.predicate.refinement.includePartialInvariants = AbstractionPosition.BOTH
@@ -3156,9 +3159,6 @@ cpa.predicate.refinement.newtonrefinement.infeasibleCore = true
 # use live variables in order to abstract the predicates produced while
 # NewtonRefinement
 cpa.predicate.refinement.newtonrefinement.liveVariables = true
-
-# Number of times the RunRefinerNTimes heuristic is allowed to run.
-cpa.predicate.refinement.numberRuns = 1
 
 # use heuristic to extract predicates from the CFA statically on first
 # refinement

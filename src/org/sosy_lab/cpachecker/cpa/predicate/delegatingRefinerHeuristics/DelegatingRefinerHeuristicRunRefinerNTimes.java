@@ -9,7 +9,12 @@
 package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 
 import com.google.common.collect.ImmutableList;
+import java.util.logging.Level;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
 
@@ -18,19 +23,27 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
  * abstraction functionality, this heuristic should be set with N = 1 and used as the first
  * heuristic in the PredicateDelegatingRefiner, paired with a PredicateStaticRefiner.
  */
+@Options(prefix = "cpa.predicate.delegatingRefinerHeuristics.RunRefinerNTimes")
 public class DelegatingRefinerHeuristicRunRefinerNTimes implements DelegatingRefinerHeuristic {
 
-  private int totalCount;
+  private final LogManager logger;
   private int currentCount = 0;
 
-  public DelegatingRefinerHeuristicRunRefinerNTimes(int pTotalCount)
+  @Option(
+      secure = true,
+      description = "Number of times the RunRefinerNTimes heuristic is allowed to run.")
+  private int numberRuns = 1;
+
+  public DelegatingRefinerHeuristicRunRefinerNTimes(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
-    if (pTotalCount < 0) {
+    pConfig.inject(this);
+
+    if (numberRuns < 0) {
       throw new InvalidConfigurationException(
-          "Number of times DelegatingRefinerHeuristicStaticRefinement should run must not be"
-              + " negative");
+          "Number of times DelegatingRefinerHeuristicRunRefinerNTimes should run must not be"
+              + " negative.");
     }
-    this.totalCount = pTotalCount;
+    this.logger = pLogger;
   }
 
   /**
@@ -43,8 +56,13 @@ public class DelegatingRefinerHeuristicRunRefinerNTimes implements DelegatingRef
    */
   @Override
   public boolean fulfilled(ReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
-    if (currentCount < totalCount) {
+    if (currentCount < numberRuns) {
       currentCount++;
+      logger.logf(
+          Level.FINE,
+          "DelegatingRefinerHeuristicRunRefinerNTimes has run %d times out of %d configured.",
+          currentCount,
+          numberRuns);
       return true;
     }
     return false;

@@ -82,6 +82,7 @@ public final class PredicateCPARefinerFactory {
 
   @Option(
       secure = true,
+      name = "delegatingRefinerHeuristics.heuristicRefinerPairs",
       description =
           "List of heuristic-refiner pairs for the PredicateDelegatingRefiner. Only use when"
               + " usePredicateDelegatingRefiner = true.")
@@ -91,11 +92,6 @@ public final class PredicateCPARefinerFactory {
           "REACHED_SET_RATIO:DEFAULT",
           "INTERPOLATION_RATE:DEFAULT",
           "REDUNDANT_PREDICATES:DEFAULT");
-
-  @Option(
-      secure = true,
-      description = "Number of times the RunRefinerNTimes heuristic is allowed to run.")
-  private int numberRuns = 1;
 
   private final PredicateCPA predicateCpa;
 
@@ -360,7 +356,9 @@ public final class PredicateCPARefinerFactory {
       throws InvalidConfigurationException {
     DelegatingRefinerHeuristic heuristic =
         switch (pHeuristicType) {
-          case RUNREFINERNTIMES -> new DelegatingRefinerHeuristicRunRefinerNTimes(numberRuns);
+          case RUNREFINERNTIMES ->
+              new DelegatingRefinerHeuristicRunRefinerNTimes(
+                  predicateCpa.getConfiguration(), predicateCpa.getLogger());
           case REACHED_SET_RATIO ->
               new DelegatingRefinerHeuristicReachedSetRatio(
                   predicateCpa.getConfiguration(), predicateCpa.getLogger());

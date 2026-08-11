@@ -95,11 +95,12 @@ public class PredicateStopRefinerTest {
     ImmutableList<HeuristicDelegatingRefinerRecord> refinerRecords =
         ImmutableList.of(
             new HeuristicDelegatingRefinerRecord(
-                new DelegatingRefinerHeuristicRunRefinerNTimes(1), new DummyRefiner()),
+                new DelegatingRefinerHeuristicRunRefinerNTimes(config, logger), new DummyRefiner()),
             new HeuristicDelegatingRefinerRecord(
                 (pReached, pDeltas) -> true, new PredicateStopRefiner()),
             new HeuristicDelegatingRefinerRecord(
-                new DelegatingRefinerHeuristicRunRefinerNTimes(1), new DummyRefiner()));
+                new DelegatingRefinerHeuristicRunRefinerNTimes(config, logger),
+                new DummyRefiner()));
     PredicateDelegatingRefiner delegatingRefiner =
         new PredicateDelegatingRefiner(logger, refinerRecords);
 
@@ -134,7 +135,7 @@ public class PredicateStopRefinerTest {
     ImmutableList<HeuristicDelegatingRefinerRecord> refinerRecords =
         ImmutableList.of(
             new HeuristicDelegatingRefinerRecord(
-                new DelegatingRefinerHeuristicRunRefinerNTimes(1), new DummyRefiner()),
+                new DelegatingRefinerHeuristicRunRefinerNTimes(config, logger), new DummyRefiner()),
             new HeuristicDelegatingRefinerRecord(
                 (pReached, pDeltas) -> true, new PredicateStopRefiner()));
     PredicateDelegatingRefiner delegatingRefiner =
