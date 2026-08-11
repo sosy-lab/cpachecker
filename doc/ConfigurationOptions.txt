@@ -4673,6 +4673,10 @@ distributedSummaries.logging.reportFiles = "block_analysis/messages"
 # Print per-block statistics in addition to aggregate block statistics.
 distributedSummaries.printBlockLevelStats = false
 
+# Whether to reset callstack state before running a block analysis; usually
+# used together with the inlining decomposition
+distributedSummaries.resetCallstackState = false
+
 # Whether to reset the precision for each run of the analysis or to keep the
 # transmitted one. The latter has disadvantages as unnecessary variables
 # might be tracked due to a too precise precision.

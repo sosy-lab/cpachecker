@@ -68,6 +68,13 @@ public class DssAnalysisOptions {
   private boolean resetPrecisionForEveryRun = false;
 
   @Option(
+      description =
+          "Whether to reset callstack state before running a block analysis; usually used together "
+              + "with the inlining decomposition",
+      secure = true)
+  private boolean resetCallstackState = false;
+
+  @Option(
       name = "combineVcsByHash",
       description = "Whether to combine violation conditions at same program location",
       secure = true)
@@ -129,5 +136,9 @@ public class DssAnalysisOptions {
 
   public DssBlockAnalysisType getBlockAnalysisType() {
     return blockAnalysisType;
+  }
+
+  public boolean callStackStateRequiresStateReset() {
+    return resetCallstackState;
   }
 }

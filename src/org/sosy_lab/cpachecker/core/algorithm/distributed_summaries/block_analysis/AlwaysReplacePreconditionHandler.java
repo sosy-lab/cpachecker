@@ -13,8 +13,10 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import java.util.Collection;
 import java.util.Optional;
 import org.jspecify.annotations.NonNull;
@@ -39,7 +41,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  */
 final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
 
-  private final Multimap<String, @NonNull StateAndPrecision> preconditions =
+  private final Multimap<Integer, @NonNull StateAndPrecision> preconditions =
       ArrayListMultimap.create();
 
   private final DssBlockAnalysis analysis;
@@ -68,6 +70,8 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
       throws InterruptedException, SolverException, CPAException {
     analysis.resetStates(preconditions);
     ImmutableList<@NonNull StateAndPrecision> received = analysis.deserialize(pReceived);
+    ImmutableListMultimap<Integer, @NonNull StateAndPrecision> hashToState =
+        Multimaps.index(received, sap -> analysis.getDcpa().computeProgramPointHash(sap.state()));
     DssSingleWorkerStatistics stats = analysis.statistics();
     stats.getStorePreconditionStatesTimer().start();
     try {
@@ -78,13 +82,18 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
 
       unifiedPrecision = analysis.combinePrecisions(unifiedPrecision, received);
 
-      String sender = pReceived.getSenderId();
-      int equal = analysis.countCovered(received, preconditions.get(sender));
+      boolean stop = true;
 
-      preconditions.removeAll(sender);
-      preconditions.putAll(sender, received);
+      for (Integer id : hashToState.keySet()) {
+        ImmutableList<@NonNull StateAndPrecision> statesAtLocation = hashToState.get(id);
+        if (!analysis.allCovered(statesAtLocation, preconditions.get(id))) {
+          preconditions.removeAll(id);
+          preconditions.putAll(id, statesAtLocation);
+          stop = false;
+        }
+      }
 
-      if (equal == received.size()) {
+      if (stop) {
         // All states are equal, no need to proceed
         return DssMessageProcessing.stop();
       }

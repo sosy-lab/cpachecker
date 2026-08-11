@@ -18,7 +18,9 @@ public class CallstackStateCoverageOperator implements CoverageOperator {
   public boolean isSubsumed(AbstractState state1, AbstractState state2) {
     CallstackState callstackState1 = (CallstackState) state1;
     CallstackState callstackState2 = (CallstackState) state2;
-    return callstackState1.sameStateInProofChecking(callstackState2);
+    boolean eq = callstackState1.sameStateInProofChecking(callstackState2);
+    if (!eq) System.out.println(state1 + " != " + state2);
+    return eq;
   }
 
   @Override
