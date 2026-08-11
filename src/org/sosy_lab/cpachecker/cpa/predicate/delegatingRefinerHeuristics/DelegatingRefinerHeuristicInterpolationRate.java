@@ -246,23 +246,28 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
 
     ReachedSetDelta latestDelta = pDeltas.get(latestIndex);
 
-    // represents the total encountered abstraction locations
-    totalAbstractionLocationCount += latestDelta.abstractionLocationsCount();
-
-    // Increment count for newly added non-trivial interpolants
+    // Increment count for newly added states
     for (AbstractState pState : latestDelta.addedStates()) {
       PredicateAbstractState predState =
           AbstractStates.extractStateByType(pState, PredicateAbstractState.class);
+
+      if (predState != null && predState.isAbstractionState()) {
+        totalAbstractionLocationCount++;
+      }
 
       if (isNonTrivialAbstractionState(predState)) {
         totalInterpolantCount++;
       }
     }
 
-    // Decrement interpolant counts for removed states to track a "true" net state
+    // Decrement counts for removed states to track a "true" net state
     for (AbstractState pState : latestDelta.removedStates()) {
       PredicateAbstractState predState =
           AbstractStates.extractStateByType(pState, PredicateAbstractState.class);
+
+      if (predState != null && predState.isAbstractionState()) {
+        totalAbstractionLocationCount--;
+      }
 
       // Only decrement the interpolant count if it was a non-trivial one
       if (isNonTrivialAbstractionState(predState)) {

@@ -15,8 +15,6 @@ import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /**
@@ -33,9 +31,7 @@ public class TrackingForwardingReachedSet extends ForwardingReachedSet {
    * DelegatingRefinerHeuristics.
    */
   public record ReachedSetDelta(
-      ImmutableSet<AbstractState> addedStates,
-      ImmutableSet<AbstractState> removedStates,
-      int abstractionLocationsCount) {
+      ImmutableSet<AbstractState> addedStates, ImmutableSet<AbstractState> removedStates) {
 
     public ReachedSetDelta {
       checkNotNull(addedStates, "addedStates must not be null.");
@@ -45,36 +41,31 @@ public class TrackingForwardingReachedSet extends ForwardingReachedSet {
 
   private final Set<AbstractState> addedStates = new HashSet<>();
   private final Set<AbstractState> removedStates = new HashSet<>();
-  private int abstractionCount;
 
   public TrackingForwardingReachedSet(ReachedSet pDelegate) {
     super(pDelegate);
   }
 
-  /** Clears all records of predicates added and removed in prior refinement iterations. */
+  /** Clears all records of states added and removed in prior refinement iterations. */
   public void resetTracking() {
     addedStates.clear();
     removedStates.clear();
-    abstractionCount = 0;
   }
 
   /**
-   * Returns a snapshot of the predicates added and removed since the last refinement iteration.
-   * Used by PredicateDelegating in its DelegatingRefinerHeuristics to evaluate refinement progress.
+   * Returns a snapshot of the states added and removed since the last refinement iteration. Used by
+   * PredicateDelegatingRefiner in its DelegatingRefinerHeuristics to evaluate refinement progress.
    *
    * @return a {@link ReachedSetDelta} containing added and removed states.
    */
   public ReachedSetDelta getDelta() {
     return new ReachedSetDelta(
-        ImmutableSet.copyOf(addedStates), ImmutableSet.copyOf(removedStates), abstractionCount);
+        ImmutableSet.copyOf(addedStates), ImmutableSet.copyOf(removedStates));
   }
 
   @Override
   public void add(AbstractState pState, Precision pPrecision) {
     addedStates.add(checkNotNull(pState));
-    if (isAbstractionState(pState)) {
-      abstractionCount++;
-    }
     super.add(pState, pPrecision);
   }
 
@@ -84,9 +75,6 @@ public class TrackingForwardingReachedSet extends ForwardingReachedSet {
       AbstractState pState = pair.getFirst();
       if (pState != null) {
         addedStates.add(pState);
-        if (isAbstractionState(pState)) {
-          abstractionCount++;
-        }
       }
     }
     super.addAll(pToAdd);
@@ -95,9 +83,6 @@ public class TrackingForwardingReachedSet extends ForwardingReachedSet {
   @Override
   public void remove(AbstractState pState) {
     removedStates.add(checkNotNull(pState));
-    if (isAbstractionState(pState)) {
-      abstractionCount--;
-    }
     super.remove(pState);
   }
 
@@ -105,9 +90,6 @@ public class TrackingForwardingReachedSet extends ForwardingReachedSet {
   public void removeAll(Iterable<? extends AbstractState> pToRemove) {
     for (AbstractState pState : pToRemove) {
       removedStates.add(pState);
-      if (isAbstractionState(pState)) {
-        abstractionCount--;
-      }
     }
     super.removeAll(pToRemove);
   }
@@ -116,11 +98,5 @@ public class TrackingForwardingReachedSet extends ForwardingReachedSet {
   public void clear() {
     resetTracking();
     super.clear();
-  }
-
-  private boolean isAbstractionState(AbstractState pState) {
-    PredicateAbstractState pred =
-        AbstractStates.extractStateByType(pState, PredicateAbstractState.class);
-    return pred != null && pred.isAbstractionState();
   }
 }

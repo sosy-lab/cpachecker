@@ -15,8 +15,11 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.TrackingForwardingReachedSet.ReachedSetDelta;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
  * A heuristic which lets a refiner do several number of iterations without assessing the refinement
@@ -105,7 +108,22 @@ public class DelegatingRefinerHeuristicReachedSetRatio implements DelegatingRefi
   public boolean fulfilled(ReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
     if (!pDeltas.isEmpty()) {
       ReachedSetDelta latestDelta = pDeltas.getLast();
-      totalAbstractionLocations += latestDelta.abstractionLocationsCount();
+
+      for (AbstractState pState : latestDelta.addedStates()) {
+        PredicateAbstractState predState =
+            AbstractStates.extractStateByType(pState, PredicateAbstractState.class);
+        if (predState != null && predState.isAbstractionState()) {
+          totalAbstractionLocations++;
+        }
+      }
+
+      for (AbstractState pState : latestDelta.removedStates()) {
+        PredicateAbstractState predState =
+            AbstractStates.extractStateByType(pState, PredicateAbstractState.class);
+        if (predState != null && predState.isAbstractionState()) {
+          totalAbstractionLocations--;
+        }
+      }
     }
 
     int numberRefinements = pDeltas.size();
