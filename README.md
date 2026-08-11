@@ -17,6 +17,33 @@ Getting Started with CPAchecker
 
 More documentation can be found in the [`doc/`](doc/) directory.
 
+## Instructions for this Branch
+This branch contains the code for an implementation of program transformations in CPAchecker with witness recovery.
+This means that the CFA of the program is extended with alternative edges and nodes, with to goal of assisting CPAchecker during verification.
+Our contribution is the recovery of valid verification witnesses after the verification was performed with program transformations.
+There are two program transformations implemented: tail recursion elimination and a special case of loop acceleration.
+Most code can be found in `src/org.sosy_lab.cpachecker/cfa/transformation`.
+
+### Extra Dependencies
+This branch needs additional dependencies to run. 
+We used [Symja](https://github.com/axkr/symja_android_library) for symbolic calculations.
+Because there is, as of now, no stable release with the needed functions one must compile the current development branch (master) and compile the .jar files manually.
+To do this, do the following:
+* clone the master branch and enter the project
+* build symja with `mvn install dependency:copy-dependencies`, to get .jar files for all dependencies
+* then bundle all generated .jar files from `symja_android_library/matheclipse-core/lib` into a new directory `lib/newdir` in cpachecker and add it in your IDE as library to the project
+* after indexing, all errors should go away, the code should be able to build and be executed
+
+### Configurations and example files
+We included several custom configurations in `config/`. 
+The working ones are:
+* program-transformations-compositeAnalysis.properties
+* program-transformations-valueAnalysis.properties
+
+Predicate and bmc analysis do currently not work correctly.
+
+The test programs from the thesis can be found in `tests/programs/program_transformation/`.
+
 License and Copyright
 ---------------------
 CPAchecker is licensed under the [Apache 2.0 License](https://www.apache.org/licenses/LICENSE-2.0)
