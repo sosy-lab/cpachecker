@@ -11,17 +11,22 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.util.function.Function;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -34,6 +39,17 @@ public class DssDebugUtils {
     ARGToDotWriter.write(
         sb, pReachedSet.asCollection().stream().map(a -> (ARGState) a).toList(), "test");
     return sb.toString();
+  }
+
+  public static String printLocationHash(
+      DistributedConfigurableProgramAnalysis pDcpa, AbstractState pState) {
+
+    StringBuilder print = new StringBuilder();
+    for (Class<? extends AbstractQueryableState> state :
+        ImmutableList.of(BlockState.class, LocationState.class, CallstackState.class)) {
+      print.append(AbstractStates.extractStateByType(pState, state)).append("\n");
+    }
+    return "Hash: " + pDcpa.computeProgramPointHash(pState) + " of " + print;
   }
 
   public static <Pre, Viol> String prettyPrintBlock(

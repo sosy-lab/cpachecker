@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.Optional;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
@@ -71,7 +72,12 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
     analysis.resetStates(preconditions);
     ImmutableList<@NonNull StateAndPrecision> received = analysis.deserialize(pReceived);
     ImmutableListMultimap<Integer, @NonNull StateAndPrecision> hashToState =
-        Multimaps.index(received, sap -> analysis.getDcpa().computeProgramPointHash(sap.state()));
+        Multimaps.index(
+            received,
+            sap ->
+                Objects.hash(
+                    pReceived.getSenderId(),
+                    analysis.getDcpa().computeProgramPointHash(sap.state())));
     DssSingleWorkerStatistics stats = analysis.statistics();
     stats.getStorePreconditionStatesTimer().start();
     try {

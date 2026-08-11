@@ -179,6 +179,6 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
         pState.getCallNode().getNodeNumber(),
         pState.getDepth(),
         pState.getCurrentFunction(),
-        pState.getPreviousState() == null ? 0 : pState.getPreviousState().hashCode());
+        pState.getPreviousState() == null ? 0 : proofCheckingHash(pState.getPreviousState()));
   }
 }
