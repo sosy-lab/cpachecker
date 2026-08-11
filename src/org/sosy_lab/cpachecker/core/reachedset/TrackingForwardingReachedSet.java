@@ -25,6 +25,24 @@ import org.sosy_lab.cpachecker.util.Pair;
  * PredicateDelegatingRefiner and its DelegatingRefinerHeuristics.
  */
 public class TrackingForwardingReachedSet extends ForwardingReachedSet {
+
+  /**
+   * Immutable snapshot of the changes in a reached set. The class stores a record of the
+   * differences between the current and the previous reached set. It is produced by the {@link
+   * TrackingForwardingReachedSet} and consumed by the PredicateDelegatingRefiner and its
+   * DelegatingRefinerHeuristics.
+   */
+  public record ReachedSetDelta(
+      ImmutableSet<AbstractState> addedStates,
+      ImmutableSet<AbstractState> removedStates,
+      int abstractionLocationsCount) {
+
+    public ReachedSetDelta {
+      checkNotNull(addedStates, "addedStates must not be null.");
+      checkNotNull(removedStates, "removedStates must not be null.");
+    }
+  }
+
   private final Set<AbstractState> addedStates = new HashSet<>();
   private final Set<AbstractState> removedStates = new HashSet<>();
   private int abstractionCount;

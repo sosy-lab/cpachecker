@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
+import org.sosy_lab.cpachecker.core.reachedset.TrackingForwardingReachedSet.ReachedSetDelta;
 
 /**
  * Interface for the heuristics in the PredicateDelegatingRefiner. The delegating refiner uses them

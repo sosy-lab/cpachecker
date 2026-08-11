@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetDelta;
+import org.sosy_lab.cpachecker.core.reachedset.TrackingForwardingReachedSet.ReachedSetDelta;
 
 /**
  * This class implements a DelegatingRefinerHeuristicResultNegation. This is a heuristic that wraps
