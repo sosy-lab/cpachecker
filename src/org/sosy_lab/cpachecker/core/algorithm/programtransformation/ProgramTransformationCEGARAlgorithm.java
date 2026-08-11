@@ -290,7 +290,7 @@ public class ProgramTransformationCEGARAlgorithm
       } while (refinementSuccessful);
 
     } finally {
-      // todo place arg recovery here
+      // arg recovery
       boolean changed = true;
       while (changed) {
         changed = false;
@@ -312,7 +312,7 @@ public class ProgramTransformationCEGARAlgorithm
 
   private boolean refinementNecessary(ReachedSet reached, AbstractState previousLastState) {
     // Do not perform refinement, because we only have precise transfromations at the moment.
-    // The commented out refinement removes program transformations.
+    // Additionally, the commented out refinement removes program transformations.
     return false;
     //return !Objects.equals(reached.getLastState(), previousLastState)
     //    && isTargetState(reached.getLastState());

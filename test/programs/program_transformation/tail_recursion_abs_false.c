@@ -6,8 +6,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-int rand_int();
-
 int abs(int x){
   if(x >= 0){
     return x;
@@ -18,7 +16,7 @@ int abs(int x){
 
 int main(){
 
-  int x = rand_int();
+  int x = -2;
 
   int z = abs(x);
 
