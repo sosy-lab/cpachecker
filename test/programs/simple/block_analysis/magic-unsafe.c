@@ -8,9 +8,9 @@
 
 void reach_error(){}
 
-int magic(int i) {
+int magic(int n) {
    
-   if (i == 0) return 1;
+   if (n == 0) return 1;
    else return 0;
 
 }

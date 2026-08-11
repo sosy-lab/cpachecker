@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.callstack;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
@@ -40,6 +41,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState.IgnoreCallstackState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
@@ -72,6 +74,11 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pElement, Precision pPrecision, CFAEdge pEdge) throws CPATransferException {
     final CallstackState e = (CallstackState) pElement;
+
+    if (e instanceof IgnoreCallstackState) {
+      return ImmutableList.of(new IgnoreCallstackState(e.getCallNode()));
+    }
+
     final CFANode pred = pEdge.getPredecessor();
     final CFANode succ = pEdge.getSuccessor();
     final String predFunction = pred.getFunctionName();

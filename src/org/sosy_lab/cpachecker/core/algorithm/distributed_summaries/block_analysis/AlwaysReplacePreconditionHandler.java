@@ -9,16 +9,13 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimaps;
 import java.util.Collection;
-import java.util.Objects;
 import java.util.Optional;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
@@ -42,8 +39,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  */
 final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
 
-  private final Multimap<Integer, @NonNull StateAndPrecision> preconditions =
-      ArrayListMultimap.create();
+  private final ScopedLocationMap preconditions;
 
   private final DssBlockAnalysis analysis;
 
@@ -52,11 +48,25 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
   AlwaysReplacePreconditionHandler(DssBlockAnalysis pAnalysis) throws InterruptedException {
     analysis = pAnalysis;
     unifiedPrecision = pAnalysis.makeStartPrecision();
+    if (analysis.getBlock().isRoot()) {
+      preconditions = new ScopedLocationMap(analysis.getDcpa(), ImmutableSet.of("root"));
+    } else {
+      preconditions =
+          new ScopedLocationMap(analysis.getDcpa(), analysis.getBlock().getPredecessorIds());
+    }
+
+    if (analysis.getBlock().isRoot()) {
+      analysis.setIgnoreCallstack(false);
+      StateAndPrecision stateAndPrecision =
+          new StateAndPrecision(analysis.makeStartState(), analysis.makeStartPrecision());
+      preconditions.addStateForKey("root", stateAndPrecision);
+    }
   }
 
   @Override
   public Collection<DssMessage> runInitialAnalysis()
       throws CPAException, InterruptedException, SolverException {
+    analysis.setIgnoreCallstack(true);
     DssBlockAnalysisResult result =
         analysis.runInitialBlockAnalysis(analysis.makeStartState(), analysis.makeStartPrecision());
 
@@ -69,15 +79,20 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
   @Override
   public DssMessageProcessing store(DssPostConditionMessage pReceived)
       throws InterruptedException, SolverException, CPAException {
-    analysis.resetStates(preconditions);
+    preconditions.resetStates();
     ImmutableList<@NonNull StateAndPrecision> received = analysis.deserialize(pReceived);
+    if (received.size() == 1
+        && analysis
+            .getDcpa()
+            .isMostGeneralBlockEntryState(Iterables.getOnlyElement(received).state())) {
+      if (preconditions.isEmpty(pReceived.getSenderId())) {
+        return DssMessageProcessing.stop();
+      }
+      preconditions.clearKey(pReceived.getSenderId());
+      return DssMessageProcessing.proceed();
+    }
     ImmutableListMultimap<Integer, @NonNull StateAndPrecision> hashToState =
-        Multimaps.index(
-            received,
-            sap ->
-                Objects.hash(
-                    pReceived.getSenderId(),
-                    analysis.getDcpa().computeProgramPointHash(sap.state())));
+        Multimaps.index(received, sap -> analysis.getDcpa().computeProgramPointHash(sap.state()));
     DssSingleWorkerStatistics stats = analysis.statistics();
     stats.getStorePreconditionStatesTimer().start();
     try {
@@ -92,9 +107,9 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
 
       for (Integer id : hashToState.keySet()) {
         ImmutableList<@NonNull StateAndPrecision> statesAtLocation = hashToState.get(id);
-        if (!analysis.allCovered(statesAtLocation, preconditions.get(id))) {
-          preconditions.removeAll(id);
-          preconditions.putAll(id, statesAtLocation);
+        if (!analysis.allCovered(
+            statesAtLocation, preconditions.getStateForKeyAndId(pReceived.getSenderId(), id))) {
+          preconditions.overwriteStatesForKey(pReceived.getSenderId(), id, statesAtLocation);
           stop = false;
         }
       }
@@ -114,7 +129,7 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
   public Collection<DssMessage> analyze()
       throws SolverException, InterruptedException, CPAException {
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
-    AnalysisResult round = explore();
+    AnalysisResult round = explore(false);
     if (!round.violationConditions().isEmpty()) {
       messages.addAll(analysis.reportViolationConditions(round.violationConditions()));
     }
@@ -128,11 +143,11 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
   public Collection<DssMessage> analyzeFor(String pViolationConditionSender)
       throws SolverException, InterruptedException, CPAException {
     checkArgument(
-        !analysis.getViolationConditions().isEmptyFor(pViolationConditionSender),
+        !analysis.getViolationConditionHandler().isEmptyFor(pViolationConditionSender),
         "No violation condition found for sender ID: %s",
         pViolationConditionSender);
     ImmutableList.Builder<DssMessage> messages = ImmutableList.builder();
-    AnalysisResult round = explore();
+    AnalysisResult round = explore(true);
     if (!round.summaries().isEmpty()) {
       messages.addAll(analysis.reportPostconditions(round.summaries()));
     }
@@ -144,7 +159,7 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
 
   @Override
   public ImmutableList<@NonNull StateAndPrecision> getKnownPreconditions() {
-    return ImmutableList.copyOf(preconditions.values());
+    return preconditions.getStatesAndPrecisions();
   }
 
   @Override
@@ -153,28 +168,52 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
   }
 
   /** Explores the block once from every known precondition. */
-  private AnalysisResult explore() throws CPAException, InterruptedException {
+  private AnalysisResult explore(boolean isBackward) throws CPAException, InterruptedException {
+    if (analysis.getViolationConditionHandler().isEmpty()) {
+      return new AnalysisResult(ImmutableList.of(), ImmutableSet.of());
+    }
+
     ImmutableSet.Builder<StateAndPrecision> summaries = ImmutableSet.builder();
     ImmutableSet.Builder<ArgPathAndCondition> violations = ImmutableSet.builder();
 
-    ImmutableList<AbstractState> toExplore =
-        preconditions.isEmpty()
-            ? ImmutableList.of(analysis.makeStartState())
-            : transformedImmutableListCopy(preconditions.values(), StateAndPrecision::state);
-
-    for (AbstractState precondition : toExplore) {
-      analysis.resetStates(preconditions);
+    Precision precision = unifiedPrecision;
+    Collection<AbstractState> receivedStates = preconditions.getStates();
+    boolean forceTop = false;
+    if (receivedStates.isEmpty()) {
+      analysis.setIgnoreCallstack(true);
+      receivedStates = ImmutableList.of(analysis.makeStartState());
+      precision = analysis.makeStartPrecision();
+      forceTop = !isBackward;
+    }
+    for (AbstractState state : receivedStates) {
+      preconditions.resetStates();
       DssBlockAnalysisResult result =
           analysis.runBlockAnalysis(
-              precondition,
-              unifiedPrecision,
-              analysis.getViolationConditions().statesOf(Optional.empty()));
+              state, precision, analysis.getViolationConditionHandler().statesOf(Optional.empty()));
 
       if (!result.getAllViolations().isEmpty()) {
         violations.addAll(analysis.pathsWithCondition(result.getViolationConditionViolations()));
         violations.addAll(analysis.pathsFromOrigin(result.getTargetStates()));
-      } else if (!preconditions.isEmpty() || analysis.getBlock().isRoot()) {
+      } else if (!receivedStates.isEmpty() || analysis.getBlock().isRoot()) {
         summaries.addAll(analysis.summariesOf(result));
+      }
+    }
+
+    if (violations.build().isEmpty() && summaries.build().isEmpty()) {
+      return new AnalysisResult(
+          ImmutableList.of(
+              new StateAndPrecision(
+                  analysis.makeTopState(analysis.getBlock().getFinalLocation()), precision)),
+          ImmutableSet.of());
+    }
+
+    if (forceTop) {
+      if (violations.build().isEmpty() && summaries.build().isEmpty()) {
+        return new AnalysisResult(
+            ImmutableList.of(
+                new StateAndPrecision(
+                    analysis.makeTopState(analysis.getBlock().getFinalLocation()), precision)),
+            violations.build());
       }
     }
 

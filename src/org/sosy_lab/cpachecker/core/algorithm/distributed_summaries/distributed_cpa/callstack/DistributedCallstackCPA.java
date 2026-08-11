@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState.IgnoreCallstackState;
 
 public class DistributedCallstackCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
@@ -55,6 +56,8 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   private final CFA cfa;
   private final BlockNode block;
   private final boolean requiresStateResets;
+
+  private boolean ignoreCallstack;
 
   public DistributedCallstackCPA(
       CallstackCPA pCallstackCPA,
@@ -84,6 +87,9 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
+    if (ignoreCallstack) {
+      return new IgnoreCallstackState(node);
+    }
     return getCPA().getInitialState(node, partition);
   }
 
@@ -180,5 +186,9 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
         pState.getDepth(),
         pState.getCurrentFunction(),
         pState.getPreviousState() == null ? 0 : proofCheckingHash(pState.getPreviousState()));
+  }
+
+  public void setIgnoreTransfer(boolean pIgnoreCallstack) {
+    ignoreCallstack = pIgnoreCallstack;
   }
 }

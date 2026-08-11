@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
@@ -39,7 +40,17 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 // cannot be an AbstractStateWithLocation as initialization corrupts analysis
 public class BlockState
-    implements AbstractQueryableState, Partitionable, Targetable, FormulaReportingState {
+    implements AbstractQueryableState, Partitionable, Targetable, FormulaReportingState, Graphable {
+
+  @Override
+  public String toDOTLabel() {
+    return "";
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return type == BlockStateType.FINAL;
+  }
 
   public enum BlockStateType {
     INITIAL,

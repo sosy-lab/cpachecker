@@ -186,7 +186,8 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
   @Override
   public Collection<DssMessage> analyze()
       throws SolverException, InterruptedException, CPAException {
-    if (!analysis.containsViolationInsideBlock() && analysis.getViolationConditions().isEmpty()) {
+    if (!analysis.containsViolationInsideBlock()
+        && analysis.getViolationConditionHandler().isEmpty()) {
       return ImmutableSet.of();
     }
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
@@ -204,7 +205,7 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
   public Collection<DssMessage> analyzeFor(String pViolationConditionSender)
       throws SolverException, InterruptedException, CPAException {
     checkArgument(
-        !analysis.getViolationConditions().isEmptyFor(pViolationConditionSender),
+        !analysis.getViolationConditionHandler().isEmptyFor(pViolationConditionSender),
         "No violation condition found for sender ID: %s",
         pViolationConditionSender);
     ImmutableList.Builder<DssMessage> messages = ImmutableList.builder();
@@ -242,7 +243,7 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
    */
   private AnalysisResult explore(Optional<String> pSender)
       throws CPAException, InterruptedException {
-    if (analysis.getViolationConditions().isEmpty()) {
+    if (analysis.getViolationConditionHandler().isEmpty()) {
       return new AnalysisResult(ImmutableList.of(), ImmutableSet.of());
     }
 
@@ -262,7 +263,7 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
             analysis.runBlockAnalysis(
                 precondition.state(),
                 precision,
-                analysis.getViolationConditions().statesOf(pSender));
+                analysis.getViolationConditionHandler().statesOf(pSender));
 
         if (!preconditions.isEmpty() || analysis.getBlock().isRoot()) {
           summaries.addAll(analysis.summariesOf(result));

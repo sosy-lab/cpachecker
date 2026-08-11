@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DistributedCallstackCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
@@ -107,7 +108,7 @@ public final class DssBlockAnalysis {
   private final ReachedSet reachedSet;
 
   private final DssPreconditionHandler preconditions;
-  private final DssViolationConditionHandler violationConditions;
+  private final DssViolationConditionHandler violationConditionHandler;
 
   private AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
   private boolean containsViolationInsideBlock;
@@ -159,7 +160,7 @@ public final class DssBlockAnalysis {
 
     // Assembled last: the handlers use the services above, which are all initialized by now.
     DssBlockAnalysisType type = pOptions.getBlockAnalysisType();
-    violationConditions = type.createViolationConditionHandler(this);
+    violationConditionHandler = type.createViolationConditionHandler(this);
     preconditions = type.createPreconditionHandler(this);
   }
 
@@ -258,7 +259,7 @@ public final class DssBlockAnalysis {
    */
   public DssMessageProcessing storeViolationCondition(DssViolationConditionMessage pReceived)
       throws InterruptedException, SolverException {
-    DssMessageProcessing processing = violationConditions.store(pReceived);
+    DssMessageProcessing processing = violationConditionHandler.store(pReceived);
     if (processing.shouldProceed()) {
       preconditions.violationConditionsChanged();
     }
@@ -571,8 +572,8 @@ public final class DssBlockAnalysis {
     return options;
   }
 
-  DssViolationConditionHandler getViolationConditions() {
-    return violationConditions;
+  DssViolationConditionHandler getViolationConditionHandler() {
+    return violationConditionHandler;
   }
 
   DssPreconditionHandler getPreconditions() {
@@ -612,5 +613,10 @@ public final class DssBlockAnalysis {
       statesAndPrecisions.add(new StateAndPrecision(state, precision));
     }
     return statesAndPrecisions.build();
+  }
+
+  void setIgnoreCallstack(boolean ignoreCallstack) {
+    Optional.ofNullable(CPAs.retrieveCPA(dcpa, DistributedCallstackCPA.class))
+        .ifPresent(c -> c.setIgnoreTransfer(ignoreCallstack));
   }
 }
