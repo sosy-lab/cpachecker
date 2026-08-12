@@ -79,7 +79,6 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
   @Override
   public DssMessageProcessing store(DssPostConditionMessage pReceived)
       throws InterruptedException, SolverException, CPAException {
-    preconditions.resetStates();
     ImmutableList<@NonNull StateAndPrecision> received = analysis.deserialize(pReceived);
     if (received.size() == 1
         && analysis
@@ -164,7 +163,7 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
 
   @Override
   public void violationConditionsChanged() {
-    // nothing to do here, the block will be re-explored on the next round anyway
+    // nothing to do, the block is always explored from all known preconditions
   }
 
   /** Explores the block once from every known precondition. */
@@ -185,11 +184,13 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
       precision = analysis.makeStartPrecision();
       forceTop = !isBackward;
     }
+
     for (AbstractState state : receivedStates) {
-      preconditions.resetStates();
       DssBlockAnalysisResult result =
           analysis.runBlockAnalysis(
-              state, precision, analysis.getViolationConditionHandler().statesOf(Optional.empty()));
+              analysis.getDcpa().reset(state),
+              precision,
+              analysis.getViolationConditionHandler().statesOf(Optional.empty()));
 
       if (!result.getAllViolations().isEmpty()) {
         violations.addAll(analysis.pathsWithCondition(result.getViolationConditionViolations()));
@@ -199,7 +200,10 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
       }
     }
 
-    if (violations.build().isEmpty() && summaries.build().isEmpty()) {
+    ImmutableSet<StateAndPrecision> finalSummaries = summaries.build();
+    ImmutableSet<ArgPathAndCondition> finalViolations = violations.build();
+
+    if (finalViolations.isEmpty() && finalSummaries.isEmpty()) {
       return new AnalysisResult(
           ImmutableList.of(
               new StateAndPrecision(
@@ -207,19 +211,17 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
           ImmutableSet.of());
     }
 
-    if (forceTop) {
-      if (violations.build().isEmpty() && summaries.build().isEmpty()) {
-        return new AnalysisResult(
-            ImmutableList.of(
-                new StateAndPrecision(
-                    analysis.makeTopState(analysis.getBlock().getFinalLocation()), precision)),
-            violations.build());
-      }
+    if (!finalViolations.isEmpty()) {
+      return new AnalysisResult(
+          forceTop
+              ? ImmutableList.of(
+                  new StateAndPrecision(
+                      analysis.makeTopState(analysis.getBlock().getFinalLocation()), precision))
+              : ImmutableSet.of(),
+          finalViolations);
     }
 
-    ImmutableSet<ArgPathAndCondition> newViolations = violations.build();
     // summaries found alongside a violation are discarded: the violation has to be resolved first
-    return new AnalysisResult(
-        newViolations.isEmpty() ? summaries.build() : ImmutableSet.of(), newViolations);
+    return new AnalysisResult(finalSummaries, ImmutableSet.of());
   }
 }
