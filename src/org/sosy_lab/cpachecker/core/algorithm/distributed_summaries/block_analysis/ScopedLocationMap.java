@@ -13,8 +13,8 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import java.util.Collection;
@@ -54,7 +54,7 @@ public class ScopedLocationMap {
 
   public void resetStates() {
     for (Entry<String, Multimap<Integer, StateAndPrecision>> entry : entriesPerKey.entrySet()) {
-      Collection<StateAndPrecision> curr = entry.getValue().values();
+      Collection<StateAndPrecision> curr = ImmutableList.copyOf(entry.getValue().values());
       clearKey(entry.getKey());
       for (StateAndPrecision state : curr) {
         entry.getValue().put(dcpa.computeProgramPointHash(state.state()), state);
@@ -88,7 +88,7 @@ public class ScopedLocationMap {
       String pKey, int pHash, Collection<StateAndPrecision> pStateAndPrecisions) {
     overwriteStatesForKey(
         pKey,
-        ImmutableMultimap.<Integer, StateAndPrecision>builder()
+        ImmutableListMultimap.<Integer, StateAndPrecision>builder()
             .putAll(pHash, pStateAndPrecisions)
             .build());
   }
@@ -109,7 +109,8 @@ public class ScopedLocationMap {
   }
 
   public Multimap<String, StateAndPrecision> asMultimapByKey() {
-    ImmutableMultimap.Builder<String, StateAndPrecision> statesByKey = ImmutableMultimap.builder();
+    ImmutableListMultimap.Builder<String, StateAndPrecision> statesByKey =
+        ImmutableListMultimap.builder();
     for (Entry<String, Multimap<Integer, StateAndPrecision>> entry : entriesPerKey.entrySet()) {
       statesByKey.putAll(entry.getKey(), entry.getValue().values());
     }
