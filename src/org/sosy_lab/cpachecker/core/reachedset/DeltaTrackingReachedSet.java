@@ -16,9 +16,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 /**
  * A {@link ForwardingReachedSet} that additionally tracks which states have been added since the
- * last call to {@link #drainAddedSinceMark()}. Used to give consumers (e.g. adjustable-condition
- * CPAs) access to the delta of newly added states without requiring a full scan of the reached
- * set.
+ * last call to {@link #clearDelta()}. Used to give consumers (e.g. adjustable-condition CPAs)
+ * access to the delta of newly added states without requiring a full scan of the reached set.
  */
 public class DeltaTrackingReachedSet extends ForwardingReachedSet {
 
@@ -49,12 +48,17 @@ public class DeltaTrackingReachedSet extends ForwardingReachedSet {
     }
   }
 
-  /**
-   * Returns all states added since the last call to this method, and clears the tracked set.
-   */
-  public SequencedSet<AbstractState> drainAddedSinceMark() {
-    SequencedSet<AbstractState> result = new LinkedHashSet<>(addedSinceMark);
+  @Override
+  public void clear() {
     addedSinceMark.clear();
-    return result;
+    super.clear();
+  }
+
+  public SequencedSet<AbstractState> getDelta() {
+    return addedSinceMark;
+  }
+
+  public void clearDelta() {
+    addedSinceMark.clear();
   }
 }

@@ -134,6 +134,9 @@ import org.sosy_lab.java_smt.api.SolverException;
 abstract class AbstractBMCAlgorithm
     implements StatisticsProvider, ConditionAdjustmentEventSubscriber {
 
+  private int abstractionCheckCalls = 0;
+  private long abstractionCheckStates = 0;
+
   protected static boolean isStopState(AbstractState state) {
     AssumptionStorageState assumptionState =
         AbstractStates.extractStateByType(state, AssumptionStorageState.class);
@@ -496,8 +499,13 @@ abstract class AbstractBMCAlgorithm
         } finally {
           stats.bmcUnrolling.stop();
         }
-        if (from(trackedReachedSet)
-            .skip(1) // first state of reached is always an abstraction state, so skip it
+        abstractionCheckCalls++;
+        abstractionCheckStates += trackedReachedSet.getDelta().size();
+        System.err.println(
+            "ABSCOUNT calls=" + abstractionCheckCalls + " states=" + abstractionCheckStates);
+
+        if (from(trackedReachedSet.getDelta())
+            .filter(s -> s != trackedReachedSet.getFirstState())
             .filter(not(AbstractStates::isTargetState)) // target states may be abstraction states
             .anyMatch(PredicateAbstractState::containsAbstractionState)) {
 

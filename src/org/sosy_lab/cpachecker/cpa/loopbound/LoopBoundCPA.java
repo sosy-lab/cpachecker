@@ -122,12 +122,11 @@ public class LoopBoundCPA extends AbstractCPA
     adjustReachedSetTimer.start();
     SequencedSet<AbstractState> toRemove = new LinkedHashSet<>();
     try {
-      // When the reached set tracks its own increments, only states added since the last
-      // adjustment can have become removal candidates, so the full scan can be avoided.
-      Iterable<AbstractState> candidates =
-          pReachedSet instanceof DeltaTrackingReachedSet delta
-          ? delta.drainAddedSinceMark()
-          : pReachedSet;
+      // A state's stop flag is set at creation and never changes, so only states added since the
+      // last adjustment can require removal.
+      DeltaTrackingReachedSet delta =
+          pReachedSet instanceof DeltaTrackingReachedSet dtrs ? dtrs : null;
+      Iterable<AbstractState> candidates = delta != null ? delta.getDelta() : pReachedSet;
 
       adjustReachedSetCalls++;
       for (AbstractState s : candidates) {
@@ -136,6 +135,9 @@ public class LoopBoundCPA extends AbstractCPA
         if (loopBoundState != null && loopBoundState.mustDumpAssumptionForAvoidance()) {
           toRemove.add(s);
         }
+      }
+      if (delta != null) {
+        delta.clearDelta();
       }
     } finally {
       adjustReachedSetTimer.stop();
