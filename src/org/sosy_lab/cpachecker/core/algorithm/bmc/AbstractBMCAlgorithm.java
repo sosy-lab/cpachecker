@@ -769,7 +769,14 @@ abstract class AbstractBMCAlgorithm
       BasicProverEnvironment<?> pProver,
       CandidateInvariant pCandidateInvariant)
       throws CPATransferException, InterruptedException, SolverException {
-    BooleanFormula program = bfmgr.not(pCandidateInvariant.getAssertion(pReachedSet, fmgr, pmgr));
+
+    Iterable<AbstractState> assertionStates = pReachedSet;
+    if (pCandidateInvariant == TargetLocationCandidateInvariant.INSTANCE
+        && pReachedSet instanceof DeltaTrackingReachedSet dtrs) {
+      assertionStates = dtrs.getDelta();
+    }
+    BooleanFormula program =
+        bfmgr.not(pCandidateInvariant.getAssertion(assertionStates, fmgr, pmgr));
     if (simplifyBooleanFormula) {
       BigInteger sizeBeforeSimplification = fmgr.countBooleanOperations(program);
       program = fmgr.simplifyBooleanFormula(program);
