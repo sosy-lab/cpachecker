@@ -54,6 +54,20 @@ public class DeltaTrackingReachedSet extends ForwardingReachedSet {
     super.clear();
   }
 
+  @Override
+  public void remove(AbstractState pState) {
+    addedSinceMark.remove(pState);
+    super.remove(pState);
+  }
+
+  @Override
+  public void removeAll(Iterable<? extends AbstractState> pToRemove) {
+    for (AbstractState s : pToRemove) {
+      addedSinceMark.remove(s);
+    }
+    super.removeAll(pToRemove);
+  }
+
   public SequencedSet<AbstractState> getDelta() {
     return addedSinceMark;
   }
