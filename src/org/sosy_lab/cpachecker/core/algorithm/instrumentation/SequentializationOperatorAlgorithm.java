@@ -223,9 +223,11 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
                           .getOperation()
                           .insertVariablesInsideOperation(
                               matchedVariables, transition.getPattern());
-              if (newEdge.contains("__CPAchecker_TMP")) {
+              if (newEdge.contains("__CPAchecker_TMP") || edge.getPredecessor().isLoopStart()) {
                 if (instrumentationProperty == InstrumentationProperty.NOOVERFLOW) {
-                  throw new CPAException("Matching for line with function calls is unsupported.");
+                  throw new CPAException(
+                      "Matching for line with function calls or operations inside the loop"
+                          + " condition is unsupported.");
                 }
               } else {
                 if (!newEdges.contains(newEdge)) {
