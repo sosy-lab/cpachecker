@@ -134,9 +134,6 @@ import org.sosy_lab.java_smt.api.SolverException;
 abstract class AbstractBMCAlgorithm
     implements StatisticsProvider, ConditionAdjustmentEventSubscriber {
 
-  private int abstractionCheckCalls = 0;
-  private long abstractionCheckStates = 0;
-
   protected static boolean isStopState(AbstractState state) {
     AssumptionStorageState assumptionState =
         AbstractStates.extractStateByType(state, AssumptionStorageState.class);
@@ -450,8 +447,8 @@ abstract class AbstractBMCAlgorithm
 
     final DeltaTrackingReachedSet trackedReachedSet =
         reachedSet instanceof DeltaTrackingReachedSet dtrs
-        ? dtrs
-        : new DeltaTrackingReachedSet(reachedSet);
+            ? dtrs
+            : new DeltaTrackingReachedSet(reachedSet);
 
     AlgorithmStatus status;
     final Set<Obligation> ctiBlockingClauses;
@@ -499,10 +496,6 @@ abstract class AbstractBMCAlgorithm
         } finally {
           stats.bmcUnrolling.stop();
         }
-        abstractionCheckCalls++;
-        abstractionCheckStates += trackedReachedSet.getDelta().size();
-        System.err.println(
-            "ABSCOUNT calls=" + abstractionCheckCalls + " states=" + abstractionCheckStates);
 
         if (from(trackedReachedSet.getDelta())
             .filter(s -> s != trackedReachedSet.getFirstState())
@@ -562,7 +555,8 @@ abstract class AbstractBMCAlgorithm
           if (induction && !sound) {
             if (usePropertyDirection) {
               usePropertyDirection =
-                  refineCtiBlockingClauses(trackedReachedSet, prover, ctiBlockingClauses, checkedClauses);
+                  refineCtiBlockingClauses(
+                      trackedReachedSet, prover, ctiBlockingClauses, checkedClauses);
               if (!usePropertyDirection) {
                 ctiBlockingClauses.clear();
               }
