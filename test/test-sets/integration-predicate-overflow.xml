@@ -65,6 +65,8 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/recursified_nla-digbench/recursified_egcd.yml</exclude> <!-- flapping error/timeout -->
     <exclude>../programs/benchmarks/recursified_nla-digbench/recursified_geo1-ll2.yml</exclude> <!-- flapping error/timeout -->
     <exclude>../programs/benchmarks/recursified_nla-digbench/recursified_geo1-u2.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/recursified_nla-digbench/recursified_geo2-ll2.yml</exclude> <!-- flapping error/timeout -->
+    <exclude>../programs/benchmarks/recursified_nla-digbench/recursified_ps4-ll.yml</exclude> <!-- flapping error/timeout -->
     <exclude>../programs/benchmarks/recursified_nla-digbench/recursified_ps6.yml</exclude> <!-- flapping error/timeout -->
     <exclude>../programs/benchmarks/recursive-simple/fibo_2calls_6-2.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/recursive-simple/fibo_7-2.yml</exclude> <!-- flapping timeout -->

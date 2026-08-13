@@ -6,41 +6,37 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.path;
+package org.sosy_lab.cpachecker.cpa.pathrestriction;
 
 import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 
-public class PathCPA extends AbstractCPA {
+public class PathRestrictionCPA extends AbstractCPA {
 
   private SegmentedPaths pathCollection;
 
-  private PathCPA() {
-    super("sep", "sep", new FlatLatticeDomain(), new PathTransferRelation());
+  private PathRestrictionCPA() {
+    super("sep", "sep", new FlatLatticeDomain(), new PathRestrictionTransferRelation());
   }
 
   public void init(SegmentedPaths pPathCollection) {
-    Preconditions.checkNotNull(pPathCollection);
     Preconditions.checkState(pathCollection == null);
-    pathCollection = pPathCollection;
+    pathCollection = Preconditions.checkNotNull(pPathCollection);
   }
 
   public static CPAFactory factory() {
-    return new PathCPAFactory();
+    return AutomaticCPAFactory.forType(PathRestrictionCPA.class);
   }
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return PathState.initialState(pathCollection);
-  }
-
-  static PathCPA create() {
-    return new PathCPA();
+    return PathRestrictionState.initialState(pathCollection);
   }
 }

@@ -15,14 +15,14 @@ int main() {
   int x = 0;
   if (x >= 0) {
     if (x == 1) {
-      ERROR: __assert_fail("0", "Problem01_label00.c", 4, "reac1h_error");
+      __assert_fail("0", "Problem01_label00.c", 4, "reac1h_error");
     }
     if (x == 1) {
-      ERROR: __assert_fail("1", "Problem01_label001.c", 4, "r1each_error");
+      __assert_fail("1", "Problem01_label001.c", 4, "r1each_error");
     }
     x++;
     x++;
-    ERROR: __assert_fail("1", "Problem01_label001.c", 4, "r1each_error");
+    __assert_fail("1", "Problem01_label001.c", 4, "r1each_error");
   } else {
     if (x == 1) {
       x--;
