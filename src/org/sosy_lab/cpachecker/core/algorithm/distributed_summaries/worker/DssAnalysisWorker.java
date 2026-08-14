@@ -12,6 +12,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
@@ -21,7 +22,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssAllWorkerStatistics;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssMessageBroadcaster;
@@ -31,7 +31,9 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa.DeserializeBlockStateOperator;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -42,7 +44,14 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   private interface AnalysisCreation {
 
     DssBlockAnalysis createDssBlockAnalysis()
-        throws CPAException, InvalidConfigurationException, InterruptedException;
+        throws CPAException,
+            InvalidConfigurationException,
+            InterruptedException,
+            NoSuchMethodException,
+            InstantiationException,
+            IllegalAccessException,
+            IllegalArgumentException,
+            InvocationTargetException;
   }
 
   private static class CreateOrRetrieveThreadLocalAnalysis {
@@ -59,7 +68,13 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
       if (dssBlockAnalysis == null) {
         try {
           dssBlockAnalysis = createAnalysis.createDssBlockAnalysis();
-        } catch (InterruptedException | InvalidConfigurationException | CPAException e) {
+        } catch (InterruptedException
+            | InvalidConfigurationException
+            | CPAException
+            | NoSuchMethodException
+            | InstantiationException
+            | IllegalAccessException
+            | InvocationTargetException e) {
           throw new AssertionError("Could not create DssBlockAnalysis but it is required", e);
         }
         originalThreadName = Thread.currentThread().getName();
@@ -79,12 +94,9 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
 
   private final BlockNode block;
 
-  private final LogManager logger;
   private final DssMessageFactory messageFactory;
 
   private final DssConnection connection;
-
-  private final DssSingleWorkerStatistics workerStats;
 
   private boolean shutdown;
   private boolean closed;
@@ -128,8 +140,6 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
             .build();
 
     messageFactory = pMessageFactory;
-    logger = pLogger;
-    workerStats = pWorkerStatistics.createWorkerStats(pId);
     analysis =
         new CreateOrRetrieveThreadLocalAnalysis(
             () ->
@@ -142,7 +152,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
                     pOptions,
                     pMessageFactory,
                     pShutdownManager,
-                    workerStats));
+                    pWorkerStatistics.createWorkerStats(getId())));
   }
 
   public Collection<DssMessage> runInitialAnalysis()
@@ -179,10 +189,20 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
           yield ImmutableSet.of(messageFactory.createDssExceptionMessage(getBlockId(), e));
         }
       }
-      case EXCEPTION, RESULT -> {
+      case EXCEPTION -> {
         shutdown = true;
         yield ImmutableSet.of();
       }
+      case RESULT -> {
+        shutdown = true;
+        if (message.getResult() == Result.TRUE) {
+          yield ImmutableSet.of(
+              messageFactory.createDssCorrectnessWitnessMessage(
+                  getBlockId(), analysis.getDssBlockAnalysis().serializedPreconditions()));
+        }
+        yield ImmutableSet.of();
+      }
+      case WITNESS -> ImmutableSet.of();
     };
   }
 
@@ -190,7 +210,7 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   public DssMessageProcessing storeMessage(DssMessage message)
       throws SolverException, InterruptedException, CPAException {
     return switch (message.getType()) {
-      case RESULT, EXCEPTION -> DssMessageProcessing.stop();
+      case RESULT, EXCEPTION, WITNESS -> DssMessageProcessing.stop();
       case VIOLATION_CONDITION ->
           analysis
               .getDssBlockAnalysis()
@@ -221,14 +241,19 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
         }
         case VIOLATION_CONDITION -> {
           if (block.getPredecessorIds().isEmpty()) {
+            String violationPathString = message.extractBlockStateWitnessString();
+            SegmentedPaths violationPath =
+                DeserializeBlockStateOperator.parseWitness(violationPathString).witness();
             broadcaster.broadcastToAll(
                 messageFactory.createDssResultMessage(getId(), Result.FALSE));
+            broadcaster.broadcastToAll(
+                messageFactory.createDssViolationWitnessMessage(getId(), violationPath));
           } else {
             broadcaster.broadcastToObserver(message);
             broadcaster.broadcastToIds(message, block.getPredecessorIds());
           }
         }
-        case EXCEPTION, RESULT -> {
+        case EXCEPTION, RESULT, WITNESS -> {
           // the worker will also broadcast to itself and react
           // appropriately in processMessage
           broadcaster.broadcastToAll(message);
