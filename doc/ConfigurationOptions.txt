@@ -1561,7 +1561,7 @@ cpa.abe.checkTargetStates = true
 cpa.abe.useCachingPathFormulaManager = true
 
 # only store pure C expressions without ACSL-specific constructs
-cpa.acsl.usePureExpressionsOnly = true
+cpa.acsldeprecated.usePureExpressionsOnly = true
 
 # Use this to change the underlying abstract domain in the APRON library
 cpa.apron.domain = OCTAGON
