@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Predicate;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -59,14 +58,20 @@ public class DecompositionDeterminismTest {
     CFA firstCfa = TestUtil.buildTestCFA(path);
     List<String> first = fingerprint(createDecomposition(firstCfa, pInline).decompose(firstCfa));
 
-    var unused = Objects.hash(new Object(), new Object(), new Object());
-
     CFA secondCfa = TestUtil.buildTestCFA(path);
     List<String> second = fingerprint(createDecomposition(secondCfa, pInline).decompose(secondCfa));
+
+    CFA thirdCfa = TestUtil.buildTestCFA(path);
+    List<String> third = fingerprint(createDecomposition(thirdCfa, pInline).decompose(thirdCfa));
 
     Truth.assertWithMessage(
             "Decomposing the same program twice must assign the same id to the same block")
         .that(second)
+        .containsExactlyElementsIn(first)
+        .inOrder();
+    Truth.assertWithMessage(
+            "Decomposing the same program twice must assign the same id to the same block")
+        .that(third)
         .containsExactlyElementsIn(first)
         .inOrder();
   }
