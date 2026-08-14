@@ -27,7 +27,7 @@ int main() {
     sn = sn + i;
   }
   // Compute Gauss sum without overflow
-  unsigned long long gauss = (n * (n + 1U)) / 2U;
+  unsigned long long gauss = (unsigned long long)n * (n + 1U) / 2U;
   if (sn == gauss || sn == 0) {
     goto EXIT;
   } else {
