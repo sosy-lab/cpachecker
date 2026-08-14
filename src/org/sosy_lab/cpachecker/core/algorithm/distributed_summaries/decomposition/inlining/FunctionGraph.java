@@ -111,6 +111,8 @@ public class FunctionGraph {
       edges.put(fs.function, fs.calls);
     }
     // We should have found at least one function
+    assert first != null;
+
     ImmutableSet<BlockFunction> fs = functions.build();
 
     return new FunctionGraph(fs, first, convertCallEdgesToCalls(edges, fs));
