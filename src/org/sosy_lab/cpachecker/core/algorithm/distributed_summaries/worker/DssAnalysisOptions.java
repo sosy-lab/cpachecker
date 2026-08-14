@@ -65,7 +65,7 @@ public class DssAnalysisOptions {
               + " one. The latter has disadvantages as unnecessary variables might be tracked due"
               + " to a too precise precision.",
       secure = true)
-  private boolean resetPrecisionForEveryRun = false;
+  private boolean doResetPrecisionsForEveryRun = false;
 
   @Option(
       description =
@@ -114,8 +114,8 @@ public class DssAnalysisOptions {
     return debug;
   }
 
-  public boolean resetPrecisionsForEveryRun() {
-    return resetPrecisionForEveryRun;
+  public boolean doResetPrecisionsForEveryRun() {
+    return doResetPrecisionsForEveryRun;
   }
 
   public Path getForwardConfiguration() {

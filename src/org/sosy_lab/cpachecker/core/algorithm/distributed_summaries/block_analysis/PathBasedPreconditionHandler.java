@@ -57,7 +57,7 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
 
   PathBasedPreconditionHandler(DssBlockAnalysis pAnalysis) throws InterruptedException {
     analysis = pAnalysis;
-    resetPrecisionsForEveryRun = pAnalysis.getOptions().resetPrecisionsForEveryRun();
+    resetPrecisionsForEveryRun = pAnalysis.getOptions().doResetPrecisionsForEveryRun();
     unifiedPrecision = pAnalysis.makeStartPrecision();
 
     for (String predecessorId : pAnalysis.getBlock().getPredecessorIds()) {

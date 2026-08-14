@@ -43,11 +43,11 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
 
   private final DssBlockAnalysis analysis;
 
-  private Precision unifiedPrecision;
+  private Precision currentPrecisionOfAnalysis;
 
   AlwaysReplacePreconditionHandler(DssBlockAnalysis pAnalysis) throws InterruptedException {
     analysis = pAnalysis;
-    unifiedPrecision = pAnalysis.makeStartPrecision();
+    currentPrecisionOfAnalysis = pAnalysis.makeStartPrecision();
     if (analysis.getBlock().isRoot()) {
       preconditions = new BlockToProgramLocationMap(analysis.getDcpa(), ImmutableSet.of("root"));
     } else {
@@ -105,7 +105,7 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
 
       preconditions.removeStatesWithIgnoreCallstackFrom(pReceived.getSenderId());
 
-      unifiedPrecision = analysis.combinePrecisions(unifiedPrecision, received);
+      currentPrecisionOfAnalysis = analysis.combinePrecisions(currentPrecisionOfAnalysis, received);
 
       boolean stop = true;
 
@@ -181,14 +181,15 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
       return new AnalysisResult(
           ImmutableList.of(
               new StateAndPrecision(
-                  analysis.makeTopState(analysis.getBlock().getFinalLocation()), unifiedPrecision)),
+                  analysis.makeTopState(analysis.getBlock().getFinalLocation()),
+                  currentPrecisionOfAnalysis)),
           ImmutableSet.of());
     }
 
     ImmutableSet.Builder<StateAndPrecision> summaries = ImmutableSet.builder();
     ImmutableSet.Builder<ArgPathAndCondition> violations = ImmutableSet.builder();
 
-    Precision precision = unifiedPrecision;
+    Precision precision = currentPrecisionOfAnalysis;
     Collection<AbstractState> receivedStates = preconditions.getStates();
     boolean forceTop = false;
     if (receivedStates.isEmpty()) {
