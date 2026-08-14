@@ -59,7 +59,7 @@ public class DecompositionDeterminismTest {
     CFA firstCfa = TestUtil.buildTestCFA(path);
     List<String> first = fingerprint(createDecomposition(firstCfa, pInline).decompose(firstCfa));
 
-    Objects.hash(new Object(), new Object(), new Object());
+    int unused = Objects.hash(new Object(), new Object(), new Object());
 
     CFA secondCfa = TestUtil.buildTestCFA(path);
     List<String> second = fingerprint(createDecomposition(secondCfa, pInline).decompose(secondCfa));
