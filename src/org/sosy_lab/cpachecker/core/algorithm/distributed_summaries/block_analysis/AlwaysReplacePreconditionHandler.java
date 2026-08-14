@@ -39,7 +39,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  */
 final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
 
-  private final ScopedLocationMap preconditions;
+  private final BlockToProgramLocationMap preconditions;
 
   private final DssBlockAnalysis analysis;
 
@@ -49,10 +49,11 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
     analysis = pAnalysis;
     unifiedPrecision = pAnalysis.makeStartPrecision();
     if (analysis.getBlock().isRoot()) {
-      preconditions = new ScopedLocationMap(analysis.getDcpa(), ImmutableSet.of("root"));
+      preconditions = new BlockToProgramLocationMap(analysis.getDcpa(), ImmutableSet.of("root"));
     } else {
       preconditions =
-          new ScopedLocationMap(analysis.getDcpa(), analysis.getBlock().getPredecessorIds());
+          new BlockToProgramLocationMap(
+              analysis.getDcpa(), analysis.getBlock().getPredecessorIds());
     }
 
     if (analysis.getBlock().isRoot()) {
@@ -84,12 +85,14 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
         && analysis
             .getDcpa()
             .isMostGeneralBlockEntryState(Iterables.getOnlyElement(received).state())) {
-      if (preconditions.isEmpty(pReceived.getSenderId())) {
+      preconditions.markUnreachable(pReceived.getSenderId());
+      if (preconditions.isEmpty(pReceived.getSenderId()) && !preconditions.isUnreachable()) {
         return DssMessageProcessing.stop();
       }
       preconditions.clearKey(pReceived.getSenderId());
       return DssMessageProcessing.proceed();
     }
+    preconditions.unmarkUnreachable(pReceived.getSenderId());
     ImmutableListMultimap<Integer, @NonNull StateAndPrecision> hashToState =
         Multimaps.index(received, sap -> analysis.getDcpa().computeProgramPointHash(sap.state()));
     DssSingleWorkerStatistics stats = analysis.statistics();
@@ -99,6 +102,8 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
       if (!processing.shouldProceed()) {
         return processing;
       }
+
+      preconditions.removeStatesWithIgnoreCallstackFrom(pReceived.getSenderId());
 
       unifiedPrecision = analysis.combinePrecisions(unifiedPrecision, received);
 
@@ -172,6 +177,14 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
       return new AnalysisResult(ImmutableList.of(), ImmutableSet.of());
     }
 
+    if (!isBackward && preconditions.isUnreachable()) {
+      return new AnalysisResult(
+          ImmutableList.of(
+              new StateAndPrecision(
+                  analysis.makeTopState(analysis.getBlock().getFinalLocation()), unifiedPrecision)),
+          ImmutableSet.of());
+    }
+
     ImmutableSet.Builder<StateAndPrecision> summaries = ImmutableSet.builder();
     ImmutableSet.Builder<ArgPathAndCondition> violations = ImmutableSet.builder();
 
@@ -212,6 +225,7 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
     }
 
     if (!finalViolations.isEmpty()) {
+      // summaries found alongside a violation are discarded: the violation has to be resolved first
       return new AnalysisResult(
           forceTop
               ? ImmutableList.of(
@@ -221,7 +235,6 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
           finalViolations);
     }
 
-    // summaries found alongside a violation are discarded: the violation has to be resolved first
     return new AnalysisResult(finalSummaries, ImmutableSet.of());
   }
 }

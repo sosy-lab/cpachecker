@@ -15,51 +15,67 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState.IgnoreCallstackState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class ScopedLocationMap {
+public class BlockToProgramLocationMap {
 
   private final DistributedConfigurableProgramAnalysis dcpa;
 
+  private final Set<String> unreachablePredecessors;
+
   private final ImmutableMap<String, Multimap<Integer, StateAndPrecision>> entriesPerKey;
 
-  ScopedLocationMap(DistributedConfigurableProgramAnalysis pDcpa, Set<String> pPotentialKeys) {
+  BlockToProgramLocationMap(
+      DistributedConfigurableProgramAnalysis pDcpa, Set<String> pPotentialKeys) {
     dcpa = pDcpa;
     ImmutableMap.Builder<String, Multimap<Integer, StateAndPrecision>> entryBuilder =
         ImmutableMap.builder();
     pPotentialKeys.forEach(k -> entryBuilder.put(k, ArrayListMultimap.create()));
     entriesPerKey = entryBuilder.buildOrThrow();
+    unreachablePredecessors = new LinkedHashSet<>();
+  }
+
+  public void markUnreachable(String pKey) {
+    assert entriesPerKey.containsKey(pKey);
+    unreachablePredecessors.add(pKey);
+  }
+
+  public void unmarkUnreachable(String pKey) {
+    assert entriesPerKey.containsKey(pKey);
+    unreachablePredecessors.remove(pKey);
+  }
+
+  public boolean isUnreachable() {
+    return unreachablePredecessors.equals(entriesPerKey.keySet());
   }
 
   public boolean isEmpty(String pKey) {
     return entriesPerKey.get(pKey).isEmpty();
   }
 
-  public Collection<StateAndPrecision> getStatesForKey(String pKey) {
+  public Collection<StateAndPrecision> getStatesAndPrecisionsForKey(String pKey) {
     return entriesPerKey.get(pKey).values();
+  }
+
+  public Collection<AbstractState> getStatesForKey(String pKey) {
+    return transformedImmutableListCopy(entriesPerKey.get(pKey).values(), StateAndPrecision::state);
   }
 
   public ImmutableList<StateAndPrecision> getStatesAndPrecisions() {
     return FluentIterable.from(entriesPerKey.keySet())
-        .transformAndConcat(this::getStatesForKey)
+        .transformAndConcat(this::getStatesAndPrecisionsForKey)
         .toList();
-  }
-
-  public void resetStates() {
-    for (Entry<String, Multimap<Integer, StateAndPrecision>> entry : entriesPerKey.entrySet()) {
-      Collection<StateAndPrecision> curr = ImmutableList.copyOf(entry.getValue().values());
-      clearKey(entry.getKey());
-      for (StateAndPrecision state : curr) {
-        entry.getValue().put(dcpa.computeProgramPointHash(state.state()), state);
-      }
-    }
   }
 
   public Collection<String> getKeys() {
@@ -98,6 +114,19 @@ public class ScopedLocationMap {
     overwriteStatesForKey(
         pKey,
         Multimaps.index(pStateAndPrecisions, sap -> dcpa.computeProgramPointHash(sap.state())));
+  }
+
+  public void removeStatesWithIgnoreCallstackFrom(String pKey) {
+    ImmutableSet.Builder<Integer> toRemove = ImmutableSet.builder();
+    for (Entry<Integer, StateAndPrecision> entry : entriesPerKey.get(pKey).entries()) {
+      if (AbstractStates.extractStateByType(entry.getValue().state(), IgnoreCallstackState.class)
+          != null) {
+        toRemove.add(entry.getKey());
+      }
+    }
+    for (Integer i : toRemove.build()) {
+      entriesPerKey.get(pKey).removeAll(i);
+    }
   }
 
   public void overwriteStatesForKey(String pKey, Multimap<Integer, StateAndPrecision> pStates) {

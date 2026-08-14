@@ -83,6 +83,7 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
         for (AbstractState vc : blockState.getViolationConditions()) {
           successors.add(
               new BlockState(
+                  blockState,
                   cfaEdge.getSuccessor(),
                   blockState.getBlockNode(),
                   getBlockStateTypeOfLocation(blockState.getBlockNode(), cfaEdge.getSuccessor()),
@@ -94,6 +95,7 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
       }
       return ImmutableList.of(
           new BlockState(
+              blockState,
               cfaEdge.getSuccessor(),
               blockState.getBlockNode(),
               getBlockStateTypeOfLocation(blockState.getBlockNode(), cfaEdge.getSuccessor()),

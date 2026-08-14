@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState.IgnoreCallstackState;
 
 public class SerializeCallstackStateOperator implements SerializeOperator {
   private final Map<CFANode, Integer> nodeToId;
@@ -29,15 +30,20 @@ public class SerializeCallstackStateOperator implements SerializeOperator {
 
   @Override
   public ImmutableMap<String, String> serialize(AbstractState pCallstackState) {
-    List<String> states = new ArrayList<>();
-    CallstackState callstackState = (CallstackState) pCallstackState;
-    while (callstackState != null) {
-      states.add(
-          nodeToId.get(callstackState.getCallNode()) + "." + callstackState.getCurrentFunction());
-      callstackState = callstackState.getPreviousState();
+    String result;
+    if (pCallstackState instanceof IgnoreCallstackState) {
+      result = "__ignore";
+    } else {
+      List<String> states = new ArrayList<>();
+      CallstackState callstackState = (CallstackState) pCallstackState;
+      while (callstackState != null) {
+        states.add(
+            nodeToId.get(callstackState.getCallNode()) + "." + callstackState.getCurrentFunction());
+        callstackState = callstackState.getPreviousState();
+      }
+      Collections.reverse(states);
+      result = Joiner.on(DistributedCallstackCPA.DELIMITER).join(states);
     }
-    Collections.reverse(states);
-    String result = Joiner.on(DistributedCallstackCPA.DELIMITER).join(states);
     return ContentBuilder.builder()
         .pushLevel(CallstackState.class.getName())
         .put(STATE_KEY, result)

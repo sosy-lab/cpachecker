@@ -8,8 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import java.util.LinkedHashSet;
 import java.util.Objects;
+import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -23,6 +27,9 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 public class DssBlockAnalyses {
 
   private DssBlockAnalyses() {}
+
+  private record PreviousAbstractionState(
+      BlockState predecessor, AbstractState violationCondition) {}
 
   /**
    * Analyze the code block until all target states in this block are found. Block entry points
@@ -38,9 +45,26 @@ public class DssBlockAnalyses {
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
     // find all target states in block, except target states that are only reachable from another
     // target state
+    Set<PreviousAbstractionState> previousAbstractionStates = new LinkedHashSet<>();
     while (pReachedSet.hasWaitingState()) {
       status = status.update(pAlgorithm.run(pReachedSet));
       AbstractStates.getTargetStates(pReachedSet).forEach(pReachedSet::removeOnlyFromWaitlist);
+      int sizeBefore = previousAbstractionStates.size();
+      FluentIterable.from(pReachedSet)
+          .transform(s -> AbstractStates.extractStateByType(s, BlockState.class))
+          .filter(
+              b ->
+                  b.getType() == BlockStateType.ABSTRACTION
+                      && b.getViolationConditions().size() == 1)
+          .forEach(
+              b ->
+                  previousAbstractionStates.add(
+                      new PreviousAbstractionState(
+                          b.getPredecessor(),
+                          Iterables.getOnlyElement(b.getViolationConditions()))));
+      if (sizeBefore == previousAbstractionStates.size()) {
+        break;
+      }
     }
 
     return new DssBlockAnalysisResult(pReachedSet, status);

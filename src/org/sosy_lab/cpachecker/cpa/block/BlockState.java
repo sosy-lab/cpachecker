@@ -60,6 +60,7 @@ public class BlockState
     WITNESS
   }
 
+  private final BlockState predecessor;
   private final CFANode node;
   private final BlockStateType type;
   private final BlockNode blockNode;
@@ -70,6 +71,7 @@ public class BlockState
   private final Optional<SegmentedPaths> witnessCheckPathState;
 
   public BlockState(
+      BlockState pPredecessor,
       CFANode pNode,
       BlockNode pTargetNode,
       BlockStateType pType,
@@ -80,6 +82,7 @@ public class BlockState
     Preconditions.checkArgument(
         pType == BlockStateType.WITNESS || pWitnessCheckPathState == null,
         "Added path state while not being in Witnes state");
+    predecessor = pPredecessor;
     node = pNode;
     type = pType;
     blockNode = pTargetNode;
@@ -90,13 +93,14 @@ public class BlockState
   }
 
   public BlockState(
+      BlockState pPredecessor,
       CFANode pNode,
       BlockNode pTargetNode,
       BlockStateType pType,
       List<? extends AbstractState> pViolationConditions,
       BlockGraphPath pHistory,
       SegmentedPaths pWitness) {
-    this(pNode, pTargetNode, pType, pViolationConditions, pHistory, pWitness, null);
+    this(pPredecessor, pNode, pTargetNode, pType, pViolationConditions, pHistory, pWitness, null);
   }
 
   public void addHistory(BlockNode pBlockNode) {
@@ -138,7 +142,7 @@ public class BlockState
 
   @Override
   public @Nullable Object getPartitionKey() {
-    return blockNode;
+    return Objects.hash(getLocationNode(), violationConditions, type);
   }
 
   @Override
@@ -180,6 +184,10 @@ public class BlockState
       return bfmgr.or(combined.build());
     }
     return bfmgr.makeTrue();
+  }
+
+  public BlockState getPredecessor() {
+    return predecessor;
   }
 
   @Override

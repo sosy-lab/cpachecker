@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState.IgnoreCallstackState;
 
 public class DeserializeCallstackStateOperator implements DeserializeOperator {
 
@@ -42,16 +43,19 @@ public class DeserializeCallstackStateOperator implements DeserializeOperator {
       CFANode location = DeserializeOperator.startLocationFromMessageType(pMessage, blockNode);
       return parentCPA.getInitialState(location, StateSpacePartition.getDefaultPartition());
     }
+    if (stateJson.equals("__ignore")) {
+      return new IgnoreCallstackState(blockNode.getInitialLocation());
+    }
     List<String> parts = Splitter.on(DistributedCallstackCPA.DELIMITER).splitToList(stateJson);
-    CallstackState previous = null;
+    CallstackState current = null;
     for (String part : parts) {
       List<String> properties = Splitter.on(".").limit(2).splitToList(part);
-      previous =
+      current =
           new CallstackState(
-              previous,
+              current,
               properties.get(1),
               Objects.requireNonNull(converter.apply(Integer.parseInt(properties.getFirst()))));
     }
-    return previous;
+    return current;
   }
 }
