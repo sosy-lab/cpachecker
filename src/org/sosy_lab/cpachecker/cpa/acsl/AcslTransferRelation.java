@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.acsl;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Collection;
-import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -35,7 +35,7 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
     // TODO
-    return List.of();
+    return ImmutableList.of();
   }
 
   @Override
