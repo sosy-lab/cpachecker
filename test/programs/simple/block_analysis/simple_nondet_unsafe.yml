@@ -11,5 +11,5 @@ format_version: '1.0'
 input_files: 'simple_nondet_unsafe.c'
 
 properties:
-  - property_file: ../../../config/properties/unreach-call.prp
+  - property_file: ../../../../config/properties/unreach-call.prp
     expected_verdict: false
