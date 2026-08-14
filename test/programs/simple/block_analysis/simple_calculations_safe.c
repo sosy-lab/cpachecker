@@ -6,6 +6,15 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+extern void abort(void);
+extern void __assert_fail(const char *, const char *, unsigned int,
+                           const char *) __attribute__((__nothrow__, __leaf__))
+__attribute__((__noreturn__));
+
+void reach_error() {
+  __assert_fail("0", "simple_calculations_safe.c", 20, "reach_error");
+}
+
 extern int __VERIFIER_nondet_int();
 
 int main() {
@@ -14,9 +23,7 @@ int main() {
     y = y * (-1);
   }
   if (y < 0) {
-    goto ERROR;
+    reach_error();
   }
   return 0;
-ERROR:
-  return 1;
 }
