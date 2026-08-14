@@ -177,6 +177,6 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
   public int computeProgramPointHash(AbstractState pAbstractState) {
     Preconditions.checkState(pAbstractState instanceof BlockState);
     BlockState blockState = (BlockState) pAbstractState;
-    return Objects.hash(blockState.getLocationNode());
+    return blockState.getLocationNode().getNodeNumber();
   }
 }

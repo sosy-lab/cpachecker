@@ -170,4 +170,13 @@ public class CallstackState
             .orElseThrow()
             .getNodeByNodeNumber(nodeNumber);
   }
+
+  public static class IgnoreCallstackState extends CallstackState {
+
+    @Serial private static final long serialVersionUID = 7801295974693748578L;
+
+    public IgnoreCallstackState(CFANode pNode) {
+      super(null, pNode.getFunctionName(), pNode);
+    }
+  }
 }

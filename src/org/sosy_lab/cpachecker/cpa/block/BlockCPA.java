@@ -17,9 +17,11 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.BreakOnTargetsPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
 import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
@@ -48,6 +50,11 @@ public class BlockCPA extends AbstractCPA {
         ImmutableList.of(),
         BlockGraphPath.of(),
         SegmentedPaths.EMPTY);
+  }
+
+  @Override
+  public PrecisionAdjustment getPrecisionAdjustment() {
+    return new BlockPrecisionAdjustment(new BreakOnTargetsPrecisionAdjustment(1, -1));
   }
 
   public static CPAFactory factory() {

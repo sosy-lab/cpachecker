@@ -11,10 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -51,7 +49,6 @@ public class DssObserverWorker extends DssWorker {
 
   private int witnessMessagesReceived;
 
-  private final Set<String> receivedWitnesses;
   private final BlockGraph blockGraph;
   private final DssWitnessArgStateCollector stateCollector;
 
@@ -71,7 +68,6 @@ public class DssObserverWorker extends DssWorker {
     violationWitness = Optional.empty();
     blockGraph = pBlockGraph;
     stateCollector = pStateCollector;
-    receivedWitnesses = new HashSet<>();
   }
 
   @Override
@@ -90,7 +86,6 @@ public class DssObserverWorker extends DssWorker {
         shutdown = true;
       }
       case WITNESS -> {
-        receivedWitnesses.add(pMessage.getSenderId());
         if (pMessage.getWitnessType() == WitnessType.VIOLATION) {
           violationWitness = Optional.of(pMessage.getViolationPath());
         } else {
@@ -113,8 +108,7 @@ public class DssObserverWorker extends DssWorker {
           case FALSE -> 1;
           default -> 0;
         };
-    return receivedWitnesses.size() == blockGraph.getNodes().size()
-        && witnessMessagesReceived == expectedWitnessMessages;
+    return witnessMessagesReceived == expectedWitnessMessages;
   }
 
   public StatusAndResult observe() throws CPAException {
@@ -166,7 +160,7 @@ public class DssObserverWorker extends DssWorker {
     private AlgorithmStatus finish() {
       return statusMap.values().stream()
           .reduce(AlgorithmStatus::update)
-          .orElse(AlgorithmStatus.NO_PROPERTY_CHECKED);
+          .orElse(AlgorithmStatus.SOUND_AND_PRECISE);
     }
   }
 }

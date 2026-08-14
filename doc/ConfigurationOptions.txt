@@ -2049,9 +2049,6 @@ cpa.callstack.depth = 0
 cpa.callstack.domain = "FLAT"
   allowed values: [FLAT, FLATPCC]
 
-# ignore the callstack and do not track it this heavily over-approximates.
-cpa.callstack.ignoreTransfer = false
-
 # Skip recursion if it happens only by going via a function pointer (this is
 # unsound). Imprecise function pointer tracking often lead to false
 # recursions.
@@ -4672,6 +4669,10 @@ distributedSummaries.logging.reportFiles = "block_analysis/messages"
 
 # Print per-block statistics in addition to aggregate block statistics.
 distributedSummaries.printBlockLevelStats = false
+
+# Whether to reset callstack state before running a block analysis; usually
+# used together with the inlining decomposition
+distributedSummaries.resetCallstackState = false
 
 # Whether to reset the precision for each run of the analysis or to keep the
 # transmitted one. The latter has disadvantages as unnecessary variables

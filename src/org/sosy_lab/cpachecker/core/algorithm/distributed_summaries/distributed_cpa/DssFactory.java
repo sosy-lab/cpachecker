@@ -176,6 +176,7 @@ public class DssFactory {
               callstackCPA,
               pBlockNode,
               pCFA,
+              pOptions.callStackStateRequiresStateReset(),
               TypeAndLocationCache.getOrCreateLocationMapping(pCFA));
       case FunctionPointerCPA functionPointerCPA -> distribute(functionPointerCPA, pBlockNode);
       case BlockCPA blockCPA -> distribute(blockCPA, pBlockNode, pOptions);
@@ -246,8 +247,10 @@ public class DssFactory {
       CallstackCPA pCallstackCPA,
       BlockNode pBlockNode,
       CFA pCFA,
+      boolean pRequiresStateReset,
       BiMap<Integer, CFANode> pIdToNodeMap) {
-    return new DistributedCallstackCPA(pCallstackCPA, pBlockNode, pCFA, pIdToNodeMap);
+    return new DistributedCallstackCPA(
+        pCallstackCPA, pBlockNode, pCFA, pRequiresStateReset, pIdToNodeMap);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(

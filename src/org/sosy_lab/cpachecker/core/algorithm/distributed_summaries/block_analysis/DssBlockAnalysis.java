@@ -9,9 +9,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -28,7 +27,6 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.logging.Level;
 import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -52,6 +50,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DistributedCallstackCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
@@ -75,80 +74,48 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public abstract class DssBlockAnalysis<
-    PreconditionIndex extends DssIndexable, PostconditionIndex extends DssIndexable> {
+/**
+ * The analysis of a single {@link BlockNode} within the distributed-summary-synthesis algorithm.
+ *
+ * <p>An instance owns the CPA, the algorithm and the reached set of one block and knows how to
+ * explore the block, how to (de)serialize abstract states and which explored states become messages
+ * for other blocks. What it does <em>not</em> decide is how the block reacts to the messages it
+ * receives; that is delegated to two collaborators:
+ *
+ * <ul>
+ *   <li>a {@link DssPreconditionHandler} for the postconditions received from predecessor blocks,
+ *       and
+ *   <li>a {@link DssViolationConditionHandler} for the violation conditions received from successor
+ *       blocks.
+ * </ul>
+ *
+ * <p>Both are chosen by {@link DssAnalysisOptions#getBlockAnalysisType()}, so the behavior of a
+ * block is assembled from configuration rather than fixed by a class hierarchy.
+ */
+public final class DssBlockAnalysis {
 
-  protected static final class ArgPathAndCondition {
-
-    private final ARGPath path;
-    private final @Nullable ARGState condition;
-
-    // Precomputed once because ARGPath/ARGState are immutable and computing the id iterates the
-    // full path; caching avoids recomputation on every hashCode/equals call.
-    private final String id;
-
-    private ArgPathAndCondition(ARGPath pPath, @Nullable ARGState pCondition) {
-      path = pPath;
-      condition = pCondition;
-      id =
-          FluentIterable.from(pPath.getFullPath())
-              .transform(edge -> edge.getPredecessor() + "->" + edge.getSuccessor())
-              .join(Joiner.on(", "));
-    }
-
-    private ARGPath path() {
-      return path;
-    }
-
-    private @Nullable ARGState condition() {
-      return condition;
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(id, condition == null ? null : Objects.toIdentityString(condition));
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      if (this == obj) {
-        return true;
-      }
-      return obj instanceof ArgPathAndCondition other
-          && Objects.equals(id, other.id)
-          && Objects.equals(condition, other.condition())
-          && Objects.equals(path.getFirstState(), other.path.getFirstState());
-    }
-  }
-
-  protected record AnalysisComponents(
+  private record AnalysisComponents(
       Algorithm algorithm, ConfigurableProgramAnalysis cpa, ReachedSet reached) {}
 
-  protected record AnalysisResult(
-      Collection<StateAndPrecision> summaries, Set<ArgPathAndCondition> violationConditions) {}
+  private final BlockNode block;
+  private final LogManager logger;
+  private final DssMessageFactory messageFactory;
+  private final DssAnalysisOptions options;
+  private final DssSingleWorkerStatistics workerStats;
 
-  protected final DistributedConfigurableProgramAnalysis dcpa;
-  protected final DssMessageFactory messageFactory;
-  protected final Multimap<PreconditionIndex, @NonNull StateAndPrecision> preconditions;
-  protected final Multimap<PostconditionIndex, @NonNull StateAndPrecision> violationConditions;
+  private final DistributedConfigurableProgramAnalysis dcpa;
+  private final Algorithm algorithm;
+  private final ReachedSet reachedSet;
 
-  protected final BlockNode block;
-  protected final ReachedSet reachedSet;
-  protected final Algorithm algorithm;
+  private final DssPreconditionHandler preconditions;
+  private final DssViolationConditionHandler violationConditionHandler;
 
-  protected AlgorithmStatus status;
-  protected boolean containsViolationInsideBlock;
-
-  protected final DssSingleWorkerStatistics workerStats;
-
-  protected final boolean combineByHash;
-
-  protected final LogManager logger;
+  private AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
   public DssBlockAnalysis(
       LogManager pLogger,
       BlockNode pBlock,
-      CFA pCFA,
+      CFA pCfa,
       Specification pSpecification,
       Configuration pConfiguration,
       DssAnalysisOptions pOptions,
@@ -156,46 +123,44 @@ public abstract class DssBlockAnalysis<
       ShutdownManager pShutdownManager,
       DssSingleWorkerStatistics pWorkerStats)
       throws CPAException, InterruptedException, InvalidConfigurationException {
-    status = AlgorithmStatus.SOUND_AND_PRECISE;
-    messageFactory = pMessageFactory;
-    AnalysisComponents parts =
-        createBlockAlgorithm(
-            pLogger, pSpecification, pCFA, pConfiguration, pShutdownManager, pBlock);
-    // prepare dcpa and the algorithms
-    algorithm = parts.algorithm();
-    ConfigurableProgramAnalysis cpa = parts.cpa();
     block = pBlock;
     logger = pLogger;
+    messageFactory = pMessageFactory;
+    options = pOptions;
+    workerStats = pWorkerStats;
+
+    AnalysisComponents parts =
+        createBlockAlgorithm(
+            pLogger, pSpecification, pCfa, pConfiguration, pShutdownManager, pBlock);
+    algorithm = parts.algorithm();
+    ConfigurableProgramAnalysis cpa = parts.cpa();
+
     dcpa =
         DssFactory.distribute(
             cpa,
             pBlock,
-            pCFA,
+            pCfa,
             pConfiguration,
             pOptions,
             pMessageFactory,
             pLogger,
             pShutdownManager.getNotifier());
-    // prepare reached set and initial elements
+    assert dcpa != null : "Distribution of " + cpa.getClass().getSimpleName() + " not implemented.";
+
     reachedSet = parts.reached();
     checkNotNull(reachedSet, "BlockAnalysis requires the initial reachedSet");
     reachedSet.clear();
-    assert dcpa != null : "Distribution of " + cpa.getClass().getSimpleName() + " not implemented.";
 
-    preconditions = ArrayListMultimap.create();
-    violationConditions = ArrayListMultimap.create();
-    combineByHash = pOptions.combineByHash();
-
-    workerStats = pWorkerStats;
     // Register dcpa-level statistics with the worker stats object.
     if (dcpa instanceof DistributedARGCPA arg
         && arg.getWrappedCPA() instanceof DistributedCompositeCPA composite) {
       pWorkerStats.setDcpaStatistics(composite.getStatistics());
     }
-  }
 
-  public ImmutableMap<String, String> serializedPreconditions() {
-    return serialize(ImmutableList.copyOf(preconditions.values()));
+    // Assembled last: the handlers use the services above, which are all initialized by now.
+    DssBlockAnalysisType type = pOptions.getBlockAnalysisType();
+    violationConditionHandler = type.createViolationConditionHandler(this);
+    preconditions = type.createPreconditionHandler(this);
   }
 
   /**
@@ -251,30 +216,241 @@ public abstract class DssBlockAnalysis<
     return new AnalysisComponents(algorithm, cpa, reached);
   }
 
-  protected Collection<DssMessage> reportPostconditions(
-      Collection<@NonNull StateAndPrecision> summaries) {
-    if (summaries.isEmpty()) {
+  /**
+   * Executes the configured CPA algorithm on the block with the initial state and precision.
+   *
+   * @return Important messages for other blocks.
+   */
+  public Collection<DssMessage> runInitialAnalysis()
+      throws CPAException, InterruptedException, SolverException {
+    return preconditions.runInitialAnalysis();
+  }
+
+  /**
+   * Adds a new precondition to the known preconditions. The method checks whether the new
+   * precondition is already covered by an existing one. If this is the case, the new precondition
+   * is discarded and the analysis will not proceed. Otherwise, the new precondition is added and
+   * the analysis will proceed.
+   *
+   * @param pReceived The new precondition to add.
+   * @return Whether the analysis should proceed.
+   */
+  public DssMessageProcessing storePrecondition(DssPostConditionMessage pReceived)
+      throws InterruptedException, SolverException, CPAException {
+    return preconditions.store(pReceived);
+  }
+
+  /**
+   * Re-explores the block after {@link #storePrecondition} asked the analysis to proceed.
+   *
+   * @return All violations and/or abstractions that occurred while running the forward analysis.
+   */
+  public Collection<DssMessage> analyzePreconditions()
+      throws SolverException, InterruptedException, CPAException {
+    return preconditions.analyze();
+  }
+
+  /**
+   * Adds new abstract states to the known violation conditions.
+   *
+   * @param pReceived The new violation conditions to add.
+   * @return Whether the analysis should proceed.
+   */
+  public DssMessageProcessing storeViolationCondition(DssViolationConditionMessage pReceived)
+      throws InterruptedException, SolverException {
+    DssMessageProcessing processing = violationConditionHandler.store(pReceived);
+    if (processing.shouldProceed()) {
+      preconditions.violationConditionsChanged();
+    }
+    return processing;
+  }
+
+  /**
+   * Analyzes the violation conditions received from the given block.
+   *
+   * @param pSenderId Sender ID of the violation-condition message to analyze.
+   * @return The messages resulting from the analysis of the violation condition.
+   */
+  public Collection<DssMessage> analyzeViolationConditions(String pSenderId)
+      throws SolverException, InterruptedException, CPAException {
+    return preconditions.analyzeFor(pSenderId);
+  }
+
+  public ImmutableMap<String, String> serializedPreconditions() {
+    return serialize(preconditions.getKnownPreconditions());
+  }
+
+  public DistributedConfigurableProgramAnalysis getDcpa() {
+    return dcpa;
+  }
+
+  DssSingleWorkerStatistics statistics() {
+    return workerStats;
+  }
+
+  AbstractState makeTopState(CFANode pLocation) throws InterruptedException {
+    return dcpa.getInitialState(pLocation, StateSpacePartition.getDefaultPartition());
+  }
+
+  AbstractState makeStartState() throws InterruptedException {
+    AbstractState state = makeTopState(block.getInitialLocation());
+    blockStateOf(state).addHistory(block);
+    return state;
+  }
+
+  Precision makeStartPrecision() throws InterruptedException {
+    return dcpa.getInitialPrecision(
+        block.getInitialLocation(), StateSpacePartition.getDefaultPartition());
+  }
+
+  static BlockState blockStateOf(AbstractState pState) {
+    return Objects.requireNonNull(AbstractStates.extractStateByType(pState, BlockState.class));
+  }
+
+  SegmentedPaths witnessOf(AbstractState pState) {
+    return blockStateOf(pState).getWitness();
+  }
+
+  /** Runs the proceed operator over all received states and merges the outcome. */
+  DssMessageProcessing shouldProceedForward(Collection<@NonNull StateAndPrecision> pReceived)
+      throws InterruptedException, SolverException {
+    DssMessageProcessing processing = DssMessageProcessing.proceed();
+    for (StateAndPrecision stateAndPrecision : pReceived) {
+      processing =
+          processing.merge(
+              dcpa.getProceedOperator().processForward(stateAndPrecision.state()), true);
+    }
+    return processing;
+  }
+
+  boolean shouldProceedBackward(AbstractState pState) throws InterruptedException, SolverException {
+    return dcpa.getProceedOperator().processBackward(pState).shouldProceed();
+  }
+
+  /** Combines the precisions of the received preconditions with the one used so far. */
+  Precision combinePrecisions(Precision pCurrent, Collection<@NonNull StateAndPrecision> pReceived)
+      throws InterruptedException {
+    return dcpa.getCombinePrecisionOperator()
+        .combine(
+            ImmutableSet.<Precision>builder()
+                .addAll(transformedImmutableSetCopy(pReceived, StateAndPrecision::precision))
+                .add(pCurrent)
+                .build());
+  }
+
+  /**
+   * Resets all given preconditions to their initial state, i.e., the ARGState is wrapped in a new
+   * ARGState without any parent.
+   */
+  <K> void resetStates(Multimap<K, @NonNull StateAndPrecision> pPreconditions) {
+    for (Entry<K, StateAndPrecision> entry : ImmutableList.copyOf(pPreconditions.entries())) {
+      pPreconditions.remove(entry.getKey(), entry.getValue());
+      pPreconditions.put(
+          entry.getKey(),
+          new StateAndPrecision(
+              dcpa.reset(entry.getValue().state()), entry.getValue().precision()));
+    }
+  }
+
+  /**
+   * Counts how many of {@code pStates} are equal to at least one state in {@code pCandidates}.
+   *
+   * @return a number between 0 and {@code pStates.size()}
+   */
+  int countCovered(
+      Collection<@NonNull StateAndPrecision> pStates,
+      Collection<@NonNull StateAndPrecision> pCandidates)
+      throws CPAException, InterruptedException {
+    // TODO rather inefficient
+    int covered = 0;
+    for (StateAndPrecision state : pStates) {
+      for (StateAndPrecision candidate : pCandidates) {
+        if (dcpa.getCoverageOperator().areStatesEqual(state.state(), candidate.state())) {
+          covered++;
+          break;
+        }
+      }
+    }
+    return covered;
+  }
+
+  /** Whether every state in {@code pStates} is covered by some state in {@code pCandidates}. */
+  boolean allCovered(
+      Collection<@NonNull StateAndPrecision> pStates,
+      Collection<@NonNull StateAndPrecision> pCandidates)
+      throws CPAException, InterruptedException {
+    return countCovered(pStates, pCandidates) == pStates.size();
+  }
+
+  /**
+   * Explores the block once from the given precondition, without any violation condition attached.
+   *
+   * <p>This run is intentionally not counted in the block-analysis statistics, which only track the
+   * re-analyses triggered by incoming messages.
+   */
+  DssBlockAnalysisResult runInitialBlockAnalysis(AbstractState pPrecondition, Precision pPrecision)
+      throws CPAException, InterruptedException {
+    reachedSet.clear();
+    reachedSet.add(pPrecondition, pPrecision);
+    DssBlockAnalysisResult result = DssBlockAnalyses.runAlgorithm(algorithm, reachedSet);
+    status = status.update(result.getStatus());
+    return result;
+  }
+
+  /** Explores the block once from the given precondition under the given violation conditions. */
+  DssBlockAnalysisResult runBlockAnalysis(
+      AbstractState pPrecondition,
+      Precision pPrecision,
+      Collection<AbstractState> pViolationConditions)
+      throws CPAException, InterruptedException {
+    reachedSet.clear();
+    reachedSet.add(pPrecondition, pPrecision);
+    blockStateOf(pPrecondition).setViolationConditions(ImmutableList.copyOf(pViolationConditions));
+    try {
+      workerStats.getBlockAnalysisTimer().start();
+      DssBlockAnalysisResult result = DssBlockAnalyses.runAlgorithm(algorithm, reachedSet);
+      status = status.update(result.getStatus());
+      return result;
+    } finally {
+      workerStats.getBlockAnalysisTimer().stop();
+      workerStats.getBlockAnalysisCounter().inc();
+    }
+  }
+
+  /**
+   * The states at the final location of the block, paired with the precision they were found in.
+   */
+  ImmutableList<StateAndPrecision> summariesOf(DssBlockAnalysisResult pResult) {
+    ImmutableList.Builder<StateAndPrecision> summaries = ImmutableList.builder();
+    for (ARGState summary : pResult.getFinalLocationStates()) {
+      summaries.add(new StateAndPrecision(summary, reachedSet.getPrecision(summary)));
+    }
+    return summaries.build();
+  }
+
+  Collection<DssMessage> reportPostconditions(Collection<@NonNull StateAndPrecision> pSummaries) {
+    if (pSummaries.isEmpty()) {
       return ImmutableList.of();
     }
 
-    summaries.forEach(sap -> sap.getBlockState().addHistory(block));
+    pSummaries.forEach(sap -> sap.getBlockState().addHistory(block));
     return ImmutableList.of(
         messageFactory.createDssPostConditionMessage(
-            block.getId(), status, serialize(ImmutableList.copyOf(summaries))));
+            block.getId(), status, serialize(ImmutableList.copyOf(pSummaries))));
   }
 
-  protected Collection<DssMessage> reportFirstViolationConditions(Set<@NonNull ARGState> violations)
+  /** Reports violations that originate in this block. */
+  Collection<DssMessage> reportFirstViolationConditions(Set<@NonNull ARGState> pViolations)
       throws CPAException, InterruptedException, SolverException {
-    containsViolationInsideBlock = true;
-    return reportViolationConditions(computeViolationConditionStatesFromOrigin(violations));
+    return reportViolationConditions(pathsFromOrigin(pViolations));
   }
 
-  protected Collection<DssMessage> reportViolationConditions(
-      Collection<ArgPathAndCondition> relevantViolations)
+  Collection<DssMessage> reportViolationConditions(
+      Collection<ArgPathAndCondition> pRelevantViolations)
       throws InterruptedException, CPAException, SolverException {
     ImmutableListMultimap.Builder<Integer, AbstractState> statePerProgramCounterBuilder =
         ImmutableListMultimap.builder();
-    for (ArgPathAndCondition pathAndCondition : relevantViolations) {
+    for (ArgPathAndCondition pathAndCondition : pRelevantViolations) {
       Optional<AbstractState> violationCondition =
           dcpa.getViolationConditionOperator()
               .computeViolationCondition(
@@ -290,7 +466,7 @@ public abstract class DssBlockAnalysis<
     ImmutableListMultimap<Integer, AbstractState> statePerProgramCounter =
         statePerProgramCounterBuilder.build();
     ImmutableList.Builder<StateAndPrecision> vcs = ImmutableList.builder();
-    if (combineByHash) {
+    if (options.combineByHash()) {
       for (Integer i : statePerProgramCounter.keySet()) {
         vcs.add(
             new StateAndPrecision(
@@ -308,14 +484,41 @@ public abstract class DssBlockAnalysis<
     if (allVcs.isEmpty()) {
       return ImmutableSet.of();
     }
-    ImmutableMap<String, String> serialized = serialize(allVcs);
     return ImmutableSet.of(
-        messageFactory.createViolationConditionMessage(block.getId(), status, serialized));
+        messageFactory.createViolationConditionMessage(block.getId(), status, serialize(allVcs)));
   }
 
-  protected SegmentedPaths extractWitnessFromState(AbstractState state) {
-    return Objects.requireNonNull(AbstractStates.extractStateByType(state, BlockState.class))
-        .getWitness();
+  /** All ARG paths reaching the given states, without an originating violation condition. */
+  Set<ArgPathAndCondition> pathsFromOrigin(Collection<@NonNull ARGState> pStates) {
+    ImmutableSet.Builder<ArgPathAndCondition> relevantViolations = ImmutableSet.builder();
+    for (ARGPath path : collectPaths(pStates)) {
+      relevantViolations.add(new ArgPathAndCondition(path, null));
+    }
+    return relevantViolations.build();
+  }
+
+  /**
+   * All ARG paths reaching the given states, each paired with the violation condition that the
+   * corresponding {@link BlockState} was analyzed under.
+   */
+  Set<ArgPathAndCondition> pathsWithCondition(Collection<@NonNull ARGState> pViolations) {
+    ImmutableSet.Builder<ArgPathAndCondition> relevantViolations = ImmutableSet.builder();
+    for (ARGState violation : pViolations) {
+      ARGState violationState =
+          (ARGState) Iterables.getOnlyElement(blockStateOf(violation).getViolationConditions());
+      for (ARGPath path : collectPaths(ImmutableList.of(violation))) {
+        relevantViolations.add(new ArgPathAndCondition(path, violationState));
+      }
+    }
+    return relevantViolations.build();
+  }
+
+  private Collection<ARGPath> collectPaths(Iterable<@NonNull ARGState> pStates) {
+    ImmutableList.Builder<ARGPath> paths = ImmutableList.builder();
+    for (ARGState state : pStates) {
+      paths.addAll(ARGUtils.getAllPaths(reachedSet, state));
+    }
+    return paths.build();
   }
 
   /**
@@ -327,7 +530,7 @@ public abstract class DssBlockAnalysis<
    * @return Map of strings representing the serialized states and precisions. Every state will be
    *     serialized with the given serialize operators but all keys will be prefixed with state#num.
    */
-  protected ImmutableMap<String, String> serialize(
+  ImmutableMap<String, String> serialize(
       final List<@NonNull StateAndPrecision> pStatesAndPrecisions) {
     ContentBuilder serializedContent = ContentBuilder.builder();
     serializedContent.put(
@@ -352,6 +555,26 @@ public abstract class DssBlockAnalysis<
     }
     workerStats.getSerializedStatesSizeStats().setNextValue(totalStateSize);
     return serializedContent.build();
+  }
+
+  LogManager getLogger() {
+    return logger;
+  }
+
+  DssAnalysisOptions getOptions() {
+    return options;
+  }
+
+  DssViolationConditionHandler getViolationConditionHandler() {
+    return violationConditionHandler;
+  }
+
+  DssPreconditionHandler getPreconditions() {
+    return preconditions;
+  }
+
+  BlockNode getBlock() {
+    return block;
   }
 
   /**
@@ -385,135 +608,8 @@ public abstract class DssBlockAnalysis<
     return statesAndPrecisions.build();
   }
 
-  private Collection<ARGPath> collectPaths(Iterable<@NonNull ARGState> states) {
-    ImmutableList.Builder<ARGPath> paths = ImmutableList.builder();
-    for (ARGState state : states) {
-      paths.addAll(ARGUtils.getAllPaths(reachedSet, state));
-    }
-    return paths.build();
+  void setIgnoreCallstack(boolean ignoreCallstack) {
+    Optional.ofNullable(CPAs.retrieveCPA(dcpa, DistributedCallstackCPA.class))
+        .ifPresent(c -> c.setIgnoreTransfer(ignoreCallstack));
   }
-
-  protected Set<ArgPathAndCondition> computeViolationConditionStatesFromOrigin(
-      Collection<@NonNull ARGState> state) {
-    ImmutableSet.Builder<ArgPathAndCondition> relevantViolations = ImmutableSet.builder();
-    for (ARGPath path : collectPaths(state)) {
-      relevantViolations.add(new ArgPathAndCondition(path, null));
-    }
-    return relevantViolations.build();
-  }
-
-  protected Set<ArgPathAndCondition> computeViolationConditionStates(
-      Collection<@NonNull ARGState> violations) {
-    ImmutableSet.Builder<ArgPathAndCondition> relevantViolations = ImmutableSet.builder();
-    for (ARGState violation : violations) {
-      BlockState condition =
-          Objects.requireNonNull(AbstractStates.extractStateByType(violation, BlockState.class));
-      ARGState violationState =
-          (ARGState) Iterables.getOnlyElement(condition.getViolationConditions());
-      for (ARGPath path : collectPaths(ImmutableList.of(violation))) {
-        relevantViolations.add(new ArgPathAndCondition(path, violationState));
-      }
-    }
-    return relevantViolations.build();
-  }
-
-  protected AbstractState makeTopState(CFANode pLocation) throws InterruptedException {
-    return dcpa.getInitialState(pLocation, StateSpacePartition.getDefaultPartition());
-  }
-
-  protected AbstractState makeStartState() throws InterruptedException {
-    return makeTopState(block.getInitialLocation());
-  }
-
-  protected Precision makeStartPrecision() throws InterruptedException {
-    return dcpa.getInitialPrecision(
-        block.getInitialLocation(), StateSpacePartition.getDefaultPartition());
-  }
-
-  /**
-   * Resets all preconditions to their initial state, i.e., the ARGState is wrapped in a new
-   * ARGState without any parent.
-   */
-  protected void resetStates() {
-    for (Entry<PreconditionIndex, StateAndPrecision> entry :
-        ImmutableList.copyOf(preconditions.entries())) {
-      preconditions.remove(entry.getKey(), entry.getValue());
-      preconditions.put(
-          entry.getKey(),
-          new StateAndPrecision(
-              dcpa.reset(entry.getValue().state()), entry.getValue().precision()));
-    }
-  }
-
-  public DistributedConfigurableProgramAnalysis getDcpa() {
-    return dcpa;
-  }
-
-  final DssBlockAnalysisResult runBlockAnalysis() throws CPAException, InterruptedException {
-    try {
-      workerStats.getBlockAnalysisTimer().start();
-      return DssBlockAnalyses.runAlgorithm(algorithm, reachedSet, block);
-    } finally {
-      workerStats.getBlockAnalysisTimer().stop();
-      workerStats.getBlockAnalysisCounter().inc();
-    }
-  }
-
-  /**
-   * Executes the configured CPA algorithm on the block with the initial state and precision.
-   *
-   * @return Important messages for other blocks.
-   * @throws CPAException thrown if CPA runs into an error
-   * @throws InterruptedException thrown if thread is interrupted unexpectedly
-   * @throws SolverException thrown if solver runs into an error
-   */
-  public abstract Collection<DssMessage> runInitialAnalysis()
-      throws CPAException, InterruptedException, SolverException;
-
-  /**
-   * Adds a new precondition to the known preconditions. The method checks whether the new
-   * precondition is already covered by an existing one. If this is the case, the new precondition
-   * is discarded and the analysis will not proceed. Otherwise, the new precondition is added and
-   * the analysis will proceed.
-   *
-   * @param pReceived The new precondition to add.
-   * @return Whether the analysis should proceed.
-   * @throws InterruptedException thrown if thread is interrupted unexpectedly
-   * @throws SolverException thrown if solver runs into an error
-   * @throws CPAException thrown if CPA runs into an error
-   */
-  public abstract DssMessageProcessing storePrecondition(DssPostConditionMessage pReceived)
-      throws InterruptedException, SolverException, CPAException;
-
-  /**
-   * Adds a new abstract state to the known violation conditions.
-   *
-   * @param pNewViolationCondition The new violation condition to add.
-   * @return Whether the analysis should proceed.
-   * @throws InterruptedException thrown if thread is interrupted unexpectedly
-   * @throws SolverException thrown if solver runs into an error
-   */
-  public abstract DssMessageProcessing storeViolationCondition(
-      DssViolationConditionMessage pNewViolationCondition)
-      throws InterruptedException, SolverException;
-
-  /**
-   * Adds a new abstract state to the known start states and execute the configured forward
-   * analysis.
-   *
-   * @return All violations and/or abstractions that occurred while running the forward analysis.
-   */
-  public abstract Collection<DssMessage> analyzePreconditions(String idFormLastUpdate)
-      throws SolverException, InterruptedException, CPAException;
-
-  /**
-   * Analyzes the violation condition for the given sender ID. The violation condition is extracted
-   * from the violation conditions stored via {@link
-   * #storeViolationCondition(DssViolationConditionMessage)}
-   *
-   * @param idFormLastUpdate Sender ID of the violation-condition message to analyze.
-   * @return The messages resulting from the analysis of the violation condition.
-   */
-  public abstract Collection<DssMessage> analyzeViolationConditions(String idFormLastUpdate)
-      throws SolverException, InterruptedException, CPAException;
 }
