@@ -102,10 +102,6 @@ public class BlockNodeWithoutGraphInformation {
 
   @Override
   public int hashCode() {
-    // Must not depend on getClass(): equals() accepts any BlockNodeWithoutGraphInformation with the
-    // same id, so a BlockNode and its superclass instance with equal ids need equal hash codes.
-    // Class.hashCode() is also the JVM identity hash, which makes iteration over hash-based
-    // collections of blocks (and of anything keyed on them) differ between runs.
     return id.hashCode();
   }
 
