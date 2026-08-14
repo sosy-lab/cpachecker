@@ -387,6 +387,13 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
                                 expected_count,
                                 run.identifier,
                             )
+                    else:
+                        logging.info(
+                            "Number of result files received (%d) matches the expected count (%d) for run %s.",
+                            actual_count,
+                            expected_count,
+                            run.identifier,
+                        )
                 else:
                     logging.debug(
                         "'vcloud-resultFilesCount' not found in run values for run %s.",
