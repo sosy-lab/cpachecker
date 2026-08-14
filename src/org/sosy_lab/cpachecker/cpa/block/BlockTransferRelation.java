@@ -91,10 +91,6 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
                   blockState.getHistory(),
                   blockState.getWitness()));
         }
-        blockState.setViolationConditions(
-            blockState
-                .getViolationConditions()
-                .subList(1, blockState.getViolationConditions().size()));
         return successors.build();
       }
       return ImmutableList.of(

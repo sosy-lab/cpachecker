@@ -197,18 +197,12 @@ public class BlockState
   }
 
   // error condition intentionally left out as it is mutable
-  @Override
-  public boolean equals(Object pO) {
-    return pO instanceof BlockState that
-        && Objects.equals(node, that.node)
-        && Objects.equals(witnessCheckPathState, that.witnessCheckPathState)
-        && type == that.type
-        && blockNode == that.getBlockNode();
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(node, type, witnessCheckPathState);
+  public boolean isEqualTo(BlockState that) {
+    return this == that
+        || (Objects.equals(node, that.node)
+            && Objects.equals(witnessCheckPathState, that.witnessCheckPathState)
+            && type == that.type
+            && blockNode == that.getBlockNode());
   }
 
   @Override
