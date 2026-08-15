@@ -54,7 +54,7 @@ public class AcslCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
     converter =
         initializeCToFormulaConverter(
             fmgr, this.logger, pConfig, pShutdownNotifier, pCFA.getMachineModel());
-    logger.log(Level.INFO,"AcslCPA created.");
+    logger.log(Level.INFO, "AcslCPA created.");
   }
 
   private CToFormulaConverterWithPointerAliasing initializeCToFormulaConverter(

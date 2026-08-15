@@ -40,7 +40,9 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
       logger.log(Level.FINE, "[ACSL] Loop start: " + cfaEdge.getSuccessor());
       // TODO these are the interesting nodes for me
     }
-    logger.log(Level.FINEST, "[ACSL] Transfer: " + cfaEdge.getPredecessor() + " -> " + cfaEdge.getSuccessor());
+    logger.log(
+        Level.FINEST,
+        "[ACSL] Transfer: " + cfaEdge.getPredecessor() + " -> " + cfaEdge.getSuccessor());
     return ImmutableList.of(state);
   }
 
