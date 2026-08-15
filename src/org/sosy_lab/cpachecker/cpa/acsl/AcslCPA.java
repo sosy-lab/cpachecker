@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.acsl;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -53,7 +54,7 @@ public class AcslCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
     converter =
         initializeCToFormulaConverter(
             fmgr, this.logger, pConfig, pShutdownNotifier, pCFA.getMachineModel());
-    System.out.println("AcslCPA created.");
+    logger.log(Level.INFO,"AcslCPA created.");
   }
 
   private CToFormulaConverterWithPointerAliasing initializeCToFormulaConverter(
