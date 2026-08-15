@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.acsl;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
+import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -35,7 +36,12 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
     // TODO
-    return ImmutableList.of();
+    if (cfaEdge.getSuccessor().isLoopStart()) {
+      logger.log(Level.FINE, "[ACSL] Loop start: " + cfaEdge.getSuccessor());
+      // TODO these are the interesting nodes for me
+    }
+    logger.log(Level.FINEST, "[ACSL] Transfer: " + cfaEdge.getPredecessor() + " -> " + cfaEdge.getSuccessor());
+    return ImmutableList.of(state);
   }
 
   @Override
