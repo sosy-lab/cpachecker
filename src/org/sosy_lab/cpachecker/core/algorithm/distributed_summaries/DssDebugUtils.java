@@ -56,7 +56,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState.IgnoreCallstackState;
+import org.sosy_lab.cpachecker.cpa.callstack.DssCallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -376,7 +376,7 @@ public final class DssDebugUtils {
   }
 
   private static String renderCallstack(CallstackState pState) {
-    if (pState instanceof IgnoreCallstackState) {
+    if (pState instanceof DssCallstackState dssState && dssState.allowsAllTransfers()) {
       return "__ignore";
     }
     Deque<String> frames = new ArrayDeque<>();

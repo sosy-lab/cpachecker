@@ -24,8 +24,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DistributedCallstackCPA;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState.IgnoreCallstackState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class BlockToProgramLocationMap {
@@ -119,8 +120,8 @@ public class BlockToProgramLocationMap {
   public void removeStatesWithIgnoreCallstackFrom(String pKey) {
     ImmutableSet.Builder<Integer> toRemove = ImmutableSet.builder();
     for (Entry<Integer, StateAndPrecision> entry : entriesPerKey.get(pKey).entries()) {
-      if (AbstractStates.extractStateByType(entry.getValue().state(), IgnoreCallstackState.class)
-          != null) {
+      if (DistributedCallstackCPA.allowsAllTransfers(
+          AbstractStates.extractStateByType(entry.getValue().state(), CallstackState.class))) {
         toRemove.add(entry.getKey());
       }
     }

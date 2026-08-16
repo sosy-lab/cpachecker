@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState.IgnoreCallstackState;
 
 public class SerializeCallstackStateOperator implements SerializeOperator {
   private final Map<CFANode, Integer> nodeToId;
@@ -30,9 +29,12 @@ public class SerializeCallstackStateOperator implements SerializeOperator {
 
   @Override
   public ImmutableMap<String, String> serialize(AbstractState pCallstackState) {
+    boolean allowAllTransfers = DistributedCallstackCPA.allowsAllTransfers(pCallstackState);
     String result;
-    if (pCallstackState instanceof IgnoreCallstackState) {
-      result = "__ignore";
+    if (allowAllTransfers) {
+      // the sending block did not know its callstack, so the stack carries no information:
+      // the receiving block starts with a fresh stack at its own initial location
+      result = "";
     } else {
       List<String> states = new ArrayList<>();
       CallstackState callstackState = (CallstackState) pCallstackState;
@@ -46,7 +48,9 @@ public class SerializeCallstackStateOperator implements SerializeOperator {
     }
     return ContentBuilder.builder()
         .pushLevel(CallstackState.class.getName())
-        .put(STATE_KEY, result)
+        .put(SerializeOperator.STATE_KEY, result)
+        // the receiving block has to know whether the sending block knew its callstack
+        .put(DistributedCallstackCPA.ALLOW_ALL_TRANSFERS_KEY, Boolean.toString(allowAllTransfers))
         .build();
   }
 }
