@@ -35,6 +35,20 @@ def set_vcloud_jar_path(p):
     vcloud_jar = p
 
 
+def _list_result_files_recursively(directory):
+    """
+    Recursively lists all files in directory, as paths relative to directory
+    with forward slashes (matching the format used in vcloud-resultFileNames).
+    """
+    result = set()
+    for root, _dirs, files in os.walk(directory):
+        rel_root = os.path.relpath(root, directory)
+        for f in files:
+            path = f if rel_root == "." else os.path.join(rel_root, f)
+            result.add(path.replace(os.sep, "/"))
+    return result
+
+
 def init(config, benchmark):
     global _JustReprocessResults
     _JustReprocessResults = config.reprocessResults
@@ -358,7 +372,9 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
 
             # Check if the number of result files matches the expected count
             if os.path.isdir(vcloudFilesDirectory):
-                actual_result_files = os.listdir(vcloudFilesDirectory)
+                actual_result_files = _list_result_files_recursively(
+                    vcloudFilesDirectory
+                )
                 actual_count = len(actual_result_files)
 
                 # Extract the expected count from the run information
@@ -370,7 +386,7 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
                             expected_files = set(
                                 values["vcloud-resultFileNames"].split(",")
                             )
-                            actual_files = set(os.listdir(vcloudFilesDirectory))
+                            actual_files = actual_result_files
                             missing_files = expected_files - actual_files
                             logging.warning(
                                 "Number of result files received (%d) does not match the expected count (%d) for run %s. "
