@@ -50,7 +50,7 @@ public class AcslState implements FormulaReportingState {
 
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
-    // TODO Important for communication with other CPAs (I think)
+    // TODO Important for communication with other CPAs if I have a Parallel Algorithm (I think)
     return null;
   }
 
