@@ -68,4 +68,8 @@ final class AlwaysReplaceViolationConditionHandler implements DssViolationCondit
     return ImmutableList.copyOf(
         pSenderId.map(conditions::getStatesForKey).orElse(conditions.getStates()));
   }
+
+  public BlockToProgramLocationMap getConditions() {
+    return conditions;
+  }
 }

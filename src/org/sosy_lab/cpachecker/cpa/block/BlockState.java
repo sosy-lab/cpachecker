@@ -197,6 +197,7 @@ public class BlockState
   }
 
   // error condition intentionally left out as it is mutable
+  // the equals method is deliberately not implemented like this
   public boolean isEqualTo(BlockState that) {
     return this == that
         || (Objects.equals(node, that.node)
