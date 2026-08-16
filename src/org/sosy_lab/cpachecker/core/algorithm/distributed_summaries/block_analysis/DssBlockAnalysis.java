@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -458,13 +459,15 @@ public final class DssBlockAnalysis {
           dcpa.getViolationConditionOperator()
               .computeViolationCondition(
                   pathAndCondition.path(), Optional.ofNullable(pathAndCondition.condition()));
-      if (violationCondition.isPresent()) {
-        statePerProgramCounterBuilder.put(
-            Objects.hash(
-                pathAndCondition.condition(),
-                dcpa.computeProgramPointHash(violationCondition.orElseThrow())),
-            violationCondition.orElseThrow());
-      }
+      Preconditions.checkState(
+          violationCondition.isPresent(),
+          "The analysis found a feasible counterexample "
+              + "which could not be reestablished with the violation-condition operator.");
+      statePerProgramCounterBuilder.put(
+          Objects.hash(
+              pathAndCondition.condition(),
+              dcpa.computeProgramPointHash(violationCondition.orElseThrow())),
+          violationCondition.orElseThrow());
     }
     ImmutableListMultimap<Integer, AbstractState> statePerProgramCounter =
         statePerProgramCounterBuilder.build();
