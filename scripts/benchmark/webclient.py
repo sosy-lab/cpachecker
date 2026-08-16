@@ -1380,7 +1380,7 @@ def _handle_result(
                         run_identifier,
                     )
             else:
-                logging.info(
+                logging.debug(
                     "Number of result files received (%d) matches the expected count (%d) for run %s.",
                     actual_count,
                     expected_count,

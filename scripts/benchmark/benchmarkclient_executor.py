@@ -414,7 +414,7 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
                                 run.identifier,
                             )
                     else:
-                        logging.info(
+                        logging.debug(
                             "Number of result files received (%d) matches the expected count (%d) for run %s.",
                             actual_count,
                             expected_count,
