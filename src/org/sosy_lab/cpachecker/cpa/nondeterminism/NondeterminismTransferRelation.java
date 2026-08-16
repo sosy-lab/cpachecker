@@ -114,11 +114,11 @@ public class NondeterminismTransferRelation extends SingleEdgeTransferRelation {
     }
     if (statement instanceof AAssignment assignment) {
       ALeftHandSide lhs = assignment.getLeftHandSide();
-      if (!(lhs instanceof AIdExpression)) {
+      if (!(lhs instanceof AIdExpression aIdExpression)) {
         // Unhandled left-hand side
         return new NondeterminismNonAbstractionState();
       }
-      String lhsVariable = ((AIdExpression) lhs).getDeclaration().getQualifiedName();
+      String lhsVariable = aIdExpression.getDeclaration().getQualifiedName();
       if (assignment instanceof AExpressionAssignmentStatement exprAssignment) {
         return handleAssignment(pState, lhsVariable, exprAssignment.getRightHandSide());
       }

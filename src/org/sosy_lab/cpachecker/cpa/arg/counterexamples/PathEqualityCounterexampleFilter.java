@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -23,7 +24,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
  * {@link CFAEdge}s is equal.
  */
 public class PathEqualityCounterexampleFilter
-    extends AbstractSetBasedCounterexampleFilter<List<CFAEdge>> {
+    extends AbstractSetBasedCounterexampleFilter<List<@Nullable CFAEdge>> {
 
   public PathEqualityCounterexampleFilter(
       Configuration pConfig, LogManager pLogger, ConfigurableProgramAnalysis pCpa) {
@@ -31,7 +32,7 @@ public class PathEqualityCounterexampleFilter
   }
 
   @Override
-  protected Optional<List<CFAEdge>> getCounterexampleRepresentation(
+  protected Optional<List<@Nullable CFAEdge>> getCounterexampleRepresentation(
       CounterexampleInfo counterexample) {
     return Optional.of(
         Collections.unmodifiableList(

@@ -14,7 +14,8 @@ import com.google.common.annotations.VisibleForTesting;
 import java.math.BigInteger;
 import org.sosy_lab.common.UniqueIdGenerator;
 
-public class SMGKnownSymValue extends SMGKnownValue implements SMGKnownSymbolicValue {
+public sealed class SMGKnownSymValue extends SMGKnownValue implements SMGKnownSymbolicValue
+    permits SMGKnownAddressValue {
 
   public static final SMGKnownSymValue TRUE = new SMGKnownSymValue(BigInteger.valueOf(-1));
 

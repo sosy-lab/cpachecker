@@ -223,7 +223,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         //        exceptionStates.add(state.getStatetId());
 
         // remove state
-        // remove it's parents from waitlist (CPAAlgorithm re-added them)
+        // remove its parents from waitlist (CPAAlgorithm re-added them)
         // and create assumptions for the parents
 
         // we have to do this for the parents and not for the errorState itself,
@@ -383,7 +383,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
               + " The CPA can only handle ONE Automaton!");
     }
 
-    return lst.get(0);
+    return lst.getFirst();
   }
 
   private void writeAutomatonToDot(Automaton automaton) {
@@ -406,7 +406,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
             falseAssumptionStates.add(state);
             if (state instanceof ARGState argState) {
               while (!argState.getChildren().isEmpty()) {
-                argState.getChildren().iterator().next().removeFromARG();
+                argState.getChildren().getFirst().removeFromARG();
               }
             }
           }
@@ -513,7 +513,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
         if (edges.size() > 1) {
           sb.append("    MATCH \"");
-          escape(edges.get(0).getRawStatement(), sb);
+          escape(edges.getFirst().getRawStatement(), sb);
           sb.append("\" -> ");
           sb.append("GOTO ARG" + s.getStateId() + "M" + multiEdgeID);
 
@@ -680,8 +680,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (innerAlgorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) innerAlgorithm).collectStatistics(pStatsCollection);
+    if (innerAlgorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(new AssumptionCollectionStatistics());
   }

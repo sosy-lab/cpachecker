@@ -16,6 +16,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.SequencedMap;
+import java.util.SequencedSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
@@ -25,7 +27,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
-/** This utility class computes MemoryPaths for a SMG. */
+/** This utility class computes MemoryPaths for an SMG. */
 public class SMGMemoryPathCollector {
 
   private enum SMGObjectPosition {
@@ -40,26 +42,26 @@ public class SMGMemoryPathCollector {
     smg = pSmg;
   }
 
-  public Set<SMGMemoryPath> getMemoryPaths() {
+  public SequencedSet<SMGMemoryPath> getMemoryPaths() {
 
-    Set<SMGMemoryPath> result = new LinkedHashSet<>();
-    Set<SMGObject> reached = new LinkedHashSet<>();
+    SequencedSet<SMGMemoryPath> result = new LinkedHashSet<>();
+    SequencedSet<SMGObject> reached = new LinkedHashSet<>();
 
     getMemoryPathsFromGlobalVariables(result, reached);
     getMemoryPathsFromStack(result, reached);
 
-    return Collections.unmodifiableSet(result);
+    return Collections.unmodifiableSequencedSet(result);
   }
 
-  public Map<SMGObject, SMGMemoryPath> getHeapObjectMemoryPaths() {
+  public SequencedMap<SMGObject, SMGMemoryPath> getHeapObjectMemoryPaths() {
 
-    Map<SMGObject, SMGMemoryPath> result = new LinkedHashMap<>();
-    Set<SMGObject> reached = new LinkedHashSet<>();
+    SequencedMap<SMGObject, SMGMemoryPath> result = new LinkedHashMap<>();
+    SequencedSet<SMGObject> reached = new LinkedHashSet<>();
 
     getHeapObjectMemoryPathsFromGlobalVariables(result, reached);
     getHeapObjectMemoryPathsFromStack(result, reached);
 
-    return Collections.unmodifiableMap(result);
+    return Collections.unmodifiableSequencedMap(result);
   }
 
   private void getMemoryPathsFromGlobalVariables(
@@ -271,7 +273,6 @@ public class SMGMemoryPathCollector {
       case GLOBAL -> SMGMemoryPath.valueOf(pVariableName, pOffset);
       case STACK -> SMGMemoryPath.valueOf(pVariableName, pFunctionName, pOffset, pLocationOnStack);
       case HEAP -> SMGMemoryPath.valueOf(pParent, pOffset);
-      default -> throw new AssertionError();
     };
   }
 }

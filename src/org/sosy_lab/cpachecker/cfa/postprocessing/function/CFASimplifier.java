@@ -28,18 +28,17 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public final class CFASimplifier {
 
   private CFASimplifier() {}
 
   /**
-   * This method takes a cfa as input and simplifies it, in the way, that Assume Edges which are not
+   * This method takes a CFA as input and simplifies it, in the way, that Assume Edges which are not
    * needed (p.e. because there are no edges besides BlankEdges in the subtree of an AssumeEdge) are
    * deleted and replaced by a single BlankEdge.
    *
-   * @param cfa The cfa which should be simplified
+   * @param cfa The CFA which should be simplified
    */
   public static void simplifyCFA(MutableCFA cfa) {
     for (CFANode root : cfa.entryNodes()) {
@@ -52,7 +51,7 @@ public final class CFASimplifier {
    * where the search for possible simplifications starts.
    *
    * @param root start node for simplification
-   * @param cfa The cfa where the simplifications should be applied
+   * @param cfa The CFA where the simplifications should be applied
    */
   private static void simplifyFunction(final CFANode root, final MutableCFA cfa) {
     // We want to eliminate branching with two empty branches (only blank edges).
@@ -80,7 +79,7 @@ public final class CFASimplifier {
    */
   private static Deque<CFANode> findBranchingPoints(final CFANode root, MutableCFA cfa) {
 
-    // at first we check if there is at least one branching with following blank
+    // At first, we check if there is at least one branching with following blank
     // edges, if not we can immediately return an empty list as it is not possible
     // to reduce anything then, later on (when we have found at least one such case)
     // it is enough to have an AssumeEdge or a BlankEdge following, as due to
@@ -114,7 +113,7 @@ public final class CFASimplifier {
 
     // The order is important: branching points at the beginning need to come first,
     // (similar to reverse post order).
-    // Thus we iterate through the CFA and visit each sucessor only
+    // Thus, we iterate through the CFA and visit each sucessor only
     // after all its predecessors have been handled.
 
     final Deque<CFANode> branchingPoints = new ArrayDeque<>();
@@ -140,8 +139,7 @@ public final class CFASimplifier {
                     + " in function "
                     + current.getFunctionName());
           }
-          assert CFAUtils.allLeavingEdges(current)
-              .allMatch(Predicates.instanceOf(AssumeEdge.class));
+          assert current.getAllLeavingEdges().allMatch(Predicates.instanceOf(AssumeEdge.class));
 
           boolean firstNodeQualifies =
               nodeQualifiesForPossibleRemoval(current.getLeavingEdge(0).getSuccessor());
@@ -175,7 +173,7 @@ public final class CFASimplifier {
    * Simplify one branching in the CFA at the given node (if possible).
    *
    * @param branchingPoint The root of the branching (needs to have 2 outgoing AssumeEdges).
-   * @param cfa the cfa which should be simplified
+   * @param cfa the CFA which should be simplified
    */
   private static void simplifyBranching(final CFANode branchingPoint, final MutableCFA cfa) {
     CFANode leftEndpoint = findEndOfBlankEdgeChain(branchingPoint.getLeavingEdge(0).getSuccessor());

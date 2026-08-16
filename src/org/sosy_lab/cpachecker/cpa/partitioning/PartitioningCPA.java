@@ -58,7 +58,7 @@ public class PartitioningCPA extends AbstractCPA {
 
     @Override
     public boolean equals(Object pObj) {
-      return pObj instanceof PartitionState && partition.equals(((PartitionState) pObj).partition);
+      return pObj instanceof PartitionState other && partition.equals(other.partition);
     }
   }
 

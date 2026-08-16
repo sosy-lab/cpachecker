@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -79,6 +80,8 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
   private final LogManager logger;
   private final Timer timer = new Timer();
 
+  // This suppression is for a initializer of pathToCompiler, needs to be on constructor.
+  @SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME", justification = "just a default")
   public ConcretePathExecutionChecker(Configuration config, LogManager logger, CFA cfa)
       throws InvalidConfigurationException {
     if (cfa.getLanguage() != Language.C) {

@@ -21,6 +21,8 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.SequencedMap;
+import java.util.SequencedSet;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -113,7 +115,7 @@ public final class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   }
 
   /**
-   * Add a object to the heap.
+   * Add an object to the heap.
    *
    * <p>Keeps consistency: no
    *
@@ -136,7 +138,7 @@ public final class CLangSMG extends SMG implements UnmodifiableCLangSMG {
    * <p>Keeps consistency: no
    *
    * <p>With checks: throws {@link IllegalArgumentException} when asked to add an object already
-   * present, or an global object with a label identifying different object
+   * present, or a global object with a label identifying different object
    *
    * @param pObject Object to add
    */
@@ -161,7 +163,7 @@ public final class CLangSMG extends SMG implements UnmodifiableCLangSMG {
    *
    * @param pObject Object to add
    *     <p>TODO: [SCOPES] Scope visibility vs. stack frame issues: handle cases where a variable is
-   *     visible but is is allowed to override (inner blocks) TODO: Consistency check (allow):
+   *     visible but it is allowed to override (inner blocks) TODO: Consistency check (allow):
    *     different objects with same label inside a frame, but in different block TODO: Test for
    *     this consistency check
    *     <p>TODO: Shall we need an extension for putting objects to upper frames?
@@ -231,7 +233,7 @@ public final class CLangSMG extends SMG implements UnmodifiableCLangSMG {
      * TODO: Refactor into generic methods for obtaining reachable/unreachable
      * subSMGs
      *
-     * TODO: Perhaps introduce a SubSMG class which would be a SMG tied
+     * TODO: Perhaps introduce a SubSMG class which would be an SMG tied
      * to a certain (Clang)SMG and guaranteed to be a subset of it?
      */
     Set<SMGObject> stray_objects = new HashSet<>(Sets.difference(getObjects().asSet(), seen));
@@ -255,7 +257,7 @@ public final class CLangSMG extends SMG implements UnmodifiableCLangSMG {
    * @return all removed valid objects, that are not externally allocated and might leak memory.
    */
   private Set<SMGObject> removeObjects(Collection<SMGObject> objects) {
-    Set<SMGObject> unreachableObjects = new LinkedHashSet<>();
+    SequencedSet<SMGObject> unreachableObjects = new LinkedHashSet<>();
     for (SMGObject object : objects) {
       if (object != SMGNullObject.INSTANCE) {
         if (isObjectValid(object) && !isObjectExternallyAllocated(object)) {
@@ -355,7 +357,7 @@ public final class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   }
 
   private Map<MemoryLocation, SMGValue> getMapOfMemoryLocationsWithValue() {
-    Map<MemoryLocation, SMGValue> result = new LinkedHashMap<>();
+    SequencedMap<MemoryLocation, SMGValue> result = new LinkedHashMap<>();
 
     for (SMGEdgeHasValue hvedge : getHVEdges()) {
       MemoryLocation memloc = resolveMemLoc(hvedge);
@@ -587,7 +589,7 @@ public final class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     }
   }
 
-  /** Remove all values and every edge from the smg. */
+  /** Remove all values and every edge from the SMG. */
   public void clearValues() {
     clearValuesHvePte();
   }
@@ -659,7 +661,7 @@ public final class CLangSMG extends SMG implements UnmodifiableCLangSMG {
 
     SMGHasValueEdges hves = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj));
     Set<SMGEdgePointsTo> ptes = getPtEdges(SMGEdgePointsToFilter.targetObjectFilter(pObj));
-    Set<SMGEdgePointsTo> resultPtes = new LinkedHashSet<>(ptes);
+    SequencedSet<SMGEdgePointsTo> resultPtes = new LinkedHashSet<>(ptes);
 
     for (SMGEdgeHasValue edge : hves) {
       if (isPointer(edge.getValue())) {

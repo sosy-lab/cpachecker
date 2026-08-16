@@ -28,6 +28,9 @@ import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.Repo
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
+import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector;
+import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector.CollectedARGStates;
+import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector.FunctionEntryExitPair;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
@@ -37,19 +40,23 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 
 class ARGToWitnessV2d1 extends ARGToYAMLWitness {
   protected ARGToWitnessV2d1(
-      Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
+      Configuration pConfig,
+      CFA pCfa,
+      Specification pSpecification,
+      LogManager pLogger,
+      RelevantArgStatesCollector pArgStatesCollector)
       throws InvalidConfigurationException {
-    super(pConfig, pCfa, pSpecification, pLogger);
+    super(pConfig, pCfa, pSpecification, pLogger, pArgStatesCollector);
   }
 
   /**
-   * Create an invariant in the format for witnesses version 3.0 for the abstractions encoded by the
-   * arg states
+   * Create an invariant in the format for witnesses version 2.1 for the abstractions encoded by the
+   * ARG states
    *
-   * @param argStates the arg states encoding abstractions of the state
+   * @param argStates the ARG states encoding abstractions of the state
    * @param node the node at whose location the state should be over approximated
-   * @param type the type of the invariant. Currently only `loop_invariant` and `location_invariant`
-   *     are supported
+   * @param type the type of the invariant. Currently, only `loop_invariant` and
+   *     `location_invariant` are supported
    * @return an invariant over approximating the abstraction at the state
    * @throws InterruptedException if the execution is interrupted
    */
@@ -88,9 +95,9 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
   /**
    * Create function contracts for each of the functions whose entry nodes have been given
    *
-   * @param functionContractRequires a mapping from function entry nodes to arg states encoding the
+   * @param functionContractRequires a mapping from function entry nodes to ARG states encoding the
    *     abstractions at that location
-   * @param functionContractEnsures a mapping from function exit nodes to arg states encoding the *
+   * @param functionContractEnsures a mapping from function exit nodes to ARG states encoding the *
    *     abstractions at that location
    * @return a list of function contracts, one for each of the functions whose entry nodes have been
    *     given
@@ -165,7 +172,7 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
     // Collect the information about the states which contain the information about the invariants
     CollectedARGStates statesCollector = getRelevantStates(pRootState);
 
-    Multimap<CFANode, ARGState> loopInvariants = statesCollector.loopInvariants;
+    Multimap<CFANode, ARGState> loopInvariants = statesCollector.loopInvariants();
 
     // Use the collected states to generate invariants
     ImmutableList.Builder<AbstractInvariantEntry> entries = new ImmutableList.Builder<>();
@@ -185,7 +192,7 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
     // If we are exporting to witness version 3.0 then we want to include function contracts
     ImmutableList<FunctionContractCreationResult> functionContractCreationResult =
         handleFunctionContract(
-            statesCollector.functionContractRequires, statesCollector.functionContractEnsures);
+            statesCollector.functionContractRequires(), statesCollector.functionContractEnsures());
     entries.addAll(
         FluentIterable.from(functionContractCreationResult)
             .transform(FunctionContractCreationResult::functionContractEntry));

@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -93,7 +92,7 @@ public final class ReachingDefUtils {
         currentElement = currentWaitlist.pop();
         nodes.add(currentElement);
 
-        for (CFAEdge out : CFAUtils.leavingEdges(currentElement)) {
+        for (CFAEdge out : currentElement.getLeavingEdges()) {
           if (out instanceof FunctionReturnEdge) {
             continue;
           }
@@ -139,28 +138,28 @@ public final class ReachingDefUtils {
   public static Set<MemoryLocation> possiblePointees(CExpression pExp, PointerState pPointerState) {
     Set<MemoryLocation> possibleOperands;
 
-    if (pExp instanceof CPointerExpression) {
-      possibleOperands = possiblePointees(((CPointerExpression) pExp).getOperand(), pPointerState);
-
-    } else if (pExp instanceof CIdExpression) {
-      return Collections.singleton(
-          MemoryLocation.forDeclaration(((CIdExpression) pExp).getDeclaration()));
-
-    } else if (pExp instanceof CFieldReference) {
-      if (((CFieldReference) pExp).isPointerDereference()) {
-        possibleOperands =
-            possiblePointees(((CFieldReference) pExp).getFieldOwner(), pPointerState);
-      } else {
-        return possiblePointees(((CFieldReference) pExp).getFieldOwner(), pPointerState);
+    switch (pExp) {
+      case CPointerExpression cPointerExpression ->
+          possibleOperands = possiblePointees(cPointerExpression.getOperand(), pPointerState);
+      case CIdExpression cIdExpression -> {
+        return Collections.singleton(MemoryLocation.forDeclaration(cIdExpression.getDeclaration()));
       }
-    } else if (pExp instanceof CArraySubscriptExpression) {
-      return possiblePointees(
-          ((CArraySubscriptExpression) pExp).getArrayExpression(), pPointerState);
-
-    } else if (pExp instanceof CCastExpression) {
-      return possiblePointees(((CCastExpression) pExp).getOperand(), pPointerState);
-    } else {
-      return null;
+      case CFieldReference cFieldReference -> {
+        if (cFieldReference.isPointerDereference()) {
+          possibleOperands = possiblePointees(cFieldReference.getFieldOwner(), pPointerState);
+        } else {
+          return possiblePointees(cFieldReference.getFieldOwner(), pPointerState);
+        }
+      }
+      case CArraySubscriptExpression cArraySubscriptExpression -> {
+        return possiblePointees(cArraySubscriptExpression.getArrayExpression(), pPointerState);
+      }
+      case CCastExpression cCastExpression -> {
+        return possiblePointees(cCastExpression.getOperand(), pPointerState);
+      }
+      case null /*TODO check if null is necessary*/, default -> {
+        return null;
+      }
     }
 
     if (possibleOperands == null) {

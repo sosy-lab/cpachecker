@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
+import static com.google.common.collect.FluentIterable.from;
+
+import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -23,6 +26,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.Repo
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToYAMLWitness.WitnessExportResult;
 
 public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
@@ -31,11 +35,17 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
   private final ARGToWitnessV2d1 argToWitnessV2d1;
 
   public ARGToYAMLWitnessExport(
-      Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
+      Configuration pConfig,
+      CFA pCfa,
+      Specification pSpecification,
+      LogManager pLogger,
+      RelevantArgStatesCollector pArgStatesCollector)
       throws InvalidConfigurationException {
     super(pConfig, pCfa, pSpecification, pLogger);
-    argToWitnessV2 = new ARGToWitnessV2(pConfig, pCfa, pSpecification, pLogger);
-    argToWitnessV2d1 = new ARGToWitnessV2d1(pConfig, pCfa, pSpecification, pLogger);
+    argToWitnessV2 =
+        new ARGToWitnessV2(pConfig, pCfa, pSpecification, pLogger, pArgStatesCollector);
+    argToWitnessV2d1 =
+        new ARGToWitnessV2d1(pConfig, pCfa, pSpecification, pLogger, pArgStatesCollector);
   }
 
   /** Export some information to the user about the guarantees provided by the witness. */
@@ -53,11 +63,10 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
           Level.INFO,
           commonPrefix
               + "Witnesses exported in versions "
-              + String.join(
-                  ", ",
-                  FluentIterable.from(pWitnessExportResults.entrySet())
-                      .filter(entry -> !entry.getValue().translationAlwaysSuccessful())
-                      .transform(entry -> entry.getKey().toString()))
+              + from(pWitnessExportResults.entrySet())
+                  .filter(entry -> !entry.getValue().translationAlwaysSuccessful())
+                  .transform(entry -> entry.getKey().toString())
+                  .join(Joiner.on(", "))
               + " had problems during the translation process. "
               + "This may result in invariants being too large an over approximation.");
     }

@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -119,7 +120,7 @@ public final class DOTBuilder2 {
     // global state for all functions
     private final Map<Integer, Set<Integer>> comboNodes = new HashMap<>();
     private final Map<Integer, StringBuilder> comboNodesLabels = new HashMap<>();
-    private final Set<Integer> mergedNodes = new LinkedHashSet<>();
+    private final SequencedSet<Integer> mergedNodes = new LinkedHashSet<>();
     // every inner list has exactly two elements (from and to)
     private final Map<Integer, ImmutableList<Integer>> virtFuncCallEdges = new HashMap<>();
     private int virtFuncCallNodeIdCounter = 100000;
@@ -150,8 +151,7 @@ public final class DOTBuilder2 {
           || (predecessor.getNumEnteringEdges() != 1)
           || (predecessor.getNumLeavingEdges() != 1)
           || (currentComboEdge != null
-              && !predecessor.equals(
-                  currentComboEdge.get(currentComboEdge.size() - 1).getSuccessor()))
+              && !predecessor.equals(currentComboEdge.getLast().getSuccessor()))
           || (edge.getEdgeType() == CFAEdgeType.CallToReturnEdge)
           || (edge.getEdgeType() == CFAEdgeType.AssumeEdge)) {
         // no, it does not
@@ -185,13 +185,13 @@ public final class DOTBuilder2 {
 
         if (combinedEdges.size() == 1) {
           it.remove();
-          CFAEdge firstEdge = combinedEdges.get(0);
+          CFAEdge firstEdge = combinedEdges.getFirst();
           edges.put(functionName, firstEdge);
           nodes.put(functionName, firstEdge.getPredecessor());
           nodes.put(functionName, firstEdge.getSuccessor());
 
         } else if (combinedEdges.size() > 1) {
-          CFAEdge first = combinedEdges.get(0);
+          CFAEdge first = combinedEdges.getFirst();
           int firstNode = first.getPredecessor().getNodeNumber();
           Set<Integer> combinedNodes = comboNodes.get(firstNode);
           StringBuilder label = comboNodesLabels.get(firstNode);
@@ -247,8 +247,8 @@ public final class DOTBuilder2 {
         for (List<CFAEdge> combo : comboedges.get(funcname)) {
           outb.append(comboToDot(combo));
 
-          CFAEdge first = combo.get(0);
-          CFAEdge last = combo.get(combo.size() - 1);
+          CFAEdge first = combo.getFirst();
+          CFAEdge last = combo.getLast();
 
           outb.append(first.getPredecessor().getNodeNumber());
           outb.append(" -> ");
@@ -279,7 +279,7 @@ public final class DOTBuilder2 {
             getOnlyElement(successorsOf(edge.getPredecessor()).filter(FunctionEntryNode.class));
         String calledFunction = functionEntryNode.getFunctionName();
         int from = edge.getPredecessor().getNodeNumber();
-        Integer virtFuncCallNodeId = virtFuncCallEdges.get(from).get(0);
+        Integer virtFuncCallNodeId = virtFuncCallEdges.get(from).getFirst();
 
         StringBuilder sb = new StringBuilder();
         sb.append(virtFuncCallNodeId);
@@ -306,7 +306,7 @@ public final class DOTBuilder2 {
     }
 
     private String comboToDot(List<CFAEdge> combo) {
-      CFAEdge first = combo.get(0);
+      CFAEdge first = combo.getFirst();
       StringBuilder sb = new StringBuilder();
       int firstNo = first.getPredecessor().getNodeNumber();
       sb.append(firstNo);
@@ -317,7 +317,7 @@ public final class DOTBuilder2 {
       if (combo.size() > 20) {
         // edge too long, dotty won't be able to handle it
         // 20 is just a guess
-        CFAEdge last = combo.get(combo.size() - 1);
+        CFAEdge last = combo.getLast();
         int lastNo = last.getPredecessor().getNodeNumber();
 
         sb.append("\"Long linear chain of edges between nodes ");

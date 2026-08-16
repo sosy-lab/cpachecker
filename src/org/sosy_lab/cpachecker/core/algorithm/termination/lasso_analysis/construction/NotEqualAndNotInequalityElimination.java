@@ -38,7 +38,7 @@ class NotEqualAndNotInequalityElimination extends BooleanFormulaTransformationVi
     // Pattern matching on (NOT (= A B)).
     if (split.size() == 2) {
       return fmgr.makeOr(
-          fmgr.visit(split.get(0), strictInequalityTransformation),
+          fmgr.visit(split.getFirst(), strictInequalityTransformation),
           fmgr.visit(split.get(1), strictInequalityTransformation));
 
       // handle <,<=, >, >=
@@ -68,12 +68,12 @@ class NotEqualAndNotInequalityElimination extends BooleanFormulaTransformationVi
       if (pFunctionDeclaration.getKind().equals(FunctionDeclarationKind.GTE)
           || pFunctionDeclaration.getName().equals(">=")) {
         assert pNewArgs.size() == 2;
-        return fmgr.makeGreaterThan(pNewArgs.get(0), pNewArgs.get(1), true);
+        return fmgr.makeGreaterThan(pNewArgs.getFirst(), pNewArgs.get(1), true);
 
       } else if (pFunctionDeclaration.getKind().equals(FunctionDeclarationKind.LTE)
           || pFunctionDeclaration.getName().equals("<=")) {
         assert pNewArgs.size() == 2;
-        return fmgr.makeLessThan(pNewArgs.get(0), pNewArgs.get(1), true);
+        return fmgr.makeLessThan(pNewArgs.getFirst(), pNewArgs.get(1), true);
 
       } else {
         return super.visitFunction(pF, pNewArgs, pFunctionDeclaration);

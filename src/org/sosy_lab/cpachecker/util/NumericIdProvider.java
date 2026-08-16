@@ -59,7 +59,7 @@ public class NumericIdProvider {
         ContiguousSet<Integer> contiguousRange =
             ContiguousSet.create(range, DiscreteDomain.integers());
         if (!contiguousRange.isEmpty()) {
-          id = contiguousRange.first();
+          id = contiguousRange.getFirst();
           break;
         }
       }

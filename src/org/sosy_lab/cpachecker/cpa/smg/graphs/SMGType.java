@@ -46,8 +46,8 @@ public class SMGType {
       CType pType, SMGState pState, CFAEdge pEdge, SMGExpressionEvaluator smgExpressionEvaluator)
       throws CPATransferException {
     boolean isSigned = false;
-    if (pType instanceof CSimpleType) {
-      isSigned = pState.getHeap().getMachineModel().isSigned((CSimpleType) pType);
+    if (pType instanceof CSimpleType cSimpleType) {
+      isSigned = pState.getHeap().getMachineModel().isSigned(cSimpleType);
     }
     long size = smgExpressionEvaluator.getBitSizeof(pEdge, pType, pState);
     return new SMGType(size, isSigned);

@@ -92,7 +92,7 @@ public class IntervalAnalysisState
    * This method returns the reference count for a given variable.
    *
    * @param variableName of the variable to query the reference count on
-   * @return the reference count of the variable, or 0 if the the variable is not yet referenced
+   * @return the reference count of the variable, or 0 if the variable is not yet referenced
    */
   private Integer getReferenceCount(String variableName) {
     return referenceCounts.getOrDefault(variableName, 0);
@@ -102,7 +102,7 @@ public class IntervalAnalysisState
    * This method determines if this element contains an interval for a variable.
    *
    * @param variableName the name of the variable
-   * @return true, if this element contains an interval for the given variable
+   * @return whether this element contains an interval for the given variable
    */
   public boolean contains(String variableName) {
     return intervals.containsKey(variableName);
@@ -214,7 +214,7 @@ public class IntervalAnalysisState
    * imposed by the lattice.
    *
    * @param reachedState the reached state
-   * @return true, if this element is less or equal than the reached state, based on the order
+   * @return whether this element is less or equal than the reached state, based on the order
    *     imposed by the lattice
    */
   @Override
@@ -340,29 +340,29 @@ public class IntervalAnalysisState
 
     if (parts.size() == 2) {
 
-      if (isLong(parts.get(0))) {
+      if (isLong(parts.getFirst())) {
         // pProperty = value <= varName
-        long value = Long.parseLong(parts.get(0));
+        long value = Long.parseLong(parts.getFirst());
         Interval iv = getInterval(parts.get(1));
         return (value <= iv.getLow());
 
       } else if (isLong(parts.get(1))) {
         // pProperty = varName <= value
         long value = Long.parseLong(parts.get(1));
-        Interval iv = getInterval(parts.get(0));
+        Interval iv = getInterval(parts.getFirst());
         return (iv.getHigh() <= value);
 
       } else {
         // pProperty = varName1 <= varName2
-        Interval iv1 = getInterval(parts.get(0));
+        Interval iv1 = getInterval(parts.getFirst());
         Interval iv2 = getInterval(parts.get(1));
         return iv1.contains(iv2);
       }
 
       // pProperty = value1 <= varName <= value2
     } else if (parts.size() == 3) {
-      if (isLong(parts.get(0)) && isLong(parts.get(2))) {
-        long value1 = Long.parseLong(parts.get(0));
+      if (isLong(parts.getFirst()) && isLong(parts.get(2))) {
+        long value1 = Long.parseLong(parts.getFirst());
         long value2 = Long.parseLong(parts.get(2));
         Interval iv = getInterval(parts.get(1));
         return (value1 <= iv.getLow() && iv.getHigh() <= value2);
@@ -426,7 +426,7 @@ public class IntervalAnalysisState
           return pMgr.getBooleanFormulaManager().makeFalse();
         }
 
-        // we assume that everything is an SIGNED INTEGER
+        // we assume that everything is a SIGNED INTEGER
         // and build "LOW <= X" and "X <= HIGH"
         NumeralFormula var =
             nfmgr.makeVariable(
@@ -451,7 +451,7 @@ public class IntervalAnalysisState
   @Override
   public Comparable<?> getPseudoPartitionKey() {
     // The size alone is not sufficient for pseudo-partitioning, if we want to use object-identity
-    // as hashcode. Thus we need a second measurement: the absolute distance of all intervals.
+    // as hashcode. Thus, we need a second measurement: the absolute distance of all intervals.
     // -> if the distance is "smaller" than the other state, we know nothing and have to compare the
     // states.
     // -> if the distance is "equal", we can compare by "identity".
@@ -480,7 +480,7 @@ public class IntervalAnalysisState
     private final int size;
     private final BigInteger absoluteDistance;
 
-    public IntervalPseudoPartitionKey(int pSize, BigInteger pAbsoluteDistance) {
+    IntervalPseudoPartitionKey(int pSize, BigInteger pAbsoluteDistance) {
       size = pSize;
       absoluteDistance = pAbsoluteDistance;
     }

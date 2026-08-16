@@ -11,7 +11,7 @@
  * CPAchecker. The classes are used for exporting and validating YAML witnesses. The classes
  * represent the structure of the YAML witness as defined in the format specification.
  *
- * <p>Currently a YAML correctness witness contains a list of sets, each set containing multiple
+ * <p>Currently, a YAML correctness witness contains a list of sets, each set containing multiple
  * entries and a metadata record. Each entry usually contains some records pertaining to the
  * information it contains.
  *

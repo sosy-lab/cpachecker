@@ -11,11 +11,17 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.ACastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class CCastExpression extends ACastExpression implements CExpression {
 
   @Serial private static final long serialVersionUID = 3935774068573745972L;
+
+  /** A cast to a void pointer: {@code (void*)0} */
+  public static final CCastExpression POINTER_TO_VOID_CAST =
+      new CCastExpression(
+          FileLocation.DUMMY, CPointerType.POINTER_TO_VOID, CIntegerLiteralExpression.ZERO);
 
   /**
    * Create instance.

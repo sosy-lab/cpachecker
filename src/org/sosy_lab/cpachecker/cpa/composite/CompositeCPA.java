@@ -280,8 +280,8 @@ public final class CompositeCPA
     for (ConfigurableProgramAnalysis cpa : cpas) {
       if (pType.isAssignableFrom(cpa.getClass())) {
         return pType.cast(cpa);
-      } else if (cpa instanceof WrapperCPA) {
-        T result = ((WrapperCPA) cpa).retrieveWrappedCpa(pType);
+      } else if (cpa instanceof WrapperCPA wrapperCPA) {
+        T result = wrapperCPA.retrieveWrappedCpa(pType);
         if (result != null) {
           return result;
         }

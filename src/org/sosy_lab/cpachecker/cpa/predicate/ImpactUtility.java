@@ -104,7 +104,7 @@ final class ImpactUtility {
    *     (so it is not the abstraction of s, but the abstraction of the last predecessor of s that
    *     is an abstraction state). This may be null if {@link #requiresPreviousBlockAbstraction()}
    *     returns false.
-   * @return True if the state was actually changed.
+   * @return whether the state was actually changed.
    */
   boolean strengthenStateWithInterpolant(
       final BooleanFormula itp, final ARGState s, final AbstractionFormula lastAbstraction)

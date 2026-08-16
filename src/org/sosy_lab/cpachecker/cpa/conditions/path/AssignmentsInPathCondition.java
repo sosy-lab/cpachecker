@@ -148,8 +148,8 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
      * hard threshold.
      *
      * @param memoryLocation the memory location to check
-     * @return true, if the number of assignments for the given memory location exceeds the hard
-     *     threshold, else false
+     * @return whether the number of assignments for the given memory location exceeds the hard
+     *     threshold
      */
     public boolean exceedsThreshold(MemoryLocation memoryLocation) {
       return (threshold != DISABLED) && (mapping.get(memoryLocation).size() > threshold);

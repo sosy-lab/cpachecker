@@ -8,16 +8,13 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -27,10 +24,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -41,69 +34,43 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
  * visiting state.
  */
 public class TerminationToReachCPA extends AbstractCPA implements StatisticsProvider {
-  private final FormulaManagerView fmgr;
-  private final BooleanFormulaManagerView bfmgr;
-  private final PrecisionAdjustment precisionAdjustment;
-  private final CToFormulaConverterWithPointerAliasing ctoFormulaConverter;
+  private Solver solver;
+  private FormulaManagerView fmgr;
+  private BooleanFormulaManagerView bfmgr;
+  private PrecisionAdjustment precisionAdjustment;
+  private final CFA cfa;
   private final TerminationToReachStatistics statistics;
+  private final LogManager logger;
 
-  public TerminationToReachCPA(
-      LogManager pLogger,
-      Configuration pConfiguration,
-      ShutdownNotifier pShutdownNotifier,
-      CFA pCFA)
+  public TerminationToReachCPA(LogManager pLogger, Configuration pConfiguration, CFA pCFA)
       throws InvalidConfigurationException {
     super("sep", "sep", null);
-    Solver solver = Solver.create(pConfiguration, pLogger, pShutdownNotifier);
-    FormulaEncodingWithPointerAliasingOptions options =
-        new FormulaEncodingWithPointerAliasingOptions(pConfiguration);
     statistics = new TerminationToReachStatistics(pConfiguration, pLogger, pCFA);
-    fmgr = solver.getFormulaManager();
-    bfmgr = fmgr.getBooleanFormulaManager();
-    TypeHandlerWithPointerAliasing ctoFormulaTypeHandler =
-        new TypeHandlerWithPointerAliasing(pLogger, pCFA.getMachineModel(), options);
-    ctoFormulaConverter =
-        new CToFormulaConverterWithPointerAliasing(
-            options,
-            fmgr,
-            pCFA.getMachineModel(),
-            pCFA.getVarClassification(),
-            pLogger,
-            pShutdownNotifier,
-            ctoFormulaTypeHandler,
-            AnalysisDirection.FORWARD);
-    try {
-      FormulaManagerView predFmgr;
-      if (SerializationInfoStorage.isSet()) {
-        predFmgr = SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();
-      } else {
-        // This should never be triggered because TerminationCPA can only run with predicateCPA
-        // and cpa.predicate.enableSharedInformation set to true.
-        predFmgr = fmgr;
-      }
-      precisionAdjustment =
-          new TerminationToReachPrecisionAdjustment(
-              solver, statistics, pCFA, bfmgr, fmgr, predFmgr, ctoFormulaConverter);
-    } finally {
-      if (SerializationInfoStorage.isSet()) {
-        SerializationInfoStorage.clear();
-      }
-    }
+    cfa = pCFA;
+    logger = pLogger;
   }
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(TerminationToReachCPA.class);
   }
 
+  public void setSolver(Solver pSolver) {
+    solver = pSolver;
+    fmgr = solver.getFormulaManager();
+    bfmgr = fmgr.getBooleanFormulaManager();
+    precisionAdjustment =
+        new TerminationToReachPrecisionAdjustment(solver, statistics, logger, cfa, bfmgr, fmgr);
+  }
+
   @Override
   public TransferRelation getTransferRelation() {
-    return new TerminationToReachTransferRelation(bfmgr, fmgr, ctoFormulaConverter);
+    return new TerminationToReachTransferRelation(fmgr);
   }
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return new TerminationToReachState(new HashMap<>(), new HashMap<>(), new HashSet<>());
+    return new TerminationToReachState(ImmutableMap.of(), ImmutableMap.of(), ImmutableMap.of());
   }
 
   @Override

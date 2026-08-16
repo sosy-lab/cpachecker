@@ -73,11 +73,11 @@ class BddArgBasedRefiner implements ARGBasedRefiner, Statistics, StatisticsProvi
   }
 
   /**
-   * This method performs an value-analysis refinement.
+   * This method performs value-analysis refinement.
    *
    * @param reached the current reached set
    * @param errorPath the current error path
-   * @return true, if the value-analysis refinement was successful, else false
+   * @return whether the value-analysis refinement was successful
    * @throws CPAException when value-analysis interpolation fails
    */
   private boolean performValueAnalysisRefinement(
@@ -147,7 +147,7 @@ class BddArgBasedRefiner implements ARGBasedRefiner, Statistics, StatisticsProvi
    * This method checks if the given path is feasible, when doing a full-precision check.
    *
    * @param path the path to check
-   * @return true, if the path is feasible, else false
+   * @return whether the path is feasible
    * @throws CPAException if the path check gets interrupted
    */
   boolean isPathFeasable(ARGPath path) throws CPAException, InterruptedException {

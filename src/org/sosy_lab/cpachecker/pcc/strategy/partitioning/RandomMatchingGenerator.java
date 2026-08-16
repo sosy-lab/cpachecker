@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedNode;
 
 /**
- * Compute a matching in a random fashion, i.e. take a node: If there is a unmatched neighbor, add
+ * Compute a matching in a random fashion, i.e. take a node: If there is an unmatched neighbor, add
  * it to the matching.
  */
 public class RandomMatchingGenerator implements MatchingGenerator {

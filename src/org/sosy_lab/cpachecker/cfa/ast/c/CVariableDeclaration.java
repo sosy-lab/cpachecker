@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
 import java.util.Objects;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -37,7 +38,7 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
       String pName,
       String pOrigName,
       String pQualifiedName,
-      CInitializer pInitializer) {
+      @Nullable CInitializer pInitializer) {
 
     super(
         pFileLocation,

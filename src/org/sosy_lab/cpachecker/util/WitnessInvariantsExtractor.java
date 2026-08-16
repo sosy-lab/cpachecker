@@ -23,6 +23,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -61,8 +62,10 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.ExpressionTreeLocationTransitionInvariant;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.Invariant;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchangeFormatTransformer;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.TransitionInvariant;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 
 /**
@@ -270,15 +273,30 @@ public class WitnessInvariantsExtractor {
       }
 
       if (node.isPresent()) {
-        candidateInvariants.add(
-            new ExpressionTreeLocationInvariant(
-                "Invariant matched at line "
-                    + invariant.getLine()
-                    + " with column "
-                    + invariant.getColumn(),
-                node.orElseThrow(),
-                invariant.getFormula(),
-                toCodeVisitorCache));
+        ExpressionTreeLocationInvariant candidateInvariant;
+        if (invariant instanceof TransitionInvariant pTransitionInvariant) {
+          candidateInvariant =
+              new ExpressionTreeLocationTransitionInvariant(
+                  "Invariant matched at line "
+                      + invariant.getLine()
+                      + " with column "
+                      + invariant.getColumn(),
+                  node.orElseThrow(),
+                  invariant.getFormula(),
+                  toCodeVisitorCache,
+                  pTransitionInvariant.getMapCurrentVarsToPrev());
+        } else {
+          candidateInvariant =
+              new ExpressionTreeLocationInvariant(
+                  "Invariant matched at line "
+                      + invariant.getLine()
+                      + " with column "
+                      + invariant.getColumn(),
+                  node.orElseThrow(),
+                  invariant.getFormula(),
+                  toCodeVisitorCache);
+        }
+        candidateInvariants.add(candidateInvariant);
       } else {
         logger.log(
             Level.WARNING,
@@ -312,7 +330,7 @@ public class WitnessInvariantsExtractor {
       return potentialCandidatesYAMLWitness.orElseThrow();
     }
 
-    Set<ExpressionTreeLocationInvariant> invariants = new LinkedHashSet<>();
+    SequencedSet<ExpressionTreeLocationInvariant> invariants = new LinkedHashSet<>();
     ConcurrentMap<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = new ConcurrentHashMap<>();
     for (AbstractState abstractState : reachedSet) {
       shutdownNotifier.shutdownIfNecessary();
@@ -323,7 +341,7 @@ public class WitnessInvariantsExtractor {
         String groupId = automatonState.getInternalStateName();
         ExpressionTreeLocationInvariant previousInv = null;
         if (!candidate.equals(ExpressionTrees.getTrue())) {
-          // search if we already have an location invariant at this location,
+          // search if we already have a location invariant at this location,
           // if so assign it to previousInv:
           for (ExpressionTreeLocationInvariant inv : invariants) {
             if (inv.getLocation().equals(location)) {
@@ -407,7 +425,7 @@ public class WitnessInvariantsExtractor {
             // Check if there are any leaving return edges:
             // The predecessors are also potential matches for the invariant
             for (FunctionReturnEdge returnEdge :
-                CFAUtils.leavingEdges(location).filter(FunctionReturnEdge.class)) {
+                location.getLeavingEdges().filter(FunctionReturnEdge.class)) {
               CFANode successor = returnEdge.getSuccessor();
               if (!pCandidateGroupLocations.containsEntry(groupId, successor)
                   && !visited.contains(successor)) {

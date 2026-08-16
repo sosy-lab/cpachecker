@@ -212,7 +212,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
     private final Semaphore mainSemaphore;
     private final CFA cfa;
 
-    public PartitionReader(
+    PartitionReader(
         final CFA pCFA, final AtomicBoolean pCheckResult, final Semaphore pPartitionChecked) {
       checkResult = pCheckResult;
       mainSemaphore = pPartitionChecked;

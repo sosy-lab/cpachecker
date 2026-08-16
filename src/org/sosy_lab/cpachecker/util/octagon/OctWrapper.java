@@ -45,7 +45,7 @@ class OctWrapper {
 
   static native boolean J_num_infty(long n, int pos); // bool num_infty(const num_t* a)
 
-  // call void num_clear_n (num_t* a, size_t n) and oct_mm_free(c) afterwards
+  // call void num_clear_n (num_t* a, size_t n) and oct_mm_free(c) afterward
   static native void J_num_clear_n(long n, int size);
 
   // void get_bounds(oct * m, var_t k, num_t *up, num_t *down)

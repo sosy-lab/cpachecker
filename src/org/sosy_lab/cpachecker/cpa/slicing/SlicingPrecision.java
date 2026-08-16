@@ -70,8 +70,8 @@ public class SlicingPrecision implements WrapperPrecision {
   public <T extends Precision> T retrieveWrappedPrecision(final Class<T> pType) {
     if (wrappedPrec.getClass().equals(pType)) {
       return (T) wrappedPrec;
-    } else if (wrappedPrec instanceof WrapperPrecision) {
-      return ((WrapperPrecision) wrappedPrec).retrieveWrappedPrecision(pType);
+    } else if (wrappedPrec instanceof WrapperPrecision wrapperPrecision) {
+      return wrapperPrecision.retrieveWrappedPrecision(pType);
     } else {
       return null;
     }
@@ -84,9 +84,8 @@ public class SlicingPrecision implements WrapperPrecision {
     Precision newPrecision = null;
     if (pReplaceType.apply(wrappedPrec)) {
       newPrecision = pNewPrecision;
-    } else if (wrappedPrec instanceof WrapperPrecision) {
-      newPrecision =
-          ((WrapperPrecision) wrappedPrec).replaceWrappedPrecision(pNewPrecision, pReplaceType);
+    } else if (wrappedPrec instanceof WrapperPrecision wrapperPrecision) {
+      newPrecision = wrapperPrecision.replaceWrappedPrecision(pNewPrecision, pReplaceType);
     }
 
     if (newPrecision == null) {

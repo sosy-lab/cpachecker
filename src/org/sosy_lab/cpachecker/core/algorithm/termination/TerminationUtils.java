@@ -41,8 +41,8 @@ public class TerminationUtils {
 
   public static CVariableDeclaration createDereferencedVariable(CSimpleDeclaration pVariableDecl) {
     CType type = pVariableDecl.getType();
-    if (type instanceof CPointerType) {
-      CType innerType = ((CPointerType) type).getType();
+    if (type instanceof CPointerType cPointerType) {
+      CType innerType = cPointerType.getType();
       checkArgument(!(innerType instanceof CVoidType));
       checkArgument(!(innerType instanceof CFunctionType));
 

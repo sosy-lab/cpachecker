@@ -77,7 +77,7 @@ class CmdLineArguments {
           // For every argument, the main name (--long-form) needs to come first.
           new PropertyAddingCmdLineArgument("--stats", "-stats")
               .settingProperty("statistics.print", "true")
-              .withDescription("collect statistics during the analysis and print them afterwards"),
+              .withDescription("collect statistics during the analysis and print them afterward"),
           new PropertyAddingCmdLineArgument("--no-output-files", "-noout")
               .settingProperty("output.disable", "true")
               .withDescription("disable all output (except directly specified files)"),
@@ -92,7 +92,7 @@ class CmdLineArguments {
               .withDescription("set platform to 64-bit x86 Linux (LP64)"),
           new PropertyAddingCmdLineArgument("--preprocess", "-preprocess")
               .settingProperty("parser.usePreprocessor", "true")
-              .withDescription("execute a preprocessor before starting the analysis"),
+              .withDescription("execute an external preprocessor before starting the analysis"),
           new PropertyAddingCmdLineArgument("-clang")
               .settingProperty("parser.useClang", "true")
               .withReplacementInfo("setting the option 'parser.useClang=true'"),
@@ -185,7 +185,7 @@ class CmdLineArguments {
                         "%s argument must be a key=value pair, but \"%s\" is not.",
                         currentArg, argValue));
               }
-              putIfNotExistent(properties, bits.get(0), bits.get(1));
+              putIfNotExistent(properties, bits.getFirst(), bits.get(1));
             }
           }.withDescription("set an option directly"),
           new CmdLineArgument("--print-options", "-printOptions") {

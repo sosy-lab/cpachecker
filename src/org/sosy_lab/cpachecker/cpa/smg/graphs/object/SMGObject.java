@@ -65,11 +65,11 @@ public abstract class SMGObject implements Comparable<SMGObject> {
 
   /**
    * Compares objects and determines, if this object is more general than given object. If this
-   * object is more general than the given object, then a smg resulting in replacing the given
+   * object is more general than the given object, then an SMG resulting in replacing the given
    * object with this object would cover strictly more states.
    *
    * @param pOther other object to be compared with this object.
-   * @return Returns true iff this object is more general than given object. False otherwise.
+   * @return whether this object is more general than given object
    */
   public abstract boolean isMoreGeneral(SMGObject pOther);
 

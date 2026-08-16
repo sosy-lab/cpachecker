@@ -105,8 +105,8 @@ public final class CFieldReference extends AbstractExpression implements CLeftHa
     CType structType;
     if (pointerType instanceof CProblemType) {
       structType = pointerType;
-    } else if (pointerType instanceof CPointerType) {
-      structType = ((CPointerType) pointerType).getType();
+    } else if (pointerType instanceof CPointerType cPointerType) {
+      structType = cPointerType.getType();
     } else {
       throw new AssertionError("Pointer dereference of non-pointer in " + this);
     }

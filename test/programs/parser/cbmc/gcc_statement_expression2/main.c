@@ -16,7 +16,7 @@ int main()
   assert(y==1);
   assert(i==1);
 
-  // ordering of side-effects in there
+  // ordering of side effects in there
   int z = ({ i=1; i++; });
   assert(z==1);
   assert(i==2);

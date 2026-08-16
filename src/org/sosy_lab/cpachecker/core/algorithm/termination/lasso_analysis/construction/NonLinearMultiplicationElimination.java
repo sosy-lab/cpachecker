@@ -72,7 +72,7 @@ class NonLinearMultiplicationElimination extends BooleanFormulaTransformationVis
       additionalAxioms = new ArrayList<>();
     }
 
-    public Collection<BooleanFormula> getAdditionalAxioms() {
+    Collection<BooleanFormula> getAdditionalAxioms() {
       return ImmutableList.copyOf(additionalAxioms);
     }
 
@@ -90,11 +90,11 @@ class NonLinearMultiplicationElimination extends BooleanFormulaTransformationVis
       if ((pFunctionDeclaration.getKind().equals(UF)
               && pFunctionDeclaration.getName().equalsIgnoreCase("Integer__*_"))
           || (pFunctionDeclaration.getKind().equals(MUL)
-              && !isConstant(newArgs.get(0))
+              && !isConstant(newArgs.getFirst())
               && !isConstant(newArgs.get(1)))) {
         assert newArgs.size() == 2;
         return transformNonLinearMultiplication(
-            newArgs.get(0), newArgs.get(1), pFunctionDeclaration.getType());
+            newArgs.getFirst(), newArgs.get(1), pFunctionDeclaration.getType());
 
       } else {
         return fmgr.makeApplication(pFunctionDeclaration, newArgs);

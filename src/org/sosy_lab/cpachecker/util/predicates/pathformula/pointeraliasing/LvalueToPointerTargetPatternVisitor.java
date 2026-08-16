@@ -60,23 +60,23 @@ class LvalueToPointerTargetPatternVisitor
       final CExpression operand1 = e.getOperand1();
       final CExpression operand2 = e.getOperand2();
 
-      switch (e.getOperator()) {
-        case BINARY_AND,
-            BINARY_OR,
-            BINARY_XOR,
+      return switch (e.getOperator()) {
+        case BITWISE_AND,
+            BITWISE_OR,
+            BITWISE_XOR,
             DIVIDE,
             EQUALS,
             GREATER_EQUAL,
             GREATER_THAN,
             LESS_EQUAL,
             LESS_THAN,
-            MODULO,
+            REMAINDER,
             MULTIPLY,
             NOT_EQUALS,
             SHIFT_LEFT,
-            SHIFT_RIGHT -> {
-          return null;
-        }
+            SHIFT_RIGHT ->
+            null;
+
         case MINUS -> {
           final PointerTargetPatternBuilder result = operand1.accept(this);
           if (result != null) {
@@ -87,9 +87,9 @@ class LvalueToPointerTargetPatternVisitor
             } else {
               result.retainBase();
             }
-            return result;
+            yield result;
           } else {
-            return null;
+            yield null;
           }
         }
         case PLUS -> {
@@ -109,13 +109,12 @@ class LvalueToPointerTargetPatternVisitor
             } else {
               result.retainBase();
             }
-            return result;
+            yield result;
           } else {
-            return null;
+            yield null;
           }
         }
-        default -> throw new UnrecognizedCodeException("Unhandled binary operator", cfaEdge, e);
-      }
+      };
     }
 
     @Override
@@ -128,12 +127,12 @@ class LvalueToPointerTargetPatternVisitor
     public PointerTargetPatternBuilder visit(final CIdExpression e)
         throws UnrecognizedCodeException {
       final CType expressionType = typeHandler.getSimplifiedType(e);
-      final String name = e.getDeclaration().getQualifiedName();
-      if (!pts.isBase(name, expressionType)
+      final PointerBase base = new PointerBase(e.getDeclaration());
+      if (!pts.isBase(base, expressionType)
           && !CTypeUtils.containsArray(expressionType, e.getDeclaration())) {
         return null;
       } else {
-        return PointerTargetPatternBuilder.forBase(name);
+        return PointerTargetPatternBuilder.forBase(base);
       }
     }
 
@@ -176,11 +175,7 @@ class LvalueToPointerTargetPatternVisitor
       final CType elementType;
       if (containerType instanceof CPointerType) {
         elementType = ((CPointerType) containerType).getType();
-        containerType =
-            new CArrayType(
-                containerType.isConst(), // TODO: Set array size
-                containerType.isVolatile(),
-                elementType);
+        containerType = new CArrayType(containerType.getQualifiers(), elementType);
       } else {
         elementType = ((CArrayType) containerType).getType();
       }
@@ -209,12 +204,10 @@ class LvalueToPointerTargetPatternVisitor
     final PointerTargetPatternBuilder result = ownerExpression.accept(this);
     if (result != null) {
       final CType containerType = typeHandler.getSimplifiedType(ownerExpression);
-      if (containerType instanceof CCompositeType) {
-        assert ((CCompositeType) containerType).getKind() != ComplexTypeKind.ENUM
-            : "Enums are not composites!";
+      if (containerType instanceof CCompositeType cCompositeType) {
+        assert cCompositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composites!";
 
-        final OptionalLong offset =
-            typeHandler.getOffset((CCompositeType) containerType, e.getFieldName());
+        final OptionalLong offset = typeHandler.getOffset(cCompositeType, e.getFieldName());
         if (!offset.isPresent()) {
           return null; // TODO this looses values of bit fields
         }
@@ -232,11 +225,11 @@ class LvalueToPointerTargetPatternVisitor
   @Override
   public PointerTargetPatternBuilder visit(final CIdExpression e) throws UnrecognizedCodeException {
     final CType expressionType = typeHandler.getSimplifiedType(e);
-    final String name = e.getDeclaration().getQualifiedName();
-    if (!pts.isActualBase(name) && !CTypeUtils.containsArray(expressionType, e.getDeclaration())) {
+    final PointerBase base = new PointerBase(e.getDeclaration());
+    if (!pts.isActualBase(base) && !CTypeUtils.containsArray(expressionType, e.getDeclaration())) {
       return null;
     } else {
-      return PointerTargetPatternBuilder.forBase(name);
+      return PointerTargetPatternBuilder.forBase(base);
     }
   }
 
@@ -277,8 +270,8 @@ class LvalueToPointerTargetPatternVisitor
   }
 
   private static @Nullable Long tryEvaluateExpression(CExpression e) {
-    if (e instanceof CIntegerLiteralExpression) {
-      return ((CIntegerLiteralExpression) e).getValue().longValueExact();
+    if (e instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
+      return cIntegerLiteralExpression.getValue().longValueExact();
     }
     return null;
   }

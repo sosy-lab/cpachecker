@@ -34,6 +34,7 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
@@ -309,7 +310,7 @@ public class PathChecker {
 
     PathIterator pathIt = pPath.fullPathIterator();
 
-    // for recursion we need to update SSA-indices after returning from a function call,
+    // For recursion, we need to update SSA-indices after returning from a function call,
     // in non-recursive cases this should not change anything.
     Deque<PathFormula> callstack = new ArrayDeque<>();
 
@@ -347,16 +348,21 @@ public class PathChecker {
       throws CPATransferException, InterruptedException {
     if (nextState != null) {
       FluentIterable<AbstractStateWithAssumptions> assumptionStates =
-          AbstractStates.projectToType(
-              AbstractStates.asIterable(nextState), AbstractStateWithAssumptions.class);
+          AbstractStates.asIterable(nextState).filter(AbstractStateWithAssumptions.class);
       for (AbstractStateWithAssumptions assumptionState : assumptionStates) {
         if (assumptionState instanceof OverflowState
             && ((OverflowState) assumptionState).hasOverflow()) {
           assumptionState = ((OverflowState) assumptionState).getParent();
         }
         for (AExpression expr : assumptionState.getAssumptions()) {
-          assert expr instanceof CExpression : "Expected a CExpression as assumption!";
-          pathFormula = pmgr.makeAnd(pathFormula, (CExpression) expr);
+          if (expr instanceof CExpression pCExpression) {
+            pathFormula = pmgr.makeAnd(pathFormula, pCExpression);
+          } else if (expr instanceof SvLibRelationalTerm pTerm) {
+            pathFormula = pmgr.makeAnd(pathFormula, pTerm);
+          } else {
+            throw new CPATransferException(
+                "Expected a CExpression or a SvLibFinalRelationalTerm as assumption!");
+          }
         }
       }
     }

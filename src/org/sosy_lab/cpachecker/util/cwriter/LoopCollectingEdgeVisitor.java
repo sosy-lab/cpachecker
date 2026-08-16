@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
+import java.util.SequencedMap;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -55,7 +56,7 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
   private final LoopStructure loopStructure;
   private final List<Pair<CFAEdge, ARGState>> cfaPath = new ArrayList<>();
   private final Deque<Loop> loopStack = new ArrayDeque<>();
-  private final Map<Loop, Set<ARGState>> relevantLoops = new LinkedHashMap<>();
+  private final SequencedMap<Loop, Set<ARGState>> relevantLoops = new LinkedHashMap<>();
   private final List<Loop> finishedLoops = new ArrayList<>();
   private boolean lastLoopFound = false;
 
@@ -81,7 +82,7 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
 
   public Map<Loop, Set<ARGState>> getRelevantLoops() {
     ListIterator<Pair<CFAEdge, ARGState>> cfaIterator = cfaPath.listIterator(cfaPath.size());
-    CFAEdge edge = cfaPath.get(cfaPath.size() - 1).getFirst();
+    CFAEdge edge = cfaPath.getLast().getFirst();
     ARGState state = cfaPath.get(cfaPath.size() - 2).getSecond();
 
     // Creates the initial loopStack, as seen from the error state's location
@@ -89,7 +90,7 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
 
     // now backwards traverse the list
     while (cfaIterator.hasPrevious()) {
-      // fetch current arg path element (only cfa necessary, therefore only this
+      // fetch current ARG path element (only CFA necessary, therefore only this
       // one is here)
       Pair<CFAEdge, ARGState> tmp = cfaIterator.previous();
       edge = tmp.getFirst();

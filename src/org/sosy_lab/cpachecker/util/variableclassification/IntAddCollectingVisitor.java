@@ -70,9 +70,9 @@ class IntAddCollectingVisitor extends VariablesCollectingVisitor {
           GREATER_EQUAL,
           EQUALS,
           NOT_EQUALS,
-          BINARY_AND,
-          BINARY_XOR,
-          BINARY_OR -> {
+          BITWISE_AND,
+          BITWISE_XOR,
+          BITWISE_OR -> {
         // this calculations work with all numbers
         operand1.addAll(operand2);
         yield operand1;

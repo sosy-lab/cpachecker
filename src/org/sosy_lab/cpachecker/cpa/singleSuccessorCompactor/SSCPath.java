@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class SSCPath extends ARGPath {
 
@@ -50,13 +49,14 @@ public class SSCPath extends ARGPath {
   }
 
   @Override
-  protected List<CFAEdge> buildFullPath() {
-    List<CFAEdge> newFullPath = new ArrayList<>();
+  protected ImmutableList<CFAEdge> buildFullPath() {
+    ImmutableList.Builder<CFAEdge> newFullPathBuilder = ImmutableList.builder();
     PathIterator it = pathIterator();
     while (it.hasNext()) {
-      getInnerEdgesFromTo(newFullPath, it.getAbstractState(), it.getNextAbstractState());
+      getInnerEdgesFromTo(newFullPathBuilder, it.getAbstractState(), it.getNextAbstractState());
       it.advance();
     }
+    ImmutableList<CFAEdge> newFullPath = newFullPathBuilder.build();
 
     assert checkFullPath(newFullPath) : Joiner.on("\n").join(Iterables.skip(newFullPath, 0));
     return newFullPath;
@@ -83,7 +83,8 @@ public class SSCPath extends ARGPath {
    *
    * @param newFullPath where the resulting edges are added to.
    */
-  private void getInnerEdgesFromTo(List<CFAEdge> newFullPath, ARGState prev, ARGState succ) {
+  private void getInnerEdgesFromTo(
+      ImmutableList.Builder<CFAEdge> newFullPath, ARGState prev, ARGState succ) {
     final List<AbstractState> innerStates = new ArrayList<>();
     try {
       @SuppressWarnings("unused") // only inner states are important
@@ -117,7 +118,7 @@ public class SSCPath extends ARGPath {
    * @param newFullPath where the resulting edges are added to.
    */
   private void getEdgesFromTo(
-      List<CFAEdge> newFullPath, AbstractState parent, AbstractState child) {
+      ImmutableList.Builder<CFAEdge> newFullPath, AbstractState parent, AbstractState child) {
     CFANode parentLoc = extractLocation(parent);
     CFANode childLoc = extractLocation(child);
     // handle multi-edges, i.e. chains of edges that have only one succeeding CFA-location.
@@ -131,7 +132,7 @@ public class SSCPath extends ARGPath {
       parentLoc = nextLoc;
     }
     // handle last edge of chain, we need to handle multiple successor nodes here.
-    for (CFAEdge leavingEdge : CFAUtils.leavingEdges(parentLoc)) {
+    for (CFAEdge leavingEdge : parentLoc.getLeavingEdges()) {
       if (Objects.equals(leavingEdge.getSuccessor(), childLoc)) {
         newFullPath.add(leavingEdge);
         return; // child found -> finished
@@ -146,7 +147,7 @@ public class SSCPath extends ARGPath {
 
   @Override
   public int hashCode() {
-    // We do not have edges for most SSCPaths, lets use locations from states.
+    // We do not have edges for most SSCPaths, let's use locations from states.
     return Objects.hash(reachedSet, getLocations());
   }
 
@@ -155,11 +156,11 @@ public class SSCPath extends ARGPath {
     if (this == pOther) {
       return true;
     }
-    return pOther instanceof SSCPath
+    return pOther instanceof SSCPath other
         && super.equals(pOther)
         // We do not compare the states because they are different from iteration to iteration!
-        // We do not have edges for most SSCPaths, lets use locations from states.
-        && Objects.equals(getLocations(), ((SSCPath) pOther).getLocations());
+        // We do not have edges for most SSCPaths, let's use locations from states.
+        && Objects.equals(getLocations(), other.getLocations());
   }
 
   @Override

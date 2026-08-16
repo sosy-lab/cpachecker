@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.Expression
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
@@ -88,7 +87,7 @@ public enum InvariantsSpecificationAutomatonBuilder {
   },
 
   /**
-   * Builds a invariants specification automaton using the invariants from a correctness witness.
+   * Builds an invariants specification automaton using the invariants from a correctness witness.
    * The resulting witness has two states: init and error. A transitions to the error state consists
    * of the invariants location and the assumption of the negated invariant
    */
@@ -223,7 +222,7 @@ public enum InvariantsSpecificationAutomatonBuilder {
         for (CFANode node : pCfa.nodes()) {
           if (node.getNumLeavingEdges() > 0) {
             ImmutableList.Builder<AutomatonTransition> transitions = ImmutableList.builder();
-            for (CFAEdge leavingEdge : CFAUtils.leavingEdges(node)) {
+            for (CFAEdge leavingEdge : node.getLeavingEdges()) {
               CFANode successor = leavingEdge.getSuccessor();
               boolean successorIsBottom = false;
               if (successor.getNumLeavingEdges() == 0) {

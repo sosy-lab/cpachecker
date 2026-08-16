@@ -13,21 +13,21 @@ import static com.google.common.truth.Truth.assertThat;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 
 public class ExpressionTreesTest {
 
   private static final ExpressionTree<AExpression> LITERAL_A =
-      LeafExpression.of(TestDataTools.makeVariable("a", CNumericTypes.INT));
+      LeafExpression.of(TestCfaUtils.makeVariable("a", CNumericTypes.INT));
 
   private static final ExpressionTree<AExpression> LITERAL_NOT_A =
-      LeafExpression.of(TestDataTools.makeVariable("a", CNumericTypes.INT), false);
+      LeafExpression.of(TestCfaUtils.makeVariable("a", CNumericTypes.INT), false);
 
   private static final ExpressionTree<AExpression> LITERAL_B =
-      LeafExpression.of(TestDataTools.makeVariable("b", CNumericTypes.INT));
+      LeafExpression.of(TestCfaUtils.makeVariable("b", CNumericTypes.INT));
 
   private static final ExpressionTree<AExpression> LITERAL_C =
-      LeafExpression.of(TestDataTools.makeVariable("c", CNumericTypes.INT));
+      LeafExpression.of(TestCfaUtils.makeVariable("c", CNumericTypes.INT));
 
   private static final ExpressionTree<AExpression> COMPLEX_CNF =
       And.of(Or.of(LITERAL_A, LITERAL_B), Or.of(LITERAL_C, LITERAL_NOT_A));

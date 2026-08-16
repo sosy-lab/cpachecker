@@ -12,10 +12,9 @@ import static java.lang.String.format;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import java.util.List;
-import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -27,7 +26,7 @@ import org.sosy_lab.java_smt.api.FormulaType;
 @SuppressWarnings("MissingSummary")
 public class Converter {
 
-  protected final Set<String> binBooleanOps = Sets.newHashSet("and", "or");
+  protected static final ImmutableSet<String> BIN_BOOLEAN_OPS = ImmutableSet.of("and", "or");
   protected final SymbolEncoding symbolEncoding;
   protected final LogManager logger;
 
@@ -112,7 +111,6 @@ public class Converter {
       case INT2BV -> new BVConverter(cfa, logger);
       case BV2INT -> new IntConverter(cfa, logger);
       case DISABLE -> null;
-      default -> throw new AssertionError("invalid value for option");
     };
   }
 }

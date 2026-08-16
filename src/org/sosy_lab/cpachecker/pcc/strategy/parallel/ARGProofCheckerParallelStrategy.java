@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.pcc.strategy.parallel;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -24,7 +23,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.ThreadFactory;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -67,8 +65,8 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
     super(pConfig, pLogger, pProofFile);
     checker = pChecker;
     propChecker = new NoTargetStateChecker();
-    if (pChecker instanceof PropertyCheckerCPA) {
-      propChecker = ((PropertyCheckerCPA) pChecker).getPropChecker();
+    if (pChecker instanceof PropertyCheckerCPA propertyCheckerCPA) {
+      propChecker = propertyCheckerCPA.getPropChecker();
     }
   }
 
@@ -96,14 +94,11 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
       CyclicBarrier barrier = new CyclicBarrier(numThreads);
       CommonResult result = new CommonResult(numThreads);
 
-      ThreadFactory threadFactory =
-          new ThreadFactoryBuilder()
-              .setNameFormat("ARGProofCheckerParallelStrategy-checkCertificate-%d")
-              .build();
+      Thread.Builder threadBuilder =
+          Thread.ofPlatform().name("ARGProofCheckerParallelStrategy-checkCertificate-", 0);
       for (int i = 0; i < helper.length; i++) {
         helper[i] = new StateCheckingHelper(barrier, result, propChecker, checker);
-        helperThreads[i] = threadFactory.newThread(helper[i]);
-        helperThreads[i].start();
+        helperThreads[i] = threadBuilder.start(helper[i]);
       }
 
       // check BAMARG blocks
@@ -444,7 +439,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
     private ProofChecker proofC;
     private Block currentB;
 
-    public StateCheckingHelper(
+    StateCheckingHelper(
         CyclicBarrier pBarrier,
         CommonResult pResult,
         PropertyChecker pPropCheck,
@@ -455,15 +450,14 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
       proofC = pProofCheck;
     }
 
-    public void setCheckingInfo(int pStartIndex, int pNumberElems, List<ARGState> argStates) {
+    void setCheckingInfo(int pStartIndex, int pNumberElems, List<ARGState> argStates) {
       lastRound = true;
       startCheck = pStartIndex;
       numElemsToCheck = pNumberElems;
       states = argStates;
     }
 
-    public void setCheckingInfo(
-        int pStartIndex, int pNumberElems, List<ARGState> argStates, Block block) {
+    void setCheckingInfo(int pStartIndex, int pNumberElems, List<ARGState> argStates, Block block) {
       lastRound = false;
       startCheck = pStartIndex;
       numElemsToCheck = pNumberElems;
@@ -518,27 +512,27 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
     private int numSetResults;
     private List<ARGState> returnNodes;
 
-    public CommonResult(int maxParticipants) {
+    CommonResult(int maxParticipants) {
       max = maxParticipants;
       numSetResults = 0;
       returnNodes = new ArrayList<>();
     }
 
-    public boolean isSuccess() {
+    boolean isSuccess() {
       return success;
     }
 
-    public synchronized void setFailure() {
+    synchronized void setFailure() {
       success = false;
       increaseSetResults();
     }
 
-    public synchronized void addReturnNodes(Collection<ARGState> partialReturnNodes) {
+    synchronized void addReturnNodes(Collection<ARGState> partialReturnNodes) {
       returnNodes.addAll(partialReturnNodes);
       increaseSetResults();
     }
 
-    public synchronized Collection<ARGState> getResult() throws InterruptedException {
+    synchronized Collection<ARGState> getResult() throws InterruptedException {
       try {
         while (numSetResults != max) {
           wait();

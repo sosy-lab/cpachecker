@@ -74,13 +74,13 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
       throws InvalidConfigurationException {
     super(wrapper);
 
-    if (!(pCpa instanceof WrapperCPA)) {
+    if (!(pCpa instanceof WrapperCPA wrapperCPA)) {
       throw new InvalidConfigurationException(
           BAMPredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
     }
 
     @SuppressWarnings("resource")
-    BAMPredicateCPA predicateCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(BAMPredicateCPA.class);
+    BAMPredicateCPA predicateCpa = wrapperCPA.retrieveWrappedCpa(BAMPredicateCPA.class);
     if (predicateCpa == null) {
       throw new InvalidConfigurationException(
           BAMPredicateRefiner.class.getSimpleName() + " needs an BAMPredicateCPA");
@@ -197,9 +197,9 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
   protected void handleUpdateSignal(
       Class<? extends RefinementInterface> pCallerClass, Object pData) {
     if (pCallerClass.equals(IdentifierIterator.class)) {
-      if (pData instanceof ReachedSet) {
+      if (pData instanceof ReachedSet reachedSet) {
         // Updating new reached set
-        updateReachedSet((ReachedSet) pData);
+        updateReachedSet(reachedSet);
       }
     }
   }
@@ -230,8 +230,8 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStats) {
-    if (refiner instanceof StatisticsProvider) {
-      ((StatisticsProvider) refiner).collectStatistics(pStats);
+    if (refiner instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStats);
     }
     super.collectStatistics(pStats);
   }

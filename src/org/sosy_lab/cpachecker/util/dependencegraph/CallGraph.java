@@ -12,7 +12,6 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -243,7 +242,7 @@ final class CallGraph<P> {
       postOrderList.add(stack.pop().getProcedure());
     }
 
-    return ImmutableList.copyOf(Lists.reverse(postOrderList));
+    return ImmutableList.copyOf(postOrderList.reversed());
   }
 
   @Override

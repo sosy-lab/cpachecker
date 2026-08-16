@@ -33,8 +33,7 @@ public final class PropertyTargetInformation implements TargetInformation {
 
   @Override
   public boolean equals(Object pOther) {
-    return pOther instanceof PropertyTargetInformation
-        && property.equals(((PropertyTargetInformation) pOther).property);
+    return pOther instanceof PropertyTargetInformation other && property.equals(other.property);
   }
 
   @Override

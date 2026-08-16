@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
@@ -41,7 +43,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomFrontiers;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -62,6 +63,8 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
   private final Multimap<CFAEdge, ReachDefAnalysis.Def<MemoryLocation, CFAEdge>> declDeps;
   private final Multimap<CFAEdge, MemoryLocation> maybeDefs;
 
+  private final LogManager logger;
+
   FlowDepAnalysis(
       DomTree<CFANode> pDomTree,
       DomFrontiers<CFANode> pDomFrontiers,
@@ -71,7 +74,8 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
       GlobalPointerState pPointerState,
       ForeignDefUseData pForeignDefUseData,
       ImmutableMultimap<String, CFAEdge> pComplexTypeDeclarationEdges,
-      DependenceConsumer pDependenceConsumer) {
+      DependenceConsumer pDependenceConsumer,
+      LogManager pLogger) {
 
     super(SingleFunctionGraph.INSTANCE, pDomTree, pDomFrontiers);
 
@@ -88,13 +92,15 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
     flowDeps = ArrayListMultimap.create();
     declDeps = ArrayListMultimap.create();
     maybeDefs = HashMultimap.create();
+
+    logger = pLogger;
   }
 
   private CFunctionCallEdge getFunctionCallEdge(CFunctionSummaryEdge pSummaryEdge) {
 
-    for (CFAEdge edge : CFAUtils.leavingEdges(pSummaryEdge.getPredecessor())) {
-      if (edge instanceof CFunctionCallEdge) {
-        return (CFunctionCallEdge) edge;
+    for (CFAEdge edge : pSummaryEdge.getPredecessor().getLeavingEdges()) {
+      if (edge instanceof CFunctionCallEdge cFunctionCallEdge) {
+        return cFunctionCallEdge;
       }
     }
 
@@ -204,10 +210,10 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
   @Override
   protected Set<MemoryLocation> getEdgeDefs(CFAEdge pEdge) {
 
-    if (pEdge instanceof CFunctionCallEdge) {
-      return getCallEdgeDefs((CFunctionCallEdge) pEdge);
-    } else if (pEdge instanceof CFunctionSummaryEdge) {
-      return getSummaryEdgeDefs((CFunctionSummaryEdge) pEdge);
+    if (pEdge instanceof CFunctionCallEdge cFunctionCallEdge) {
+      return getCallEdgeDefs(cFunctionCallEdge);
+    } else if (pEdge instanceof CFunctionSummaryEdge cFunctionSummaryEdge) {
+      return getSummaryEdgeDefs(cFunctionSummaryEdge);
     } else {
       return getOtherEdgeDefs(pEdge);
     }
@@ -217,8 +223,8 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
     if (pEdge instanceof CFunctionCallEdge) {
       return ImmutableSet.of();
-    } else if (pEdge instanceof CFunctionSummaryEdge) {
-      return getSummaryEdgeUses((CFunctionSummaryEdge) pEdge);
+    } else if (pEdge instanceof CFunctionSummaryEdge cFunctionSummaryEdge) {
+      return getSummaryEdgeUses(cFunctionSummaryEdge);
     } else {
       return getOtherEdgeUses(pEdge);
     }
@@ -271,7 +277,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
     globalEdges.forEach(this::pushEdge);
 
     // init function parameters
-    for (CFAEdge callEdge : CFAUtils.allEnteringEdges(pRootNode)) {
+    for (CFAEdge callEdge : pRootNode.getAllEnteringEdges()) {
       pushEdge(callEdge);
       popEdge(callEdge);
     }
@@ -333,7 +339,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
     if (pNode instanceof FunctionExitNode) {
       for (MemoryLocation defVar : foreignDefUseData.getForeignDefs(pNode.getFunction())) {
         for (ReachDefAnalysis.Def<MemoryLocation, CFAEdge> def : getReachDefs(defVar)) {
-          for (CFAEdge returnEdge : CFAUtils.leavingEdges(pNode)) {
+          for (CFAEdge returnEdge : pNode.getLeavingEdges()) {
             flowDeps.put(returnEdge, def);
           }
         }
@@ -359,8 +365,8 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
       }
     }
 
-    if (pEdge instanceof CDeclarationEdge) {
-      CDeclaration declaration = ((CDeclarationEdge) pEdge).getDeclaration();
+    if (pEdge instanceof CDeclarationEdge cDeclarationEdge) {
+      CDeclaration declaration = cDeclarationEdge.getDeclaration();
       CType type = declaration.getType();
 
       while (type instanceof CPointerType) {
@@ -384,7 +390,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
   private void addFunctionUseDependences() {
 
-    for (FunctionCallEdge callEdge : CFAUtils.enteringEdges(entryNode)) {
+    for (FunctionCallEdge callEdge : entryNode.getEnteringCallEdges()) {
       CFAEdge summaryEdge = callEdge.getSummaryEdge();
       assert summaryEdge != null : "Missing summary edge for call edge: " + callEdge;
       for (MemoryLocation parameter : getEdgeDefs(callEdge)) {
@@ -400,7 +406,19 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
     if (exitNode.isPresent()) {
 
-      for (FunctionReturnEdge returnEdge : CFAUtils.leavingEdges(exitNode.orElseThrow())) {
+      for (CFAEdge edge : exitNode.orElseThrow().getLeavingReturnEdges()) {
+        if (!(edge instanceof FunctionReturnEdge returnEdge)) {
+          // skip any edge at FunctionExitNode that is not a return edge;
+          // we are only interested in finding the function caller here.
+          // (Q:How can edges other than FunctionReturnEdges even exist at FunctionExitNodes?
+          //  A: They may be artificially added to the CFA after program parsing.)
+          logger.logf(
+              Level.FINE,
+              "Skipping non-return edge '%s' at function exit while collecting return value->return"
+                  + " statement dependence (over foreign definitions)",
+              edge);
+          continue;
+        }
         CFAEdge summaryEdge = returnEdge.getSummaryEdge();
         assert summaryEdge != null : "Missing summary edge for return edge: " + returnEdge;
         for (MemoryLocation defVar : foreignDefUseData.getForeignDefs(function)) {
@@ -420,13 +438,39 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
       Optional<FunctionExitNode> exitNode = entryNode.getExitNode();
       if (exitNode.isPresent()) {
 
-        for (CFAEdge defEdge : CFAUtils.enteringEdges(exitNode.orElseThrow())) {
-          for (FunctionReturnEdge returnEdge : CFAUtils.leavingEdges(exitNode.orElseThrow())) {
+        for (CFAEdge defEdge : exitNode.orElseThrow().getEnteringEdges()) {
+          for (CFAEdge edge : exitNode.orElseThrow().getLeavingReturnEdges()) {
+            if (!(edge instanceof FunctionReturnEdge returnEdge)) {
+              // skip any edge at FunctionExitNode that is not a return edge;
+              // we are only interested in finding the return statement of the function.
+              // (Q:How can edges other than FunctionReturnEdges even exist at FunctionExitNodes?
+              //  A: They may be artificially added to the CFA after program parsing.)
+              logger.logf(
+                  Level.FINE,
+                  "Skipping non-return edge '%s' at function exit while collecting return"
+                      + " value->return statement dependence (over variable '%s')",
+                  edge,
+                  returnVar);
+              continue;
+            }
             dependenceConsumer.accept(defEdge, returnEdge, returnVar, false);
           }
         }
 
-        for (FunctionReturnEdge returnEdge : CFAUtils.leavingEdges(exitNode.orElseThrow())) {
+        for (CFAEdge edge : exitNode.orElseThrow().getLeavingReturnEdges()) {
+          if (!(edge instanceof FunctionReturnEdge returnEdge)) {
+            // skip any edge at FunctionExitNode that is not a return edge;
+            // we are only interested in finding the function caller here.
+            // (Q:How can edges other than FunctionReturnEdges even exist at FunctionExitNodes?
+            //  A: They may be artificially added to the CFA after program parsing.)
+            logger.logf(
+                Level.FINE,
+                "Skipping non-return edge '%s' at function exit while collecting return"
+                    + " statement->caller dependence (over variable '%s')",
+                edge,
+                returnVar);
+            continue;
+          }
           CFAEdge summaryEdge = returnEdge.getSummaryEdge();
           assert summaryEdge != null : "Missing summary edge for return edge: " + returnEdge;
           dependenceConsumer.accept(returnEdge, summaryEdge, returnVar, false);
@@ -475,12 +519,12 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
     @Override
     public Iterable<CFAEdge> getLeavingEdges(CFANode pNode) {
-      return () -> Iterators.filter(CFAUtils.allLeavingEdges(pNode).iterator(), this::ignoreEdge);
+      return () -> Iterators.filter(pNode.getAllLeavingEdges().iterator(), this::ignoreEdge);
     }
 
     @Override
     public Iterable<CFAEdge> getEnteringEdges(CFANode pNode) {
-      return () -> Iterators.filter(CFAUtils.allEnteringEdges(pNode).iterator(), this::ignoreEdge);
+      return () -> Iterators.filter(pNode.getAllEnteringEdges().iterator(), this::ignoreEdge);
     }
   }
 }

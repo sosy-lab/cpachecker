@@ -38,15 +38,14 @@ public class ConcreteProgramEdgeVisitor extends DefaultEdgeVisitor {
   public void visit(ARGState pChildElement, CFAEdge pEdge, Deque<FunctionBody> pFunctionStack) {
     translator.processEdge(pChildElement, pEdge, pFunctionStack);
 
-    createAssumedAssigmentString(pFunctionStack, pEdge);
+    createAssumedAssignmentString(pFunctionStack, pEdge);
   }
 
-  private void createAssumedAssigmentString(
+  private void createAssumedAssignmentString(
       Deque<FunctionBody> functionStack, CFAEdge currentCFAEdge) {
     CFAEdgeWithAssumptions e = findMatchingEdge(currentCFAEdge);
-    if (e != null && e.getCFAEdge() instanceof CStatementEdge) {
+    if (e != null && e.getCFAEdge() instanceof CStatementEdge cse) {
 
-      CStatementEdge cse = (CStatementEdge) e.getCFAEdge();
       // could improve detection of introductions of non-det variables
       if (!(cse.getStatement() instanceof CFunctionCallAssignmentStatement)) {
         return;
@@ -54,11 +53,10 @@ public class ConcreteProgramEdgeVisitor extends DefaultEdgeVisitor {
 
       for (AExpressionStatement exp : e.getExpStmts()) {
         if (!(exp instanceof CExpressionStatement)
-            || !(exp.getExpression() instanceof CBinaryExpression)) {
+            || !(exp.getExpression() instanceof CBinaryExpression cexp)) {
           continue;
         }
 
-        CBinaryExpression cexp = (CBinaryExpression) exp.getExpression();
         if (!cexp.getOperator().equals(CBinaryExpression.BinaryOperator.EQUALS)) {
           continue;
         }

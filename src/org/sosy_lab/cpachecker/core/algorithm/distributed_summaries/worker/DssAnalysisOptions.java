@@ -15,9 +15,22 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.PathTemplate;
 
 @Options(prefix = "distributedSummaries")
 public class DssAnalysisOptions {
+
+  @Option(
+      name = "logging.reportFiles",
+      description = "output file for visualizing message exchange")
+  @FileOption(Type.OUTPUT_DIRECTORY)
+  private Path reportFiles = Path.of("block_analysis/messages");
+
+  @Option(
+      name = "logging.blockCFAFile",
+      description = "output file for visualizing the block graph")
+  @FileOption(Type.OUTPUT_FILE)
+  private Path blockCFAFile = Path.of("block_analysis/blocks.json");
 
   @Option(
       name = "debug",
@@ -43,28 +56,68 @@ public class DssAnalysisOptions {
               + " same name as the ID of the worker.",
       secure = true)
   @FileOption(Type.OUTPUT_DIRECTORY)
-  private Path logDirectory = Path.of("block_summary/logfiles");
+  private Path logDirectory = Path.of("block_analysis/logfiles");
 
-  private final Configuration parentConfig;
+  @Option(
+      description =
+          "Whether to reset the precision for each run of the analysis or to keep the transmitted"
+              + " one. The latter has disadvantages as unnecessary variables might be tracked due"
+              + " to a too precise precision.",
+      secure = true)
+  private boolean resetPrecisionForEveryRun = false;
+
+  @Option(
+      name = "combineVcsByHash",
+      description = "Whether to combine violation conditions at same program location",
+      secure = true)
+  private boolean combineByHash = true;
+
+  // TODO How to make sure the other Witness export does not overwrite this?
+  @Option(
+      secure = true,
+      name = "yamlProofWitness",
+      description =
+          "The path to which the different "
+              + "versions of the correctness witnesses will be exported. "
+              + "Each witness version replaces the string '%s' "
+              + "with its version number.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate yamlWitnessOutputFileTemplate =
+      PathTemplate.ofFormatString("witness-dss-%s.yml");
 
   public DssAnalysisOptions(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
-    parentConfig = pConfig;
+  }
+
+  public Path getBlockCFAFile() {
+    return blockCFAFile;
+  }
+
+  public Path getReportFiles() {
+    return reportFiles;
   }
 
   public boolean isDebugModeEnabled() {
     return debug;
   }
 
+  public boolean resetPrecisionsForEveryRun() {
+    return resetPrecisionForEveryRun;
+  }
+
   public Path getForwardConfiguration() {
     return forwardConfiguration;
   }
 
-  public Configuration getParentConfig() {
-    return parentConfig;
-  }
-
   public Path getLogDirectory() {
     return logDirectory;
+  }
+
+  public boolean combineByHash() {
+    return combineByHash;
+  }
+
+  public PathTemplate getYamlCorrectnessWitnessOutputFileTemplate() {
+    return yamlWitnessOutputFileTemplate;
   }
 }

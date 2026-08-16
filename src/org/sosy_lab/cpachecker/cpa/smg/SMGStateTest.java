@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMGTest;
@@ -60,8 +61,16 @@ public class SMGStateTest {
 
   private CSimpleType unspecifiedType =
       new CSimpleType(
-          false, false, CBasicType.UNSPECIFIED, false, false, true, false, false, false, false);
-  private CType pointerType = new CPointerType(false, false, unspecifiedType);
+          CTypeQualifiers.NONE,
+          CBasicType.UNSPECIFIED,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false);
+  private CType pointerType = new CPointerType(CTypeQualifiers.NONE, unspecifiedType);
   private static final MachineModel MM = MachineModel.LINUX32;
   private final long ptrSize = MM.getSizeofInBits(pointerType).longValueExact();
 
@@ -281,7 +290,7 @@ public class SMGStateTest {
 
     add.get(1).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
 
-    add.get(0).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
+    add.getFirst().getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
 
     UnmodifiableSMGState newState = add.get(1).getSmgState();
 
@@ -289,7 +298,7 @@ public class SMGStateTest {
 
     add2.get(1).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
 
-    add2.get(0).getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
+    add2.getFirst().getSmgState().performConsistencyCheck(SMGRuntimeCheck.NONE);
   }
 
   @Test
@@ -338,7 +347,7 @@ public class SMGStateTest {
     List<SMGAddressValueAndState> valAndStates1 = smg1State.getPointerFromValue(value6);
 
     assertThat(valAndStates1).hasSize(1);
-    SMGState newState = valAndStates1.get(0).getSmgState();
+    SMGState newState = valAndStates1.getFirst().getSmgState();
     newState.pruneUnreachable();
     newState.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
@@ -414,7 +423,7 @@ public class SMGStateTest {
     List<SMGAddressValueAndState> valAndStates1 = smg1State.getPointerFromValue(value6);
 
     assertThat(valAndStates1).hasSize(1);
-    SMGState newState = valAndStates1.get(0).getSmgState();
+    SMGState newState = valAndStates1.getFirst().getSmgState();
     newState.pruneUnreachable();
     newState.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
@@ -552,7 +561,7 @@ public class SMGStateTest {
             logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
-    // Add an 16b object and write a 16b value into it
+    // Add a 16b object and write a 16b value into it
     SMGEdgePointsTo pt = state.addNewHeapAllocation(16, "OBJECT");
     SMGKnownSymbolicValue new_value = SMGKnownSymValue.of();
     SMGEdgeHasValue hv = state.writeValue(pt.getObject(), 0, mockSize16b, new_value).getNewEdge();
@@ -619,7 +628,7 @@ public class SMGStateTest {
             logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
-    // Add an 16b object and write a 16b zero value into it
+    // Add a 16b object and write a 16b zero value into it
     SMGEdgePointsTo pt = state.addNewHeapAllocation(16, "OBJECT");
     SMGEdgeHasValue hv =
         state.writeValue(pt.getObject(), 0, mockSize16b, SMGZeroValue.INSTANCE).getNewEdge();

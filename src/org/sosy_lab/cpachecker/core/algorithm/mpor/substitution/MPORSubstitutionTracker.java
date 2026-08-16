@@ -1,0 +1,319 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
+import com.google.common.collect.ImmutableSet;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAssignment;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
+
+/**
+ * A class to track certain expressions, statements, ... (such as pointer dereferences and variable
+ * accesses) during substitution.
+ */
+public class MPORSubstitutionTracker {
+
+  /**
+   * The set of accessed main function arguments, used to decide whether to assign them
+   * non-deterministically. The nondet assignment may be expensive for some verifiers and should
+   * only be done if needed.
+   */
+  private final Set<CVariableDeclaration> accessedMainFunctionArgs;
+
+  // POINTER ASSIGNMENTS ===========================================================================
+
+  private final Set<SeqPointerAssignment> pointerAssignments;
+
+  // POINTER DEREFERENCES ==========================================================================
+
+  /**
+   * Accessed pointer dereferences e.g. of the form {@code x = *ptr;}. Contains both reads and
+   * writes.
+   */
+  private final Set<SeqMemoryLocation> accessedPointerDereferences;
+
+  /** Written pointer dereferences e.g. of the form {@code *ptr = x;}. */
+  private final Set<SeqMemoryLocation> writtenPointerDereferences;
+
+  private final Set<SeqMemoryLocation> accessedFieldReferencePointerDereferences;
+
+  private final Set<SeqMemoryLocation> writtenFieldReferencePointerDereferences;
+
+  // GLOBAL VARIABLES ==============================================================================
+
+  /**
+   * Accessed variables e.g. of the form {@code if (x == 0);} where {@code x} is a variable.
+   * Contains both reads and writes.
+   */
+  private final Set<SeqMemoryLocation> accessedDeclarations;
+
+  /** Written variables e.g. of the form {@code x = 42;}. */
+  private final Set<SeqMemoryLocation> writtenDeclarations;
+
+  // FIELD MEMBERS =================================================================================
+
+  /**
+   * Maps accessed field members to the declaration of their owner, e.g. of the form {@code x =
+   * field->member;} where {@code field} is the field owner. {@link CCompositeTypeMemberDeclaration}
+   * are not unique to the instance of a struct, forcing us to use the {@link CSimpleDeclaration} of
+   * the owner too. Contains both reads and writes.
+   */
+  private final Set<SeqMemoryLocation> accessedFieldMembers;
+
+  /**
+   * Maps written field members to the declaration of their owner, e.g. of the form {@code
+   * field->member = 42;}.
+   */
+  private final Set<SeqMemoryLocation> writtenFieldMembers;
+
+  public MPORSubstitutionTracker() {
+    accessedMainFunctionArgs = new HashSet<>();
+
+    pointerAssignments = new HashSet<>();
+
+    accessedPointerDereferences = new HashSet<>();
+    writtenPointerDereferences = new HashSet<>();
+
+    accessedFieldReferencePointerDereferences = new HashSet<>();
+    writtenFieldReferencePointerDereferences = new HashSet<>();
+
+    accessedDeclarations = new HashSet<>();
+    writtenDeclarations = new HashSet<>();
+
+    accessedFieldMembers = new HashSet<>();
+    writtenFieldMembers = new HashSet<>();
+  }
+
+  // add methods ===================================================================================
+
+  void addAccessedMainFunctionArg(CSimpleDeclaration pMainFunctionArg) {
+    accessedMainFunctionArgs.add(MPORUtil.convertToVariableDeclaration(pMainFunctionArg));
+  }
+
+  void addPointerAssignment(SeqPointerAssignment pPointerAssignment) {
+    checkArgument(
+        pPointerAssignment.leftHandSideMemoryLocation().declaration()
+            instanceof CVariableDeclaration,
+        "pLeftHandSideMemoryLocation.declaration() must be CVariableDeclaration.");
+    // pointer assignments in substitutions are always explicit
+    pointerAssignments.add(pPointerAssignment);
+  }
+
+  void addAccessedPointerDereference(
+      SeqCallContext pCallContext, CSimpleDeclaration pAccessedPointerDereference) {
+
+    accessedPointerDereferences.add(
+        SeqMemoryLocation.of(
+            pCallContext, MPORUtil.convertToVariableDeclaration(pAccessedPointerDereference)));
+  }
+
+  void addWrittenPointerDereference(
+      SeqCallContext pCallContext, CSimpleDeclaration pWrittenPointerDereference) {
+
+    writtenPointerDereferences.add(
+        SeqMemoryLocation.of(
+            pCallContext, MPORUtil.convertToVariableDeclaration(pWrittenPointerDereference)));
+  }
+
+  void addAccessedFieldReferencePointerDereference(
+      SeqCallContext pCallContext,
+      CSimpleDeclaration pFieldOwner,
+      CCompositeTypeMemberDeclaration pFieldMember) {
+
+    accessedFieldReferencePointerDereferences.add(
+        SeqMemoryLocation.of(
+            pCallContext,
+            MPORUtil.convertToVariableDeclaration(pFieldOwner),
+            Optional.of(pFieldMember)));
+  }
+
+  void addWrittenFieldReferencePointerDereference(
+      SeqCallContext pCallContext,
+      CSimpleDeclaration pFieldOwner,
+      CCompositeTypeMemberDeclaration pFieldMember) {
+
+    writtenFieldReferencePointerDereferences.add(
+        SeqMemoryLocation.of(
+            pCallContext,
+            MPORUtil.convertToVariableDeclaration(pFieldOwner),
+            Optional.of(pFieldMember)));
+  }
+
+  void addAccessedDeclaration(
+      SeqCallContext pCallContext, CSimpleDeclaration pAccessedDeclaration) {
+    accessedDeclarations.add(
+        SeqMemoryLocation.of(
+            pCallContext, MPORUtil.convertToVariableDeclaration(pAccessedDeclaration)));
+  }
+
+  void addWrittenDeclaration(SeqCallContext pCallContext, CSimpleDeclaration pWrittenDeclaration) {
+    writtenDeclarations.add(
+        SeqMemoryLocation.of(
+            pCallContext, MPORUtil.convertToVariableDeclaration(pWrittenDeclaration)));
+  }
+
+  void addAccessedFieldMember(
+      SeqCallContext pCallContext,
+      CSimpleDeclaration pOwnerDeclaration,
+      CCompositeTypeMemberDeclaration pAccessedFieldMember) {
+
+    accessedFieldMembers.add(
+        SeqMemoryLocation.of(
+            pCallContext,
+            MPORUtil.convertToVariableDeclaration(pOwnerDeclaration),
+            Optional.of(pAccessedFieldMember)));
+  }
+
+  void addWrittenFieldMember(
+      SeqCallContext pCallContext,
+      CSimpleDeclaration pOwnerDeclaration,
+      CCompositeTypeMemberDeclaration pWrittenFieldMember) {
+
+    writtenFieldMembers.add(
+        SeqMemoryLocation.of(
+            pCallContext,
+            MPORUtil.convertToVariableDeclaration(pOwnerDeclaration),
+            Optional.of(pWrittenFieldMember)));
+  }
+
+  // getters =======================================================================================
+
+  ImmutableSet<CVariableDeclaration> getAccessedMainFunctionArgs() {
+    return ImmutableSet.copyOf(accessedMainFunctionArgs);
+  }
+
+  ImmutableSet<SeqPointerAssignment> getPointerAssignments() {
+    return ImmutableSet.copyOf(pointerAssignments);
+  }
+
+  // pointer dereferences
+
+  ImmutableSet<SeqMemoryLocation> getPointerDereferencesByAccessType(
+      SeqMemoryAccessType pAccessType) {
+
+    return switch (pAccessType) {
+      case NONE -> throw new IllegalArgumentException("no NONE access type variables");
+      case ACCESS -> getAccessedPointerDereferences();
+      case READ -> throw new IllegalArgumentException("no READ access type variables");
+      case WRITE -> getWrittenPointerDereferences();
+    };
+  }
+
+  ImmutableSet<SeqMemoryLocation> getAccessedPointerDereferences() {
+    return ImmutableSet.copyOf(accessedPointerDereferences);
+  }
+
+  ImmutableSet<SeqMemoryLocation> getWrittenPointerDereferences() {
+    return ImmutableSet.copyOf(writtenPointerDereferences);
+  }
+
+  ImmutableSet<SeqMemoryLocation> getFieldReferencePointerDereferencesByAccessType(
+      SeqMemoryAccessType pAccessType) {
+
+    return switch (pAccessType) {
+      case NONE -> throw new IllegalArgumentException("no NONE access type variables");
+      case ACCESS -> getAccessedFieldReferencePointerDereferences();
+      case READ -> throw new IllegalArgumentException("no READ access type variables");
+      case WRITE -> getWrittenFieldReferencePointerDereferences();
+    };
+  }
+
+  ImmutableSet<SeqMemoryLocation> getAccessedFieldReferencePointerDereferences() {
+    return ImmutableSet.copyOf(accessedFieldReferencePointerDereferences);
+  }
+
+  ImmutableSet<SeqMemoryLocation> getWrittenFieldReferencePointerDereferences() {
+    return ImmutableSet.copyOf(writtenFieldReferencePointerDereferences);
+  }
+
+  // variables
+
+  ImmutableSet<SeqMemoryLocation> getDeclarationsByAccessType(SeqMemoryAccessType pAccessType) {
+    return switch (pAccessType) {
+      case NONE -> throw new IllegalArgumentException("no NONE access type variables");
+      case ACCESS -> getAccessedDeclarations();
+      case READ -> throw new IllegalArgumentException("no READ access type variables");
+      case WRITE -> getWrittenDeclarations();
+    };
+  }
+
+  ImmutableSet<SeqMemoryLocation> getAccessedDeclarations() {
+    return ImmutableSet.copyOf(accessedDeclarations);
+  }
+
+  ImmutableSet<SeqMemoryLocation> getWrittenDeclarations() {
+    return ImmutableSet.copyOf(writtenDeclarations);
+  }
+
+  // field members
+
+  ImmutableSet<SeqMemoryLocation> getFieldMembersByAccessType(SeqMemoryAccessType pAccessType) {
+
+    return switch (pAccessType) {
+      case NONE -> throw new IllegalArgumentException("no NONE access type field members");
+      case ACCESS -> getAccessedFieldMembers();
+      case READ -> throw new IllegalArgumentException("no READ access type field members");
+      case WRITE -> getWrittenFieldMembers();
+    };
+  }
+
+  ImmutableSet<SeqMemoryLocation> getAccessedFieldMembers() {
+    return ImmutableSet.copyOf(accessedFieldMembers);
+  }
+
+  ImmutableSet<SeqMemoryLocation> getWrittenFieldMembers() {
+    return ImmutableSet.copyOf(writtenFieldMembers);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(
+        accessedMainFunctionArgs,
+        pointerAssignments,
+        accessedPointerDereferences,
+        writtenPointerDereferences,
+        accessedFieldReferencePointerDereferences,
+        writtenFieldReferencePointerDereferences,
+        accessedDeclarations,
+        writtenDeclarations,
+        accessedFieldMembers,
+        writtenFieldMembers);
+  }
+
+  @Override
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    return pOther instanceof MPORSubstitutionTracker other
+        && accessedMainFunctionArgs.equals(other.accessedMainFunctionArgs)
+        && pointerAssignments.equals(other.pointerAssignments)
+        && accessedPointerDereferences.equals(other.accessedPointerDereferences)
+        && writtenPointerDereferences.equals(other.writtenPointerDereferences)
+        && accessedFieldReferencePointerDereferences.equals(
+            other.accessedFieldReferencePointerDereferences)
+        && writtenFieldReferencePointerDereferences.equals(
+            other.writtenFieldReferencePointerDereferences)
+        && accessedDeclarations.equals(other.accessedDeclarations)
+        && writtenDeclarations.equals(other.writtenDeclarations)
+        && accessedFieldMembers.equals(other.accessedFieldMembers)
+        && writtenFieldMembers.equals(other.writtenFieldMembers);
+  }
+}

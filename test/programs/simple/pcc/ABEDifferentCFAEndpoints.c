@@ -6,7 +6,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+extern int __VERIFIER_nondet_int();
+
 int main(){
+  int a = __VERIFIER_nondet_int();
   int x;
 
   if(a<0){

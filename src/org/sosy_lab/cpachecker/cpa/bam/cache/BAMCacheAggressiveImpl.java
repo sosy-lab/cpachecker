@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.bam.cache;
 
 import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.SequencedMap;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -21,14 +21,15 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
 /**
- * This implementation of BAMCache uses an heuristic to improve the cache-hit-rate. Whenever
+ * This implementation of BAMCache uses a heuristic to improve the cache-hit-rate. Whenever
  * accessing the cache without a direct hit, we search for an abstract state with a similar
- * precision. This heuristic can lead to repeated counterexamples in the analysis. Thus it must be
+ * precision. This heuristic can lead to repeated counterexamples in the analysis. Thus, it must be
  * considered, e.g., when performing a refinement.
  */
 public class BAMCacheAggressiveImpl extends BAMCacheImpl {
 
-  private final Map<AbstractStateHash, BAMCacheEntry> impreciseReachedCache = new LinkedHashMap<>();
+  private final SequencedMap<AbstractStateHash, BAMCacheEntry> impreciseReachedCache =
+      new LinkedHashMap<>();
 
   public BAMCacheAggressiveImpl(Configuration config, Reducer reducer, LogManager logger)
       throws InvalidConfigurationException {

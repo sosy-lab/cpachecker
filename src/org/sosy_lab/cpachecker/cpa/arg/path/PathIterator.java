@@ -84,7 +84,7 @@ public abstract class PathIterator {
   public abstract void rewind() throws IllegalStateException;
 
   /**
-   * Checks whether the iterator can be advanced and does so it it is possible.
+   * Checks whether the iterator can be advanced and does so it is possible.
    *
    * @return Indicates whether the iterator could be advanced or not
    */

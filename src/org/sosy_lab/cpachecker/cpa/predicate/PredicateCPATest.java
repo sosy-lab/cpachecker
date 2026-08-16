@@ -30,7 +30,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class PredicateCPATest {
 
@@ -46,7 +47,7 @@ public class PredicateCPATest {
   @Test
   public void dontLoadBDDLibraryIfNotNecessary() throws Exception {
     Configuration config =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .setOption("cpa.predicate.blk.alwaysAtFunctions", "false")
             .setOption("cpa.predicate.blk.alwaysAtLoops", "false")
             .build();
@@ -61,7 +62,7 @@ public class PredicateCPATest {
    */
   @Test
   public void loadBDDLibraryIfNecessary() throws Exception {
-    Configuration config = TestDataTools.configurationForTest().build();
+    Configuration config = TestUtils.configurationForTest().build();
 
     FluentIterable<String> loadedClasses = loadPredicateCPA(config);
     assertThat(loadedClasses.filter(Predicates.contains(BDD_CLASS_PATTERN))).isNotEmpty();
@@ -89,13 +90,13 @@ public class PredicateCPATest {
       factory.setLogger(logger);
       factory.setShutdownNotifier(ShutdownNotifier.createDummy());
       factory.set(AggregatedReachedSets.empty(), AggregatedReachedSets.class);
-      factory.set(TestDataTools.makeCFA(config, "void main() { }"), CFA.class);
+      factory.set(TestCfaUtils.makeCFA(config, "void main() { }"), CFA.class);
       factory.set(new ReachedSetFactory(config, logger), ReachedSetFactory.class);
       factory.set(Specification.alwaysSatisfied(), Specification.class);
 
       ConfigurableProgramAnalysis cpa = factory.createInstance();
-      if (cpa instanceof AutoCloseable) {
-        ((AutoCloseable) cpa).close();
+      if (cpa instanceof AutoCloseable autoCloseable) {
+        autoCloseable.close();
       }
 
       Field classesField = ClassLoader.class.getDeclaredField("classes");

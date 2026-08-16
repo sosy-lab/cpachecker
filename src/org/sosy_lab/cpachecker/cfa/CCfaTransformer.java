@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
@@ -223,17 +222,14 @@ public final class CCfaTransformer {
         return newNode;
       }
 
-      if (pOldNode instanceof CFALabelNode) {
-        newNode = newCfaLabelNode((CFALabelNode) pOldNode);
-      } else if (pOldNode instanceof CFunctionEntryNode) {
-        newNode = newCFunctionEntryNode((CFunctionEntryNode) pOldNode);
-      } else if (pOldNode instanceof FunctionExitNode) {
-        newNode = newFunctionExitNode((FunctionExitNode) pOldNode);
-      } else if (pOldNode instanceof CFATerminationNode) {
-        newNode = newCfaTerminationNode((CFATerminationNode) pOldNode);
-      } else {
-        newNode = newCfaNode(pOldNode);
-      }
+      newNode =
+          switch (pOldNode) {
+            case CFALabelNode cFALabelNode -> newCfaLabelNode(cFALabelNode);
+            case CFunctionEntryNode cFunctionEntryNode -> newCFunctionEntryNode(cFunctionEntryNode);
+            case FunctionExitNode functionExitNode -> newFunctionExitNode(functionExitNode);
+            case CFATerminationNode cFATerminationNode -> newCfaTerminationNode(cFATerminationNode);
+            default -> newCfaNode(pOldNode);
+          };
 
       oldNodeToNewNode.put(pOldNode, newNode);
 
@@ -508,9 +504,9 @@ public final class CCfaTransformer {
       List<SummaryPlaceholderEdge> summaryPlaceholderEdges = new ArrayList<>();
 
       for (CFANode newCfaNode : oldNodeToNewNode.values()) {
-        for (CFAEdge newCfaEdge : CFAUtils.allLeavingEdges(newCfaNode)) {
-          if (newCfaEdge instanceof SummaryPlaceholderEdge) {
-            summaryPlaceholderEdges.add((SummaryPlaceholderEdge) newCfaEdge);
+        for (CFAEdge newCfaEdge : newCfaNode.getAllLeavingEdges()) {
+          if (newCfaEdge instanceof SummaryPlaceholderEdge summaryPlaceholderEdge) {
+            summaryPlaceholderEdges.add(summaryPlaceholderEdge);
           }
         }
       }
@@ -537,8 +533,8 @@ public final class CCfaTransformer {
         CFANode newNode = toNew(oldNode);
         String functionName = newNode.getFunction().getQualifiedName();
 
-        if (newNode instanceof FunctionEntryNode) {
-          newFunctions.put(functionName, (FunctionEntryNode) newNode);
+        if (newNode instanceof FunctionEntryNode functionEntryNode) {
+          newFunctions.put(functionName, functionEntryNode);
         }
 
         newNodes.put(functionName, newNode);
@@ -598,7 +594,7 @@ public final class CCfaTransformer {
 
     private static final class SummaryPlaceholderEdge extends BlankEdge {
 
-      public SummaryPlaceholderEdge(
+      SummaryPlaceholderEdge(
           String pRawStatement,
           FileLocation pFileLocation,
           CFANode pPredecessor,

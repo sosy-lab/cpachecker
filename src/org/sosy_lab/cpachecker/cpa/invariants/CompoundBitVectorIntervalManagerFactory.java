@@ -51,14 +51,14 @@ public final class CompoundBitVectorIntervalManagerFactory
 
   public CompoundIntervalManager createCompoundIntervalManager(
       TypeInfo pInfo, boolean pWithOverflowHandlers) {
-    if (pInfo instanceof BitVectorInfo) {
+    if (pInfo instanceof BitVectorInfo bitVectorInfo) {
       return new CompoundBitVectorIntervalManager(
-          (BitVectorInfo) pInfo,
+          bitVectorInfo,
           isSignedWrapAroundAllowed(),
           pWithOverflowHandlers ? this::handleAllOverflowHandlers : () -> {});
     }
-    if (pInfo instanceof FloatingPointTypeInfo) {
-      return new CompoundFloatingPointIntervalManager((FloatingPointTypeInfo) pInfo);
+    if (pInfo instanceof FloatingPointTypeInfo floatingPointTypeInfo) {
+      return new CompoundFloatingPointIntervalManager(floatingPointTypeInfo);
     }
     throw new AssertionError("Unsupported type: " + pInfo);
   }

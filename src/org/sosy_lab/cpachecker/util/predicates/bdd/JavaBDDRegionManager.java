@@ -32,6 +32,7 @@ import java.util.function.Function;
 import java.util.logging.Level;
 import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDFactory;
+import net.sf.javabdd.BDDFactory.ReorderMethod;
 import net.sf.javabdd.BDDPairing;
 import net.sf.javabdd.JFactory;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -246,8 +247,8 @@ class JavaBDDRegionManager implements RegionManager {
           Field tableField = cache.getClass().getDeclaredField("table");
           tableField.setAccessible(true);
           Object table = tableField.get(cache);
-          if (table instanceof Object[]) {
-            return ((Object[]) table).length;
+          if (table instanceof Object[] array) {
+            return array.length;
           }
         }
       } catch (ReflectiveOperationException | SecurityException e) {
@@ -467,18 +468,17 @@ class JavaBDDRegionManager implements RegionManager {
 
   @Override
   public void reorder(VariableOrderingStrategy strategy) {
-    switch (strategy) {
-      case RANDOM -> factory.reorder(BDDFactory.REORDER_RANDOM);
-      case SIFT -> factory.reorder(BDDFactory.REORDER_SIFT);
-      case SIFTITE -> factory.reorder(BDDFactory.REORDER_SIFTITE);
-      case WIN2 -> factory.reorder(BDDFactory.REORDER_WIN2);
-      case WIN2ITE -> factory.reorder(BDDFactory.REORDER_WIN2ITE);
-      case WIN3 -> factory.reorder(BDDFactory.REORDER_WIN3);
-      case WIN3ITE -> factory.reorder(BDDFactory.REORDER_WIN3ITE);
-      default ->
-          throw new UnsupportedOperationException(
-              "Reorder strategy " + strategy + " not supported");
-    }
+    ReorderMethod reorderMethod =
+        switch (strategy) {
+          case RANDOM -> BDDFactory.REORDER_RANDOM;
+          case SIFT -> BDDFactory.REORDER_SIFT;
+          case SIFTITE -> BDDFactory.REORDER_SIFTITE;
+          case WIN2 -> BDDFactory.REORDER_WIN2;
+          case WIN2ITE -> BDDFactory.REORDER_WIN2ITE;
+          case WIN3 -> BDDFactory.REORDER_WIN3;
+          case WIN3ITE -> BDDFactory.REORDER_WIN3ITE;
+        };
+    factory.reorder(reorderMethod);
   }
 
   @Override
@@ -622,11 +622,6 @@ class JavaBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public BDD visitBoundVar(BooleanFormula var, int deBruijnIdx) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
     public BDD visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> decl) {
       return ((JavaBDDRegion) atomToRegion.apply(pAtom)).getBDD().id();
     }
@@ -670,7 +665,7 @@ class JavaBDDRegionManager implements RegionManager {
     private BDD visitMulti(BDDFactory.BDDOp operator, List<BooleanFormula> pOperands) {
       checkArgument(pOperands.size() >= 2);
 
-      BDD result = convert(pOperands.get(0));
+      BDD result = convert(pOperands.getFirst());
       for (int i = 1; i < pOperands.size(); i++) {
         // optimization: applyWith() destroys arg0 and arg1,
         // but this is ok, because we would free them otherwise anyway

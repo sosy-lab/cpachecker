@@ -163,6 +163,14 @@ public class BitvectorFormulaManagerView extends BaseManagerView
     return manager.lessOrEquals(pNumber1, pNumbe2, signed);
   }
 
+  BooleanFormula makeDomainRangeConstraint(BitvectorFormula term, boolean signed) {
+    if (manager instanceof ReplaceBitvectorWithNLAIntegerTheory nonlinIntManager) {
+      return nonlinIntManager.makeDomainRangeConstraint(term, signed);
+    } else {
+      return bmgr.makeTrue();
+    }
+  }
+
   @Override
   public BitvectorFormula not(BitvectorFormula pBits) {
     return manager.not(pBits);

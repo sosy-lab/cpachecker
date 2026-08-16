@@ -67,7 +67,7 @@ public final class BOMParser {
    *
    * @param pFilename - the file name as string
    * @return String - the code as string
-   * @throws CParserException - if we have a unknown BOM or a BOM file with non ascii characters in
+   * @throws CParserException - if we have an unknown BOM or a BOM file with non ascii characters in
    *     the code
    */
   public static String filterAndDecode(Path pFilename) throws IOException, CParserException {

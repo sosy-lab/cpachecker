@@ -45,7 +45,7 @@ public class ValidVars implements Serializable {
   public boolean containsVar(String varName) {
     List<String> split = Splitter.on("::").splitToList(varName);
     if (split.size() > 1) {
-      Set<String> functionVars = localValidVars.get(split.get(0));
+      Set<String> functionVars = localValidVars.get(split.getFirst());
       return functionVars != null ? functionVars.contains(split.get(1)) : false;
     } else {
       return globalValidVars.contains(varName);

@@ -13,13 +13,13 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.common.collect.Iterators;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.SequencedSet;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 class DummyNode {
-  private Set<DummyNode> children = new LinkedHashSet<>();
+  private SequencedSet<DummyNode> children = new LinkedHashSet<>();
 
   public void addChild(DummyNode n) {
     children.add(n);

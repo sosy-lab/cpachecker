@@ -71,7 +71,7 @@ int main() {
   int i11 = sizeof(enum e);
   int i12 = sizeof(e);
   int i13 = sizeof(e1);
-  int i14 = sizeof(void);
+  //int i14 = sizeof(void);  // not valid in standard C
   int i15 = sizeof(ia2);
   int i16 = sizeof(ia3);
   int i17 = sizeof(main);
@@ -90,6 +90,6 @@ int main() {
 
   struct a c;
   c.a1 = 0;
-  p p = &c;
+  p p = (void*)&c;
   p->a2 = 0;
 }

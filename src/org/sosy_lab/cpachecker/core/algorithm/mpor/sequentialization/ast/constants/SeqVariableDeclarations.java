@@ -1,0 +1,60 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants;
+
+import static org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder.buildVariableDeclaration;
+
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+
+public class SeqVariableDeclarations {
+
+  public static final CVariableDeclaration PREV_THREAD_DUMMY =
+      buildVariableDeclaration(
+          true,
+          CNumericTypes.UNSIGNED_INT,
+          Sequentialization.MPOR_PREFIX + "prev_thread",
+          SeqInitializers.INT_0);
+
+  public static final CVariableDeclaration NEXT_THREAD_DUMMY =
+      buildVariableDeclaration(
+          true,
+          CNumericTypes.INT,
+          Sequentialization.MPOR_PREFIX + "next_thread",
+          SeqInitializers.INT_0);
+
+  public static final CVariableDeclaration THREAD_COUNT =
+      buildVariableDeclaration(
+          false,
+          CNumericTypes.UNSIGNED_INT,
+          Sequentialization.MPOR_PREFIX + "thread_count",
+          SeqInitializers.INT_1);
+
+  public static final CVariableDeclaration ROUND_MAX_DUMMY =
+      buildVariableDeclaration(
+          false,
+          CNumericTypes.INT,
+          Sequentialization.MPOR_PREFIX + "round_max",
+          SeqInitializers.INT_0);
+
+  public static final CVariableDeclaration ROUND =
+      buildVariableDeclaration(
+          false,
+          CNumericTypes.UNSIGNED_INT,
+          Sequentialization.MPOR_PREFIX + "round",
+          SeqInitializers.INT_0);
+
+  public static final CVariableDeclaration ITERATION =
+      buildVariableDeclaration(
+          false,
+          CNumericTypes.INT,
+          Sequentialization.MPOR_PREFIX + "iteration",
+          SeqInitializers.INT_0);
+}

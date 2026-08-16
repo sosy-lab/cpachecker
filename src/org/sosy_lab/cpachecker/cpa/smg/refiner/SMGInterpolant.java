@@ -89,7 +89,7 @@ public class SMGInterpolant implements Interpolant<Collection<SMGState>, SMGInte
 
   @Override
   public boolean isTrue() {
-    /* No heap abstraction can be performed without hv-edges, thats
+    /* No heap abstraction can be performed without hv-edges, that's
      * why every interpolant without hv-edges and stack variables is true.
      */
     return !isFalse() && trackedMemoryPaths.isEmpty() && trackedStackVariables.isEmpty();

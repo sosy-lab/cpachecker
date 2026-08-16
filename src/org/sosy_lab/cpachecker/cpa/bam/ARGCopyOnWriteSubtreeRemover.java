@@ -18,13 +18,13 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.SequencedMap;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -85,13 +85,13 @@ public class ARGCopyOnWriteSubtreeRemover extends ARGSubtreeRemover {
 
     } else {
       assert !relevantCallStates.isEmpty();
-      final BackwardARGState lastRelevantNode = Iterables.getLast(relevantCallStates);
+      final BackwardARGState lastRelevantNode = relevantCallStates.getLast();
       final List<Pair<Precision, Predicate<? super Precision>>> newPrecisionsLst =
           Pair.zipList(pNewPrecisions, pNewPrecisionTypes);
 
       // handle reached-sets from most inner reached-set to most-outer reached-set
       BackwardARGState currentCutState = cutState;
-      for (BackwardARGState callState : Lists.reverse(relevantCallStates)) {
+      for (BackwardARGState callState : relevantCallStates.reversed()) {
 
         logger.logf(
             Level.FINEST, "removing %s from reachedset with root %s", currentCutState, callState);
@@ -112,7 +112,7 @@ public class ARGCopyOnWriteSubtreeRemover extends ARGSubtreeRemover {
       }
 
       final UnmodifiableReachedSet mainReachedSet = pMainReachedSet.asReachedSet();
-      if (mainReachedSet.getFirstState() == relevantCallStates.get(0).getARGState()
+      if (mainReachedSet.getFirstState() == relevantCallStates.getFirst().getARGState()
           && ((ARGState) mainReachedSet.getLastState())
               .getParents()
               .contains(mainReachedSet.getFirstState())) {
@@ -124,9 +124,9 @@ public class ARGCopyOnWriteSubtreeRemover extends ARGSubtreeRemover {
       } else {
         if (mustUpdatePrecision(lastRelevantNode, cutState, currentCutState)) {
           pMainReachedSet.removeSubtree(
-              relevantCallStates.get(0).getARGState(), pNewPrecisions, pNewPrecisionTypes);
+              relevantCallStates.getFirst().getARGState(), pNewPrecisions, pNewPrecisionTypes);
         } else {
-          pMainReachedSet.removeSubtree(relevantCallStates.get(0).getARGState());
+          pMainReachedSet.removeSubtree(relevantCallStates.getFirst().getARGState());
         }
       }
     }
@@ -258,7 +258,7 @@ public class ARGCopyOnWriteSubtreeRemover extends ARGSubtreeRemover {
   private static Map<ARGState, ARGState> cloneARG(
       final Set<ARGState> reachedStates, final Predicate<AbstractState> keepStates) {
 
-    final Map<ARGState, ARGState> cloneMapping = new LinkedHashMap<>();
+    final SequencedMap<ARGState, ARGState> cloneMapping = new LinkedHashMap<>();
 
     for (AbstractState abstractState : Iterables.filter(reachedStates, keepStates)) {
       ARGState state = (ARGState) abstractState;

@@ -90,7 +90,7 @@ public class WitnessJoinerState extends AbstractSerializableSingleWrapperState
   @Override
   public String toDOTLabel() {
     AbstractState wrapped = getWrappedState();
-    return wrapped instanceof Graphable ? ((Graphable) wrapped).toDOTLabel() : toString();
+    return wrapped instanceof Graphable graphable ? graphable.toDOTLabel() : toString();
   }
 
   @Override

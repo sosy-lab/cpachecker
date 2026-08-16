@@ -26,8 +26,6 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 class PushSummandVisitor<T>
     extends DefaultParameterizedNumeralFormulaVisitor<T, T, NumeralFormula<T>> {
 
-  private static final String SUMMAND_ALREADY_CONSUMED_MESSAGE = "Summand already consumed.";
-
   /**
    * The empty environment used for pushing the summand. No real environment is required because
    * evaluations are exclusively done on the addition and negation of constants.
@@ -38,7 +36,7 @@ class PushSummandVisitor<T>
   /** The evaluation visitor used to evaluate the addition and negation of constants. */
   private final FormulaEvaluationVisitor<T> evaluationVisitor;
 
-  /** This flag indicates whether or not this visitor managed to get a summand consumed. */
+  /** This flag indicates whether this visitor managed to get a summand consumed. */
   private boolean consumed = false;
 
   /**
@@ -69,7 +67,7 @@ class PushSummandVisitor<T>
    *     otherwise it does nothing.
    */
   private void checkNotConsumed() throws IllegalStateException {
-    checkState(!isSummandConsumed(), SUMMAND_ALREADY_CONSUMED_MESSAGE);
+    checkState(!isSummandConsumed(), "Summand already consumed.");
   }
 
   /**

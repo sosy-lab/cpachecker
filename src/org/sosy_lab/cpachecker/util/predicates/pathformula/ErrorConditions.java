@@ -51,7 +51,7 @@ public class ErrorConditions {
 
   private static class DummyErrorConditions extends ErrorConditions {
 
-    public DummyErrorConditions(BooleanFormulaManagerView pBfmgr) {
+    DummyErrorConditions(BooleanFormulaManagerView pBfmgr) {
       super(pBfmgr);
     }
 

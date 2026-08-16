@@ -35,6 +35,16 @@ public final class LogicalNotExpression extends UnarySymbolicExpression implemen
     super(pOperand, pType, pAbstractState);
   }
 
+  public static SymbolicExpression of(SymbolicExpression pOperand, Type pType) {
+
+    if (pOperand instanceof LogicalNotExpression logicalNotExpression) {
+      return logicalNotExpression.getOperand();
+
+    } else {
+      return new LogicalNotExpression(pOperand, getCanonicalType(pType));
+    }
+  }
+
   @Override
   public LogicalNotExpression copyForLocation(MemoryLocation pRepresentedLocation) {
     return new LogicalNotExpression(getOperand(), getType(), pRepresentedLocation);

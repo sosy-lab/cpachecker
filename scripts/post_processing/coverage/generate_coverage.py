@@ -48,20 +48,20 @@ coverage_test_case_message = "Found covering test case"
 
 def gen_reach_exit_spec(f):
     print("CONTROL AUTOMATON CoverageAutomaton", file=f)
-    print("", file=f)
+    print(file=f)
     print("INITIAL STATE WaitForExit;", file=f)
-    print("", file=f)
+    print(file=f)
     print("STATE USEFIRST WaitForExit:", file=f)
     print('  MATCH EXIT -> ERROR("' + coverage_test_case_message + '");', file=f)
-    print("", file=f)
+    print(file=f)
     print("END AUTOMATON", file=f)
 
 
 def gen_covers_any_line_in_set_then_reach_exit_spec(lines_to_cover, f):
     print("CONTROL AUTOMATON CoverageAutomaton", file=f)
-    print("", file=f)
+    print(file=f)
     print("INITIAL STATE LookingForLine;", file=f)
-    print("", file=f)
+    print(file=f)
     print("STATE USEFIRST LookingForLine:", file=f)
     print(
         "  CHECK("
@@ -71,10 +71,10 @@ def gen_covers_any_line_in_set_then_reach_exit_spec(lines_to_cover, f):
     )
     lines = map(str, lines_to_cover)
     print("  COVERS_LINES(" + " ".join(lines) + ") -> GOTO WaitForExit;", file=f)
-    print("", file=f)
+    print(file=f)
     print("STATE USEFIRST WaitForExit:", file=f)
     print('  MATCH EXIT -> ERROR("' + coverage_test_case_message + '");', file=f)
-    print("", file=f)
+    print(file=f)
     print("END AUTOMATON", file=f)
 
 
@@ -167,7 +167,7 @@ def run_command(command, logger):
         output = check_output(command, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
         logger.error(e.output)
-        raise e
+        raise
     logger.debug("Finished Executing")
     logger.debug(output)
     return output
@@ -194,7 +194,7 @@ class NoPropertyViolationFound:
         return False
 
     def found_bug(self):
-        raise Exception("This method should not have been called")
+        raise AssertionError("This method should not have been called")
 
 
 def parse_result(output, logger):
@@ -326,7 +326,7 @@ class ComputeCoverage:
         )
 
     def generate_executions(self):
-        raise NotImplementedError("Instantiate one of the sub-classes.")
+        raise NotImplementedError("Instantiate one of the subclasses.")
 
     def get_coverage(self, cex_spec_file, instance, aa_file, heap_size, logger):
         cex_prefix_coverage_file = os.path.splitext(cex_spec_file)[0] + cov_extension
@@ -350,8 +350,7 @@ class ComputeCoverage:
 
 
 def gen_specs_from_dir(cex_dir):
-    for spec in counterexample_spec_files(cex_dir):
-        yield spec
+    yield from counterexample_spec_files(cex_dir)
 
 
 class Timer:
@@ -379,7 +378,7 @@ def create_generator(
     timer,
 ):
     if name not in available_generators:
-        raise Exception("Invalid generator name.")
+        raise ValueError("Invalid generator name.")
     if name == "fixpoint":
         return FixPointOnCoveredLines(
             instance=instance,
@@ -396,11 +395,9 @@ def create_generator(
     if name == "blind":
         if not cex_count:
             logger.error(
-                (
-                    "Invalid option: when using '-generator_type blind', "
-                    "a limit to the number of counterexamples has to be provided "
-                    "using -cex_count."
-                )
+                "Invalid option: when using '-generator_type blind', "
+                "a limit to the number of counterexamples has to be provided "
+                "using -cex_count."
             )
             sys.exit(0)
         return GenerateFirstThenCollect(
@@ -415,7 +412,7 @@ def create_generator(
             start_time=start_time,
             timer=timer,
         )
-    raise Exception("Missing generator constructor.")
+    raise AssertionError("Missing generator constructor.")
 
 
 def define_iteration_timelimit_from_global_timelimit(
@@ -791,10 +788,8 @@ def check_args(args, logger):
 
     if (args.cex_count or args.timelimit) and (args.only_collect_coverage):
         logger.error(
-            (
-                "Invalid options: Options -cex_count can only be "
-                "present when -only_collect_coverage is not present."
-            )
+            "Invalid options: Options -cex_count can only be "
+            "present when -only_collect_coverage is not present."
         )
         sys.exit(0)
     if not args.only_collect_coverage:
@@ -814,10 +809,8 @@ def check_args(args, logger):
             sys.exit(0)
     elif args.cex_count or args.timelimit:
         logger.error(
-            (
-                "Invalid options: Options -cex_count and -timelimit can only "
-                "be present when -only_collect_coverage is not present."
-            )
+            "Invalid options: Options -cex_count and -timelimit can only "
+            "be present when -only_collect_coverage is not present."
         )
         sys.exit(0)
 

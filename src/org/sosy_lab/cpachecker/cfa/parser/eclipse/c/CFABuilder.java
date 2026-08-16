@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -29,6 +30,7 @@ import org.eclipse.cdt.core.dom.ast.IASTComment;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
+import org.eclipse.cdt.core.dom.ast.IASTPreprocessorMacroExpansion;
 import org.eclipse.cdt.core.dom.ast.IASTProblem;
 import org.eclipse.cdt.core.dom.ast.IASTProblemDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
@@ -87,6 +89,12 @@ class CFABuilder extends ASTVisitor {
 
   // Data structure for checking amount of initializations per global variable
   private final Set<String> globalInitializedVariables = new HashSet<>();
+
+  // Here we keep track of all occurrences of _Atomic that we found but did not handle yet.
+  // The set is filled by this class and then passed to ASTConverter, which removes handled cases.
+  // The reason for this is that we want to detect cases like "int * _Atomic a;" where we do not see
+  // the _Atomic in the AST nodes when converting them.
+  private final Set<FileLocation> unhandledAtomicOccurrences = new HashSet<>();
 
   // Data structures for storing locations of ACSL annotations
   private final List<FileLocation> acslCommentPositions = new ArrayList<>();
@@ -158,9 +166,19 @@ class CFABuilder extends ASTVisitor {
             parseContext,
             machine,
             staticVariablePrefix,
-            sideAssignmentStack);
+            sideAssignmentStack,
+            unhandledAtomicOccurrences);
     functionDeclarations.add(
         new FunctionsOfTranslationUnit(new ArrayList<>(), staticVariablePrefix, fileScope));
+
+    // Fill unhandledAtomicOccurrences. EclipseCdtWrapper makes sure that all "_Atomic" are replaced
+    // by "__attribute__((__CPAchecker_Atomic__))", via a macro. So we can find all places where
+    // this macro was applied.
+    for (IASTPreprocessorMacroExpansion exp : ast.getMacroExpansions()) {
+      if (exp.getMacroReference().toString().equals("_Atomic")) {
+        unhandledAtomicOccurrences.add(astCreator.getLocation(exp));
+      }
+    }
 
     ast.accept(this);
 
@@ -184,62 +202,62 @@ class CFABuilder extends ASTVisitor {
 
     sideAssignmentStack.enterBlock();
 
-    if (declaration instanceof IASTSimpleDeclaration) {
-      return handleSimpleDeclaration((IASTSimpleDeclaration) declaration);
+    return switch (declaration) {
+      case IASTSimpleDeclaration iASTSimpleDeclaration ->
+          handleSimpleDeclaration(iASTSimpleDeclaration);
 
-    } else if (declaration instanceof IASTFunctionDefinition fd) {
-      functionDeclarations.get(functionDeclarations.size() - 1).getFirst().add(fd);
-
-      // add forward declaration to list of global declarations
-      CFunctionDeclaration functionDefinition = astCreator.convert(fd);
-      if (sideAssignmentStack.hasPreSideAssignments()
-          || sideAssignmentStack.hasPostSideAssignments()) {
-        throw parseContext.parseError("Function definition has side effect", fd);
+      case IASTFunctionDefinition fd -> {
+        functionDeclarations.getLast().getFirst().add(fd);
+        // add forward declaration to list of global declarations
+        CFunctionDeclaration functionDefinition = astCreator.convert(fd);
+        if (sideAssignmentStack.hasPreSideAssignments()
+            || sideAssignmentStack.hasPostSideAssignments()) {
+          throw parseContext.parseError("Function definition has side effect", fd);
+        }
+        fileScope.registerFunctionDeclaration(functionDefinition);
+        if (!eliminateableDuplicates.contains(functionDefinition.toASTString())) {
+          globalDeclarations.add(
+              new GlobalDeclaration(
+                  functionDefinition,
+                  fd.getDeclSpecifier().getRawSignature()
+                      + " "
+                      + fd.getDeclarator().getRawSignature(),
+                  fileScope));
+          globalDecls.add(
+              Pair.of(
+                  functionDefinition,
+                  fd.getDeclSpecifier().getRawSignature()
+                      + " "
+                      + fd.getDeclarator().getRawSignature()));
+          eliminateableDuplicates.add(functionDefinition.toASTString());
+        }
+        sideAssignmentStack.leaveBlock();
+        yield PROCESS_SKIP;
       }
-
-      fileScope.registerFunctionDeclaration(functionDefinition);
-      if (!eliminateableDuplicates.contains(functionDefinition.toASTString())) {
-        globalDeclarations.add(
-            new GlobalDeclaration(
-                functionDefinition,
-                fd.getDeclSpecifier().getRawSignature()
-                    + " "
-                    + fd.getDeclarator().getRawSignature(),
-                fileScope));
-        globalDecls.add(
-            Pair.of(
-                functionDefinition,
-                fd.getDeclSpecifier().getRawSignature()
-                    + " "
-                    + fd.getDeclarator().getRawSignature()));
-        eliminateableDuplicates.add(functionDefinition.toASTString());
+      case IASTProblemDeclaration iASTProblemDeclaration -> {
+        visit(iASTProblemDeclaration.getProblem());
+        sideAssignmentStack.leaveBlock();
+        yield PROCESS_SKIP;
       }
-
-      sideAssignmentStack.leaveBlock();
-      return PROCESS_SKIP;
-
-    } else if (declaration instanceof IASTProblemDeclaration) {
-      visit(((IASTProblemDeclaration) declaration).getProblem());
-      sideAssignmentStack.leaveBlock();
-      return PROCESS_SKIP;
-
-    } else if (declaration instanceof IASTASMDeclaration) {
-      // TODO Assembler code is ignored here
-      encounteredAsm = true;
-      @Nullable IASTFileLocation fileloc = declaration.getFileLocation();
-      if (fileloc != null) {
-        logger.log(
-            Level.FINER, "Ignoring inline assembler code at line", fileloc.getStartingLineNumber());
-      } else {
-        logger.log(Level.FINER, "Ignoring inline assembler code at unknown line.");
+      case IASTASMDeclaration asm -> {
+        // TODO Assembler code is ignored here
+        encounteredAsm = true;
+        @Nullable IASTFileLocation fileloc = declaration.getFileLocation();
+        if (fileloc != null) {
+          logger.log(
+              Level.FINER,
+              "Ignoring inline assembler code at line",
+              fileloc.getStartingLineNumber());
+        } else {
+          logger.log(Level.FINER, "Ignoring inline assembler code at unknown line.");
+        }
+        sideAssignmentStack.leaveBlock();
+        yield PROCESS_SKIP;
       }
-      sideAssignmentStack.leaveBlock();
-      return PROCESS_SKIP;
-
-    } else {
-      throw parseContext.parseError(
-          "Unknown declaration type " + declaration.getClass().getSimpleName(), declaration);
-    }
+      default ->
+          throw parseContext.parseError(
+              "Unknown declaration type " + declaration.getClass().getSimpleName(), declaration);
+    };
   }
 
   private int handleSimpleDeclaration(final IASTSimpleDeclaration sd) {
@@ -267,11 +285,11 @@ class CFABuilder extends ASTVisitor {
         globalDeclarations.add(
             new GlobalDeclaration((ADeclaration) astNode, rawSignature, fileScope));
         globalDecls.add(Pair.of((ADeclaration) astNode, rawSignature));
-      } else if (astNode instanceof CVariableDeclaration) {
+      } else if (astNode instanceof CVariableDeclaration cVariableDeclaration) {
         // If the initializer of a global struct contains a type-id expression,
-        // a temporary variable is created and we need to support this.
+        // a temporary variable is created, and we need to support this.
         // We detect this case if the initializer of the temp variable is an initializer list.
-        CInitializer initializer = ((CVariableDeclaration) astNode).getInitializer();
+        CInitializer initializer = cVariableDeclaration.getInitializer();
         if (initializer instanceof CInitializerList) {
           globalDeclarations.add(
               new GlobalDeclaration((ADeclaration) astNode, rawSignature, fileScope));
@@ -288,26 +306,27 @@ class CFABuilder extends ASTVisitor {
     for (CDeclaration newD : newDs) {
       boolean used = true;
 
-      if (newD instanceof CVariableDeclaration) {
+      switch (newD) {
+        case CVariableDeclaration cVariableDeclaration -> {
+          CInitializer init = cVariableDeclaration.getInitializer();
+          if (init != null) {
+            init.accept(checkBinding);
 
-        CInitializer init = ((CVariableDeclaration) newD).getInitializer();
-        if (init != null) {
-          init.accept(checkBinding);
-
-          // save global initialized variable in map to check duplicates
-          if (!globalInitializedVariables.add(newD.getName())) {
-            throw parseContext.parseError(
-                "Variable " + newD.getName() + " initialized for the second time", newD);
+            // save global initialized variable in map to check duplicates
+            if (!globalInitializedVariables.add(newD.getName())) {
+              throw parseContext.parseError(
+                  "Variable " + newD.getName() + " initialized for the second time", newD);
+            }
           }
+          fileScope.registerDeclaration(newD);
         }
-
-        fileScope.registerDeclaration(newD);
-      } else if (newD instanceof CFunctionDeclaration) {
-        fileScope.registerFunctionDeclaration((CFunctionDeclaration) newD);
-      } else if (newD instanceof CComplexTypeDeclaration) {
-        used = fileScope.registerTypeDeclaration((CComplexTypeDeclaration) newD);
-      } else if (newD instanceof CTypeDefDeclaration) {
-        used = fileScope.registerTypeDeclaration((CTypeDefDeclaration) newD);
+        case CFunctionDeclaration cFunctionDeclaration ->
+            fileScope.registerFunctionDeclaration(cFunctionDeclaration);
+        case CComplexTypeDeclaration cComplexTypeDeclaration ->
+            used = fileScope.registerTypeDeclaration(cComplexTypeDeclaration);
+        case CTypeDefDeclaration cTypeDefDeclaration ->
+            used = fileScope.registerTypeDeclaration(cTypeDefDeclaration);
+        default -> throw new AssertionError();
       }
 
       if (used && !eliminateableDuplicates.contains(newD.toASTString())) {
@@ -380,6 +399,13 @@ class CFABuilder extends ASTVisitor {
           "Invalid C code because of undefined identifiers mentioned above.");
     }
 
+    if (!unhandledAtomicOccurrences.isEmpty()) {
+      FileLocation firstUnhandledAtomic = Collections.min(unhandledAtomicOccurrences);
+      throw new CParserException(
+          "Found %d cases of _Atomic in unsupported locations, first one is in %s."
+              .formatted(unhandledAtomicOccurrences.size(), firstUnhandledAtomic));
+    }
+
     ParseResult result;
 
     if (!acslCommentPositions.isEmpty()) {
@@ -425,7 +451,8 @@ class CFABuilder extends ASTVisitor {
             sideAssignmentStack,
             checkBinding,
             cfaNodeToAstLocalVariablesInScope,
-            cfaNodeToAstParametersInScope);
+            cfaNodeToAstParametersInScope,
+            unhandledAtomicOccurrences);
 
     declaration.accept(functionBuilder);
 

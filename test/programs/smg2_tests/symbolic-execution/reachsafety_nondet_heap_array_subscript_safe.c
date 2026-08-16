@@ -119,7 +119,7 @@ int main() {
     }
     assert(arr4 != arr2);
 
-    // Make a array of value pointers
+    // Make an array of value pointers
     int ** valuePointerArray = malloc(10 * sizeof(int *));
     // get the current values of arr into it
     for (int i = 0; i < 10; i++) {

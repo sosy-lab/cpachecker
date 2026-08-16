@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
+<project name="integration-tests" basedir=".">
+
+    <property name="integration-tests.dir" value="integration-tests"/>
+    <property name="integration-tests.report" value="IntegrationTests.html"/>
+
+    <target name="integration-tests" depends="build, load-junit, init-unit-tests" description="Run integration tests">
+        <delete dir="${integration-tests.dir}"/>
+        <mkdir dir="${integration-tests.dir}"/>
+        <junit fork="true" printSummary="true" showOutput="false" failureproperty="integration-tests.failed" timeout="1000000">
+            <assertions><enable/></assertions>
+            <formatter type="xml"/>
+            <classpath refid="classpath.junit"/>
+            <sysproperty key="java.awt.headless" value="true" />
+            <sysproperty key="enableExtendedTests" value="${enableExtendedTests}"/>
+            <jvmarg value="--enable-native-access=ALL-UNNAMED"/>
+            <batchtest fork="true" todir="${integration-tests.dir}">
+                <fileset dir="${class.dir}">
+                    <include name="**/*IntegrationTest.*"/>
+                </fileset>
+            </batchtest>
+        </junit>
+        <junitreport todir="${integration-tests.dir}">
+            <fileset dir="${integration-tests.dir}" includes="TEST-*.xml"/>
+            <report format="noframes">
+                <param name="TITLE" expression="Integration-Test Results for ${ant.project.name}"/>
+            </report>
+        </junitreport>
+        <move file="junit-noframes.html" tofile="${integration-tests.report}"/>
+        <fail if="integration-tests.failed" message="Integration tests failed, look at ${integration-tests.report}"/>
+    </target>
+</project>

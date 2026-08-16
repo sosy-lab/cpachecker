@@ -24,12 +24,12 @@ public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
 
   public static ExpressionTree<AExpression> fromStatement(
       AStatement pStatement, CBinaryExpressionBuilder pBinaryExpressionBuilder) {
-    if (pStatement instanceof AExpressionStatement) {
-      return of(((AExpressionStatement) pStatement).getExpression());
+    if (pStatement instanceof AExpressionStatement aExpressionStatement) {
+      return of(aExpressionStatement.getExpression());
     }
     if ((pStatement instanceof CAssignment assignment)
-        && (assignment.getRightHandSide() instanceof CExpression)) {
-      CExpression expression = (CExpression) assignment.getRightHandSide();
+        && (assignment.getRightHandSide() instanceof CExpression expression)) {
+
       CBinaryExpression assumeExp =
           pBinaryExpressionBuilder.buildBinaryExpressionUnchecked(
               assignment.getLeftHandSide(), expression, CBinaryExpression.BinaryOperator.EQUALS);

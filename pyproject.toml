@@ -6,6 +6,15 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-[tool.black]
-include = '((contrib|scripts|test/util).*\.(ipynb|py)|bin/cpa-witness2test)$'
-target-version = ['py37']
+[project]
+name = "Scripts for CPAchecker"
+requires-python = ">= 3.10"
+
+[tool.ruff]
+extend-include = ["bin/cpa-witness2test"]
+
+[tool.ruff.lint]
+ignore = [
+    "LOG015",  # we always use the root logger
+    "PIE790",  # arguably better readable if function contains "pass" instead of just docstring
+]

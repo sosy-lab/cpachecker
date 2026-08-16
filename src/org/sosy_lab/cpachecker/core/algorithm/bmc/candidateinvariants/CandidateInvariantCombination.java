@@ -255,8 +255,8 @@ public class CandidateInvariantCombination {
     return FluentIterable.from(pOperands)
         .transformAndConcat(
             operand -> {
-              if (operand instanceof Combination) {
-                return flatten(((Combination) operand).getOperands());
+              if (operand instanceof Combination combination) {
+                return flatten(combination.getOperands());
               }
               return Collections.singleton(operand);
             });
@@ -264,9 +264,8 @@ public class CandidateInvariantCombination {
 
   public static Iterable<CandidateInvariant> getConjunctiveParts(
       CandidateInvariant pCandidateInvariant) {
-    if (pCandidateInvariant instanceof Combination
-        && ((Combination) pCandidateInvariant).isConjunction()) {
-      return ((Combination) pCandidateInvariant).getOperands();
+    if (pCandidateInvariant instanceof Combination combination && combination.isConjunction()) {
+      return combination.getOperands();
     }
     return Collections.singleton(pCandidateInvariant);
   }
@@ -279,9 +278,8 @@ public class CandidateInvariantCombination {
 
   public static Iterable<CandidateInvariant> getDisjunctiveParts(
       CandidateInvariant pCandidateInvariant) {
-    if (pCandidateInvariant instanceof Combination
-        && !((Combination) pCandidateInvariant).isConjunction()) {
-      return ((Combination) pCandidateInvariant).getOperands();
+    if (pCandidateInvariant instanceof Combination combination && !combination.isConjunction()) {
+      return combination.getOperands();
     }
     return Collections.singleton(pCandidateInvariant);
   }

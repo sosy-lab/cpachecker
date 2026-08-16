@@ -18,37 +18,48 @@ import org.sosy_lab.common.NativeLibraries;
  * easily compare expectations towards how certain floating point operations on a given system and C
  * compilation should work with the reality from inside a Java based framework.
  */
-public class CFloatNativeAPI {
+@SuppressWarnings("EnumOrdinal")
+class CFloatNativeAPI {
+  /**
+   * Whenever new native methods are added to this class the C header in
+   * lib/native/sources/cFloatingPoints must be recreated, This can be done by running `javac -h` on
+   * this file.
+   */
   private CFloatNativeAPI() {}
 
   static {
     NativeLibraries.loadLibrary("FloatingPoints");
   }
 
-  public enum CNativeType {
-    SINGLE(0),
-    DOUBLE(1),
-    LONG_DOUBLE(2),
-    CHAR(3),
-    SHORT(4),
-    INT(5),
-    LONG(6),
-    LONG_LONG(7),
-    UCHAR(8),
-    USHORT(9),
-    UINT(10),
-    ULONG(11),
-    ULONG_LONG(12);
+  /** Native float types from C */
+  public enum CFloatType {
+    /* Whenever this enum is changed, the C header in lib/native/sources/cFloatingPoints also needs
+     * to be updated. The header file will contain a '#define' for each of the values in the enum
+     * that maps its ordinal(). When new values are added to the enum (or moved to a different
+     * position) the ordinal must also be updated.
+     */
+    SINGLE,
+    DOUBLE,
+    LONG_DOUBLE
+  }
 
-    private final int ordinal;
-
-    CNativeType(final int pOrdinal) {
-      ordinal = pOrdinal;
-    }
-
-    public int getOrdinal() {
-      return ordinal;
-    }
+  /** Native integer types from C */
+  public enum CIntegerType {
+    /* Whenever this enum is changed, the C header in lib/native/sources/cFloatingPoints also needs
+     * to be updated. The header file will contain a '#define' for each of the values in the enum
+     * that maps its ordinal(). When new values are added to the enum (or moved to a different
+     * position) the ordinal must also be updated.
+     */
+    CHAR,
+    SHORT,
+    INT,
+    LONG,
+    LONG_LONG,
+    UCHAR,
+    USHORT,
+    UINT,
+    ULONG,
+    ULONG_LONG
   }
 
   public static final CFloat ZERO_SINGLE;
@@ -63,33 +74,21 @@ public class CFloatNativeAPI {
   public static final CFloat ONE_LONG_DOUBLE;
   public static final CFloat TEN_LONG_DOUBLE;
 
-  public static final int FP_TYPE_SINGLE = 0;
-  public static final int FP_TYPE_DOUBLE = 1;
-  public static final int FP_TYPE_LONG_DOUBLE = 2;
-
-  public static final int TYPE_CHAR = 3;
-  public static final int TYPE_SHORT = 4;
-  public static final int TYPE_INT = 5;
-  public static final int TYPE_LONG = 6;
-  public static final int TYPE_LONG_LONG = 7;
-  public static final int TYPE_UCHAR = 8;
-  public static final int TYPE_USHORT = 9;
-  public static final int TYPE_UINT = 10;
-  public static final int TYPE_ULONG = 11;
-  public static final int TYPE_ULONG_LONG = 12;
-
   static {
-    ZERO_SINGLE = new CFloatImpl(createFp("0.0", FP_TYPE_SINGLE), FP_TYPE_SINGLE);
-    ONE_SINGLE = new CFloatImpl(createFp("1.0", FP_TYPE_SINGLE), FP_TYPE_SINGLE);
-    TEN_SINGLE = new CFloatImpl(createFp("10.0", FP_TYPE_SINGLE), FP_TYPE_SINGLE);
+    ZERO_SINGLE = new CFloatImpl(createFp("0.0", CFloatType.SINGLE.ordinal()), CFloatType.SINGLE);
+    ONE_SINGLE = new CFloatImpl(createFp("1.0", CFloatType.SINGLE.ordinal()), CFloatType.SINGLE);
+    TEN_SINGLE = new CFloatImpl(createFp("10.0", CFloatType.SINGLE.ordinal()), CFloatType.SINGLE);
 
-    ZERO_DOUBLE = new CFloatImpl(createFp("0.0", FP_TYPE_DOUBLE), FP_TYPE_DOUBLE);
-    ONE_DOUBLE = new CFloatImpl(createFp("1.0", FP_TYPE_DOUBLE), FP_TYPE_DOUBLE);
-    TEN_DOUBLE = new CFloatImpl(createFp("10.0", FP_TYPE_DOUBLE), FP_TYPE_DOUBLE);
+    ZERO_DOUBLE = new CFloatImpl(createFp("0.0", CFloatType.DOUBLE.ordinal()), CFloatType.DOUBLE);
+    ONE_DOUBLE = new CFloatImpl(createFp("1.0", CFloatType.DOUBLE.ordinal()), CFloatType.DOUBLE);
+    TEN_DOUBLE = new CFloatImpl(createFp("10.0", CFloatType.DOUBLE.ordinal()), CFloatType.DOUBLE);
 
-    ZERO_LONG_DOUBLE = new CFloatImpl(createFp("0.0", FP_TYPE_LONG_DOUBLE), FP_TYPE_LONG_DOUBLE);
-    ONE_LONG_DOUBLE = new CFloatImpl(createFp("1.0", FP_TYPE_LONG_DOUBLE), FP_TYPE_LONG_DOUBLE);
-    TEN_LONG_DOUBLE = new CFloatImpl(createFp("10.0", FP_TYPE_LONG_DOUBLE), FP_TYPE_LONG_DOUBLE);
+    ZERO_LONG_DOUBLE =
+        new CFloatImpl(createFp("0.0", CFloatType.LONG_DOUBLE.ordinal()), CFloatType.LONG_DOUBLE);
+    ONE_LONG_DOUBLE =
+        new CFloatImpl(createFp("1.0", CFloatType.LONG_DOUBLE.ordinal()), CFloatType.LONG_DOUBLE);
+    TEN_LONG_DOUBLE =
+        new CFloatImpl(createFp("10.0", CFloatType.LONG_DOUBLE.ordinal()), CFloatType.LONG_DOUBLE);
   }
 
   public static native CFloatWrapper createFp(String stringRepresentation, int fp_type);
@@ -108,11 +107,15 @@ public class CFloatNativeAPI {
   public static native CFloatWrapper divideFp(
       CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
 
-  public static native CFloatWrapper addManyFp(
-      CFloatWrapper fp1, int[] fp_types, CFloatWrapper... fps);
+  public static native CFloatWrapper moduloFp(
+      CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
 
-  public static native CFloatWrapper multiplyManyFp(
-      CFloatWrapper fp1, int[] fp_types, CFloatWrapper... fps);
+  public static native CFloatWrapper remainderFp(
+      CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
+
+  public static native CFloatWrapper logFp(CFloatWrapper fp1, int fp_type1);
+
+  public static native CFloatWrapper expFp(CFloatWrapper fp1, int fp_type1);
 
   public static native CFloatWrapper powFp(
       CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
@@ -141,11 +144,44 @@ public class CFloatNativeAPI {
 
   public static native boolean isNegativeFp(CFloatWrapper fp, int fp_type);
 
+  public static native boolean isEqualFp(
+      CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
+
+  public static native boolean isNotEqualFp(
+      CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
+
+  public static native boolean isGreaterFp(
+      CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
+
+  public static native boolean isGreaterEqualFp(
+      CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
+
+  public static native boolean isLessFp(
+      CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
+
+  public static native boolean isLessEqualFp(
+      CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
+
+  public static native int totalOrderFp(
+      CFloatWrapper fp1, int fp_type1, CFloatWrapper fp2, int fp_type2);
+
   public static native CFloatWrapper copySignFp(CFloatWrapper fp1, CFloatWrapper fp2, int fp_type);
 
   public static native CFloatWrapper castFpFromTo(CFloatWrapper fp, int fp_from_type, int to_type);
 
-  public static native CFloatWrapper castOtherToFp(Number value, int from_type, int to_fp_type);
+  public static native CFloatWrapper castByteToFp(byte value, int to_fp_type);
 
-  public static native Number castFpToOther(CFloatWrapper fp, int fp_from_type, int to_type);
+  public static native CFloatWrapper castShortToFp(short value, int to_fp_type);
+
+  public static native CFloatWrapper castIntToFp(int value, int to_fp_type);
+
+  public static native CFloatWrapper castLongToFp(long value, int to_fp_type);
+
+  public static native byte castFpToByte(CFloatWrapper fp, int fp_from_type);
+
+  public static native short castFpToShort(CFloatWrapper fp, int fp_from_type);
+
+  public static native int castFpToInt(CFloatWrapper fp, int fp_from_type);
+
+  public static native long castFpToLong(CFloatWrapper fp, int fp_from_type);
 }

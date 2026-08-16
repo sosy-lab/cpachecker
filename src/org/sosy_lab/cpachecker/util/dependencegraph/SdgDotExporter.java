@@ -81,11 +81,13 @@ abstract class SdgDotExporter<P, T, V, N extends SystemDependenceGraph.Node<P, T
    * </code> (quotation marks are not part of the substring) are automatically replaced with the
    * right color based on highlighting of the node.
    *
-   * <p>Examples as java string literals: <or>
-   * <li><code>""</code>
-   * <li><code>"color=\"{color}\""</code>
-   * <li><code>"style=\"bold,dashed\",shape=\"ellipse\",color=\"{color}\""</code>
-   * </ol>
+   * <p>Examples as java string literals:
+   *
+   * <ul>
+   *   <li><code>""</code>
+   *   <li><code>"color=\"{color}\""</code>
+   *   <li><code>"style=\"bold,dashed\",shape=\"ellipse\",color=\"{color}\""</code>
+   * </ul>
    *
    * @param pNode the node to get the style for
    * @return dot file compatible style, shape, color, and possibly other attributes (except label)

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_coverage.ut
 import com.google.common.collect.Sets;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.SequencedMap;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -33,7 +34,7 @@ public class CoverageInformationBuilder {
 
   private Map<CFAEdge, FailedAndPassedExecutionCount> calculateCoverageInformation(
       Set<ARGPath> paths) throws InterruptedException {
-    Map<CFAEdge, FailedAndPassedExecutionCount> coverageInfo = new LinkedHashMap<>();
+    SequencedMap<CFAEdge, FailedAndPassedExecutionCount> coverageInfo = new LinkedHashMap<>();
 
     for (ARGPath path : paths) {
       for (CFAEdge cfaEdge : path.getFullPath()) {
@@ -43,7 +44,7 @@ public class CoverageInformationBuilder {
           coverageInfo.put(cfaEdge, new FailedAndPassedExecutionCount(0, 0));
         }
         caseStatus = coverageInfo.get(cfaEdge);
-        // Check whether the path is a error path
+        // Check whether the path is an error path
         if (path.getLastState().isTarget()) {
           caseStatus =
               new FailedAndPassedExecutionCount(

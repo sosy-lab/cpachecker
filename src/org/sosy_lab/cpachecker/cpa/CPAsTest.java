@@ -40,6 +40,7 @@ import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -73,7 +74,7 @@ import org.sosy_lab.cpachecker.cpa.traceabstraction.TraceAbstractionCPA;
 import org.sosy_lab.cpachecker.cpa.usage.UsageCPA;
 import org.sosy_lab.cpachecker.cpa.witnessjoiner.WitnessJoinerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 
 @RunWith(Parameterized.class)
 public class CPAsTest {
@@ -121,7 +122,7 @@ public class CPAsTest {
   private static final ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
   private static final StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
   private static Configuration config;
-  private static CFA cfa;
+  private static ImmutableCFA cfa;
   private static FunctionEntryNode main;
 
   @Parameter(0)
@@ -139,7 +140,7 @@ public class CPAsTest {
                 .build());
     Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
 
-    String cProgram = TestDataTools.getEmptyProgram(tempFolder, Language.C);
+    String cProgram = TestCfaUtils.getEmptyProgram(tempFolder, Language.C);
 
     config =
         Configuration.builder()
@@ -155,11 +156,13 @@ public class CPAsTest {
     tempFolder.newFile("immediatechecks.conf");
 
     cfa =
-        TestDataTools.toSingleFunctionCFA(
+        TestCfaUtils.toSingleFunctionCFA(
             new CFACreator(config, logManager, shutdownNotifier),
-            "  int a;",
-            "  a = 1;",
-            "  return a;");
+            """
+            int a;
+            a = 1;
+            return a;
+            """);
     main = cfa.getMainFunction();
   }
 

@@ -39,7 +39,7 @@ public class SymbolicLocationPathFormulaBuilder extends DefaultPathFormulaBuilde
 
     private final CFAEdge edge;
 
-    protected SymbolicLocationPathFormulaAndBuilder(
+    SymbolicLocationPathFormulaAndBuilder(
         final DefaultPathFormulaBuilder pPathFormulaAndBuilder,
         final CFAEdge pEdge,
         final CBinaryExpressionBuilder pCBinaryExpressionBuilder) {
@@ -74,7 +74,7 @@ public class SymbolicLocationPathFormulaBuilder extends DefaultPathFormulaBuilde
     private final PathFormulaBuilder first;
     private final PathFormulaBuilder second;
 
-    protected SymbolicLocationPathFormulaOrBuilder(
+    SymbolicLocationPathFormulaOrBuilder(
         final PathFormulaBuilder first,
         final PathFormulaBuilder second,
         final CBinaryExpressionBuilder cBinaryExpressionBuilder) {

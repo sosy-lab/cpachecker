@@ -214,8 +214,8 @@ public class ProgramSplitAlgorithm implements Algorithm, StatisticsProvider, Sta
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(this);
-    if (innerAlgorithm instanceof Statistics) {
-      pStatsCollection.add((Statistics) innerAlgorithm);
+    if (innerAlgorithm instanceof Statistics statistics) {
+      pStatsCollection.add(statistics);
     }
   }
 }

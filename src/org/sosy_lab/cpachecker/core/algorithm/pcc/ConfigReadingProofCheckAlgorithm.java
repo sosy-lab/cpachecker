@@ -65,13 +65,13 @@ public class ConfigReadingProofCheckAlgorithm implements Algorithm, StatisticsPr
 
     coreFact =
         new CoreComponentsFactory(
-            valConfig, pLogger, pShutdownNotifier, AggregatedReachedSets.empty());
+            valConfig, pLogger, pShutdownNotifier, AggregatedReachedSets.empty(), cfa);
 
     ConfigurationBuilder configBuilder = Configuration.builder();
     configBuilder.copyFrom(pConfig);
     configBuilder.copyOptionFrom(valConfig, "pcc.strategy");
 
-    valCPA = instantiateCPA(pCfa, pSpecification);
+    valCPA = instantiateCPA(pSpecification);
 
     checkingAlgorithm =
         new ProofCheckAlgorithm(
@@ -87,11 +87,10 @@ public class ConfigReadingProofCheckAlgorithm implements Algorithm, StatisticsPr
     }
   }
 
-  private ConfigurableProgramAnalysis instantiateCPA(
-      final CFA pCfa, final Specification pSpecification)
+  private ConfigurableProgramAnalysis instantiateCPA(final Specification pSpecification)
       throws InvalidConfigurationException, InterruptedException {
     try {
-      return coreFact.createCPA(pCfa, pSpecification);
+      return coreFact.createCPA(pSpecification);
     } catch (CPAException e) {
       throw new InvalidConfigurationException(
           "Failed to read and build validation configuration from proof", e);

@@ -1,0 +1,118 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!--
+SMG based portfolio analysis on MemorySafety (valid-memsafety) tasks for all solvers available
+on the executing environment that support all theories necessary for a sound analysis.
+This tests each solver for their performance in regards to incremental SAT checking in multiple theories/logics, as well as model retrieval.
+Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment below.
+-->
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="2">
+
+  <option name="--heap">10000M</option>
+  <option name="--benchmark"/>
+
+  <!-- Equal to SMG-Portfolio without malloc failure -->
+  <option name="--svcomp26" />
+
+
+  <rundefinition name="MathSAT5">
+    <option name="--option">solver.solver=mathsat5</option>
+  </rundefinition>
+
+  <rundefinition name="Z3">
+    <option name="--option">solver.solver=z3</option>
+  </rundefinition>
+
+  <rundefinition name="CVC4">
+    <option name="--option">solver.solver=cvc4</option>
+    <!-- CVC4 needs a larger stack -->
+    <option name="--stack">50M</option>
+  </rundefinition>
+
+  <rundefinition name="CVC5">
+    <option name="--option">solver.solver=cvc5</option>
+  </rundefinition>
+
+  <rundefinition name="Princess">
+    <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
+    <option name="--option">solver.solver=princess</option>
+  </rundefinition>
+
+  <rundefinition name="Bitwuzla">
+    <!-- Integer as BV is not impacting soundness -->
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">solver.solver=bitwuzla</option>
+  </rundefinition>
+
+  <rundefinition name="Yices2">
+    <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
+    <option name="--option">solver.solver=yices2</option>
+  </rundefinition>
+
+
+  <!-- MemSafety categories synced to SV-COMP26 -->
+  <!-- #################### MemSafety-MemSafety #################### -->
+  <tasks name="C.valid-memsafety.Arrays">
+    <includesfile>../../programs/benchmarks/Arrays.set</includesfile>
+    <includesfile>../../programs/benchmarks/Heap-Termination.set</includesfile>
+    <includesfile>../../programs/benchmarks/VerifyThis-Loops.set</includesfile>
+    <includesfile>../../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
+    <propertyfile>../../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="C.valid-memsafety.Heap">
+    <includesfile>../../programs/benchmarks/Heap.set</includesfile>
+    <propertyfile>../../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="C.valid-memsafety.LinkedLists">
+    <includesfile>../../programs/benchmarks/LinkedLists.set</includesfile>
+    <propertyfile>../../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="C.valid-memsafety.Other">
+    <includesfile>../../programs/benchmarks/Loops.set</includesfile>
+    <includesfile>../../programs/benchmarks/ControlFlow.set</includesfile>
+    <includesfile>../../programs/benchmarks/ControlFlow-Termination.set</includesfile>
+    <includesfile>../../programs/benchmarks/Recursive.set</includesfile>
+    <propertyfile>../../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="C.valid-memsafety.Juliet">
+    <includesfile>../../programs/benchmarks/Juliet.set</includesfile>
+    <propertyfile>../../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+
+  <!-- #################### SoftwareSystems-MemSafety #################### -->
+  <tasks name="C.valid-memsafety.SoftwareSystems-coreutils">
+    <includesfile>../../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
+    <propertyfile>../../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="C.valid-memsafety.SoftwareSystems-DeviceDriversLinux64">
+    <includesfile>../../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
+    <propertyfile>../../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="C.valid-memsafety.SoftwareSystems-Other">
+    <includesfile>../../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
+    <includesfile>../../programs/benchmarks/SoftwareSystems-OpenBSD.set</includesfile>
+    <propertyfile>../../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="C.valid-memsafety.SoftwareSystems-uthash">
+    <includesfile>../../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
+    <propertyfile>../../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+
+  <!-- #################### Concurrency-MemSafety #################### -->
+  <tasks name="C.valid-memsafety.Concurrency">
+    <includesfile>../../programs/benchmarks/Concurrency.set</includesfile>
+    <propertyfile>../../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+
+</benchmark>

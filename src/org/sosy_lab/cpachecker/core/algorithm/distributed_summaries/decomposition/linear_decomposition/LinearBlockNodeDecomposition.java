@@ -26,6 +26,6 @@ public class LinearBlockNodeDecomposition implements DssBlockDecomposition {
   @Override
   public BlockGraph decompose(CFA cfa) throws InterruptedException {
     CFATraversal.dfs().traverseEdgesOnce(cfa.getMainFunction(), visitor);
-    return BlockGraph.fromBlockNodesWithoutGraphInformation(cfa, visitor.getBlockNodes());
+    return BlockGraph.fromBlockNodesWithoutGraphInformation(visitor.getBlockNodes());
   }
 }

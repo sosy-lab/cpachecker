@@ -60,10 +60,8 @@ abstract class AbstractSlice implements Slice {
 
     for (CFAEdge relevantEdge : pRelevantEdges) {
 
-      if (relevantEdge instanceof CDeclarationEdge) {
-        ((CDeclarationEdge) relevantEdge)
-            .getDeclaration()
-            .accept(relevantDeclarationCollectingVisitor);
+      if (relevantEdge instanceof CDeclarationEdge cDeclarationEdge) {
+        cDeclarationEdge.getDeclaration().accept(relevantDeclarationCollectingVisitor);
       }
 
       for (CFANode relevantNode :

@@ -2,7 +2,7 @@
 # a collection of common files and build definitions for Java projects:
 # https://gitlab.com/sosy-lab/software/java-project-template
 #
-# SPDX-FileCopyrightText: 2018-2023 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2018-2025 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -18,7 +18,7 @@ stages:
   - deploy
 
 # Default image for non-JDK-specific jobs
-image: ${CI_REGISTRY_IMAGE}/test:jdk-11
+image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
 variables:
   IVY_CACHE_DIR: "${CI_PROJECT_DIR}/.ivy2"
@@ -52,10 +52,6 @@ build-dependencies:
       - "classes/"
       - "*.jar"
 
-build:jdk-11:
-  <<: *build
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-11
-
 build:jdk-17:
   <<: *build
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
@@ -64,41 +60,55 @@ build:jdk-21:
   <<: *build
   image: ${CI_REGISTRY_IMAGE}/test:jdk-21
 
-build:jdk-23:
+build:jdk-25:
   <<: *build
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-23
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-25
 
 
 # For checks that need the binaries
-.binary_check: &binary_check
+.check-binaries: &binary_check
   stage: checks
   interruptible: true
 
-# For checks that only need the source code, not the binaries
-.source_check: &source_check
-  stage: checks
+.check-binaries-default-jdk:
+  extends: .check-binaries
   dependencies:
     - build-dependencies
+    - build:jdk-17
+  needs:
+    - build-dependencies
+    - build:jdk-17
+
+# For checks that only need build-dependencies and the source code, not the binaries
+.source_check: &source_check
+  stage: checks
   needs:
     - build-dependencies
   interruptible: true
 
+# For checks that only need the source, not even build-dependencies
+.check-without-dependencies:
+  stage: checks
+  dependencies: []
+  needs: []
+  interruptible: true
 
-.build-project-ecj: &build-project-ecj
+
+.build-ecj: &build-ecj
   <<: *source_check
   script: "ant $ANT_PROPS_BUILD build-project-ecj"
 
-build-project-ecj:jdk-17:
-  <<: *build-project-ecj
+build-ecj:jdk-17:
+  <<: *build-ecj
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
-build-project-ecj:jdk-21:
-  <<: *build-project-ecj
+build-ecj:jdk-21:
+  <<: *build-ecj
   image: ${CI_REGISTRY_IMAGE}/test:jdk-21
 
-build-project-ecj:jdk-23:
-  <<: *build-project-ecj
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-23
+build-ecj:jdk-25:
+  <<: *build-ecj
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-25
 
 
 check-format:
@@ -107,6 +117,7 @@ check-format:
 
 checkstyle:
   <<: *source_check
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-21
   script:
     - "ant $ANT_PROPS_CHECKS checkstyle"
     - "ant $ANT_PROPS_CHECKS run-checkstyle -Dcheckstyle.output=plain && cat Checkstyle*.xml && test $(cat Checkstyle*xml | grep -vic audit) -eq 0"
@@ -116,29 +127,17 @@ checkstyle:
     when: on_failure
 
 javadoc:
-  <<: *binary_check
+  extends: .check-binaries-default-jdk
   script: "ant $ANT_PROPS_CHECKS javadoc"
-  dependencies:
-    - build-dependencies
-    - build:jdk-11
-  needs:
-    - build-dependencies
-    - build:jdk-11
   artifacts:
     paths:
       - "Javadoc/"
 
 spotbugs:
-  <<: *binary_check
+  extends: .check-binaries-default-jdk
   script:
     - 'ant $ANT_PROPS_CHECKS spotbugs'
     - 'test \! -f SpotBugs.html'
-  dependencies:
-    - build-dependencies
-    - build:jdk-11
-  needs:
-    - build-dependencies
-    - build:jdk-11
   artifacts:
     paths:
       - "SpotBugs.html"
@@ -156,21 +155,8 @@ spotbugs:
     reports:
       junit: "junit/TESTS-TestSuites.xml"
 
-unit-tests:jdk-11:
-  <<: *unit-tests
-  dependencies:
-    - build-dependencies
-    - build:jdk-11
-  needs:
-    - build-dependencies
-    - build:jdk-11
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-11
-
 unit-tests:jdk-17:
   <<: *unit-tests
-  dependencies:
-    - build-dependencies
-    - build:jdk-17
   needs:
     - build-dependencies
     - build:jdk-17
@@ -178,34 +164,30 @@ unit-tests:jdk-17:
 
 unit-tests:jdk-21:
   <<: *unit-tests
-  dependencies:
-    - build-dependencies
-    - build:jdk-21
   needs:
     - build-dependencies
     - build:jdk-21
   image: ${CI_REGISTRY_IMAGE}/test:jdk-21
 
-unit-tests:jdk-23:
+unit-tests:jdk-25:
   <<: *unit-tests
-  dependencies:
-    - build-dependencies
-    - build:jdk-23
   needs:
     - build-dependencies
-    - build:jdk-23
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-23
+    - build:jdk-25
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-25
 
 
 refaster:
   <<: *source_check
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-11
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-21
+  variables:
+    REFASTER_SOURCE_PATTERN: "**/*.java"
   before_script:
     - 'test -d refaster || git clone https://gitlab.com/sosy-lab/software/refaster.git'
     - 'cd refaster'
     - 'git fetch'
     - 'git checkout $REFASTER_REPO_REVISION'
-    - 'ant build-refaster-rule -Drefaster.source.pattern=**/*.java -Drefaster.rule.file=../rule.refaster -Derrorprone.version=$REFASTER_VERSION'
+    - 'ant build-refaster-rule -Drefaster.source.pattern=$REFASTER_SOURCE_PATTERN -Drefaster.rule.file=../rule.refaster -Derrorprone.version=$REFASTER_VERSION'
     - 'cd -'
   script:
     - 'ant $ANT_PROPS_BUILD refaster -Drefaster.rule.file=rule.refaster'
@@ -220,19 +202,15 @@ refaster:
       - "error-prone.patch"
       - "rule.refaster"
     when: on_failure
-  except:
-    variables:
-      - $REFASTER_REPO_REVISION == null # required for job
-      - $REFASTER_VERSION == null # required for job
+  rules:
+    - if: $REFASTER_REPO_REVISION != null && $REFASTER_VERSION != null  # required for job
 
 
 # check license declarations etc.
 reuse:
-  stage: checks
-  dependencies: []
-  needs: []
+  extends: .check-without-dependencies
   image:
-    name: fsfe/reuse:3
+    name: fsfe/reuse:6
     entrypoint: [""]
   script:
     - reuse lint
@@ -241,43 +219,39 @@ reuse:
 deploy-gh-pages:
   stage: deploy
   script: "build/deploy-gh-pages.sh"
-  dependencies:
-    - build:jdk-11
-    - javadoc
   needs:
-    - build:jdk-11
+    - build:jdk-17
     - javadoc
-  only:
-    variables:
-      - $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH # only on default branch
-      - $CI_PROJECT_PATH == $PROJECT_PATH # not on forks
-  except:
-    variables:
-      - $GH_TOKEN == null # required for job
+  environment: deploy/gh-pages
+  rules:
+    # run only if:
+    # - on default branch
+    # - not on a fork,
+    # - GH_TOKEN is present (required for job)
+    - if: >
+        $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+        && $CI_PROJECT_PATH == $PROJECT_PATH
+        && $GH_TOKEN != null
 
 
 # Build container images
-# following this guideline: https://docs.gitlab.com/ee/ci/docker/using_kaniko.html
 .build-docker:
   stage: images
   image:
-    name: gcr.io/kaniko-project/executor:debug
-    entrypoint: [""]
+    name: quay.io/podman/stable
   variables:
-    EXTRA_ARGS: ""
+    BUILD_CONTEXT: "-"
+  tags:
+    - podman
+  before_script:
+    - podman login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password "$CI_REGISTRY_PASSWORD"
   script:
-    - mkdir -p /root/.docker
-    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-    - /kaniko/executor --dockerfile $CI_PROJECT_DIR/$DOCKERFILE --destination $CI_REGISTRY_IMAGE$IMAGE $EXTRA_ARGS
-  only:
-    - schedules
-    - web
-
-build-docker:test:jdk-11:
-  extends: .build-docker
-  variables:
-    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-11
-    IMAGE: /test:jdk-11
+    - echo "Building $CI_REGISTRY_IMAGE$IMAGE from $DOCKERFILE"
+    - podman build --pull -t $CI_REGISTRY_IMAGE$IMAGE $BUILD_CONTEXT -f - < $DOCKERFILE
+    - podman push $CI_REGISTRY_IMAGE$IMAGE
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
 
 build-docker:test:jdk-17:
   extends: .build-docker
@@ -291,8 +265,8 @@ build-docker:test:jdk-21:
     DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-21
     IMAGE: /test:jdk-21
 
-build-docker:test:jdk-23:
+build-docker:test:jdk-25:
   extends: .build-docker
   variables:
-    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-23
-    IMAGE: /test:jdk-23
+    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-25
+    IMAGE: /test:jdk-25

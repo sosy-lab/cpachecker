@@ -14,11 +14,10 @@ import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Comparator;
 import java.util.NavigableSet;
-import java.util.SortedSet;
 
 /**
- * A {@link SortedSet} that allows two additional operations: receiving (and deleting) an element by
- * its <i>rank</i>, and getting the rank of an element.
+ * A {@link NavigableSet} (sorted set) that allows two additional operations: receiving (and
+ * deleting) an element by its <i>rank</i>, and getting the rank of an element.
  *
  * <p>Implementations should adhere to all contracts of the <code>SortedSet</code> interface.
  *

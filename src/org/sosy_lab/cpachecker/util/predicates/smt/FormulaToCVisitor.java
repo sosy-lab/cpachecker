@@ -25,8 +25,8 @@ import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
  * This visitor is used to translate predicate based invariants from SMT formulae to expressions
  * which are evaluable in C.
  *
- * <p>If visit returns <code>Boolean.FALSE</code> the computed C code is likely to be invalid and
- * therefore it is discouraged to use it.
+ * <p>If visit returns <code>false</code> the computed C code is likely to be invalid, and therefore
+ * it is discouraged to use it.
  *
  * <p>Warning: Usage of this class can be exponentially expensive, because formulas are unfolded
  * into C code. For formulas with several shared subtrees this leads to bad performance.
@@ -80,13 +80,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
       pName = pName.substring(index + 1);
     }
     builder.append(variableNameConverter.apply(pName));
-    return Boolean.TRUE;
-  }
-
-  @Override
-  public Boolean visitBoundVariable(Formula pF, int pDeBruijnIdx) {
-    // No-OP; not relevant for the given use-cases
-    return Boolean.TRUE;
+    return true;
   }
 
   @Override
@@ -97,18 +91,19 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
     if (type.isBitvectorType()) {
       final int size = ((FormulaType.BitvectorType) type).getSize();
       switch (size) {
-        case 32:
+        case 32 -> {
           if (appendOverflowGuardForNegativeIntegralLiterals(INT_MIN_LITERAL, pValue)) {
-            return Boolean.TRUE;
+            return true;
           }
-        // $FALL-THROUGH$
-        case 64:
-          if (appendOverflowGuardForNegativeIntegralLiterals(LLONG_MIN_LITERAL, pValue)) {
-            return Boolean.TRUE;
-          }
-        // $FALL-THROUGH$
-        default:
           builder.append(value);
+        }
+        case 64 -> {
+          if (appendOverflowGuardForNegativeIntegralLiterals(LLONG_MIN_LITERAL, pValue)) {
+            return true;
+          }
+          builder.append(value);
+        }
+        default -> builder.append(value);
       }
     } else if (pValue instanceof Boolean) {
       builder.append(((boolean) pValue) ? "1" : "0");
@@ -116,7 +111,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
       builder.append(value);
     }
 
-    return Boolean.TRUE;
+    return true;
   }
 
   /**
@@ -130,17 +125,14 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
    */
   private boolean appendOverflowGuardForNegativeIntegralLiterals(
       String pGuardString, Object pValue) {
-    if (pValue instanceof BigInteger) {
+    if (pValue instanceof BigInteger bigInteger) {
       String valueString = pValue.toString();
       if (valueString.equals("-" + pGuardString)) {
-        builder.append("( ( ").append(((BigInteger) pValue).add(BigInteger.ONE)).append(" ) - 1 )");
+        builder.append("( ( ").append(bigInteger.add(BigInteger.ONE)).append(" ) - 1 )");
         return true;
       }
       if (bvSigned && valueString.equals(pGuardString)) {
-        builder
-            .append("( ( -")
-            .append(((BigInteger) pValue).subtract(BigInteger.ONE))
-            .append(" ) - 1 )");
+        builder.append("( ( -").append(bigInteger.subtract(BigInteger.ONE)).append(" ) - 1 )");
         return true;
       }
     }
@@ -150,7 +142,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
   @Override
   public Boolean visitFunction(
       Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
-    String op = null;
+    String op;
     FunctionDeclarationKind kind = pFunctionDeclaration.getKind();
 
     // despite being ugly, this way I can
@@ -166,153 +158,74 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
     }
 
     switch (kind) {
-      case BV_ADD:
-      case FP_ADD:
-      case ADD:
-        op = "+";
-        break;
-      case BV_SUB:
-      case BV_NEG:
-      case FP_SUB:
-      case FP_NEG:
-      case UMINUS:
-      case SUB:
-        op = "-";
-        break;
-      case BV_SDIV:
-        bvSigned = true;
-      // $FALL-THROUGH$
-      case BV_UDIV:
-      case FP_DIV:
-      case DIV:
-        op = "/";
-        break;
-      case BV_SREM:
-        bvSigned = true;
-      // $FALL-THROUGH$
-      case BV_UREM:
-      case MODULO:
-        op = "%";
-        break;
-      case BV_MUL:
-      case FP_MUL:
-      case MUL:
-        op = "*";
-        break;
-      case BV_EQ:
-      case FP_EQ:
-      case IFF:
-      case EQ:
-        op = "==";
-        break;
-      case BV_SGT:
-        bvSigned = true;
-      // $FALL-THROUGH$
-      case BV_UGT:
-      case FP_GT:
-      case GT:
-        op = ">";
-        break;
-      case BV_SGE:
-        bvSigned = true;
-      // $FALL-THROUGH$
-      case BV_UGE:
-      case FP_GE:
-      case GTE:
-        op = ">=";
-        break;
-      case BV_SLT:
-        bvSigned = true;
-      // $FALL-THROUGH$
-      case BV_ULT:
-      case FP_LT:
-      case LT:
-        op = "<";
-        break;
-      case BV_SLE:
-        bvSigned = true;
-      // $FALL-THROUGH$
-      case BV_ULE:
-      case FP_LE:
-      case LTE:
-        op = "<=";
-        break;
-      case BV_NOT:
-        op = "~";
-        break;
-      case NOT:
-        op = "!";
-        break;
-      case BV_XOR:
-      case XOR:
-        op = "^";
-        break;
-      case BV_AND:
-        op = "&";
-        break;
-      case AND:
-        op = "&&";
-        break;
-      case BV_OR:
-        op = "|";
-        break;
-      case OR:
-        op = "||";
-        break;
-      case GTE_ZERO:
-        op = "0 <=";
-        break;
-      case EQ_ZERO:
-        op = "0 ==";
-        break;
-      case ITE:
-        // Special-case that is to be handled separately
-        // below
-        break;
-      case BV_SHL:
-        op = "<<";
-        break;
-      case BV_LSHR:
-      case BV_ASHR:
-        op = ">>";
-        break;
-      default:
-        return Boolean.FALSE;
+      case BV_ADD, FP_ADD, ADD -> op = "+";
+      case BV_SUB, BV_NEG, FP_SUB, FP_NEG, UMINUS, SUB -> op = "-";
+      case BV_SDIV, BV_UDIV, FP_DIV, DIV -> op = "/";
+      case BV_SREM, BV_UREM, MODULO -> op = "%";
+      case BV_MUL, FP_MUL, MUL -> op = "*";
+      case BV_EQ, FP_EQ, IFF, EQ -> op = "==";
+      case BV_SGT, BV_UGT, FP_GT, GT -> op = ">";
+      case BV_SGE, BV_UGE, FP_GE, GTE -> op = ">=";
+      case BV_SLT, BV_ULT, FP_LT, LT -> op = "<";
+      case BV_SLE, BV_ULE, FP_LE, LTE -> op = "<=";
+      case BV_NOT -> op = "~";
+      case NOT -> op = "!";
+      case BV_XOR, XOR -> op = "^";
+      case BV_AND -> op = "&";
+      case AND -> op = "&&";
+      case BV_OR -> op = "|";
+      case OR -> op = "||";
+      case GTE_ZERO -> op = "0 <=";
+      case EQ_ZERO -> op = "0 ==";
+      case ITE ->
+          // Special-case that is to be handled separately below
+          op = null;
+      case BV_SHL -> op = "<<";
+      case BV_LSHR, BV_ASHR -> op = ">>";
+      default -> {
+        return false;
+      }
     }
+    bvSigned =
+        switch (kind) {
+          case BV_SDIV, BV_SREM, BV_SGT, BV_SGE, BV_SLT, BV_SLE -> true;
+          default -> false;
+        };
+
     builder.append("( ");
     if (pArgs.size() == 3 && pFunctionDeclaration.getKind() == FunctionDeclarationKind.ITE) {
-      if (!fmgr.visit(pArgs.get(0), this)) {
-        return Boolean.FALSE;
+      if (!fmgr.visit(pArgs.getFirst(), this)) {
+        return false;
       }
       builder.append(" ? ");
       if (!fmgr.visit(pArgs.get(1), this)) {
-        return Boolean.FALSE;
+        return false;
       }
       builder.append(" : ");
       if (!fmgr.visit(pArgs.get(2), this)) {
-        return Boolean.FALSE;
+        return false;
       }
     } else if (pArgs.size() == 1 && UNARY_OPS.contains(kind)) {
       builder.append(op).append(" ");
-      if (!fmgr.visit(pArgs.get(0), this)) {
-        return Boolean.FALSE;
+      if (!fmgr.visit(pArgs.getFirst(), this)) {
+        return false;
       }
     } else if (N_ARY_OPS.contains(kind)) {
       for (int i = 0; i < pArgs.size(); i++) {
         if (!fmgr.visit(pArgs.get(i), this)) {
-          return Boolean.FALSE;
+          return false;
         }
         if (i != pArgs.size() - 1) {
           builder.append(" ").append(op).append(" ");
         }
       }
     } else if (pArgs.size() == 2) {
-      if (!fmgr.visit(pArgs.get(0), this)) {
-        return Boolean.FALSE;
+      if (!fmgr.visit(pArgs.getFirst(), this)) {
+        return false;
       }
       builder.append(" ").append(op).append(" ");
       if (!fmgr.visit(pArgs.get(1), this)) {
-        return Boolean.FALSE;
+        return false;
       }
     } else {
       throw new AssertionError(
@@ -326,7 +239,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
     // of the translation
     bvSigned = signedCarryThrough;
 
-    return Boolean.TRUE;
+    return true;
   }
 
   @Override
@@ -336,7 +249,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
       List<Formula> pBoundVariables,
       BooleanFormula pBody) {
     // No-OP; not relevant for the given use-cases
-    return Boolean.TRUE;
+    return true;
   }
 
   public String getString() {

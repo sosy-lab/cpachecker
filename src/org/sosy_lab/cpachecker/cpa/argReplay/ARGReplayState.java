@@ -61,9 +61,9 @@ public class ARGReplayState implements LatticeAbstractState<ARGReplayState> {
   }
 
   @Override
-  public boolean equals(Object other) {
-    return other instanceof ARGReplayState
-        && states.equals(((ARGReplayState) other).states)
-        && cpa.equals(((ARGReplayState) other).cpa);
+  public boolean equals(Object pObj) {
+    return pObj instanceof ARGReplayState other
+        && states.equals(other.states)
+        && cpa.equals(other.cpa);
   }
 }

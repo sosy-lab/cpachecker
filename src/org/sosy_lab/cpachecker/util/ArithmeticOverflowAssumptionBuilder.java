@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.LinkedHashSet;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -70,7 +71,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions.GenericAssumptionBuilder;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -211,7 +211,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
    */
   @Override
   public Set<CExpression> assumptionsForEdge(CFAEdge pEdge) throws UnrecognizedCodeException {
-    Set<CExpression> result = new LinkedHashSet<>();
+    SequencedSet<CExpression> result = new LinkedHashSet<>();
 
     // Node is used for liveness calculation, and predecessor will contain
     // the live variables of the successor.
@@ -251,7 +251,6 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
       case FunctionReturnEdge, CallToReturnEdge -> {
         // No overflows for summary edges.
       }
-      default -> throw new UnsupportedOperationException("Unexpected edge type");
     }
 
     if (simplifyExpressions) {
@@ -291,7 +290,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
       throws UnrecognizedCodeException {
     if (useLiveness) {
       Set<CSimpleDeclaration> referencedDeclarations =
-          CFAUtils.getIdExpressionsOfExpression(exp)
+          CFAUtils.getCIdExpressionsOfExpression(exp)
               .transform(CIdExpression::getDeclaration)
               .toSet();
 
@@ -305,7 +304,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
     if (isBinaryExpressionThatMayOverflow(exp)) {
       CBinaryExpression binexp = (CBinaryExpression) exp;
       BinaryOperator binop = binexp.getOperator();
-      CType calculationType = CTypes.copyDequalified(binexp.getCalculationType());
+      CType calculationType = binexp.getCalculationType().withoutQualifiers();
       CExpression op1 = binexp.getOperand1();
       CExpression op2 = binexp.getOperand2();
       if (trackAdditiveOperations
@@ -323,7 +322,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
                   op1, op2, lowerBounds.get(calculationType), upperBounds.get(calculationType)));
         }
       } else if (trackDivisions
-          && (binop.equals(BinaryOperator.DIVIDE) || binop.equals(BinaryOperator.MODULO))) {
+          && (binop.equals(BinaryOperator.DIVIDE) || binop.equals(BinaryOperator.REMAINDER))) {
         if (lowerBounds.get(calculationType) != null) {
           ofmgr.addDivisionAssumption(op1, op2, lowerBounds.get(calculationType), result);
         }
@@ -332,9 +331,9 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
           ofmgr.addLeftShiftAssumptions(op1, op2, upperBounds.get(calculationType), result);
         }
       }
-    } else if (exp instanceof CUnaryExpression) {
-      CType calculationType = CTypes.copyDequalified(exp.getExpressionType());
-      CUnaryExpression unaryexp = (CUnaryExpression) exp;
+    } else if (exp instanceof CUnaryExpression unaryexp) {
+      CType calculationType = exp.getExpressionType().withoutQualifiers();
+
       if (unaryexp.getOperator().equals(CUnaryExpression.UnaryOperator.MINUS)
           && lowerBounds.get(calculationType) != null) {
 
@@ -522,29 +521,23 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
 
   /** Whether the given operator can create new expression. */
   private boolean resultCanOverflow(CExpression expr) {
-    if (expr instanceof CBinaryExpression) {
-      switch (((CBinaryExpression) expr).getOperator()) {
-        case MULTIPLY:
-        case DIVIDE:
-        case PLUS:
-        case MINUS:
-        case SHIFT_LEFT:
-        case SHIFT_RIGHT:
-          return true;
-        case LESS_THAN:
-        case GREATER_THAN:
-        case LESS_EQUAL:
-        case GREATER_EQUAL:
-        case BINARY_AND:
-        case BINARY_XOR:
-        case BINARY_OR:
-        case EQUALS:
-        case NOT_EQUALS:
-        default:
-          return false;
-      }
-    } else if (expr instanceof CUnaryExpression) {
-      return switch (((CUnaryExpression) expr).getOperator()) {
+    if (expr instanceof CBinaryExpression cBinaryExpression) {
+      return switch (cBinaryExpression.getOperator()) {
+        case MULTIPLY, DIVIDE, PLUS, MINUS, SHIFT_LEFT, SHIFT_RIGHT -> true;
+        case LESS_THAN,
+            GREATER_THAN,
+            LESS_EQUAL,
+            GREATER_EQUAL,
+            BITWISE_AND,
+            BITWISE_XOR,
+            BITWISE_OR,
+            EQUALS,
+            NOT_EQUALS,
+            REMAINDER ->
+            false;
+      };
+    } else if (expr instanceof CUnaryExpression cUnaryExpression) {
+      return switch (cUnaryExpression.getOperator()) {
         case MINUS -> true;
         default -> false;
       };

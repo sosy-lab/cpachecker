@@ -83,7 +83,7 @@ public class SolverOperationComparisonToProgrammingLanguageTest extends SolverVi
   @Test
   public void testSmtIntegerModuloOperationToC() throws SolverException, InterruptedException {
     requireIntegers();
-    // TODO: add a alternative implementation as backup based on modular congruence
+    // TODO: add an alternative implementation as backup based on modular congruence
     TruthJUnit.assume()
         .withMessage(
             "Solver %s does not support the modulo operator for the theory of integers",
@@ -129,7 +129,7 @@ public class SolverOperationComparisonToProgrammingLanguageTest extends SolverVi
   @Test
   public void testSmtBitvectorModuloOperationToC() throws SolverException, InterruptedException {
     requireBitvectors();
-    // TODO: add a Integer translation that behaves equally to smodulo() in
+    // TODO: add an Integer translation that behaves equally to smodulo() in
     // ReplaceBitvectorWithNumeralAndFunctionTheory.class
     TruthJUnit.assume()
         .withMessage(

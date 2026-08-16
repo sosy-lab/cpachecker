@@ -7,40 +7,42 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.Map;
+import java.util.SequencedSet;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 
 public class VerticalMergeDecomposition implements DssBlockDecomposition {
 
   private final DssBlockDecomposition decomposer;
   private final long targetNumber;
-  private final Comparator<BlockNodeWithoutGraphInformation> sort;
+  private final Comparator<BlockNode> sort;
   private int id;
+
+  private final boolean mergeFunctionCalls;
 
   public VerticalMergeDecomposition(
       DssBlockDecomposition pDecomposition,
       long pTargetNumber,
-      Comparator<BlockNodeWithoutGraphInformation> pSort) {
+      Comparator<BlockNode> pSort,
+      boolean pMergeFunctionCalls) {
     decomposer = pDecomposition;
     targetNumber = pTargetNumber;
     sort = pSort;
+    mergeFunctionCalls = pMergeFunctionCalls;
   }
 
   @Override
   public BlockGraph decompose(CFA cfa) throws InterruptedException {
-    Collection<? extends BlockNodeWithoutGraphInformation> nodes =
-        decomposer.decompose(cfa).getNodes();
+    Collection<BlockNode> nodes = decomposer.decompose(cfa).getNodes();
     while (nodes.size() > targetNumber) {
       int sizeBefore = nodes.size();
       nodes = sorted(mergeVertically(nodes));
@@ -49,69 +51,76 @@ public class VerticalMergeDecomposition implements DssBlockDecomposition {
       }
     }
 
-    return BlockGraph.fromBlockNodesWithoutGraphInformation(cfa, nodes);
+    return new BlockGraph(ImmutableSet.copyOf(nodes));
   }
 
-  private Collection<BlockNodeWithoutGraphInformation> sorted(
-      Collection<BlockNodeWithoutGraphInformation> pSort) {
+  private Collection<BlockNode> sorted(Collection<BlockNode> pSort) {
     if (sort == null) {
       return pSort;
     }
     return ImmutableList.sortedCopyOf(sort, pSort);
   }
 
-  public Collection<BlockNodeWithoutGraphInformation> mergeVertically(
-      Collection<? extends BlockNodeWithoutGraphInformation> pNodes) {
-    Multimap<CFANode, BlockNodeWithoutGraphInformation> startingPoints = ArrayListMultimap.create();
-    Multimap<CFANode, BlockNodeWithoutGraphInformation> endingPoints = ArrayListMultimap.create();
+  public Collection<BlockNode> mergeVertically(Collection<BlockNode> pNodes) {
+
+    Map<String, BlockNode> blocks = new HashMap<>();
     pNodes.forEach(
         n -> {
-          startingPoints.put(n.getInitialLocation(), n);
-          endingPoints.put(n.getFinalLocation(), n);
+          blocks.put(n.getId(), n);
         });
-    Set<BlockNodeWithoutGraphInformation> removed = new LinkedHashSet<>();
-    for (BlockNodeWithoutGraphInformation node : pNodes) {
+
+    MergeIDTracker idTracker = new MergeIDTracker(blocks.keySet());
+
+    SequencedSet<BlockNode> removed = new LinkedHashSet<>();
+    for (BlockNode node : pNodes) {
       if (removed.contains(node)) {
         continue;
       }
-      Collection<BlockNodeWithoutGraphInformation> successors =
-          startingPoints.get(node.getFinalLocation());
-      if (successors.size() == 1) {
-        BlockNodeWithoutGraphInformation uniqueSuccessor = Iterables.getOnlyElement(successors);
-        Collection<BlockNodeWithoutGraphInformation> predecessors =
-            endingPoints.get(uniqueSuccessor.getInitialLocation());
-        if (predecessors.size() == 1) {
-          BlockNodeWithoutGraphInformation uniquePredecessor =
-              Iterables.getOnlyElement(predecessors);
-          assert uniquePredecessor == node; // same reference is correct here
-          BlockNodeWithoutGraphInformation result =
-              mergeBlocksVertically(uniquePredecessor, uniqueSuccessor);
-          startingPoints.remove(uniquePredecessor.getInitialLocation(), uniquePredecessor);
-          startingPoints.remove(uniqueSuccessor.getInitialLocation(), uniqueSuccessor);
-          endingPoints.remove(uniquePredecessor.getFinalLocation(), uniquePredecessor);
-          endingPoints.remove(uniqueSuccessor.getFinalLocation(), uniqueSuccessor);
-          startingPoints.put(result.getInitialLocation(), result);
-          endingPoints.put(result.getFinalLocation(), result);
-          removed.add(uniquePredecessor);
-          removed.add(uniqueSuccessor);
-          if (startingPoints.size() <= targetNumber) {
-            assert startingPoints.values().containsAll(endingPoints.values());
-            return startingPoints.values();
+
+      if (node.getSuccessorIds().size() == 1) {
+
+        String uniqueSuccessorID =
+            idTracker.resolve(Iterables.getOnlyElement(node.getSuccessorIds()));
+        BlockNode successor = blocks.get(uniqueSuccessorID);
+        if (successor.getPredecessorIds().size() == 1) {
+          String uniquePredecessorID = Iterables.getOnlyElement(successor.getPredecessorIds());
+          assert uniquePredecessorID.equals(node.getId());
+
+          if (!mergeFunctionCalls
+              && MergeBlockNodesDecomposition.containCallsOrReturnsOfSameFunction(
+                  ImmutableList.of(successor, node))) {
+            continue;
+          }
+
+          BlockNode result = mergeBlocksVertically(node, successor);
+
+          blocks.remove(uniqueSuccessorID);
+          blocks.remove(uniquePredecessorID);
+          blocks.put(result.getId(), result);
+
+          removed.add(node);
+          removed.add(successor);
+
+          idTracker.merge(ImmutableList.of(uniquePredecessorID, uniqueSuccessorID), result.getId());
+
+          if (blocks.size() <= targetNumber) {
+            break;
           }
         }
       }
     }
-    assert startingPoints.values().containsAll(endingPoints.values());
-    return startingPoints.values();
+
+    return idTracker.mapBlockNodeEdges(blocks.values());
   }
 
-  private BlockNodeWithoutGraphInformation mergeBlocksVertically(
-      BlockNodeWithoutGraphInformation pBlockNode1, BlockNodeWithoutGraphInformation pBlockNode2) {
-    return new BlockNodeWithoutGraphInformation(
+  private BlockNode mergeBlocksVertically(BlockNode pBlockNode1, BlockNode pBlockNode2) {
+    return new BlockNode(
         "MV" + id++,
         pBlockNode1.getInitialLocation(),
         pBlockNode2.getFinalLocation(),
         ImmutableSet.copyOf(Iterables.concat(pBlockNode1.getNodes(), pBlockNode2.getNodes())),
-        ImmutableSet.copyOf(Iterables.concat(pBlockNode1.getEdges(), pBlockNode2.getEdges())));
+        ImmutableSet.copyOf(Iterables.concat(pBlockNode1.getEdges(), pBlockNode2.getEdges())),
+        pBlockNode1.getPredecessorIds(),
+        pBlockNode2.getSuccessorIds());
   }
 }

@@ -235,10 +235,10 @@ record SliceExpression(
    */
   SliceExpression constructCanonical() {
     // only CExpression can have outer field accesses
-    if (!(base instanceof CExpression)) {
+    if (!(base instanceof CExpression currentBase)) {
       return this;
     }
-    CExpression currentBase = (CExpression) base;
+
     Deque<SliceModifier> canonicalModifiers = new ArrayDeque<>(modifiers);
     while (currentBase instanceof CFieldReference outerFieldReference) {
       if (outerFieldReference.isPointerDereference()) {

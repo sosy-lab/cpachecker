@@ -44,7 +44,7 @@ public class TraceAbstractionCPA extends AbstractSingleWrapperCPA {
       ConfigurableProgramAnalysis pCpa, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     super(pCpa);
-    if (!(pCpa instanceof PredicateCPA)) {
+    if (!(pCpa instanceof PredicateCPA predicateCPA)) {
       throw new InvalidConfigurationException(
           "TraceAbstractionCPA is a wrapper CPA that requires the contained CPA to be an "
               + "instance of PredicateCPA, but configured was a "
@@ -55,7 +55,7 @@ public class TraceAbstractionCPA extends AbstractSingleWrapperCPA {
     shutdownNotifier = pShutdownNotifier;
     itpSequenceStorage = new InterpolationSequenceStorage();
 
-    predicateManager = ((PredicateCPA) pCpa).getPredicateManager();
+    predicateManager = predicateCPA.getPredicateManager();
   }
 
   @Override

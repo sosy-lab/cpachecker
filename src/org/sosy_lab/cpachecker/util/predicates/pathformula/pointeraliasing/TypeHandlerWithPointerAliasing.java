@@ -30,13 +30,11 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
       POINTER_NAME_PREFIX + "SINGLE_BYTE_ARRAY";
 
   private final MachineModel model;
-  private final FormulaEncodingWithPointerAliasingOptions options;
+  private final CFormulaEncodingWithPointerAliasingOptions options;
   private final CachingCanonizingCTypeVisitor canonizingVisitor =
-      new CachingCanonizingCTypeVisitor(
-          /* ignoreConst= */ true, /* ignoreVolatile= */ true, /* ignoreSignedness= */ false);
+      new CachingCanonizingCTypeVisitor(/* ignoreSignedness= */ false);
   private final CachingCanonizingCTypeVisitor canonizingVisitorWithoutSignedness =
-      new CachingCanonizingCTypeVisitor(
-          /* ignoreConst= */ true, /* ignoreVolatile= */ true, /* ignoreSignedness= */ true);
+      new CachingCanonizingCTypeVisitor(/* ignoreSignedness= */ true);
 
   private final IdentityHashMap<CType, String> pointerNameCache = new IdentityHashMap<>();
 
@@ -45,7 +43,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
   public TypeHandlerWithPointerAliasing(
       LogManager pLogger,
       MachineModel pMachineModel,
-      FormulaEncodingWithPointerAliasingOptions pOptions) {
+      CFormulaEncodingWithPointerAliasingOptions pOptions) {
     super(pLogger, pMachineModel);
 
     model = pMachineModel;
@@ -97,7 +95,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
    * CCompositeType}s, corresponding {@link CElaboratedType}s and {@link CTypedefType}s shouldn't be
    * distinguished and are converted to the same canonical type by this method.
    *
-   * <p>This method will also perform {@code const} and {@code volatile} modifiers elimination.
+   * <p>This method will also remove all qualifiers (e.g., const/volatile) from the type.
    *
    * <p>Note that all code in this package should only use simplified types, so calling this method
    * should be only necessary when retrieving types from AST nodes. Use {@link

@@ -30,7 +30,7 @@ public class Binder {
     return type;
   }
 
-  public Set<String> getVariables() {
+  public ImmutableSet<String> getVariables() {
     return variables;
   }
 }

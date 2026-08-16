@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.io.Serial;
 import java.io.Serializable;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -33,7 +32,7 @@ public class SignState
 
   private static final Splitter propertySplitter = Splitter.on("<=").trimResults();
 
-  private PersistentMap<String, Sign> signMap;
+  private final PersistentMap<String, Sign> signMap;
 
   public static final SignState TOP = new SignState();
   private static final SerialProxySign proxy = new SerialProxySign();
@@ -161,7 +160,7 @@ public class SignState
 
   @Override
   public boolean equals(Object pObj) {
-    return pObj instanceof SignState && ((SignState) pObj).signMap.equals(signMap);
+    return pObj instanceof SignState other && other.signMap.equals(signMap);
   }
 
   @Override
@@ -192,7 +191,7 @@ public class SignState
 
     @Serial private static final long serialVersionUID = 2843708585446089623L;
 
-    public SerialProxySign() {}
+    SerialProxySign() {}
 
     @Serial
     private Object readResolve() {
@@ -220,21 +219,21 @@ public class SignState
 
     if (parts.size() == 2) {
 
-      if (isSIGN(parts.get(0))) {
+      if (isSIGN(parts.getFirst())) {
         // pProperty = value <= varName
-        Sign value = Sign.valueOf(parts.get(0));
+        Sign value = Sign.valueOf(parts.getFirst());
         Sign varName = getSignForVariable(parts.get(1));
         return varName.covers(value);
 
       } else if (isSIGN(parts.get(1))) {
         // pProperty = varName <= value
-        Sign varName = getSignForVariable(parts.get(0));
+        Sign varName = getSignForVariable(parts.getFirst());
         Sign value = Sign.valueOf(parts.get(1));
         return value.covers(varName);
 
       } else {
         // pProperty = varName1 <= varName2
-        Sign varName1 = getSignForVariable(parts.get(0));
+        Sign varName1 = getSignForVariable(parts.getFirst());
         Sign varName2 = getSignForVariable(parts.get(1));
         return varName2.covers(varName1);
       }
@@ -259,7 +258,7 @@ public class SignState
     return false;
   }
 
-  public Map<String, Sign> getSignMapView() {
-    return Collections.unmodifiableMap(signMap);
+  public PersistentMap<String, Sign> getSignMapView() {
+    return signMap;
   }
 }

@@ -64,21 +64,24 @@ public class SerializationInfoStorage {
     info.cfaInfo = new CFAInfo(pCFA);
     if (pCpa != null) {
       for (ConfigurableProgramAnalysis c : CPAs.asIterable(pCpa)) {
-        if (c instanceof ControlAutomatonCPA controlAutomatonCPA) {
-          controlAutomatonCPA.registerInAutomatonInfo(info.automatonInfo);
-        } else if (c instanceof ApronCPA apron) {
-          info.apronManager = apron.getManager();
-          info.apronLogger = apron.getLogger();
-        } else if (c instanceof AssumptionStorageCPA assumptionStorageCPA) {
-          // override the existing manager
-          info.assumptionFormulaManagerView = assumptionStorageCPA.getFormulaManager();
-        } else if (c instanceof PredicateCPA predicateCPA) {
-          info.absManager = predicateCPA.getAbstractionManager();
-          info.predicateFormulaManagerView = predicateCPA.getSolver().getFormulaManager();
-        } else if (c instanceof LocationCPA locationCPA) {
-          info.cfaInfo.storeLocationStateFactory(locationCPA.getStateFactory());
-        } else if (c instanceof LocationCPABackwards locationCPA) {
-          info.cfaInfo.storeLocationStateFactory(locationCPA.getStateFactory());
+        switch (c) {
+          case ControlAutomatonCPA controlAutomatonCPA ->
+              controlAutomatonCPA.registerInAutomatonInfo(info.automatonInfo);
+          case ApronCPA apron -> {
+            info.apronManager = apron.getManager();
+            info.apronLogger = apron.getLogger();
+          }
+          case AssumptionStorageCPA assumptionStorageCPA -> // override the existing manager
+              info.assumptionFormulaManagerView = assumptionStorageCPA.getFormulaManager();
+          case PredicateCPA predicateCPA -> {
+            info.absManager = predicateCPA.getAbstractionManager();
+            info.predicateFormulaManagerView = predicateCPA.getSolver().getFormulaManager();
+          }
+          case LocationCPA locationCPA ->
+              info.cfaInfo.storeLocationStateFactory(locationCPA.getStateFactory());
+          case LocationCPABackwards locationCPA ->
+              info.cfaInfo.storeLocationStateFactory(locationCPA.getStateFactory());
+          default -> {}
         }
       }
     }

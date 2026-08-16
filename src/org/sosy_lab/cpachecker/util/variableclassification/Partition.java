@@ -98,8 +98,8 @@ public class Partition implements Comparable<Partition> {
   }
 
   @Override
-  public boolean equals(Object other) {
-    return other instanceof Partition && index == ((Partition) other).index;
+  public boolean equals(Object pObj) {
+    return pObj instanceof Partition other && index == other.index;
   }
 
   @Override

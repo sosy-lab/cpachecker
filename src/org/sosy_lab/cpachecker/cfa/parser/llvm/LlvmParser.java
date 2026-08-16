@@ -21,7 +21,6 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.Parser;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.exceptions.LLVMParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.llvm_j.Context;
 import org.sosy_lab.llvm_j.LLVMException;
@@ -32,7 +31,7 @@ import org.sosy_lab.llvm_j.Module;
  * that uses the SSA form by default. Because of this, parsing is quite simple: there is no need for
  * scoping and expression trees are always flat.
  */
-public class LlvmParser implements Parser {
+class LlvmParser implements Parser {
 
   private final LogManager logger;
   private final CFABuilder cfaBuilder;
@@ -40,9 +39,15 @@ public class LlvmParser implements Parser {
   private final Timer parseTimer = new Timer();
   private final Timer cfaCreationTimer = new Timer();
 
-  public LlvmParser(final LogManager pLogger, final MachineModel pMachineModel) {
+  public LlvmParser(final LogManager pLogger, final MachineModel pMachineModel)
+      throws InvalidConfigurationException {
     logger = pLogger;
     cfaBuilder = new CFABuilder(logger, pMachineModel);
+    throw new InvalidConfigurationException(
+        "The LLVM frontend of CPAchecker is currently disabled because it is unmaintained"
+            + " and works only with an old LLVM version. Cf."
+            + " https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356 for more"
+            + " information.");
   }
 
   @Override
@@ -53,7 +58,7 @@ public class LlvmParser implements Parser {
       throw new InvalidConfigurationException(
           "Multiple program files not supported when using LLVM frontend.");
     }
-    return parseFile(Path.of(pFilenames.get(0)));
+    return parseFile(Path.of(pFilenames.getFirst()));
   }
 
   protected ParseResult parseFile(final Path pFilename) throws LLVMParserException {
@@ -74,7 +79,7 @@ public class LlvmParser implements Parser {
     libDirs.add(nativeDir);
 
     // If cpachecker.jar is used, decodedBasePath will look similar to CPACHECKER/cpachecker.jar .
-    // If the compiled class files are used outside of a jar, decodedBasePath will look similar to
+    // If the compiled class files are used outside a jar, decodedBasePath will look similar to
     // CPACHECKER/bin .
     // In both cases, we strip the last part to get the CPAchecker base directory.
     String encodedBasePath =

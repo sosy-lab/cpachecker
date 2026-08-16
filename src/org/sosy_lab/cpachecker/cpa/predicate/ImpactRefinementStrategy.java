@@ -16,7 +16,7 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.SequencedSet;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.time.Timer;
@@ -134,7 +134,7 @@ final class ImpactRefinementStrategy extends RefinementStrategy implements Stati
     lastAbstraction = null;
 
     stats.argUpdate.start();
-    Set<ARGState> alsoAffectedStates = new LinkedHashSet<>();
+    SequencedSet<ARGState> alsoAffectedStates = new LinkedHashSet<>();
     for (ARGState w : changedElements) {
       alsoAffectedStates.addAll(w.getCoveredByThis());
       pReached.removeCoverageOf(w);

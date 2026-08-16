@@ -18,6 +18,7 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import org.sosy_lab.common.configuration.Configuration;
@@ -48,7 +49,7 @@ public class WitnessExporter {
     private final ExpressionTreeFactory<Object> factory;
     private final CFA cfa;
 
-    public ProofInvariantProvider(CFA pCfa, ExpressionTreeFactory<Object> pFactory) {
+    ProofInvariantProvider(CFA pCfa, ExpressionTreeFactory<Object> pFactory) {
       cfa = pCfa;
       factory = pFactory;
     }
@@ -60,10 +61,10 @@ public class WitnessExporter {
       if (!pStates.isPresent()) {
         return ExpressionTrees.getTrue();
       }
-      Set<ExpressionTree<Object>> stateInvariants = new LinkedHashSet<>();
+      SequencedSet<ExpressionTree<Object>> stateInvariants = new LinkedHashSet<>();
       String functionName = pEdge.getSuccessor().getFunctionName();
       for (ARGState state : pStates.get()) {
-        Set<ExpressionTree<Object>> approximations = new LinkedHashSet<>();
+        SequencedSet<ExpressionTree<Object>> approximations = new LinkedHashSet<>();
         for (ExpressionTreeReportingState etrs :
             AbstractStates.asIterable(state).filter(ExpressionTreeReportingState.class)) {
           ExpressionTree<Object> expressionTree;
@@ -209,7 +210,7 @@ public class WitnessExporter {
     while (!worklist.isEmpty()) {
       CFANode l = worklist.pop();
       visited.add(l);
-      for (CFAEdge e : CFAUtils.leavingEdges(l)) {
+      for (CFAEdge e : l.getLeavingEdges()) {
         Set<FileLocation> fileLocations = CFAUtils.getFileLocationsFromCfaEdge(e);
         if (!fileLocations.isEmpty()) {
           return fileLocations.iterator().next().getFileName().toString();

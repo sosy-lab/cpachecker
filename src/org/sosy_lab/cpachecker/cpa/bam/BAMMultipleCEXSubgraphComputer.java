@@ -97,7 +97,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer {
             new TreeSet<>(data.getNonReducedInitialStates(currentState));
 
         if (expandedStates.isEmpty()) {
-          // children are a normal successors -> create an connection from parent to children
+          // children are a normal successors -> create a connection from parent to children
           for (final BackwardARGState newChild : childrenInSubgraph) {
             newChild.addParent(newCurrentElement);
             if (checkRepeatitionOfState(newChild)) {
@@ -148,7 +148,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer {
         }
 
       } else {
-        // children are normal successors -> create an connection from parent to children
+        // children are normal successors -> create a connection from parent to children
         for (final BackwardARGState newChild : childrenInSubgraph) {
           newChild.addParent(newCurrentElement);
           if (checkRepeatitionOfState(newChild)) {
@@ -230,7 +230,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer {
       new BackwardARGState(new ARGState(null, null));
 
   /**
-   * This is a ARGState, that counts backwards, used to build the Pseudo-ARG for CEX-retrieval. As
+   * This is an ARGState, that counts backwards, used to build the Pseudo-ARG for CEX-retrieval. As
    * the Pseudo-ARG is build backwards starting at its end-state, we count the ID backwards.
    */
   public BAMSubgraphIterator iterator(ARGState target) {

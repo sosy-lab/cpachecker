@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.util.smg.util;
 import java.math.BigInteger;
 
 /*
- * Sometimes we need to return a SMG and a SMGValue.
+ * Sometimes we need to return an SMG and an SMGValue.
  */
 public class OffsetAndSize {
 

@@ -82,7 +82,7 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
 
   boolean hasWaitingState();
 
-  /** An unmodifiable view of the waitlist as an Collection. */
+  /** An unmodifiable view of the waitlist as a Collection. */
   Collection<AbstractState> getWaitlist();
 
   /**

@@ -99,11 +99,11 @@ final class PredicateForcedCovering implements ForcedCovering, StatisticsProvide
       throws InvalidConfigurationException {
     logger = pLogger;
 
-    if (!(pCpa instanceof ARGCPA)) {
+    if (!(pCpa instanceof ARGCPA aRGCPA)) {
       throw new InvalidConfigurationException(
           PredicateForcedCovering.class.getSimpleName() + " needs an ARGCPA");
     }
-    argCpa = (ARGCPA) pCpa;
+    argCpa = aRGCPA;
     stop = argCpa.getStopOperator();
 
     @SuppressWarnings("resource")
@@ -117,7 +117,8 @@ final class PredicateForcedCovering implements ForcedCovering, StatisticsProvide
             predicateCpa.getCfa().getVarClassification(),
             config,
             predicateCpa.getShutdownNotifier(),
-            pLogger);
+            pLogger,
+            /* pEnableCounterexampleAnalysis= */ false);
     fmgr = predicateCpa.getSolver().getFormulaManager();
     predAbsMgr = predicateCpa.getPredicateManager();
     impact = new ImpactUtility(config, fmgr, predAbsMgr);
@@ -249,7 +250,7 @@ final class PredicateForcedCovering implements ForcedCovering, StatisticsProvide
         }
 
         // For debugging, run stop operator on this element.
-        // However, ARGStopSep may return false although it is covered,
+        // However, ARGStopSep may return false, although it is covered,
         // thus the second check.
         assert stop.stop(argState, Collections.singleton(coveringCandidate), pPrecision)
                 || argState.isCovered()

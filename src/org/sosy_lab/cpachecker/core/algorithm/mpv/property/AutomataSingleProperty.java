@@ -49,8 +49,8 @@ public final class AutomataSingleProperty extends AbstractSingleProperty {
    */
   private Set<AutomatonPrecision> getAutomatonPrecision(Precision precision) {
     ImmutableSet.Builder<AutomatonPrecision> builder = ImmutableSet.builder();
-    if (precision instanceof WrapperPrecision) {
-      for (Precision wrappedPrecision : ((WrapperPrecision) precision).getWrappedPrecisions()) {
+    if (precision instanceof WrapperPrecision wrapperPrecision) {
+      for (Precision wrappedPrecision : wrapperPrecision.getWrappedPrecisions()) {
         builder.addAll(getAutomatonPrecision(wrappedPrecision));
       }
     } else if ((precision instanceof AutomatonPrecision automatonPrecision)

@@ -10,12 +10,16 @@ package org.sosy_lab.cpachecker.cfa.model;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.UnmodifiableIterator;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -155,6 +159,100 @@ public sealed class CFANode implements Comparable<CFANode>
     return hasEdge;
   }
 
+  /**
+   * Return an {@link FluentIterable} that contains the entering edges of this node, excluding the
+   * summary edge.
+   */
+  public FluentIterable<CFAEdge> getEnteringEdges() {
+    return from(Collections.unmodifiableList(enteringEdges));
+  }
+
+  /**
+   * Return an {@link FluentIterable} that contains the leaving edges of this node, excluding the
+   * summary edge.
+   */
+  public FluentIterable<CFAEdge> getLeavingEdges() {
+    return from(Collections.unmodifiableList(leavingEdges));
+  }
+
+  /**
+   * Return an {@link FluentIterable} that contains all entering edges of this node, including the
+   * summary edge if the node has one.
+   *
+   * <p>WARNING: Summary edges are included, so the returned {@link FluentIterable} may contain
+   * parallel edges (i.e., multiple directed edges from some node {@code u} to some node {@code v}).
+   * These edges are equal, so a set would only contain one of the parallel edges.
+   */
+  public FluentIterable<CFAEdge> getAllEnteringEdges() {
+    if (enteringSummaryEdge == null) {
+      return getEnteringEdges();
+    }
+    return new FluentIterable<>() {
+
+      @Override
+      public Iterator<CFAEdge> iterator() {
+        return new UnmodifiableIterator<>() {
+
+          // the index of the next edge (-1 means the summary edge)
+          private int i = -1;
+
+          @Override
+          public boolean hasNext() {
+            return i < enteringEdges.size();
+          }
+
+          @Override
+          public CFAEdge next() {
+            if (i == -1) {
+              i = 0;
+              return enteringSummaryEdge;
+            }
+            return enteringEdges.get(i++);
+          }
+        };
+      }
+    };
+  }
+
+  /**
+   * Return an {@link FluentIterable} that contains all leaving edges of this node, including the
+   * summary edge if the node as one.
+   *
+   * <p>WARNING: Summary edges are included, so the returned {@link FluentIterable} may contain
+   * parallel edges (i.e., multiple directed edges from some node {@code u} to some node {@code v}).
+   * These edges are equal, so a set would only contain one of the parallel edges.
+   */
+  public FluentIterable<CFAEdge> getAllLeavingEdges() {
+    if (leavingSummaryEdge == null) {
+      return getLeavingEdges();
+    }
+    return new FluentIterable<>() {
+
+      @Override
+      public Iterator<CFAEdge> iterator() {
+        return new UnmodifiableIterator<>() {
+
+          // the index of the next edge (-1 means the summary edge)
+          private int i = -1;
+
+          @Override
+          public boolean hasNext() {
+            return i < leavingEdges.size();
+          }
+
+          @Override
+          public CFAEdge next() {
+            if (i == -1) {
+              i = 0;
+              return leavingSummaryEdge;
+            }
+            return leavingEdges.get(i++);
+          }
+        };
+      }
+    };
+  }
+
   public void setLoopStart() {
     isLoopStart = true;
   }
@@ -248,19 +346,19 @@ public sealed class CFANode implements Comparable<CFANode>
    * locations of edges instead.
    */
   public String describeFileLocation() {
-    if (this instanceof FunctionEntryNode) {
+    if (this instanceof FunctionEntryNode functionEntryNode) {
       return "entry of function "
           + getFunctionName()
           + " in "
-          + ((FunctionEntryNode) this).getFileLocation();
+          + functionEntryNode.getFileLocation();
     }
 
-    if (this instanceof FunctionExitNode) {
+    if (this instanceof FunctionExitNode functionExitNode) {
       // these nodes do not belong to a location
       return "exit of function "
           + getFunctionName()
           + " in "
-          + ((FunctionExitNode) this).getEntryNode().getFileLocation();
+          + functionExitNode.getEntryNode().getFileLocation();
     }
 
     if (getNumLeavingEdges() > 0) {
@@ -290,8 +388,8 @@ public sealed class CFANode implements Comparable<CFANode>
         pOutOfScopeVariables.stream()
             .filter(
                 decl ->
-                    !(decl instanceof CVariableDeclaration)
-                        || !((CVariableDeclaration) decl).isGlobal())
+                    !(decl instanceof CVariableDeclaration cVariableDeclaration)
+                        || !cVariableDeclaration.isGlobal())
             .collect(ImmutableSet.toImmutableSet()));
   }
 
@@ -304,7 +402,7 @@ public sealed class CFANode implements Comparable<CFANode>
    * Variables can come into scope again, e.g. when iterating through a loop or calling a function
    * twice.
    *
-   * <p>We currently do not return function parameters for function exit nodes. Additionally we do
+   * <p>We currently do not return function parameters for function exit nodes. Additionally, we do
    * not report any analysis-specific variables for encoding the return value of a function. Those
    * variables can be retrieved separately via {@link FunctionExitNode#getEntryNode()} or directly
    * in the analysis.

@@ -10,10 +10,12 @@ package org.sosy_lab.cpachecker.core.specification;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.Language;
 
 /**
  * Instances represent some property that CPAchecker should check and are part of our {@link
@@ -24,6 +26,9 @@ public interface Property {
   boolean isCoverage();
 
   boolean isVerification();
+
+  /** Return the set of languages for whose programs this property cannot be checked. */
+  ImmutableSet<Language> getUnsupportedLanguages();
 
   /** Return a representation of this property in an unspecified format. */
   @Override
@@ -65,6 +70,11 @@ public interface Property {
     }
 
     @Override
+    public ImmutableSet<Language> getUnsupportedLanguages() {
+      return ImmutableSet.of();
+    }
+
+    @Override
     public String toString() {
       return representation;
     }
@@ -93,29 +103,45 @@ public interface Property {
 
     REACHABILITY_ERROR("G ! call(reach_error())"),
 
-    VALID_FREE("G valid-free"),
+    VALID_FREE("G valid-free", ImmutableSet.of(Language.SVLIB, Language.JAVA)),
 
-    VALID_DEREF("G valid-deref"),
+    VALID_DEREF("G valid-deref", ImmutableSet.of(Language.SVLIB, Language.JAVA)),
 
-    VALID_MEMTRACK("G valid-memtrack"),
+    VALID_MEMTRACK("G valid-memtrack", ImmutableSet.of(Language.SVLIB, Language.JAVA)),
 
-    VALID_MEMCLEANUP("G valid-memcleanup"),
+    VALID_MEMCLEANUP("G valid-memcleanup", ImmutableSet.of(Language.SVLIB, Language.JAVA)),
 
-    OVERFLOW("G ! overflow"),
+    OVERFLOW("G ! overflow", ImmutableSet.of(Language.SVLIB)),
 
-    DATA_RACE("G ! data-race"),
+    DATA_RACE("G ! data-race", ImmutableSet.of(Language.SVLIB)),
 
-    DEADLOCK("G ! deadlock"),
+    DEADLOCK("G ! deadlock", ImmutableSet.of(Language.SVLIB)),
 
     TERMINATION("F end"),
 
-    ASSERT("G assert"),
+    // Assert of only the Java language
+    ASSERT("G assert", ImmutableSet.of(Language.SVLIB, Language.C)),
+    CORRECT_ANNOTATIONS("G correct-annotations", ImmutableSet.of(Language.C, Language.JAVA)),
     ;
 
     private final String representation;
 
+    /** The set of languages for whose programs this property cannot be checked. */
+    private final ImmutableSet<Language> unsupportedLanguages;
+
     CommonVerificationProperty(String pRepresentation) {
+      this(pRepresentation, ImmutableSet.of());
+    }
+
+    CommonVerificationProperty(
+        String pRepresentation, ImmutableSet<Language> pUnsupportedLanguages) {
       representation = pRepresentation;
+      unsupportedLanguages = pUnsupportedLanguages;
+    }
+
+    @Override
+    public ImmutableSet<Language> getUnsupportedLanguages() {
+      return unsupportedLanguages;
     }
 
     @Override
@@ -167,6 +193,11 @@ public interface Property {
     }
 
     @Override
+    public ImmutableSet<Language> getUnsupportedLanguages() {
+      return ImmutableSet.of();
+    }
+
+    @Override
     public String toString() {
       return representation;
     }
@@ -200,6 +231,11 @@ public interface Property {
     @Override
     public boolean isVerification() {
       return false;
+    }
+
+    @Override
+    public ImmutableSet<Language> getUnsupportedLanguages() {
+      return ImmutableSet.of();
     }
 
     public String getCoverFunction() {

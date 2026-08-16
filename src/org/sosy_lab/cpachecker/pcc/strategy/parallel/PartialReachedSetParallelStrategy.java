@@ -129,7 +129,7 @@ public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy
     private final Lock mutex;
     private final Semaphore coordination;
 
-    public PartialChecker(
+    PartialChecker(
         final int pStartIndex,
         final List<AbstractState> pCertificate,
         final Precision pInitPrec,
@@ -146,7 +146,7 @@ public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy
       indexProvider = null;
     }
 
-    public PartialChecker(
+    PartialChecker(
         final AtomicInteger pIndexProvider,
         final List<AbstractState> pCertificate,
         final Precision pInitPrec,

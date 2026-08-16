@@ -22,7 +22,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -50,7 +52,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * Transfer relation for symbolic predicate abstraction. First it computes the strongest post for
- * the given CFA edge. Afterwards it optionally computes an abstraction.
+ * the given CFA edge. Afterward, it optionally computes an abstraction.
  */
 @Options(prefix = "cpa.predicate")
 public final class PredicateTransferRelation extends SingleEdgeTransferRelation {
@@ -244,7 +246,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
   * since specifications should not be hard-coded in analysis,
   * but instead given as automata.
   * Furthermore, these checks were too expensive to be usable.
-  * Thus this code is disabled now.
+  * Thus, this code is disabled now.
   * If it is one day desired to re-add these checks,
   * the checks should get executed on request of the AutomatonCPA,
   * possibly via the AbstractQueryableState interface or strengthen.
@@ -327,23 +329,25 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
 
       boolean errorFound = false;
       for (AbstractState lElement : otherElements) {
-        if (lElement instanceof AssumptionStorageState) {
-          element = strengthen(element, (AssumptionStorageState) lElement);
+        if (lElement instanceof AssumptionStorageState assumptionStorageState) {
+          element = strengthen(element, assumptionStorageState);
         }
 
-        if (lElement instanceof ThreadingState) {
-          element = strengthen(element, (ThreadingState) lElement);
+        if (lElement instanceof ThreadingState threadingState) {
+          element = strengthen(element, threadingState);
         }
 
         /*
          * Add additional assumptions from an automaton state.
          */
-        if (!ignoreStateAssumptions && lElement instanceof AbstractStateWithAssumptions) {
-          element = strengthen(element, (AbstractStateWithAssumptions) lElement, edge);
+        if (!ignoreStateAssumptions
+            && lElement instanceof AbstractStateWithAssumptions abstractStateWithAssumptions) {
+          element = strengthen(element, abstractStateWithAssumptions, edge);
         }
 
-        if (strengthenWithFormulaReportingStates && lElement instanceof FormulaReportingState) {
-          element = strengthen(element, (FormulaReportingState) lElement);
+        if (strengthenWithFormulaReportingStates
+            && lElement instanceof FormulaReportingState formulaReportingState) {
+          element = strengthen(element, formulaReportingState);
         }
 
         if (AbstractStates.isTargetState(lElement)) {
@@ -391,22 +395,36 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       }
     }
 
-    for (CExpression assumption : from(pAssumeElement.getAssumptions()).filter(CExpression.class)) {
-      // assumptions do not contain complete type nor scope information
-      // hence, not all types can be resolved, so ignore these
-      // TODO: the witness automaton is complete in that regard, so use that in future
-      if (CFAUtils.getIdExpressionsOfExpression(assumption)
-              .anyMatch(var -> var.getExpressionType() instanceof CProblemType)
-          || assumption.getExpressionType() instanceof CProblemType) {
-        logger.log(Level.INFO, "Ignoring assumption", assumption, "because of CProblemType");
-        continue;
-      }
-      pathFormulaTimer.start();
-      try {
-        // compute new pathFormula with the operation on the edge
-        pf = pathFormulaManager.makeAnd(pf, assumption);
-      } finally {
-        pathFormulaTimer.stop();
+    for (AExpression assumption : pAssumeElement.getAssumptions()) {
+      if (assumption instanceof CExpression pCExpression) {
+        // assumptions do not contain complete type nor scope information
+        // hence, not all types can be resolved, so ignore these
+        // TODO: the witness automaton is complete in that regard, so use that in future
+        if (CFAUtils.getCIdExpressionsOfExpression(pCExpression)
+                .anyMatch(var -> var.getExpressionType() instanceof CProblemType)
+            || assumption.getExpressionType() instanceof CProblemType) {
+          logger.log(Level.INFO, "Ignoring assumption", assumption, "because of CProblemType");
+          continue;
+        }
+        pathFormulaTimer.start();
+        try {
+          // compute new pathFormula with the operation on the edge
+          pf = pathFormulaManager.makeAnd(pf, pCExpression);
+        } finally {
+          pathFormulaTimer.stop();
+        }
+      } else if (assumption instanceof SvLibRelationalTerm pTerm) {
+        pathFormulaTimer.start();
+        try {
+          // compute new pathFormula with the operation on the edge
+          pf = pathFormulaManager.makeAnd(pf, pTerm);
+        } finally {
+          pathFormulaTimer.stop();
+        }
+      } else {
+        throw new CPATransferException(
+            "Could not strengthen with assumption of type "
+                + assumption.getClass().getSimpleName());
       }
     }
 

@@ -86,8 +86,8 @@ final class ArrayAccess {
   private static Optional<CArraySubscriptExpression> toArraySubscriptExpression(
       CExpression pExpression) {
 
-    if (pExpression instanceof CArraySubscriptExpression) {
-      return Optional.of((CArraySubscriptExpression) pExpression);
+    if (pExpression instanceof CArraySubscriptExpression cArraySubscriptExpression) {
+      return Optional.of(cArraySubscriptExpression);
     }
 
     if (pExpression instanceof CPointerExpression pointerExpression) {
@@ -143,9 +143,9 @@ final class ArrayAccess {
       Consumer<CExpression> pWritingArrayAccessConsumer,
       Consumer<CSimpleDeclaration> pArrayDeclarationConsumer) {
 
-    if (pEdge instanceof CFunctionSummaryEdge) {
+    if (pEdge instanceof CFunctionSummaryEdge cFunctionSummaryEdge) {
       analyseAstNode(
-          ((CFunctionSummaryEdge) pEdge).getExpression(),
+          cFunctionSummaryEdge.getExpression(),
           pReadingArrayAccessConsumer,
           pWritingArrayAccessConsumer,
           pArrayDeclarationConsumer);
@@ -154,9 +154,9 @@ final class ArrayAccess {
     Optional<? extends AAstNode> optAstNode = pEdge.getRawAST();
     if (optAstNode.isPresent()) {
       AAstNode astNode = optAstNode.get();
-      if (astNode instanceof CAstNode) {
+      if (astNode instanceof CAstNode cAstNode) {
         analyseAstNode(
-            (CAstNode) astNode,
+            cAstNode,
             pReadingArrayAccessConsumer,
             pWritingArrayAccessConsumer,
             pArrayDeclarationConsumer);

@@ -66,7 +66,7 @@ public class CompositeMergeAgreeCPAEnabledAnalysisOperator implements MergeOpera
       PredicateAbstractState predReachedState =
           AbstractStates.extractStateByType(reachedState, PredicateAbstractState.class);
 
-      // check if have special case with same abstraction states then still merge in predicated
+      // check if have special case with same abstraction states, then still merge in predicated
       // analysis
       if (predSuccessorState != null
           && predReachedState != null

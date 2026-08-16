@@ -37,8 +37,8 @@ public class CPAs {
       ConfigurableProgramAnalysis cpa, Class<T> cls) {
     if (cls.isInstance(cpa)) {
       return cls.cast(cpa);
-    } else if (cpa instanceof WrapperCPA) {
-      return ((WrapperCPA) cpa).retrieveWrappedCpa(cls);
+    } else if (cpa instanceof WrapperCPA wrapperCPA) {
+      return wrapperCPA.retrieveWrappedCpa(cls);
     } else {
       return null;
     }
@@ -73,8 +73,8 @@ public class CPAs {
     return FluentIterable.from(
         Traverser.forTree(
                 (ConfigurableProgramAnalysis cpa) ->
-                    (cpa instanceof WrapperCPA)
-                        ? ((WrapperCPA) cpa).getWrappedCPAs()
+                    (cpa instanceof WrapperCPA wrapperCPA)
+                        ? wrapperCPA.getWrappedCPAs()
                         : ImmutableList.of())
             .depthFirstPreOrder(pCpa));
   }
@@ -91,15 +91,15 @@ public class CPAs {
   }
 
   /**
-   * Call {@link AutoCloseable#close()} on an supplied object if it implements {@link
-   * AutoCloseable}. Checked exceptions are logged but not re-thrown.
+   * Call {@link AutoCloseable#close()} on a supplied object if it implements {@link AutoCloseable}.
+   * Checked exceptions are logged but not re-thrown.
    *
    * @param obj An object.
    */
   public static void closeIfPossible(Object obj, LogManager logger) {
-    if (obj instanceof AutoCloseable) {
+    if (obj instanceof AutoCloseable autoCloseable) {
       try {
-        ((AutoCloseable) obj).close();
+        autoCloseable.close();
       } catch (Exception e) {
         Throwables.throwIfUnchecked(e);
         logger.logUserException(

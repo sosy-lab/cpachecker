@@ -8,7 +8,7 @@
 
 /**
  * The LiveVariablesCPA is a backwards program analysis, which is aimed to find out which variable
- * is live (read as used afterwards) at which position. As the information is only complete after
+ * is live (read as used afterward) at which position. As the information is only complete after
  * this CPA has finished computing live variables was directly added into the preprocessing of
  * CPAchecker and can be toggled with the option <b>cfa.findLiveVariables</b> by default no live
  * variables are generated.

@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -44,7 +43,7 @@ import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * This class represents a SMG-Value-Analysis interpolant, itself, just a mere wrapper around a map
+ * This class represents an SMG-Value-Analysis interpolant, itself, just a mere wrapper around a map
  * from memory locations to values, representing a variable assignment.
  */
 public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolant> {
@@ -97,7 +96,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     cfaEntryFunctionDeclaration = pCFAEntryFunctionDef;
     allowedHeapValues = ImmutableSet.of();
     memoryModel =
-        SymbolicProgramConfiguration.of(BigInteger.valueOf(pMachineModel.getSizeofPtrInBits()));
+        SymbolicProgramConfiguration.of(
+            BigInteger.valueOf(pMachineModel.getSizeofPtrInBits()), options);
     errorInfo = ImmutableList.of();
     evaluator = pEvaluator;
     statistics = pStatistics;
@@ -187,7 +187,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
               .getMemoryModel();
     } catch (SMGException | SMGSolverException e) {
       memoryModel =
-          SymbolicProgramConfiguration.of(BigInteger.valueOf(pMachineModel.getSizeofPtrInBits()));
+          SymbolicProgramConfiguration.of(
+              BigInteger.valueOf(pMachineModel.getSizeofPtrInBits()), options);
     }
     errorInfo = pErrorInfo;
   }
@@ -278,7 +279,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
 
   @Override
   public Set<MemoryLocation> getMemoryLocations() {
-    return isFalse() ? ImmutableSet.of() : Collections.unmodifiableSet(nonHeapAssignments.keySet());
+    return isFalse() ? ImmutableSet.of() : nonHeapAssignments.keySet();
   }
 
   /**
@@ -359,7 +360,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     }
 
     SMGInterpolant other = (SMGInterpolant) obj;
-    // technically this is not correct as we leave out the heap. But thats ok for now.
+    // technically this is not correct as we leave out the heap. But that's ok for now.
     return Objects.equals(nonHeapAssignments, other.nonHeapAssignments)
         && Objects.equals(allowedHeapValues, other.allowedHeapValues);
   }
@@ -367,7 +368,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
   /**
    * The method checks for trueness of the interpolant.
    *
-   * @return true, if the interpolant represents "true", else false
+   * @return whether the interpolant represents "true"
    */
   @Override
   public boolean isTrue() {
@@ -395,9 +396,9 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
   }
 
   /**
-   * This method serves as factory method to create a smg2 state from the interpolant
+   * This method serves as factory method to create an smg2 state from the interpolant
    *
-   * @return a smg2 state that represents the same variable assignment as the interpolant
+   * @return an smg2 state that represents the same variable assignment as the interpolant
    */
   @Override
   public SMGState reconstructState() {

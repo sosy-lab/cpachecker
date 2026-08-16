@@ -11,11 +11,10 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import static com.google.common.base.Verify.verify;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.log.LogManager;
@@ -79,8 +78,8 @@ public class SMGBuiltins {
   private static final int STRCMP_FIRST_PARAMETER = 0;
   private static final int STRCMP_SECOND_PARAMETER = 1;
 
-  private final Set<String> BUILTINS =
-      Sets.newHashSet(
+  private static final ImmutableSet<String> BUILTINS =
+      ImmutableSet.of(
           "__VERIFIER_BUILTIN_PLOT",
           "memcpy",
           "memset",
@@ -93,7 +92,7 @@ public class SMGBuiltins {
 
   private void evaluateVBPlot(
       CFunctionCallExpression functionCall, UnmodifiableSMGState currentState) {
-    String name = functionCall.getParameterExpressions().get(0).toASTString();
+    String name = functionCall.getParameterExpressions().getFirst().toASTString();
     if (exportSMGOptions.hasExportPath() && currentState != null) {
       SMGUtils.dumpSMGPlot(
           logger,
@@ -327,7 +326,7 @@ public class SMGBuiltins {
                   + "already being evaluated once in this transferrelation step.");
         }
 
-        SMGExplicitValueAndState valueAndState = valueAndStates.get(0);
+        SMGExplicitValueAndState valueAndState = valueAndStates.getFirst();
 
         sizeValue = valueAndState.getObject();
         currentState = valueAndState.getSmgState();
@@ -451,7 +450,7 @@ public class SMGBuiltins {
                     + "already being evaluated once in this transferrelation step.");
           }
 
-          resultValueAndState = forcedvalueAndStates.get(0);
+          resultValueAndState = forcedvalueAndStates.getFirst();
 
           value = resultValueAndState.getObject();
 
@@ -531,7 +530,7 @@ public class SMGBuiltins {
     CExpression pointerExp;
 
     try {
-      pointerExp = pFunctionCall.getParameterExpressions().get(0);
+      pointerExp = pFunctionCall.getParameterExpressions().getFirst();
     } catch (IndexOutOfBoundsException e) {
       logger.logDebugException(e);
       throw new UnrecognizedCodeException(
@@ -786,33 +785,31 @@ public class SMGBuiltins {
       return evaluateExternalAllocation(cFCExpression, newState);
     }
 
-    switch (calledFunctionName) {
-      case "__builtin_alloca":
-        return evaluateAlloca(cFCExpression, newState, pCfaEdge, kind);
+    return switch (calledFunctionName) {
+      case "__builtin_alloca" -> evaluateAlloca(cFCExpression, newState, pCfaEdge, kind);
 
-      case "memset":
-        return evaluateMemset(cFCExpression, newState, pCfaEdge);
+      case "memset" -> evaluateMemset(cFCExpression, newState, pCfaEdge);
 
-      case "memcpy":
-        return evaluateMemcpy(cFCExpression, newState, pCfaEdge);
+      case "memcpy" -> evaluateMemcpy(cFCExpression, newState, pCfaEdge);
 
-      case "strcmp":
-        return evaluateStrcmp(cFCExpression, newState, pCfaEdge);
+      case "strcmp" -> evaluateStrcmp(cFCExpression, newState, pCfaEdge);
 
-      case "__VERIFIER_BUILTIN_PLOT":
+      case "__VERIFIER_BUILTIN_PLOT" -> {
         evaluateVBPlot(cFCExpression, newState);
-      // $FALL-THROUGH$
-      case "printf":
-        return ImmutableList.of(SMGAddressValueAndState.of(newState));
+        yield ImmutableList.of(SMGAddressValueAndState.of(newState));
+      }
 
-      default:
+      case "printf" -> ImmutableList.of(SMGAddressValueAndState.of(newState));
+
+      default -> {
         if (isNondetBuiltin(calledFunctionName)) {
-          return Collections.singletonList(SMGAddressValueAndState.of(newState));
+          yield Collections.singletonList(SMGAddressValueAndState.of(newState));
         } else {
           throw new AssertionError(
               "Unexpected function handled as a builtin: " + calledFunctionName);
         }
-    }
+      }
+    };
   }
 
   /**
@@ -958,8 +955,8 @@ public class SMGBuiltins {
       String calledFunctionName,
       SMGState pState)
       throws CPATransferException, AssertionError {
-    switch (options.getHandleUnknownFunctions()) {
-      case STRICT:
+    return switch (options.getHandleUnknownFunctions()) {
+      case STRICT -> {
         if (!isSafeFunction(calledFunctionName)) {
           throw new CPATransferException(
               String.format(
@@ -967,15 +964,15 @@ public class SMGBuiltins {
                       + " cpa.smg.safeUnknownFunctionsPatterns",
                   calledFunctionName));
         }
-      // $FALL-THROUGH$ // for safe functions
-      case ASSUME_SAFE:
-        return ImmutableList.of(SMGAddressValueAndState.of(pState));
-      case ASSUME_EXTERNAL_ALLOCATED:
-        return expressionEvaluator.handleSafeExternFunction(cFCExpression, pState, pCfaEdge);
-      default:
-        throw new AssertionError(
-            "Unhandled enum value in switch: " + options.getHandleUnknownFunctions());
-    }
+        // for safe functions
+        yield ImmutableList.of(SMGAddressValueAndState.of(pState));
+      }
+
+      case ASSUME_SAFE -> ImmutableList.of(SMGAddressValueAndState.of(pState));
+
+      case ASSUME_EXTERNAL_ALLOCATED ->
+          expressionEvaluator.handleSafeExternFunction(cFCExpression, pState, pCfaEdge);
+    };
   }
 
   private boolean isSafeFunction(String calledFunctionName) {

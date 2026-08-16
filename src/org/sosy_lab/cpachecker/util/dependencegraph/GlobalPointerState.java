@@ -320,7 +320,7 @@ abstract class GlobalPointerState {
         PointerState pointerState = AbstractStates.extractStateByType(state, PointerState.class);
         CFANode node = AbstractStates.extractLocation(state);
 
-        for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
+        for (CFAEdge edge : node.getAllLeavingEdges()) {
 
           if (pShutdownNotifier.shouldShutdown()) {
             return null;

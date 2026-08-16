@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.SequencedMap;
 import org.sosy_lab.common.collect.CopyOnWriteSortedMap;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
@@ -84,7 +85,7 @@ public class PredicateManager {
     if (initPartitions) {
       varsToTmpVar = initVars(pCfa);
     } else {
-      varsToTmpVar = null; // never accessed afterwards
+      varsToTmpVar = null; // never accessed afterward
     }
   }
 
@@ -116,7 +117,7 @@ public class PredicateManager {
       partitions = cfa.getVarClassification().orElseThrow().getPartitions(); // may be unsorted
     }
 
-    Map<Partition, String> partitionToTmpVar = new LinkedHashMap<>();
+    SequencedMap<Partition, String> partitionToTmpVar = new LinkedHashMap<>();
     int bitsize = getMaxBitsize(cfa.getMachineModel());
     for (Partition partition : partitions) {
       // maxBitSize is too much for most variables. we only create an order here, so this should not
@@ -206,7 +207,7 @@ public class PredicateManager {
 
   /**
    * This function returns regions containing bits of a variable. returns regions for positions of a
-   * variable, s --> [s@2, s@1, s@0]. There is no check, if the variable is tracked by the the
+   * variable, s --> [s@2, s@1, s@0]. There is no check, if the variable is tracked by the
    * precision. We assume that the variable was seen before and its bitsize is already known.
    */
   Region[] createPredicateWithoutPrecisionCheck(final String varName) {
@@ -216,7 +217,7 @@ public class PredicateManager {
 
   /**
    * This function returns regions containing bits of a variable. returns regions for positions of a
-   * variable, s --> [s@2, s@1, s@0]. There is no check, if the variable is tracked by the the
+   * variable, s --> [s@2, s@1, s@0]. There is no check, if the variable is tracked by the
    * precision.
    */
   Region[] createPredicateWithoutPrecisionCheck(final String varName, final int size) {
@@ -235,7 +236,7 @@ public class PredicateManager {
 
   /**
    * This function returns regions containing bits of a variable. returns regions for positions of a
-   * variable, s --> [s@2, s@1, s@0]. If the variable is not tracked by the the precision, Null is
+   * variable, s --> [s@2, s@1, s@0]. If the variable is not tracked by the precision, Null is
    * returned.
    */
   Region[] createPredicate(

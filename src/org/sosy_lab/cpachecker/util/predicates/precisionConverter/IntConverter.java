@@ -184,10 +184,10 @@ public class IntConverter extends Converter {
 
     } else if (terms.size() == 2
         && op.getFirst().equals("_")
-        && terms.get(0).getFirst().startsWith("bv")) {
+        && terms.getFirst().getFirst().startsWith("bv")) {
       // we convert "(_ bvN L)" into "N" and ignore the bit-length L.
       assert op.getSecond() == null : "type of BV-NUMBER should be unknown.";
-      return Pair.of(terms.get(0).getFirst().substring(2), new Type<>(FormulaType.IntegerType));
+      return Pair.of(terms.getFirst().getFirst().substring(2), new Type<>(FormulaType.IntegerType));
 
     } else if (terms.size() == 1 && unaryOps.containsKey(op.getFirst())) {
       return Pair.of(
@@ -204,7 +204,7 @@ public class IntConverter extends Converter {
 
     } else if (terms.size() == 2
         && (binOps.containsKey(op.getFirst()) || arithmeticOps.containsKey(op.getFirst()))) {
-      Pair<String, Type<FormulaType<?>>> e1 = terms.get(0);
+      Pair<String, Type<FormulaType<?>>> e1 = terms.getFirst();
       Pair<String, Type<FormulaType<?>>> e2 = terms.get(1);
       Type<FormulaType<?>> type;
       String operator;
@@ -218,7 +218,7 @@ public class IntConverter extends Converter {
       return Pair.of(format("(%s %s %s)", operator, e1.getFirst(), e2.getFirst()), type);
 
     } else if (terms.size() == 3 && "ite".equals(op.getFirst())) {
-      Pair<String, Type<FormulaType<?>>> cond = terms.get(0);
+      Pair<String, Type<FormulaType<?>>> cond = terms.getFirst();
       Pair<String, Type<FormulaType<?>>> eIf = terms.get(1);
       Pair<String, Type<FormulaType<?>>> eElse = terms.get(2);
       FormulaType<?> type;
@@ -231,7 +231,7 @@ public class IntConverter extends Converter {
           format("(ite %s %s %s)", cond.getFirst(), eIf.getFirst(), eElse.getFirst()),
           new Type<>(type));
 
-    } else if (binBooleanOps.contains(op.getFirst())) {
+    } else if (BIN_BOOLEAN_OPS.contains(op.getFirst())) {
       return Pair.of(
           format(
               "(%s %s)",

@@ -20,7 +20,7 @@ public interface WrapperTransferRelation extends TransferRelation {
    * Retrieve one of the wrapped TransferRelations by type. If the hierarchy of (wrapped)
    * TransferRelations has several levels, this method searches through them recursively.
    *
-   * <p>The type does not need to match exactly, the returned element has just to be a sub-type of
+   * <p>The type does not need to match exactly, the returned element has just to be a subtype of
    * the type passed as argument.
    *
    * @param <T> The type of the wrapped element.

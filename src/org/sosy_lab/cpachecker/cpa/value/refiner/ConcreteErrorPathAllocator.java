@@ -98,7 +98,7 @@ public abstract class ConcreteErrorPathAllocator<S extends AbstractState> {
 
     private final Set<CLeftHandSide> alreadyAssigned;
 
-    public ValueKnownVisitor(Set<CLeftHandSide> pAlreadyAssigned) {
+    ValueKnownVisitor(Set<CLeftHandSide> pAlreadyAssigned) {
       alreadyAssigned = pAlreadyAssigned;
     }
 

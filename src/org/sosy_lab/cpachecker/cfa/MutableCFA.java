@@ -18,13 +18,17 @@ import java.util.Collections;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Set;
+import java.util.TreeMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.CheckingCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.ConsistentCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.ForwardingCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
@@ -107,6 +111,23 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
     allNodes.clear();
   }
 
+  public static MutableCFA copyOf(CFA pCfa, Configuration pConfig, LogManager pLogger) {
+    // create a clone of the specified CFA (clones all CFA nodes and edges)
+    CFA clone =
+        CCfaTransformer.substituteAstNodes(pConfig, pLogger, pCfa, (cfaEdge, astNode) -> astNode);
+    // create a `MutableCFA` for the clone (contains the same CFA nodes and edges as `clone`)
+    NavigableMap<String, FunctionEntryNode> functionEntryNodes = new TreeMap<>();
+    TreeMultimap<String, CFANode> allNodes = TreeMultimap.create();
+    for (CFANode node : clone.nodes()) {
+      String functionName = node.getFunction().getQualifiedName();
+      allNodes.put(functionName, node);
+      if (node instanceof FunctionEntryNode functionEntryNode) {
+        functionEntryNodes.put(functionName, functionEntryNode);
+      }
+    }
+    return new MutableCFA(functionEntryNodes, allNodes, clone.getMetadata());
+  }
+
   /**
    * Removes the specified node from this CFA, if it is present.
    *
@@ -149,6 +170,10 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
 
   public void setAstCfaRelation(AstCfaRelation pAstCfaRelation) {
     metadata = metadata.withAstCfaRelation(pAstCfaRelation);
+  }
+
+  public void setSvLibCfaMetadata(SvLibCfaMetadata pSvLibCfaMetadata) {
+    metadata = metadata.withSvLibCfaMetadata(pSvLibCfaMetadata);
   }
 
   public void setLoopStructure(LoopStructure pLoopStructure) {

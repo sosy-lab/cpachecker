@@ -8,27 +8,73 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
+Test Overview
+-------------
+
+| What | Where | When |
+| ------ | ------ | ------ |
+| Standard unit tests for Java code                             | [GitLab CI][] | all pipelines |
+| Extended unit tests for Java code                             | [GitLab CI][] | merge trains + weekly for `main` |
+| Configuration checks (smoke test for each config file)        | [GitLab CI][] | all pipelines |
+| [Unit tests for JavaScript code](JavascriptTesting.md)        | [GitLab CI][] | all pipelines |
+| [Integration tests for JavaScript code](JavascriptTesting.md) | [GitLab CI][] | all pipelines |
+| [Integration tests for Python code](PythonStyleGuide.md)      | [GitLab CI][] | all pipelines |
+| Small-scale integration tests with complex assertions, e.g., for witness export | [GitLab CI][] | all pipelines |
+| Small-scale integration tests with basic result assertions    | [GitLab CI][] | merge trains + weekly for `main` |
+| Large-scale integration tests for many configs (one with witness validation) | [BuildBot][] | on every push/merge to `main` |
+| Largest-scale integration tests on whole [SV-Benchmarks][] for few configs (with witness validation) | [BuildBot][] | every few days for `main` |
+
+Tests for other languages are described in the respective linked documentation, other tests are described below.
+
 Integration Tests
 -----------------
 
-Integration tests that are executed automatically by the [BuildBot](https://buildbot.sosy-lab.org/cpachecker/)
-for the main branch are defined by the files `../test/test-sets/integration-*.xml`.
-You can also execute these tests directly with BenchExec.
+The primary test suite of CPAchecker consists of
+integration tests that are executed automatically by the [BuildBot][]
+for the main branch.
+These are defined by the files `../test/test-sets/integration-*.xml`.
+You can also execute these tests directly with [BenchExec],
+which is bundled with CPAchecker, e.g.,
+`scripts/benchmark.py test/test-sets/integration-simpleTests.xml`.
+CPAchecker developers can also request access to the SoSy-Lab cluster for faster execution.
+
 All major projects and configurations within CPAchecker should be part of this test suite.
 To add tests for your project or configuration,
 please contact the maintainers on the developer mailing list.
 Be aware that the integration tests expect that the directory `c`
-of the [sv-benchmarks repository](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks)
+of the [SV-Benchmarks][] repository
 is linked/copied to `../test/programs/benchmarks`.
+
+BenchExec only supports asserting that the verification result is correct.
+If more powerful assertions are desired, write them as JUnit tests
+such that they are executed together with the unit tests.
+In this case the test class should be named `*IntegrationTest`
+and the tests can be executed with `ant integration-tests` (or `ant tests`).
+However, please consider the flakiness risk and time necessary for integration tests
+and consider turning them into proper unit tests instead.
+
+Developers who wish to have a few basic integration tests
+(duplicating BuildBot tests)
+written as JUnit tests for their convenience may also add them.
+However, in order to not let local execution or CI pipelines take too much time,
+such tests must be disabled by default by calling
+`CPATestRunner.skipUnlessExtendedTestsEnabled()` (ideally from a `@BeforeClass` method).
+One can run them by setting the system property `enableExtendedTests`,
+e.g., with `ant tests -DenableExtendedTests=true`.
+
+Smoke tests that automatically run each CPAchecker configuration on a trivial program
+are executed with `ant configuration-checks` and in [GitLab CI][].
 
 Unit Tests
 ----------
 
-Run `ant tests` from the project root directory.
-An HTML report with the results will be generated as `JUnit.html`.
-Of course the unit tests can also be executed from within your IDE.
+Run `ant unit-tests` from the project root directory.
+An HTML report with the results will be generated as `UnitTests.html`.
+Of course the unit tests can also be executed from within your IDE and are executed by [GitLab CI][].
 
-These tests are also executed by [GitLab CI](https://gitlab.com/sosy-lab/software/cpachecker/pipelines).
+Some particularly expensive tests (which take several minutes)
+are disabled by default and can be enabled with
+`-DenableExtendedTests=true` on the command line.
 
 Structure of Tests
 ------------------
@@ -52,19 +98,17 @@ Structure of Tests
   if they are reusable. Feel free to add utilities there.
 
 
-Hints for Writing Tests
------------------------
+Hints for Writing JUnit Tests
+-----------------------------
 
-- Several classes have helpful instances for tests, for example:
-  - TestLogManager for LogManager (with tests for correct logger usage)
-  - TestDataTools.configurationForTest() for Configuration
-  - FileLocation.DUMMY
-  - CNumericTypes.* for CSimpleType instances
-  - For other types, look in the specific class
-  
-There is no need to mock these types or create your own instances.
-For `ShutdownNotifier`, simply use `ShutdownNotifier.createDummy()`.
-Other utilities may be found in the package `util.test`.
+- Several classes have helpful instances for tests and should not be mocked, for example:
+  - `LogManager.createTestLogManager()` (with tests for correct logger usage)
+  - `TestUtils.configurationForTest()` for `Configuration`
+  - `ShutdownNotifier.createDummy()` for `ShutdownNotifier`
+  - `FileLocation.DUMMY?
+  - `CNumericTypes.*` for `CSimpleType` instances
+  - `TestCfaUtils` has utilities for CFA and AST nodes.
+  - For other types, look in the specific class.
 
 - Inside tests, you can use the library [Truth](https://google.github.io/truth/) for writing assertions.
   Instead of writing `assertEquals(...)`, you can write `assertThat(...).is...`,
@@ -91,3 +135,8 @@ Other utilities may be found in the package `util.test`.
   provide a public static method annotated with `@Parameters` that returns a `List<Object[]>`
   and add fields that are annotated with `@Parameter`.
   An example for this can be seen in the class `ExpressionValueVisitorTest`.
+
+[BenchExec]: https://github.com/sosy-lab/benchexec
+[BuildBot]: https://buildbot.sosy-lab.org/cpachecker/
+[GitLab CI]: https://gitlab.com/sosy-lab/software/cpachecker/-/pipelines
+[SV-benchmarks]: https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks

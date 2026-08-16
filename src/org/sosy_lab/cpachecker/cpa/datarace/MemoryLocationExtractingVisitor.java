@@ -131,10 +131,10 @@ public class MemoryLocationExtractingVisitor
   }
 
   public OverapproximatingMemoryLocation getMemoryLocation(AExpression pExpression) {
-    if (!(pExpression instanceof CExpression)) {
+    if (!(pExpression instanceof CExpression expression)) {
       throw new AssertionError("Only C expressions are supported");
     }
-    CExpression expression = (CExpression) pExpression;
+
     CType type = expression.getExpressionType();
     Set<MemoryLocation> potentialLocations = new HashSet<>();
 
@@ -143,7 +143,7 @@ public class MemoryLocationExtractingVisitor
       boolean isLocal = false;
       if (var.getDeclaration() != null) {
         CSimpleDeclaration decl = var.getDeclaration();
-        if (!((decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal())
+        if (!((decl instanceof CDeclaration cDeclaration && cDeclaration.isGlobal())
             || decl instanceof CEnumerator)) {
           isLocal = true;
         }
@@ -170,8 +170,8 @@ public class MemoryLocationExtractingVisitor
     } else if (pExpression instanceof CArraySubscriptExpression) {
       return new OverapproximatingMemoryLocation(type);
     } else if (pExpression instanceof CPointerExpression pointerExpression) {
-      if (pointerExpression.getOperand() instanceof CIdExpression) {
-        type = ((CIdExpression) pointerExpression.getOperand()).getDeclaration().getType();
+      if (pointerExpression.getOperand() instanceof CIdExpression cIdExpression) {
+        type = cIdExpression.getDeclaration().getType();
       }
       return new OverapproximatingMemoryLocation(type);
     } else if (pExpression instanceof CCastExpression cast) {

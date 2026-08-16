@@ -62,7 +62,7 @@ public class BinderFunctionInfo {
           from(Splitter.on(",").splitToList(line))
               .transform(s -> Splitter.on(":").splitToList(s))
               .transform(
-                  s -> Pair.of(Access.valueOf(Ascii.toUpperCase(s.get(0))), getNumOrDefault(s)))
+                  s -> Pair.of(Access.valueOf(Ascii.toUpperCase(s.getFirst())), getNumOrDefault(s)))
               .toList();
 
       line = pConfig.getProperty(name + ".linkInfo");
@@ -77,7 +77,7 @@ public class BinderFunctionInfo {
         for (int i = 0; i < 2; i++) {
           pOption = Splitter.on(":").splitToList(options.get(i));
           int dereference = getNumOrDefault(pOption);
-          lInfo[i] = new LinkerInfo(Integer.parseInt(pOption.get(0)), dereference);
+          lInfo[i] = new LinkerInfo(Integer.parseInt(pOption.getFirst()), dereference);
         }
         linkInfo = Pair.of(lInfo[0], lInfo[1]);
       } else {

@@ -21,7 +21,7 @@ public abstract class AFunctionCallExpression extends AbstractRightHandSide {
 
   @Serial private static final long serialVersionUID = -6120400526327639887L;
   private final AExpression functionName;
-  private final List<? extends AExpression> parameters;
+  private final ImmutableList<? extends AExpression> parameters;
   private final AFunctionDeclaration declaration;
 
   protected AFunctionCallExpression(
@@ -40,7 +40,7 @@ public abstract class AFunctionCallExpression extends AbstractRightHandSide {
     return functionName;
   }
 
-  public List<? extends AExpression> getParameterExpressions() {
+  public ImmutableList<? extends AExpression> getParameterExpressions() {
     return parameters;
   }
 

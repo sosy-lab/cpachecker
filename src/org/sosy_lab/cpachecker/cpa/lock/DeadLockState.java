@@ -137,9 +137,7 @@ public final class DeadLockState extends AbstractLockState {
       mutableToRestore = null;
       int num = getTailNum(mutableLockList, removeCounters, totalRemove);
       if (num < mutableLockList.size() - 1) {
-        for (int i = mutableLockList.size() - 1; i > num; i--) {
-          mutableLockList.remove(i);
-        }
+        mutableLockList.subList(num + 1, mutableLockList.size()).clear();
       }
     }
 

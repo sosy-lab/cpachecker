@@ -99,7 +99,8 @@ body {
 }
 
 .popover {
-  min-width: 500px;
+  /* override default bootstrap .popover max-width */
+  max-width: 500px !important;
   max-height: 500px;
   white-space: pre-line !important;
   overflow: auto;
@@ -107,6 +108,7 @@ body {
   border: solid 2px;
   border-color: #00d415;
   font-family: monospace;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
 .dropdown-menu a:hover {
@@ -233,9 +235,20 @@ input:checked + .slider:before {
   max-width: 270px;
 }
 
+.showValuesButton {
+  /* placeholder for border of 2px when marked.
+  We use this placeholder to avoid that the size
+  of the element changes when an actual border is added */
+  border: 2px solid transparent;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 .markedTableElement {
   border: solid 2px;
-  border-color: #00d415;
+  border-color: #00d415 !important;
 }
 
 .markedValueElement pre {
@@ -798,6 +811,7 @@ text {
   background-color: #ffef96;
   display: inline-block;
   border-radius: 6px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
 .tool_tip #boxContent::after {

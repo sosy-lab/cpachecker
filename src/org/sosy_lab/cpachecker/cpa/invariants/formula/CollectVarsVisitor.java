@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.SequencedSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -166,7 +167,7 @@ public class CollectVarsVisitor<T>
      * are of size one, a new modifiable set is created for the result.
      */
     if (a.size() == 1 && b.size() == 1) {
-      Set<T> result = new LinkedHashSet<>(a);
+      SequencedSet<T> result = new LinkedHashSet<>(a);
       result.addAll(b);
       return result;
     }

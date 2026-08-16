@@ -30,7 +30,19 @@ public class FunctionPointerState
 
   @Serial private static final long serialVersionUID = -1951853216031911649L;
 
-  public interface FunctionPointerTarget {}
+  public interface FunctionPointerTarget {
+    static boolean maybeEqual(FunctionPointerTarget pValue, FunctionPointerTarget pOtherValue) {
+      return pValue.equals(pOtherValue)
+          || pValue.equals(UnknownTarget.getInstance())
+          || pOtherValue.equals(UnknownTarget.getInstance());
+    }
+
+    static boolean maybeUnequal(FunctionPointerTarget pValue, FunctionPointerTarget pOtherValue) {
+      return !pValue.equals(pOtherValue)
+          || pValue.equals(UnknownTarget.getInstance())
+          || pOtherValue.equals(UnknownTarget.getInstance());
+    }
+  }
 
   public static final class UnknownTarget implements FunctionPointerTarget {
     private static final UnknownTarget instance = new UnknownTarget();
@@ -104,8 +116,7 @@ public class FunctionPointerState
 
     @Override
     public boolean equals(Object pObj) {
-      return pObj instanceof NamedFunctionTarget
-          && ((NamedFunctionTarget) pObj).functionName.equals(functionName);
+      return pObj instanceof NamedFunctionTarget other && other.functionName.equals(functionName);
     }
 
     @Override

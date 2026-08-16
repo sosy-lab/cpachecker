@@ -58,7 +58,7 @@ Thus, there are extreme cases in which the model enumeration consumes almost all
 ## Results of Individual Verification Runs
 
 To inspect results for individual verification tasks, click on the "Table" tab. Here you can filter and sort results.
-Clicking on a result in the the `status` column opens a log file from CPAchecker.
+Clicking on a result in the `status` column opens a log file from CPAchecker.
 
 ### Extremely Large Solving Time
 

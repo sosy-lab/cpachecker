@@ -29,7 +29,7 @@ class ASTOperatorConverter {
     parseContext = pParseContext;
   }
 
-  /** converts and returns the operator of an unaryExpression (PLUS, MINUS, NOT, STAR,...) */
+  /** converts and returns the operator of a unaryExpression (PLUS, MINUS, NOT, STAR,...) */
   UnaryOperator convertUnaryOperator(final IASTUnaryExpression e) {
     return switch (e.getOperator()) {
       case IASTUnaryExpression.op_amper -> UnaryOperator.AMPER;
@@ -46,7 +46,7 @@ class ASTOperatorConverter {
   }
 
   /**
-   * converts and returns the operator of an binaryExpression (PLUS, MINUS, MULTIPLY,...) with an
+   * converts and returns the operator of a binaryExpression (PLUS, MINUS, MULTIPLY,...) with a
    * flag, if the operator causes an assignment.
    */
   Pair<BinaryOperator, Boolean> convertBinaryOperator(final IASTBinaryExpression e) {
@@ -56,7 +56,7 @@ class ASTOperatorConverter {
     switch (e.getOperator()) {
       case IASTBinaryExpression.op_multiply -> operator = BinaryOperator.MULTIPLY;
       case IASTBinaryExpression.op_divide -> operator = BinaryOperator.DIVIDE;
-      case IASTBinaryExpression.op_modulo -> operator = BinaryOperator.MODULO;
+      case IASTBinaryExpression.op_modulo -> operator = BinaryOperator.REMAINDER;
       case IASTBinaryExpression.op_plus -> operator = BinaryOperator.PLUS;
       case IASTBinaryExpression.op_minus -> operator = BinaryOperator.MINUS;
       case IASTBinaryExpression.op_shiftLeft -> operator = BinaryOperator.SHIFT_LEFT;
@@ -65,9 +65,9 @@ class ASTOperatorConverter {
       case IASTBinaryExpression.op_greaterThan -> operator = BinaryOperator.GREATER_THAN;
       case IASTBinaryExpression.op_lessEqual -> operator = BinaryOperator.LESS_EQUAL;
       case IASTBinaryExpression.op_greaterEqual -> operator = BinaryOperator.GREATER_EQUAL;
-      case IASTBinaryExpression.op_binaryAnd -> operator = BinaryOperator.BINARY_AND;
-      case IASTBinaryExpression.op_binaryXor -> operator = BinaryOperator.BINARY_XOR;
-      case IASTBinaryExpression.op_binaryOr -> operator = BinaryOperator.BINARY_OR;
+      case IASTBinaryExpression.op_binaryAnd -> operator = BinaryOperator.BITWISE_AND;
+      case IASTBinaryExpression.op_binaryXor -> operator = BinaryOperator.BITWISE_XOR;
+      case IASTBinaryExpression.op_binaryOr -> operator = BinaryOperator.BITWISE_OR;
       case IASTBinaryExpression.op_assign -> {
         operator = null;
         isAssign = true;
@@ -81,7 +81,7 @@ class ASTOperatorConverter {
         isAssign = true;
       }
       case IASTBinaryExpression.op_moduloAssign -> {
-        operator = BinaryOperator.MODULO;
+        operator = BinaryOperator.REMAINDER;
         isAssign = true;
       }
       case IASTBinaryExpression.op_plusAssign -> {
@@ -101,15 +101,15 @@ class ASTOperatorConverter {
         isAssign = true;
       }
       case IASTBinaryExpression.op_binaryAndAssign -> {
-        operator = BinaryOperator.BINARY_AND;
+        operator = BinaryOperator.BITWISE_AND;
         isAssign = true;
       }
       case IASTBinaryExpression.op_binaryXorAssign -> {
-        operator = BinaryOperator.BINARY_XOR;
+        operator = BinaryOperator.BITWISE_XOR;
         isAssign = true;
       }
       case IASTBinaryExpression.op_binaryOrAssign -> {
-        operator = BinaryOperator.BINARY_OR;
+        operator = BinaryOperator.BITWISE_OR;
         isAssign = true;
       }
       case IASTBinaryExpression.op_equals -> operator = BinaryOperator.EQUALS;
@@ -140,8 +140,8 @@ class ASTOperatorConverter {
           BinaryOperator.LESS_THAN);
 
   static boolean isBooleanExpression(CExpression e) {
-    if (e instanceof CBinaryExpression) {
-      return BOOLEAN_BINARY_OPERATORS.contains(((CBinaryExpression) e).getOperator());
+    if (e instanceof CBinaryExpression cBinaryExpression) {
+      return BOOLEAN_BINARY_OPERATORS.contains(cBinaryExpression.getOperator());
 
     } else {
       return false;

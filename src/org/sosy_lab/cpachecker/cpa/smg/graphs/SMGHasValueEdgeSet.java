@@ -237,7 +237,7 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
         edgesSet.map.entrySet();
     assert entries.size() == 1;
 
-    Entry<SMGObject, PersistentSortedMap<Long, SMGEdgeHasValue>> entry = entries.first();
+    Entry<SMGObject, PersistentSortedMap<Long, SMGEdgeHasValue>> entry = entries.getFirst();
 
     assert !map.containsKey(entry.getKey());
     PersistentSortedMap<SMGObject, PersistentSortedMap<Long, SMGEdgeHasValue>> newMap =
@@ -278,7 +278,7 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
     Iterator<PersistentSortedMap<Long, SMGEdgeHasValue>> iteratorMain;
     Iterator<SMGEdgeHasValue> iteratorSecond;
 
-    protected SMGHasValueEdgeSetIteratorWithFilter(
+    SMGHasValueEdgeSetIteratorWithFilter(
         SMGHasValueEdgeSet pSMGEdgeHasValues, SMGEdgeHasValueFilter pFilter) {
       SMGObject filterObject = pFilter.getObject();
       SMGEdgeHasValue filterOverlapsWith = pFilter.getOverlapsWith();
@@ -381,7 +381,7 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
     Iterator<PersistentSortedMap<Long, SMGEdgeHasValue>> firstLevelIterator;
     Iterator<SMGEdgeHasValue> secondLevelIterator = null;
 
-    protected SMGHasValueEdgeSetIterator(SMGHasValueEdgeSet pSMGEdgeHasValues) {
+    SMGHasValueEdgeSetIterator(SMGHasValueEdgeSet pSMGEdgeHasValues) {
       firstLevelIterator = pSMGEdgeHasValues.map.values().iterator();
       if (firstLevelIterator.hasNext()) {
         PersistentSortedMap<Long, SMGEdgeHasValue> next = firstLevelIterator.next();

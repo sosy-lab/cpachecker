@@ -41,7 +41,7 @@ public class RefinementBlockFactory {
     ProbeFilter(currentInnerBlockType.ExtendedARGPath),
     SharedRefiner(currentInnerBlockType.ExtendedARGPath);
 
-    public final currentInnerBlockType innerType;
+    private final currentInnerBlockType innerType;
 
     RefinementBlockTypes(currentInnerBlockType type) {
       innerType = type;
@@ -153,9 +153,6 @@ public class RefinementBlockFactory {
                         currentBlock,
                     RelationForSharedRefiner);
           }
-          default ->
-              throw new InvalidConfigurationException(
-                  "The type " + RefinementChain.get(i) + " is not supported");
         }
       } else {
         throw new InvalidConfigurationException(

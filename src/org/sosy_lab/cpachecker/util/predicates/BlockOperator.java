@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 
 /**
@@ -342,7 +341,7 @@ public class BlockOperator {
   }
 
   private static boolean isFirstLocationInMainFunctionBody(CFANode pLoc) {
-    for (CFAEdge edge : CFAUtils.leavingEdges(pLoc)) {
+    for (CFAEdge edge : pLoc.getLeavingEdges()) {
       if (edge instanceof BlankEdge) {
         if (edge.getDescription().equals("Function start dummy edge")) {
           return true;

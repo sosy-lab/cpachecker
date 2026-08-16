@@ -77,7 +77,6 @@ class SMGErrorInfo {
       case INVALID_READ -> pInvalidRead = true;
       case INVALID_FREE -> pInvalidFree = true;
       case INVALID_HEAP -> pHasLeaks = true;
-      default -> throw new AssertionError();
     }
 
     return new SMGErrorInfo(

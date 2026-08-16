@@ -83,8 +83,8 @@ SPDX-License-Identifier: Apache-2.0
             token="@SuppressWarnings({&quot;rawtypes&quot;})"
             value="${annotation}@SuppressWarnings({&quot;all&quot;, &quot;cast&quot;, &quot;rawtypes&quot;, &quot;unchecked&quot;} )${line.separator}@edu.umd.cs.findbugs.annotations.SuppressFBWarnings({&quot;MS_PKGPROTECT&quot;, &quot;SIC_INNER_SHOULD_BE_STATIC&quot;})"/>
         <replace file="${dir.parser}/${symbols.target}.java"
-            token="public interface "
-            value="${annotation}public interface "
+            token="*/${line.separator}public interface "
+            value="*/${line.separator}${annotation}public interface "
         />
     </target>
 </project>

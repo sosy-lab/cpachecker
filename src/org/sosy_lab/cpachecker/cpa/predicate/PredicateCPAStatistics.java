@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -94,6 +95,7 @@ final class PredicateCPAStatistics implements Statistics {
   private Path invariantPrecisionsFile = Path.of("invariantPrecs.txt");
 
   @Option(
+      secure = true,
       description = "Export one abstraction formula for each abstraction state into a file?",
       name = "abstractions.export")
   private boolean abstractionsExport = true;
@@ -199,7 +201,7 @@ final class PredicateCPAStatistics implements Statistics {
     Preconditions.checkNotNull(targetFile);
     Preconditions.checkNotNull(predicates);
 
-    Set<AbstractionPredicate> allPredicates = new LinkedHashSet<>(predicates.global);
+    SequencedSet<AbstractionPredicate> allPredicates = new LinkedHashSet<>(predicates.global);
     allPredicates.addAll(predicates.function.values());
     allPredicates.addAll(predicates.location.values());
     allPredicates.addAll(predicates.locationInstance.values());
@@ -358,9 +360,9 @@ final class PredicateCPAStatistics implements Statistics {
           "  Symbolic coverage check:         "
               + domain.symbolicCoverageCheckTimer.getNumberOfIntervals());
     }
-    out.println("Number of SMT sat checks:          " + solver.satChecks);
-    out.println("  trivial:                         " + solver.trivialSatChecks);
-    out.println("  cached:                          " + solver.cachedSatChecks);
+    out.println("Number of actual SMT sat checks:   " + solver.actualSatChecks);
+    out.println("Number of trivial SMT sat checks:  " + solver.trivialSatChecks);
+    out.println("Number of cached SMT sat checks:   " + solver.cachedSatChecks);
     out.println();
     out.println("Max ABE block size:                       " + prec.blockSize.getMaxValue());
     put(out, 0, prec.blockSize);

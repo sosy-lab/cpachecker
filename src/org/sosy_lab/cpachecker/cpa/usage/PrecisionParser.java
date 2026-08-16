@@ -89,7 +89,7 @@ public class PrecisionParser {
   }
 
   private GeneralIdentifier parseId(List<String> splittedLine) {
-    String type = splittedLine.get(0);
+    String type = splittedLine.getFirst();
     String name = splittedLine.get(1);
     int deref = Integer.parseInt(splittedLine.get(2));
 
@@ -110,7 +110,7 @@ public class PrecisionParser {
 
   private boolean shouldBeSkipped(List<String> set) {
     // Return identifier, it's not interesting for us
-    return set.get(0).equalsIgnoreCase("r") || set.get(0).equalsIgnoreCase("func");
+    return set.getFirst().equalsIgnoreCase("r") || set.getFirst().equalsIgnoreCase("func");
   }
 
   private void putIntoMap(

@@ -49,9 +49,9 @@ public class CFACloner {
     final NavigableMap<String, FunctionEntryNode> functions = new TreeMap<>(cfa.getAllFunctions());
     final TreeMultimap<String, CFANode> nodes = TreeMultimap.create();
     for (final String function : cfa.getAllFunctionNames()) {
-      if (cfa instanceof MutableCFA) {
+      if (cfa instanceof MutableCFA mutableCFA) {
         // it is more efficient to directly copy the nodes
-        nodes.putAll(function, ((MutableCFA) cfa).getFunctionNodes(function));
+        nodes.putAll(function, mutableCFA.getFunctionNodes(function));
       } else {
         nodes.putAll(
             function, CFATraversal.dfs().collectNodesReachableFrom(cfa.getFunctionHead(function)));
@@ -78,11 +78,10 @@ public class CFACloner {
             functions.containsKey(newFunctionName), "function %s not available", newFunctionName);
         final FunctionCallCollector visitor = new FunctionCallCollector();
         CFATraversal.dfs().traverseOnce(functions.get(newFunctionName), visitor);
-        final Collection<AStatementEdge> functionCalls = visitor.getFunctionCalls();
 
         // redirect from caller to new (cloned) called function,
         // but only if the calling and the called function have equal clone-indices
-        for (AStatementEdge statementEdge : functionCalls) {
+        for (AStatementEdge statementEdge : visitor.getFunctionCalls()) {
           if (FunctionCallUnwinder.isFunctionCall(statementEdge, functions.keySet())) {
             final String calledFunctionName = FunctionCallUnwinder.getNameOfFunction(statementEdge);
             final String newCalledFunctionName = getFunctionName(calledFunctionName, i);

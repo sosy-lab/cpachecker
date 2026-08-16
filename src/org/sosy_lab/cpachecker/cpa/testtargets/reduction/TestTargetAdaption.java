@@ -13,7 +13,6 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public enum TestTargetAdaption {
   NONE {
@@ -31,7 +30,7 @@ public enum TestTargetAdaption {
       for (CFAEdge target : pTargets) {
         if (target.getSuccessor().getNumEnteringEdges() == 1) {
           allSuccessorsGoals = true;
-          for (CFAEdge leaving : CFAUtils.leavingEdges(target.getSuccessor())) {
+          for (CFAEdge leaving : target.getSuccessor().getLeavingEdges()) {
             if (!pTargets.contains(leaving)) {
               allSuccessorsGoals = false;
               break;
@@ -128,7 +127,7 @@ public enum TestTargetAdaption {
         newGoals = new HashSet<>();
         for (CFAEdge target : targets) {
           if (target.getEdgeType() == CFAEdgeType.AssumeEdge) {
-            for (CFAEdge leaving : CFAUtils.leavingEdges(target.getSuccessor())) {
+            for (CFAEdge leaving : target.getSuccessor().getLeavingEdges()) {
               if (!(leaving.getEdgeType() == CFAEdgeType.AssumeEdge)) {
                 newGoals.add(leaving);
               }

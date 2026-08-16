@@ -18,6 +18,7 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 
 public class PackageSanityTest extends AbstractPackageSanityTests {
 
@@ -33,10 +34,10 @@ public class PackageSanityTest extends AbstractPackageSanityTests {
 
     CCompositeType dummystruct =
         new CCompositeType(
-            false, false, ComplexTypeKind.STRUCT, ImmutableList.of(), "dummy", "dummy");
+            CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, ImmutableList.of(), "dummy", "dummy");
     CCompositeType dummyunion =
         new CCompositeType(
-            false, false, ComplexTypeKind.UNION, ImmutableList.of(), "dummy", "dummy");
+            CTypeQualifiers.NONE, ComplexTypeKind.UNION, ImmutableList.of(), "dummy", "dummy");
     setDefault(CCompositeType.class, dummystruct);
 
     setDistinctValues(CCompositeType.class, dummystruct, dummyunion);

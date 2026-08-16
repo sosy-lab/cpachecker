@@ -16,7 +16,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.CallGraph.SuccessorResult;
 
 final class CallGraphUtils {
@@ -30,7 +29,7 @@ final class CallGraphUtils {
       CFANode pNode) {
 
     List<CallGraph.SuccessorResult<AFunctionDeclaration, CFANode>> edges = new ArrayList<>();
-    for (CFAEdge edge : CFAUtils.leavingEdges(pNode)) {
+    for (CFAEdge edge : pNode.getLeavingEdges()) {
 
       if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
         CFANode successor = edge.getSuccessor();

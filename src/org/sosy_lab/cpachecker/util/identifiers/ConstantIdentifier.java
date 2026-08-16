@@ -84,8 +84,8 @@ public final class ConstantIdentifier implements AbstractIdentifier {
     // FIXME cf. #1110
     if (pO instanceof ReturnIdentifier) {
       return 1;
-    } else if (pO instanceof ConstantIdentifier) {
-      return name.compareTo(((ConstantIdentifier) pO).name);
+    } else if (pO instanceof ConstantIdentifier other) {
+      return name.compareTo(other.name);
     } else {
       return -1;
     }

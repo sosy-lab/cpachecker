@@ -23,6 +23,10 @@ public class InvariantSetEntry extends AbstractEntry {
   @JsonProperty("content")
   public final List<AbstractInvariantEntry> content;
 
+  public MetadataRecord getMetadata() {
+    return metadata;
+  }
+
   public InvariantSetEntry(
       @JsonProperty("metadata") MetadataRecord pMetadata,
       @JsonProperty("content") List<AbstractInvariantEntry> pContent) {

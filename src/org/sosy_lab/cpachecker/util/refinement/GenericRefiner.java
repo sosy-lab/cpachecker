@@ -102,7 +102,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   @Option(
       secure = true,
       description =
-          "whether or not to add assumptions to counterexamples,"
+          "whether to add assumptions to counterexamples,"
               + " e.g., for supporting counterexample checks")
   private boolean addAssumptionsToCex = true;
 

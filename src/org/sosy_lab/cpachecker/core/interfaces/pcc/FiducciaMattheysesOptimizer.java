@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
 public interface FiducciaMattheysesOptimizer {
 
   /**
-   * Compute the gain of a node move, i.e usually external-internal degree
+   * Compute the gain of a node move, i.e. usually external-internal degree
    *
    * @param node Node which might be moved to another partition
    * @param toPartition Partition where the node probably is moved
@@ -35,7 +35,7 @@ public interface FiducciaMattheysesOptimizer {
   int computeInternalDegree(int node, int[] nodeToPartition, WeightedGraph wGraph);
 
   /**
-   * Compute a nodes extends degree, i.e the integer which describes the connectivity into the
+   * Compute a nodes extends degree, i.e. the integer which describes the connectivity into the
    * external partition.
    *
    * @param node node whose degree is computed

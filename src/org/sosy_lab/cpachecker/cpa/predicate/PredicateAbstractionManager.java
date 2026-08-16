@@ -265,7 +265,7 @@ public final class PredicateAbstractionManager {
       unsatisfiabilityCache = null;
     }
 
-    if (useCache && (abstractionType != AbstractionType.BOOLEAN)) {
+    if (useCache) {
       cartesianAbstractionCache = new HashMap<>();
     } else {
       cartesianAbstractionCache = null;
@@ -386,7 +386,7 @@ public final class PredicateAbstractionManager {
 
     // This is the (mutable) set of remaining predicates that still need to be handled.
     // Each step of our abstraction computation may be able to handle some predicates,
-    // and should remove those from this set afterwards.
+    // and should remove those from this set afterward.
     final Collection<AbstractionPredicate> remainingPredicates =
         getRelevantPredicates(pPredicates, primaryFormula, instantiator);
 
@@ -430,7 +430,10 @@ public final class PredicateAbstractionManager {
       }
 
       boolean unsatisfiable =
-          unsatisfiabilityCache.contains(symbFormula) || unsatisfiabilityCache.contains(f);
+          unsatisfiabilityCache.contains(symbFormula)
+              || unsatisfiabilityCache.contains(f)
+              || Boolean.TRUE.equals(solver.isUnsatCached(symbFormula))
+              || Boolean.TRUE.equals(solver.isUnsatCached(f));
       if (unsatisfiable) {
         // block is infeasible
         logger.log(
@@ -477,20 +480,24 @@ public final class PredicateAbstractionManager {
       }
     }
 
-    if (abstractionType == AbstractionType.ELIMINATION) {
-      stats.quantifierEliminationTime.start();
-      try {
-        BooleanFormula eliminationResult = fmgr.uninstantiate(fmgr.eliminateDeadVariables(f, ssa));
-        abs = rmgr.makeAnd(abs, amgr.convertFormulaToRegion(eliminationResult));
-      } finally {
-        stats.quantifierEliminationTime.stop();
-      }
-    } else if (abstractionType == AbstractionType.CARTESIAN_BY_WEAKENING) {
-      abs = rmgr.makeAnd(abs, buildCartesianAbstractionUsingWeakening(f, ssa, remainingPredicates));
+    abs =
+        switch (abstractionType) {
+          case ELIMINATION -> {
+            stats.quantifierEliminationTime.start();
+            try {
+              BooleanFormula eliminationResult =
+                  fmgr.uninstantiate(fmgr.eliminateDeadVariables(f, ssa));
+              yield rmgr.makeAnd(abs, amgr.convertFormulaToRegion(eliminationResult));
+            } finally {
+              stats.quantifierEliminationTime.stop();
+            }
+          }
+          case CARTESIAN_BY_WEAKENING ->
+              rmgr.makeAnd(
+                  abs, buildCartesianAbstractionUsingWeakening(f, ssa, remainingPredicates));
 
-    } else {
-      abs = rmgr.makeAnd(abs, computeAbstraction(f, remainingPredicates, instantiator));
-    }
+          default -> rmgr.makeAnd(abs, computeAbstraction(f, remainingPredicates, instantiator));
+        };
 
     AbstractionFormula result = makeAbstractionFormula(abs, ssa, pathFormula);
 
@@ -540,7 +547,7 @@ public final class PredicateAbstractionManager {
       return bfmgr.makeTrue();
     }
 
-    if (unsatisfiabilityCache.contains(pF)) {
+    if (unsatisfiabilityCache.contains(pF) || Boolean.TRUE.equals(solver.isUnsatCached(pF))) {
       stats.numCallsAbstractionCached.incrementAndGet();
       return bfmgr.makeFalse();
     }
@@ -678,8 +685,8 @@ public final class PredicateAbstractionManager {
    * Extract all relevant predicates (with respect to a given formula) from a given set of
    * predicates.
    *
-   * <p>Currently the check is syntactically, i.e., a predicate is relevant if it refers to at least
-   * one variable that also occurs in f.
+   * <p>Currently, the check is syntactically, i.e., a predicate is relevant if it refers to at
+   * least one variable that also occurs in f.
    *
    * <p>A predicate that is just "false" or "true" is also filtered out.
    *
@@ -823,30 +830,38 @@ public final class PredicateAbstractionManager {
       final Collection<AbstractionPredicate> remainingPredicates,
       final Function<BooleanFormula, BooleanFormula> instantiator)
       throws SolverException, InterruptedException {
-    Region abs = rmgr.makeTrue();
 
-    try (ProverEnvironment thmProver =
-        solver.newProverEnvironment(ProverOptions.GENERATE_ALL_SAT)) {
-      thmProver.push(f);
+    if (remainingPredicates.isEmpty()) {
+      // Without predicates, we only need a SAT check (precision was just {false}).
+      // We can use the caching Solver.isUnsat() method.
+      stats.numSatCheckAbstractions.incrementAndGet();
 
-      if (remainingPredicates.isEmpty()) {
-        stats.numSatCheckAbstractions.incrementAndGet();
+      stats.abstractionSolveTime.start();
+      try {
+        return solver.isUnsat(f) ? rmgr.makeFalse() : rmgr.makeTrue();
+      } finally {
+        stats.abstractionSolveTime.stop();
+      }
 
-        stats.abstractionSolveTime.start();
-        boolean feasibility;
-        try {
-          feasibility = !thmProver.isUnsat();
-        } finally {
-          stats.abstractionSolveTime.stop();
-        }
+    } else {
+      Region abs = rmgr.makeTrue();
 
-        if (!feasibility) {
-          abs = rmgr.makeFalse();
-        }
+      // If there is just one predicate, cartesian abstraction is the same as boolean,
+      // but can avoid GENERATE_ALL_SAT.
+      AbstractionType thisAbstraction =
+          remainingPredicates.size() == 1 ? AbstractionType.CARTESIAN : abstractionType;
 
-      } else {
-        if (abstractionType != AbstractionType.BOOLEAN) {
-          // First do cartesian abstraction if desired
+      // If we only do cartesian abstraction, we do not need the prover option.
+      ProverOptions[] proverOptions =
+          thisAbstraction == AbstractionType.CARTESIAN
+              ? new ProverOptions[] {}
+              : new ProverOptions[] {ProverOptions.GENERATE_ALL_SAT};
+
+      try (ProverEnvironment thmProver = solver.newProverEnvironment(proverOptions)) {
+        thmProver.push(f);
+
+        if (thisAbstraction != AbstractionType.BOOLEAN) {
+          // First do cartesian abstraction if desired (CARTESIAN or COMBINED)
           stats.cartesianAbstractionTime.start();
           try {
             abs =
@@ -858,7 +873,7 @@ public final class PredicateAbstractionManager {
           }
         }
 
-        if (abstractionType != AbstractionType.CARTESIAN && !remainingPredicates.isEmpty()) {
+        if (thisAbstraction != AbstractionType.CARTESIAN && !remainingPredicates.isEmpty()) {
           // Last do boolean abstraction if desired and necessary
           stats.numBooleanAbsPredicates.addAndGet(remainingPredicates.size());
           stats.booleanAbstractionTime.start();
@@ -875,8 +890,8 @@ public final class PredicateAbstractionManager {
           // remainingPredicates is now empty.
         }
       }
+      return abs;
     }
-    return abs;
   }
 
   /**
@@ -888,7 +903,7 @@ public final class PredicateAbstractionManager {
    * @param pPredicates The set of predicates. Each predicate that is handled will be removed from
    *     the set.
    * @param instantiator A function that will be applied to instantiate each abstraction predicate.
-   * @return A over-approximation of f.
+   * @return An over-approximation of f.
    */
   private Region computeCartesianAbstraction(
       final BooleanFormula f,
@@ -906,7 +921,7 @@ public final class PredicateAbstractionManager {
       return rmgr.makeFalse();
     }
 
-    if (!warnedOfCartesianAbstraction && !fmgr.isPurelyConjunctive(f)) {
+    if (!warnedOfCartesianAbstraction && pPredicates.size() > 1 && !fmgr.isPurelyConjunctive(f)) {
       logger.log(
           Level.WARNING,
           "Using cartesian abstraction when formulas contain disjunctions may be imprecise. "
@@ -1057,9 +1072,9 @@ public final class PredicateAbstractionManager {
    *
    * @param thmProver The solver to use with the input formula on the stack.
    * @param predicates The set of predicates. Each predicate that is handled will be removed from
-   *     the set (and Boolean abstraction handles all predicates so the set is empty afterwards!).
+   *     the set (and Boolean abstraction handles all predicates so the set is empty afterward!).
    * @param instantiator A function that will be applied to instantiate each abstraction predicate.
-   * @return A over-approximation of f.
+   * @return An over-approximation of f.
    */
   private Region computeBooleanAbstraction(
       final ProverEnvironment thmProver,
@@ -1246,7 +1261,7 @@ public final class PredicateAbstractionManager {
    *
    * @param f The formula to be converted to a region. Must NOT be instantiated!
    * @param blockFormula A path formula that is not used for the abstraction, but will be used as
-   *     the block formula in the resulting AbstractionFormula instance. Also it's SSAMap will be
+   *     the block formula in the resulting AbstractionFormula instance. Also, it's SSAMap will be
    *     used for instantiating the result.
    * @return An AbstractionFormula instance representing f with blockFormula as the block formula.
    */
@@ -1358,7 +1373,7 @@ public final class PredicateAbstractionManager {
    * be fixed either, because when using symbolic regions we do not know what are the predicates (a
    * predicate does not need to be an SMT atom, it can be larger).
    *
-   * <p>Thus better avoid using this method if possible.
+   * <p>Thus, better avoid using this method if possible.
    */
   public Set<AbstractionPredicate> extractPredicates(Region pRegion) {
     return amgr.extractPredicates(pRegion);

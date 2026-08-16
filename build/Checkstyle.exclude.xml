@@ -15,6 +15,7 @@ SPDX-License-Identifier: Apache-2.0
 <suppressions>
 
   <!-- The following packages are unmaintained -->
+  <suppress files="/cfa.parser.llvm/" checks=".*"/>
   <suppress files="/cpa/cfapath/" checks=".*"/>
   <suppress files="/cpa/chc/" checks=".*"/>
   <suppress files="/cpa/statistics/" checks=".*"/>

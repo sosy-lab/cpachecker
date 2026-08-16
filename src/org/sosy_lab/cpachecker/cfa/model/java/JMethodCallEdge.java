@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.model.java;
 
-import java.util.List;
+import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationExpression;
@@ -51,7 +51,7 @@ public final class JMethodCallEdge extends FunctionCallEdge {
   }
 
   @Override
-  public List<JExpression> getArguments() {
+  public ImmutableList<JExpression> getArguments() {
     return getFunctionCallExpression().getParameterExpressions();
   }
 

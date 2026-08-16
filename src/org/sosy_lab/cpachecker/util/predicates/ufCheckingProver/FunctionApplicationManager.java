@@ -284,7 +284,7 @@ public class FunctionApplicationManager {
 
           if (signed && !options.isSignedOverflowSafe()) {
             // According to C99-standard, signed integer overflow is not specified.
-            // Thus no evaluation is possible, every value is allowed.
+            // Thus, no evaluation is possible, every value is allowed.
             // As the SMT-solver has a satisfiable term with this value, just return NULL to ignore
             // the value.
             return null;

@@ -51,7 +51,7 @@ public class WitnessOptions {
 
   @Option(
       secure = true,
-      description = "Verification witness: Include an thread-identifier within the file?")
+      description = "Verification witness: Include a thread-identifier within the file?")
   private boolean exportThreadId = false;
 
   @Option(secure = true, description = "Some redundant transitions will be removed")

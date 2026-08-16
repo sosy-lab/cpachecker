@@ -165,7 +165,7 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
   }
 
   /**
-   * We assume that the root of a reached-set is a initial state at block-entry-location. Searching
+   * We assume that the root of a reached-set is an initial state at block-entry-location. Searching
    * backwards from an ARGstate should end in the root-state.
    *
    * <p>This method traverses the reached-set and might be costly. Please call only when needed.
@@ -181,7 +181,7 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
 
       // optimization to skip plain chains
       while (state.getParents().size() == 1) {
-        state = state.getParents().iterator().next();
+        state = state.getParents().getFirst();
       }
 
       // initial states in the reached-set have no predecessor
@@ -256,7 +256,7 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
       data.registerExpandedState(expandedState, expandedPrecision, reducedState, innerSubtree);
 
       if (useDynamicAdjustment && wrappedReducer.canBeUsedInCache(expandedState)) {
-        if (expandedState instanceof Targetable && ((Targetable) expandedState).isTarget()) {
+        if (expandedState instanceof Targetable targetable && targetable.isTarget()) {
           // In case of error location we should look at root state,
           // because the 'target' state is not a real exit of the block
           if (wrappedReducer.canBeUsedInCache(state)) {

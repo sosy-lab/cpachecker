@@ -145,8 +145,8 @@ public final class DelegatingARGBasedRefiner implements ARGBasedRefiner, Statist
         });
 
     for (ARGBasedRefiner refiner : refiners) {
-      if (refiner instanceof StatisticsProvider) {
-        ((StatisticsProvider) refiner).collectStatistics(pStatsCollection);
+      if (refiner instanceof StatisticsProvider statisticsProvider) {
+        statisticsProvider.collectStatistics(pStatsCollection);
       }
     }
   }

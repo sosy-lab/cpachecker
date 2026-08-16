@@ -79,7 +79,7 @@ class SMTHeapWithUninterpretedFunctionCalls implements SMTMultipleAssignmentHeap
   @Override
   public <E extends Formula> BooleanFormula makeIdentityPointerAssignment(
       String targetName, FormulaType<E> targetType, int oldIndex, int nwIndex) {
-    // the retainment assignments will be performed afterwards by AssignmentHandler
+    // the retainment assignments will be performed afterward by AssignmentHandler
     return formulaManager.getBooleanFormulaManager().makeTrue();
   }
 }

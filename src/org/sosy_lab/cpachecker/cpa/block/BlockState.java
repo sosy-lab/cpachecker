@@ -9,9 +9,10 @@
 package org.sosy_lab.cpachecker.cpa.block;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -24,7 +25,9 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -42,21 +45,46 @@ public class BlockState
   private final CFANode node;
   private final BlockStateType type;
   private final BlockNode blockNode;
-  private Optional<AbstractState> errorCondition;
+  private final ImmutableList<String> history;
+  private List<? extends AbstractState> violationConditions;
+  private final SegmentedPaths witness;
+  private boolean topSummaryFromNonTrivialState;
 
   public BlockState(
       CFANode pNode,
       BlockNode pTargetNode,
       BlockStateType pType,
-      Optional<AbstractState> pErrorCondition) {
+      List<? extends AbstractState> pViolationConditions,
+      List<String> pHistory,
+      SegmentedPaths pWitness,
+      boolean pTopSummaryFromNonTrivialState) {
     node = pNode;
     type = pType;
     blockNode = pTargetNode;
-    errorCondition = pErrorCondition;
+    violationConditions = ImmutableList.copyOf(pViolationConditions);
+    history = ImmutableList.copyOf(pHistory);
+    witness = pWitness;
+    topSummaryFromNonTrivialState = pTopSummaryFromNonTrivialState;
   }
 
-  public void setViolationCondition(AbstractState pErrorCondition) {
-    errorCondition = Optional.of(pErrorCondition);
+  public void setTopSummaryFromNonTrivialState(boolean pStemsFromTopState) {
+    topSummaryFromNonTrivialState = pStemsFromTopState;
+  }
+
+  public SegmentedPaths getWitness() {
+    return witness;
+  }
+
+  public boolean hasNonTrivialSummaryForEachPredecessor() {
+    return topSummaryFromNonTrivialState;
+  }
+
+  public ImmutableList<String> getHistory() {
+    return history;
+  }
+
+  public void setViolationConditions(List<? extends AbstractState> pViolationConditions) {
+    violationConditions = ImmutableList.copyOf(pViolationConditions);
   }
 
   public BlockNode getBlockNode() {
@@ -78,7 +106,7 @@ public class BlockState
 
   @Override
   public @Nullable Object getPartitionKey() {
-    return this;
+    return blockNode;
   }
 
   @Override
@@ -95,20 +123,26 @@ public class BlockState
         : ImmutableSet.of();
   }
 
-  public Optional<AbstractState> getErrorCondition() {
-    return errorCondition;
+  public List<? extends @NonNull AbstractState> getViolationConditions() {
+    return violationConditions;
   }
 
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
+    final BooleanFormulaManagerView bfmgr = manager.getBooleanFormulaManager();
+
     if (isTarget()) {
-      FluentIterable<BooleanFormula> approximations =
-          AbstractStates.asIterable(errorCondition.orElseThrow())
-              .filter(ViolationConditionReportingState.class)
-              .transform(s -> s.getViolationCondition(manager));
-      return manager.getBooleanFormulaManager().and(approximations.toList());
+      ImmutableList.Builder<BooleanFormula> combined = ImmutableList.builder();
+      for (AbstractState violationCondition : violationConditions) {
+        FluentIterable<BooleanFormula> approximations =
+            AbstractStates.asIterable(violationCondition)
+                .filter(ViolationConditionReportingState.class)
+                .transform(s -> s.getViolationCondition(manager));
+        combined.add(bfmgr.and(approximations.toList()));
+      }
+      return bfmgr.or(combined.build());
     }
-    return manager.getBooleanFormulaManager().makeTrue();
+    return bfmgr.makeTrue();
   }
 
   @Override
@@ -120,7 +154,10 @@ public class BlockState
   // error condition intentionally left out as it is mutable
   @Override
   public boolean equals(Object pO) {
-    return pO instanceof BlockState that && Objects.equals(node, that.node) && type == that.type;
+    return pO instanceof BlockState that
+        && Objects.equals(node, that.node)
+        && type == that.type
+        && blockNode == that.getBlockNode();
   }
 
   @Override
@@ -130,6 +167,6 @@ public class BlockState
 
   @Override
   public boolean isTarget() {
-    return errorCondition.isPresent() && node.equals(blockNode.getViolationConditionLocation());
+    return !violationConditions.isEmpty() && node.equals(blockNode.getViolationConditionLocation());
   }
 }

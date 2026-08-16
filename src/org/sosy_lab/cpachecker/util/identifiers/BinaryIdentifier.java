@@ -91,9 +91,9 @@ public final class BinaryIdentifier implements AbstractIdentifier {
     // FIXME cf. #1110
     if (pO instanceof SingleIdentifier) {
       return -1;
-    } else if (pO instanceof BinaryIdentifier) {
-      int result = id1.compareTo(((BinaryIdentifier) pO).id1);
-      return (result != 0 ? result : id2.compareTo(((BinaryIdentifier) pO).id2));
+    } else if (pO instanceof BinaryIdentifier other) {
+      int result = id1.compareTo(other.id1);
+      return (result != 0 ? result : id2.compareTo(other.id2));
     } else {
       return 1;
     }

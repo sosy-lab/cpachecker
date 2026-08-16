@@ -88,7 +88,7 @@ IF NOT [%1]==[] (
       REM if option is already quoted, we do not need to restore it
       SET "OPTIONS=%OPTIONS% %1 %2"
     ) ELSE (
-      REM equal sign is a separator in Batch commandline arguments, lets restore it
+      REM equal sign is a separator in Batch commandline arguments, let's restore it
       SET "OPTIONS=%OPTIONS% %1 %2^=%3"
       SHIFT
     )
@@ -98,7 +98,7 @@ IF NOT [%1]==[] (
       REM if option is already quoted, we do not need to restore it
       SET "OPTIONS=%OPTIONS% %1 %2"
     ) ELSE (
-      REM equal sign is a separator in Batch commandline arguments, lets restore it
+      REM equal sign is a separator in Batch commandline arguments, let's restore it
       SET "OPTIONS=%OPTIONS% %1 %2^=%3"
       SHIFT
     )
@@ -184,6 +184,7 @@ REM PerfDisableSharedMem avoids hsperfdata in /tmp (disable it to connect easily
     -cp "%CLASSPATH%" ^
     -XX:+PerfDisableSharedMem ^
     -Djava.awt.headless=true ^
+    --enable-native-access=ALL-UNNAMED ^
     %JAVA_GC% ^
     %JAVA_VM_ARGUMENTS% ^
     -Xss%JAVA_STACK_SIZE% ^
