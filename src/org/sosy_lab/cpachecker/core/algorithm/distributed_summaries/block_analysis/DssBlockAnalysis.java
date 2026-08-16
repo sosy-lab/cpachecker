@@ -12,12 +12,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import java.util.Collection;
 import java.util.List;
@@ -26,6 +28,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.logging.Level;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.common.ShutdownManager;
@@ -53,6 +56,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DistributedCallstackCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
@@ -374,6 +378,77 @@ public final class DssBlockAnalysis {
       }
     }
     return covered;
+  }
+
+  /**
+   * Removes duplicates from the given states, i.e., the returned list contains exactly one
+   * representative of every class of states that are equal according to {@link
+   * CoverageOperator#areStatesEqual}.
+   *
+   * @param pStates The states to deduplicate.
+   * @return The first state of every class of equal states, in the order of {@code pStates}.
+   */
+  ImmutableList<AbstractState> deduplicateStates(Iterable<@NonNull AbstractState> pStates)
+      throws CPAException, InterruptedException {
+    return deduplicate(pStates, s -> s);
+  }
+
+  /**
+   * Removes duplicates from the given states and precisions, i.e., the returned list contains
+   * exactly one representative of every class of {@link StateAndPrecision} whose states are equal
+   * according to {@link CoverageOperator#areStatesEqual}.
+   *
+   * <p>Only the states decide whether two entries are duplicates. The precision of a discarded
+   * entry is lost, so the caller has to combine the precisions beforehand (see {@link
+   * #combinePrecisions(Precision, Collection)}) if all of them have to be kept.
+   *
+   * @param pStatesAndPrecisions The states and precisions to deduplicate.
+   * @return The first entry of every class of equal states, in the order of {@code
+   *     pStatesAndPrecisions}.
+   */
+  ImmutableList<StateAndPrecision> deduplicateStatesAndPrecisions(
+      Iterable<@NonNull StateAndPrecision> pStatesAndPrecisions)
+      throws CPAException, InterruptedException {
+    return deduplicate(pStatesAndPrecisions, StateAndPrecision::state);
+  }
+
+  /**
+   * Removes all elements whose state is equal to the state of an earlier element, according to
+   * {@link CoverageOperator#areStatesEqual}.
+   *
+   * <p>Equal states are at the same program point and, thus, have the same program-point hash. The
+   * elements are therefore grouped by that hash first, and only elements within the same group are
+   * compared with the (potentially expensive) coverage operator.
+   *
+   * @param pElements The elements to deduplicate.
+   * @param pStateOf Extracts the state that identifies an element.
+   * @return The first element of every class of equal states, in the order of {@code pElements}.
+   */
+  private <T> ImmutableList<T> deduplicate(
+      Iterable<@NonNull T> pElements, Function<T, AbstractState> pStateOf)
+      throws CPAException, InterruptedException {
+    CoverageOperator coverage = dcpa.getCoverageOperator();
+    ListMultimap<Integer, AbstractState> representativesPerProgramPoint =
+        ArrayListMultimap.create();
+    ImmutableList.Builder<T> deduplicated = ImmutableList.builder();
+    for (T element : pElements) {
+      AbstractState state = pStateOf.apply(element);
+      List<AbstractState> representatives =
+          representativesPerProgramPoint.get(dcpa.computeProgramPointHash(state));
+      boolean isDuplicate = false;
+      for (AbstractState representative : representatives) {
+        if (state == representative || coverage.areStatesEqual(state, representative)) {
+          isDuplicate = true;
+          break;
+        }
+      }
+      if (!isDuplicate) {
+        // ArrayListMultimap#get returns a view that writes through to the multimap.
+        representatives.add(state);
+        deduplicated.add(element);
+      }
+    }
+    return deduplicated.build();
   }
 
   /** Whether every state in {@code pStates} is covered by some state in {@code pCandidates}. */

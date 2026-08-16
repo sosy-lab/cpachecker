@@ -103,7 +103,7 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
         return processing;
       }
 
-      preconditions.removeStatesWithIgnoreCallstackFrom(pReceived.getSenderId());
+      preconditions.removeStatesWithIgnoreCallstackIfMorePrecise(pReceived.getSenderId(), received);
 
       currentPrecisionOfAnalysis = analysis.combinePrecisions(currentPrecisionOfAnalysis, received);
 
@@ -236,6 +236,7 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
           finalViolations);
     }
 
-    return new AnalysisResult(finalSummaries, ImmutableSet.of());
+    return new AnalysisResult(
+        analysis.deduplicateStatesAndPrecisions(finalSummaries), ImmutableSet.of());
   }
 }

@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Map.Entry;
 import java.util.Set;
+import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DistributedCallstackCPA;
@@ -117,7 +118,23 @@ public class BlockToProgramLocationMap {
         Multimaps.index(pStateAndPrecisions, sap -> dcpa.computeProgramPointHash(sap.state())));
   }
 
-  public void removeStatesWithIgnoreCallstackFrom(String pKey) {
+  public void removeStatesWithIgnoreCallstackIfMorePrecise(
+      String pKey, ImmutableList<@NonNull StateAndPrecision> pReceived) {
+    if (!pReceived.isEmpty()
+        && AbstractStates.extractStateByType(pReceived.getFirst().state(), CallstackState.class)
+            == null) {
+      // if callstack is not configured, ignore this function
+      return;
+    }
+    if (pReceived.stream()
+        .anyMatch(
+            sap ->
+                DistributedCallstackCPA.allowsAllTransfers(
+                    AbstractStates.extractStateByType(sap.state(), CallstackState.class)))) {
+      // if the old and the new have ignored callstack,
+      // keep everything as is for the coverage check.
+      return;
+    }
     ImmutableSet.Builder<Integer> toRemove = ImmutableSet.builder();
     for (Entry<Integer, StateAndPrecision> entry : entriesPerKey.get(pKey).entries()) {
       if (DistributedCallstackCPA.allowsAllTransfers(
