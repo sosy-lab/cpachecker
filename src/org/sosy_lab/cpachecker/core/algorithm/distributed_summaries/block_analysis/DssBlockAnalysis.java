@@ -294,7 +294,8 @@ public final class DssBlockAnalysis {
     return workerStats;
   }
 
-  AbstractState makeTopState(CFANode pLocation) throws InterruptedException {
+  /** The most general state at the given location, i.e., the one that constrains nothing. */
+  private AbstractState makeTopState(CFANode pLocation) throws InterruptedException {
     return dcpa.getInitialState(pLocation, StateSpacePartition.getDefaultPartition());
   }
 
@@ -512,6 +513,19 @@ public final class DssBlockAnalysis {
     return ImmutableList.of(
         messageFactory.createDssPostConditionMessage(
             block.getId(), status, serialize(ImmutableList.copyOf(pSummaries))));
+  }
+
+  /**
+   * Reports that the end of this block is unreachable, so successors must not be entered through
+   * it.
+   *
+   * <p>Successors recognize this from a flag on the message rather than from the states it carries,
+   * which keeps a genuine top postcondition (see {@link #makeTopState}) distinguishable from an
+   * unreachable block end.
+   */
+  Collection<DssMessage> reportUnreachableBlockEnd() {
+    return ImmutableList.of(
+        messageFactory.createDssUnreachableBlockEndMessage(block.getId(), status));
   }
 
   /**
