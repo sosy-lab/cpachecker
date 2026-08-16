@@ -381,11 +381,21 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
                 if "vcloud-resultFilesCount" in values:
                     expected_count = int(values["vcloud-resultFilesCount"])
 
+                    # "cloudBenchmarkOutput-<timestamp>" is benchcloud's internal
+                    # stdout/stderr capture file for the whole submission. The
+                    # worker deliberately keeps it out of the result zip
+                    # (see FinishingRunState.java in benchcloud), so it must be
+                    # excluded here too or it always shows up as "missing".
+                    if "vcloud-resultFileNames" in values:
+                        expected_files = {
+                            f
+                            for f in values["vcloud-resultFileNames"].split(",")
+                            if not f.startswith("cloudBenchmarkOutput-")
+                        }
+                        expected_count = len(expected_files)
+
                     if expected_count != actual_count:
                         if "vcloud-resultFileNames" in values:
-                            expected_files = set(
-                                values["vcloud-resultFileNames"].split(",")
-                            )
                             actual_files = actual_result_files
                             missing_files = expected_files - actual_files
                             logging.warning(
