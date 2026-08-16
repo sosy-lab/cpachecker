@@ -52,7 +52,7 @@ public class BlockToProgramLocationMap {
     unreachablePredecessors.add(pKey);
   }
 
-  public void unmarkUnreachable(String pKey) {
+  public void markReachable(String pKey) {
     assert entriesPerKey.containsKey(pKey);
     unreachablePredecessors.remove(pKey);
   }

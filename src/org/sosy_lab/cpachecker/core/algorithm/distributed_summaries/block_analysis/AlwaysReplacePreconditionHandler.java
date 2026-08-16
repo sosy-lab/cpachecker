@@ -92,7 +92,7 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
       preconditions.clearKey(pReceived.getSenderId());
       return DssMessageProcessing.proceed();
     }
-    preconditions.unmarkUnreachable(pReceived.getSenderId());
+    preconditions.markReachable(pReceived.getSenderId());
     ImmutableListMultimap<Integer, @NonNull StateAndPrecision> hashToState =
         Multimaps.index(received, sap -> analysis.getDcpa().computeProgramPointHash(sap.state()));
     DssSingleWorkerStatistics stats = analysis.statistics();
