@@ -396,24 +396,45 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     CFANode node1 = CFANode.newDummyCFANode();
     CFANode node2 = CFANode.newDummyCFANode();
 
-    pCFAEdge
-        .getPredecessor()
-        .addLeavingEdge(
+    // In case the predecessor is a loop-head, we need to copy all the entering edges
+    // to the dummy node, because they are relevant for instrumenting the end of the loop.
+    if (pCFAEdge.getPredecessor().isLoopStart()) {
+      node1.setLoopStart();
+      node2.setLoopStart();
+      for (CFAEdge enteringEdge : pCFAEdge.getPredecessor().getAllEnteringEdges()) {
+        node1.addEnteringEdge(
             new CStatementEdge(
-                operand1.toASTString(),
-                new CExpressionStatement(pCFAEdge.getFileLocation(), operand1),
-                pCFAEdge.getFileLocation(),
-                pCFAEdge.getPredecessor(),
-                node1));
-    pCFAEdge
-        .getPredecessor()
-        .addLeavingEdge(
+                "",
+                null,
+                enteringEdge.getFileLocation(),
+                enteringEdge.getPredecessor(),
+                node1)
+        );
+        node2.addEnteringEdge(
             new CStatementEdge(
-                operand2.toASTString(),
-                new CExpressionStatement(pCFAEdge.getFileLocation(), operand2),
-                pCFAEdge.getFileLocation(),
-                pCFAEdge.getPredecessor(),
-                node2));
+                "",
+                null,
+                enteringEdge.getFileLocation(),
+                enteringEdge.getPredecessor(),
+                node2)
+        );
+      }
+    }
+
+    node1.addLeavingEdge(
+        new CStatementEdge(
+            operand1.toASTString(),
+            new CExpressionStatement(pCFAEdge.getFileLocation(), operand1),
+            pCFAEdge.getFileLocation(),
+            node1,
+            pCFAEdge.getSuccessor()));
+    node2.addLeavingEdge(
+        new CStatementEdge(
+            operand2.toASTString(),
+            new CExpressionStatement(pCFAEdge.getFileLocation(), operand2),
+            pCFAEdge.getFileLocation(),
+            node2,
+            pCFAEdge.getSuccessor()));
 
     pDecomposedMap.put(node1, condition);
     pDecomposedMap.put(node2, condition);
