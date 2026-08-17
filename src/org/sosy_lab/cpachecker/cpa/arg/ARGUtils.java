@@ -74,8 +74,8 @@ import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathPosition;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.GraphUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.graph.GraphUtils;
 
 /** Helper class with collection of ARG related utility methods. */
 public class ARGUtils {
@@ -522,15 +522,11 @@ public class ARGUtils {
           ARGState trueChild = null;
           ARGState falseChild = null;
 
-          Iterable<CFANode> locs = AbstractStates.extractLocations(currentElement);
-          checkArgument(
-              !Iterables.any(
-                  locs,
-                  loc -> !loc.getLeavingEdges().allMatch(Predicates.instanceOf(AssumeEdge.class))),
-              "ARG branches where there is no AssumeEdge!");
-
           for (ARGState currentChild : childrenInArg) {
             CFAEdge currentEdge = currentElement.getEdgeToChild(currentChild);
+            checkArgument(
+                currentEdge instanceof AssumeEdge,
+                "ARG branches with edge that is not an AssumeEdge!");
             if (((AssumeEdge) currentEdge).getTruthAssumption()) {
               trueEdge = (AssumeEdge) currentEdge;
               trueChild = currentChild;
@@ -1331,7 +1327,7 @@ public class ARGUtils {
    * @param states the set of target states to collect path to
    * @return A collection of all possible ARG paths from the root(s) of the ARG to the targets.
    */
-  public static Collection<ARGPath> collectAllArgPaths(Set<@NonNull ARGState> states) {
+  public static Collection<ARGPath> collectAllArgPaths(Iterable<@NonNull ARGState> states) {
     ImmutableList.Builder<ARGPath> builder = ImmutableList.builder();
     for (ARGState state : states) {
       builder.addAll(allArgPathsFromState(state));

@@ -879,7 +879,8 @@ public class CoreComponentsFactory {
                 logger,
                 cfa,
                 ShutdownManager.createWithParent(shutdownNotifier),
-                specification);
+                specification,
+                cpa);
       }
       if (useFaultLocalizationWithCoverage) {
         algorithm = new FaultLocalizationWithCoverage(algorithm, shutdownNotifier, logger, config);

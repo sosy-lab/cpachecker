@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssFactory.TypeAndLocationCache;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 
 public class DssFactoryTest {
@@ -33,8 +34,9 @@ public class DssFactoryTest {
     assertThat(originalCFA.nodes()).containsNoneIn(shiftedCFA.nodes());
 
     BiMap<Integer, CFANode> cfaNodeIdMapWithOriginalCFA =
-        DssFactory.createCfaNodeIdMap(originalCFA);
-    BiMap<Integer, CFANode> cfaNodeIdMapWithShiftedCFA = DssFactory.createCfaNodeIdMap(shiftedCFA);
+        TypeAndLocationCache.getOrCreateLocationMapping(originalCFA);
+    BiMap<Integer, CFANode> cfaNodeIdMapWithShiftedCFA =
+        TypeAndLocationCache.getOrCreateLocationMapping(shiftedCFA);
 
     assertThat(cfaNodeIdMapWithOriginalCFA.keySet()).isEqualTo(cfaNodeIdMapWithShiftedCFA.keySet());
   }

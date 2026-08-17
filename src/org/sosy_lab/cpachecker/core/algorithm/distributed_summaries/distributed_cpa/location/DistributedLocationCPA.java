@@ -13,10 +13,11 @@ import com.google.common.collect.BiMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineSingletonPrecisionOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.EqualityCombineOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.EqualityCombinePreconditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -32,6 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.location.LocationTransferRelationBackwards;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class DistributedLocationCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
@@ -40,10 +42,11 @@ public class DistributedLocationCPA implements ForwardingDistributedConfigurable
   private final SerializeOperator serializeOperator;
   private final DeserializeOperator deserializeOperator;
   private final CoverageOperator coverageOperator;
-  private final CombineOperator combineOperator;
+  private final CombinePreconditionsOperator combinePreconditionsOperator;
   private final ProceedOperator proceedOperator;
   private final ViolationConditionOperator violationConditionOperator;
   private final CombinePrecisionOperator combinePrecisionOperator;
+  private final CombineViolationConditionsOperator combineViolationConditionsOperator;
 
   private final LocationCPA locationCPA;
   private final BlockNode node;
@@ -55,7 +58,8 @@ public class DistributedLocationCPA implements ForwardingDistributedConfigurable
     deserializePrecisionOperator = new NoPrecisionDeserializeOperator();
     proceedOperator = ProceedOperator.always();
     coverageOperator = new LocationStateCoverageOperator();
-    combineOperator = new EqualityCombineOperator(coverageOperator, getAbstractStateClass());
+    combinePreconditionsOperator =
+        new EqualityCombinePreconditionsOperator(coverageOperator, getAbstractStateClass());
     serializeOperator = new SerializeLocationStateOperator(pNodes.inverse());
     deserializeOperator = new DeserializeLocationState(locationCPA.getStateFactory(), pNodes);
     violationConditionOperator =
@@ -63,6 +67,7 @@ public class DistributedLocationCPA implements ForwardingDistributedConfigurable
             new LocationTransferRelationBackwards(locationCPA.getStateFactory()), locationCPA);
     combinePrecisionOperator = new CombineSingletonPrecisionOperator();
     node = pNode;
+    combineViolationConditionsOperator = new LocationStateCombineViolationConditionOperator();
   }
 
   @Override
@@ -86,6 +91,11 @@ public class DistributedLocationCPA implements ForwardingDistributedConfigurable
   }
 
   @Override
+  public CombineViolationConditionsOperator getCombineViolationConditionsOperator() {
+    return combineViolationConditionsOperator;
+  }
+
+  @Override
   public CombinePrecisionOperator getCombinePrecisionOperator() {
     return combinePrecisionOperator;
   }
@@ -106,8 +116,8 @@ public class DistributedLocationCPA implements ForwardingDistributedConfigurable
   }
 
   @Override
-  public CombineOperator getCombineOperator() {
-    return combineOperator;
+  public CombinePreconditionsOperator getCombineOperator() {
+    return combinePreconditionsOperator;
   }
 
   @Override
@@ -137,5 +147,13 @@ public class DistributedLocationCPA implements ForwardingDistributedConfigurable
         "Expected LocationState, but got %s",
         pAbstractState.getClass().getSimpleName());
     return pAbstractState;
+  }
+
+  @Override
+  public int computeProgramPointHash(AbstractState pAbstractState) {
+    Preconditions.checkArgument(doesOperateOn(pAbstractState.getClass()));
+    CFANode cfaNode = AbstractStates.extractLocation(pAbstractState);
+    Preconditions.checkNotNull(cfaNode, "LocationState should always have a location");
+    return cfaNode.getNodeNumber();
   }
 }

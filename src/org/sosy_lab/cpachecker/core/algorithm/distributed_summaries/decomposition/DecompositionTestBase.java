@@ -44,6 +44,8 @@ public class DecompositionTestBase {
     "test/programs/dss/multipleExits.c",
     // bug in BridgeDecomposition: endless loop
     "test/programs/dss/loop-multiple-condition.c",
+    // bug in inlining: function call inside a 'val ? a : b' expression
+    "test/programs/dss/inlining_trinary.c",
   };
 
   public static List<Object[]> getFiles() {

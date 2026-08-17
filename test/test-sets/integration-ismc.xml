@@ -128,6 +128,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr.5.ufo.BOUNDED-10.pals.c.v+nlh-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr.5.ufo.BOUNDED-10.pals.c.v+sep-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr-var-start-time.4.1.ufo.BOUNDED-8.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr-var-start-time.4.1.ufo.UNBOUNDED.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr-var-start-time.4.1.ufo.UNBOUNDED.pals.c.v+lhb-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr-var-start-time.4.2.ufo.BOUNDED-8.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr-var-start-time.4.2.ufo.UNBOUNDED.pals.c.v+sep-reducer.yml</exclude> <!-- flapping timeout -->

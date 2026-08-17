@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
@@ -21,6 +23,8 @@ public class DssThreadMonitor extends Thread {
   private final DssConnection connection;
   private final DssMessageFactory messageFactory;
 
+  public static final Set<String> active = ConcurrentHashMap.newKeySet();
+
   public DssThreadMonitor(
       List<Thread> pThreadsToMonitor,
       DssMessageFactory pMessageFactory,
@@ -29,6 +33,14 @@ public class DssThreadMonitor extends Thread {
     threadsToMonitor = pThreadsToMonitor;
     connection = pConnection;
     messageFactory = pMessageFactory;
+  }
+
+  public static void add(String id) {
+    active.add(id);
+  }
+
+  public static void remove(String id) {
+    active.remove(id);
   }
 
   @Override
@@ -41,7 +53,7 @@ public class DssThreadMonitor extends Thread {
                       t.getState() == Thread.State.WAITING
                           || t.getState() == Thread.State.TIMED_WAITING);
 
-      if (allWaiting) {
+      if (allWaiting && connection.getBroadcaster().isEmpty() && active.isEmpty()) {
         connection
             .getBroadcaster()
             .broadcastToAll(messageFactory.createDssResultMessage(THREAD_NAME, Result.TRUE));
@@ -49,7 +61,7 @@ public class DssThreadMonitor extends Thread {
       }
 
       try {
-        Thread.sleep(1);
+        Thread.sleep(10);
       } catch (InterruptedException e) {
         connection
             .getBroadcaster()

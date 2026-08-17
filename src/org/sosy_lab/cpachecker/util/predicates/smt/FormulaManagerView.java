@@ -1559,41 +1559,51 @@ public class FormulaManagerView {
           }
         };
 
-    return booleanFormulaManager.visit(
+    final AtomicBoolean isPurelyConjunctive = new AtomicBoolean(true);
+    booleanFormulaManager.visitRecursively(
         t,
         new DefaultBooleanFormulaVisitor<>() {
 
-          @Override
-          public Boolean visitDefault() {
-            return false;
+          private TraversalProcess markAsNonConjunctive() {
+            isPurelyConjunctive.set(false);
+            return TraversalProcess.ABORT;
           }
 
           @Override
-          public Boolean visitConstant(boolean constantValue) {
-            return true;
+          protected TraversalProcess visitDefault() {
+            return markAsNonConjunctive();
           }
 
           @Override
-          public Boolean visitAtom(BooleanFormula atom, FunctionDeclaration<BooleanFormula> decl) {
-            return !containsIfThenElse(atom);
+          public TraversalProcess visitConstant(boolean pValue) {
+            return TraversalProcess.SKIP;
           }
 
           @Override
-          public Boolean visitNot(BooleanFormula operand) {
-            // Return false unless the operand is atomic.
-            return booleanFormulaManager.visit(operand, isAtomicVisitor);
-          }
-
-          @Override
-          public Boolean visitAnd(List<BooleanFormula> operands) {
-            for (BooleanFormula operand : operands) {
-              if (!booleanFormulaManager.visit(operand, this)) {
-                return false;
-              }
+          public TraversalProcess visitAtom(
+              BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> pDecl) {
+            if (containsIfThenElse(pAtom)) {
+              return markAsNonConjunctive();
             }
-            return true;
+            return TraversalProcess.SKIP;
+          }
+
+          @Override
+          public TraversalProcess visitNot(BooleanFormula pOperand) {
+            // Fine if operand is atomic.
+            if (booleanFormulaManager.visit(pOperand, isAtomicVisitor)) {
+              return TraversalProcess.SKIP;
+            }
+            return markAsNonConjunctive();
+          }
+
+          @Override
+          public TraversalProcess visitAnd(List<BooleanFormula> pOperands) {
+            return TraversalProcess.CONTINUE; // recurse deeper
           }
         });
+
+    return isPurelyConjunctive.get();
   }
 
   private boolean containsIfThenElse(Formula f) {
