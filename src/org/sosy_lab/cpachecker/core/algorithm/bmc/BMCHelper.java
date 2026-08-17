@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.LoopIterationReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
+import org.sosy_lab.cpachecker.core.reachedset.DeltaTrackingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -218,6 +219,9 @@ public final class BMCHelper {
                 + " ReachedSetAdjustingCPA to avoid this problem.");
         break;
       }
+    }
+    if (pReachedSet instanceof DeltaTrackingReachedSet dtrs) {
+      dtrs.clearDelta();
     }
     if (pReachedSet.isEmpty()) {
       pReachedSet.add(
