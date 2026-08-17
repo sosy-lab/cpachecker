@@ -23,11 +23,11 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssWitnessArgStateCollector;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActors;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusAndResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssThreadMonitor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssWorkerBuilder;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -70,7 +70,10 @@ public class MultithreadingDssExecutor implements DssExecutor {
   }
 
   private DssActors createDssActors(
-      CFA cfa, BlockGraph blockGraph, DssAllWorkerStatistics allWorkerStatistics)
+      CFA cfa,
+      BlockGraph blockGraph,
+      DssWitnessArgStateCollector stateCollector,
+      DssAllWorkerStatistics allWorkerStatistics)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     ImmutableSet<BlockNode> blocks = blockGraph.getNodes();
     DssWorkerBuilder builder =
@@ -87,15 +90,18 @@ public class MultithreadingDssExecutor implements DssExecutor {
     if (options.isDebugModeEnabled()) {
       builder = builder.addVisualizationWorker(blockGraph, options);
     }
-    builder.addObserverWorker(OBSERVER_WORKER_ID, options);
+    builder.addObserverWorker(OBSERVER_WORKER_ID, blockGraph, options, stateCollector);
     return builder.build();
   }
 
   @Override
   public StatusAndResult execute(
-      CFA cfa, BlockGraph blockGraph, DssAllWorkerStatistics allWorkerStatistics)
+      CFA cfa,
+      BlockGraph blockGraph,
+      DssWitnessArgStateCollector stateCollector,
+      DssAllWorkerStatistics allWorkerStatistics)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    try (DssActors actors = createDssActors(cfa, blockGraph, allWorkerStatistics)) {
+    try (DssActors actors = createDssActors(cfa, blockGraph, stateCollector, allWorkerStatistics)) {
       DssObserverWorker observer = Iterables.getOnlyElement(actors.getObservers());
       Preconditions.checkState(
           observer.getId().equals(OBSERVER_WORKER_ID),
@@ -121,7 +127,7 @@ public class MultithreadingDssExecutor implements DssExecutor {
 
       StatusAndResult result = null;
       try {
-        // Blocks until RESULT or EXCEPTION arrives
+        // Blocks until all WITNESS(es) or EXCEPTION arrives
         result = observer.observe();
       } finally {
         for (Thread t : threads) {

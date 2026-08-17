@@ -4705,6 +4705,11 @@ distributedSummaries.worker.forwardConfiguration = "config/distributed-summary-s
 # the same name as the ID of the worker.
 distributedSummaries.worker.logDirectory = "block_analysis/logfiles"
 
+# The path to which the different versions of the correctness witnesses will
+# be exported. Each witness version replaces the string '%s' with its version
+# number.
+distributedSummaries.yamlProofWitness = "witness-dss-%s.yml"
+
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
 enabledanalysis.allowLazyRefinement = false
