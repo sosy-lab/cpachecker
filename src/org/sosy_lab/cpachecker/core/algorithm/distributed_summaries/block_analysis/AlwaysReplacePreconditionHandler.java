@@ -19,6 +19,7 @@ import com.google.common.collect.Multimaps;
 import java.util.Collection;
 import java.util.Optional;
 import org.jspecify.annotations.NonNull;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssDebugUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -176,6 +177,15 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
     // nothing to do, the block is always explored from all known preconditions
   }
 
+  private String prettyPrint() {
+    return DssDebugUtils.prettyPrintPredicateAnalysisBlock(
+        analysis.getBlock(),
+        preconditions.asMultimapByKey(),
+        ((AlwaysReplaceViolationConditionHandler) analysis.getViolationConditionHandler())
+            .getConditions()
+            .asMultimapByKey());
+  }
+
   /**
    * A round whose block end is unreachable, i.e., that publishes no postcondition at all.
    *
@@ -213,7 +223,8 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
     Precision precision = currentPrecisionOfAnalysis;
     Collection<AbstractState> statesToProcess = preconditions.getStates();
     AbstractState lastState = null;
-    if (preconditions.isAnyPredecessorEmpty()) {
+    boolean isEmpty = preconditions.isAnyPredecessorTrulyEmpty() || preconditions.isEmpty();
+    if (isEmpty) {
       analysis.setIgnoreCallstack(true);
       lastState = analysis.makeStartState();
       statesToProcess = listAndElement(statesToProcess, lastState);
@@ -230,7 +241,7 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
                   : precision,
               analysis.getViolationConditionHandler().statesOf(Optional.empty()));
 
-      if (preconditions.isAnyPredecessorEmpty() && state == lastState) {
+      if (isEmpty && state == lastState) {
         if (!result.getAllViolations().isEmpty()) {
           extraViolations.addAll(
               analysis.pathsWithCondition(result.getViolationConditionViolations()));
@@ -247,27 +258,30 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
     }
 
     ImmutableSet<StateAndPrecision> finalSummaries = summaries.build();
+    ImmutableSet<ArgPathAndCondition> finalExtraViolations = extraViolations.build();
     ImmutableSet<ArgPathAndCondition> finalViolations = violations.build();
 
-    if (finalViolations.isEmpty() && finalSummaries.isEmpty()) {
+    if (finalExtraViolations.isEmpty() && finalViolations.isEmpty() && finalSummaries.isEmpty()) {
       // the exploration produced no state at the final location
-      return prepareUnreachableBlockEnd(extraViolations.build());
+      return prepareUnreachableBlockEnd(ImmutableSet.of());
     }
 
     if (!finalViolations.isEmpty()) {
       // summaries found alongside a violation are discarded: the violation has to be resolved first
       return prepareViolationConditions(
-          FluentIterable.concat(finalViolations, extraViolations.build()).toSet());
+          FluentIterable.concat(finalViolations, finalExtraViolations).toSet());
     }
 
     if (preconditions.isEmpty()
         && finalSummaries.stream()
             .allMatch(sap -> analysis.getDcpa().isMostGeneralBlockEntryState(sap.state()))) {
-      // the current set of violations conditions are not reachable from that block,
-      // even without a real precondition => no summary of this block is valid anymore
+      if (!finalExtraViolations.isEmpty()) {
+        return prepareViolationConditions(finalExtraViolations);
+      }
       return preparePostconditions(ImmutableSet.of());
     }
 
-    return new AnalysisResult(finalSummaries, ImmutableSet.of(), false);
+    return new AnalysisResult(
+        analysis.deduplicateStatesAndPrecisions(finalSummaries), finalExtraViolations, false);
   }
 }

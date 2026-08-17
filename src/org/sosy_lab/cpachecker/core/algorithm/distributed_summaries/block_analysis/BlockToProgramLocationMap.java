@@ -62,8 +62,9 @@ public class BlockToProgramLocationMap {
     return unreachablePredecessors.equals(entriesPerKey.keySet());
   }
 
-  public boolean isAnyPredecessorEmpty() {
-    return entriesPerKey.keySet().stream().anyMatch(this::isEmpty);
+  public boolean isAnyPredecessorTrulyEmpty() {
+    return entriesPerKey.keySet().stream()
+        .anyMatch(p -> isEmpty(p) && !unreachablePredecessors.contains(p));
   }
 
   public boolean isEmpty() {

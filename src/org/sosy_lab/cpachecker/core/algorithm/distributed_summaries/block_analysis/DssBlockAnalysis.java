@@ -672,7 +672,7 @@ public final class DssBlockAnalysis {
     return preconditions;
   }
 
-  BlockNode getBlock() {
+  public BlockNode getBlock() {
     return block;
   }
 
