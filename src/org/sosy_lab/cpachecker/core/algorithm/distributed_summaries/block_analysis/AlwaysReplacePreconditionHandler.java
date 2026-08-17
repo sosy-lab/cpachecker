@@ -189,7 +189,7 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
     if (analysis.getViolationConditionHandler().isEmpty()) {
       return new AnalysisResult(ImmutableList.of(), ImmutableSet.of());
     }
-
+    
     if (!isBackward && preconditions.isUnreachable()) {
       // every predecessor reported an unreachable block end, so this block cannot be entered
       return unreachableBlockEnd(ImmutableSet.of());
@@ -199,18 +199,18 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
     ImmutableSet.Builder<ArgPathAndCondition> violations = ImmutableSet.builder();
 
     Precision precision = currentPrecisionOfAnalysis;
-    Collection<AbstractState> receivedStates = preconditions.getStates();
+    Collection<AbstractState> statesToProcess = preconditions.getStates();
     boolean forceUnreachable = false;
-    if (receivedStates.isEmpty()) {
+    if (statesToProcess.isEmpty()) {
       analysis.setIgnoreCallstack(true);
-      receivedStates = ImmutableList.of(analysis.makeStartState());
+      statesToProcess = ImmutableList.of(analysis.makeStartState());
       precision = analysis.makeStartPrecision();
       // no predecessor has provided a precondition yet, so the block end is not known to be
       // reachable, no matter what the speculative exploration from the start state finds
       forceUnreachable = !isBackward;
     }
 
-    for (AbstractState state : receivedStates) {
+    for (AbstractState state : statesToProcess) {
       DssBlockAnalysisResult result =
           analysis.runBlockAnalysis(
               analysis.getDcpa().reset(state),
@@ -220,7 +220,7 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
       if (!result.getAllViolations().isEmpty()) {
         violations.addAll(analysis.pathsWithCondition(result.getViolationConditionViolations()));
         violations.addAll(analysis.pathsFromOrigin(result.getTargetStates()));
-      } else if (!receivedStates.isEmpty() || analysis.getBlock().isRoot()) {
+      } else if (!statesToProcess.isEmpty() || analysis.getBlock().isRoot()) {
         summaries.addAll(analysis.summariesOf(result));
       }
     }
@@ -240,10 +240,10 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
           : new AnalysisResult(ImmutableSet.of(), finalViolations);
     }
 
-    if (receivedStates.isEmpty()
+    if (preconditions.isEmpty()
         && finalSummaries.stream()
             .allMatch(sap -> analysis.getDcpa().isMostGeneralBlockEntryState(sap.state()))) {
-      return new AnalysisResult(ImmutableSet.of(), ImmutableSet.of());
+      return unreachableBlockEnd(ImmutableSet.of());
     }
 
     return new AnalysisResult(
