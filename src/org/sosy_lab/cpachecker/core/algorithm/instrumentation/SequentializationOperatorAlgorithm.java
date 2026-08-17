@@ -223,16 +223,19 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
                           .getOperation()
                           .insertVariablesInsideOperation(
                               matchedVariables, transition.getPattern());
-              if (newEdge.contains("__CPAchecker_TMP") || edge.getPredecessor().isLoopStart()) {
-                if (instrumentationProperty == InstrumentationProperty.NOOVERFLOW) {
+              if (instrumentationProperty == InstrumentationProperty.NOOVERFLOW) {
+                if (newEdge.contains("__CPAchecker_TMP")) {
                   throw new CPAException(
                       "Matching for line with function calls or operations inside the loop"
                           + " condition is unsupported.");
                 }
-              } else {
-                if (!newEdges.contains(newEdge)) {
-                  newEdges.add(newEdge);
+                if (edge.getPredecessor().isLoopStart()) {
+                  CFANode loopHead = edge.getPredecessor();
+                  addEdgesAtTheLoopEnd(loopHead, transition, matchedVariables, newEdges);
                 }
+              }
+              if (!newEdges.contains(newEdge)) {
+                newEdges.add(newEdge);
               }
             }
           }
@@ -393,20 +396,24 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     CFANode node1 = CFANode.newDummyCFANode();
     CFANode node2 = CFANode.newDummyCFANode();
 
-    node1.addLeavingEdge(
-        new CStatementEdge(
-            operand1.toASTString(),
-            new CExpressionStatement(pCFAEdge.getFileLocation(), operand1),
-            pCFAEdge.getFileLocation(),
-            node1,
-            pCFAEdge.getSuccessor()));
-    node2.addLeavingEdge(
-        new CStatementEdge(
-            operand2.toASTString(),
-            new CExpressionStatement(pCFAEdge.getFileLocation(), operand2),
-            pCFAEdge.getFileLocation(),
-            node2,
-            pCFAEdge.getSuccessor()));
+    pCFAEdge
+        .getPredecessor()
+        .addLeavingEdge(
+            new CStatementEdge(
+                operand1.toASTString(),
+                new CExpressionStatement(pCFAEdge.getFileLocation(), operand1),
+                pCFAEdge.getFileLocation(),
+                pCFAEdge.getPredecessor(),
+                node1));
+    pCFAEdge
+        .getPredecessor()
+        .addLeavingEdge(
+            new CStatementEdge(
+                operand2.toASTString(),
+                new CExpressionStatement(pCFAEdge.getFileLocation(), operand2),
+                pCFAEdge.getFileLocation(),
+                pCFAEdge.getPredecessor(),
+                node2));
 
     pDecomposedMap.put(node1, condition);
     pDecomposedMap.put(node2, condition);
@@ -414,6 +421,39 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     pWaitlist.add(Pair.of(node1, pTransition.getSource()));
     pWaitlist.add(Pair.of(node2, pTransition.getSource()));
     return true;
+  }
+
+  private void addEdgesAtTheLoopEnd(
+      CFANode loopHead,
+      InstrumentationTransition transition,
+      ImmutableList<String> matchedVariables,
+      List<String> newEdges) {
+    for (CFAEdge incomingEdgeToTheLoop : loopHead.getAllEnteringEdges()) {
+      String newEdge2;
+      if (!incomingEdgeToTheLoop.getFileLocation().isRealLocation()) {
+        newEdge2 =
+            (Integer.parseInt(
+                        computeLineNumberBasedOnTransition(
+                            transition,
+                            incomingEdgeToTheLoop.getPredecessor().getEnteringEdge(0),
+                            matchedVariables))
+                    + 1)
+                + "|||"
+                + transition
+                    .getOperation()
+                    .insertVariablesInsideOperation(matchedVariables, transition.getPattern());
+      } else {
+        newEdge2 =
+            computeLineNumberBasedOnTransition(transition, incomingEdgeToTheLoop, matchedVariables)
+                + "|||"
+                + transition
+                    .getOperation()
+                    .insertVariablesInsideOperation(matchedVariables, transition.getPattern());
+      }
+      if (!newEdges.contains(newEdge2)) {
+        newEdges.add(newEdge2);
+      }
+    }
   }
 
   private ImmutableMap<String, String> getVariablesWithTypesFromFullCFA() {
