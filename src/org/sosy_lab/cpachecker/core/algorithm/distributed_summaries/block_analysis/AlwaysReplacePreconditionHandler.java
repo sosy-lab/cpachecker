@@ -189,7 +189,7 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
     if (analysis.getViolationConditionHandler().isEmpty()) {
       return new AnalysisResult(ImmutableList.of(), ImmutableSet.of());
     }
-    
+
     if (!isBackward && preconditions.isUnreachable()) {
       // every predecessor reported an unreachable block end, so this block cannot be entered
       return unreachableBlockEnd(ImmutableSet.of());
@@ -243,6 +243,8 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
     if (preconditions.isEmpty()
         && finalSummaries.stream()
             .allMatch(sap -> analysis.getDcpa().isMostGeneralBlockEntryState(sap.state()))) {
+      // the current set of violations conditions are not reachable from that block,
+      // even without a real precondition => no summary of this block is valid anymore
       return unreachableBlockEnd(ImmutableSet.of());
     }
 
