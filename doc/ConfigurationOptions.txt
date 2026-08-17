@@ -4667,7 +4667,7 @@ distributedSummaries.decomposition.largestHorizontalMerge = HorizontalMergeDecom
 # Whether to reset the precision for each run of the analysis or to keep the
 # transmitted one. The latter has disadvantages as unnecessary variables
 # might be tracked due to a too precise precision.
-distributedSummaries.doResetPrecisionsForEveryRun = false
+distributedSummaries.doResetPrecisionsForEveryRun = true
 
 # Decomposition type to use for the block analysis.
 distributedSummaries.executorType = DSS

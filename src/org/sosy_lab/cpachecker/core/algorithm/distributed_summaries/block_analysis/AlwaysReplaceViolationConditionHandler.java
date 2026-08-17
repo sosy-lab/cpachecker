@@ -8,8 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
@@ -17,6 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 
 /**
  * Keeps only the violation conditions of the latest message per sending block: an update discards
@@ -43,7 +47,21 @@ final class AlwaysReplaceViolationConditionHandler implements DssViolationCondit
     ImmutableList<@NonNull StateAndPrecision> received = analysis.deserialize(pReceived);
     DssSingleWorkerStatistics stats = analysis.statistics();
     stats.getStoreViolationConditionStatesTimer().start();
+
     try {
+      Set<SegmentedPaths> knownWitnesses =
+          transformedImmutableSetCopy(conditions.getStates(), analysis::witnessOf);
+
+      int equal = 0;
+      for (StateAndPrecision condition : received) {
+        if (knownWitnesses.contains(analysis.witnessOf(condition.state()))) {
+          equal++;
+        }
+      }
+
+      if (equal == received.size()) {
+        return DssMessageProcessing.stop();
+      }
       String sender = pReceived.getSenderId();
       conditions.overwriteStatesForKey(sender, received);
       return DssMessageProcessing.proceed();
