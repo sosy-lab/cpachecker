@@ -138,6 +138,7 @@ public class DssCallstackTransferRelation extends CallstackTransferRelation {
     if (fitsCallstackAtBlockEnd(callstackAtBlockEnd, state, pPrecision)) {
       return ImmutableList.of(state);
     }
+    blockState.getPredecessor().addHinderedByCallstack(violationCondition);
     return ImmutableList.of();
   }
 

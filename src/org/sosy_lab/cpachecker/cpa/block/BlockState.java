@@ -15,6 +15,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -42,16 +43,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public class BlockState
     implements AbstractQueryableState, Partitionable, Targetable, FormulaReportingState, Graphable {
 
-  @Override
-  public String toDOTLabel() {
-    return "";
-  }
-
-  @Override
-  public boolean shouldBeHighlighted() {
-    return type == BlockStateType.FINAL;
-  }
-
   public enum BlockStateType {
     INITIAL,
     MID,
@@ -69,6 +60,8 @@ public class BlockState
   private final SegmentedPaths witness;
 
   private final Optional<SegmentedPaths> witnessCheckPathState;
+
+  private final transient Set<AbstractState> hinderedByCallstack;
 
   public BlockState(
       BlockState pPredecessor,
@@ -90,6 +83,7 @@ public class BlockState
     history = pHistory;
     witness = pWitness;
     witnessCheckPathState = Optional.ofNullable(pWitnessCheckPathState);
+    hinderedByCallstack = new LinkedHashSet<>();
   }
 
   public BlockState(
@@ -101,6 +95,14 @@ public class BlockState
       BlockGraphPath pHistory,
       SegmentedPaths pWitness) {
     this(pPredecessor, pNode, pTargetNode, pType, pViolationConditions, pHistory, pWitness, null);
+  }
+
+  public Set<AbstractState> getHinderedByCallstack() {
+    return ImmutableSet.copyOf(hinderedByCallstack);
+  }
+
+  public void addHinderedByCallstack(AbstractState state) {
+    hinderedByCallstack.add(state);
   }
 
   public void addHistory(BlockNode pBlockNode) {
@@ -211,5 +213,15 @@ public class BlockState
     return !violationConditions.isEmpty()
         && node.equals(blockNode.getViolationConditionLocation())
         && blockNode.getViolationConditionLocation() != blockNode.getFinalLocation();
+  }
+
+  @Override
+  public String toDOTLabel() {
+    return "";
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return type == BlockStateType.FINAL;
   }
 }

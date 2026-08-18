@@ -20,6 +20,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import org.jspecify.annotations.NonNull;
@@ -107,8 +108,13 @@ public class BlockToProgramLocationMap {
         .put(dcpa.computeProgramPointHash(stateAndPrecision.state()), stateAndPrecision);
   }
 
-  public Collection<StateAndPrecision> getStateForKeyAndId(String pKey, int pHash) {
+  public Collection<StateAndPrecision> getStatesAndPrecisionsForKeyAndId(String pKey, int pHash) {
     return entriesPerKey.get(pKey).get(pHash);
+  }
+
+  public Collection<AbstractState> getStatesForKeyAndId(String pKey, int pHash) {
+    return transformedImmutableListCopy(
+        getStatesAndPrecisionsForKeyAndId(pKey, pHash), StateAndPrecision::state);
   }
 
   public Collection<Integer> getIdsForKey(String pKey) {
@@ -129,6 +135,21 @@ public class BlockToProgramLocationMap {
     overwriteStatesForKey(
         pKey,
         Multimaps.index(pStateAndPrecisions, sap -> dcpa.computeProgramPointHash(sap.state())));
+  }
+
+  public Set<StateAndPrecision> getStatesAndPrecisionsPerLocation(int location) {
+    return FluentIterable.from(entriesPerKey.values())
+        .transformAndConcat(m -> m.get(location))
+        .toSet();
+  }
+
+  public List<AbstractState> getStatesPerLocation(int location) {
+    return transformedImmutableListCopy(
+        getStatesAndPrecisionsPerLocation(location), StateAndPrecision::state);
+  }
+
+  public Set<Integer> getAllLocationHashes() {
+    return FluentIterable.from(entriesPerKey.values()).transformAndConcat(Multimap::keySet).toSet();
   }
 
   public void removeStatesWithIgnoreCallstackIfMorePrecise(
