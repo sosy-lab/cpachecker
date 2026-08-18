@@ -316,17 +316,15 @@ def task_definition_files_from_set(path):
 def task_definition_files(root):
     """Yield task-definition files below or represented by ``root``.
 
-    ``root`` must exist and be a directory, a ``.yml`` task definition, or a
-    ``.set`` task set. The caller checks existence first. Unsupported file types
-    and invalid set entries are added to the global ``errors`` set.
+    ``root`` must have been checked with :func:`validate_args` and thus be a
+    directory, a ``.yml`` task definition, or a ``.set`` task set. Invalid set
+    entries are added to the global ``errors`` set.
     """
     if root.is_file():
         if root.suffix == ".yml":
             yield root
-        elif root.suffix == ".set":
-            yield from task_definition_files_from_set(root)
         else:
-            report_error(root, "not a task-definition .yml or set file")
+            yield from task_definition_files_from_set(root)
         return
 
     for path in root.rglob("*.yml"):
@@ -348,20 +346,34 @@ def parse_args():
     return parser.parse_args()
 
 
+def validate_args(args):
+    """Validate arguments that do not require inspecting benchmark contents.
+
+    ``args`` must be the namespace returned by :func:`parse_args`, with
+    ``roots`` containing paths. Each root must exist and be a directory, a
+    ``.yml`` task definition, or a ``.set`` task set. Validation failures are
+    added to the global ``errors`` set.
+    """
+    for root in args.roots:
+        if not root.exists():
+            report_error(root, "does not exist")
+        elif root.is_file() and root.suffix not in {".yml", ".set"}:
+            report_error(root, "not a task-definition .yml or set file")
+
+
 def main():
     """Validate all benchmarks selected on the command line.
 
     Return zero if no error was found and one otherwise.
     """
-    args = parse_args()
     errors.clear()
+    args = parse_args()
+    validate_args(args)
 
-    for root in args.roots:
-        if not root.exists():
-            report_error(root, "does not exist")
-            continue
-        for benchmark_definition in task_definition_files(root):
-            check_benchmark(benchmark_definition)
+    if not errors:
+        for root in args.roots:
+            for benchmark_definition in task_definition_files(root):
+                check_benchmark(benchmark_definition)
 
     for error in sorted(
         errors,
