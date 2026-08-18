@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.callstack;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -102,11 +101,6 @@ public class DssCallstackState extends CallstackState {
    */
   public boolean allowsAllTransfers() {
     return allowAllTransfers;
-  }
-
-  /** Returns all traversed edges in the order in which they were traversed. */
-  public ImmutableList<CFAEdge> getTraversedEdges() {
-    return ImmutableList.copyOf(reversedTraversedEdges.reversed());
   }
 
   /**

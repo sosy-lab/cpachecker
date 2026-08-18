@@ -20,6 +20,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -33,7 +35,9 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  *
  * <p>The transfer relation records every traversed edge in the successor state. Depending on {@link
  * DssCallstackState#allowsAllTransfers()}, it either applies the standard callstack semantics of
- * {@link CallstackTransferRelation} or it applies every edge without inspecting the callstack.
+ * {@link CallstackTransferRelation} or it applies every edge without inspecting the callstack. Even
+ * a state that allows all transfers uses the standard semantics for edges that enter or leave a
+ * function, though (see {@link #changesCallstack(CFAEdge)}).
  *
  * <p>The information that the callstack of a block analysis is missing is only available at the end
  * of a block: the violation condition that the successor block sent contains the callstack at the
@@ -59,7 +63,7 @@ public class DssCallstackTransferRelation extends CallstackTransferRelation {
       return super.getAbstractSuccessorsForEdge(pElement, pPrecision, pEdge);
     }
 
-    if (state.allowsAllTransfers()) {
+    if (state.allowsAllTransfers() && !changesCallstack(pEdge)) {
       // the callstack must not prune any path, but calls to unsupported functions still abort
       if (pEdge instanceof AStatementEdge statementEdge) {
         checkForUnsupportedFunctionCall(statementEdge);
@@ -76,6 +80,10 @@ public class DssCallstackTransferRelation extends CallstackTransferRelation {
       successors.add(state.withWrappedStateAndTraversedEdge((CallstackState) successor, pEdge));
     }
     return successors.build();
+  }
+
+  private static boolean changesCallstack(CFAEdge pEdge) {
+    return pEdge instanceof FunctionCallEdge || pEdge instanceof FunctionReturnEdge;
   }
 
   @Override
