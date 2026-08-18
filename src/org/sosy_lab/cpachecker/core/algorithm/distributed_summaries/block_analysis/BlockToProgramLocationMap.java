@@ -71,6 +71,11 @@ public class BlockToProgramLocationMap {
     unreachablePredecessors.remove(pKey);
   }
 
+  /** Whether the given neighbor reported its block end to be unreachable. */
+  public boolean isMarkedUnreachable(String pKey) {
+    return unreachablePredecessors.contains(pKey);
+  }
+
   public boolean isUnreachable() {
     return unreachablePredecessors.equals(entriesPerKey.keySet());
   }

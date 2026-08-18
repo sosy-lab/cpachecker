@@ -111,12 +111,16 @@ public class DssObserverWorker extends DssWorker {
     return witnessMessagesReceived == expectedWitnessMessages;
   }
 
-  public StatusAndResult observe() throws CPAException {
+  public StatusAndResult observe() throws CPAException, InterruptedException {
     super.run();
     if (errorMessage.isPresent()) {
       throw new CPAException(errorMessage.orElseThrow());
     }
     if (finalResult.isEmpty()) {
+      if (wasInterrupted()) {
+        // e.g. the time limit elapsed while the analysis was still running
+        throw new InterruptedException("Interrupted before the analysis computed a result");
+      }
       throw new CPAException("Analysis finished but no result is present...");
     }
     ResultWithWitnessInformation result =

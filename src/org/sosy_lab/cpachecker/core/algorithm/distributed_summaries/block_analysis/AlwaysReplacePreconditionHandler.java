@@ -84,11 +84,19 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
   public DssMessageProcessing store(DssPostConditionMessage pReceived)
       throws InterruptedException, SolverException, CPAException {
     if (pReceived.indicatesUnreachableBlockEnd()) {
-      preconditions.markUnreachable(pReceived.getSenderId());
-      if (preconditions.isEmpty(pReceived.getSenderId()) && !preconditions.isUnreachable()) {
+      String sender = pReceived.getSenderId();
+      // Re-analysing on an update that changes nothing republishes the very same message. Around a
+      // cycle in the block graph that never terminates => stop.
+      boolean alreadyRecorded =
+          preconditions.isMarkedUnreachable(sender) && preconditions.isEmpty(sender);
+      preconditions.markUnreachable(sender);
+      if (alreadyRecorded) {
         return DssMessageProcessing.stop();
       }
-      preconditions.clearKey(pReceived.getSenderId());
+      if (preconditions.isEmpty(sender) && !preconditions.isUnreachable()) {
+        return DssMessageProcessing.stop();
+      }
+      preconditions.clearKey(sender);
       return DssMessageProcessing.proceed();
     }
     ImmutableList<@NonNull StateAndPrecision> received = analysis.deserialize(pReceived);
@@ -203,10 +211,10 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
     if (preconditions.isEmpty() || preconditions.isAnyPredecessorTrulyEmpty()) {
       // a predecessor that has not sent anything yet does not restrict the block entry, so explore
       // speculatively from the unconstrained start state to find violations early
-      AnalysisResult speculative =
+      AnalysisResult topExploration =
           exploreFrom(ImmutableSet.of(analysis.makeStartState(true)), violationConditions, true);
-      Preconditions.checkState(speculative.summaries().isEmpty());
-      rounds.add(speculative);
+      Preconditions.checkState(topExploration.summaries().isEmpty());
+      rounds.add(topExploration);
     }
     return merge(rounds.build());
   }
