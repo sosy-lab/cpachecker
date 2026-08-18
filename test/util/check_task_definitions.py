@@ -352,14 +352,12 @@ def main():
     """
     args = parse_args()
     errors.clear()
-    checked_files = 0
 
     for root in args.roots:
         if not root.exists():
             report_error(root, "does not exist")
             continue
         for task_definition in task_definition_files(root):
-            checked_files += 1
             check_yaml_file(task_definition)
 
     for error in sorted(
@@ -370,11 +368,8 @@ def main():
         if error.snippet is not None:
             print("  {}".format(error.snippet))
 
-    print(
-        "Checked {} YAML file(s), found {} error(s).".format(
-            checked_files, len(errors)
-        )
-    )
+    if not errors:
+        print("Task-definition validation successful.")
     return 1 if errors else 0
 
 
