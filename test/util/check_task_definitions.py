@@ -52,6 +52,9 @@ SUPPORTED_DATA_MODELS = {
 
 SUPPORTED_FORMAT_VERSIONS = {"1.0", "2.0", "2.1"}
 
+MEMSAFETY_PROPERTY_FILE = "valid-memsafety.prp"
+MEMSAFETY_SUBPROPERTIES = {"valid-deref", "valid-free", "valid-memtrack"}
+
 ADDITIONAL_FILE_KEYS = frozenset({"required_files"})
 
 
@@ -215,6 +218,27 @@ def check_data_model(path, language, data_model):
         )
 
 
+def check_memsafety_subproperty(path, property_file, expected_verdict, subproperty):
+    """Validate the sub-property of a MemSafety property definition.
+
+    ``path`` identifies the task definition for diagnostics. ``property_file``
+    must be a string path and ``expected_verdict`` and ``subproperty`` are the
+    optional values from the property definition. A false MemSafety verdict
+    must name one entry from ``MEMSAFETY_SUBPROPERTIES``; true or absent verdicts
+    do not require a sub-property. Validation failures are added to ``errors``.
+    """
+    if Path(property_file).name != MEMSAFETY_PROPERTY_FILE:
+        return
+
+    if expected_verdict is False and (subproperty is None or subproperty == ""):
+        report_error(path, "false MemSafety property without subproperty")
+    elif isinstance(subproperty, str) and subproperty not in MEMSAFETY_SUBPROPERTIES:
+        report_error(
+            path,
+            "unsupported MemSafety subproperty '{}'".format(subproperty),
+        )
+
+
 def check_properties(path, content):
     """Validate the structure and referenced files of task properties.
 
@@ -269,6 +293,9 @@ def check_properties(path, content):
                 "property_file contains non-string entry {!r}".format(property_file),
             )
             continue
+
+        check_memsafety_subproperty(path, property_file, expected_verdict, subproperty)
+
         resolved = path.parent / property_file
         if not resolved.exists():
             report_error(
