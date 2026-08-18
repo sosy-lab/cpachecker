@@ -12,26 +12,17 @@ extern void __assert_fail(const char *, const char *, unsigned int,
 __attribute__((__noreturn__));
 
 void reach_error() {
-  __assert_fail("0", "simple_nondet_unsafe.c", 27, "reach_error");
+  __assert_fail("0", "simple_calculations_safe.c", 20, "reach_error");
 }
 
 extern int __VERIFIER_nondet_int();
 
 int main() {
-
   int y = __VERIFIER_nondet_int();
-
   if (y < 0) {
-    y = -y;
+    y = y * (-1);
   }
-
-  if (y > 100) {
-    y = 100;
-  }
-
-  int x = -y;
-
-  if (x * y <= 0) {
+  if (y < 0) {
     reach_error();
   }
   return 0;
