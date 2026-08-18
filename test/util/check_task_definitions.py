@@ -39,6 +39,12 @@ for wheel in glob.glob(str(CPACHECKER_DIR / "lib" / "python-benchmark" / "*.whl"
 import yaml
 
 
+DEFAULT_BENCHMARK_PATHS = (
+    CPACHECKER_DIR / "test" / "programs" / "smg2_tests" / "symbolic-execution",
+    CPACHECKER_DIR / "test" / "programs" / "java",
+    CPACHECKER_DIR / "test" / "programs" / "sv-lib",
+)
+
 LANGUAGE_FILE_ENDINGS = {
     "C": (".c", ".i"),
     "Java": (".java",),
@@ -430,11 +436,13 @@ def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "roots",
-        nargs="+",
+        nargs="*",
         type=Path,
+        default=DEFAULT_BENCHMARK_PATHS,
         help=(
             "Directories, task-definition .yml files, or .set files. "
-            "Relative paths are resolved from the current working directory."
+            "Relative paths are resolved from the current working directory. "
+            "If omitted, the configured default benchmark paths are checked."
         ),
     )
     return parser.parse_args()

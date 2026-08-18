@@ -102,6 +102,13 @@ python-unit-tests:
   script: "python3 -m unittest discover scripts"
 
 
+task-definition-checks:
+  extends: .check-without-dependencies
+  script:
+    - python3 -m unittest discover -s test/util -p "test_*.py"
+    - test/util/check_task_definitions.py
+
+
 javascript-build:
   extends: .check-without-dependencies
   image: ${CI_REGISTRY_IMAGE}/test:node
