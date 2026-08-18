@@ -194,12 +194,13 @@ def check_properties(path, content):
 
     ``path`` must be the task-definition path and is used as the base for
     relative property-file references. ``content`` must be the parsed task
-    mapping. An absent ``properties`` key is accepted, while a present value
-    must be a non-empty list of mappings with a string ``property_file``.
-    Validation failures are added to the global ``errors`` set.
+    mapping. ``properties`` must be a non-empty list of mappings with a string
+    ``property_file``; ``expected_verdict`` remains optional. Validation
+    failures are added to the global ``errors`` set.
     """
     properties = content.get("properties")
     if properties is None:
+        report_error(path, "missing properties")
         return
     if not properties:
         report_error(path, "empty properties")
