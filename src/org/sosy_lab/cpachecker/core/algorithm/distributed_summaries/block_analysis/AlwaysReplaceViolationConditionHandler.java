@@ -63,8 +63,7 @@ final class AlwaysReplaceViolationConditionHandler implements DssViolationCondit
         return DssMessageProcessing.stop();
       }
       String sender = pReceived.getSenderId();
-      conditions.clearKey(sender);
-      received.forEach(sap -> conditions.addStateForKey(sender, sap));
+      conditions.overwriteStatesForKey(sender, received);
       return DssMessageProcessing.proceed();
     } finally {
       stats.getStoreViolationConditionStatesTimer().stop();

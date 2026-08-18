@@ -19,7 +19,6 @@ import com.google.common.collect.Multimaps;
 import java.util.Collection;
 import java.util.Optional;
 import org.jspecify.annotations.NonNull;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssDebugUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -175,15 +174,6 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
   @Override
   public void violationConditionsChanged() {
     // nothing to do, the block is always explored from all known preconditions
-  }
-
-  private String prettyPrint() {
-    return DssDebugUtils.prettyPrintPredicateAnalysisBlock(
-        analysis.getBlock(),
-        preconditions.asMultimapByKey(),
-        ((AlwaysReplaceViolationConditionHandler) analysis.getViolationConditionHandler())
-            .getConditions()
-            .asMultimapByKey());
   }
 
   /**
