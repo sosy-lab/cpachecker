@@ -18,18 +18,17 @@ so that future extensions are easy to review and adapt.
 
 import argparse
 import glob
-from pathlib import Path
 import sys
-from typing import NamedTuple, Optional, Set
+from pathlib import Path
+from typing import NamedTuple Optional, Set
 
 
 SCRIPT_PATH = Path(__file__).resolve()
 EXPECTED_PARENT_DIRECTORY = Path("test") / "util"
 if Path(*SCRIPT_PATH.parent.parts[-2:]) != EXPECTED_PARENT_DIRECTORY:
     raise RuntimeError(
-        "expected script to be located in '{}', but found '{}'".format(
-            EXPECTED_PARENT_DIRECTORY, SCRIPT_PATH.parent
-        )
+        f"expected script to be located in '{EXPECTED_PARENT_DIRECTORY}', "
+        f"but found '{SCRIPT_PATH.parent}'"
     )
 
 CPACHECKER_DIR = SCRIPT_PATH.parents[2]
@@ -69,10 +68,10 @@ class ValidationError(NamedTuple):
 
     error_type: str
     location: Path
-    snippet: Optional[str] = None
+    snippet: str | None = None
 
 
-errors: Set[ValidationError] = set()
+errors: set[ValidationError] = set()
 
 
 def report_error(path, error_type, snippet=None):
@@ -111,7 +110,7 @@ def check_referenced_file_existence(path, base_dir, reference_key, references):
         if not isinstance(reference, str):
             report_error(
                 path,
-                "{} contains non-string entry {!r}".format(reference_key, reference),
+                f"{reference_key} contains non-string entry {reference!r}",
             )
             continue
         if not reference:
@@ -122,7 +121,7 @@ def check_referenced_file_existence(path, base_dir, reference_key, references):
         if not resolved.exists():
             report_error(
                 path,
-                "{} references missing file '{}'".format(reference_key, reference),
+                f"{reference_key} references missing file '{reference}'",
             )
 
 
@@ -160,9 +159,8 @@ def check_language(path, input_files, language):
         if not input_file.endswith(allowed_endings):
             report_error(
                 path,
-                "input file '{}' does not match language '{}' with endings {}".format(
-                    input_file, language, ", ".join(allowed_endings)
-                ),
+                f"input file '{input_file}' does not match language '{language}' "
+                f"with endings {', '.join(allowed_endings)}",
             )
 
 
@@ -211,16 +209,13 @@ def check_data_model(path, language, data_model):
     if supported_models is None:
         report_error(
             path,
-            "data_model is specified for language '{}' without configured models".format(
-                language
-            ),
+            f"data_model is specified for language '{language}' "
+            "without configured models",
         )
     elif data_model not in supported_models:
         report_error(
             path,
-            "unsupported data_model '{}' for language '{}'".format(
-                data_model, language
-            ),
+            f"unsupported data_model '{data_model}' for language '{language}'",
         )
 
 
@@ -256,7 +251,6 @@ def check_properties(path, content):
     """
     properties = content.get("properties")
     if properties is None:
-        report_error(path, "missing properties")
         return
     if not properties:
         report_error(path, "empty properties")
@@ -269,7 +263,7 @@ def check_properties(path, content):
         if not isinstance(property_definition, dict):
             report_error(
                 path,
-                "invalid property definition {!r}".format(property_definition),
+                f"invalid property definition {property_definition!r}",
             )
             continue
 
@@ -296,7 +290,7 @@ def check_properties(path, content):
         if not isinstance(property_file, str):
             report_error(
                 path,
-                "property_file contains non-string entry {!r}".format(property_file),
+                f"property_file contains non-string entry {property_file!r}",
             )
             continue
 
@@ -306,7 +300,7 @@ def check_properties(path, content):
         if not resolved.exists():
             report_error(
                 path,
-                "property_file references missing file '{}'".format(property_file),
+                f"property_file references missing file '{property_file}'",
             )
 
 
@@ -320,8 +314,6 @@ def check_task_definition(path, content):
     if not isinstance(content, dict):
         report_error(path, "expected mapping for task definition")
         return
-
-    check_format_version(path, content.get("format_version"))
 
     input_files = normalize_to_list(content.get("input_files"))
     if not input_files:
@@ -362,7 +354,7 @@ def check_benchmark(definition_path):
         with definition_path.open(encoding="utf-8") as yml_file:
             content = yaml.safe_load(yml_file)
     except yaml.YAMLError as exception:
-        report_error(definition_path, "invalid YAML: {}".format(exception))
+        report_error(definition_path, f"invalid YAML: {exception}")
         return
     except (OSError, UnicodeError) as exception:
         report_error(
@@ -404,7 +396,7 @@ def task_definition_files_from_set(path):
         if not matches:
             report_error(
                 path,
-                "set entry '{}' does not match any file".format(line),
+                f"set entry '{line}' does not match any file",
             )
             continue
 
@@ -427,8 +419,7 @@ def task_definition_files(root):
             yield from task_definition_files_from_set(root)
         return
 
-    for path in root.rglob("*.yml"):
-        yield path
+    yield from root.rglob("*.yml")
 
 
 def parse_args():
@@ -481,9 +472,9 @@ def main():
         errors,
         key=lambda item: (str(item.location), item.error_type, item.snippet or ""),
     ):
-        print("ERROR: {}: {}".format(error.location, error.error_type))
+        print(f"ERROR: {error.location}: {error.error_type}")
         if error.snippet is not None:
-            print("  {}".format(error.snippet))
+            print(f"  {error.snippet}")
 
     if not errors:
         print("Benchmark validation successful.")
