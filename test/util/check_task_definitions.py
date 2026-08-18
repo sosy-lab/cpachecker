@@ -16,11 +16,13 @@ or execute test programs. Keep all repository-specific policy below in one place
 so that future extensions are easy to review and adapt.
 """
 
+from __future__ import annotations
+
 import argparse
 import glob
 import sys
 from pathlib import Path
-from typing import NamedTuple Optional, Set
+from typing import NamedTuple
 
 SCRIPT_PATH = Path(__file__).resolve()
 EXPECTED_PARENT_DIRECTORY = Path("test") / "util"
@@ -35,7 +37,6 @@ for wheel in glob.glob(str(CPACHECKER_DIR / "lib" / "python-benchmark" / "*.whl"
     sys.path.insert(0, wheel)
 
 import yaml
-
 
 DEFAULT_BENCHMARK_PATHS = (
     CPACHECKER_DIR / "test" / "programs" / "smg2_tests" / "symbolic-execution",
@@ -113,7 +114,7 @@ def check_referenced_file_existence(path, base_dir, reference_key, references):
             )
             continue
         if not reference:
-            report_error(path, "{} contains empty file reference".format(reference_key))
+            report_error(path, f"{reference_key} contains empty file reference")
             continue
 
         resolved = base_dir / reference
@@ -138,13 +139,13 @@ def check_language(path, input_files, language):
     if not isinstance(language, str):
         report_error(
             path,
-            "programming language contains non-string entry {!r}".format(language),
+            f"programming language contains non-string entry {language!r}",
         )
         return
     if language not in LANGUAGE_FILE_ENDINGS:
         report_error(
             path,
-            "unsupported programming language '{}'".format(language),
+            f"unsupported programming language '{language}'",
         )
         return
 
@@ -175,12 +176,12 @@ def check_format_version(path, format_version):
     elif not isinstance(format_version, str):
         report_error(
             path,
-            "format_version contains non-string entry {!r}".format(format_version),
+            f"format_version contains non-string entry {format_version!r}",
         )
     elif format_version not in SUPPORTED_FORMAT_VERSIONS:
         report_error(
             path,
-            "unsupported format_version '{}'".format(format_version),
+            f"unsupported format_version '{format_version}'",
         )
 
 
@@ -198,7 +199,7 @@ def check_data_model(path, language, data_model):
     if not isinstance(data_model, str):
         report_error(
             path,
-            "data_model contains non-string entry {!r}".format(data_model),
+            f"data_model contains non-string entry {data_model!r}",
         )
         return
     if not isinstance(language, str):
@@ -235,7 +236,7 @@ def check_memsafety_subproperty(path, property_file, expected_verdict, subproper
     elif isinstance(subproperty, str) and subproperty not in MEMSAFETY_SUBPROPERTIES:
         report_error(
             path,
-            "unsupported MemSafety subproperty '{}'".format(subproperty),
+            f"unsupported MemSafety subproperty '{subproperty}'",
         )
 
 
@@ -250,6 +251,7 @@ def check_properties(path, content):
     """
     properties = content.get("properties")
     if properties is None:
+        report_error(path, "missing properties")
         return
     if not properties:
         report_error(path, "empty properties")
@@ -270,16 +272,14 @@ def check_properties(path, content):
         if expected_verdict is not None and not isinstance(expected_verdict, bool):
             report_error(
                 path,
-                "expected_verdict contains non-boolean entry {!r}".format(
-                    expected_verdict
-                ),
+                f"expected_verdict contains non-boolean entry {expected_verdict!r}",
             )
 
         subproperty = property_definition.get("subproperty")
         if subproperty is not None and not isinstance(subproperty, str):
             report_error(
                 path,
-                "subproperty contains non-string entry {!r}".format(subproperty),
+                f"subproperty contains non-string entry {subproperty!r}",
             )
 
         property_file = property_definition.get("property_file")
@@ -313,6 +313,8 @@ def check_task_definition(path, content):
     if not isinstance(content, dict):
         report_error(path, "expected mapping for task definition")
         return
+
+    check_format_version(path, content.get("format_version"))
 
     input_files = normalize_to_list(content.get("input_files"))
     if not input_files:
@@ -358,7 +360,7 @@ def check_benchmark(definition_path):
     except (OSError, UnicodeError) as exception:
         report_error(
             definition_path,
-            "could not read task definition: {}".format(exception),
+            f"could not read task definition: {exception}",
         )
         return
 
@@ -374,7 +376,7 @@ def read_set_file(path):
     try:
         return path.read_text(encoding="utf-8").splitlines()
     except (OSError, UnicodeError) as exception:
-        report_error(path, "could not read set file: {}".format(exception))
+        report_error(path, f"could not read set file: {exception}")
         return []
 
 
