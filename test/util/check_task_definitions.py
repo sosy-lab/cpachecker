@@ -255,20 +255,23 @@ def check_task_definition(path, content):
     check_properties(path, content)
 
 
-def check_yaml_file(path):
-    """Load and validate one task-definition YAML file.
+def check_benchmark(definition_path):
+    """Validate a benchmark described by one task-definition file.
 
-    ``path`` must refer to a readable YAML file. YAML syntax and task-validation
-    errors are added to the global ``errors`` set.
+    ``definition_path`` must refer to a readable task-definition YAML file. The
+    definition and the benchmark inputs referenced by it form one validation
+    unit. Checks of the definition are performed here already; checks that need
+    to inspect or compile the referenced programs can be added to this function.
+    Validation failures are added to the global ``errors`` set.
     """
     try:
-        with path.open(encoding="utf-8") as yml_file:
+        with definition_path.open(encoding="utf-8") as yml_file:
             content = yaml.safe_load(yml_file)
     except yaml.YAMLError as exception:
-        report_error(path, "invalid YAML: {}".format(exception))
+        report_error(definition_path, "invalid YAML: {}".format(exception))
         return
 
-    check_task_definition(path, content)
+    check_task_definition(definition_path, content)
 
 
 def read_set_file(path):
@@ -346,7 +349,7 @@ def parse_args():
 
 
 def main():
-    """Validate all task definitions selected on the command line.
+    """Validate all benchmarks selected on the command line.
 
     Return zero if no error was found and one otherwise.
     """
@@ -357,8 +360,8 @@ def main():
         if not root.exists():
             report_error(root, "does not exist")
             continue
-        for task_definition in task_definition_files(root):
-            check_yaml_file(task_definition)
+        for benchmark_definition in task_definition_files(root):
+            check_benchmark(benchmark_definition)
 
     for error in sorted(
         errors,
@@ -369,7 +372,7 @@ def main():
             print("  {}".format(error.snippet))
 
     if not errors:
-        print("Task-definition validation successful.")
+        print("Benchmark validation successful.")
     return 1 if errors else 0
 
 
