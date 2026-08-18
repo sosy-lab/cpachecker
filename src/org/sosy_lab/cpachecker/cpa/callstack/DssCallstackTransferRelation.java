@@ -35,9 +35,11 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  *
  * <p>The transfer relation records every traversed edge in the successor state. Depending on {@link
  * DssCallstackState#allowsAllTransfers()}, it either applies the standard callstack semantics of
- * {@link CallstackTransferRelation} or it applies every edge without inspecting the callstack. Even
- * a state that allows all transfers uses the standard semantics for edges that enter or leave a
- * function, though (see {@link #changesCallstack(CFAEdge)}).
+ * {@link CallstackTransferRelation} or it applies every edge without inspecting the callstack. A
+ * state that allows all transfers still tracks the functions that the block analysis enters itself,
+ * though: for those the call site is known, so the standard semantics may discard the return edges
+ * of all other call sites (see {@link #changesCallstack(CFAEdge)} and {@link
+ * #enteredFunctionItself(DssCallstackState)}).
  *
  * <p>The information that the callstack of a block analysis is missing is only available at the end
  * of a block: the violation condition that the successor block sent contains the callstack at the
@@ -63,12 +65,20 @@ public class DssCallstackTransferRelation extends CallstackTransferRelation {
       return super.getAbstractSuccessorsForEdge(pElement, pPrecision, pEdge);
     }
 
-    if (state.allowsAllTransfers() && !changesCallstack(pEdge)) {
-      // the callstack must not prune any path, but calls to unsupported functions still abort
-      if (pEdge instanceof AStatementEdge statementEdge) {
-        checkForUnsupportedFunctionCall(statementEdge);
+    if (state.allowsAllTransfers()) {
+      if (pEdge instanceof FunctionReturnEdge && !enteredFunctionItself(state)) {
+        return ImmutableList.of(
+            state.withWrappedStateAndTraversedEdge(
+                new CallstackState(
+                    null, pEdge.getSuccessor().getFunctionName(), state.getCallNode()),
+                pEdge));
       }
-      return ImmutableList.of(state.withTraversedEdge(pEdge));
+      if (!changesCallstack(pEdge)) {
+        if (pEdge instanceof AStatementEdge statementEdge) {
+          checkForUnsupportedFunctionCall(statementEdge);
+        }
+        return ImmutableList.of(state.withTraversedEdge(pEdge));
+      }
     }
 
     // the wrapped state, not this state, is given to the ordinary transfer relation:
@@ -84,6 +94,10 @@ public class DssCallstackTransferRelation extends CallstackTransferRelation {
 
   private static boolean changesCallstack(CFAEdge pEdge) {
     return pEdge instanceof FunctionCallEdge || pEdge instanceof FunctionReturnEdge;
+  }
+
+  private static boolean enteredFunctionItself(DssCallstackState pState) {
+    return pState.getWrappedState().getPreviousState() != null;
   }
 
   @Override

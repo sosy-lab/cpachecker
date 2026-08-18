@@ -111,6 +111,10 @@ public class BlockToProgramLocationMap {
     return entriesPerKey.get(pKey).get(pHash);
   }
 
+  public Collection<Integer> getIdsForKey(String pKey) {
+    return entriesPerKey.get(pKey).keySet();
+  }
+
   public void overwriteStatesForKey(
       String pKey, int pHash, Collection<StateAndPrecision> pStateAndPrecisions) {
     overwriteStatesForKey(
