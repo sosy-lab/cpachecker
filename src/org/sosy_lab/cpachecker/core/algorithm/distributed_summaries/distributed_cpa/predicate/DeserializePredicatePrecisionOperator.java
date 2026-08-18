@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.LocationInstance;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 /**
  * Operator to deserialize PredicatePrecisions from DssMessages. The operator deserializes the
@@ -42,16 +41,11 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
  */
 public class DeserializePredicatePrecisionOperator implements DeserializePrecisionOperator {
 
-  private final Solver solver;
-
   private final Function<Integer, CFANode> nodeMapping;
   private final AbstractionManager abstractionManager;
 
   public DeserializePredicatePrecisionOperator(
-      final AbstractionManager pAbstractionManager,
-      final Solver pSolver,
-      final Function<Integer, CFANode> pNodeMapping) {
-    solver = pSolver;
+      final AbstractionManager pAbstractionManager, final Function<Integer, CFANode> pNodeMapping) {
     nodeMapping = pNodeMapping;
     abstractionManager = pAbstractionManager;
   }
@@ -72,9 +66,7 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
                       Integer.parseInt(splitNodeNumberAndLocationInstance.getFirst())),
                   Integer.parseInt(splitNodeNumberAndLocationInstance.get(1)));
           for (String precision : Splitter.on(" , ").split(serializedPredicates)) {
-            locationInstances.put(
-                locationInstance,
-                abstractionManager.makePredicate(solver.getFormulaManager().parse(precision)));
+            locationInstances.put(locationInstance, abstractionManager.parsePredicate(precision));
           }
         });
     contentReader.popLevel();
@@ -92,7 +84,7 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
           for (String precision : Splitter.on(" , ").split(serializedPrecisions)) {
             localPredicates.put(
                 Objects.requireNonNull(nodeMapping.apply(Integer.parseInt(location))),
-                abstractionManager.makePredicate(solver.getFormulaManager().parse(precision)));
+                abstractionManager.parsePredicate(precision));
           }
         });
     contentReader.popLevel();
@@ -109,9 +101,7 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
     functionPredicatesMap.forEach(
         (function, serializedPredicates) -> {
           for (String predicate : Splitter.on(" , ").split(serializedPredicates)) {
-            functionPredicates.put(
-                function,
-                abstractionManager.makePredicate(solver.getFormulaManager().parse(predicate)));
+            functionPredicates.put(function, abstractionManager.parsePredicate(predicate));
           }
         });
     contentReader.popLevel();
@@ -123,7 +113,7 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
         contentReader.get(SerializePredicatePrecisionOperator.DSS_MESSAGE_GLOBAL_KEY);
     return transformedImmutableSetCopy(
         Splitter.on(" , ").splitToList(serializedPredicates),
-        predicate -> abstractionManager.makePredicate(solver.getFormulaManager().parse(predicate)));
+        predicate -> abstractionManager.parsePredicate(predicate));
   }
 
   @Override

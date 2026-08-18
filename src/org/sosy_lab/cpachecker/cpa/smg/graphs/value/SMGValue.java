@@ -17,7 +17,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
  * only know whether they are equal or not. The only exception is the value 0 that is used to
  * represent 0 in all possible types as well as the address of the {@link SMGNullObject}.
  */
-public interface SMGValue extends Comparable<SMGValue> {
+public sealed interface SMGValue extends Comparable<SMGValue>
+    permits SMGExplicitValue, SMGSymbolicValue {
 
   /**
    * For efficiency and performance we define an ordering on SMGValues. The ordering is as follows:

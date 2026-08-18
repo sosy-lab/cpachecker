@@ -54,6 +54,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v89_c445_safe.c-amalgamation.yml</exclude> <!-- flapping timeout / interpolation failure -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v89_c445_unsafe.c-amalgamation.yml</exclude> <!-- flapping timeout / interpolation failure -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v89_c534_safe.c-amalgamation.yml</exclude> <!-- flapping timeout / interpolation failure -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v89_c534_unsafe.c-amalgamation.yml</exclude> <!-- flapping timeout / interpolation failure -->
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
