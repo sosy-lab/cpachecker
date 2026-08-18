@@ -229,8 +229,8 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
                       "Matching for line with function calls or operations inside the loop"
                           + " condition is unsupported.");
                 }
-                if (edge.getPredecessor().isLoopStart()) {
-                  CFANode loopHead = edge.getPredecessor();
+                CFANode loopHead = getLoopHeadOfEdge(edge.getPredecessor(), edge);
+                if (loopHead.isLoopStart()) {
                   addEdgesAtTheLoopEnd(loopHead, transition, matchedVariables, newEdges);
                 }
               }
@@ -398,26 +398,17 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
 
     // In case the predecessor is a loop-head, we need to copy all the entering edges
     // to the dummy node, because they are relevant for instrumenting the end of the loop.
-    if (pCFAEdge.getPredecessor().isLoopStart()) {
+    CFANode possibleLoopHead = getLoopHeadOfEdge(pCFAEdge.getPredecessor(), pCFAEdge);
+    if (possibleLoopHead.isLoopStart()) {
       node1.setLoopStart();
       node2.setLoopStart();
-      for (CFAEdge enteringEdge : pCFAEdge.getPredecessor().getAllEnteringEdges()) {
+      for (CFAEdge enteringEdge : possibleLoopHead.getAllEnteringEdges()) {
         node1.addEnteringEdge(
             new CStatementEdge(
-                "",
-                null,
-                enteringEdge.getFileLocation(),
-                enteringEdge.getPredecessor(),
-                node1)
-        );
+                "", null, enteringEdge.getFileLocation(), enteringEdge.getPredecessor(), node1));
         node2.addEnteringEdge(
             new CStatementEdge(
-                "",
-                null,
-                enteringEdge.getFileLocation(),
-                enteringEdge.getPredecessor(),
-                node2)
-        );
+                "", null, enteringEdge.getFileLocation(), enteringEdge.getPredecessor(), node2));
       }
     }
 
@@ -492,6 +483,26 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       }
     }
     return builder.buildOrThrow();
+  }
+
+  // Some of the statements in the loop heads are decomposed into multiple edges in CFA.
+  // For example, a > b && b == a + 1 is divided into multiple edges.
+  // We want to find the initial node representing the loop to find out that it is a loop.
+  // This way, it is correct because TransVer formats the program to have all the statements
+  // on one line.
+  private CFANode getLoopHeadOfEdge(CFANode pCurrentNode, CFAEdge pCurrentEdge) {
+    while (true) {
+      if (pCurrentNode.isLoopStart() || pCurrentNode.getAllEnteringEdges().size() != 1) {
+        return pCurrentNode;
+      }
+      CFAEdge prevEdge = pCurrentNode.getEnteringEdge(0);
+      if (prevEdge.getFileLocation().getStartingLineNumber()
+          != pCurrentEdge.getFileLocation().getStartingLineNumber()) {
+        return pCurrentNode;
+      }
+      pCurrentEdge = prevEdge;
+      pCurrentNode = pCurrentEdge.getPredecessor();
+    }
   }
 
   /* Decomposes a CFAEdge with assignment statement. */
