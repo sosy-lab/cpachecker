@@ -44,11 +44,22 @@ ADDITIONAL_FILE_KEYS = frozenset({"required_files"})
 
 
 def report_error(error_count, path, message):
+    """Report one validation error and increment its shared counter.
+
+    ``error_count`` must be a mutable, non-empty sequence whose first element is
+    an integer. ``path`` is the file to which the diagnostic refers, and
+    ``message`` is a human-readable description of the error.
+    """
     print("ERROR: {}: {}".format(path, message))
     error_count[0] += 1
 
 
 def normalize_to_list(value):
+    """Return a list representation of an optional scalar-or-list YAML value.
+
+    ``None`` represents an absent value and becomes an empty list. Existing
+    lists are returned unchanged; every other value becomes a one-element list.
+    """
     if value is None:
         return []
     if isinstance(value, list):
@@ -59,7 +70,13 @@ def normalize_to_list(value):
 def check_referenced_file_existence(
     path, base_dir, reference_key, references, error_count
 ):
-    """Check that file references from a YAML key point to existing files."""
+    """Check that file references from a YAML key point to existing files.
+
+    ``path`` identifies the task definition for diagnostics, ``base_dir`` is
+    the directory against which references are resolved, and ``reference_key``
+    names the YAML key being checked. ``references`` may be ``None``, one value,
+    or a list. Errors are accumulated in the mutable counter ``error_count``.
+    """
     for reference in normalize_to_list(references):
         if not isinstance(reference, str):
             report_error(
@@ -79,6 +96,14 @@ def check_referenced_file_existence(
 
 
 def check_language(path, input_files, language, error_count):
+    """Check that a task language is supported and matches all input files.
+
+    ``path`` must be the task-definition path and is also used to resolve input
+    paths. ``input_files`` must be an iterable, normally normalized with
+    :func:`normalize_to_list`. ``language`` may be absent; otherwise it is
+    expected to name an entry in ``LANGUAGE_FILE_ENDINGS``. Errors are added to
+    the mutable counter ``error_count``.
+    """
     if language and language not in LANGUAGE_FILE_ENDINGS:
         report_error(
             error_count,
@@ -107,6 +132,13 @@ def check_language(path, input_files, language, error_count):
 
 
 def check_data_model(path, language, data_model, error_count):
+    """Check that an optional data model is supported for the task language.
+
+    ``path`` identifies the task definition for diagnostics. ``language`` and
+    ``data_model`` are the values from the task options and may be absent.
+    Supported language/model combinations come from ``SUPPORTED_DATA_MODELS``;
+    errors are added to the mutable counter ``error_count``.
+    """
     if not data_model:
         return
 
@@ -130,6 +162,14 @@ def check_data_model(path, language, data_model, error_count):
 
 
 def check_properties(path, content, error_count):
+    """Validate the structure and referenced files of task properties.
+
+    ``path`` must be the task-definition path and is used as the base for
+    relative property-file references. ``content`` must be the parsed task
+    mapping. An absent ``properties`` key is accepted, while a present value
+    must be a non-empty list of mappings with a string ``property_file``.
+    Errors are added to the mutable counter ``error_count``.
+    """
     properties = content.get("properties")
     if properties is None:
         return
@@ -169,6 +209,12 @@ def check_properties(path, content, error_count):
 
 
 def check_task_definition(path, content, error_count):
+    """Run all structural and semantic checks on one parsed task definition.
+
+    ``path`` must be the path of the YAML file. ``content`` is the value
+    returned by the YAML parser and is validated before it is treated as a
+    mapping. Errors are added to the mutable counter ``error_count``.
+    """
     if not isinstance(content, dict):
         report_error(error_count, path, "expected mapping for task definition")
         return
@@ -203,6 +249,11 @@ def check_task_definition(path, content, error_count):
 
 
 def check_yaml_file(path, error_count):
+    """Load and validate one task-definition YAML file.
+
+    ``path`` must refer to a readable YAML file. YAML syntax and task-validation
+    errors are reported through the mutable counter ``error_count``.
+    """
     try:
         with path.open(encoding="utf-8") as yml_file:
             content = yaml.safe_load(yml_file)
@@ -214,6 +265,11 @@ def check_yaml_file(path, error_count):
 
 
 def read_set_file(path, error_count):
+    """Read a task-set file and return its lines without newline characters.
+
+    ``path`` must refer to the set file to read. Read failures are reported via
+    the mutable counter ``error_count`` and result in an empty list.
+    """
     try:
         return path.read_text(encoding="utf-8").splitlines()
     except OSError as exception:
@@ -222,6 +278,13 @@ def read_set_file(path, error_count):
 
 
 def task_definition_files_from_set(path, error_count):
+    """Yield task-definition files selected by the entries of a set file.
+
+    ``path`` must refer to a task-set file. Non-empty, non-comment lines are
+    interpreted as glob patterns relative to its parent directory. Unmatched
+    patterns and read failures are reported via ``error_count``; matched files
+    without the ``.yml`` suffix are ignored.
+    """
     for line in read_set_file(path, error_count):
         line = line.strip()
         if not line or line.startswith("#"):
@@ -242,6 +305,12 @@ def task_definition_files_from_set(path, error_count):
 
 
 def task_definition_files(root, error_count):
+    """Yield task-definition files below or represented by ``root``.
+
+    ``root`` must exist and be a directory, a ``.yml`` task definition, or a
+    ``.set`` task set. The caller checks existence first. Unsupported file types
+    and invalid set entries are reported via ``error_count``.
+    """
     if root.is_file():
         if root.suffix == ".yml":
             yield root
@@ -256,6 +325,7 @@ def task_definition_files(root, error_count):
 
 
 def parse_args():
+    """Parse command-line roots and return the populated argument namespace."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "roots",
@@ -270,6 +340,10 @@ def parse_args():
 
 
 def main():
+    """Validate all task definitions selected on the command line.
+
+    Return zero if no error was found and one otherwise.
+    """
     args = parse_args()
     error_count = [0]
     checked_files = 0
