@@ -117,17 +117,23 @@ def check_language(path, input_files, language):
 
     ``path`` must be the task-definition path and is also used to resolve input
     paths. ``input_files`` must be an iterable, normally normalized with
-    :func:`normalize_to_list`. ``language`` may be absent; otherwise it is
-    expected to name an entry in ``LANGUAGE_FILE_ENDINGS``. Errors are added to
-    the global ``errors`` set.
+    :func:`normalize_to_list`. ``language`` must be a string naming an entry in
+    ``LANGUAGE_FILE_ENDINGS``. Errors are added to the global ``errors`` set.
     """
-    if language and language not in LANGUAGE_FILE_ENDINGS:
+    if language is None or language == "":
+        report_error(path, "missing programming language")
+        return
+    if not isinstance(language, str):
+        report_error(
+            path,
+            "programming language contains non-string entry {!r}".format(language),
+        )
+        return
+    if language not in LANGUAGE_FILE_ENDINGS:
         report_error(
             path,
             "unsupported programming language '{}'".format(language),
         )
-        return
-    if not language:
         return
 
     allowed_endings = LANGUAGE_FILE_ENDINGS[language]
@@ -150,11 +156,20 @@ def check_data_model(path, language, data_model):
     """Check that an optional data model is supported for the task language.
 
     ``path`` identifies the task definition for diagnostics. ``language`` and
-    ``data_model`` are the values from the task options and may be absent.
-    Supported language/model combinations come from ``SUPPORTED_DATA_MODELS``;
-    validation failures are added to the global ``errors`` set.
+    ``data_model`` are the values from the task options and may be absent; when
+    present, they are expected to be strings. Supported language/model
+    combinations come from ``SUPPORTED_DATA_MODELS``; validation failures are
+    added to the global ``errors`` set.
     """
-    if not data_model:
+    if data_model is None or data_model == "":
+        return
+    if not isinstance(data_model, str):
+        report_error(
+            path,
+            "data_model contains non-string entry {!r}".format(data_model),
+        )
+        return
+    if not isinstance(language, str):
         return
 
     supported_models = SUPPORTED_DATA_MODELS.get(language)
