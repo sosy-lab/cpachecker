@@ -31,6 +31,18 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
+/**
+ * The states a block currently knows for each neighboring block, grouped by program point.
+ *
+ * <p>The outer key is the id of the neighboring block that sent the states; the inner key is the
+ * program-point hash of a state, so that an update can replace the states of one program point
+ * without discarding what is known about the others. The set of outer keys is fixed at construction
+ * time: it is exactly the set of blocks that may ever send something.
+ *
+ * <p>Independently of the stored states, each key can be marked as reachable or unreachable, which
+ * records whether that neighbor reported its block end to be unreachable. A key with no states is
+ * therefore not the same as an unreachable one.
+ */
 public class BlockToProgramLocationMap {
 
   private final DistributedConfigurableProgramAnalysis dcpa;
@@ -90,12 +102,8 @@ public class BlockToProgramLocationMap {
         .toList();
   }
 
-  public Collection<String> getKeys() {
-    return entriesPerKey.keySet();
-  }
-
   public Collection<AbstractState> getStates() {
-    return transformedImmutableListCopy(getStatesAndPrecisions(), sap -> sap.state());
+    return transformedImmutableListCopy(getStatesAndPrecisions(), StateAndPrecision::state);
   }
 
   public void clearKey(String pKey) {
@@ -112,15 +120,6 @@ public class BlockToProgramLocationMap {
     return entriesPerKey.get(pKey).get(pHash);
   }
 
-  public Collection<AbstractState> getStatesForKeyAndId(String pKey, int pHash) {
-    return transformedImmutableListCopy(
-        getStatesAndPrecisionsForKeyAndId(pKey, pHash), StateAndPrecision::state);
-  }
-
-  public Collection<Integer> getIdsForKey(String pKey) {
-    return entriesPerKey.get(pKey).keySet();
-  }
-
   public void overwriteStatesForKey(
       String pKey, int pHash, Collection<StateAndPrecision> pStateAndPrecisions) {
     overwriteStatesForKey(
@@ -128,6 +127,14 @@ public class BlockToProgramLocationMap {
         ImmutableListMultimap.<Integer, StateAndPrecision>builder()
             .putAll(pHash, pStateAndPrecisions)
             .build());
+  }
+
+  public void overwriteStatesForKey(String pKey, Multimap<Integer, StateAndPrecision> pStates) {
+    Multimap<Integer, StateAndPrecision> idToStates = entriesPerKey.get(pKey);
+    for (Integer id : pStates.keySet()) {
+      idToStates.removeAll(id);
+      idToStates.putAll(id, pStates.get(id));
+    }
   }
 
   public void overwriteStatesForKey(
@@ -181,14 +188,10 @@ public class BlockToProgramLocationMap {
     }
   }
 
-  public void overwriteStatesForKey(String pKey, Multimap<Integer, StateAndPrecision> pStates) {
-    Multimap<Integer, StateAndPrecision> idToStates = entriesPerKey.get(pKey);
-    for (Integer id : pStates.keySet()) {
-      idToStates.removeAll(id);
-      idToStates.putAll(id, pStates.get(id));
-    }
-  }
-
+  /**
+   * A flat view keyed by sending block, dropping the program-point grouping. Used for debug output,
+   * see {@code DssDebugUtils#prettyPrintPredicateAnalysisBlock}.
+   */
   public Multimap<String, StateAndPrecision> asMultimapByKey() {
     ImmutableListMultimap.Builder<String, StateAndPrecision> statesByKey =
         ImmutableListMultimap.builder();

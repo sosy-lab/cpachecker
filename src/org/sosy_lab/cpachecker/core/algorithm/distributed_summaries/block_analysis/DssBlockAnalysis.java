@@ -299,10 +299,20 @@ public final class DssBlockAnalysis {
     return dcpa.getInitialState(pLocation, StateSpacePartition.getDefaultPartition());
   }
 
+  /**
+   * The unconstrained state at the block entry, with this block already recorded in its history.
+   *
+   * @param ignoreCallstackIfAvailable whether the callstack CPA may ignore its transfer while the
+   *     state is built, so that the block entry is not tied to one call context
+   */
   AbstractState makeStartState(boolean ignoreCallstackIfAvailable) throws InterruptedException {
+    AbstractState state;
     disableCallstackIfAvailable(ignoreCallstackIfAvailable);
-    AbstractState state = makeTopState(block.getInitialLocation());
-    disableCallstackIfAvailable(false);
+    try {
+      state = makeTopState(block.getInitialLocation());
+    } finally {
+      disableCallstackIfAvailable(false);
+    }
     blockStateOf(state).addHistory(block);
     return state;
   }
@@ -381,19 +391,6 @@ public final class DssBlockAnalysis {
       }
     }
     return covered;
-  }
-
-  /**
-   * Removes duplicates from the given states, i.e., the returned list contains exactly one
-   * representative of every class of states that are equal according to {@link
-   * CoverageOperator#areStatesEqual}.
-   *
-   * @param pStates The states to deduplicate.
-   * @return The first state of every class of equal states, in the order of {@code pStates}.
-   */
-  ImmutableList<AbstractState> deduplicateStates(Iterable<@NonNull AbstractState> pStates)
-      throws CPAException, InterruptedException {
-    return deduplicate(pStates, s -> s);
   }
 
   /**
