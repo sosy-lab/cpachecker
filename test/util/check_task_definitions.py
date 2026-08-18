@@ -22,7 +22,6 @@ import sys
 from pathlib import Path
 from typing import NamedTuple Optional, Set
 
-
 SCRIPT_PATH = Path(__file__).resolve()
 EXPECTED_PARENT_DIRECTORY = Path("test") / "util"
 if Path(*SCRIPT_PATH.parent.parts[-2:]) != EXPECTED_PARENT_DIRECTORY:
