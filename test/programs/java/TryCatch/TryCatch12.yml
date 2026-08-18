@@ -12,3 +12,6 @@ input_files:
 properties:
   - property_file: "../../../config/properties/assert.prp"
     expected_verdict: true
+
+options:
+  language: Java

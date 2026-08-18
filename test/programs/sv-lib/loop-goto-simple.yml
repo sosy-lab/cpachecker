@@ -13,3 +13,6 @@ input_files: 'loop-goto-simple.svlib'
 properties:
   - property_file: ../../config/properties/correct-annotations.prp
     expected_verdict: true
+
+options:
+  language: SV-LIB

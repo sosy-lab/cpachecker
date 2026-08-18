@@ -13,3 +13,6 @@ input_files: 'loop-simple-unsafe.svlib'
 properties:
   - property_file: ../../config/properties/correct-annotations.prp
     expected_verdict: false
+
+options:
+  language: SV-LIB
