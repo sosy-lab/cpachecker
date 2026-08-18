@@ -22,7 +22,16 @@ from pathlib import Path
 import sys
 
 
-CPACHECKER_DIR = Path(__file__).resolve().parents[2]
+SCRIPT_PATH = Path(__file__).resolve()
+EXPECTED_PARENT_DIRECTORY = Path("test") / "util"
+if Path(*SCRIPT_PATH.parent.parts[-2:]) != EXPECTED_PARENT_DIRECTORY:
+    raise RuntimeError(
+        "expected script to be located in '{}', but found '{}'".format(
+            EXPECTED_PARENT_DIRECTORY, SCRIPT_PATH.parent
+        )
+    )
+
+CPACHECKER_DIR = SCRIPT_PATH.parents[2]
 for wheel in glob.glob(str(CPACHECKER_DIR / "lib" / "python-benchmark" / "*.whl")):
     sys.path.insert(0, wheel)
 
