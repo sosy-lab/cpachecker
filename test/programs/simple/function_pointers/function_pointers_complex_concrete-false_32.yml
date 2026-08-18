@@ -15,7 +15,7 @@ properties:
     expected_verdict: false
   - property_file: ../../../config/properties/valid-memsafety.prp
     expected_verdict: false
-    sub-property: valid-memtrack
+    subproperty: valid-memtrack
   - property_file: ../../../config/properties/valid-memcleanup.prp
     expected_verdict: false
 
