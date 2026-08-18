@@ -58,9 +58,8 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
     }
 
     if (analysis.getBlock().isRoot()) {
-      analysis.setIgnoreCallstack(false);
       StateAndPrecision stateAndPrecision =
-          new StateAndPrecision(analysis.makeStartState(), analysis.makeStartPrecision());
+          new StateAndPrecision(analysis.makeStartState(false), analysis.makeStartPrecision());
       preconditions.addStateForKey("root", stateAndPrecision);
     }
   }
@@ -68,9 +67,9 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
   @Override
   public Collection<DssMessage> runInitialAnalysis()
       throws CPAException, InterruptedException, SolverException {
-    analysis.setIgnoreCallstack(true);
     DssBlockAnalysisResult result =
-        analysis.runInitialBlockAnalysis(analysis.makeStartState(), analysis.makeStartPrecision());
+        analysis.runInitialBlockAnalysis(
+            analysis.makeStartState(true), analysis.makeStartPrecision());
 
     if (!result.getAllViolations().isEmpty()) {
       return analysis.reportFirstViolationConditions(result.getAllViolations());
@@ -215,10 +214,8 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
     AbstractState lastState = null;
     boolean isEmpty = preconditions.isAnyPredecessorTrulyEmpty() || preconditions.isEmpty();
     if (isEmpty) {
-      analysis.setIgnoreCallstack(true);
-      lastState = analysis.makeStartState();
+      lastState = analysis.makeStartState(true);
       statesToProcess = listAndElement(statesToProcess, lastState);
-      analysis.setIgnoreCallstack(false);
       precision = analysis.makeStartPrecision();
     }
 

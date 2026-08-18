@@ -299,8 +299,10 @@ public final class DssBlockAnalysis {
     return dcpa.getInitialState(pLocation, StateSpacePartition.getDefaultPartition());
   }
 
-  AbstractState makeStartState() throws InterruptedException {
+  AbstractState makeStartState(boolean ignoreCallstackIfAvailable) throws InterruptedException {
+    disableCallstackIfAvailable(ignoreCallstackIfAvailable);
     AbstractState state = makeTopState(block.getInitialLocation());
+    disableCallstackIfAvailable(false);
     blockStateOf(state).addHistory(block);
     return state;
   }
@@ -707,7 +709,7 @@ public final class DssBlockAnalysis {
     return statesAndPrecisions.build();
   }
 
-  void setIgnoreCallstack(boolean ignoreCallstack) {
+  private void disableCallstackIfAvailable(boolean ignoreCallstack) {
     Optional.ofNullable(CPAs.retrieveCPA(dcpa, DistributedCallstackCPA.class))
         .ifPresent(c -> c.setIgnoreTransfer(ignoreCallstack));
   }
