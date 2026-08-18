@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
@@ -190,15 +189,7 @@ public final class FunctionCallDumper {
           final FunctionSummaryEdge function = (FunctionSummaryEdge) pEdge;
           final String functionName = function.getPredecessor().getFunctionName();
           final AFunctionDeclaration calledFunctionDecl =
-              function
-                  .getPredecessor()
-                  .getLeavingEdges()
-                  .filter(FunctionCallEdge.class)
-                  .first()
-                  .toJavaUtil()
-                  .orElseThrow(() -> new IllegalStateException("internal function without body"))
-                  .getSuccessor()
-                  .getFunctionDefinition();
+              function.getFunctionEntry().getFunctionDefinition();
           functionCalls.put(functionName, calledFunctionDecl.getName());
           originalNames.put(calledFunctionDecl.getName(), calledFunctionDecl.getOrigName());
         }
