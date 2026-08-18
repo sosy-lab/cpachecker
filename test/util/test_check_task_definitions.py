@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 # This file is part of CPAchecker,
 # a tool for configurable software verification:
 # https://cpachecker.sosy-lab.org
@@ -11,9 +9,9 @@
 """Tests for the task-definition consistency checks."""
 
 import copy
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 
 import check_task_definitions as checker
 
@@ -82,8 +80,10 @@ class TaskDefinitionValidationTest(unittest.TestCase):
             ("Python", "unsupported programming language 'Python'"),
             (
                 "Java",
-                "input file 'program.c' does not match language 'Java' "
-                "with endings .java",
+                (
+                    "input file 'program.c' does not match language 'Java' "
+                    "with endings .java"
+                ),
             ),
         )
         for language, expected_error in cases:
@@ -171,8 +171,7 @@ class TaskDefinitionValidationTest(unittest.TestCase):
         checker.check_benchmark(self.definition_path)
         self.assertTrue(
             any(
-                error.error_type.startswith("invalid YAML:")
-                for error in checker.errors
+                error.error_type.startswith("invalid YAML:") for error in checker.errors
             )
         )
 
