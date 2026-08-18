@@ -8,7 +8,8 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-"""Check consistency of CPAchecker task-definition YAML files.
+"""
+Check consistency of CPAchecker task-definition YAML files.
 
 This script intentionally performs only cheap static checks. It does not compile
 or execute test programs. Keep all repository-specific policy below in one place
