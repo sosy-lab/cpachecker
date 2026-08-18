@@ -20,6 +20,7 @@ import argparse
 import glob
 from pathlib import Path
 import sys
+from typing import NamedTuple, Optional, Set
 
 
 SCRIPT_PATH = Path(__file__).resolve()
@@ -52,15 +53,26 @@ SUPPORTED_DATA_MODELS = {
 ADDITIONAL_FILE_KEYS = frozenset({"required_files"})
 
 
-def report_error(error_count, path, message):
-    """Report one validation error and increment its shared counter.
+class ValidationError(NamedTuple):
+    """A validation failure with its location and optional relevant text."""
 
-    ``error_count`` must be a mutable, non-empty sequence whose first element is
-    an integer. ``path`` is the file to which the diagnostic refers, and
-    ``message`` is a human-readable description of the error.
+    error_type: str
+    location: Path
+    snippet: Optional[str] = None
+
+
+errors: Set[ValidationError] = set()
+
+
+def report_error(path, error_type, snippet=None):
+    """Add one validation error to the global error set.
+
+    ``path`` identifies the file where validation failed, ``error_type``
+    describes what went wrong, and ``snippet`` may contain the relevant source
+    text. All arguments must be hashable so the resulting error can be stored in
+    ``errors``.
     """
-    print("ERROR: {}: {}".format(path, message))
-    error_count[0] += 1
+    errors.add(ValidationError(error_type, path, snippet))
 
 
 def normalize_to_list(value):
@@ -76,20 +88,17 @@ def normalize_to_list(value):
     return [value]
 
 
-def check_referenced_file_existence(
-    path, base_dir, reference_key, references, error_count
-):
+def check_referenced_file_existence(path, base_dir, reference_key, references):
     """Check that file references from a YAML key point to existing files.
 
     ``path`` identifies the task definition for diagnostics, ``base_dir`` is
     the directory against which references are resolved, and ``reference_key``
     names the YAML key being checked. ``references`` may be ``None``, one value,
-    or a list. Errors are accumulated in the mutable counter ``error_count``.
+    or a list. Validation failures are added to the global ``errors`` set.
     """
     for reference in normalize_to_list(references):
         if not isinstance(reference, str):
             report_error(
-                error_count,
                 path,
                 "{} contains non-string entry {!r}".format(reference_key, reference),
             )
@@ -98,24 +107,22 @@ def check_referenced_file_existence(
         resolved = base_dir / reference
         if not resolved.exists():
             report_error(
-                error_count,
                 path,
                 "{} references missing file '{}'".format(reference_key, reference),
             )
 
 
-def check_language(path, input_files, language, error_count):
+def check_language(path, input_files, language):
     """Check that a task language is supported and matches all input files.
 
     ``path`` must be the task-definition path and is also used to resolve input
     paths. ``input_files`` must be an iterable, normally normalized with
     :func:`normalize_to_list`. ``language`` may be absent; otherwise it is
     expected to name an entry in ``LANGUAGE_FILE_ENDINGS``. Errors are added to
-    the mutable counter ``error_count``.
+    the global ``errors`` set.
     """
     if language and language not in LANGUAGE_FILE_ENDINGS:
         report_error(
-            error_count,
             path,
             "unsupported programming language '{}'".format(language),
         )
@@ -132,7 +139,6 @@ def check_language(path, input_files, language, error_count):
             continue
         if not input_file.endswith(allowed_endings):
             report_error(
-                error_count,
                 path,
                 "input file '{}' does not match language '{}' with endings {}".format(
                     input_file, language, ", ".join(allowed_endings)
@@ -140,13 +146,13 @@ def check_language(path, input_files, language, error_count):
             )
 
 
-def check_data_model(path, language, data_model, error_count):
+def check_data_model(path, language, data_model):
     """Check that an optional data model is supported for the task language.
 
     ``path`` identifies the task definition for diagnostics. ``language`` and
     ``data_model`` are the values from the task options and may be absent.
     Supported language/model combinations come from ``SUPPORTED_DATA_MODELS``;
-    errors are added to the mutable counter ``error_count``.
+    validation failures are added to the global ``errors`` set.
     """
     if not data_model:
         return
@@ -154,7 +160,6 @@ def check_data_model(path, language, data_model, error_count):
     supported_models = SUPPORTED_DATA_MODELS.get(language)
     if supported_models is None:
         report_error(
-            error_count,
             path,
             "data_model is specified for language '{}' without configured models".format(
                 language
@@ -162,7 +167,6 @@ def check_data_model(path, language, data_model, error_count):
         )
     elif data_model not in supported_models:
         report_error(
-            error_count,
             path,
             "unsupported data_model '{}' for language '{}'".format(
                 data_model, language
@@ -170,40 +174,38 @@ def check_data_model(path, language, data_model, error_count):
         )
 
 
-def check_properties(path, content, error_count):
+def check_properties(path, content):
     """Validate the structure and referenced files of task properties.
 
     ``path`` must be the task-definition path and is used as the base for
     relative property-file references. ``content`` must be the parsed task
     mapping. An absent ``properties`` key is accepted, while a present value
     must be a non-empty list of mappings with a string ``property_file``.
-    Errors are added to the mutable counter ``error_count``.
+    Validation failures are added to the global ``errors`` set.
     """
     properties = content.get("properties")
     if properties is None:
         return
     if not properties:
-        report_error(error_count, path, "empty properties")
+        report_error(path, "empty properties")
         return
     if not isinstance(properties, list):
-        report_error(error_count, path, "properties is not a list")
+        report_error(path, "properties is not a list")
         return
 
     for property_definition in properties:
         if not isinstance(property_definition, dict):
             report_error(
-                error_count,
                 path,
                 "invalid property definition {!r}".format(property_definition),
             )
             continue
         property_file = property_definition.get("property_file")
         if property_file is None or property_file == "":
-            report_error(error_count, path, "property definition without property_file")
+            report_error(path, "property definition without property_file")
             continue
         if not isinstance(property_file, str):
             report_error(
-                error_count,
                 path,
                 "property_file contains non-string entry {!r}".format(property_file),
             )
@@ -211,29 +213,26 @@ def check_properties(path, content, error_count):
         resolved = path.parent / property_file
         if not resolved.exists():
             report_error(
-                error_count,
                 path,
                 "property_file references missing file '{}'".format(property_file),
             )
 
 
-def check_task_definition(path, content, error_count):
+def check_task_definition(path, content):
     """Run all structural and semantic checks on one parsed task definition.
 
     ``path`` must be the path of the YAML file. ``content`` is the value
     returned by the YAML parser and is validated before it is treated as a
-    mapping. Errors are added to the mutable counter ``error_count``.
+    mapping. Validation failures are added to the global ``errors`` set.
     """
     if not isinstance(content, dict):
-        report_error(error_count, path, "expected mapping for task definition")
+        report_error(path, "expected mapping for task definition")
         return
 
     input_files = normalize_to_list(content.get("input_files"))
     if not input_files:
-        report_error(error_count, path, "missing or empty input_files")
-    check_referenced_file_existence(
-        path, path.parent, "input_files", input_files, error_count
-    )
+        report_error(path, "missing or empty input_files")
+    check_referenced_file_existence(path, path.parent, "input_files", input_files)
 
     for additional_file_key in ADDITIONAL_FILE_KEYS:
         check_referenced_file_existence(
@@ -241,60 +240,59 @@ def check_task_definition(path, content, error_count):
             path.parent,
             additional_file_key,
             content.get(additional_file_key),
-            error_count,
         )
 
     options = content.get("options")
     if options is None:
         options = {}
     if not isinstance(options, dict):
-        report_error(error_count, path, "options is not a mapping")
+        report_error(path, "options is not a mapping")
         options = {}
 
     language = options.get("language")
-    check_language(path, input_files, language, error_count)
-    check_data_model(path, language, options.get("data_model"), error_count)
-    check_properties(path, content, error_count)
+    check_language(path, input_files, language)
+    check_data_model(path, language, options.get("data_model"))
+    check_properties(path, content)
 
 
-def check_yaml_file(path, error_count):
+def check_yaml_file(path):
     """Load and validate one task-definition YAML file.
 
     ``path`` must refer to a readable YAML file. YAML syntax and task-validation
-    errors are reported through the mutable counter ``error_count``.
+    errors are added to the global ``errors`` set.
     """
     try:
         with path.open(encoding="utf-8") as yml_file:
             content = yaml.safe_load(yml_file)
     except yaml.YAMLError as exception:
-        report_error(error_count, path, "invalid YAML: {}".format(exception))
+        report_error(path, "invalid YAML: {}".format(exception))
         return
 
-    check_task_definition(path, content, error_count)
+    check_task_definition(path, content)
 
 
-def read_set_file(path, error_count):
+def read_set_file(path):
     """Read a task-set file and return its lines without newline characters.
 
     ``path`` must refer to the set file to read. Read failures are reported via
-    the mutable counter ``error_count`` and result in an empty list.
+    the global ``errors`` set and result in an empty list.
     """
     try:
         return path.read_text(encoding="utf-8").splitlines()
     except OSError as exception:
-        report_error(error_count, path, "could not read set file: {}".format(exception))
+        report_error(path, "could not read set file: {}".format(exception))
         return []
 
 
-def task_definition_files_from_set(path, error_count):
+def task_definition_files_from_set(path):
     """Yield task-definition files selected by the entries of a set file.
 
     ``path`` must refer to a task-set file. Non-empty, non-comment lines are
     interpreted as glob patterns relative to its parent directory. Unmatched
-    patterns and read failures are reported via ``error_count``; matched files
+    patterns and read failures are added to ``errors``; matched files
     without the ``.yml`` suffix are ignored.
     """
-    for line in read_set_file(path, error_count):
+    for line in read_set_file(path):
         line = line.strip()
         if not line or line.startswith("#"):
             continue
@@ -302,7 +300,6 @@ def task_definition_files_from_set(path, error_count):
         matches = sorted(path.parent.glob(line))
         if not matches:
             report_error(
-                error_count,
                 path,
                 "set entry '{}' does not match any file".format(line),
             )
@@ -313,20 +310,20 @@ def task_definition_files_from_set(path, error_count):
                 yield match
 
 
-def task_definition_files(root, error_count):
+def task_definition_files(root):
     """Yield task-definition files below or represented by ``root``.
 
     ``root`` must exist and be a directory, a ``.yml`` task definition, or a
     ``.set`` task set. The caller checks existence first. Unsupported file types
-    and invalid set entries are reported via ``error_count``.
+    and invalid set entries are added to the global ``errors`` set.
     """
     if root.is_file():
         if root.suffix == ".yml":
             yield root
         elif root.suffix == ".set":
-            yield from task_definition_files_from_set(root, error_count)
+            yield from task_definition_files_from_set(root)
         else:
-            report_error(error_count, root, "not a task-definition .yml or set file")
+            report_error(root, "not a task-definition .yml or set file")
         return
 
     for path in root.rglob("*.yml"):
@@ -354,23 +351,31 @@ def main():
     Return zero if no error was found and one otherwise.
     """
     args = parse_args()
-    error_count = [0]
+    errors.clear()
     checked_files = 0
 
     for root in args.roots:
         if not root.exists():
-            report_error(error_count, root, "does not exist")
+            report_error(root, "does not exist")
             continue
-        for task_definition in task_definition_files(root, error_count):
+        for task_definition in task_definition_files(root):
             checked_files += 1
-            check_yaml_file(task_definition, error_count)
+            check_yaml_file(task_definition)
+
+    for error in sorted(
+        errors,
+        key=lambda item: (str(item.location), item.error_type, item.snippet or ""),
+    ):
+        print("ERROR: {}: {}".format(error.location, error.error_type))
+        if error.snippet is not None:
+            print("  {}".format(error.snippet))
 
     print(
         "Checked {} YAML file(s), found {} error(s).".format(
-            checked_files, error_count[0]
+            checked_files, len(errors)
         )
     )
-    return 1 if error_count[0] else 0
+    return 1 if errors else 0
 
 
 if __name__ == "__main__":
