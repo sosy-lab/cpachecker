@@ -50,6 +50,8 @@ SUPPORTED_DATA_MODELS = {
     "C": {"ILP32", "LP64"},
 }
 
+SUPPORTED_FORMAT_VERSIONS = {"1.0", "2.0", "2.1"}
+
 ADDITIONAL_FILE_KEYS = frozenset({"required_files"})
 
 
@@ -103,6 +105,9 @@ def check_referenced_file_existence(path, base_dir, reference_key, references):
                 "{} contains non-string entry {!r}".format(reference_key, reference),
             )
             continue
+        if not reference:
+            report_error(path, "{} contains empty file reference".format(reference_key))
+            continue
 
         resolved = base_dir / reference
         if not resolved.exists():
@@ -150,6 +155,27 @@ def check_language(path, input_files, language):
                     input_file, language, ", ".join(allowed_endings)
                 ),
             )
+
+
+def check_format_version(path, format_version):
+    """Check that the task format version is present and supported.
+
+    ``path`` identifies the task definition for diagnostics. ``format_version``
+    must be a string listed in ``SUPPORTED_FORMAT_VERSIONS``. Validation
+    failures are added to the global ``errors`` set.
+    """
+    if format_version is None or format_version == "":
+        report_error(path, "missing format_version")
+    elif not isinstance(format_version, str):
+        report_error(
+            path,
+            "format_version contains non-string entry {!r}".format(format_version),
+        )
+    elif format_version not in SUPPORTED_FORMAT_VERSIONS:
+        report_error(
+            path,
+            "unsupported format_version '{}'".format(format_version),
+        )
 
 
 def check_data_model(path, language, data_model):
@@ -216,6 +242,23 @@ def check_properties(path, content):
                 "invalid property definition {!r}".format(property_definition),
             )
             continue
+
+        expected_verdict = property_definition.get("expected_verdict")
+        if expected_verdict is not None and not isinstance(expected_verdict, bool):
+            report_error(
+                path,
+                "expected_verdict contains non-boolean entry {!r}".format(
+                    expected_verdict
+                ),
+            )
+
+        subproperty = property_definition.get("subproperty")
+        if subproperty is not None and not isinstance(subproperty, str):
+            report_error(
+                path,
+                "subproperty contains non-string entry {!r}".format(subproperty),
+            )
+
         property_file = property_definition.get("property_file")
         if property_file is None or property_file == "":
             report_error(path, "property definition without property_file")
@@ -244,6 +287,8 @@ def check_task_definition(path, content):
     if not isinstance(content, dict):
         report_error(path, "expected mapping for task definition")
         return
+
+    check_format_version(path, content.get("format_version"))
 
     input_files = normalize_to_list(content.get("input_files"))
     if not input_files:
@@ -286,6 +331,12 @@ def check_benchmark(definition_path):
     except yaml.YAMLError as exception:
         report_error(definition_path, "invalid YAML: {}".format(exception))
         return
+    except (OSError, UnicodeError) as exception:
+        report_error(
+            definition_path,
+            "could not read task definition: {}".format(exception),
+        )
+        return
 
     check_task_definition(definition_path, content)
 
@@ -298,7 +349,7 @@ def read_set_file(path):
     """
     try:
         return path.read_text(encoding="utf-8").splitlines()
-    except OSError as exception:
+    except (OSError, UnicodeError) as exception:
         report_error(path, "could not read set file: {}".format(exception))
         return []
 
