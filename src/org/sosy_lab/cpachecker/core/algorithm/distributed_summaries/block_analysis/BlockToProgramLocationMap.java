@@ -19,7 +19,9 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -42,12 +44,17 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  * <p>Independently of the stored states, each key can be marked as reachable or unreachable, which
  * records whether that neighbor reported its block end to be unreachable. A key with no states is
  * therefore not the same as an unreachable one.
+ *
+ * <p>Each key also remembers which blocks the neighbor named as keeping its own report incomplete,
+ * see {@link #getIncompleteSources()}.
  */
 public class BlockToProgramLocationMap {
 
   private final DistributedConfigurableProgramAnalysis dcpa;
 
   private final Set<String> unreachablePredecessors;
+
+  private final Map<String, ImmutableSet<String>> incompleteSourcesPerKey;
 
   private final ImmutableMap<String, Multimap<Integer, StateAndPrecision>> entriesPerKey;
 
@@ -59,11 +66,22 @@ public class BlockToProgramLocationMap {
     pPotentialKeys.forEach(k -> entryBuilder.put(k, ArrayListMultimap.create()));
     entriesPerKey = entryBuilder.buildOrThrow();
     unreachablePredecessors = new LinkedHashSet<>();
+    incompleteSourcesPerKey = new LinkedHashMap<>();
   }
 
   public void markUnreachable(String pKey) {
     assert entriesPerKey.containsKey(pKey);
     unreachablePredecessors.add(pKey);
+  }
+
+  /**
+   * Records which blocks the given neighbor named as keeping its last report incomplete. Only the
+   * latest message counts: an incompleteness that the neighbor has meanwhile resolved must not keep
+   * haunting this block.
+   */
+  public void setIncompleteSources(String pKey, Set<String> pSources) {
+    assert entriesPerKey.containsKey(pKey);
+    incompleteSourcesPerKey.put(pKey, ImmutableSet.copyOf(pSources));
   }
 
   public void markReachable(String pKey) {
@@ -78,6 +96,43 @@ public class BlockToProgramLocationMap {
 
   public boolean isUnreachable() {
     return unreachablePredecessors.equals(entriesPerKey.keySet());
+  }
+
+  /**
+   * The blocks whose paths are missing from what is stored here: the neighbors that have not
+   * reported at all, plus the blocks that the neighbors who did report named in turn.
+   *
+   * <p>Incompleteness has to be transitive. A block that publishes an under-approximated summary
+   * hands its successor a picture that looks complete, and the successor would use it to refute
+   * violation conditions that the missing paths can still reach; so every block downstream of a
+   * silent one has to keep exploring speculatively from the most general state.
+   *
+   * <p>Naming the blocks rather than passing a flag is what makes this work in a cyclic block
+   * graph. A neighbor inside the cycle reports the very block that is waiting for it, so a plain
+   * flag would circle forever and no loop would ever settle. Dropping the neighbors this block has
+   * itself heard from ends that: they are demonstrably no longer silent.
+   */
+  public ImmutableSet<String> getIncompleteSources() {
+    Set<String> sources = new LinkedHashSet<>();
+    for (String key : entriesPerKey.keySet()) {
+      if (hasReported(key)) {
+        sources.addAll(incompleteSourcesPerKey.getOrDefault(key, ImmutableSet.of()));
+      } else {
+        sources.add(key);
+      }
+    }
+    entriesPerKey.keySet().stream().filter(this::hasReported).forEach(sources::remove);
+    return ImmutableSet.copyOf(sources);
+  }
+
+  /** Whether the given neighbor has said anything at all, be it states or an unreachable end. */
+  private boolean hasReported(String pKey) {
+    return !isEmpty(pKey) || unreachablePredecessors.contains(pKey);
+  }
+
+  /** Whether anything that may enter this block is missing from the stored states. */
+  public boolean isAnyPredecessorIncomplete() {
+    return !getIncompleteSources().isEmpty() || isAnyPredecessorTrulyEmpty();
   }
 
   public boolean isAnyPredecessorTrulyEmpty() {
