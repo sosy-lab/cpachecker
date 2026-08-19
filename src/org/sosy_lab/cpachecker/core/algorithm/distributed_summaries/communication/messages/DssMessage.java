@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -245,7 +246,7 @@ public abstract class DssMessage {
   public final ImmutableSet<String> getIncompleteSources() {
     checkArgument(type == DssMessageType.POST_CONDITION, "Cannot get content for type: %s", type);
     String sources = content.get(DssMessageFactory.DSS_MESSAGE_INCOMPLETE_SOURCES_KEY);
-    if (sources == null || sources.isEmpty()) {
+    if (isNullOrEmpty(sources)) {
       return ImmutableSet.of();
     }
     return ImmutableSet.copyOf(Splitter.on(',').split(sources));

@@ -512,7 +512,10 @@ public final class DssBlockAnalysis {
     }
     return ImmutableList.of(
         messageFactory.createDssPostConditionMessage(
-            block.getId(), status, serialize(ImmutableList.copyOf(pSummaries)), pIncompleteSources));
+            block.getId(),
+            status,
+            serialize(ImmutableList.copyOf(pSummaries)),
+            pIncompleteSources));
   }
 
   /**

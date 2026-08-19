@@ -18,7 +18,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import java.util.Collection;
@@ -149,7 +148,7 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
   @Override
   public Collection<DssMessage> analyze()
       throws SolverException, InterruptedException, CPAException {
-    Builder<DssMessage> messages = ImmutableSet.builder();
+    ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     AnalysisResult round = explore(false);
     if (!round.violationConditions().isEmpty()) {
       messages.addAll(analysis.reportViolationConditions(round.violationConditions()));
