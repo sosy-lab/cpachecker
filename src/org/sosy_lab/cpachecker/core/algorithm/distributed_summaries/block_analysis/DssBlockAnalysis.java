@@ -263,7 +263,7 @@ public final class DssBlockAnalysis {
    * @return Whether the analysis should proceed.
    */
   public DssMessageProcessing storeViolationCondition(DssViolationConditionMessage pReceived)
-      throws InterruptedException, SolverException {
+      throws InterruptedException, SolverException, CPAException {
     DssMessageProcessing processing = violationConditionHandler.store(pReceived);
     if (processing.shouldProceed()) {
       preconditions.violationConditionsChanged();

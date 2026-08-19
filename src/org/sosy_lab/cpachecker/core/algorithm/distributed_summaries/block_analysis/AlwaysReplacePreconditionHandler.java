@@ -199,22 +199,32 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
       // every predecessor reported an unreachable block end, so this block cannot be entered
       return AnalysisResult.unreachableBlockEnd();
     }
-    ImmutableList<AbstractState> violationConditions =
-        analysis.getViolationConditionHandler().statesOf(Optional.empty());
+    // Violation conditions are grouped by program point exactly like preconditions are. Because a
+    // program-point hash covers the callstack, conditions of different call contexts of the same
+    // block land in different groups. Exploring a block under all of them at once would mix those
+    // contexts: with inlining every call site would be its own block, but here one block is shared
+    // by all of them, so the contexts have to be kept apart by exploring per group instead.
+    ImmutableListMultimap<Integer, AbstractState> conditionsPerLocation =
+        Multimaps.index(
+            analysis.getViolationConditionHandler().statesOf(Optional.empty()),
+            condition -> analysis.getDcpa().computeProgramPointHash(condition));
 
     ImmutableList.Builder<AnalysisResult> rounds = ImmutableList.builder();
-    for (Integer locationHash : preconditions.getAllLocationHashes()) {
-      rounds.add(
-          exploreFrom(
-              preconditions.getStatesPerLocation(locationHash), violationConditions, false));
-    }
-    if (preconditions.isEmpty() || preconditions.isAnyPredecessorTrulyEmpty()) {
-      // a predecessor that has not sent anything yet does not restrict the block entry, so explore
-      // speculatively from the unconstrained start state to find violations early
-      AnalysisResult topExploration =
-          exploreFrom(ImmutableSet.of(analysis.makeStartState(true)), violationConditions, true);
-      Preconditions.checkState(topExploration.summaries().isEmpty());
-      rounds.add(topExploration);
+    for (Integer conditionHash : conditionsPerLocation.keySet()) {
+      ImmutableList<AbstractState> conditionsAtLocation = conditionsPerLocation.get(conditionHash);
+      for (Integer locationHash : preconditions.getAllLocationHashes()) {
+        rounds.add(
+            exploreFrom(
+                preconditions.getStatesPerLocation(locationHash), conditionsAtLocation, false));
+      }
+      if (preconditions.isEmpty() || preconditions.isAnyPredecessorTrulyEmpty()) {
+        // a predecessor that has not sent anything yet does not restrict the block entry, so
+        // explore speculatively from the unconstrained start state to find violations early
+        AnalysisResult topExploration =
+            exploreFrom(ImmutableSet.of(analysis.makeStartState(true)), conditionsAtLocation, true);
+        Preconditions.checkState(topExploration.summaries().isEmpty());
+        rounds.add(topExploration);
+      }
     }
     return merge(rounds.build());
   }

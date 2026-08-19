@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
@@ -46,7 +47,7 @@ final class PathBasedViolationConditionHandler implements DssViolationConditionH
 
   @Override
   public DssMessageProcessing store(DssViolationConditionMessage pReceived)
-      throws InterruptedException, SolverException {
+      throws InterruptedException, SolverException, CPAException {
     analysis
         .getLogger()
         .log(Level.INFO, "Running forward analysis with respect to error condition");

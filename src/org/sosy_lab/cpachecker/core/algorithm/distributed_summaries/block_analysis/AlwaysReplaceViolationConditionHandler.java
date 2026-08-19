@@ -8,11 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import java.util.Set;
 import java.util.logging.Level;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
@@ -20,7 +18,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Keeps only the violation conditions of the latest message per sending block: an update discards
@@ -40,7 +38,7 @@ final class AlwaysReplaceViolationConditionHandler implements DssViolationCondit
 
   @Override
   public DssMessageProcessing store(DssViolationConditionMessage pReceived)
-      throws InterruptedException {
+      throws InterruptedException, CPAException {
     analysis
         .getLogger()
         .log(Level.INFO, "Running forward analysis with respect to error condition");
@@ -49,17 +47,12 @@ final class AlwaysReplaceViolationConditionHandler implements DssViolationCondit
     stats.getStoreViolationConditionStatesTimer().start();
 
     try {
-      Set<SegmentedPaths> knownWitnesses =
-          transformedImmutableSetCopy(conditions.getStates(), analysis::witnessOf);
-
-      int equal = 0;
-      for (StateAndPrecision condition : received) {
-        if (knownWitnesses.contains(analysis.witnessOf(condition.state()))) {
-          equal++;
-        }
-      }
-
-      if (equal == received.size()) {
+      // A condition counts as known only if an equal one is already stored. Comparing the
+      // witnesses alone would only compare the path through the block graph, so a refined
+      // condition for a path that was already reported would be discarded: the block would stop
+      // although the sender learned something new, which lets a reachable violation go unnoticed.
+      if (analysis.countCovered(received, ImmutableList.copyOf(conditions.getStatesAndPrecisions()))
+          == received.size()) {
         return DssMessageProcessing.stop();
       }
       String sender = pReceived.getSenderId();
