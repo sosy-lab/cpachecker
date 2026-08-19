@@ -13,6 +13,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
@@ -30,7 +31,7 @@ interface DssViolationConditionHandler {
    * @return whether the block has to be re-explored because of this update
    */
   DssMessageProcessing store(DssViolationConditionMessage pReceived)
-      throws InterruptedException, SolverException;
+      throws InterruptedException, SolverException, CPAException;
 
   /** Whether no violation condition is known at all. */
   boolean isEmpty();

@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.callstack;
 
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
@@ -41,7 +40,6 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState.IgnoreCallstackState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
@@ -75,10 +73,6 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
       AbstractState pElement, Precision pPrecision, CFAEdge pEdge) throws CPATransferException {
     final CallstackState e = (CallstackState) pElement;
 
-    if (e instanceof IgnoreCallstackState) {
-      return ImmutableList.of(new IgnoreCallstackState(e.getCallNode()));
-    }
-
     final CFANode pred = pEdge.getPredecessor();
     final CFANode succ = pEdge.getSuccessor();
     final String predFunction = pred.getFunctionName();
@@ -87,16 +81,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     switch (pEdge.getEdgeType()) {
       case StatementEdge -> {
         AStatementEdge edge = (AStatementEdge) pEdge;
-        if (edge.getStatement() instanceof AFunctionCall aFunctionCall) {
-          AExpression functionNameExp =
-              aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
-          if (functionNameExp instanceof AIdExpression aIdExpression) {
-            String functionName = aIdExpression.getName();
-            if (options.getUnsupportedFunctions().contains(functionName)) {
-              throw new UnsupportedCodeException(functionName, edge, edge.getStatement());
-            }
-          }
-        }
+        checkForUnsupportedFunctionCall(edge);
 
         if (pEdge instanceof CFunctionSummaryStatementEdge cFunctionSummaryStatementEdge) {
           if (!shouldGoByFunctionSummaryStatement(e, cFunctionSummaryStatementEdge)) {
@@ -176,6 +161,26 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     }
 
     return Collections.singleton(pElement);
+  }
+
+  /**
+   * Aborts the analysis if the given edge calls a function that this analysis does not support.
+   *
+   * @param pEdge the edge to check
+   * @throws UnsupportedCodeException if the edge calls an unsupported function
+   */
+  protected void checkForUnsupportedFunctionCall(AStatementEdge pEdge)
+      throws UnsupportedCodeException {
+    if (pEdge.getStatement() instanceof AFunctionCall aFunctionCall) {
+      AExpression functionNameExp =
+          aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+      if (functionNameExp instanceof AIdExpression aIdExpression) {
+        String functionName = aIdExpression.getName();
+        if (options.getUnsupportedFunctions().contains(functionName)) {
+          throw new UnsupportedCodeException(functionName, pEdge, pEdge.getStatement());
+        }
+      }
+    }
   }
 
   /**

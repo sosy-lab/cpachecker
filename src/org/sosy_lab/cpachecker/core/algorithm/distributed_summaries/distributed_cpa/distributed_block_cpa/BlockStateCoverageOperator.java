@@ -11,16 +11,14 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class BlockStateCoverageOperator implements CoverageOperator {
 
   @Override
-  public boolean isSubsumed(AbstractState state1, AbstractState state2)
-      throws CPAException, InterruptedException {
+  public boolean isSubsumed(AbstractState state1, AbstractState state2) {
     BlockState blockState1 = (BlockState) state1;
     BlockState blockState2 = (BlockState) state2;
-    return blockState1.equals(blockState2);
+    return blockState1.isEqualTo(blockState2);
   }
 
   @Override

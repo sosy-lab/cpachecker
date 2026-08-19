@@ -111,7 +111,7 @@ public class DssWitnessExporter {
       ResultWithWitnessInformation resultWithWitness,
       ReachedSet reachedSet,
       Modification pModification)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, InterruptedException {
     ARGToYAMLWitnessExport exporter =
         new ARGToYAMLWitnessExport(
             configuration,
@@ -134,8 +134,6 @@ public class DssWitnessExporter {
           e,
           "Could not export the YAML correctness witness directly from the collected ARG states."
               + "Therefore no YAML witness will be exported.");
-    } catch (InterruptedException e) {
-      logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
     }
   }
 

@@ -15,6 +15,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -42,16 +43,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public class BlockState
     implements AbstractQueryableState, Partitionable, Targetable, FormulaReportingState, Graphable {
 
-  @Override
-  public String toDOTLabel() {
-    return "";
-  }
-
-  @Override
-  public boolean shouldBeHighlighted() {
-    return type == BlockStateType.FINAL;
-  }
-
   public enum BlockStateType {
     INITIAL,
     MID,
@@ -60,6 +51,7 @@ public class BlockState
     WITNESS
   }
 
+  private final BlockState predecessor;
   private final CFANode node;
   private final BlockStateType type;
   private final BlockNode blockNode;
@@ -69,7 +61,10 @@ public class BlockState
 
   private final Optional<SegmentedPaths> witnessCheckPathState;
 
+  private final transient Set<AbstractState> hinderedByCallstack;
+
   public BlockState(
+      BlockState pPredecessor,
       CFANode pNode,
       BlockNode pTargetNode,
       BlockStateType pType,
@@ -80,6 +75,7 @@ public class BlockState
     Preconditions.checkArgument(
         pType == BlockStateType.WITNESS || pWitnessCheckPathState == null,
         "Added path state while not being in Witnes state");
+    predecessor = pPredecessor;
     node = pNode;
     type = pType;
     blockNode = pTargetNode;
@@ -87,16 +83,26 @@ public class BlockState
     history = pHistory;
     witness = pWitness;
     witnessCheckPathState = Optional.ofNullable(pWitnessCheckPathState);
+    hinderedByCallstack = new LinkedHashSet<>();
   }
 
   public BlockState(
+      BlockState pPredecessor,
       CFANode pNode,
       BlockNode pTargetNode,
       BlockStateType pType,
       List<? extends AbstractState> pViolationConditions,
       BlockGraphPath pHistory,
       SegmentedPaths pWitness) {
-    this(pNode, pTargetNode, pType, pViolationConditions, pHistory, pWitness, null);
+    this(pPredecessor, pNode, pTargetNode, pType, pViolationConditions, pHistory, pWitness, null);
+  }
+
+  public Set<AbstractState> getHinderedByCallstack() {
+    return ImmutableSet.copyOf(hinderedByCallstack);
+  }
+
+  public void addHinderedByCallstack(AbstractState state) {
+    hinderedByCallstack.add(state);
   }
 
   public void addHistory(BlockNode pBlockNode) {
@@ -138,7 +144,7 @@ public class BlockState
 
   @Override
   public @Nullable Object getPartitionKey() {
-    return blockNode;
+    return Objects.hash(getLocationNode(), violationConditions, type);
   }
 
   @Override
@@ -182,6 +188,10 @@ public class BlockState
     return bfmgr.makeTrue();
   }
 
+  public BlockState getPredecessor() {
+    return predecessor;
+  }
+
   @Override
   public BooleanFormula getScopedFormulaApproximation(
       FormulaManagerView manager, FunctionEntryNode functionScope) {
@@ -189,18 +199,13 @@ public class BlockState
   }
 
   // error condition intentionally left out as it is mutable
-  @Override
-  public boolean equals(Object pO) {
-    return pO instanceof BlockState that
-        && Objects.equals(node, that.node)
-        && Objects.equals(witnessCheckPathState, that.witnessCheckPathState)
-        && type == that.type
-        && blockNode == that.getBlockNode();
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(node, type, witnessCheckPathState);
+  // the equals method is deliberately not implemented like this
+  public boolean isEqualTo(BlockState that) {
+    return this == that
+        || (Objects.equals(node, that.node)
+            && Objects.equals(witnessCheckPathState, that.witnessCheckPathState)
+            && type == that.type
+            && blockNode == that.getBlockNode());
   }
 
   @Override
@@ -208,5 +213,15 @@ public class BlockState
     return !violationConditions.isEmpty()
         && node.equals(blockNode.getViolationConditionLocation())
         && blockNode.getViolationConditionLocation() != blockNode.getFinalLocation();
+  }
+
+  @Override
+  public String toDOTLabel() {
+    return "";
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return type == BlockStateType.FINAL;
   }
 }

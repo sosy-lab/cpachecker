@@ -50,6 +50,7 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
     if (!trackHistory) {
       return Optional.of(
           new BlockState(
+              null,
               topMost.getLocationNode(),
               topMost.getBlockNode(),
               topMost.getType(),
@@ -65,6 +66,7 @@ public class BlockViolationConditionOperator implements ViolationConditionOperat
             .orElse(ImmutableList.of());
     BlockState withHistory =
         new BlockState(
+            null,
             topMost.getLocationNode(),
             topMost.getBlockNode(),
             topMost.getType(),

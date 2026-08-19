@@ -57,13 +57,13 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
 
   PathBasedPreconditionHandler(DssBlockAnalysis pAnalysis) throws InterruptedException {
     analysis = pAnalysis;
-    resetPrecisionsForEveryRun = pAnalysis.getOptions().resetPrecisionsForEveryRun();
+    resetPrecisionsForEveryRun = pAnalysis.getOptions().doResetPrecisionsForEveryRun();
     unifiedPrecision = pAnalysis.makeStartPrecision();
 
     for (String predecessorId : pAnalysis.getBlock().getPredecessorIds()) {
       preconditions.put(
           BlockGraphPath.of(predecessorId),
-          new StateAndPrecision(pAnalysis.makeStartState(), pAnalysis.makeStartPrecision()));
+          new StateAndPrecision(pAnalysis.makeStartState(false), pAnalysis.makeStartPrecision()));
     }
   }
 
@@ -71,7 +71,8 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
   public Collection<DssMessage> runInitialAnalysis()
       throws CPAException, InterruptedException, SolverException {
     DssBlockAnalysisResult result =
-        analysis.runInitialBlockAnalysis(analysis.makeStartState(), analysis.makeStartPrecision());
+        analysis.runInitialBlockAnalysis(
+            analysis.makeStartState(false), analysis.makeStartPrecision());
 
     ImmutableList.Builder<DssMessage> initialMessages = ImmutableList.builder();
     if (!result.getFinalLocationStates().isEmpty()) {

@@ -11,12 +11,15 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import java.util.Collection;
 import java.util.List;
@@ -25,6 +28,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.logging.Level;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.common.ShutdownManager;
@@ -52,6 +56,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DistributedCallstackCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
@@ -258,7 +263,7 @@ public final class DssBlockAnalysis {
    * @return Whether the analysis should proceed.
    */
   public DssMessageProcessing storeViolationCondition(DssViolationConditionMessage pReceived)
-      throws InterruptedException, SolverException {
+      throws InterruptedException, SolverException, CPAException {
     DssMessageProcessing processing = violationConditionHandler.store(pReceived);
     if (processing.shouldProceed()) {
       preconditions.violationConditionsChanged();
@@ -289,12 +294,25 @@ public final class DssBlockAnalysis {
     return workerStats;
   }
 
-  AbstractState makeTopState(CFANode pLocation) throws InterruptedException {
+  /** The most general state at the given location, i.e., the one that constrains nothing. */
+  private AbstractState makeTopState(CFANode pLocation) throws InterruptedException {
     return dcpa.getInitialState(pLocation, StateSpacePartition.getDefaultPartition());
   }
 
-  AbstractState makeStartState() throws InterruptedException {
-    AbstractState state = makeTopState(block.getInitialLocation());
+  /**
+   * The unconstrained state at the block entry, with this block already recorded in its history.
+   *
+   * @param ignoreCallstackIfAvailable whether the callstack CPA may ignore its transfer while the
+   *     state is built, so that the block entry is not tied to one call context
+   */
+  AbstractState makeStartState(boolean ignoreCallstackIfAvailable) throws InterruptedException {
+    AbstractState state;
+    disableCallstackIfAvailable(ignoreCallstackIfAvailable);
+    try {
+      state = makeTopState(block.getInitialLocation());
+    } finally {
+      disableCallstackIfAvailable(false);
+    }
     blockStateOf(state).addHistory(block);
     return state;
   }
@@ -375,6 +393,64 @@ public final class DssBlockAnalysis {
     return covered;
   }
 
+  /**
+   * Removes duplicates from the given states and precisions, i.e., the returned list contains
+   * exactly one representative of every class of {@link StateAndPrecision} whose states are equal
+   * according to {@link CoverageOperator#areStatesEqual}.
+   *
+   * <p>Only the states decide whether two entries are duplicates. The precision of a discarded
+   * entry is lost, so the caller has to combine the precisions beforehand (see {@link
+   * #combinePrecisions(Precision, Collection)}) if all of them have to be kept.
+   *
+   * @param pStatesAndPrecisions The states and precisions to deduplicate.
+   * @return The first entry of every class of equal states, in the order of {@code
+   *     pStatesAndPrecisions}.
+   */
+  ImmutableList<StateAndPrecision> deduplicateStatesAndPrecisions(
+      Iterable<@NonNull StateAndPrecision> pStatesAndPrecisions)
+      throws CPAException, InterruptedException {
+    return deduplicate(pStatesAndPrecisions, StateAndPrecision::state);
+  }
+
+  /**
+   * Removes all elements whose state is equal to the state of an earlier element, according to
+   * {@link CoverageOperator#areStatesEqual}.
+   *
+   * <p>Equal states are at the same program point and, thus, have the same program-point hash. The
+   * elements are therefore grouped by that hash first, and only elements within the same group are
+   * compared with the (potentially expensive) coverage operator.
+   *
+   * @param pElements The elements to deduplicate.
+   * @param pStateOf Extracts the state that identifies an element.
+   * @return The first element of every class of equal states, in the order of {@code pElements}.
+   */
+  private <T> ImmutableList<T> deduplicate(
+      Iterable<@NonNull T> pElements, Function<T, AbstractState> pStateOf)
+      throws CPAException, InterruptedException {
+    CoverageOperator coverage = dcpa.getCoverageOperator();
+    ListMultimap<Integer, AbstractState> representativesPerProgramPoint =
+        ArrayListMultimap.create();
+    ImmutableList.Builder<T> deduplicated = ImmutableList.builder();
+    for (T element : pElements) {
+      AbstractState state = pStateOf.apply(element);
+      List<AbstractState> representatives =
+          representativesPerProgramPoint.get(dcpa.computeProgramPointHash(state));
+      boolean isDuplicate = false;
+      for (AbstractState representative : representatives) {
+        if (state == representative || coverage.areStatesEqual(state, representative)) {
+          isDuplicate = true;
+          break;
+        }
+      }
+      if (!isDuplicate) {
+        // ArrayListMultimap#get returns a view that writes through to the multimap.
+        representatives.add(state);
+        deduplicated.add(element);
+      }
+    }
+    return deduplicated.build();
+  }
+
   /** Whether every state in {@code pStates} is covered by some state in {@code pCandidates}. */
   boolean allCovered(
       Collection<@NonNull StateAndPrecision> pStates,
@@ -439,6 +515,19 @@ public final class DssBlockAnalysis {
   }
 
   /**
+   * Reports that the end of this block is unreachable, so successors must not be entered through
+   * it.
+   *
+   * <p>Successors recognize this from a flag on the message rather than from the states it carries,
+   * which keeps a genuine top postcondition (see {@link #makeTopState}) distinguishable from an
+   * unreachable block end.
+   */
+  Collection<DssMessage> reportUnreachableBlockEnd() {
+    return ImmutableList.of(
+        messageFactory.createDssUnreachableBlockEndMessage(block.getId(), status));
+  }
+
+  /**
    * Reports violations that originate in this block and records that this block is known to contain
    * a violation.
    */
@@ -458,13 +547,15 @@ public final class DssBlockAnalysis {
           dcpa.getViolationConditionOperator()
               .computeViolationCondition(
                   pathAndCondition.path(), Optional.ofNullable(pathAndCondition.condition()));
-      if (violationCondition.isPresent()) {
-        statePerProgramCounterBuilder.put(
-            Objects.hash(
-                pathAndCondition.condition(),
-                dcpa.computeProgramPointHash(violationCondition.orElseThrow())),
-            violationCondition.orElseThrow());
-      }
+      Preconditions.checkState(
+          violationCondition.isPresent(),
+          "The analysis found a feasible counterexample "
+              + "which could not be reestablished with the violation-condition operator.");
+      statePerProgramCounterBuilder.put(
+          Objects.hash(
+              pathAndCondition.condition(),
+              dcpa.computeProgramPointHash(violationCondition.orElseThrow())),
+          violationCondition.orElseThrow());
     }
     ImmutableListMultimap<Integer, AbstractState> statePerProgramCounter =
         statePerProgramCounterBuilder.build();
@@ -580,7 +671,7 @@ public final class DssBlockAnalysis {
     return preconditions;
   }
 
-  BlockNode getBlock() {
+  public BlockNode getBlock() {
     return block;
   }
 
@@ -615,7 +706,7 @@ public final class DssBlockAnalysis {
     return statesAndPrecisions.build();
   }
 
-  void setIgnoreCallstack(boolean ignoreCallstack) {
+  private void disableCallstackIfAvailable(boolean ignoreCallstack) {
     Optional.ofNullable(CPAs.retrieveCPA(dcpa, DistributedCallstackCPA.class))
         .ifPresent(c -> c.setIgnoreTransfer(ignoreCallstack));
   }

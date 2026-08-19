@@ -8,8 +8,20 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
+import static com.google.common.base.Preconditions.checkState;
+
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
+import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
+import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -20,9 +32,24 @@ import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class DssBlockAnalyses {
+public final class DssBlockAnalyses {
 
   private DssBlockAnalyses() {}
+
+  private static List<AbstractState> extractBlockStatesAtGhostLocation(ReachedSet pAbstractStates) {
+    return FluentIterable.from(pAbstractStates)
+        .filter(
+            a ->
+                AbstractStates.extractStateByType(a, BlockState.class).getType()
+                    == BlockStateType.ABSTRACTION)
+        .toList();
+  }
+
+  private static Multimap<BlockState, AbstractState> sortGhostStatesByPredecessor(
+      List<AbstractState> states) {
+    return Multimaps.index(
+        states, a -> AbstractStates.extractStateByType(a, BlockState.class).getPredecessor());
+  }
 
   /**
    * Analyze the code block until all target states in this block are found. Block entry points
@@ -38,12 +65,67 @@ public class DssBlockAnalyses {
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
     // find all target states in block, except target states that are only reachable from another
     // target state
+    Multimap<BlockState, AbstractState> previousConditions = ArrayListMultimap.create();
     while (pReachedSet.hasWaitingState()) {
       status = status.update(pAlgorithm.run(pReachedSet));
       AbstractStates.getTargetStates(pReachedSet).forEach(pReachedSet::removeOnlyFromWaitlist);
+      ImmutableMap<BlockState, AbstractState> blockStateToState =
+          Maps.uniqueIndex(
+              pReachedSet, a -> AbstractStates.extractStateByType(a, BlockState.class));
+      Multimap<BlockState, AbstractState> predecessorToStates =
+          sortGhostStatesByPredecessor(extractBlockStatesAtGhostLocation(pReachedSet));
+      for (BlockState blockState : predecessorToStates.keySet()) {
+        checkState(blockState.getType() == BlockStateType.FINAL);
+        advanceViolationConditions(
+            blockState,
+            predecessorToStates.get(blockState),
+            blockStateToState.get(blockState),
+            previousConditions,
+            pReachedSet);
+      }
     }
 
     return new DssBlockAnalysisResult(pReachedSet, status);
+  }
+
+  /**
+   * Narrows the violation conditions of one block-end state to those not yet processed and decides
+   * whether that state still has to be explored.
+   *
+   * <p>The state is taken off the waitlist once no condition is left to process, or once the
+   * remaining conditions repeat what the previous round already left over, i.e. the analysis of
+   * this block end no longer makes progress.
+   */
+  private static void advanceViolationConditions(
+      BlockState pBlockState,
+      Collection<AbstractState> pStatesAtGhostLocation,
+      AbstractState pStateInReachedSet,
+      Multimap<BlockState, AbstractState> pPreviousConditions,
+      ReachedSet pReachedSet) {
+    ImmutableSet<? extends @NonNull AbstractState> processedViolationConditions =
+        FluentIterable.from(pStatesAtGhostLocation)
+            .transformAndConcat(
+                a ->
+                    AbstractStates.extractStateByType(a, BlockState.class).getViolationConditions())
+            .toSet();
+    ImmutableList.Builder<AbstractState> remainingBuilder = ImmutableList.builder();
+    for (AbstractState violationCondition : pBlockState.getViolationConditions()) {
+      if (!processedViolationConditions.contains(violationCondition)) {
+        remainingBuilder.add(violationCondition);
+      }
+    }
+    ImmutableList<AbstractState> remainingConditions = remainingBuilder.build();
+
+    Collection<AbstractState> previous = pPreviousConditions.removeAll(pBlockState);
+    if (ImmutableSet.copyOf(previous).equals(ImmutableSet.copyOf(remainingConditions))) {
+      pReachedSet.removeOnlyFromWaitlist(pStateInReachedSet);
+      return;
+    }
+    pPreviousConditions.putAll(pBlockState, remainingConditions);
+    if (remainingConditions.isEmpty()) {
+      pReachedSet.removeOnlyFromWaitlist(pStateInReachedSet);
+    }
+    pBlockState.setViolationConditions(remainingConditions);
   }
 
   static class DssBlockAnalysisResult {

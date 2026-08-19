@@ -41,6 +41,7 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
     ParseResult parsed = parseWitness(content);
     Preconditions.checkNotNull(parsed.serializedBlockState);
     return new BlockState(
+        null,
         DeserializeOperator.startLocationFromMessageType(pMessage, blockNode),
         blockNode,
         BlockStateType.INITIAL,
