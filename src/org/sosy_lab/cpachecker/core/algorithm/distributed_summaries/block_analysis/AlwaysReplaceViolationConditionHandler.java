@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
-
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import java.util.logging.Level;

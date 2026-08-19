@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
+import com.google.common.collect.ImmutableList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,17 +23,27 @@ public class DssThreadMonitor extends Thread {
 
   private final List<Thread> threadsToMonitor;
   private final DssConnection connection;
+  private final ImmutableList<DssConnection> monitoredConnections;
   private final DssMessageFactory messageFactory;
 
   public static final Set<String> active = ConcurrentHashMap.newKeySet();
 
+  /**
+   * @param pThreadsToMonitor the threads of all monitored actors
+   * @param pMessageFactory factory for the result message
+   * @param pConnection the connection to broadcast the result on
+   * @param pMonitoredConnections the connections of all monitored actors, whose queues have to be
+   *     empty before quiescence may be interpreted as a proof
+   */
   public DssThreadMonitor(
-      List<Thread> pThreadsToMonitor,
+      ImmutableList<Thread> pThreadsToMonitor,
       DssMessageFactory pMessageFactory,
-      DssConnection pConnection) {
+      DssConnection pConnection,
+      Collection<DssConnection> pMonitoredConnections) {
     super(THREAD_NAME);
     threadsToMonitor = pThreadsToMonitor;
     connection = pConnection;
+    monitoredConnections = ImmutableList.copyOf(pMonitoredConnections);
     messageFactory = pMessageFactory;
   }
 
@@ -53,7 +65,13 @@ public class DssThreadMonitor extends Thread {
                       t.getState() == Thread.State.WAITING
                           || t.getState() == Thread.State.TIMED_WAITING);
 
-      if (allWaiting && connection.getBroadcaster().isEmpty() && active.isEmpty()) {
+      boolean noMessageWaitingToBeProcessed =
+          monitoredConnections.stream().noneMatch(DssConnection::hasPendingMessages);
+
+      if (allWaiting
+          && noMessageWaitingToBeProcessed
+          && connection.getBroadcaster().isEmpty()
+          && active.isEmpty()) {
         connection
             .getBroadcaster()
             .broadcastToAll(messageFactory.createDssResultMessage(THREAD_NAME, Result.TRUE));
