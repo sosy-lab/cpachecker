@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
@@ -347,14 +347,10 @@ public final class DssBlockAnalysis {
   }
 
   /** Combines the precisions of the received preconditions with the one used so far. */
-  Precision combinePrecisions(Precision pCurrent, Collection<@NonNull StateAndPrecision> pReceived)
+  Precision combinePrecisions(Collection<@NonNull StateAndPrecision> pReceived)
       throws InterruptedException {
     return dcpa.getCombinePrecisionOperator()
-        .combine(
-            ImmutableSet.<Precision>builder()
-                .addAll(transformedImmutableSetCopy(pReceived, StateAndPrecision::precision))
-                .add(pCurrent)
-                .build());
+        .combine(transformedImmutableListCopy(pReceived, StateAndPrecision::precision));
   }
 
   /**
@@ -400,7 +396,7 @@ public final class DssBlockAnalysis {
    *
    * <p>Only the states decide whether two entries are duplicates. The precision of a discarded
    * entry is lost, so the caller has to combine the precisions beforehand (see {@link
-   * #combinePrecisions(Precision, Collection)}) if all of them have to be kept.
+   * #combinePrecisions(Collection)}) if all of them have to be kept.
    *
    * @param pStatesAndPrecisions The states and precisions to deduplicate.
    * @return The first entry of every class of equal states, in the order of {@code
