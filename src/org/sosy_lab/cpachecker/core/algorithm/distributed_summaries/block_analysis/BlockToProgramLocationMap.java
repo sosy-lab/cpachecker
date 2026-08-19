@@ -82,7 +82,14 @@ public class BlockToProgramLocationMap {
 
   public boolean isAnyPredecessorTrulyEmpty() {
     return entriesPerKey.keySet().stream()
-        .anyMatch(p -> isEmpty(p) && !unreachablePredecessors.contains(p));
+        .anyMatch(
+            p ->
+                (isEmpty(p) && !unreachablePredecessors.contains(p))
+                    || getStatesForKey(p).stream()
+                        .allMatch(
+                            s ->
+                                DistributedCallstackCPA.allowsAllTransfers(
+                                    AbstractStates.extractStateByType(s, CallstackState.class))));
   }
 
   public boolean isEmpty() {

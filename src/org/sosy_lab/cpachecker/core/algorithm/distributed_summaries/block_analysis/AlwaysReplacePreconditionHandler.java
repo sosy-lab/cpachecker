@@ -9,17 +9,23 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.common.collect.Collections3.elementAndList;
 import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis.blockStateOf;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssDebugUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
@@ -228,31 +234,51 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
                 .getConditions()
                 .asMultimapByKey()));
 
-    ImmutableList.Builder<AnalysisResult> rounds = ImmutableList.builder();
+    Multimap<Integer, Integer> safeRuns = ArrayListMultimap.create();
+    Map<ImmutableList<Integer>, AnalysisResult> rounds = new LinkedHashMap<>();
     for (Integer conditionHash : conditionsPerLocation.keySet()) {
       ImmutableList<AbstractState> conditionsAtLocation = conditionsPerLocation.get(conditionHash);
       for (Integer locationHash : preconditions.getAllLocationHashes()) {
-        rounds.add(
+        AnalysisResult round =
             exploreFrom(
                 preconditions.getStatesPerLocation(locationHash),
                 conditionsAtLocation,
                 precisionOfAnalysis,
-                false));
-      }
-      if (preconditions.isEmpty() || preconditions.isAnyPredecessorTrulyEmpty()) {
-        // a predecessor that has not sent anything yet does not restrict the block entry, so
-        // explore speculatively from the unconstrained start state to find violations early
-        AnalysisResult topExploration =
-            exploreFrom(
-                ImmutableSet.of(analysis.makeStartState(true)),
-                conditionsAtLocation,
-                precisionOfAnalysis,
-                true);
-        Preconditions.checkState(topExploration.summaries().isEmpty());
-        rounds.add(topExploration);
+                false);
+        if (!round.summaries().isEmpty()) {
+          safeRuns.put(locationHash, conditionHash);
+        }
+        rounds.put(ImmutableList.of(locationHash, conditionHash), round);
       }
     }
-    return merge(rounds.build());
+    for (Integer preconditionLocationHash : safeRuns.keySet()) {
+      Collection<Integer> vcLocationHashes = safeRuns.get(preconditionLocationHash);
+      if (vcLocationHashes.size() > 1) {
+        vcLocationHashes.forEach(v -> rounds.remove(ImmutableList.of(preconditionLocationHash, v)));
+        AnalysisResult round =
+            exploreFrom(
+                preconditions.getStatesPerLocation(preconditionLocationHash),
+                FluentIterable.from(vcLocationHashes)
+                    .transformAndConcat(conditionsPerLocation::get)
+                    .toList(),
+                precisionOfAnalysis,
+                false);
+        rounds.put(elementAndList(preconditionLocationHash, vcLocationHashes), round);
+      }
+    }
+    if (preconditions.isEmpty() || preconditions.isAnyPredecessorTrulyEmpty()) {
+      // a predecessor that has not sent anything yet does not restrict the block entry, so
+      // explore speculatively from the unconstrained start state to find violations early
+      AnalysisResult topExploration =
+          exploreFrom(
+              ImmutableSet.of(analysis.makeStartState(true)),
+              analysis.getViolationConditionHandler().statesOf(Optional.empty()),
+              precisionOfAnalysis,
+              true);
+      Preconditions.checkState(topExploration.summaries().isEmpty());
+      rounds.put(ImmutableList.of(), topExploration);
+    }
+    return merge(rounds.values());
   }
 
   /**
@@ -304,8 +330,8 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
       }
     }
 
-    ImmutableSet<StateAndPrecision> finalSummaries = summaries.build();
-    ImmutableSet<ArgPathAndCondition> finalViolations = violations.build();
+    Set<StateAndPrecision> finalSummaries = summaries.build();
+    Set<ArgPathAndCondition> finalViolations = violations.build();
 
     if (finalViolations.isEmpty() && finalSummaries.isEmpty()) {
       // the exploration produced no state at the final location
@@ -323,7 +349,7 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
       return AnalysisResult.empty();
     }
 
-    ImmutableSet<AbstractState> violationsToConsider =
+    Set<AbstractState> violationsToConsider =
         FluentIterable.from(finalSummaries)
             .transform(sap -> blockStateOf(sap.state()))
             .filter(b -> !b.getHinderedByCallstack().isEmpty())
@@ -331,11 +357,13 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
             .toSet();
 
     if (!violationsToConsider.isEmpty() && !pDiscardSummaries) {
-      AnalysisResult extension =
-          exploreFrom(
-              ImmutableSet.of(analysis.makeStartState(true)), violationConditions, precision, true);
       finalViolations =
-          FluentIterable.concat(finalViolations, extension.violationConditions()).toSet();
+          exploreFrom(
+                  ImmutableSet.of(analysis.makeStartState(true)),
+                  violationConditions,
+                  precision,
+                  true)
+              .violationConditions();
     }
 
     return new AnalysisResult(finalSummaries, finalViolations, false);
