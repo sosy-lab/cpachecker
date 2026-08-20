@@ -230,6 +230,10 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     if (isRecursiveContext) { // external CPA has seen recursion
       return true;
     }
+    if (options.getRecursionBoundDepth() < 0) {
+      // recursion is not bounded, so it never needs to be reported
+      return false;
+    }
     // iterate through the current stack and search for an equal name
     CallstackState e = pCurrentState;
     int counter = 0;

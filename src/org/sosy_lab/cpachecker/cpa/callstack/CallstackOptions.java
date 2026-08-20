@@ -31,7 +31,13 @@ class CallstackOptions {
           "__builtin_va_arg",
           "atexit");
 
-  @Option(secure = true, name = "depth", description = "depth of recursion bound")
+  @Option(
+      secure = true,
+      name = "depth",
+      description =
+          "depth of recursion bound, i.e., how often a function may appear on the call stack"
+              + " in addition to its first occurrence. Negative values mean that recursion is"
+              + " not bounded at all.")
   private int recursionBoundDepth = 0;
 
   @Option(

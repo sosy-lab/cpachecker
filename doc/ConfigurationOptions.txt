@@ -2041,7 +2041,9 @@ cpa.bdd.variablesFile = "BDDCPA_ordered_variables.txt"
 # whether to travel over the ghost edge
 cpa.block.transfer.standardVcs = true
 
-# depth of recursion bound
+# depth of recursion bound, i.e., how often a function may appear on the call
+# stack in addition to its first occurrence. Negative values mean that
+# recursion is not bounded at all.
 cpa.callstack.depth = 0
 
 # which abstract domain to use for callstack cpa, typically FLAT which is
