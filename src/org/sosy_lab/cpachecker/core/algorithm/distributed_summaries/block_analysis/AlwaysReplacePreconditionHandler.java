@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.common.collect.Collections3.elementAndList;
 import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis.blockStateOf;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -27,7 +26,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.jspecify.annotations.NonNull;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssDebugUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -222,17 +220,9 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
     }
 
     Precision precisionOfAnalysis =
-        analysis.getOptions().doResetPrecisionsForEveryRun() || preconditions.isEmpty()
+        preconditions.isEmpty()
             ? analysis.makeStartPrecision()
             : analysis.combinePrecisions(preconditions.getStatesAndPrecisions());
-
-    System.out.println(
-        DssDebugUtils.prettyPrintPredicateAnalysisBlock(
-            analysis.getBlock(),
-            preconditions.asMultimapByKey(),
-            ((AlwaysReplaceViolationConditionHandler) analysis.getViolationConditionHandler())
-                .getConditions()
-                .asMultimapByKey()));
 
     Multimap<Integer, Integer> safeRuns = ArrayListMultimap.create();
     Map<ImmutableList<Integer>, AnalysisResult> rounds = new LinkedHashMap<>();
@@ -274,8 +264,7 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
               ImmutableSet.of(analysis.makeStartState(true)),
               analysis.getViolationConditionHandler().statesOf(Optional.empty()),
               precisionOfAnalysis,
-              true);
-      Preconditions.checkState(topExploration.summaries().isEmpty());
+              false);
       rounds.put(ImmutableList.of(), topExploration);
     }
     return merge(rounds.values());
