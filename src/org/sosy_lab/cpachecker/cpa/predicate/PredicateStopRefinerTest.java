@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import org.junit.Before;
@@ -33,6 +34,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.Delegat
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.HeuristicDelegatingRefinerRecord;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
@@ -59,6 +61,7 @@ public class PredicateStopRefinerTest {
         TestUtils.configurationForTest()
             .setOption("cegar.refiner", "cpa.predicate.PredicateDelegatingRefiner")
             .setOption("analysis.reachedSet.trackChanges", "true")
+            .setOption("cpa.predicate.delegatingRefinerHeuristics.RunRefinerNTimes.numberRuns", "2")
             .build();
     cfa =
         TestCfaUtils.toSingleFunctionCFA(
@@ -86,46 +89,6 @@ public class PredicateStopRefinerTest {
   }
 
   /**
-   * * This test checks that the termination signal in PredicateDelegatingRefiner is correctly *
-   * switched when StopRefiner is called and persists.
-   */
-  @Test
-  public void checkTerminationSignalReceivedInDelegatingRefiner()
-      throws CPAException, InterruptedException, InvalidConfigurationException {
-    ImmutableList<HeuristicDelegatingRefinerRecord> refinerRecords =
-        ImmutableList.of(
-            new HeuristicDelegatingRefinerRecord(
-                new DelegatingRefinerHeuristicRunRefinerNTimes(config, logger), new DummyRefiner()),
-            new HeuristicDelegatingRefinerRecord(
-                (pReached, pDeltas) -> true, new PredicateStopRefiner()),
-            new HeuristicDelegatingRefinerRecord(
-                new DelegatingRefinerHeuristicRunRefinerNTimes(config, logger),
-                new DummyRefiner()));
-    PredicateDelegatingRefiner delegatingRefiner =
-        new PredicateDelegatingRefiner(logger, refinerRecords);
-
-    // Refinement with first DummyRefiner - DummyRefiner is called once
-    boolean dummyRefinerResult = delegatingRefiner.performRefinement(reachedSet);
-    DummyRefiner firstDummyRefiner = (DummyRefiner) refinerRecords.getFirst().pRefiner();
-    assertThat(firstDummyRefiner.callsToRefiner).isEqualTo(1);
-    assertThat(dummyRefinerResult).isTrue();
-    assertThat(delegatingRefiner.shouldTerminateRefinement()).isFalse();
-
-    // Refinement with StopRefiner - termination signal is switched
-    boolean stopRefinerResult = delegatingRefiner.performRefinement(reachedSet);
-    assertThat(stopRefinerResult).isTrue();
-    assertThat(delegatingRefiner.shouldTerminateRefinement()).isTrue();
-
-    // Refinement with second DummyRefiner - termination signal persists - DummyRefiner is never
-    // called
-    boolean secondDummyRefinerResult = delegatingRefiner.performRefinement(reachedSet);
-    DummyRefiner secondDummyRefiner = (DummyRefiner) refinerRecords.getLast().pRefiner();
-    assertThat(secondDummyRefinerResult).isTrue();
-    assertThat(delegatingRefiner.shouldTerminateRefinement()).isTrue();
-    assertThat(secondDummyRefiner.callsToRefiner).isEqualTo(0);
-  }
-
-  /**
    * * This test checks that the StopRefiner's early termination signal is received in CEGAR and no
    * further runs in CEGAR are executed.
    */
@@ -150,15 +113,14 @@ public class PredicateStopRefinerTest {
     boolean dummyRefinerResult = delegatingRefiner.performRefinement(reachedSet);
     cegarAlgorithm.run(reachedSet);
     assertThat(dummyRefinerResult).isTrue();
-    assertThat(delegatingRefiner.shouldTerminateRefinement()).isFalse();
     assertThat(countCallsToAlgorithmInCEGAR.runCount).isEqualTo(1);
 
-    // StopRefiner runs - countCallsToAlgorithmInCEGAR Algorithms remains at 1 because algorithm is
-    // not called again
-    boolean stopRefinerResult = delegatingRefiner.performRefinement(reachedSet);
-    cegarAlgorithm.run(reachedSet);
-    assertThat(stopRefinerResult).isTrue();
-    assertThat(delegatingRefiner.shouldTerminateRefinement()).isTrue();
+    // StopRefiner is invoked - it throws RefinementFailedException to signal CEGAR
+    // to stop verification. countCallsToAlgorithmInCEGAR remains at 1 because
+    // the algorithm is never invoked again.
+    assertThrows(
+        RefinementFailedException.class, () -> delegatingRefiner.performRefinement(reachedSet));
+    assertThat(countCallsToAlgorithmInCEGAR.runCount).isEqualTo(1);
   }
 
   /**
@@ -166,8 +128,7 @@ public class PredicateStopRefinerTest {
    * termination immediately.
    */
   @Test
-  public void checkOnlyStopRefinerInDelegatingRefiner()
-      throws CPAException, InterruptedException, InvalidConfigurationException {
+  public void checkOnlyStopRefinerInDelegatingRefiner() {
     ImmutableList<HeuristicDelegatingRefinerRecord> stopOnly =
         ImmutableList.of(
             new HeuristicDelegatingRefinerRecord(
@@ -178,16 +139,12 @@ public class PredicateStopRefinerTest {
 
     countCallsToAlgorithmInCEGAR = new DummyAlgorithm(stopOnlyDelegatingRefiner);
 
-    CEGARAlgorithm stopCegarAlgorithm =
-        new CEGARAlgorithmFactory(
-                countCallsToAlgorithmInCEGAR, argCpa, logger, config, shutdownNotifier)
-            .newInstance();
-
-    // When StopRefiner is called as first refiner, the algorithm's run() method is never executed
-    boolean stopRefinerResult = stopOnlyDelegatingRefiner.performRefinement(reachedSet);
-    stopCegarAlgorithm.run(reachedSet);
-    assertThat(stopRefinerResult).isTrue();
-    assertThat(stopOnlyDelegatingRefiner.shouldTerminateRefinement()).isTrue();
+    // When StopRefiner is called as the first and only refiner, it throws
+    // RefinementFailedException immediately, and the algorithm's run() method
+    // is never executed.
+    assertThrows(
+        RefinementFailedException.class,
+        () -> stopOnlyDelegatingRefiner.performRefinement(reachedSet));
     assertThat(countCallsToAlgorithmInCEGAR.runCount).isEqualTo(0);
   }
 
@@ -204,7 +161,7 @@ public class PredicateStopRefinerTest {
 
     @Override
     public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
-      if (!refiner.shouldTerminateRefinement()) {
+      if (refiner.performRefinement(reachedSet)) {
         runCount++;
       }
       return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -214,11 +171,9 @@ public class PredicateStopRefinerTest {
   // A dummy refiner to serve as Refiner instance in the StopRefinerTests that tracks the number of
   // times it was called.
   private static class DummyRefiner implements Refiner {
-    int callsToRefiner = 0;
 
     @Override
     public boolean performRefinement(ReachedSet pReached) {
-      callsToRefiner++;
       return true;
     }
   }

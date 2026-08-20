@@ -38,16 +38,4 @@ public interface Refiner {
         ConfigurableProgramAnalysis cpa, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
         throws InvalidConfigurationException;
   }
-
-  /**
-   * Indicates if refinement should terminate early. This method provides the
-   * PredicateDelegatingRefiner to signal that no further refinement should be done. By default,
-   * this method returns {@code false}, signaling refinement can continue. It may be overridden by
-   * Refiners to {@code true} if a stop condition has been reached.
-   *
-   * @return {@code true} if refinement should stop early, {@code false} otherwise.
-   */
-  default boolean shouldTerminateRefinement() {
-    return false;
-  }
 }

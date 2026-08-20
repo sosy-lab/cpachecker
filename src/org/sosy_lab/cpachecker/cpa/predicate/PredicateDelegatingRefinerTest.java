@@ -542,10 +542,5 @@ public class PredicateDelegatingRefinerTest {
         throws CPAException, InterruptedException {
       return false;
     }
-
-    @Override
-    public boolean shouldTerminateRefinement() {
-      return true;
-    }
   }
 }

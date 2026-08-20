@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 
 /**
  * A refiner that's sole job is to stop the refinement and end the verification run. It is not
@@ -28,18 +30,7 @@ public class PredicateStopRefiner implements Refiner {
    * @return {@code true} as no refinement was performed, but also no error was found
    */
   @Override
-  public boolean performRefinement(ReachedSet pReached) {
-    return true;
-  }
-
-  /**
-   * Overrides the default value of {@code false} in the Refiner interface with {@code true} to
-   * signal a desired early termination.
-   *
-   * @return always returns {@code true}
-   */
-  @Override
-  public boolean shouldTerminateRefinement() {
-    return true;
+  public boolean performRefinement(ReachedSet pReached) throws RefinementFailedException {
+    throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
   }
 }

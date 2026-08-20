@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.util.CPAs;
 public class PredicateDelegatingRefiner implements Refiner {
   private final ImmutableList<HeuristicDelegatingRefinerRecord> heuristicRefinerRecords;
   private final LogManager logger;
-  private boolean shouldTerminateRefinement = false;
   private final ImmutableList.Builder<ReachedSetDelta> deltaSequenceBuilder =
       ImmutableList.builder();
 
@@ -118,21 +117,9 @@ public class PredicateDelegatingRefiner implements Refiner {
             pHeuristic.getClass().getSimpleName(),
             pRecord.pRefiner().getClass().getSimpleName());
         Refiner refiner = pRecord.pRefiner();
-        shouldTerminateRefinement = refiner.shouldTerminateRefinement();
         return refiner.performRefinement(trackingForwardingReachedSet);
       }
     }
     throw new CPAException("No heuristic matched for refinement.");
-  }
-
-  /**
-   * Termination signal used to signal CEGAR to terminate refinement early if all heuristics
-   * indicate divergence
-   *
-   * @return {@code true}, if refinement should terminate, {@code false} otherwise
-   */
-  @Override
-  public boolean shouldTerminateRefinement() {
-    return shouldTerminateRefinement;
   }
 }
