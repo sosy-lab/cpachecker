@@ -31,7 +31,7 @@ public class BMCAlgorithmIntegrationTest {
 
   private Configuration getConfiguration() throws IOException, InvalidConfigurationException {
     return TestUtils.configurationForTest()
-        .loadFromFile(Path.of("config/bmc-rec.properties"))
+        .loadFromFile(Path.of("test/config/bmc-rec.properties"))
         .build();
   }
 
