@@ -23,7 +23,6 @@ import org.sosy_lab.java_smt.api.SolverException;
  * seen enough of them to stop, and re-explores the block from those it considers relevant.
  *
  * @see AlwaysReplacePreconditionHandler
- * @see PathBasedPreconditionHandler
  */
 interface DssPreconditionHandler {
 
