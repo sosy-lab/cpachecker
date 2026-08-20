@@ -260,6 +260,21 @@ public abstract class DssMessage {
         this);
   }
 
+  public final DssMessagePayload asJsonPayloadWithIdentifier(int pIdentifier) {
+    ImmutableMap<String, String> header =
+        ImmutableMap.<String, String>builder()
+            .put(DSS_MESSAGE_HEADER_SENDER_ID_KEY, getSenderId())
+            .put(DSS_MESSAGE_HEADER_TYPE_KEY, getType().name())
+            .put(
+                DSS_MESSAGE_HEADER_TIMESTAMP_KEY,
+                Long.toString(
+                    getTimestamp().getEpochSecond() * 1_000_000_000L + getTimestamp().getNano()))
+            .put(DSS_MESSAGE_HEADER_IDENTIFIER_KEY, Integer.toString(pIdentifier))
+            .buildOrThrow();
+
+    return new DssMessagePayload(header, content);
+  }
+
   /**
    * Convert the message to a JSON representation with an identifier.
    *
@@ -271,19 +286,7 @@ public abstract class DssMessage {
   @SuppressWarnings("JavaInstantGetSecondsGetNano")
   public final ImmutableMap<String, ImmutableMap<String, String>> asJsonWithIdentifier(
       int pIdentifier) {
-    ImmutableMap.Builder<String, String> header =
-        ImmutableMap.<String, String>builder()
-            .put(DSS_MESSAGE_HEADER_SENDER_ID_KEY, getSenderId())
-            .put(DSS_MESSAGE_HEADER_TYPE_KEY, getType().name())
-            .put(
-                DSS_MESSAGE_HEADER_TIMESTAMP_KEY,
-                Long.toString(
-                    getTimestamp().getEpochSecond() * 1_000_000_000L + getTimestamp().getNano()))
-            .put(DSS_MESSAGE_HEADER_IDENTIFIER_KEY, Integer.toString(pIdentifier));
-    return ImmutableMap.<String, ImmutableMap<String, String>>builder()
-        .put(DSS_MESSAGE_HEADER_ID, header.buildOrThrow())
-        .put(DSS_MESSAGE_CONTENT_ID, content)
-        .buildOrThrow();
+    return asJsonPayloadWithIdentifier(pIdentifier).asLegacyMap();
   }
 
   public final ImmutableMap<String, ImmutableMap<String, String>> asJson() {
