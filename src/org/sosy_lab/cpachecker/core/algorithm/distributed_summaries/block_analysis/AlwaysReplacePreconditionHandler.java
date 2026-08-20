@@ -12,12 +12,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.common.collect.Collections3.elementAndList;
 import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis.blockStateOf;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import java.util.Collection;
@@ -142,7 +142,7 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
   @Override
   public Collection<DssMessage> analyze()
       throws SolverException, InterruptedException, CPAException {
-    Builder<DssMessage> messages = ImmutableSet.builder();
+    ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     AnalysisResult round = explore(false);
     if (!round.violationConditions().isEmpty()) {
       messages.addAll(analysis.reportViolationConditions(round.violationConditions()));
@@ -220,7 +220,7 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
     }
 
     Precision precisionOfAnalysis =
-        preconditions.isEmpty()
+        analysis.getOptions().doResetPrecisionsForEveryRun() || preconditions.isEmpty()
             ? analysis.makeStartPrecision()
             : analysis.combinePrecisions(preconditions.getStatesAndPrecisions());
 
@@ -264,7 +264,8 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
               ImmutableSet.of(analysis.makeStartState(true)),
               analysis.getViolationConditionHandler().statesOf(Optional.empty()),
               precisionOfAnalysis,
-              false);
+              true);
+      Preconditions.checkState(topExploration.summaries().isEmpty());
       rounds.put(ImmutableList.of(), topExploration);
     }
     return merge(rounds.values());

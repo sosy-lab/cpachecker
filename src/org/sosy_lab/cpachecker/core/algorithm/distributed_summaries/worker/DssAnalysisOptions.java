@@ -61,6 +61,14 @@ public class DssAnalysisOptions {
 
   @Option(
       description =
+          "Whether to reset the precision for each run of the analysis or to keep the transmitted"
+              + " one. The latter has disadvantages as unnecessary variables might be tracked due"
+              + " to a too precise precision.",
+      secure = true)
+  private boolean doResetPrecisionsForEveryRun = false;
+
+  @Option(
+      description =
           "Whether to reset callstack state before running a block analysis; usually used together "
               + "with the inlining decomposition",
       secure = true)
@@ -104,6 +112,10 @@ public class DssAnalysisOptions {
 
   public boolean isDebugModeEnabled() {
     return debug;
+  }
+
+  public boolean doResetPrecisionsForEveryRun() {
+    return doResetPrecisionsForEveryRun;
   }
 
   public Path getForwardConfiguration() {
