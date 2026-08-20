@@ -22,7 +22,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 public abstract class DssWorker implements DssActor {
 
   private final DssMessageFactory messageFactory;
-  private final LogManager logger;
+  protected final LogManager logger;
   private final String id;
 
   /**
@@ -72,6 +72,10 @@ public abstract class DssWorker implements DssActor {
     } finally {
       logger.logf(Level.INFO, "Worker %s finished and shuts down.", id);
     }
+  }
+
+  protected DssMessageFactory getMessageFactory() {
+    return messageFactory;
   }
 
   @Override
