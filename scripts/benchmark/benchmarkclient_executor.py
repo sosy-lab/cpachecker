@@ -36,8 +36,10 @@ def set_vcloud_jar_path(p):
 def init(config, benchmark):
     global _JustReprocessResults
     _JustReprocessResults = config.reprocessResults
+
     if not benchmark.rlimits.cputime_hard:
         sys.exit("A CPU-time limit is required when running on Cloud.")
+
     tool_locator = benchexec.tooladapter.create_tool_locator(config)
     benchmark.executable = benchmark.tool.executable(tool_locator)
     benchmark.tool_version = benchmark.tool.version(benchmark.executable)
@@ -311,7 +313,7 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
             outputDir,
         )
 
-    # Write worker host informations in xml
+    # Write worker host information in xml
     parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark)
 
     # write results in runs and handle output after all runs are done

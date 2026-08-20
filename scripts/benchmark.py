@@ -15,18 +15,19 @@ import os
 import subprocess
 import sys
 
+from benchmark import vcloudutil
+from benchmark.vcloudbenchmarkbase import VcloudBenchmarkBase
+
 sys.dont_write_bytecode = True  # prevent creation of .pyc files
 cpachecker_dir = os.path.join(os.path.dirname(__file__), os.pardir)
 for egg in glob.glob(os.path.join(cpachecker_dir, "lib", "python-benchmark", "*.whl")):
     sys.path.insert(0, egg)
 
-from benchmark.vcloudbenchmarkbase import VcloudBenchmarkBase  # noqa E402
-from benchexec import __version__
 import benchexec.benchexec
 import benchexec.model
 import benchexec.tooladapter
 import benchexec.util
-from benchmark import vcloudutil
+from benchexec import __version__
 
 _ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 
@@ -41,7 +42,7 @@ def download_required_jars():
     )
 
 
-class Benchmark(VcloudBenchmarkBase):
+class VcloudBenchmark(VcloudBenchmarkBase):
     """
     An extension of BenchExec for use with CPAchecker
     that supports executing the benchmarks in the VerifierCloud.
@@ -159,4 +160,4 @@ class Benchmark(VcloudBenchmarkBase):
 
 
 if __name__ == "__main__":
-    benchexec.benchexec.main(Benchmark())
+    benchexec.benchexec.main(VcloudBenchmark())
