@@ -35,8 +35,6 @@ public record DssMessageProxy(
     );
   }
 
-
-
   public ImmutableMap<String, ImmutableMap<String, String>> asLegacyMap() {
     return ImmutableMap.of(
         DssMessage.DSS_MESSAGE_HEADER_ID, header,

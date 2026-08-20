@@ -300,8 +300,8 @@ public abstract class DssMessage {
     DssMessageProxy proxy = mapper.readValue(pJson.toFile(), DssMessageProxy.class);
     ImmutableMap<String, ImmutableMap<String, String>> json =
         ImmutableMap.of(
-            DSS_MESSAGE_HEADER_ID, ImmutableMap.copyOf(proxy.getHeader()),
-            DSS_MESSAGE_CONTENT_ID, ImmutableMap.copyOf(proxy.getContent()));
+            DSS_MESSAGE_HEADER_ID, ImmutableMap.copyOf(proxy.header()),
+            DSS_MESSAGE_CONTENT_ID, ImmutableMap.copyOf(proxy.content()));
     return fromJson(json);
   }
 
