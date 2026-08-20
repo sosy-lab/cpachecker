@@ -413,8 +413,7 @@ public class InstrumentationPattern {
     if (pCFAEdge.getRawAST().isPresent()) {
       AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
       if (astNode instanceof CVariableDeclaration declaration) {
-        if (declaration.isGlobal()
-            || declaration.getType().toString().contains("*")
+        if (declaration.getType().toString().contains("*")
             || declaration.getType().toString().contains("[")
             || declaration.getName().contains("__CPAchecker_TMP")) {
           return null;
@@ -429,7 +428,7 @@ public class InstrumentationPattern {
     if (pCFAEdge.getRawAST().isPresent()) {
       AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
       if (astNode instanceof CVariableDeclaration declaration) {
-        if (declaration.isGlobal() || declaration.getName().contains("__CPAchecker_TMP")) {
+        if (declaration.getName().contains("__CPAchecker_TMP")) {
           return null;
         }
         if (declaration.getType().toString().contains("*")

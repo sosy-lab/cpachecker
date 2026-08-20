@@ -34,8 +34,11 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -44,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.instrumentation.InstrumentationAutomaton.InstrumentationProperty;
@@ -149,6 +153,9 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
         index += 1;
       }
     } else {
+      if (instrumentationProperty == InstrumentationProperty.MEMSAFETY) {
+        initializeEdgesWithGlobalVariables();
+      }
       mapNodesToLineNumbers = ImmutableMap.of(cfa.getMainFunction(), 0);
       ImmutableMap<String, String> variablesWithTypes =
           instrumentationProperty == InstrumentationProperty.DATA_RACE
@@ -433,6 +440,35 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     pWaitlist.add(Pair.of(node1, pTransition.getSource()));
     pWaitlist.add(Pair.of(node2, pTransition.getSource()));
     return true;
+  }
+
+  /**
+   * The declarations of global variables are not considered in the CFA starting from the main
+   * function entry node. For transformations like memory safety, this is important. Therefore, we
+   * have to add them in the beginning.
+   */
+  private void initializeEdgesWithGlobalVariables() {
+    CFANode mainNode = cfa.getMainFunction();
+    mainNode = getMainNodeAfterGlobal(mainNode);
+    FileLocation location = mainNode.getLeavingEdge(0).getFileLocation();
+    for (AVariableDeclaration decl : cfa.getAstCfaRelation().getGlobalVariables().orElseThrow()) {
+      CFANode dummy = CFANode.newDummyCFANode();
+      CFAEdge newEdge =
+          new CDeclarationEdge(decl.toASTString(), location, mainNode, dummy, (CDeclaration) decl);
+      mainNode.addLeavingEdge(newEdge);
+    }
+  }
+
+  /**
+   * If there are global variables, the real main node is a bit later than the first one. This
+   * function searches for the first node that follows 'Function start' edge.
+   */
+  private CFANode getMainNodeAfterGlobal(CFANode pCFANode) {
+    CFAEdge currentEdge = pCFANode.getLeavingEdge(0);
+    while (!currentEdge.getDescription().contains("Function start")) {
+      currentEdge = currentEdge.getSuccessor().getLeavingEdge(0);
+    }
+    return currentEdge.getSuccessor();
   }
 
   private void addEdgesAtTheLoopEnd(
