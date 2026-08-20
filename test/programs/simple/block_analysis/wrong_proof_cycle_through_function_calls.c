@@ -1,9 +1,10 @@
-// Minimal example: DSS reports TRUE although reach_error() is reachable.
-// Expected verdict: FALSE (the second reach_error() is unconditional).
-// kInduction and bmc-incremental both report FALSE; DSS reports TRUE.
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
 //
-// reach_error() must have a body: only then does it become its own block that is
-// entered by a call, which is what involves violation-condition propagation.
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
 
 extern int __VERIFIER_nondet_int(void);
 void reach_error(void) {}

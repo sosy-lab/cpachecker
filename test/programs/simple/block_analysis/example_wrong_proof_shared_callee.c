@@ -1,3 +1,15 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2011-2013 Alexander von Rhein, University of Passau 
+// SPDX-FileCopyrightText: 2011-2021 The SV-Benchmarks Community
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+//
+// Hand-condensed from product-lines/email*
+
 int getClientForwardReceiver(int handle ) 
 { int retValue_acc ;
   {
