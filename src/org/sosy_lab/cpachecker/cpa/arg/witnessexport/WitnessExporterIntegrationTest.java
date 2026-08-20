@@ -172,6 +172,8 @@ public class WitnessExporterIntegrationTest {
         .performTest();
   }
 
+  // Should probably be re-enabled after
+  // https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1659 is addressed
   @Test(timeout = 90000)
   @Ignore // The witness cannot be confirmed even though it seems to be correct
   public void countup_recursive_false() throws Exception {
