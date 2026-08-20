@@ -12,13 +12,13 @@ Python Style & Coding Guide
 ===========================
 
 For Python code in CPAchecker, we use [Ruff](https://github.com/astral-sh/ruff)
-as automatic code formatter.
-Install it with `pip3 install ruff` and run it with `ruff format`.
+as automatic code formatter and linter.
+Install it with `pipx install ruff` and run it with `ruff format`.
 
 We try to follow the official Python style guide
 [PEP8](https://www.python.org/dev/peps/pep-0008/).
 
-Please use `flake8` to check your code for warnings.
+Please also use `ruff check` to check your code for warnings.
 
 Tests are written as standard Python unit tests and can be executed with
 `python3 -m unittest discover scripts`.
