@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -18,6 +19,11 @@ import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestRe
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class BMCAlgorithmIntegrationTest {
+
+  @BeforeClass
+  public static void skipUnlessExtendedTestsEnabled() {
+    IntegrationTestRunner.skipUnlessExtendedTestsEnabled();
+  }
 
   private String getProgramPath(String programName) {
     return "test/programs/simple/recursion/" + programName;
