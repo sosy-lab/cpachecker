@@ -14,6 +14,7 @@ import com.google.common.collect.FluentIterable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.reachedset.DeltaTrackingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -43,7 +44,9 @@ public enum TargetLocationCandidateInvariant implements CandidateInvariant {
 
   @Override
   public void assumeTruth(ReachedSet pReachedSet) {
-    Iterable<AbstractState> targetStates = filterApplicable(pReachedSet).toList();
+    Iterable<AbstractState> scope =
+        pReachedSet instanceof DeltaTrackingReachedSet d ? d.getDelta() : pReachedSet;
+    Iterable<AbstractState> targetStates = filterApplicable(scope).toList();
     pReachedSet.removeAll(targetStates);
     for (ARGState s : from(targetStates).filter(ARGState.class)) {
       s.removeFromARG();
