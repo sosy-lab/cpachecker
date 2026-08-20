@@ -22,7 +22,7 @@ import java.io.Serial;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.EnumSet;
-import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageProperty;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.Property.CoverFunctionCallProperty;
+import org.sosy_lab.cpachecker.core.specification.Property.OtherLtlProperty;
 
 /**
  * A simple class that reads a property, i.e. basically an entry function and a proposition, from a
@@ -64,6 +65,9 @@ public class PropertyFileParser {
               + "|"
               + CFACreator.VALID_JAVA_FUNCTION_NAME_PATTERN
               + ")\\(\\)\\), LTL\\((.+)\\) \\)");
+
+  private static final Pattern SV_LIB_PROPERTY_PATTERN =
+      Pattern.compile("CHECK\\(annotations, (.+)\\)");
 
   private static final Pattern COVERAGE_PATTERN =
       Pattern.compile(
@@ -106,41 +110,59 @@ public class PropertyFileParser {
   }
 
   private Property parsePropertyLine(String rawProperty) throws InvalidPropertyFileException {
-    Matcher matcher = PROPERTY_PATTERN.matcher(rawProperty);
+    Matcher propertyMatcher = PROPERTY_PATTERN.matcher(rawProperty);
+    Matcher coverageMatcher = COVERAGE_PATTERN.matcher(rawProperty);
+    Matcher svLibPropertyMatcher = SV_LIB_PROPERTY_PATTERN.matcher(rawProperty);
 
     if (rawProperty == null) {
       throw new InvalidPropertyFileException("The property is not well-formed!");
     }
 
-    Map<String, ? extends Property> propStringToProperty = AVAILABLE_VERIFICATION_PROPERTIES;
+    if (propertyMatcher.matches() && propertyMatcher.groupCount() == 2) {
+      // handle the case that the property is a verification property
+      setEntryFunction(propertyMatcher.group(1));
 
-    if (!matcher.matches() || matcher.groupCount() != 2) {
-      matcher = COVERAGE_PATTERN.matcher(rawProperty);
-      if (!matcher.matches() || matcher.groupCount() != 2) {
+      String rawLtlProperty = propertyMatcher.group(2);
+      return Objects.requireNonNullElseGet(
+          AVAILABLE_VERIFICATION_PROPERTIES.get(rawLtlProperty),
+          () -> new OtherLtlProperty(rawLtlProperty));
+    } else if (coverageMatcher.matches() && coverageMatcher.groupCount() == 2) {
+      // Handle the case that the property is a coverage pattern
+      setEntryFunction(coverageMatcher.group(1));
+
+      return Objects.requireNonNullElseGet(
+          AVAILABLE_COVERAGE_PROPERTIES.get(coverageMatcher.group(2)),
+          () -> CoverFunctionCallProperty.getProperty(rawProperty));
+    } else if (svLibPropertyMatcher.matches() && svLibPropertyMatcher.groupCount() == 1) {
+      // Handle the case that it is an SV-LIB property
+      //
+      // No setting of the entry function is needed, since SV-LIB follows
+      // the `verify-call` commands as defined in the standard
+      String tagsToCheck = svLibPropertyMatcher.group(1);
+      if (tagsToCheck.equals("all")) {
+        return CommonVerificationProperty.CORRECT_ANNOTATIONS;
+      } else {
         throw new InvalidPropertyFileException(
-            String.format("The property '%s' is not well-formed!", rawProperty));
+            String.format(
+                "Only checking all annotations is currently supported "
+                    + "through the keyword 'all', but '%s' was specified.",
+                tagsToCheck));
       }
-      propStringToProperty = AVAILABLE_COVERAGE_PROPERTIES;
     }
 
+    throw new InvalidPropertyFileException(
+        String.format("The property '%s' is not well-formed!", rawProperty));
+  }
+
+  private void setEntryFunction(String pEntryFunction) throws InvalidPropertyFileException {
     if (entryFunction == null) {
-      entryFunction = matcher.group(1);
-    } else if (!entryFunction.equals(matcher.group(1))) {
+      entryFunction = pEntryFunction;
+    } else if (!entryFunction.equals(pEntryFunction)) {
       throw new InvalidPropertyFileException(
           String.format(
               "Specifying two different entry functions %s and %s is not supported.",
-              entryFunction, matcher.group(1)));
+              entryFunction, pEntryFunction));
     }
-
-    String rawLtlProperty = matcher.group(2);
-    Property property = propStringToProperty.get(rawLtlProperty);
-    if (property == null && propStringToProperty == AVAILABLE_VERIFICATION_PROPERTIES) {
-      property = new Property.OtherLtlProperty(rawLtlProperty);
-    }
-    if (property == null && propStringToProperty == AVAILABLE_COVERAGE_PROPERTIES) {
-      property = CoverFunctionCallProperty.getProperty(rawProperty);
-    }
-    return property;
   }
 
   public Optional<String> getEntryFunction() {

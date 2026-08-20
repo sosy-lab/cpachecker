@@ -14,6 +14,7 @@ import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import org.sosy_lab.common.collect.Collections3;
 
 public class ContentBuilder {
@@ -62,9 +63,9 @@ public class ContentBuilder {
    * @return this builder
    */
   @CanIgnoreReturnValue
-  public ContentBuilder putIf(boolean pCondition, String pKey, String pValue) {
+  public ContentBuilder putIf(boolean pCondition, String pKey, Supplier<String> pValue) {
     if (pCondition) {
-      return put(pKey, pValue);
+      return put(pKey, pValue.get());
     }
     return this;
   }

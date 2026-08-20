@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -46,7 +47,8 @@ public class BlockState
   private final BlockNode blockNode;
   private final ImmutableList<String> history;
   private List<? extends AbstractState> violationConditions;
-  private final ImmutableList<String> witness;
+  private final SegmentedPaths witness;
+  private boolean topSummaryFromNonTrivialState;
 
   public BlockState(
       CFANode pNode,
@@ -54,17 +56,27 @@ public class BlockState
       BlockStateType pType,
       List<? extends AbstractState> pViolationConditions,
       List<String> pHistory,
-      List<String> pWitness) {
+      SegmentedPaths pWitness,
+      boolean pTopSummaryFromNonTrivialState) {
     node = pNode;
     type = pType;
     blockNode = pTargetNode;
     violationConditions = ImmutableList.copyOf(pViolationConditions);
     history = ImmutableList.copyOf(pHistory);
-    witness = ImmutableList.copyOf(pWitness);
+    witness = pWitness;
+    topSummaryFromNonTrivialState = pTopSummaryFromNonTrivialState;
   }
 
-  public ImmutableList<String> getWitness() {
+  public void setTopSummaryFromNonTrivialState(boolean pStemsFromTopState) {
+    topSummaryFromNonTrivialState = pStemsFromTopState;
+  }
+
+  public SegmentedPaths getWitness() {
     return witness;
+  }
+
+  public boolean hasNonTrivialSummaryForEachPredecessor() {
+    return topSummaryFromNonTrivialState;
   }
 
   public ImmutableList<String> getHistory() {

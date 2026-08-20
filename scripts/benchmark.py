@@ -42,8 +42,9 @@ def download_required_jars():
     # install cloud and dependencies
     subprocess.run(
         ["ant", "resolve-benchmark-dependencies"],
+        check=False,  # to continue on download errors etc.
         cwd=_ROOT_DIR,
-        shell=vcloudutil.is_windows(),  # noqa: S602
+        shell=vcloudutil.is_windows(),
     )
 
 
@@ -95,7 +96,7 @@ class Benchmark(VcloudBenchmarkBase):
             help="The interval in seconds for polling results from the server (if using the web interface of the VerifierCloud).",
         )
         # add arguments from the base class.
-        super(Benchmark, self).add_vcloud_args(vcloud_args)
+        super().add_vcloud_args(vcloud_args)
 
     def get_param_name(self, pname):
         return "--" + pname
@@ -126,7 +127,7 @@ class Benchmark(VcloudBenchmarkBase):
                 "HTTP" if webclient else "internal",
             )
         else:
-            executor = super(Benchmark, self).load_executor()
+            executor = super().load_executor()
 
         if not webclient:
             original_load_function = benchexec.model.load_tool_info
@@ -146,8 +147,9 @@ class Benchmark(VcloudBenchmarkBase):
                         os.path.exists(build_file)
                         and subprocess.run(
                             ["ant", "-q", "jar"],
+                            check=False,
                             cwd=base_dir,
-                            shell=vcloudutil.is_windows(),  # noqa: S602
+                            shell=vcloudutil.is_windows(),
                         ).returncode
                     ):
                         sys.exit(
@@ -164,7 +166,7 @@ class Benchmark(VcloudBenchmarkBase):
 
     def check_existing_results(self, benchmark):
         if not self.config.reprocessResults:
-            super(Benchmark, self).check_existing_results(benchmark)
+            super().check_existing_results(benchmark)
 
 
 if __name__ == "__main__":
