@@ -27,7 +27,7 @@ import benchexec.benchexec
 import benchexec.model
 import benchexec.tooladapter
 import benchexec.util
-from benchexec import __version__
+from benchexec import BenchExecException, __version__
 
 _ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 
@@ -155,6 +155,12 @@ class VcloudBenchmark(VcloudBenchmarkBase):
             )
         else:
             executor = super().load_executor()
+
+        if self.config.containerImage:
+            raise BenchExecException(
+                "Using a container image is currently only supported "
+                "with contrib/vcloud-benchmark.py in the BenchExec repository."
+            )
 
         if not webclient:
             # Monkey-patch BenchExec to build CPAchecker before loading the tool-info
