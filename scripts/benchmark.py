@@ -42,6 +42,39 @@ def download_required_jars():
     )
 
 
+_original_load_tool_info = benchexec.model.load_tool_info
+
+
+def build_cpachecker_before_load(tool_name, config, *args, **kwargs):
+    """
+    Load the tool-info class.
+    If the tool is CPAchecker from a source checkout, make sure the JAR is up-to-date.
+    @param tool_name: The name of the tool-info module.
+    Either a full Python package name or a name within the benchexec.tools package.
+    @return: A tuple of the full name of the used tool-info module and an instance of the tool-info class.
+    """
+    if tool_name == "cpachecker":
+        # This duplicates the logic from our tool-info module,
+        # but we cannot call it here.
+        # Note that base_dir can be different from cpachecker_dir!
+        tool_locator = benchexec.tooladapter.create_tool_locator(config)
+        script = tool_locator.find_executable("cpachecker", subdir="bin")
+        base_dir = os.path.join(os.path.dirname(script), os.path.pardir)
+        build_file = os.path.join(base_dir, "build.xml")
+        if (
+            os.path.exists(build_file)
+            and subprocess.run(
+                ["ant", "-q", "jar"],
+                check=False,
+                cwd=base_dir,
+                shell=vcloudutil.is_windows(),
+            ).returncode
+        ):
+            sys.exit("Failed to build CPAchecker, please fix the build first.")
+
+    return _original_load_tool_info(tool_name, config, *args, **kwargs)
+
+
 class VcloudBenchmark(VcloudBenchmarkBase):
     """
     An extension of BenchExec for use with CPAchecker
@@ -124,34 +157,6 @@ class VcloudBenchmark(VcloudBenchmarkBase):
             executor = super().load_executor()
 
         if not webclient:
-            original_load_function = benchexec.model.load_tool_info
-
-            def build_cpachecker_before_load(tool_name, *args, **kwargs):
-                if tool_name == "cpachecker":
-                    # This duplicates the logic from our tool-info module,
-                    # but we cannot call it here.
-                    # Note that base_dir can be different from cpachecker_dir!
-                    tool_locator = benchexec.tooladapter.create_tool_locator(
-                        self.config
-                    )
-                    script = tool_locator.find_executable("cpachecker", subdir="bin")
-                    base_dir = os.path.join(os.path.dirname(script), os.path.pardir)
-                    build_file = os.path.join(base_dir, "build.xml")
-                    if (
-                        os.path.exists(build_file)
-                        and subprocess.run(
-                            ["ant", "-q", "jar"],
-                            check=False,
-                            cwd=base_dir,
-                            shell=vcloudutil.is_windows(),
-                        ).returncode
-                    ):
-                        sys.exit(
-                            "Failed to build CPAchecker, please fix the build first."
-                        )
-
-                return original_load_function(tool_name, *args, **kwargs)
-
             # Monkey-patch BenchExec to build CPAchecker before loading the tool-info
             # module (https://gitlab.com/sosy-lab/software/cpachecker/issues/549)
             benchexec.model.load_tool_info = build_cpachecker_before_load
