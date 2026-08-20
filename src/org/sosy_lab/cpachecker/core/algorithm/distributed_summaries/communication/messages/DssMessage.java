@@ -12,8 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -47,29 +45,6 @@ public abstract class DssMessage {
     EXCEPTION,
     RESULT,
     WITNESS
-  }
-
-  private static class DssMessageProxy {
-    private final ImmutableMap<String, String> header;
-    private final ImmutableMap<String, String> content;
-
-    @JsonCreator
-    DssMessageProxy(
-        @JsonProperty(DSS_MESSAGE_HEADER_ID) Map<String, String> pHeader,
-        @JsonProperty(DSS_MESSAGE_CONTENT_ID) Map<String, String> pContent) {
-      Preconditions.checkNotNull(pHeader, "Message JSON does not contain header");
-      Preconditions.checkNotNull(pContent, "Message JSON does not contain content");
-      header = ImmutableMap.copyOf(pHeader);
-      content = ImmutableMap.copyOf(pContent);
-    }
-
-    private ImmutableMap<String, String> getHeader() {
-      return header;
-    }
-
-    private ImmutableMap<String, String> getContent() {
-      return content;
-    }
   }
 
   public static final String DSS_MESSAGE_HEADER_ID = "header";
@@ -287,7 +262,7 @@ public abstract class DssMessage {
         this);
   }
 
-  public final DssMessagePayload asJsonPayloadWithIdentifier(int pIdentifier) {
+  public final DssMessageProxy asJsonPayloadWithIdentifier(int pIdentifier) {
     ImmutableMap<String, String> header =
         ImmutableMap.<String, String>builder()
             .put(DSS_MESSAGE_HEADER_SENDER_ID_KEY, getSenderId())
@@ -299,7 +274,7 @@ public abstract class DssMessage {
             .put(DSS_MESSAGE_HEADER_IDENTIFIER_KEY, Integer.toString(pIdentifier))
             .buildOrThrow();
 
-    return new DssMessagePayload(header, content);
+    return new DssMessageProxy(header, content);
   }
 
   /**
