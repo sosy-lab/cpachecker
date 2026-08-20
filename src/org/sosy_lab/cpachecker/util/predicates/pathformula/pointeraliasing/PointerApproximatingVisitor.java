@@ -37,17 +37,12 @@ class PointerApproximatingVisitor
   private final TypeHandlerWithPointerAliasing typeHandler;
   private final CFAEdge edge;
   private final PointerTargetSetBuilder pts;
-  private final String functionName;
 
   PointerApproximatingVisitor(
-      TypeHandlerWithPointerAliasing pTypeHandler,
-      CFAEdge pEdge,
-      PointerTargetSetBuilder pPts,
-      String pFunctionName) {
+      TypeHandlerWithPointerAliasing pTypeHandler, CFAEdge pEdge, PointerTargetSetBuilder pPts) {
     typeHandler = pTypeHandler;
     edge = pEdge;
     pts = pPts;
-    functionName = pFunctionName;
   }
 
   @Override
@@ -85,9 +80,7 @@ class PointerApproximatingVisitor
 
   @Override
   public Optional<PointerBase> visit(CIdExpression e) throws UnrecognizedCodeException {
-    return Optional.of(
-        new PointerBase(
-            e.getDeclaration(), pts.getCallstackDepth(e.getDeclaration(), functionName)));
+    return Optional.of(PointerBase.forVariable(e.getDeclaration(), pts.getCallStackDepth()));
   }
 
   @Override

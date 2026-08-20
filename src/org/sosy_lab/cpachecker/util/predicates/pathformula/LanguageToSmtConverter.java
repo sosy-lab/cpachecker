@@ -164,7 +164,7 @@ public abstract class LanguageToSmtConverter<T extends Type> {
               // the call stack depth of the caller's frame, which newPts holds again after leaving
               // the callee. (Reaching this point implies a recursive call, so the caller function
               // is still on the call stack of newPts.)
-              && !newPts.isActualBase(new PointerBase(var, newPts.getCallStackDepth(var)))) {
+              && !newPts.isActualBase(PointerBase.forVariable(var, newPts.getCallStackDepth()))) {
 
             // The SSAMap is not polymorphic so it does not know that it should only contain a T.
             @SuppressWarnings("unchecked")

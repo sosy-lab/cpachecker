@@ -113,9 +113,7 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
       // It could refer to an aliased variable that CtoFormulaConverter encodes differently.
       // We need to check whether this is such a case and if yes, replace it.
       PointerTargetSet pointerTargetSet = context.getPointerTargetSet();
-      PointerBase base =
-          new PointerBase(
-              varName, pointerTargetSet.getCallStackDepth(functionName + "::" + varName));
+      PointerBase base = PointerBase.forVariable(varName, pointerTargetSet.getCallStackDepth());
       if (pointerTargetSet.isActualBase(base)) {
         return pfgmr.makeFormulaForUninstantiatedVariable(
             varName, pointerTargetSet.getBases().get(base), pointerTargetSet, false, functionName);

@@ -341,7 +341,7 @@ class CExpressionVisitorWithPointerAliasing
   }
 
   private PointerApproximatingVisitor getPointerApproximatingVisitor() {
-    return new PointerApproximatingVisitor(typeHandler, edge, pts, function);
+    return new PointerApproximatingVisitor(typeHandler, edge, pts);
   }
 
   /**
@@ -402,8 +402,7 @@ class CExpressionVisitorWithPointerAliasing
     final CType resultType = typeHandler.getSimplifiedType(e);
 
     final String variableName = declaration.getQualifiedName();
-    final PointerBase base =
-        new PointerBase(declaration, pts.getCallstackDepth(declaration, function));
+    final PointerBase base = PointerBase.forVariable(declaration, pts.getCallStackDepth());
     if (!pts.isActualBase(base) && !CTypeUtils.containsArray(resultType, declaration)) {
       if (!(declaration instanceof CFunctionDeclaration)) {
         return UnaliasedLocation.ofVariableName(variableName);

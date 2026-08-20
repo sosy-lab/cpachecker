@@ -14,7 +14,10 @@ import com.google.common.base.Splitter;
 import java.io.Serializable;
 import java.util.Optional;
 import java.util.OptionalInt;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * Representation of a base, i.e., a memory region.
@@ -32,7 +35,7 @@ public record PointerBase(String name, OptionalInt callStackDepth)
 
   /**
    * Create a PointerBase from a plain name. Make sure that this is not the encoded form of the
-   * name! Prefer {@link #PointerBase(CSimpleDeclaration, OptionalInt)} where possible.
+   * name! Prefer {@link #forVariable(CSimpleDeclaration, int)} for the base of a variable.
    */
   public PointerBase {
     checkNotNull(name);
@@ -41,14 +44,40 @@ public record PointerBase(String name, OptionalInt callStackDepth)
   }
 
   /**
-   * Create a PointerBase for a local or global variable identifying it uniquely by using the
-   * callstack depth.
+   * Create the base of the given variable, which is identified uniquely by the given absolute call
+   * stack depth if the variable is local.
    *
-   * <p>For a global variable the callstack depth should be empty, for a local variable it should be
-   * the depth of the call stack at which the variable is declared.
+   * <p>Prefer {@link #forVariable(String, int)} only if no declaration is available, because a
+   * global variable can be detected more reliably from its declaration than from its name.
    */
-  public PointerBase(CSimpleDeclaration decl, OptionalInt pCallStackDepth) {
-    this(decl.getQualifiedName(), pCallStackDepth);
+  public static PointerBase forVariable(CSimpleDeclaration declaration, int callStackDepth) {
+    return forVariable(declaration.getQualifiedName(), isGlobal(declaration), callStackDepth);
+  }
+
+  /**
+   * Create the base of the given variable, which is identified uniquely by the given absolute call
+   * stack depth if the variable is local.
+   */
+  public static PointerBase forVariable(String qualifiedVariableName, int callStackDepth) {
+    // Only variables declared inside a function are local, and those are exactly the ones whose
+    // qualified name contains a function name.
+    boolean isGlobal = CFAUtils.getFunctionName(qualifiedVariableName).isEmpty();
+    return forVariable(qualifiedVariableName, isGlobal, callStackDepth);
+  }
+
+  /**
+   * Global variables do not belong to any stack frame, so in contrast to local variables their
+   * bases are not distinguished by the call stack depth.
+   */
+  private static PointerBase forVariable(
+      String qualifiedVariableName, boolean isGlobal, int callStackDepth) {
+    return new PointerBase(
+        qualifiedVariableName, isGlobal ? OptionalInt.empty() : OptionalInt.of(callStackDepth));
+  }
+
+  private static boolean isGlobal(CSimpleDeclaration declaration) {
+    return declaration instanceof CEnumerator
+        || (declaration instanceof CDeclaration cDeclaration && cDeclaration.isGlobal());
   }
 
   /**

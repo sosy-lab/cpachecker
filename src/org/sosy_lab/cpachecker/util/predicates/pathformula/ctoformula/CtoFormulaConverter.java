@@ -1034,13 +1034,10 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
     // Tell the pointer target set to enter/exit a function
     // This needs to come before the creation of any formula such that the
     // bases, i.e., memory regions get the correct function context.
-    switch (edge) {
-      case CFunctionCallEdge callEdge ->
-          pts.enterFunction(callEdge.getSuccessor().getFunctionName());
-      // Special case for calling the main function of the program
-      case CFunctionReturnEdge returnEdge ->
-          pts.leaveFunction(returnEdge.getPredecessor().getFunctionName());
-      default -> {}
+    if (edge instanceof CFunctionCallEdge) {
+      pts.enterFunction();
+    } else if (edge instanceof CFunctionReturnEdge) {
+      pts.leaveFunction();
     }
 
     // param-constraints must be added _before_ handling the edge (some lines below),

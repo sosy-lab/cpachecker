@@ -28,18 +28,14 @@ import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -59,32 +55,27 @@ public interface PointerTargetSetBuilder {
       boolean isDynamicAllocation,
       Constraints constraints);
 
-  void enterFunction(String functionName);
+  /** Register that a function has been entered, i.e., a new stack frame has been pushed. */
+  void enterFunction();
 
-  void leaveFunction(String functionName);
+  /** Register that a function has been left, i.e., the topmost stack frame has been popped. */
+  void leaveFunction();
 
   void prepareBase(PointerBase base, CType type);
 
   void shareBase(PointerBase base, CType type);
 
   /**
-   * Returns the current call stack depth for the given function name. This is used to distinguish
-   * different instances of the same function in recursive calls.
+   * Returns the absolute call stack depth, i.e., the number of stack frames that are currently on
+   * the call stack. This is used to distinguish different instances of the same function in
+   * recursive calls.
    *
-   * <p>Prefer using {@link #getCallstackDepth(CSimpleDeclaration, String)} if the declaration of
-   * the variable whose call stack depth should be returned is available, because it can be used to
-   * detect if the variable is global and therefore the callstack depth for the encoding is zero.
+   * <p>Use it together with {@link PointerBase#forVariable(CSimpleDeclaration, int)} to get the
+   * base of a variable.
    *
-   * @param pFunctionName The name of the function.
-   * @return The current call stack depth for the given function name.
+   * @return The absolute call stack depth.
    */
-  Integer getCallstackDepth(String pFunctionName);
-
-  OptionalInt getCallstackDepth(CFAEdge pEdge, String pQualifiedVariableName);
-
-  OptionalInt getCallstackDepth(CSimpleDeclaration pDeclaration, CFAEdge pEdge);
-
-  OptionalInt getCallstackDepth(CSimpleDeclaration pDeclaration, String pFunctionName);
+  int getCallStackDepth();
 
   /**
    * Adds the newly allocated base of the given type for tracking along with all its tracked
@@ -153,8 +144,7 @@ public interface PointerTargetSetBuilder {
 
     // These fields all exist in PointerTargetSet and are documented there.
     private PersistentSortedMap<PointerBase, CType> bases;
-    // Used to uniquely identify the bases by variable name and callStackDepth
-    private PersistentSortedMap<String, Integer> callstackDepth;
+    private int callStackDepth;
     private PersistentSortedMap<CompositeField, Boolean> fields;
     private PersistentList<Pair<PointerBase, DeferredAllocation>> deferredAllocations;
     private PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
@@ -177,7 +167,7 @@ public interface PointerTargetSetBuilder {
       bases = pointerTargetSet.getBases();
       fields = pointerTargetSet.getFields();
       deferredAllocations = pointerTargetSet.getDeferredAllocations();
-      callstackDepth = pointerTargetSet.getCallStackDepth();
+      callStackDepth = pointerTargetSet.getCallStackDepth();
       verify(
           pOptions.revealAllocationTypeFromLHS()
               || pOptions.deferUntypedAllocations()
@@ -780,7 +770,7 @@ public interface PointerTargetSetBuilder {
               fields,
               deferredAllocations,
               targets,
-              callstackDepth,
+              callStackDepth,
               highestAllocatedAddresses,
               allocationCount);
       if (result.isEmpty()) {
@@ -798,67 +788,23 @@ public interface PointerTargetSetBuilder {
     }
 
     @Override
-    public void enterFunction(String functionName) {
-      int depth = callstackDepth.getOrDefault(functionName, 0);
-      callstackDepth = callstackDepth.putAndCopy(functionName, depth + 1);
+    public void enterFunction() {
+      callStackDepth = Math.incrementExact(callStackDepth);
     }
 
     @Override
-    public void leaveFunction(String functionName) {
-      Integer depth =
-          callstackDepth.getOrDefault(
-              functionName,
-              // In this case we are doing partial formula assignments, like for example for
-              // FaultLocation, specifically check the test
-              // `testCorrectCalculationOfPreAndPostCondition`
-              //
-              // We return 0, which will then be added as -1 to the callstack, to indicate
-              // that we have returned from the function more times than we have called it.
-              0);
-      if (depth == 1) {
-        callstackDepth = callstackDepth.removeAndCopy(functionName);
-      } else {
-        callstackDepth = callstackDepth.putAndCopy(functionName, depth - 1);
-      }
+    public void leaveFunction() {
+      // The depth may become negative here. In this case we are doing partial formula assignments,
+      // like for example for FaultLocation, specifically check the test
+      // `testCorrectCalculationOfPreAndPostCondition`.
+      //
+      // A negative depth indicates that we have returned from more functions than we have called.
+      callStackDepth = Math.decrementExact(callStackDepth);
     }
 
     @Override
-    public Integer getCallstackDepth(String pFunctionName) {
-      // Special case where the main function was called through a blank edge and not through
-      // a function call edge, happens for example for
-      // the test `fib_correct` in `BMCAlgorithmTest`.
-      if (!callstackDepth.containsKey(pFunctionName)) {
-        return 0;
-      }
-
-      return Objects.requireNonNull(callstackDepth.get(pFunctionName));
-    }
-
-    @Override
-    public OptionalInt getCallstackDepth(CFAEdge pEdge, String pQualifiedVariableName) {
-      if (!pQualifiedVariableName.contains("::")) {
-        return OptionalInt.empty();
-      }
-
-      return OptionalInt.of(getCallstackDepth(pEdge.getPredecessor().getFunctionName()));
-    }
-
-    @Override
-    public OptionalInt getCallstackDepth(CSimpleDeclaration pSimpleDeclaration, CFAEdge pCfaEdge) {
-      return getCallstackDepth(pSimpleDeclaration, pCfaEdge.getPredecessor().getFunctionName());
-    }
-
-    @Override
-    public OptionalInt getCallstackDepth(
-        CSimpleDeclaration pSimpleDeclaration, String pFunctionName) {
-      // In this case we are assigning to a global variable, so the call stack depth for the
-      // encoding is empty.
-      if (pSimpleDeclaration instanceof CEnumerator
-          || (pSimpleDeclaration instanceof CDeclaration pDeclaration && pDeclaration.isGlobal())) {
-        return OptionalInt.empty();
-      }
-
-      return OptionalInt.of(getCallstackDepth(pFunctionName));
+    public int getCallStackDepth() {
+      return callStackDepth;
     }
   }
 
@@ -880,10 +826,10 @@ public interface PointerTargetSetBuilder {
     }
 
     @Override
-    public void enterFunction(String functionName) {}
+    public void enterFunction() {}
 
     @Override
-    public void leaveFunction(String functionName) {}
+    public void leaveFunction() {}
 
     @Override
     public void prepareBase(PointerBase pBase, CType pType) {
@@ -990,22 +936,7 @@ public interface PointerTargetSetBuilder {
     }
 
     @Override
-    public Integer getCallstackDepth(String pFunctionName) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public OptionalInt getCallstackDepth(CFAEdge pEdge, String pQualifiedVariableName) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public OptionalInt getCallstackDepth(CSimpleDeclaration pSimpleDeclaration, CFAEdge pCfaEdge) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public OptionalInt getCallstackDepth(CSimpleDeclaration pDeclaration, String pFunctionName) {
+    public int getCallStackDepth() {
       throw new UnsupportedOperationException();
     }
 

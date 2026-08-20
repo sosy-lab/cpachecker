@@ -436,7 +436,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       size = getSizeExpression(decayedType, edge, function, ssa, pts, constraints, errorConditions);
     }
 
-    PointerBase base = new PointerBase(declaration, pts.getCallstackDepth(declaration, function));
+    PointerBase base = PointerBase.forVariable(declaration, pts.getCallStackDepth());
     if (CTypeUtils.containsArray(type, originalDeclaration)) {
       pts.addNextBaseAddressConstraints(base, type, size, false, constraints);
       pts.addBase(base, type);
@@ -959,8 +959,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     if (errorConditions.isEnabled()) {
       final Formula address =
           makeBaseAddress(
-              new PointerBase(declaration, pts.getCallstackDepth(declaration, function)),
-              declarationType);
+              PointerBase.forVariable(declaration, pts.getCallStackDepth()), declarationType);
       constraints.addConstraint(fmgr.makeEqual(makeBaseAddressOfTerm(address), address));
     }
 
@@ -1348,7 +1347,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     Preconditions.checkArgument(!(pType instanceof CFunctionType));
 
     final Formula address;
-    final PointerBase base = new PointerBase(pVarName, pContextPTS.getCallStackDepth(pVarName));
+    final PointerBase base = PointerBase.forVariable(pVarName, pContextPTS.getCallStackDepth());
 
     if (forcePointerDereference) {
       address = fmgr.makeVariable(getFormulaTypeFromType(CTypeUtils.getBaseType(pType)), pVarName);
@@ -1377,7 +1376,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     final Formula formula;
     final SSAMapBuilder ssa = pContextSSA.builder();
 
-    final PointerBase base = new PointerBase(pVarName, pContextPTS.getCallStackDepth(pVarName));
+    final PointerBase base = PointerBase.forVariable(pVarName, pContextPTS.getCallStackDepth());
     if (pContextPTS.isActualBase(base) || CTypeUtils.containsArrayOutsideFunctionParameter(pType)) {
 
       final Formula address = makeBaseAddress(base, pType);

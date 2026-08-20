@@ -418,7 +418,7 @@ class PointerTargetSetManager {
 
     // Check the call stacks
     Verify.verify(
-        pts1.getCallStackDepth().equals(pts2.getCallStackDepth()),
+        pts1.getCallStackDepth() == pts2.getCallStackDepth(),
         "Cannot merge PointerTargetSets with different call stack depth");
 
     PointerTargetSet resultPTS =
