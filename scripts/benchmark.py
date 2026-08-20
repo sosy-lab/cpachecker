@@ -157,10 +157,6 @@ class Benchmark(VcloudBenchmarkBase):
 
         return executor
 
-    def check_existing_results(self, benchmark):
-        if not self.config.reprocessResults:
-            super().check_existing_results(benchmark)
-
 
 if __name__ == "__main__":
     benchexec.benchexec.main(Benchmark())
