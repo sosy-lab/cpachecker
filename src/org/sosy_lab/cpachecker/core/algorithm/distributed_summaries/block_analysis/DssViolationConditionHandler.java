@@ -21,6 +21,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  * received condition adds nothing new.
  *
  * @see AlwaysReplaceViolationConditionHandler
+ * @see PathBasedViolationConditionHandler
  */
 interface DssViolationConditionHandler {
 

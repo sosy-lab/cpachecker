@@ -501,21 +501,13 @@ public final class DssBlockAnalysis {
     return summaries.build();
   }
 
-  /**
-   * @param pIncompleteSources the blocks whose paths these summaries miss, see {@link
-   *     DssMessage#getIncompleteSources()}
-   */
-  Collection<DssMessage> reportPostconditions(
-      Collection<@NonNull StateAndPrecision> pSummaries, Set<String> pIncompleteSources) {
+  Collection<DssMessage> reportPostconditions(Collection<@NonNull StateAndPrecision> pSummaries) {
     if (pSummaries.isEmpty()) {
       return ImmutableList.of();
     }
     return ImmutableList.of(
         messageFactory.createDssPostConditionMessage(
-            block.getId(),
-            status,
-            serialize(ImmutableList.copyOf(pSummaries)),
-            pIncompleteSources));
+            block.getId(), status, serialize(ImmutableList.copyOf(pSummaries))));
   }
 
   /**
