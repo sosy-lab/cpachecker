@@ -468,8 +468,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   /** {@inheritDoc} */
   @Override
   @SuppressWarnings("unchecked")
-  public Formula makeFormulaForVariable(
-      PathFormula pContext, String pVarName, CType pType, String pFunctionName) {
+  public Formula makeFormulaForVariable(PathFormula pContext, String pVarName, CType pType) {
     // TODO: This needs to be properly cleaned up to be polymorphic. The problem
     //    is that the type is only known at runtime
     // This method should be kept even if unused to keep it available to not confuse it with

@@ -112,8 +112,7 @@ public interface PathFormulaManager {
    * @param pType the type of the variable
    * @return the created formula, which is always <b>instantiated</b>
    */
-  Formula makeFormulaForVariable(
-      PathFormula pContext, String pVarName, CType pType, String pFunctionName);
+  Formula makeFormulaForVariable(PathFormula pContext, String pVarName, CType pType);
 
   /**
    * Takes a variable name and its type to create the corresponding formula out of it, without

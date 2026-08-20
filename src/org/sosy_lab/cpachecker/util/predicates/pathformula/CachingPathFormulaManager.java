@@ -153,9 +153,8 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public Formula makeFormulaForVariable(
-      PathFormula pContext, String pVarName, CType pType, String pFunctionName) {
-    return delegate.makeFormulaForVariable(pContext, pVarName, pType, pFunctionName);
+  public Formula makeFormulaForVariable(PathFormula pContext, String pVarName, CType pType) {
+    return delegate.makeFormulaForVariable(pContext, pVarName, pType);
   }
 
   @Override
