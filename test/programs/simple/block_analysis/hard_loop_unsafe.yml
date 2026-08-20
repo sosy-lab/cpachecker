@@ -12,4 +12,4 @@ input_files: 'hard_loop_unsafe.c'
 
 properties:
   - property_file: ../../../config/properties/unreach-call.prp
-    expected_verdict: true
+    expected_verdict: false

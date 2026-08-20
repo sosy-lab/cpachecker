@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssWitnessArgStateCollector;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -127,11 +128,17 @@ public class DssWorkerBuilder {
   }
 
   @CanIgnoreReturnValue
-  public DssWorkerBuilder addObserverWorker(String pId, DssAnalysisOptions pOptions) {
+  public DssWorkerBuilder addObserverWorker(
+      String pId,
+      BlockGraph pBlockGraph,
+      DssAnalysisOptions pOptions,
+      DssWitnessArgStateCollector pStateCollector) {
     final LogManager logger = getLogger(pOptions, pId);
     workerGenerators.put(
         new CommunicationId(pId, DssCommunicationEntity.OBSERVER),
-        connection -> new DssObserverWorker(pId, connection, messageFactory, logger));
+        connection ->
+            new DssObserverWorker(
+                pId, connection, pBlockGraph, messageFactory, logger, pStateCollector));
     return this;
   }
 
