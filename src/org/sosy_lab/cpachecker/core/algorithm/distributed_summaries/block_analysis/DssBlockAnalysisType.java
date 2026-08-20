@@ -14,21 +14,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
  */
 public enum DssBlockAnalysisType {
 
-  /** Distinguishes contexts by the path through the block graph that produced them. */
-  PATH_BASED {
-    @Override
-    DssPreconditionHandler createPreconditionHandler(DssBlockAnalysis pAnalysis)
-        throws InterruptedException {
-      return new PathBasedPreconditionHandler(pAnalysis);
-    }
-
-    @Override
-    DssViolationConditionHandler createViolationConditionHandler(DssBlockAnalysis pAnalysis) {
-      return new PathBasedViolationConditionHandler(pAnalysis);
-    }
-  },
-
-  /** Keeps only the latest message of every neighboring block. */
+  /** Keeps only the latest message of every neighboring block and location hash. */
   ALWAYS_REPLACE {
     @Override
     DssPreconditionHandler createPreconditionHandler(DssBlockAnalysis pAnalysis)
