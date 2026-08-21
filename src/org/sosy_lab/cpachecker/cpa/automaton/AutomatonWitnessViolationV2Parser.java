@@ -310,8 +310,8 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
     // waypoint at the same location directly after a function call.
     AutomatonBoolExpr expr =
         new AutomatonBoolExpr.Or(
-            new CheckReachesElement(enterElement, threadId),
-            new CheckEntersElement(enterElement, threadId));
+            new CheckReachesElement(enterElement, threadId, cfa.getCloneRelation()),
+            new CheckEntersElement(enterElement, threadId, cfa.getCloneRelation()));
 
     AutomatonTransition.Builder transitionBuilder =
         new AutomatonTransition.Builder(expr, nextStateId);
@@ -909,10 +909,8 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
 
       if (followWaypoint.getType().equals(WaypointType.TARGET)) {
         if (stateCounter != segments.size() + 1) {
-          logger.log(
-              Level.INFO,
-              "In the violation witness the target waypoint is not the last waypoint, "
-                  + "following waypoints will be ignored!");
+          throw new WitnessParseException(
+              "In the violation witness the target waypoint is not the last waypoint");
         }
         currentStateId = "X";
         break;
