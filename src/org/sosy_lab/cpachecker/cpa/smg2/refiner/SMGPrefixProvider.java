@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
-import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisDelegatingRefiner;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
 
@@ -50,6 +49,7 @@ public class SMGPrefixProvider extends GenericPrefixProvider<SMGState> {
             pCfa.getMachineModel(),
             pLogger,
             new SMGOptions(config, pCfa),
+            pCfa.getMainFunction(), /* TODO: do we always start in the main function here? */
             pCfa,
             new SMGCPAExpressionEvaluator(
                 pCfa.getMachineModel(),
@@ -68,8 +68,7 @@ public class SMGPrefixProvider extends GenericPrefixProvider<SMGState> {
   public static SMGPrefixProvider create(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     Preconditions.checkArgument(pCpa instanceof SMGCPA);
-    @NonNull SMGCPA smgCpa =
-        CPAs.retrieveCPAOrFail(pCpa, SMGCPA.class, ValueAnalysisDelegatingRefiner.class);
+    @NonNull SMGCPA smgCpa = CPAs.retrieveCPAOrFail(pCpa, SMGCPA.class, SMGDelegatingRefiner.class);
     return new SMGPrefixProvider(
         smgCpa.getSolver(),
         smgCpa.getLogger(),

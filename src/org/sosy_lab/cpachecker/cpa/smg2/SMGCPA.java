@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
+
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
@@ -251,8 +254,10 @@ public class SMGCPA
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    SMGState initState = SMGState.of(machineModel, logger, options, cfa, evaluator, statistics);
-    return initState;
+    checkArgument(
+        pPartition == null || pPartition == getDefaultPartition(),
+        "SMG2CPA can't handle custom initial partitions");
+    return SMGState.of(machineModel, logger, options, pNode, cfa, evaluator, statistics);
   }
 
   @Override

@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -574,54 +573,38 @@ public class SMGState
   /**
    * Creates a new, empty {@link SMGState} with the {@link SMGOptions} given. The {@link
    * SymbolicProgramConfiguration} and {@link SMGErrorInfo} inside are new and empty as well. The
-   * given CPA is used to extract the main function if possible and create the inital stack frame
-   * automatically.
+   * given CFA is used to check that we start from the main function (this restriction is currently
+   * necessary). This creates empty stack frame for the stack at the location of the given {@link
+   * CFANode} automatically.
    *
    * @param pMachineModel the {@link MachineModel} used to determine the size of types.
    * @param logManager {@link LogManager} to log important information.
    * @param opts {@link SMGOptions} to be used.
-   * @param pCfa used to extract the main function.
+   * @param pInitialLocationToBuildStateFrom a {@link CFANode} indicating the starting location in
+   *     the program to build a state of. The state needs to be valid for this program location,
+   *     overapproximating all possible previous states in this one.
+   * @param pCfa used to extract the main function of the program to check against
+   *     pInitialLocationToBuildStateFrom.
    * @return a newly created {@link SMGState} with a new and empty {@link
-   *     SymbolicProgramConfiguration} inside. The only thing added is the inital stack frame if
+   *     SymbolicProgramConfiguration} inside. The only thing added is the initial stack frame if
    *     possible.
    */
   public static SMGState of(
       MachineModel pMachineModel,
       LogManagerWithoutDuplicates logManager,
       SMGOptions opts,
+      CFANode pInitialLocationToBuildStateFrom,
       CFA pCfa,
       SMGCPAExpressionEvaluator pEvaluator,
       SMGCPAStatistics pStatistics) {
-    FunctionEntryNode pNode = pCfa.getMainFunction();
-    return of(pMachineModel, logManager, opts, pNode, pEvaluator, pStatistics);
-  }
-
-  /**
-   * Creates a new, empty {@link SMGState} with the {@link SMGOptions} given. The {@link
-   * SymbolicProgramConfiguration} and {@link SMGErrorInfo} inside are new and empty as well. The
-   * given CPA is used to extract the main function if possible and create the inital stack frame
-   * automatically.
-   *
-   * @param pMachineModel the {@link MachineModel} used to determine the size of types.
-   * @param logManager {@link LogManager} to log important information.
-   * @param opts {@link SMGOptions} to be used.
-   * @param cfaFunEntryNode main function node from the CFA!
-   * @return a newly created {@link SMGState} with a new and empty {@link
-   *     SymbolicProgramConfiguration} inside. The only thing added is the inital stack frame if
-   *     possible.
-   */
-  public static SMGState of(
-      MachineModel pMachineModel,
-      LogManagerWithoutDuplicates logManager,
-      SMGOptions opts,
-      FunctionEntryNode cfaFunEntryNode,
-      SMGCPAExpressionEvaluator pEvaluator,
-      SMGCPAStatistics pStatistics) {
+    // We don't blindly assume that we start at the main function, but due to missing testing for
+    // start in some other function, we disallow it for now
+    checkArgument(
+        pCfa.getMainFunction().equals(pInitialLocationToBuildStateFrom),
+        "SMGCPA can only be used for programs that start in main function currently");
     SMGState newState = of(pMachineModel, logManager, opts, pEvaluator, pStatistics);
-    if (cfaFunEntryNode instanceof CFunctionEntryNode functionNode) {
-      return newState.copyAndAddStackFrame(functionNode.getFunctionDefinition());
-    }
-    return newState;
+    return newState.copyAndAddStackFrame(
+        ((CFunctionEntryNode) pInitialLocationToBuildStateFrom).getFunctionDefinition());
   }
 
   /**

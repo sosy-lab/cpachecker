@@ -66,6 +66,7 @@ public class SMGEdgeInterpolator
             pCfa.getMachineModel(),
             pLogger,
             new SMGOptions(pConfig, pCfa),
+            pCfa.getMainFunction(), /* TODO: do we always start in the main function here? */
             pCfa,
             pEvaluator,
             pStatistics),

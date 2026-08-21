@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.refiner;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
@@ -19,7 +21,6 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -71,6 +72,7 @@ public class SMGFeasibilityChecker extends GenericFeasibilityChecker<SMGState> {
             pCfa.getMachineModel(),
             pLogger,
             new SMGOptions(pConfig, pCfa),
+            pCfa.getMainFunction(), /* TODO: do we always start in the main function here? */
             pCfa,
             pEvaluator,
             pStatistics),
@@ -96,15 +98,22 @@ public class SMGFeasibilityChecker extends GenericFeasibilityChecker<SMGState> {
 
     try {
       List<Pair<SMGState, List<CFAEdge>>> reevaluatedPath = new ArrayList<>();
+
+      // The check is meant to fail if the path is not going through the main function immediately,
+      // so that we can fix the setup of arbitrary states in SMG2!
+      checkState(
+          path.getFullPath().stream()
+              .anyMatch(e -> e.getSuccessor().equals(cfa.getMainFunction())));
+      // TODO: we use the main function here, but we should use the actual location node instead!
       SMGState next =
           SMGState.of(
-              machineModel, logger, new SMGOptions(config, cfa), cfa, evaluator, statistics);
-
-      if (cfa.getMainFunction() instanceof CFunctionEntryNode functionNode) {
-        // Init main
-
-        next = next.copyAndAddStackFrame(functionNode.getFunctionDefinition());
-      }
+              machineModel,
+              logger,
+              new SMGOptions(config, cfa),
+              cfa.getMainFunction(),
+              cfa,
+              evaluator,
+              statistics);
 
       PathIterator iterator = path.fullPathIterator();
       while (iterator.hasNext()) {
