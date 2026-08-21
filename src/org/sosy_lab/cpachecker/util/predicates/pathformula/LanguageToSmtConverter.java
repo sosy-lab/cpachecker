@@ -179,7 +179,7 @@ public abstract class LanguageToSmtConverter<T extends Type> {
             // Both sides use newPts: the variable belongs to the caller, so both formulas must be
             // built with the caller's view of the pointer target set.
             pConstraints.addConstraint(
-                fmgr.makeEqual(
+                fmgr.assignment(
                     makeFormulaForVariable(callerSsa, newPts, var, varType),
                     makeFormulaForVariable(
                         functionReturnSsaBuilder.build(), newPts, var, varType)));
