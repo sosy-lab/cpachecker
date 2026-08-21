@@ -15,9 +15,6 @@ import os
 import subprocess
 import sys
 
-from benchmark import vcloudutil
-from benchmark.vcloudbenchmarkbase import VcloudBenchmarkBase
-
 sys.dont_write_bytecode = True  # prevent creation of .pyc files
 cpachecker_dir = os.path.join(os.path.dirname(__file__), os.pardir)
 for egg in glob.glob(os.path.join(cpachecker_dir, "lib", "python-benchmark", "*.whl")):
@@ -28,6 +25,8 @@ import benchexec.model
 import benchexec.tooladapter
 import benchexec.util
 from benchexec import BenchExecException, __version__
+from benchmark import vcloudutil
+from benchmark.vcloudbenchmarkbase import VcloudBenchmarkBase
 
 _ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 
