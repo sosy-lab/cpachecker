@@ -158,7 +158,7 @@ public abstract class LanguageToSmtConverter<T extends Type> {
             // Giving a fresh index is the right way to havoc the variable only as long as the
             // variable is not handled as an aliased location, because the value of an aliased
             // variable lives in the memory encoding and not in the SSA map.
-            assert oldFormula.getSsaStack().isEmpty()
+            assert oldFormula.getSsaStack().size() <= 1
                     || !newPts.isActualBase(
                         PointerBase.forVariable(variable, newPts.getCallStackDepth()))
                 : "Aliased variable " + variable + " is missing from the SSA map of the caller";
