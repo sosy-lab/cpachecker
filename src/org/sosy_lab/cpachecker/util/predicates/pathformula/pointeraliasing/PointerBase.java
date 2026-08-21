@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.Ordering;
 import java.io.Serializable;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -132,6 +134,9 @@ public record PointerBase(String name, @Nullable Integer callStackDepth)
 
   @Override
   public int compareTo(PointerBase other) {
-    return formulaEncoding().compareTo(other.formulaEncoding());
+    return ComparisonChain.start()
+        .compare(name, other.name)
+        .compare(callStackDepth, other.callStackDepth, Ordering.natural().nullsFirst())
+        .result();
   }
 }
