@@ -711,8 +711,15 @@ public final class DynamicMemoryHandler {
             }
           }
         } else {
+          // Not the encoding of a base, so this is an ordinary variable of the formula. It can be
+          // a program variable (arguments of an external function call that is encoded as an
+          // uninterpreted function appear here), but also a name that belongs to no stack frame at
+          // all, such as the fresh variable modeling the result of the allocation function. The
+          // latter have no function name as prefix and are thus handled like global variables,
+          // i.e., without a call stack depth. The SSA index needs to be stripped because bases are
+          // never identified by an index.
           assert !pts.isTemporaryDeferredAllocationPointer(
-              PointerBase.forVariable(mangledVariable, pts.getCallStackDepth()));
+              PointerBase.forVariable(nameWithoutIndex, pts.getCallStackDepth()));
         }
       }
     }

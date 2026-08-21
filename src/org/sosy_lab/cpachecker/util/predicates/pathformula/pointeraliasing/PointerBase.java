@@ -57,6 +57,12 @@ public record PointerBase(String name, OptionalInt callStackDepth)
   /**
    * Create the base of the given variable, which is identified uniquely by the given absolute call
    * stack depth if the variable is local.
+   *
+   * <p>The name is expected to be a variable name as it occurs in formulas, i.e., without an SSA
+   * index. A name that does not have a function name as prefix is considered to belong to no stack
+   * frame and thus gets no call stack depth, just like a global variable. This makes this method
+   * applicable to all variable names occurring in formulas, also to those that are not names of C
+   * variables, such as the variables that model the results of calls to external functions.
    */
   public static PointerBase forVariable(String qualifiedVariableName, int callStackDepth) {
     // Only variables declared inside a function are local, and those are exactly the ones whose
