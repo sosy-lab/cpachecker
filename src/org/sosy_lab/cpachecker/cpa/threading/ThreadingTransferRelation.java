@@ -782,36 +782,53 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     return Optionals.asSet(results.map(ts -> ts.withActiveThread(null).withEntryFunction(null)));
   }
 
-  private @Nullable ThreadingState handleWitnessAutomaton(
-      ThreadingState ts, AutomatonState automatonState) {
+  /**
+   * Assigns the identifiers by which a witness refers to the threads of this state.
+   *
+   * <p>A witness identifies threads positionally: the initial thread is {@code 0} and every thread
+   * created afterwards gets the next number. The identifiers are therefore derived from the order
+   * in which threads appear here, which makes them independent of the tool that produced the
+   * witness.
+   *
+   * <p>They are deliberately not read from the thread-id variable of the witness automaton, even
+   * though the automaton assigns the same numbers there: that variable is only updated once the
+   * automaton passes the waypoint of a thread creation, and {@link
+   * org.sosy_lab.cpachecker.cpa.composite.CompositeTransferRelation} strengthens every component
+   * state with the states from before strengthening. The new value hence only becomes visible here
+   * one edge after the creation, at which point the thread it belongs to would depend on the
+   * interleaving. For witnesses with more than one created thread that regularly left threads
+   * without an identifier or with the identifier of another thread.
+   *
+   * <p>Whether the automaton has a thread-id variable at all is still what tells us that the
+   * witness refers to threads. Without such a witness no identifiers are tracked, so that the state
+   * space of a plain verification run is unaffected.
+   */
+  private ThreadingState handleWitnessAutomaton(ThreadingState ts, AutomatonState automatonState) {
     Map<String, AutomatonVariable> vars = automatonState.getVars();
-    AutomatonVariable witnessThreadId = vars.get(Ascii.toUpperCase(KeyDef.THREADID.toString()));
-    String threadId = ts.getActiveThread();
-    if (witnessThreadId == null || threadId == null) {
-      // values not available or default value zero -> ignore and return state unchanged
+    if (!vars.containsKey(Ascii.toUpperCase(KeyDef.THREADID.toString()))) {
+      // the witness does not refer to threads -> ignore and return state unchanged
       return ts;
     }
 
-    Integer witnessId = ts.getThreadIdForWitness(threadId);
-    if (witnessId == null) {
-      if (ts.hasWitnessIdForThread(witnessThreadId.getValue())) {
-        // state contains a mapping, but not for current thread -> wrong branch?
-        // TODO returning NULL here would be nice, but leads to unaccepted witnesses :-(
-        return ts;
-      } else {
-        // we know nothing, but can store the new mapping in the state
-        return ts.setThreadIdForWitness(threadId, witnessThreadId.getValue());
+    ThreadingState result = ts;
+    // The initial thread is the only thread that can be active without having an identifier,
+    // because every other thread receives one when it is created, i.e., before it can become
+    // active. Handling it first keeps the identifiers in creation order in case it is still without
+    // one when the first thread is created.
+    String activeThread = ts.getActiveThread();
+    if (activeThread != null
+        && ts.getThreadIds().contains(activeThread)
+        && result.getThreadIdForWitness(activeThread) == null) {
+      result = result.setThreadIdForWitness(activeThread, result.nextWitnessThreadId());
+    }
+    // The thread created by this edge, if any. At most one thread is created per edge, so which
+    // thread is still without an identifier is unambiguous.
+    for (String threadId : ts.getThreadIds()) {
+      if (result.getThreadIdForWitness(threadId) == null) {
+        result = result.setThreadIdForWitness(threadId, result.nextWitnessThreadId());
       }
     }
-    if (witnessId.equals(witnessThreadId.getValue())) {
-      // current branch
-      return ts;
-    } else {
-      // threadId does not match -> should be no successor
-      // but keep continuining to avoid cutting off too much in some situations
-      // (cf. 7f01668b139817f88f08791695d9245e7f8ca841)
-      return ts;
-    }
+    return result;
   }
 
   /** if the current edge creates a new function, return its name, else nothing. */

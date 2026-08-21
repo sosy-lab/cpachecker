@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
-import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -71,13 +70,9 @@ import org.sosy_lab.cpachecker.util.coverage.CoverageData;
  * Implements a boolean expression that evaluates and returns a <code>MaybeBoolean</code> value when
  * <code>eval()</code> is called. The Expression can be evaluated multiple times.
  */
-public interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
+interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   ResultValue<Boolean> CONST_TRUE = new ResultValue<>(true);
   ResultValue<Boolean> CONST_FALSE = new ResultValue<>(false);
-  ResultValue<Boolean> CANNOT_EVALUATE_THREAD_MISSING =
-      new ResultValue<>(
-          "Cannot evaluate this expression currently, since no threading state is available",
-          "expression evaluation");
 
   @Override
   ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
@@ -98,27 +93,6 @@ public interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     public String toString() {
       return "PROGRAM-EXIT";
     }
-  }
-
-  static Optional<ResultValue<Boolean>> matchesThreadIfPresent(
-      OptionalInt threadId, List<AbstractState> pAbstractStates) {
-    if (threadId.isPresent()) {
-      FluentIterable<ThreadingState> threadingStates =
-          FluentIterable.from(pAbstractStates).filter(ThreadingState.class);
-      if (threadingStates.isEmpty()) {
-        return Optional.of(CANNOT_EVALUATE_THREAD_MISSING);
-      }
-
-      // Assume that we only have a single threading state
-      ThreadingState threadingState = threadingStates.get(0);
-
-      if (!Objects.equals(
-          threadingState.getThreadIdForWitness(threadingState.getActiveThread()),
-          threadId.orElseThrow())) {
-        return Optional.of(CONST_FALSE);
-      }
-    }
-    return Optional.empty();
   }
 
   public static class IsStatementEdge implements AutomatonBoolExpr {
@@ -275,25 +249,16 @@ public interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   public static class CheckEntersElement implements AutomatonBoolExpr {
 
     private final ASTElement elementToEnter;
-    private final OptionalInt threadId;
     private final CfaCloneRelation cloneRelation;
 
-    public CheckEntersElement(
-        ASTElement pElement, OptionalInt pThreadId, CfaCloneRelation pCloneRelation) {
+    public CheckEntersElement(ASTElement pElement, CfaCloneRelation pCloneRelation) {
       elementToEnter = pElement;
-      threadId = pThreadId;
       cloneRelation = pCloneRelation;
     }
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
-
-      Optional<ResultValue<Boolean>> matchesThread =
-          matchesThreadIfPresent(threadId, pArgs.getAbstractStates());
-      if (matchesThread.isPresent()) {
-        return matchesThread.orElseThrow();
-      }
 
       // The edges of the element are the edges of the CFA as it was created by the parser, the
       // clone relation is required to match them with the edges of cloned functions
@@ -328,13 +293,11 @@ public interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   public static class CheckReachesElement implements AutomatonBoolExpr {
 
     private final ImmutableSet<CFAEdge> incomingFrontierEdges;
-    private final OptionalInt threadId;
     private final CfaCloneRelation cloneRelation;
 
     private final ASTElement elementToEnter;
 
-    public CheckReachesElement(
-        ASTElement pElement, OptionalInt pThreadId, CfaCloneRelation pCloneRelation) {
+    public CheckReachesElement(ASTElement pElement, CfaCloneRelation pCloneRelation) {
       elementToEnter = pElement;
       cloneRelation = pCloneRelation;
       incomingFrontierEdges =
@@ -345,18 +308,11 @@ public interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
               .transformAndConcat(CFANode::getAllLeavingEdges)
               .filter(edge -> pElement.edges().contains(edge))
               .toSet();
-      threadId = pThreadId;
     }
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
-
-      Optional<ResultValue<Boolean>> matchesThread =
-          matchesThreadIfPresent(threadId, pArgs.getAbstractStates());
-      if (matchesThread.isPresent()) {
-        return matchesThread.orElseThrow();
-      }
 
       // The frontier edges are edges of the CFA as it was created by the parser, the clone
       // relation is required to match them with the edges of cloned functions
@@ -399,24 +355,15 @@ public interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   public static class CheckCoversColumnAndLine implements AutomatonBoolExpr {
     private final int columnToReach;
     private final int lineNumber;
-    private final OptionalInt threadId;
 
-    public CheckCoversColumnAndLine(int pColumn, int pLineNumber, OptionalInt pThreadId) {
+    public CheckCoversColumnAndLine(int pColumn, int pLineNumber) {
       columnToReach = pColumn;
       lineNumber = pLineNumber;
-      threadId = pThreadId;
     }
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
-
-      if (threadId.isPresent()
-          && FluentIterable.from(pArgs.getAbstractStates())
-              .filter(ThreadingState.class)
-              .isEmpty()) {
-        return CANNOT_EVALUATE_THREAD_MISSING;
-      }
 
       FileLocation edgeLocation = edge.getFileLocation();
       int edgeNodeStartingColumn = edgeLocation.getStartColumnInLine();
@@ -465,23 +412,15 @@ public interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   public static class CheckMatchesColumnAndLine implements AutomatonBoolExpr {
     private final int columnToReach;
     private final int lineNumber;
-    private final OptionalInt threadId;
 
-    public CheckMatchesColumnAndLine(int pColumn, int pLineNumber, OptionalInt pThreadId) {
+    public CheckMatchesColumnAndLine(int pColumn, int pLineNumber) {
       columnToReach = pColumn;
       lineNumber = pLineNumber;
-      threadId = pThreadId;
     }
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
-
-      Optional<ResultValue<Boolean>> matchesThread =
-          matchesThreadIfPresent(threadId, pArgs.getAbstractStates());
-      if (matchesThread.isPresent()) {
-        return matchesThread.orElseThrow();
-      }
 
       FileLocation edgeLocation = edge.getFileLocation();
       int edgeNodeStartingColumn = edgeLocation.getStartColumnInLine();
@@ -524,29 +463,17 @@ public interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     private final OptionalInt columnToReach;
     private final int lineNumber;
     private final AstCfaRelation astCfaRelation;
-    private final OptionalInt threadId;
 
     public CheckClosestFullExpressionMatchesColumnAndLine(
-        OptionalInt pColumn,
-        int pLineNumber,
-        AstCfaRelation pAstCfaRelation,
-        OptionalInt pThreadId) {
+        OptionalInt pColumn, int pLineNumber, AstCfaRelation pAstCfaRelation) {
       columnToReach = pColumn;
       lineNumber = pLineNumber;
       astCfaRelation = pAstCfaRelation;
-      threadId = pThreadId;
     }
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
-
-      if (threadId.isPresent()
-          && FluentIterable.from(pArgs.getAbstractStates())
-              .filter(ThreadingState.class)
-              .isEmpty()) {
-        return CANNOT_EVALUATE_THREAD_MISSING;
-      }
 
       if (!(edge instanceof CCfaEdge cCfaEdge)) {
         return CONST_FALSE;
@@ -669,28 +596,17 @@ public interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     private final Set<CFANode> edgePredecessorMatch;
 
     private final Set<CFANode> edgeSuccessorMatch;
-    private final OptionalInt threadId;
 
     public CheckPassesThroughNodes(
-        Set<CFANode> pEdgePredecessorMatch,
-        Set<CFANode> pEdgeSuccessorMatch,
-        OptionalInt pThreadId) {
+        Set<CFANode> pEdgePredecessorMatch, Set<CFANode> pEdgeSuccessorMatch) {
       edgePredecessorMatch = pEdgePredecessorMatch;
       edgeSuccessorMatch = pEdgeSuccessorMatch;
-      threadId = pThreadId;
     }
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
         throws CPATransferException {
       CFAEdge edge = pArgs.getCfaEdge();
-
-      if (threadId.isPresent()
-          && FluentIterable.from(pArgs.getAbstractStates())
-              .filter(ThreadingState.class)
-              .isEmpty()) {
-        return CANNOT_EVALUATE_THREAD_MISSING;
-      }
 
       // Sometimes it happens that there are multiple ways of getting to the same node.
       // We only want the edges which went through the condition element. In particular this

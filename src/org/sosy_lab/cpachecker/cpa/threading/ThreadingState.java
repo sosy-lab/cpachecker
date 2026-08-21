@@ -17,8 +17,11 @@ import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.is
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
+import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.SequencedSet;
@@ -54,7 +57,17 @@ public class ThreadingState
         Partitionable,
         AbstractQueryableState {
 
+  /** Name of the {@link ThreadingCPA}, as used for queries from specification automata. */
+  public static final String CPA_NAME = "ThreadingCPA";
+
   private static final String PROPERTY_DEADLOCK = "deadlock";
+
+  /**
+   * Query for checking whether the thread that is currently active is the thread with a given
+   * identifier in a witness, e.g. {@code activeThreadWitnessId == 1}. Witness automata for
+   * concurrent programs use this to restrict a transition to a single thread.
+   */
+  public static final String PROPERTY_ACTIVE_THREAD_WITNESS_ID = "activeThreadWitnessId";
 
   static final int MIN_THREAD_NUM = 0;
 
@@ -87,7 +100,9 @@ public class ThreadingState
 
   /**
    * This map contains the mapping of threadIds to the unique identifier used for witness
-   * validation. Without a witness, it should always be empty.
+   * validation. Without a witness that refers to threads, it should always be empty. It is filled
+   * by {@link ThreadingTransferRelation#strengthen} and queried through {@link
+   * #PROPERTY_ACTIVE_THREAD_WITNESS_ID}.
    */
   private final PersistentMap<String, Integer> threadIdsForWitness;
 
@@ -290,7 +305,7 @@ public class ThreadingState
 
   @Override
   public String getCPAName() {
-    return "ThreadingCPA";
+    return CPA_NAME;
   }
 
   @Override
@@ -302,7 +317,35 @@ public class ThreadingState
         throw new InvalidQueryException("deadlock-check had a problem", e);
       }
     }
+    List<String> parts = Splitter.on("==").trimResults().splitToList(pProperty);
+    if (parts.size() == 2 && PROPERTY_ACTIVE_THREAD_WITNESS_ID.equals(parts.getFirst())) {
+      return checkActiveThreadHasWitnessId(pProperty, parts.get(1));
+    }
     throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
+  }
+
+  /**
+   * Builds the query answered by {@link #PROPERTY_ACTIVE_THREAD_WITNESS_ID} for a given thread
+   * identifier of a witness.
+   */
+  public static String activeThreadWitnessIdQuery(int pWitnessThreadId) {
+    return PROPERTY_ACTIVE_THREAD_WITNESS_ID + " == " + pWitnessThreadId;
+  }
+
+  private boolean checkActiveThreadHasWitnessId(String pProperty, String pExpectedWitnessId)
+      throws InvalidQueryException {
+    int expectedWitnessId;
+    try {
+      expectedWitnessId = Integer.parseInt(pExpectedWitnessId);
+    } catch (NumberFormatException e) {
+      throw new InvalidQueryException(
+          "Query '" + pProperty + "' does not compare against an integer.", e);
+    }
+    // The active thread is only known while an edge is being handled, which is the only situation
+    // in which a witness automaton evaluates its transition guards.
+    checkState(
+        activeThread != null, "Query '%s' is only valid while an edge is handled.", pProperty);
+    return Objects.equals(getThreadIdForWitness(activeThread), expectedWitnessId);
   }
 
   /**
@@ -424,7 +467,7 @@ public class ThreadingState
     return new ThreadingState(threads, locks, pActiveThread, entryFunction, threadIdsForWitness);
   }
 
-  public String getActiveThread() {
+  String getActiveThread() {
     return activeThread;
   }
 
@@ -439,14 +482,18 @@ public class ThreadingState
     return entryFunction;
   }
 
-  @Nullable
-  public Integer getThreadIdForWitness(String threadId) {
+  @Nullable Integer getThreadIdForWitness(String threadId) {
     Preconditions.checkNotNull(threadId);
     return threadIdsForWitness.get(threadId);
   }
 
-  boolean hasWitnessIdForThread(int witnessId) {
-    return threadIdsForWitness.containsValue(witnessId);
+  /**
+   * Identifier that the next thread receives in a witness, cf. {@link #threadIdsForWitness}. The
+   * identifiers are handed out in the order in which the threads are created and are never reused,
+   * so that a thread cannot inherit the identifier of a thread that has terminated.
+   */
+  int nextWitnessThreadId() {
+    return threadIdsForWitness.isEmpty() ? 0 : Collections.max(threadIdsForWitness.values()) + 1;
   }
 
   ThreadingState setThreadIdForWitness(String threadId, int witnessId) {

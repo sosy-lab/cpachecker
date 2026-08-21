@@ -177,8 +177,7 @@ class AutomatonWitnessV2d0ParserCorrectness extends AutomatonWitnessV2ParserComm
                           .orElseThrow()
                           .location()
                           .getStartColumnInLine(),
-                      line,
-                      OptionalInt.empty());
+                      line);
               // Check for transition loop invariants and do not throw an exception as they are in
               // the
               // future formats.
