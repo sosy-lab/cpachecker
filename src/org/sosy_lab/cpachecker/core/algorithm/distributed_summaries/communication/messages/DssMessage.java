@@ -271,20 +271,17 @@ public abstract class DssMessage {
   public static DssMessage fromJson(Path pJson) throws IOException {
     ObjectMapper mapper = new ObjectMapper();
     DssMessageProxy proxy = mapper.readValue(pJson.toFile(), DssMessageProxy.class);
-    ImmutableMap<String, ImmutableMap<String, String>> json =
-        ImmutableMap.of(
-            DSS_MESSAGE_HEADER_ID, ImmutableMap.copyOf(proxy.header()),
-            DSS_MESSAGE_CONTENT_ID, ImmutableMap.copyOf(proxy.content()));
-    return fromJson(json);
+    return fromProxy(proxy);
   }
 
   public static DssMessage fromJson(ImmutableMap<String, ImmutableMap<String, String>> pJson) {
-    ImmutableMap<String, String> header =
-        Objects.requireNonNull(
-            pJson.get(DSS_MESSAGE_HEADER_ID), "Message JSON does not contain header: " + pJson);
-    ImmutableMap<String, String> content =
-        Objects.requireNonNull(
-            pJson.get(DSS_MESSAGE_CONTENT_ID), "Message JSON does not contain content: " + pJson);
+    DssMessageProxy proxy = DssMessageProxy.fromLegacyMap(pJson);
+    return fromProxy(proxy);
+  }
+
+  public static DssMessage fromProxy(DssMessageProxy pProxy) {
+    ImmutableMap<String, String> header = pProxy.header();
+    ImmutableMap<String, String> content = pProxy.content();
 
     String senderId = header.get(DSS_MESSAGE_HEADER_SENDER_ID_KEY);
     DssMessageType type = DssMessageType.valueOf(header.get(DSS_MESSAGE_HEADER_TYPE_KEY));
