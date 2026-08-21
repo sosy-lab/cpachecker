@@ -120,9 +120,11 @@ public abstract class LanguageToSmtConverter<T extends Type> {
         // give them fresh unconstrained indices, which overapproximates the state of the caller
         // function. The same applies to variables the caller has no entry for because they were
         // only created inside the (recursive) callee.
-        final boolean hasCallerFrame = oldFormula.getSsaStack().size() > 1;
-        final SSAMap callerSsa =
-            hasCallerFrame ? oldFormula.getSsaStack().popAndCopy().peek() : SSAMap.emptySSAMap();
+        final PersistentStack<SSAMap> callerSsaStack =
+            oldFormula.getSsaStack().size() > 1
+                ? oldFormula.getSsaStack().popAndCopy()
+                : PersistentStack.<SSAMap>of().pushAndCopy(SSAMap.emptySSAMap());
+        final SSAMap callerSsa = callerSsaStack.peek();
         final SSAMap topmostStackSsaBeforeHandlingEdge = oldFormula.getTopmostStackSsa();
 
         final NavigableSet<String> knownVariables =
@@ -137,7 +139,8 @@ public abstract class LanguageToSmtConverter<T extends Type> {
         for (String variable :
             CFAUtils.filterVariablesOfFunction(
                 knownVariables, pEdge.getSuccessor().getFunctionName())) {
-          if (pSsaMapAfterHandlingEdge.getIndex(variable) != topmostStackSsaBeforeHandlingEdge.getIndex(variable)) {
+          if (pSsaMapAfterHandlingEdge.getIndex(variable)
+              != topmostStackSsaBeforeHandlingEdge.getIndex(variable)) {
             // The variable was written while handling the return, i.e., it was assigned the
             // return value in a statement like `a = f();`. Then it already holds the correct
             // value for the caller and must not be reset.
@@ -212,13 +215,9 @@ public abstract class LanguageToSmtConverter<T extends Type> {
           }
         }
 
-        // Now the current state of the caller is the rebuilt SSA map. Pop the callee frame and
-        // the stale caller frame (if present) and replace them with it.
-        final PersistentStack<SSAMap> remainingStack =
-            hasCallerFrame
-                ? oldFormula.getSsaStack().popAndCopy().popAndCopy()
-                : PersistentStack.of();
-        yield remainingStack.pushAndCopy(resultSsa.build());
+        // Now the current state of the caller is the rebuilt SSA map. Pop
+        // the stale caller frame and replace them with the resulting SSA map.
+        yield callerSsaStack.popAndCopy().pushAndCopy(resultSsa.build());
       }
       default -> oldFormula.getSsaStack().popAndCopy().pushAndCopy(pSsaMapAfterHandlingEdge);
     };
