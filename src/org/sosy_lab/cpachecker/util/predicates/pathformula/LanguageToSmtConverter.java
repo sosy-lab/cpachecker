@@ -190,10 +190,11 @@ public abstract class LanguageToSmtConverter<T extends Type> {
           }
         }
 
-        // It is not necessary to update the variables of the callee, since if the program is a
-        // valid C program does need to be written before being read, since reading from an
-        // unitialized variable is undefined behavior.
-        // However, we still do this to be safer against bugs.
+        // It is not necessary to update the variables of the callee.
+        // Since for every valid C program, a variable  needs to be written before being read, since
+        // reading from an uninitialized variable is undefined behavior.
+        // However, we still bump the indices for variables going out of scope to be safer against
+        // bugs.
         if (!pEdge
             .getPredecessor()
             .getFunctionName()
