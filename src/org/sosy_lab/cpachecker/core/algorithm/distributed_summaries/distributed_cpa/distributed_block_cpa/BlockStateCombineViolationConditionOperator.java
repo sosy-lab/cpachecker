@@ -41,6 +41,7 @@ public class BlockStateCombineViolationConditionOperator
     Preconditions.checkNotNull(reference);
     BlockState blockState = (BlockState) reference;
     return new BlockState(
+        null,
         Iterables.getOnlyElement(locations),
         blockState.getBlockNode(),
         blockState.getType(),

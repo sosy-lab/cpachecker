@@ -67,6 +67,7 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
     blockStateSupplier =
         location ->
             new BlockState(
+                null,
                 location,
                 pNode,
                 BlockStateType.INITIAL,

@@ -61,6 +61,16 @@ class CallstackOptions {
 
   @Option(
       secure = true,
+      description =
+          "Use callstack states for distributed summary synthesis (DSS). Such states track all"
+              + " traversed edges so that the callstack of a block can be verified against the"
+              + " violation condition at the end of the block. They can also be told to allow all"
+              + " transfers, which is required whenever a block analysis does not know its"
+              + " callstack.")
+  private boolean useDssCallstackStates = false;
+
+  @Option(
+      secure = true,
       name = "domain",
       toUppercase = true,
       values = {"FLAT", "FLATPCC"},
@@ -95,6 +105,10 @@ class CallstackOptions {
 
   boolean traverseBackwards() {
     return traverseBackwards;
+  }
+
+  boolean useDssCallstackStates() {
+    return useDssCallstackStates;
   }
 
   String getDomainType() {

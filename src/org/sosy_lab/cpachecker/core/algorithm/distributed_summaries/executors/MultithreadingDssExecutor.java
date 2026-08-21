@@ -9,17 +9,17 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssAllWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssDefaultQueue;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -109,19 +109,25 @@ public class MultithreadingDssExecutor implements DssExecutor {
           OBSERVER_WORKER_ID,
           observer.getId());
       // run workers
-      List<Thread> threads = new ArrayList<>(actors.getActors().size());
+      ImmutableList.Builder<Thread> threadsBuilder =
+          ImmutableList.builderWithExpectedSize(actors.size());
+      ImmutableList.Builder<DssConnection> monitoredConnections =
+          ImmutableList.builderWithExpectedSize(actors.getActors().size());
       for (DssActor worker :
           Iterables.concat(actors.getAnalysisWorkers(), actors.getRemainingActors())) {
         Thread thread = new Thread(worker, worker.getId());
-        threads.add(thread);
+        threadsBuilder.add(thread);
+        monitoredConnections.add(worker.getConnection());
         thread.setDaemon(true);
         thread.start();
       }
 
+      ImmutableList<Thread> threads = threadsBuilder.build();
       Preconditions.checkNotNull(observer, "Observer worker must be present in actors.");
       // sends a result message iff all workers are waiting
       DssThreadMonitor monitor =
-          new DssThreadMonitor(threads, messageFactory, observer.getConnection());
+          new DssThreadMonitor(
+              threads, messageFactory, observer.getConnection(), monitoredConnections.build());
       monitor.setDaemon(true);
       monitor.start();
 

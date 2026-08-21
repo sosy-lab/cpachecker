@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import java.util.Objects;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -36,11 +37,14 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState.IgnoreCallstackState;
+import org.sosy_lab.cpachecker.cpa.callstack.DssCallstackState;
 
 public class DistributedCallstackCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
   static final String DELIMITER = ",  ";
+
+  /** Key under which the serialized callstack state stores {@code allowAllTransfers}. */
+  static final String ALLOW_ALL_TRANSFERS_KEY = "allowAllTransfers";
 
   private final SerializeOperator serialize;
   private final DeserializeOperator deserialize;
@@ -87,10 +91,9 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    if (ignoreCallstack) {
-      return new IgnoreCallstackState(node);
-    }
-    return getCPA().getInitialState(node, partition);
+    // if the callstack of this block analysis is unknown,
+    // the callstack must not restrict any transfer
+    return callstackCPA.createState(null, node.getFunctionName(), node, ignoreCallstack);
   }
 
   @Override
@@ -154,10 +157,18 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   public AbstractState reset(AbstractState pAbstractState) {
     Preconditions.checkArgument(pAbstractState instanceof CallstackState);
     if (requiresStateResets) {
-      return new CallstackState(
-          null, block.getInitialLocation().getFunctionName(), block.getInitialLocation());
+      return callstackCPA.createState(
+          null,
+          block.getInitialLocation().getFunctionName(),
+          block.getInitialLocation(),
+          allowsAllTransfers(pAbstractState));
     }
     return pAbstractState;
+  }
+
+  /** Whether the given state stems from a block analysis that does not know its callstack. */
+  public static boolean allowsAllTransfers(@Nullable AbstractState pState) {
+    return pState instanceof DssCallstackState dssState && dssState.allowsAllTransfers();
   }
 
   @Override

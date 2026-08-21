@@ -9,14 +9,22 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.common.collect.Collections3.elementAndList;
+import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis.blockStateOf;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
@@ -39,36 +47,35 @@ import org.sosy_lab.java_smt.api.SolverException;
  */
 final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
 
-  private final ScopedLocationMap preconditions;
+  /** Stands in for the (nonexistent) predecessor of the root block. */
+  private static final String ROOT_KEY = "root";
+
+  private final BlockToProgramLocationMap preconditions;
 
   private final DssBlockAnalysis analysis;
 
-  private Precision unifiedPrecision;
-
   AlwaysReplacePreconditionHandler(DssBlockAnalysis pAnalysis) throws InterruptedException {
     analysis = pAnalysis;
-    unifiedPrecision = pAnalysis.makeStartPrecision();
     if (analysis.getBlock().isRoot()) {
-      preconditions = new ScopedLocationMap(analysis.getDcpa(), ImmutableSet.of("root"));
+      // the root block has no predecessor to receive a precondition from, so it starts from the
+      // unconstrained entry state under the synthetic key ROOT_KEY
+      preconditions = new BlockToProgramLocationMap(analysis.getDcpa(), ImmutableSet.of(ROOT_KEY));
+      preconditions.addStateForKey(
+          ROOT_KEY,
+          new StateAndPrecision(analysis.makeStartState(false), analysis.makeStartPrecision()));
     } else {
       preconditions =
-          new ScopedLocationMap(analysis.getDcpa(), analysis.getBlock().getPredecessorIds());
-    }
-
-    if (analysis.getBlock().isRoot()) {
-      analysis.setIgnoreCallstack(false);
-      StateAndPrecision stateAndPrecision =
-          new StateAndPrecision(analysis.makeStartState(), analysis.makeStartPrecision());
-      preconditions.addStateForKey("root", stateAndPrecision);
+          new BlockToProgramLocationMap(
+              analysis.getDcpa(), analysis.getBlock().getPredecessorIds());
     }
   }
 
   @Override
   public Collection<DssMessage> runInitialAnalysis()
       throws CPAException, InterruptedException, SolverException {
-    analysis.setIgnoreCallstack(true);
     DssBlockAnalysisResult result =
-        analysis.runInitialBlockAnalysis(analysis.makeStartState(), analysis.makeStartPrecision());
+        analysis.runInitialBlockAnalysis(
+            analysis.makeStartState(true), analysis.makeStartPrecision());
 
     if (!result.getAllViolations().isEmpty()) {
       return analysis.reportFirstViolationConditions(result.getAllViolations());
@@ -79,17 +86,24 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
   @Override
   public DssMessageProcessing store(DssPostConditionMessage pReceived)
       throws InterruptedException, SolverException, CPAException {
-    ImmutableList<@NonNull StateAndPrecision> received = analysis.deserialize(pReceived);
-    if (received.size() == 1
-        && analysis
-            .getDcpa()
-            .isMostGeneralBlockEntryState(Iterables.getOnlyElement(received).state())) {
-      if (preconditions.isEmpty(pReceived.getSenderId())) {
+    if (pReceived.indicatesUnreachableBlockEnd()) {
+      String sender = pReceived.getSenderId();
+      // Re-analysing on an update that changes nothing republishes the very same message. Around a
+      // cycle in the block graph that never terminates => stop.
+      boolean alreadyRecorded =
+          preconditions.isMarkedUnreachable(sender) && preconditions.isEmpty(sender);
+      preconditions.markUnreachable(sender);
+      if (alreadyRecorded) {
         return DssMessageProcessing.stop();
       }
-      preconditions.clearKey(pReceived.getSenderId());
+      if (preconditions.isEmpty(sender) && !preconditions.isUnreachable()) {
+        return DssMessageProcessing.stop();
+      }
+      preconditions.clearKey(sender);
       return DssMessageProcessing.proceed();
     }
+    ImmutableList<@NonNull StateAndPrecision> received = analysis.deserialize(pReceived);
+    preconditions.markReachable(pReceived.getSenderId());
     ImmutableListMultimap<Integer, @NonNull StateAndPrecision> hashToState =
         Multimaps.index(received, sap -> analysis.getDcpa().computeProgramPointHash(sap.state()));
     DssSingleWorkerStatistics stats = analysis.statistics();
@@ -100,14 +114,15 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
         return processing;
       }
 
-      unifiedPrecision = analysis.combinePrecisions(unifiedPrecision, received);
+      preconditions.removeStatesWithIgnoreCallstackIfMorePrecise(pReceived.getSenderId(), received);
 
       boolean stop = true;
 
       for (Integer id : hashToState.keySet()) {
         ImmutableList<@NonNull StateAndPrecision> statesAtLocation = hashToState.get(id);
         if (!analysis.allCovered(
-            statesAtLocation, preconditions.getStateForKeyAndId(pReceived.getSenderId(), id))) {
+            statesAtLocation,
+            preconditions.getStatesAndPrecisionsForKeyAndId(pReceived.getSenderId(), id))) {
           preconditions.overwriteStatesForKey(pReceived.getSenderId(), id, statesAtLocation);
           stop = false;
         }
@@ -132,9 +147,7 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
     if (!round.violationConditions().isEmpty()) {
       messages.addAll(analysis.reportViolationConditions(round.violationConditions()));
     }
-    if (!round.summaries().isEmpty()) {
-      messages.addAll(analysis.reportPostconditions(round.summaries()));
-    }
+    messages.addAll(postConditionsOf(round));
     return messages.build();
   }
 
@@ -147,13 +160,22 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
         pViolationConditionSender);
     ImmutableList.Builder<DssMessage> messages = ImmutableList.builder();
     AnalysisResult round = explore(true);
-    if (!round.summaries().isEmpty()) {
-      messages.addAll(analysis.reportPostconditions(round.summaries()));
-    }
+    messages.addAll(postConditionsOf(round));
     if (!round.violationConditions().isEmpty()) {
       messages.addAll(analysis.reportViolationConditions(round.violationConditions()));
     }
     return messages.build();
+  }
+
+  /**
+   * Turns the postcondition side of a round into messages: either an explicit unreachable-block-end
+   * signal, or the summaries the round found, or nothing at all.
+   */
+  private Collection<DssMessage> postConditionsOf(AnalysisResult pRound) {
+    if (pRound.blockEndUnreachable()) {
+      return analysis.reportUnreachableBlockEnd();
+    }
+    return analysis.reportPostconditions(pRound.summaries());
   }
 
   @Override
@@ -166,62 +188,174 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
     // nothing to do, the block is always explored from all known preconditions
   }
 
-  /** Explores the block once from every known precondition. */
+  /**
+   * Explores the block from all known preconditions, one group of equally-located preconditions at
+   * a time, and merges what the individual rounds found.
+   */
   private AnalysisResult explore(boolean isBackward) throws CPAException, InterruptedException {
     if (analysis.getViolationConditionHandler().isEmpty()) {
-      return new AnalysisResult(ImmutableList.of(), ImmutableSet.of());
+      return AnalysisResult.empty();
     }
+    if (!isBackward && preconditions.isUnreachable()) {
+      // every predecessor reported an unreachable block end, so this block cannot be entered
+      return AnalysisResult.unreachableBlockEnd();
+    }
+    ImmutableListMultimap<Integer, AbstractState> conditionsPerLocation;
+    if (analysis.getOptions().callStackStateRequiresStateReset()) {
+      conditionsPerLocation =
+          ImmutableListMultimap.<Integer, AbstractState>builder()
+              .putAll(0, analysis.getViolationConditionHandler().statesOf(Optional.empty()))
+              .build();
+    } else {
+      // Violation conditions are grouped by program point exactly like preconditions are. Because a
+      // program-point hash covers the callstack, conditions of different call contexts of the same
+      // block land in different groups. Exploring a block under all of them at once would mix those
+      // contexts: with inlining every call site would be its own block, but here one block is
+      // shared
+      // by all of them, so the contexts have to be kept apart by exploring per group instead.
+      conditionsPerLocation =
+          Multimaps.index(
+              analysis.getViolationConditionHandler().statesOf(Optional.empty()),
+              condition -> analysis.getDcpa().computeProgramPointHash(condition));
+    }
+
+    Precision precisionOfAnalysis =
+        analysis.getOptions().doResetPrecisionsForEveryRun() || preconditions.isEmpty()
+            ? analysis.makeStartPrecision()
+            : analysis.combinePrecisions(preconditions.getStatesAndPrecisions());
+
+    Multimap<Integer, Integer> safeRuns = ArrayListMultimap.create();
+    Map<ImmutableList<Integer>, AnalysisResult> rounds = new LinkedHashMap<>();
+    for (Integer conditionHash : conditionsPerLocation.keySet()) {
+      ImmutableList<AbstractState> conditionsAtLocation = conditionsPerLocation.get(conditionHash);
+      for (Integer locationHash : preconditions.getAllLocationHashes()) {
+        AnalysisResult round =
+            exploreFrom(
+                preconditions.getStatesPerLocation(locationHash),
+                conditionsAtLocation,
+                precisionOfAnalysis,
+                false);
+        if (!round.summaries().isEmpty()) {
+          safeRuns.put(locationHash, conditionHash);
+        }
+        rounds.put(ImmutableList.of(locationHash, conditionHash), round);
+      }
+    }
+    for (Integer preconditionLocationHash : safeRuns.keySet()) {
+      Collection<Integer> vcLocationHashes = safeRuns.get(preconditionLocationHash);
+      if (vcLocationHashes.size() > 1) {
+        vcLocationHashes.forEach(v -> rounds.remove(ImmutableList.of(preconditionLocationHash, v)));
+        AnalysisResult round =
+            exploreFrom(
+                preconditions.getStatesPerLocation(preconditionLocationHash),
+                FluentIterable.from(vcLocationHashes)
+                    .transformAndConcat(conditionsPerLocation::get)
+                    .toList(),
+                precisionOfAnalysis,
+                false);
+        rounds.put(elementAndList(preconditionLocationHash, vcLocationHashes), round);
+      }
+    }
+    if (preconditions.isEmpty() || preconditions.isAnyPredecessorTrulyEmpty()) {
+      // a predecessor that has not sent anything yet does not restrict the block entry, so
+      // explore speculatively from the unconstrained start state to find violations early
+      AnalysisResult topExploration =
+          exploreFrom(
+              ImmutableSet.of(analysis.makeStartState(true)),
+              analysis.getViolationConditionHandler().statesOf(Optional.empty()),
+              precisionOfAnalysis,
+              true);
+      Preconditions.checkState(topExploration.summaries().isEmpty());
+      rounds.put(ImmutableList.of(), topExploration);
+    }
+    return merge(rounds.values());
+  }
+
+  /**
+   * Combines the rounds of one exploration: summaries and violation conditions accumulate, while
+   * the block end counts as unreachable only if every round found it unreachable.
+   */
+  private AnalysisResult merge(Collection<AnalysisResult> pRounds)
+      throws CPAException, InterruptedException {
+    ImmutableSet.Builder<StateAndPrecision> summaries = ImmutableSet.builder();
+    ImmutableSet.Builder<ArgPathAndCondition> violations = ImmutableSet.builder();
+    boolean unreachable = true;
+    for (AnalysisResult round : pRounds) {
+      summaries.addAll(round.summaries());
+      violations.addAll(round.violationConditions());
+      unreachable &= round.blockEndUnreachable();
+    }
+    return new AnalysisResult(
+        analysis.deduplicateStatesAndPrecisions(summaries.build()),
+        violations.build(),
+        unreachable);
+  }
+
+  /**
+   * Explores the block once from each of the given states.
+   *
+   * @param pDiscardSummaries whether this is a speculative run whose summaries must not be
+   *     published, in which case the violations it finds are reported separately
+   */
+  private AnalysisResult exploreFrom(
+      Collection<AbstractState> statesToProcess,
+      Collection<AbstractState> violationConditions,
+      Precision precision,
+      boolean pDiscardSummaries)
+      throws CPAException, InterruptedException {
 
     ImmutableSet.Builder<StateAndPrecision> summaries = ImmutableSet.builder();
     ImmutableSet.Builder<ArgPathAndCondition> violations = ImmutableSet.builder();
 
-    Precision precision = unifiedPrecision;
-    Collection<AbstractState> receivedStates = preconditions.getStates();
-    boolean forceTop = false;
-    if (receivedStates.isEmpty()) {
-      analysis.setIgnoreCallstack(true);
-      receivedStates = ImmutableList.of(analysis.makeStartState());
-      precision = analysis.makeStartPrecision();
-      forceTop = !isBackward;
-    }
-
-    for (AbstractState state : receivedStates) {
+    for (AbstractState state : statesToProcess) {
       DssBlockAnalysisResult result =
           analysis.runBlockAnalysis(
-              analysis.getDcpa().reset(state),
-              precision,
-              analysis.getViolationConditionHandler().statesOf(Optional.empty()));
+              analysis.getDcpa().reset(state), precision, violationConditions);
 
       if (!result.getAllViolations().isEmpty()) {
         violations.addAll(analysis.pathsWithCondition(result.getViolationConditionViolations()));
         violations.addAll(analysis.pathsFromOrigin(result.getTargetStates()));
-      } else if (!receivedStates.isEmpty() || analysis.getBlock().isRoot()) {
+      } else if (!pDiscardSummaries) {
         summaries.addAll(analysis.summariesOf(result));
       }
     }
 
-    ImmutableSet<StateAndPrecision> finalSummaries = summaries.build();
-    ImmutableSet<ArgPathAndCondition> finalViolations = violations.build();
+    Set<StateAndPrecision> finalSummaries = summaries.build();
+    Set<ArgPathAndCondition> finalViolations = violations.build();
 
     if (finalViolations.isEmpty() && finalSummaries.isEmpty()) {
-      return new AnalysisResult(
-          ImmutableList.of(
-              new StateAndPrecision(
-                  analysis.makeTopState(analysis.getBlock().getFinalLocation()), precision)),
-          ImmutableSet.of());
+      // the exploration produced no state at the final location
+      return AnalysisResult.unreachableBlockEnd();
     }
 
     if (!finalViolations.isEmpty()) {
-      return new AnalysisResult(
-          forceTop
-              ? ImmutableList.of(
-                  new StateAndPrecision(
-                      analysis.makeTopState(analysis.getBlock().getFinalLocation()), precision))
-              : ImmutableSet.of(),
-          finalViolations);
+      // summaries found alongside a violation are discarded: the violation has to be resolved first
+      return AnalysisResult.ofViolationConditions(finalViolations);
     }
 
-    // summaries found alongside a violation are discarded: the violation has to be resolved first
-    return new AnalysisResult(finalSummaries, ImmutableSet.of());
+    if (!pDiscardSummaries
+        && finalSummaries.stream()
+            .allMatch(sap -> analysis.getDcpa().isMostGeneralBlockEntryState(sap.state()))) {
+      return AnalysisResult.empty();
+    }
+
+    Set<AbstractState> violationsToConsider =
+        FluentIterable.from(finalSummaries)
+            .transform(sap -> blockStateOf(sap.state()))
+            .filter(b -> !b.getHinderedByCallstack().isEmpty())
+            .transformAndConcat(b -> b.getHinderedByCallstack())
+            .toSet();
+
+    if (!violationsToConsider.isEmpty() && !pDiscardSummaries) {
+      finalViolations =
+          exploreFrom(
+                  ImmutableSet.of(analysis.makeStartState(true)),
+                  violationConditions,
+                  precision,
+                  true)
+              .violationConditions();
+    }
+
+    return new AnalysisResult(finalSummaries, finalViolations, false);
   }
 }

@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
@@ -54,17 +53,14 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
   private final DssBlockAnalysis analysis;
   private final boolean resetPrecisionsForEveryRun;
 
-  private Precision unifiedPrecision;
-
   PathBasedPreconditionHandler(DssBlockAnalysis pAnalysis) throws InterruptedException {
     analysis = pAnalysis;
-    resetPrecisionsForEveryRun = pAnalysis.getOptions().resetPrecisionsForEveryRun();
-    unifiedPrecision = pAnalysis.makeStartPrecision();
+    resetPrecisionsForEveryRun = pAnalysis.getOptions().doResetPrecisionsForEveryRun();
 
     for (String predecessorId : pAnalysis.getBlock().getPredecessorIds()) {
       preconditions.put(
           BlockGraphPath.of(predecessorId),
-          new StateAndPrecision(pAnalysis.makeStartState(), pAnalysis.makeStartPrecision()));
+          new StateAndPrecision(pAnalysis.makeStartState(true), pAnalysis.makeStartPrecision()));
     }
   }
 
@@ -72,7 +68,8 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
   public Collection<DssMessage> runInitialAnalysis()
       throws CPAException, InterruptedException, SolverException {
     DssBlockAnalysisResult result =
-        analysis.runInitialBlockAnalysis(analysis.makeStartState(), analysis.makeStartPrecision());
+        analysis.runInitialBlockAnalysis(
+            analysis.makeStartState(true), analysis.makeStartPrecision());
 
     ImmutableList.Builder<DssMessage> initialMessages = ImmutableList.builder();
     if (!result.getFinalLocationStates().isEmpty()) {
@@ -98,8 +95,6 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
       if (!processing.shouldProceed()) {
         return processing;
       }
-
-      unifiedPrecision = analysis.combinePrecisions(unifiedPrecision, received);
 
       // group incoming states by block graph path
       ImmutableListMultimap.Builder<BlockGraphPath, StateAndPrecision> newPreconditionsBuilder =
@@ -132,7 +127,7 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
           for (BlockGraphPath oldPathForCase : cases.get(PathCase.SUFFIX_OR_EQUAL)) {
             if (!allowedToStop
                 && analysis.allCovered(
-                newPreconditions.get(newPath), oldAndProcessedNewPaths.get(oldPathForCase))) {
+                    newPreconditions.get(newPath), oldAndProcessedNewPaths.get(oldPathForCase))) {
               allowedToStop = true;
             }
             preconditions.removeAll(oldPathForCase);
@@ -245,12 +240,14 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
     ImmutableSet.Builder<ArgPathAndCondition> violations = ImmutableSet.builder();
 
     for (BlockGraphPath path : pathsToAnalyze) {
+      Precision currentPrecision = analysis.combinePrecisions(preconditions.get(path));
       for (StateAndPrecision precondition : ImmutableList.copyOf(preconditions.get(path))) {
         boolean isTrivial = analysis.getDcpa().isMostGeneralBlockEntryState(precondition.state());
         Precision precision =
             resetPrecisionsForEveryRun || isTrivial
                 ? analysis.makeStartPrecision()
-                : unifiedPrecision;
+                : currentPrecision;
+        
         analysis.resetStates(preconditions);
 
         DssBlockAnalysisResult result =
