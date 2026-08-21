@@ -370,8 +370,6 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
               e.getMessage().contains("recursion"),
               e.getMessage().contains("pthread_create")
                   || e.getMessage()
-                      .contains("Concurrency analysis not supported in this configuration")
-                  || e.getMessage()
                       .contains(
                           AutomatonBoolExpr.CANNOT_EVALUATE_THREAD_MISSING.getFailureMessage()));
 
