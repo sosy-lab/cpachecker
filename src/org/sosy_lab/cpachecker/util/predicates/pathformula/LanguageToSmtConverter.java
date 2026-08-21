@@ -154,6 +154,15 @@ public abstract class LanguageToSmtConverter<T extends Type> {
             // delete the variable instead: that would restart its index counter, and a later
             // assignment could then reuse indices that already occur in the formulas of the
             // frames we returned from, wrongly equating unrelated values.
+            //
+            // Giving a fresh index is the right way to havoc the variable only as long as the
+            // variable is not handled as an aliased location, because the value of an aliased
+            // variable lives in the memory encoding and not in the SSA map.
+            assert oldFormula.getSsaStack().isEmpty()
+                    || !newPts.isActualBase(
+                        PointerBase.forVariable(variable, newPts.getCallStackDepth()))
+                : "Aliased variable " + variable + " is missing from the SSA map of the caller";
+
             @SuppressWarnings("unchecked")
             T varType = (T) pSsaMapAfterHandlingEdge.getType(variable);
             makeFreshIndex(variable, varType, resultSsa);
