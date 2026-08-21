@@ -90,11 +90,11 @@ public abstract class LanguageToSmtConverter<T extends Type> {
       CFAEdge pEdge,
       Constraints pConstraints,
       PathFormula oldFormula,
-      SSAMap newSsa,
+      SSAMap pSsaMapAfterHandlingEdge,
       PointerTargetSet newPts,
       FormulaManagerView fmgr) {
     return switch (pEdge.getEdgeType()) {
-      case FunctionCallEdge -> oldFormula.getSsaStack().pushAndCopy(newSsa);
+      case FunctionCallEdge -> oldFormula.getSsaStack().pushAndCopy(pSsaMapAfterHandlingEdge);
       case FunctionReturnEdge -> {
         // We now need to reset all SSA indices of local variables of the caller function to the
         // state before the call, because after a return edge we are back in the caller
@@ -112,7 +112,7 @@ public abstract class LanguageToSmtConverter<T extends Type> {
         // during the callee's execution. In particular the local variables of functions further
         // up in the call stack are not touched here, since they may need to be reset when
         // returning from their frames later on.
-        final SSAMapBuilder functionReturnSsaBuilder = newSsa.builder();
+        final SSAMapBuilder resultSsa = pSsaMapAfterHandlingEdge.builder();
 
         // If the analysis starts in the middle of a CFA, the first edge can be a return edge
         // while the stack does not contain a frame for the caller. In this case we do not know
@@ -123,11 +123,12 @@ public abstract class LanguageToSmtConverter<T extends Type> {
         final boolean hasCallerFrame = oldFormula.getSsaStack().size() > 1;
         final SSAMap callerSsa =
             hasCallerFrame ? oldFormula.getSsaStack().popAndCopy().peek() : SSAMap.emptySSAMap();
+        final SSAMap topmostStackSsaBeforeHandlingEdge = oldFormula.getTopmostStackSsa();
 
         final NavigableSet<String> knownVariables =
             ImmutableSortedSet.<String>naturalOrder()
                 .addAll(callerSsa.allVariables())
-                .addAll(newSsa.allVariables())
+                .addAll(pSsaMapAfterHandlingEdge.allVariables())
                 .build();
 
         // Only the variables of the caller function are reset or havocked, which we can identify
@@ -136,7 +137,7 @@ public abstract class LanguageToSmtConverter<T extends Type> {
         for (String variable :
             CFAUtils.filterVariablesOfFunction(
                 knownVariables, pEdge.getSuccessor().getFunctionName())) {
-          if (newSsa.getIndex(variable) != oldFormula.getTopmostStackSsa().getIndex(variable)) {
+          if (pSsaMapAfterHandlingEdge.getIndex(variable) != topmostStackSsaBeforeHandlingEdge.getIndex(variable)) {
             // The variable was written while handling the return, i.e., it was assigned the
             // return value in a statement like `a = f();`. Then it already holds the correct
             // value for the caller and must not be reset.
@@ -151,12 +152,12 @@ public abstract class LanguageToSmtConverter<T extends Type> {
             // assignment could then reuse indices that already occur in the formulas of the
             // frames we returned from, wrongly equating unrelated values.
             @SuppressWarnings("unchecked")
-            T varType = (T) newSsa.getType(variable);
-            makeFreshIndex(variable, varType, functionReturnSsaBuilder);
+            T varType = (T) pSsaMapAfterHandlingEdge.getType(variable);
+            makeFreshIndex(variable, varType, resultSsa);
           } else if (
           // If we are not in a recursive call, then we do not need to reset the index, we know
           // this since if the same variable has not been written we are not in a recursive call
-          newSsa.getIndex(variable) != callerSsa.getIndex(variable)
+          pSsaMapAfterHandlingEdge.getIndex(variable) != callerSsa.getIndex(variable)
               // The reset is only sound for the plain SSA copy of a variable. A variable whose
               // address has been taken lives in the memory encoding instead, where the callee may
               // legitimately have changed it through a pointer into the caller's frame, so its
@@ -171,19 +172,18 @@ public abstract class LanguageToSmtConverter<T extends Type> {
             @SuppressWarnings("unchecked")
             T varType = (T) callerSsa.getType(variable);
             Verify.verify(
-                varType == newSsa.getType(variable),
+                varType == pSsaMapAfterHandlingEdge.getType(variable),
                 "Variable %s has different types in caller and callee SSA",
                 variable);
 
-            makeFreshIndex(variable, varType, functionReturnSsaBuilder);
+            makeFreshIndex(variable, varType, resultSsa);
             // Now make it such that the new variable is equal to the old one
             // Both sides use newPts: the variable belongs to the caller, so both formulas must be
             // built with the caller's view of the pointer target set.
             pConstraints.addConstraint(
                 fmgr.assignment(
                     makeFormulaForVariable(callerSsa, newPts, variable, varType),
-                    makeFormulaForVariable(
-                        functionReturnSsaBuilder.build(), newPts, variable, varType)));
+                    makeFormulaForVariable(resultSsa.build(), newPts, variable, varType)));
           }
         }
 
@@ -207,8 +207,8 @@ public abstract class LanguageToSmtConverter<T extends Type> {
               continue;
             }
             @SuppressWarnings("unchecked")
-            T varType = (T) newSsa.getType(variable);
-            makeFreshIndex(variable, varType, functionReturnSsaBuilder);
+            T varType = (T) pSsaMapAfterHandlingEdge.getType(variable);
+            makeFreshIndex(variable, varType, resultSsa);
           }
         }
 
@@ -218,9 +218,9 @@ public abstract class LanguageToSmtConverter<T extends Type> {
             hasCallerFrame
                 ? oldFormula.getSsaStack().popAndCopy().popAndCopy()
                 : PersistentStack.of();
-        yield remainingStack.pushAndCopy(functionReturnSsaBuilder.build());
+        yield remainingStack.pushAndCopy(resultSsa.build());
       }
-      default -> oldFormula.getSsaStack().popAndCopy().pushAndCopy(newSsa);
+      default -> oldFormula.getSsaStack().popAndCopy().pushAndCopy(pSsaMapAfterHandlingEdge);
     };
   }
 
