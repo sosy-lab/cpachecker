@@ -27,6 +27,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
+import org.sosy_lab.cpachecker.cfa.CfaCloneRelation;
 import org.sosy_lab.cpachecker.cfa.FunctionCallCollector;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -68,6 +69,10 @@ public class FunctionCallUnwinder {
 
   public MutableCFA unwindRecursion() {
     assert cfa.getLanguage() == Language.C;
+
+    // tracks which node and edge of the cloned functions belongs to which original node and edge
+    final CfaCloneRelation.Builder cloneRelation =
+        CfaCloneRelation.builder().addAll(cfa.getCloneRelation());
 
     // copy content of old CFAs
     final NavigableMap<String, FunctionEntryNode> functions = new TreeMap<>(cfa.getAllFunctions());
@@ -117,11 +122,11 @@ public class FunctionCallUnwinder {
           if (!calledFunction.equals(newFunctionname)) {
             // if we have found recursion and need a functioncall-replacement
             if (!functions.containsKey(newFunctionname)) {
-              cloneFunction(calledFunction, newFunctionname, functions, nodes);
+              cloneFunction(calledFunction, newFunctionname, functions, nodes, cloneRelation);
             }
 
             // redirect from caller to new (cloned) called function
-            replaceFunctionCall(statementEdge, newFunctionname);
+            replaceFunctionCall(statementEdge, newFunctionname, cloneRelation);
           }
         }
 
@@ -130,11 +135,14 @@ public class FunctionCallUnwinder {
       }
     }
 
-    return new MutableCFA(functions, nodes, cfa.getMetadata());
+    return new MutableCFA(
+        functions, nodes, cfa.getMetadata().withCloneRelation(cloneRelation.build()));
   }
 
   static void replaceFunctionCall(
-      final AStatementEdge functionCallEdge, final String newFunctionName) {
+      final AStatementEdge functionCallEdge,
+      final String newFunctionName,
+      final CfaCloneRelation.Builder cloneRelation) {
     final CFANode pred = functionCallEdge.getPredecessor();
     final CFANode succ = functionCallEdge.getSuccessor();
     final AFunctionCall call = (AFunctionCall) functionCallEdge.getStatement();
@@ -148,7 +156,8 @@ public class FunctionCallUnwinder {
       final String oldFunctionName = declaration.getQualifiedName();
 
       // build new edge
-      final FunctionCloner fc = new FunctionCloner(oldFunctionName, newFunctionName, true);
+      final FunctionCloner fc =
+          new FunctionCloner(oldFunctionName, newFunctionName, true, cloneRelation);
       newEdge = fc.cloneEdge(functionCallEdge, pred, succ);
     } else {
       // TODO support JAVA
@@ -165,14 +174,15 @@ public class FunctionCallUnwinder {
       final String oldFunctionname,
       final String newFunctionname,
       final Map<String, FunctionEntryNode> functions,
-      final SortedSetMultimap<String, CFANode> nodes) {
+      final SortedSetMultimap<String, CFANode> nodes,
+      final CfaCloneRelation.Builder cloneRelation) {
     Preconditions.checkArgument(
         !functions.containsKey(newFunctionname), "function exists, cloning is not allowed.");
 
     // clone
     final FunctionEntryNode entryNode = functions.get(oldFunctionname);
     final Pair<FunctionEntryNode, Collection<CFANode>> newFunction =
-        FunctionCloner.cloneCFA(entryNode, newFunctionname);
+        FunctionCloner.cloneCFA(entryNode, newFunctionname, cloneRelation);
 
     // add new function to CFA
     functions.put(newFunctionname, newFunction.getFirst());

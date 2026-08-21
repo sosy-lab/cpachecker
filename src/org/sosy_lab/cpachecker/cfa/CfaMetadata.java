@@ -50,6 +50,7 @@ public final class CfaMetadata {
   private final @Nullable SvLibCfaMetadata svLibCfaMetadata;
 
   private final @Nullable CfaTransformationMetadata transformationMetadata;
+  private final CfaCloneRelation cloneRelation;
 
   private CfaMetadata(
       MachineModel pMachineModel,
@@ -64,7 +65,8 @@ public final class CfaMetadata {
       @Nullable LiveVariables pLiveVariables,
       @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> pEdgesToAnnotations,
       @Nullable SvLibCfaMetadata pSvLibCfaMetadata,
-      @Nullable CfaTransformationMetadata pCfaTransformationMetadata) {
+      @Nullable CfaTransformationMetadata pCfaTransformationMetadata,
+      CfaCloneRelation pCloneRelation) {
     machineModel = checkNotNull(pMachineModel);
     cfaLanguage = checkNotNull(pCFALanguage);
     inputLanguage = checkNotNull(pInputLanguage);
@@ -79,6 +81,7 @@ public final class CfaMetadata {
     edgesToAnnotations = pEdgesToAnnotations;
     svLibCfaMetadata = pSvLibCfaMetadata;
     transformationMetadata = pCfaTransformationMetadata;
+    cloneRelation = checkNotNull(pCloneRelation);
   }
 
   /**
@@ -117,7 +120,8 @@ public final class CfaMetadata {
         null,
         null,
         null,
-        null);
+        null,
+        CfaCloneRelation.empty());
   }
 
   /**
@@ -151,7 +155,8 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        cloneRelation);
   }
 
   public CfaMetadata withTransformationMetadata(CfaTransformationMetadata pTransformationMetadata) {
@@ -169,7 +174,8 @@ public final class CfaMetadata {
             liveVariables,
             edgesToAnnotations,
             svLibCfaMetadata,
-            pTransformationMetadata);
+            pTransformationMetadata,
+            cloneRelation);
     return newMetadata;
   }
 
@@ -205,6 +211,44 @@ public final class CfaMetadata {
   }
 
   /**
+   * Returns the relation between the cloned functions of the CFA and the functions they were cloned
+   * from.
+   *
+   * @return the relation between the cloned functions of the CFA and the functions they were cloned
+   *     from, which is empty if the CFA doesn't contain any cloned function
+   */
+  public CfaCloneRelation getCloneRelation() {
+    return cloneRelation;
+  }
+
+  /**
+   * Returns a copy of this metadata instance, but with the specified clone relation.
+   *
+   * @param pCloneRelation the relation between the cloned functions of the CFA and the functions
+   *     they were cloned from (use {@link CfaCloneRelation#empty()} if the CFA doesn't contain any
+   *     cloned function)
+   * @return a copy of this metadata instance, but with the specified clone relation
+   * @throws NullPointerException if {@code pCloneRelation == null}
+   */
+  public CfaMetadata withCloneRelation(CfaCloneRelation pCloneRelation) {
+    return new CfaMetadata(
+        machineModel,
+        cfaLanguage,
+        inputLanguage,
+        fileNames,
+        mainFunctionEntry,
+        connectedness,
+        astCFARelation,
+        loopStructure,
+        variableClassification,
+        liveVariables,
+        edgesToAnnotations,
+        svLibCfaMetadata,
+        transformationMetadata,
+        checkNotNull(pCloneRelation));
+  }
+
+  /**
    * Returns the entry point of the program represented by the CFA.
    *
    * @return the entry point of the program represented by the CFA (i.e., function entry node of the
@@ -236,7 +280,8 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        cloneRelation);
   }
 
   /**
@@ -269,7 +314,8 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        cloneRelation);
   }
 
   /**
@@ -315,7 +361,8 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        cloneRelation);
   }
 
   /**
@@ -352,7 +399,8 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         pSvLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        cloneRelation);
   }
 
   /**
@@ -376,7 +424,8 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        cloneRelation);
   }
 
   /**
@@ -412,7 +461,8 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        cloneRelation);
   }
 
   /**
@@ -447,7 +497,8 @@ public final class CfaMetadata {
         pLiveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        cloneRelation);
   }
 
   /**
@@ -486,7 +537,8 @@ public final class CfaMetadata {
         liveVariables,
         pedgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        cloneRelation);
   }
 
   @Override
@@ -503,7 +555,8 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
-        transformationMetadata);
+        transformationMetadata,
+        cloneRelation);
   }
 
   @Override
@@ -524,7 +577,8 @@ public final class CfaMetadata {
         && Objects.equals(edgesToAnnotations, other.edgesToAnnotations)
         && Objects.equals(astCFARelation, other.astCFARelation)
         && Objects.equals(svLibCfaMetadata, other.svLibCfaMetadata)
-        && Objects.equals(transformationMetadata, other.transformationMetadata);
+        && Objects.equals(transformationMetadata, other.transformationMetadata)
+        && Objects.equals(cloneRelation, other.cloneRelation);
   }
 
   @Override
@@ -541,6 +595,7 @@ public final class CfaMetadata {
         .add("liveVariables", liveVariables)
         .add("edgesToAnnotations", edgesToAnnotations)
         .add("transformationMetadata", transformationMetadata)
+        .add("cloneRelation", cloneRelation)
         .toString();
   }
 }

@@ -56,6 +56,14 @@ public interface CFA extends CfaNetwork {
     return getMetadata().getAstCfaRelation();
   }
 
+  /**
+   * Returns the relation between the cloned functions of this CFA and the functions they were
+   * cloned from, which is empty if this CFA doesn't contain any cloned function.
+   */
+  default CfaCloneRelation getCloneRelation() {
+    return getMetadata().getCloneRelation();
+  }
+
   default Optional<LoopStructure> getLoopStructure() {
     return getMetadata().getLoopStructure();
   }
