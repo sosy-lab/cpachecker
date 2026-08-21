@@ -14,6 +14,7 @@ import static org.sosy_lab.common.collect.Collections3.elementAndList;
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.base.Splitter;
+import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableCollection;
@@ -582,8 +583,12 @@ public class CFAUtils {
    * @return the function name if the variable is declared inside one, otherwise an empty Optional
    */
   public static Optional<String> getFunctionName(String qualifiedName) {
-    if (qualifiedName.contains("::")) {
-      return Splitter.on("::").splitToList(qualifiedName).stream().findFirst();
+    List<String> nameParts = Splitter.on("::").splitToList(qualifiedName);
+    Verify.verify(!nameParts.isEmpty(), "qualified name must not be empty");
+    Verify.verify(nameParts.size() <= 2, "qualified name must have at most one delimiter '::'");
+
+    if (nameParts.size() > 1) {
+      return Optional.of(nameParts.get(0));
     }
 
     return Optional.empty();
