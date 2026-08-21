@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Maps;
@@ -25,10 +26,12 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.SequencedMap;
 import java.util.Set;
+import java.util.TreeMap;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -42,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -115,7 +119,11 @@ public class AssignmentToPathAllocator {
     AssignableTermsInPath assignableTerms = assignTermsToPathPosition(pSSAMaps, pModel);
     ImmutableList.Builder<ConcreteStatePathNode> pathWithAssignments =
         ImmutableList.builderWithExpectedSize(pPath.getInnerEdges().size());
-    ImmutableMap<LeftHandSide, Address> addressOfVariables = getVariableAddresses(assignableTerms);
+    VariableAddresses variableAddresses = getVariableAddresses(assignableTerms);
+    // Computing the addresses that are in scope is only necessary once per call stack depth, and
+    // the same depths occur again and again along a path.
+    final Map<Integer, ImmutableMap<LeftHandSide, Address>> addressOfVariablesCache =
+        new LinkedHashMap<>();
 
     // It's too inefficient to recreate every assignment from scratch, but the ssaIndex of the
     // Assignable Terms are needed, that's why we declare two maps of variables and functions. One
@@ -127,6 +135,7 @@ public class AssignmentToPathAllocator {
     final SequencedMap<String, SequencedMap<Address, Object>> memory = new LinkedHashMap<>();
 
     int ssaMapIndex = 0;
+    int callStackDepth = 0;
 
     /*We always look at the precise path, with resolved multi edges*/
     PathIterator pathIt = pPath.fullPathIterator();
@@ -134,6 +143,17 @@ public class AssignmentToPathAllocator {
     while (pathIt.hasNext()) {
       shutdownNotifier.shutdownIfNecessary();
       CFAEdge cfaEdge = pathIt.getOutgoingEdge();
+
+      // A concrete state holds the values that are valid after its edge, so after a function call
+      // or return it already belongs to the frame that the edge switches to. Counting the depth
+      // like this mirrors how PointerTargetSet tracks the call stack depth that the bases of
+      // variables are created with, so the depths can be used to look up those bases.
+      if (cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+        callStackDepth++;
+      } else if (cfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+        callStackDepth--;
+      }
+
       ImmutableSet<ValueAssignment> terms =
           assignableTerms.getAssignableTermsAtPosition().get(ssaMapIndex);
       SSAMap ssaMap = pSSAMaps.get(ssaMapIndex);
@@ -153,6 +173,9 @@ public class AssignmentToPathAllocator {
       ImmutableMap<String, Memory> allocatedMemory =
           ImmutableMap.copyOf(Maps.transformEntries(memory, Memory::new));
 
+      ImmutableMap<LeftHandSide, Address> addressOfVariables =
+          addressOfVariablesCache.computeIfAbsent(
+              callStackDepth, variableAddresses::atCallStackDepth);
       ConcreteState concreteState =
           new ConcreteState(
               variables, allocatedMemory, addressOfVariables, memoryName, evaluator, machineModel);
@@ -481,27 +504,72 @@ public class AssignmentToPathAllocator {
     heap.put(address, value);
   }
 
-  private ImmutableMap<LeftHandSide, Address> getVariableAddresses(
-      AssignableTermsInPath assignableTerms) {
+  /**
+   * The addresses of the bases of the variables that occur in a path. A variable of a recursive
+   * function has one base per stack frame it exists in, and those bases have different addresses,
+   * so the addresses of a variable that belongs to a stack frame are indexed by the call stack
+   * depth of that frame. Variables that belong to no stack frame, such as global variables, have a
+   * single address that is valid everywhere.
+   */
+  private record VariableAddresses(
+      ImmutableMap<LeftHandSide, Address> withoutStackFrame,
+      ImmutableMap<LeftHandSide, ImmutableSortedMap<Integer, Address>> perStackFrame) {
 
-    ImmutableMap.Builder<LeftHandSide, Address> addressOfVariables = ImmutableMap.builder();
+    /**
+     * Return the address of every variable as seen from a stack frame at the given call stack
+     * depth. For a variable that belongs to a stack frame this is the address of its innermost
+     * frame that is not deeper than the given depth, because deeper frames have been left already.
+     */
+    ImmutableMap<LeftHandSide, Address> atCallStackDepth(int callStackDepth) {
+      ImmutableMap.Builder<LeftHandSide, Address> result =
+          ImmutableMap.builderWithExpectedSize(withoutStackFrame.size() + perStackFrame.size());
+      result.putAll(withoutStackFrame);
+
+      perStackFrame.forEach(
+          (variable, addressesByCallStackDepth) -> {
+            Map.Entry<Integer, Address> address =
+                addressesByCallStackDepth.floorEntry(callStackDepth);
+            if (address != null) {
+              result.put(variable, address.getValue());
+            }
+          });
+
+      return result.buildOrThrow();
+    }
+  }
+
+  private VariableAddresses getVariableAddresses(AssignableTermsInPath assignableTerms) {
+
+    ImmutableMap.Builder<LeftHandSide, Address> addressesWithoutStackFrame = ImmutableMap.builder();
+    Map<LeftHandSide, NavigableMap<Integer, Address>> addressesPerStackFrame =
+        new LinkedHashMap<>();
 
     for (ValueAssignment constant : assignableTerms.getConstants()) {
       String name = FormulaManagerView.parseName(constant.getName()).getFirst();
       Optional<PointerBase> potentialBase = PointerBase.fromFormulaEncoding(name);
       if (potentialBase.isPresent()) {
         assert FormulaManagerView.parseName(constant.getName()).getSecond().isEmpty();
-        if (!DynamicMemoryHandler.isAllocBase(potentialBase.orElseThrow())) {
+        PointerBase base = potentialBase.orElseThrow();
+        if (!DynamicMemoryHandler.isAllocBase(base)) {
           Address address = Address.valueOf(constant.getValue());
 
           // TODO ugly, refactor?
-          LeftHandSide leftHandSide = createLeftHandSide(potentialBase.orElseThrow().name());
-          addressOfVariables.put(leftHandSide, address);
+          LeftHandSide leftHandSide = createLeftHandSide(base.name());
+          if (base.callStackDepth() == null) {
+            addressesWithoutStackFrame.put(leftHandSide, address);
+          } else {
+            addressesPerStackFrame
+                .computeIfAbsent(leftHandSide, key -> new TreeMap<>())
+                .put(base.callStackDepth(), address);
+          }
         }
       }
     }
 
-    return addressOfVariables.buildOrThrow();
+    return new VariableAddresses(
+        addressesWithoutStackFrame.buildOrThrow(),
+        ImmutableMap.copyOf(
+            Maps.transformValues(addressesPerStackFrame, ImmutableSortedMap::copyOf)));
   }
 
   private boolean isSmallerSSA(ValueAssignment pOldFunction, ValueAssignment pFunction) {
