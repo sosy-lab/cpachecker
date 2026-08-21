@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Splitter;
 import java.io.Serializable;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -100,23 +99,23 @@ public record PointerBase(String name, @Nullable Integer callStackDepth)
    * the term is such an encoding.
    */
   public static Optional<PointerBase> fromFormulaEncoding(String potentialEncodedBaseName) {
-    if (isBaseNameInFormulas(potentialEncodedBaseName)) {
-      Integer callStackDepth = null;
-      if (potentialEncodedBaseName.contains(CALL_STACK_DEPTH_SEPARATOR)) {
-        callStackDepth =
-            Splitter.on(CALL_STACK_DEPTH_SEPARATOR)
-                .splitToStream(potentialEncodedBaseName)
-                .skip(1) // skip the part before the separator
-                .map(Integer::parseInt)
-                .findFirst()
-                .orElseThrow();
-      }
-      return Optional.of(
-          new PointerBase(
-              potentialEncodedBaseName.substring(BASE_PREFIX.length()), callStackDepth));
-    } else {
+    if (!isBaseNameInFormulas(potentialEncodedBaseName)) {
       return Optional.empty();
     }
+
+    final String encodedBase = potentialEncodedBaseName.substring(BASE_PREFIX.length());
+    // The call stack depth is appended at the end of the name, so it is the part after the last
+    // occurrence of the separator and the name is everything before it.
+    final int separatorPosition = encodedBase.lastIndexOf(CALL_STACK_DEPTH_SEPARATOR);
+    if (separatorPosition < 0) {
+      return Optional.of(new PointerBase(encodedBase, null));
+    }
+
+    return Optional.of(
+        new PointerBase(
+            encodedBase.substring(0, separatorPosition),
+            Integer.parseInt(
+                encodedBase.substring(separatorPosition + CALL_STACK_DEPTH_SEPARATOR.length()))));
   }
 
   /**
