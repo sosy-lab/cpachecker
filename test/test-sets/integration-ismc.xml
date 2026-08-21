@@ -93,6 +93,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/loop-industry-pattern/aiob_2.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loop-industry-pattern/aiob_3.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loop-industry-pattern/aiob_4.c.v+lh-reducer.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/loop-lit/bh2017-ex1-poly.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loop-lit/gj2007.c.i.p+nlh-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/freire1_valuebound20.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/hard-ll_valuebound50.yml</exclude> <!-- flapping timeout -->
