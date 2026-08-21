@@ -198,6 +198,14 @@ public abstract class LanguageToSmtConverter<T extends Type> {
           for (String variable :
               CFAUtils.filterVariablesOfFunction(
                   knownVariables, pEdge.getPredecessor().getFunctionName())) {
+            // If the address of the variable is now used the original variable is not used anymore,
+            // so we do not need to reset it. This is because the variable is now only accessed
+            // through its address, which is registered with the call stack depth of the caller's
+            // frame in newPts, and thus will not be reset when returning from the caller.
+            if (newPts.isActualBase(
+                PointerBase.forVariable(variable, newPts.getCallStackDepth()))) {
+              continue;
+            }
             @SuppressWarnings("unchecked")
             T varType = (T) newSsa.getType(variable);
             makeFreshIndex(variable, varType, functionReturnSsaBuilder);
