@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
@@ -270,11 +269,6 @@ public abstract class DssMessage {
 
   public static DssMessage fromJson(Path pJson) throws IOException {
     DssMessageProxy proxy = DssMessageProxy.fromJson(pJson);
-    return fromProxy(proxy);
-  }
-
-  public static DssMessage fromJson(ImmutableMap<String, ImmutableMap<String, String>> pJson) {
-    DssMessageProxy proxy = DssMessageProxy.fromLegacyMap(pJson);
     return fromProxy(proxy);
   }
 

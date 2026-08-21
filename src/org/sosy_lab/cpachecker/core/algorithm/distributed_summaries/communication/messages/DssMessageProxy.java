@@ -17,7 +17,6 @@ import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
-import java.util.Objects;
 
 @JsonPropertyOrder({DssMessage.DSS_MESSAGE_HEADER_ID, DssMessage.DSS_MESSAGE_CONTENT_ID})
 public record DssMessageProxy(
@@ -43,17 +42,6 @@ public record DssMessageProxy(
   public static DssMessageProxy fromJson(Path pJson) throws IOException {
     ObjectMapper mapper = new ObjectMapper();
     return mapper.readValue(pJson.toFile(), DssMessageProxy.class);
-  }
-
-  public static DssMessageProxy fromLegacyMap(ImmutableMap<String, ImmutableMap<String, String>> pJson) {
-    ImmutableMap<String, String> headerMap =
-        Objects.requireNonNull(
-            pJson.get(DssMessage.DSS_MESSAGE_HEADER_ID), "Message JSON does not contain header: " + pJson);
-    ImmutableMap<String, String> contentMap =
-        Objects.requireNonNull(
-            pJson.get(DssMessage.DSS_MESSAGE_CONTENT_ID), "Message JSON does not contain content: " + pJson);
-
-    return new DssMessageProxy(headerMap, contentMap);
   }
 
   public ImmutableMap<String, ImmutableMap<String, String>> asLegacyMap() {
