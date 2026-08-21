@@ -498,6 +498,7 @@ abstract class AbstractBMCAlgorithm
         }
 
         if (from(trackedReachedSet.getDelta())
+            // first state of reached is always an abstraction state, so skip it
             .filter(s -> s != trackedReachedSet.getFirstState())
             .filter(not(AbstractStates::isTargetState)) // target states may be abstraction states
             .anyMatch(PredicateAbstractState::containsAbstractionState)) {
@@ -1048,7 +1049,7 @@ abstract class AbstractBMCAlgorithm
       final ReachedSet pReachedSet, final BasicProverEnvironment<?> prover)
       throws SolverException, InterruptedException {
     Iterable<AbstractState> scope =
-        pReachedSet instanceof DeltaTrackingReachedSet d ? d.getDelta() : pReachedSet;
+        pReachedSet instanceof DeltaTrackingReachedSet dtrs ? dtrs.getDelta() : pReachedSet;
     FluentIterable<AbstractState> stopStates =
         from(scope)
             .filter(AbstractBMCAlgorithm::isStopState)

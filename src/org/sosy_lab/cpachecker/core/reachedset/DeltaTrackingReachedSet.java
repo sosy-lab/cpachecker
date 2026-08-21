@@ -2,7 +2,7 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -15,64 +15,68 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /**
- * A {@link ForwardingReachedSet} that additionally tracks which states have been added since the
- * last call to {@link #clearDelta()}. Used to give consumers (e.g. adjustable-condition CPAs)
- * access to the delta of newly added states without requiring a full scan of the reached set.
+ * A {@link ForwardingReachedSet} that tracks which states have been added since the last call to
+ * {@link #clearDelta()}. Consumers that only need the newly added states can use the delta instead
+ * of scanning the whole reached set. States that leave the delta are no longer checked.
  */
 public class DeltaTrackingReachedSet extends ForwardingReachedSet {
 
-  private final SequencedSet<AbstractState> addedSinceMark = new LinkedHashSet<>();
+  private final SequencedSet<AbstractState> delta = new LinkedHashSet<>();
 
   public DeltaTrackingReachedSet(ReachedSet pDelegate) {
     super(pDelegate);
   }
 
+  /** Returns the states added since the last call to {@link #clearDelta()}. Do not modify. */
+  public SequencedSet<AbstractState> getDelta() {
+    return delta;
+  }
+
+  /** Discards the delta. Called once per unrolling, after all consumers have read it. */
+  public void clearDelta() {
+    delta.clear();
+  }
+
   @Override
   public void add(AbstractState pState, Precision pPrecision) throws IllegalArgumentException {
     super.add(pState, pPrecision);
-    addedSinceMark.add(pState);
+    delta.add(pState);
   }
 
   @Override
   public void addNoWaitlist(AbstractState pState, Precision pPrecision)
       throws IllegalArgumentException {
     super.addNoWaitlist(pState, pPrecision);
-    addedSinceMark.add(pState);
+    delta.add(pState);
   }
 
   @Override
   public void addAll(Iterable<Pair<AbstractState, Precision>> pToAdd) {
     super.addAll(pToAdd);
     for (Pair<AbstractState, Precision> pair : pToAdd) {
-      addedSinceMark.add(pair.getFirst());
+      delta.add(pair.getFirst());
     }
   }
 
   @Override
   public void clear() {
-    addedSinceMark.clear();
+    delta.clear();
     super.clear();
   }
 
   @Override
   public void remove(AbstractState pState) {
-    addedSinceMark.remove(pState);
+    // Removed states must leave the delta, otherwise consumers would later work on
+    // states that are already destroyed in the ARG.
+    delta.remove(pState);
     super.remove(pState);
   }
 
   @Override
   public void removeAll(Iterable<? extends AbstractState> pToRemove) {
     for (AbstractState s : pToRemove) {
-      addedSinceMark.remove(s);
+      delta.remove(s);
     }
     super.removeAll(pToRemove);
-  }
-
-  public SequencedSet<AbstractState> getDelta() {
-    return addedSinceMark;
-  }
-
-  public void clearDelta() {
-    addedSinceMark.clear();
   }
 }

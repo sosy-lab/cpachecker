@@ -124,11 +124,11 @@ public class LoopBoundCPA extends AbstractCPA
     try {
       // A state's stop flag is set at creation and never changes, so only states added since the
       // last adjustment can require removal.
-      Iterable<AbstractState> candidates =
+      Iterable<AbstractState> scope =
           pReachedSet instanceof DeltaTrackingReachedSet dtrs ? dtrs.getDelta() : pReachedSet;
 
       adjustReachedSetCalls++;
-      for (AbstractState s : candidates) {
+      for (AbstractState s : scope) {
         adjustReachedSetCandidates++;
         LoopBoundState loopBoundState = extractStateByType(s, LoopBoundState.class);
         if (loopBoundState != null && loopBoundState.mustDumpAssumptionForAvoidance()) {
