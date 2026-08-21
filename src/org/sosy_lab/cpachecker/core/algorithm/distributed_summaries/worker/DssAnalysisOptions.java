@@ -65,7 +65,7 @@ public class DssAnalysisOptions {
               + " one. The latter has disadvantages as unnecessary variables might be tracked due"
               + " to a too precise precision.",
       secure = true)
-  private boolean doResetPrecisionsForEveryRun = true;
+  private boolean doResetPrecisionsForEveryRun = false;
 
   @Option(
       description =

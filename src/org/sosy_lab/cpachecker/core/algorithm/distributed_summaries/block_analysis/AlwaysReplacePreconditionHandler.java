@@ -22,7 +22,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import java.util.Collection;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -94,7 +93,6 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
       boolean alreadyRecorded =
           preconditions.isMarkedUnreachable(sender) && preconditions.isEmpty(sender);
       preconditions.markUnreachable(sender);
-      preconditions.setIncompleteSources(sender, ImmutableSet.of());
       if (alreadyRecorded) {
         return DssMessageProcessing.stop();
       }
@@ -106,12 +104,8 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
     }
     ImmutableList<@NonNull StateAndPrecision> received = analysis.deserialize(pReceived);
     preconditions.markReachable(pReceived.getSenderId());
-    preconditions.setIncompleteSources(pReceived.getSenderId(), pReceived.getIncompleteSources());
     ImmutableListMultimap<Integer, @NonNull StateAndPrecision> hashToState =
-        Multimaps.index(
-            received,
-            sap ->
-                analysis.getDcpa().computeProgramPointHash(analysis.getDcpa().reset(sap.state())));
+        Multimaps.index(received, sap -> analysis.getDcpa().computeProgramPointHash(sap.state()));
     DssSingleWorkerStatistics stats = analysis.statistics();
     stats.getStorePreconditionStatesTimer().start();
     try {
@@ -181,7 +175,7 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
     if (pRound.blockEndUnreachable()) {
       return analysis.reportUnreachableBlockEnd();
     }
-    return analysis.reportPostconditions(pRound.summaries(), preconditions.getIncompleteSources());
+    return analysis.reportPostconditions(pRound.summaries());
   }
 
   @Override
@@ -206,17 +200,24 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
       // every predecessor reported an unreachable block end, so this block cannot be entered
       return AnalysisResult.unreachableBlockEnd();
     }
-    // Violation conditions are grouped by program point exactly like preconditions are. Because a
-    // program-point hash covers the callstack, conditions of different call contexts of the same
-    // block land in different groups. Exploring a block under all of them at once would mix those
-    // contexts: with inlining every call site would be its own block, but here one block is
-    // shared
-    // by all of them, so the contexts have to be kept apart by exploring per group instead.
-    ImmutableListMultimap<Integer, AbstractState> violationConditionsPerLocation =
-        Multimaps.index(
-            analysis.getViolationConditionHandler().statesOf(Optional.empty()),
-            condition ->
-                analysis.getDcpa().computeProgramPointHash(analysis.getDcpa().reset(condition)));
+    ImmutableListMultimap<Integer, AbstractState> conditionsPerLocation;
+    if (analysis.getOptions().callStackStateRequiresStateReset()) {
+      conditionsPerLocation =
+          ImmutableListMultimap.<Integer, AbstractState>builder()
+              .putAll(0, analysis.getViolationConditionHandler().statesOf(Optional.empty()))
+              .build();
+    } else {
+      // Violation conditions are grouped by program point exactly like preconditions are. Because a
+      // program-point hash covers the callstack, conditions of different call contexts of the same
+      // block land in different groups. Exploring a block under all of them at once would mix those
+      // contexts: with inlining every call site would be its own block, but here one block is
+      // shared
+      // by all of them, so the contexts have to be kept apart by exploring per group instead.
+      conditionsPerLocation =
+          Multimaps.index(
+              analysis.getViolationConditionHandler().statesOf(Optional.empty()),
+              condition -> analysis.getDcpa().computeProgramPointHash(condition));
+    }
 
     Precision precisionOfAnalysis =
         analysis.getOptions().doResetPrecisionsForEveryRun() || preconditions.isEmpty()
@@ -224,11 +225,9 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
             : analysis.combinePrecisions(preconditions.getStatesAndPrecisions());
 
     Multimap<Integer, Integer> safeRuns = ArrayListMultimap.create();
-    Set<Integer> reachedConditions = new LinkedHashSet<>();
     Map<ImmutableList<Integer>, AnalysisResult> rounds = new LinkedHashMap<>();
-    for (Integer conditionHash : violationConditionsPerLocation.keySet()) {
-      ImmutableList<AbstractState> conditionsAtLocation =
-          violationConditionsPerLocation.get(conditionHash);
+    for (Integer conditionHash : conditionsPerLocation.keySet()) {
+      ImmutableList<AbstractState> conditionsAtLocation = conditionsPerLocation.get(conditionHash);
       for (Integer locationHash : preconditions.getAllLocationHashes()) {
         AnalysisResult round =
             exploreFrom(
@@ -239,51 +238,35 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
         if (!round.summaries().isEmpty()) {
           safeRuns.put(locationHash, conditionHash);
         }
-        if (!round.violationConditions().isEmpty()) {
-          reachedConditions.add(conditionHash);
-        }
         rounds.put(ImmutableList.of(locationHash, conditionHash), round);
       }
     }
     for (Integer preconditionLocationHash : safeRuns.keySet()) {
-      Collection<Integer> violationConditionHashesForPrecondition =
-          safeRuns.get(preconditionLocationHash);
-      if (violationConditionHashesForPrecondition.size() > 1) {
-        violationConditionHashesForPrecondition.forEach(
-            v -> rounds.remove(ImmutableList.of(preconditionLocationHash, v)));
+      Collection<Integer> vcLocationHashes = safeRuns.get(preconditionLocationHash);
+      if (vcLocationHashes.size() > 1) {
+        vcLocationHashes.forEach(v -> rounds.remove(ImmutableList.of(preconditionLocationHash, v)));
         AnalysisResult round =
             exploreFrom(
                 preconditions.getStatesPerLocation(preconditionLocationHash),
-                FluentIterable.from(violationConditionHashesForPrecondition)
-                    .transformAndConcat(violationConditionsPerLocation::get)
+                FluentIterable.from(vcLocationHashes)
+                    .transformAndConcat(conditionsPerLocation::get)
                     .toList(),
                 precisionOfAnalysis,
                 false);
-        rounds.put(
-            elementAndList(preconditionLocationHash, violationConditionHashesForPrecondition),
-            round);
+        rounds.put(elementAndList(preconditionLocationHash, vcLocationHashes), round);
       }
     }
-    if (preconditions.isEmpty() || preconditions.isAnyPredecessorIncomplete()) {
-      // The known preconditions do not restrict the block entry completely: a predecessor has not
-      // reported at all, or what it reported is itself only part of its block end. Refuting a
-      // violation condition against them would therefore mean nothing, so the conditions that no
-      // round reached are tried once more from the unconstrained start state.
-      ImmutableList<AbstractState> unrefutedConditions =
-          FluentIterable.from(violationConditionsPerLocation.keySet())
-              .filter(hash -> !reachedConditions.contains(hash))
-              .transformAndConcat(violationConditionsPerLocation::get)
-              .toList();
-      if (!unrefutedConditions.isEmpty()) {
-        AnalysisResult topExploration =
-            exploreFrom(
-                ImmutableSet.of(analysis.makeStartState(true)),
-                unrefutedConditions,
-                precisionOfAnalysis,
-                true);
-        Preconditions.checkState(topExploration.summaries().isEmpty());
-        rounds.put(ImmutableList.of(), topExploration);
-      }
+    if (preconditions.isEmpty() || preconditions.isAnyPredecessorTrulyEmpty()) {
+      // a predecessor that has not sent anything yet does not restrict the block entry, so
+      // explore speculatively from the unconstrained start state to find violations early
+      AnalysisResult topExploration =
+          exploreFrom(
+              ImmutableSet.of(analysis.makeStartState(true)),
+              analysis.getViolationConditionHandler().statesOf(Optional.empty()),
+              precisionOfAnalysis,
+              true);
+      Preconditions.checkState(topExploration.summaries().isEmpty());
+      rounds.put(ImmutableList.of(), topExploration);
     }
     return merge(rounds.values());
   }

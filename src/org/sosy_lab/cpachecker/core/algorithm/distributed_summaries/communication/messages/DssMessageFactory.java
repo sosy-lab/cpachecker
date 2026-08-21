@@ -8,13 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssWitnessMessage.WitnessType;
@@ -30,7 +28,6 @@ public class DssMessageFactory {
   public static final String DSS_MESSAGE_PROPERTY_KEY = "property";
   public static final String DSS_MESSAGE_SOUND_KEY = "sound";
   public static final String DSS_MESSAGE_UNREACHABLE_BLOCK_END_KEY = "unreachableBlockEnd";
-  public static final String DSS_MESSAGE_INCOMPLETE_SOURCES_KEY = "incompleteSources";
 
   public DssMessageFactory(DssAnalysisOptions pOptions) {
     exportTimestamp = pOptions.isDebugModeEnabled();
@@ -50,25 +47,14 @@ public class DssMessageFactory {
     return ImmutableMap.of(DssWitnessMessage.DSS_MESSAGE_WITNESS_TYPE_KEY, pWitnessType.name());
   }
 
-  /**
-   * Creates a postcondition message.
-   *
-   * @param pIncompleteSources the blocks that keep these summaries from covering the whole block
-   *     end, see {@link DssMessage#getIncompleteSources()}
-   */
   public DssPostConditionMessage createDssPostConditionMessage(
-      String pSenderId,
-      AlgorithmStatus pStatus,
-      ImmutableMap<String, String> pStateContent,
-      Set<String> pIncompleteSources) {
-    ImmutableMap.Builder<String, String> content =
+      String pSenderId, AlgorithmStatus pStatus, ImmutableMap<String, String> pStateContent) {
+    return new DssPostConditionMessage(
+        pSenderId,
         ImmutableMap.<String, String>builder()
             .putAll(serializeStatus(pStatus))
-            .putAll(pStateContent);
-    if (!pIncompleteSources.isEmpty()) {
-      content.put(DSS_MESSAGE_INCOMPLETE_SOURCES_KEY, Joiner.on(',').join(pIncompleteSources));
-    }
-    return new DssPostConditionMessage(pSenderId, content.buildOrThrow());
+            .putAll(pStateContent)
+            .buildOrThrow());
   }
 
   /**

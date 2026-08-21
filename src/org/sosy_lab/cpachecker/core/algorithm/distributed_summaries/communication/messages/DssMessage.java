@@ -10,13 +10,10 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -201,30 +198,6 @@ public abstract class DssMessage {
     checkArgument(type == DssMessageType.POST_CONDITION, "Cannot get content for type: %s", type);
     return Boolean.parseBoolean(
         content.get(DssMessageFactory.DSS_MESSAGE_UNREACHABLE_BLOCK_END_KEY));
-  }
-
-  /**
-   * The blocks that keep the summaries of this postcondition from covering the sender's whole block
-   * end, either because they have not reported to the sender at all or because they in turn kept
-   * one of their predecessors' paths out of what they reported.
-   *
-   * <p>A block that has not heard from all of its predecessors still publishes what it knows, so
-   * that a loop can be unrolled one iteration at a time. The resulting summaries are an
-   * under-approximation, though, and a successor that took them for the whole truth would refute
-   * violation conditions that the missing paths can still reach. Naming the blocks responsible,
-   * instead of just flagging the message, is what makes this usable in a cyclic block graph: a
-   * receiver drops the blocks it has itself heard from, so an incompleteness that has meanwhile
-   * been resolved stops travelling instead of circling forever.
-   *
-   * @return the ids of the blocks whose paths are missing, empty if the summaries are complete
-   */
-  public final ImmutableSet<String> getIncompleteSources() {
-    checkArgument(type == DssMessageType.POST_CONDITION, "Cannot get content for type: %s", type);
-    String sources = content.get(DssMessageFactory.DSS_MESSAGE_INCOMPLETE_SOURCES_KEY);
-    if (isNullOrEmpty(sources)) {
-      return ImmutableSet.of();
-    }
-    return ImmutableSet.copyOf(Splitter.on(',').split(sources));
   }
 
   public final AlgorithmStatus getAlgorithmStatus() {
