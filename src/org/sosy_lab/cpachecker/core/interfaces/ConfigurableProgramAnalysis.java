@@ -36,6 +36,18 @@ public interface ConfigurableProgramAnalysis {
     return StaticPrecisionAdjustment.getInstance();
   }
 
+  /**
+   * Returns the initial abstract state for the given program location.
+   *
+   * <p>The returned state should represent all concrete program states that are possible at the
+   * given location, subject to the bounds and restrictions of the concrete state space and of this
+   * CPA. Thus, the initial state is maximally abstract within those constraints, but it is not
+   * necessarily the top element of the abstract domain.
+   *
+   * @param node a {@link CFANode} at the concrete program location for which the initial state
+   *     should be created. This initial location may be ignored should the abstract state returned
+   *     represent the top element within its abstract domain.
+   */
   AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException;
 
