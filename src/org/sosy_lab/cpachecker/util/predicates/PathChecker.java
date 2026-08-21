@@ -332,9 +332,13 @@ public class PathChecker {
 
       // for recursion
       if (!callstack.isEmpty() && edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+        // Only the SSAMap of the returning function is replaced here. Replacing the whole context
+        // would drop the SSAMaps of the callers, which are known because a whole path is replayed,
+        // and the variables of the caller would become unconstrained after the return edge below.
         pathFormula =
-            BAMBlockFormulaStrategy.rebuildStateAfterFunctionCall(
-                pathFormula, callstack.pop(), ((FunctionReturnEdge) edge).getPredecessor());
+            pathFormula.withTopmostStackSsa(
+                BAMBlockFormulaStrategy.rebuildSsaAfterFunctionCall(
+                    pathFormula, callstack.pop(), ((FunctionReturnEdge) edge).getPredecessor()));
       }
 
       pathFormula = pmgr.makeAnd(pathFormula, edge);

@@ -114,14 +114,17 @@ public abstract class LanguageToSmtConverter<T extends Type> {
         // returning from their frames later on.
         final SSAMapBuilder resultSsa = pSsaMapAfterHandlingEdge.builder();
 
-        // If the analysis starts in the middle of a CFA, the first edge can be a return edge
-        // while the stack does not contain a frame for the caller. In this case we do not know
-        // the values the caller's variables had before the call, so instead of resetting them we
-        // give them fresh unconstrained indices, which overapproximates the state of the caller
-        // function. The same applies to variables the caller has no entry for because they were
-        // only created inside the (recursive) callee.
+        // The stack contains no frame for the caller if this formula does not start at the
+        // beginning of the program but only inside the callee, for example because it is the
+        // formula of a single block (cf. BAM) or of a fragment of a path. Then the matching
+        // function call edge is not part of this formula, and neither are the assignments of the
+        // callee, so the variables of the caller still hold the values that the SSAMap of the
+        // returning function has for them and are left alone below. Giving them fresh indices
+        // instead would leave them unconstrained, which weakens the formula and thus creates
+        // spurious counterexamples.
+        final boolean hasCallerFrame = oldFormula.getSsaStack().size() > 1;
         final PersistentStack<SSAMap> callerSsaStack =
-            oldFormula.getSsaStack().size() > 1
+            hasCallerFrame
                 ? oldFormula.getSsaStack().popAndCopy()
                 : PersistentStack.<SSAMap>of().pushAndCopy(SSAMap.emptySSAMap());
         final SSAMap callerSsa = callerSsaStack.peek();
@@ -135,10 +138,15 @@ public abstract class LanguageToSmtConverter<T extends Type> {
 
         // Only the variables of the caller function are reset or havocked, which we can identify
         // by the variable name starting with the function name of the caller function (which
-        // is the successor function of the return edge).
-        for (String variable :
-            CFAUtils.filterVariablesOfFunction(
-                knownVariables, pEdge.getSuccessor().getFunctionName())) {
+        // is the successor function of the return edge). Without a frame for the caller no
+        // variable is touched at all, cf. above.
+        final Iterable<String> variablesOfCaller =
+            hasCallerFrame
+                ? CFAUtils.filterVariablesOfFunction(
+                    knownVariables, pEdge.getSuccessor().getFunctionName())
+                : ImmutableSortedSet.<String>of();
+
+        for (String variable : variablesOfCaller) {
           if (pSsaMapAfterHandlingEdge.getIndex(variable)
               != topmostStackSsaBeforeHandlingEdge.getIndex(variable)) {
             // The variable was written while handling the return, i.e., it was assigned the
@@ -157,10 +165,12 @@ public abstract class LanguageToSmtConverter<T extends Type> {
             //
             // Giving a fresh index is the right way to havoc the variable only as long as the
             // variable is not handled as an aliased location, because the value of an aliased
-            // variable lives in the memory encoding and not in the SSA map.
-            assert oldFormula.getSsaStack().size() <= 1
-                    || !newPts.isActualBase(
-                        PointerBase.forVariable(variable, newPts.getCallStackDepth()))
+            // variable lives in the memory encoding and not in the SSA map. This cannot happen
+            // here: a declaration creates both the SSA entry and the base of a variable in the
+            // frame it occurs in, so a caller that has no SSA entry for the variable has not
+            // reached its declaration yet and thus cannot have taken its address either.
+            assert !newPts.isActualBase(
+                    PointerBase.forVariable(variable, newPts.getCallStackDepth()))
                 : "Aliased variable " + variable + " is missing from the SSA map of the caller";
 
             @SuppressWarnings("unchecked")

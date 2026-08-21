@@ -204,10 +204,26 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
       final PathFormula parentFormula,
       final PathFormula rootFormula,
       final FunctionExitNode functionExitNode) {
-    final SSAMap newSSA =
-        BAMPredicateReducer.updateIndices(
-            rootFormula.getTopmostStackSsa(), parentFormula.getTopmostStackSsa(), functionExitNode);
     // TODO: seems buggy because it ignores PointerTargetSet
-    return parentFormula.withContext(newSSA, parentFormula.getPointerTargetSet());
+    return parentFormula.withContext(
+        rebuildSsaAfterFunctionCall(parentFormula, rootFormula, functionExitNode),
+        parentFormula.getPointerTargetSet());
+  }
+
+  /**
+   * Restore the SSA indices of the variables that are in scope in the caller after returning from a
+   * function call.
+   *
+   * <p>Use this instead of {@link #rebuildStateAfterFunctionCall(PathFormula, PathFormula,
+   * FunctionExitNode)} together with {@link PathFormula#withTopmostStackSsa(SSAMap)} if the callers
+   * of the returning function are known, i.e., if a whole path is built instead of the formula of a
+   * single block. Then the SSAMaps of the callers stay available for the rest of the path.
+   */
+  public static SSAMap rebuildSsaAfterFunctionCall(
+      final PathFormula parentFormula,
+      final PathFormula rootFormula,
+      final FunctionExitNode functionExitNode) {
+    return BAMPredicateReducer.updateIndices(
+        rootFormula.getTopmostStackSsa(), parentFormula.getTopmostStackSsa(), functionExitNode);
   }
 }

@@ -136,6 +136,24 @@ public final class PathFormula implements Serializable {
     return new PathFormula(formula, newSsa, newPts, length);
   }
 
+  /**
+   * Create a copy of this instance but with a new SSAMap for the topmost stack frame, everything
+   * else stays as is.
+   *
+   * <p>In contrast to {@link #withContext(SSAMap, PointerTargetSet)} this keeps the SSAMaps of the
+   * callers, so it has to be used whenever the result still belongs to the same sequence of
+   * function calls. Otherwise the information about the callers is lost and the variables of the
+   * caller become unconstrained when a function return edge is added afterwards.
+   *
+   * <p>WARNING: Use this method only if you are sure that the result is meaningful and correct in
+   * your specific use case. Usually the more high-level methods from {@link PathFormulaManager}
+   * should be used instead.
+   */
+  public PathFormula withTopmostStackSsa(SSAMap newSsa) {
+    return new PathFormula(
+        formula, ssaStack.popAndCopy().pushAndCopy(checkNotNull(newSsa)), pts, length);
+  }
+
   @Override
   public boolean equals(@Nullable Object obj) {
     if (this == obj) {
