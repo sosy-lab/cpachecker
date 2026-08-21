@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
@@ -105,7 +106,7 @@ public class InstrumentationPattern {
    */
   @Nullable
   public ImmutableList<String> matchThePattern(
-      CFAEdge pCFAEdge, Map<CFANode, String> pDecomposedMap) {
+      CFAEdge pCFAEdge, Map<CFANode, String> pDecomposedMap, MachineModel pMachineModel) {
     return switch (type) {
       case TRUE -> ImmutableList.of();
       case COND -> isOriginalCond(pCFAEdge) ? ImmutableList.of() : null;
@@ -118,26 +119,56 @@ public class InstrumentationPattern {
       case VARS_BIN_ASSIGN -> getTwoVariablesFromAssignment(pCFAEdge);
       case VARS_UN_ASSIGN -> getOneVariableFromAssignment(pCFAEdge);
       case DECLAR -> getTheOperandsFromDeclaration(pCFAEdge);
-      case ADD -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.PLUS, pDecomposedMap);
-      case SUB -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.MINUS, pDecomposedMap);
-      case NEG -> getTheOperandsFromUnaryOperation(pCFAEdge, UnaryOperator.MINUS, pDecomposedMap);
-      case MUL -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.MULTIPLY, pDecomposedMap);
-      case DIV -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.DIVIDE, pDecomposedMap);
-      case MOD -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.REMAINDER, pDecomposedMap);
+      case ADD ->
+          getTheOperandsFromOperation(pCFAEdge, BinaryOperator.PLUS, pDecomposedMap, pMachineModel);
+      case SUB ->
+          getTheOperandsFromOperation(
+              pCFAEdge, BinaryOperator.MINUS, pDecomposedMap, pMachineModel);
+      case NEG ->
+          getTheOperandsFromUnaryOperation(
+              pCFAEdge, UnaryOperator.MINUS, pDecomposedMap, pMachineModel);
+      case MUL ->
+          getTheOperandsFromOperation(
+              pCFAEdge, BinaryOperator.MULTIPLY, pDecomposedMap, pMachineModel);
+      case DIV ->
+          getTheOperandsFromOperation(
+              pCFAEdge, BinaryOperator.DIVIDE, pDecomposedMap, pMachineModel);
+      case MOD ->
+          getTheOperandsFromOperation(
+              pCFAEdge, BinaryOperator.REMAINDER, pDecomposedMap, pMachineModel);
       case SHIFT ->
-          getTheOperandsFromOperation(pCFAEdge, BinaryOperator.SHIFT_LEFT, pDecomposedMap);
-      case EQ -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.EQUALS, pDecomposedMap);
+          getTheOperandsFromOperation(
+              pCFAEdge, BinaryOperator.SHIFT_LEFT, pDecomposedMap, pMachineModel);
+      case EQ ->
+          getTheOperandsFromOperation(
+              pCFAEdge, BinaryOperator.EQUALS, pDecomposedMap, pMachineModel);
       case GEQ ->
-          getTheOperandsFromOperation(pCFAEdge, BinaryOperator.GREATER_EQUAL, pDecomposedMap);
-      case GR -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.GREATER_THAN, pDecomposedMap);
-      case LEQ -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.LESS_EQUAL, pDecomposedMap);
-      case LS -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.LESS_THAN, pDecomposedMap);
-      case NEQ -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.NOT_EQUALS, pDecomposedMap);
+          getTheOperandsFromOperation(
+              pCFAEdge, BinaryOperator.GREATER_EQUAL, pDecomposedMap, pMachineModel);
+      case GR ->
+          getTheOperandsFromOperation(
+              pCFAEdge, BinaryOperator.GREATER_THAN, pDecomposedMap, pMachineModel);
+      case LEQ ->
+          getTheOperandsFromOperation(
+              pCFAEdge, BinaryOperator.LESS_EQUAL, pDecomposedMap, pMachineModel);
+      case LS ->
+          getTheOperandsFromOperation(
+              pCFAEdge, BinaryOperator.LESS_THAN, pDecomposedMap, pMachineModel);
+      case NEQ ->
+          getTheOperandsFromOperation(
+              pCFAEdge, BinaryOperator.NOT_EQUALS, pDecomposedMap, pMachineModel);
       case RSHIFT ->
-          getTheOperandsFromOperation(pCFAEdge, BinaryOperator.SHIFT_RIGHT, pDecomposedMap);
-      case OR -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.BITWISE_OR, pDecomposedMap);
-      case AND -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.BITWISE_AND, pDecomposedMap);
-      case XOR -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.BITWISE_XOR, pDecomposedMap);
+          getTheOperandsFromOperation(
+              pCFAEdge, BinaryOperator.SHIFT_RIGHT, pDecomposedMap, pMachineModel);
+      case OR ->
+          getTheOperandsFromOperation(
+              pCFAEdge, BinaryOperator.BITWISE_OR, pDecomposedMap, pMachineModel);
+      case AND ->
+          getTheOperandsFromOperation(
+              pCFAEdge, BinaryOperator.BITWISE_AND, pDecomposedMap, pMachineModel);
+      case XOR ->
+          getTheOperandsFromOperation(
+              pCFAEdge, BinaryOperator.BITWISE_XOR, pDecomposedMap, pMachineModel);
       default -> null;
     };
   }
@@ -335,7 +366,10 @@ public class InstrumentationPattern {
 
   @Nullable
   private ImmutableList<String> getTheOperandsFromUnaryOperation(
-      CFAEdge pCFAEdge, UnaryOperator pOperator, Map<CFANode, String> pDecomposedMap) {
+      CFAEdge pCFAEdge,
+      UnaryOperator pOperator,
+      Map<CFANode, String> pDecomposedMap,
+      MachineModel pMachineModel) {
     if (pCFAEdge.getRawAST().isPresent()) {
       AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
       CExpression expression = LoopInfoUtils.extractExpression(astNode);
@@ -349,7 +383,13 @@ public class InstrumentationPattern {
         }
 
         if (expression.getExpressionType().getCanonicalType().toString().matches("signed.*int")) {
-          if (expression.getExpressionType().getCanonicalType().toString().contains("long long")) {
+          if (expression.getExpressionType().getCanonicalType().toString().contains("long long")
+              || (pMachineModel.getSignedSizeType().toString().equals("long int")
+                  && expression
+                      .getExpressionType()
+                      .getCanonicalType()
+                      .toString()
+                      .contains("long int"))) {
             return ImmutableList.of(
                 removeIndicesOfVariablesWithSameName(operand, pCFAEdge),
                 condition,
@@ -371,7 +411,10 @@ public class InstrumentationPattern {
 
   @Nullable
   private ImmutableList<String> getTheOperandsFromOperation(
-      CFAEdge pCFAEdge, BinaryOperator pOperator, Map<CFANode, String> pDecomposedMap) {
+      CFAEdge pCFAEdge,
+      BinaryOperator pOperator,
+      Map<CFANode, String> pDecomposedMap,
+      MachineModel pMachineModel) {
     if (pCFAEdge.getRawAST().isPresent()) {
       AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
       CExpression expression = LoopInfoUtils.extractExpression(astNode);
@@ -387,7 +430,13 @@ public class InstrumentationPattern {
         if (expression.getExpressionType().getCanonicalType().toString().matches("signed.*int")
             && (!(operand1.getExpressionType().getCanonicalType() instanceof CPointerType)
                 || !(operand2.getExpressionType().getCanonicalType() instanceof CPointerType))) {
-          if (expression.getExpressionType().getCanonicalType().toString().contains("long long")) {
+          if (expression.getExpressionType().getCanonicalType().toString().contains("long long")
+              || (pMachineModel.getSignedSizeType().toString().equals("long int")
+                  && expression
+                      .getExpressionType()
+                      .getCanonicalType()
+                      .toString()
+                      .contains("long int"))) {
             return ImmutableList.of(
                 removeIndicesOfVariablesWithSameName(operand1, pCFAEdge),
                 removeIndicesOfVariablesWithSameName(operand2, pCFAEdge),

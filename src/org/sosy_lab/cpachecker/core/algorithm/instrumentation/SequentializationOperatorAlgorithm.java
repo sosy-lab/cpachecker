@@ -211,7 +211,9 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
           for (InstrumentationTransition transition :
               currentState.getAutomatonOfTheState().getTransitions(currentState)) {
             ImmutableList<String> matchedVariables =
-                transition.getPattern().matchThePattern(edge, mapDecomposedOperationsCondition);
+                transition
+                    .getPattern()
+                    .matchThePattern(edge, mapDecomposedOperationsCondition, cfa.getMachineModel());
             if (matchedVariables != null) {
               if (canBeDecomposed(
                       edge,
