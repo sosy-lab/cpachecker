@@ -588,7 +588,7 @@ public class CFAUtils {
     Verify.verify(nameParts.size() <= 2, "qualified name must have at most one delimiter '::'");
 
     if (nameParts.size() > 1) {
-      return Optional.of(nameParts.get(0));
+      return Optional.of(nameParts.getFirst());
     }
 
     return Optional.empty();

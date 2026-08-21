@@ -228,7 +228,7 @@ public final class PointerTargetSet implements Serializable {
     throw new InvalidObjectException("Proxy required");
   }
 
-  public PointerTargetSet copyWithCallstackInformationFrom(PointerTargetSet pRootPts) {
+  public PointerTargetSet withCallstackInformationFrom(PointerTargetSet pRootPts) {
     return new PointerTargetSet(
         bases,
         fields,
