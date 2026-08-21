@@ -133,17 +133,17 @@ public abstract class LanguageToSmtConverter<T extends Type> {
         // Only the variables of the caller function are reset or havocked, which we can identify
         // by the variable name starting with the function name of the caller function (which
         // is the successor function of the return edge).
-        for (String var :
+        for (String variable :
             CFAUtils.filterVariablesOfFunction(
                 knownVariables, pEdge.getSuccessor().getFunctionName())) {
-          if (newSsa.getIndex(var) != oldFormula.getTopmostStackSsa().getIndex(var)) {
+          if (newSsa.getIndex(variable) != oldFormula.getTopmostStackSsa().getIndex(variable)) {
             // The variable was written while handling the return, i.e., it was assigned the
             // return value in a statement like `a = f();`. Then it already holds the correct
             // value for the caller and must not be reset.
             continue;
           }
 
-          if (!callerSsa.containsVariable(var)) {
+          if (!callerSsa.containsVariable(variable)) {
             // The caller has no information about this variable, so we cannot reset it to its
             // value from before the call. Instead we give it a fresh index without adding any
             // constraint, so a later use in the caller reads an unconstrained value. We must not
@@ -151,12 +151,12 @@ public abstract class LanguageToSmtConverter<T extends Type> {
             // assignment could then reuse indices that already occur in the formulas of the
             // frames we returned from, wrongly equating unrelated values.
             @SuppressWarnings("unchecked")
-            T varType = (T) newSsa.getType(var);
-            makeFreshIndex(var, varType, functionReturnSsaBuilder);
+            T varType = (T) newSsa.getType(variable);
+            makeFreshIndex(variable, varType, functionReturnSsaBuilder);
           } else if (
           // If we are not in a recursive call, then we do not need to reset the index, we know
           // this since if the same variable has not been written we are not in a recursive call
-          newSsa.getIndex(var) != callerSsa.getIndex(var)
+          newSsa.getIndex(variable) != callerSsa.getIndex(variable)
               // The reset is only sound for the plain SSA copy of a variable. A variable whose
               // address has been taken lives in the memory encoding instead, where the callee may
               // legitimately have changed it through a pointer into the caller's frame, so its
@@ -164,25 +164,26 @@ public abstract class LanguageToSmtConverter<T extends Type> {
               // the call stack depth of the caller's frame, which newPts holds again after leaving
               // the callee. (Reaching this point implies a recursive call, so the caller function
               // is still on the call stack of newPts.)
-              && !newPts.isActualBase(PointerBase.forVariable(var, newPts.getCallStackDepth()))) {
+              && !newPts.isActualBase(
+                  PointerBase.forVariable(variable, newPts.getCallStackDepth()))) {
 
             // The SSAMap is not polymorphic so it does not know that it should only contain a T.
             @SuppressWarnings("unchecked")
-            T varType = (T) callerSsa.getType(var);
+            T varType = (T) callerSsa.getType(variable);
             Verify.verify(
-                varType == newSsa.getType(var),
+                varType == newSsa.getType(variable),
                 "Variable %s has different types in caller and callee SSA",
-                var);
+                variable);
 
-            makeFreshIndex(var, varType, functionReturnSsaBuilder);
+            makeFreshIndex(variable, varType, functionReturnSsaBuilder);
             // Now make it such that the new variable is equal to the old one
             // Both sides use newPts: the variable belongs to the caller, so both formulas must be
             // built with the caller's view of the pointer target set.
             pConstraints.addConstraint(
                 fmgr.assignment(
-                    makeFormulaForVariable(callerSsa, newPts, var, varType),
+                    makeFormulaForVariable(callerSsa, newPts, variable, varType),
                     makeFormulaForVariable(
-                        functionReturnSsaBuilder.build(), newPts, var, varType)));
+                        functionReturnSsaBuilder.build(), newPts, variable, varType)));
           }
         }
 
@@ -194,12 +195,12 @@ public abstract class LanguageToSmtConverter<T extends Type> {
             .getPredecessor()
             .getFunctionName()
             .equals(pEdge.getSuccessor().getFunctionName())) {
-          for (String var :
+          for (String variable :
               CFAUtils.filterVariablesOfFunction(
                   knownVariables, pEdge.getPredecessor().getFunctionName())) {
             @SuppressWarnings("unchecked")
-            T varType = (T) newSsa.getType(var);
-            makeFreshIndex(var, varType, functionReturnSsaBuilder);
+            T varType = (T) newSsa.getType(variable);
+            makeFreshIndex(variable, varType, functionReturnSsaBuilder);
           }
         }
 
