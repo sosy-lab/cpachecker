@@ -13,7 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Splitter;
 import java.io.Serializable;
 import java.util.Optional;
-import java.util.OptionalInt;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -25,9 +25,12 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  * <p>name is the name of this base. This is usually the qualified name of a variable
  *
  * <p>callStackDepth is the depth of the call stack at which this base is considered. This is in
- * order to differentiate between the same variable at different call-sites in a recursive procedure
+ * order to differentiate between the same variable at different call-sites in a recursive
+ * procedure. It is null for bases that do not belong to any stack frame, for example those of
+ * global variables. An {@link java.util.OptionalInt} would express this better, but it is not
+ * serializable.
  */
-public record PointerBase(String name, OptionalInt callStackDepth)
+public record PointerBase(String name, @Nullable Integer callStackDepth)
     implements Comparable<PointerBase>, Serializable {
 
   private static final String BASE_PREFIX = "__ADDRESS_OF_";
@@ -39,7 +42,6 @@ public record PointerBase(String name, OptionalInt callStackDepth)
    */
   public PointerBase {
     checkNotNull(name);
-    checkNotNull(callStackDepth);
     assert !isBaseNameInFormulas(name);
   }
 
@@ -77,8 +79,7 @@ public record PointerBase(String name, OptionalInt callStackDepth)
    */
   private static PointerBase forVariable(
       String qualifiedVariableName, boolean isGlobal, int callStackDepth) {
-    return new PointerBase(
-        qualifiedVariableName, isGlobal ? OptionalInt.empty() : OptionalInt.of(callStackDepth));
+    return new PointerBase(qualifiedVariableName, isGlobal ? null : callStackDepth);
   }
 
   private static boolean isGlobal(CSimpleDeclaration declaration) {
@@ -100,14 +101,15 @@ public record PointerBase(String name, OptionalInt callStackDepth)
    */
   public static Optional<PointerBase> fromFormulaEncoding(String potentialEncodedBaseName) {
     if (isBaseNameInFormulas(potentialEncodedBaseName)) {
-      OptionalInt callStackDepth = OptionalInt.empty();
+      Integer callStackDepth = null;
       if (potentialEncodedBaseName.contains(CALL_STACK_DEPTH_SEPARATOR)) {
         callStackDepth =
             Splitter.on(CALL_STACK_DEPTH_SEPARATOR)
                 .splitToStream(potentialEncodedBaseName)
                 .skip(1) // skip the part before the separator
-                .mapToInt(Integer::parseInt)
-                .findFirst();
+                .map(Integer::parseInt)
+                .findFirst()
+                .orElseThrow();
       }
       return Optional.of(
           new PointerBase(
@@ -122,11 +124,11 @@ public record PointerBase(String name, OptionalInt callStackDepth)
    * anything except creating formula terms!
    */
   String formulaEncoding() {
-    if (callStackDepth.isEmpty()) {
+    if (callStackDepth == null) {
       return BASE_PREFIX + name;
     }
 
-    return BASE_PREFIX + name + CALL_STACK_DEPTH_SEPARATOR + callStackDepth.orElseThrow();
+    return BASE_PREFIX + name + CALL_STACK_DEPTH_SEPARATOR + callStackDepth;
   }
 
   @Override

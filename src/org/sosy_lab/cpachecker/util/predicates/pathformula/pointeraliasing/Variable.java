@@ -10,10 +10,10 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.OptionalInt;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-record Variable(String name, CType type, OptionalInt callStackDepth) {
+record Variable(String name, CType type, @Nullable Integer callStackDepth) {
 
   Variable {
     checkNotNull(name);

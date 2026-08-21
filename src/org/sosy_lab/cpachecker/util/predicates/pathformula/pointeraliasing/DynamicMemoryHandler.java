@@ -17,7 +17,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -463,7 +462,7 @@ public final class DynamicMemoryHandler {
             + typeHandler.getPointerAccessNameForType(type)
             + MALLOC_INDEX_SEPARATOR
             + allocationId,
-        OptionalInt.empty());
+        null);
   }
 
   /**

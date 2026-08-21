@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing.getFieldAccessName;
 
 import java.util.Optional;
-import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -72,7 +71,7 @@ class PointerApproximatingVisitor
           new PointerBase(
               getFieldAccessName(cCompositeType.getQualifiedName(), e),
               // since we are creating a pointer base for a type, this is a global field
-              OptionalInt.empty()));
+              null));
     } else {
       throw new UnrecognizedCodeException("Field owner of a non-composite type", edge, e);
     }
