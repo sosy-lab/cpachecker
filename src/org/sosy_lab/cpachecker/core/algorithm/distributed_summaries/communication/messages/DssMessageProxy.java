@@ -11,8 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.Objects;
 
@@ -35,6 +38,11 @@ public record DssMessageProxy(
         ImmutableMap.copyOf(requireHeader(pHeader)),
         ImmutableMap.copyOf(requireContent(pContent))
     );
+  }
+
+  public static DssMessageProxy fromJson(Path pJson) throws IOException {
+    ObjectMapper mapper = new ObjectMapper();
+    return mapper.readValue(pJson.toFile(), DssMessageProxy.class);
   }
 
   public static DssMessageProxy fromLegacyMap(ImmutableMap<String, ImmutableMap<String, String>> pJson) {

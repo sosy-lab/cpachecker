@@ -255,7 +255,7 @@ public abstract class DssMessage {
    *
    * @param pIdentifier A unique identifier indicating a set of messages that belong together. All
    *     messages produced in one run of DSS should have the same identifier. This simplifies the
-   *     separation of old and new messages after the analysis, especially, .
+   *     separation of old and new messages after the analysis, especially.
    * @return JSON representation of the message.
    */
   @SuppressWarnings("JavaInstantGetSecondsGetNano")
@@ -269,8 +269,7 @@ public abstract class DssMessage {
   }
 
   public static DssMessage fromJson(Path pJson) throws IOException {
-    ObjectMapper mapper = new ObjectMapper();
-    DssMessageProxy proxy = mapper.readValue(pJson.toFile(), DssMessageProxy.class);
+    DssMessageProxy proxy = DssMessageProxy.fromJson(pJson);
     return fromProxy(proxy);
   }
 
