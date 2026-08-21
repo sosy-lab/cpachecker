@@ -1047,8 +1047,10 @@ abstract class AbstractBMCAlgorithm
   private boolean checkBoundingAssertions(
       final ReachedSet pReachedSet, final BasicProverEnvironment<?> prover)
       throws SolverException, InterruptedException {
+    Iterable<AbstractState> scope =
+        pReachedSet instanceof DeltaTrackingReachedSet d ? d.getDelta() : pReachedSet;
     FluentIterable<AbstractState> stopStates =
-        from(pReachedSet)
+        from(scope)
             .filter(AbstractBMCAlgorithm::isStopState)
             .filter(AbstractBMCAlgorithm::isRelevantForReachability);
 
