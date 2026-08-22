@@ -513,12 +513,11 @@ public class ThreadingState
    * automaton assigns the identifier of the created thread to its thread-id variable when it passes
    * that waypoint.
    *
-   * <p>That new value is not visible on the edge of the creation itself, because {@link
-   * org.sosy_lab.cpachecker.cpa.composite.CompositeTransferRelation} strengthens every component
-   * state with the states from before strengthening. A created thread hence only receives its
-   * identifier one edge later: if the automaton has advanced its variable to an identifier that no
-   * thread holds yet, that identifier belongs to the created thread, otherwise the witness does not
-   * refer to the thread at all.
+   * <p>That new value is not visible on the edge of the creation itself, because the
+   * CompositeTransferRelation strengthens every component state with the states from before
+   * strengthening. A created thread hence only receives its identifier one edge later: if the
+   * automaton has advanced its variable to an identifier that no thread holds yet, that identifier
+   * belongs to the created thread, otherwise the witness does not refer to the thread at all.
    *
    * @param pAutomatonThreadId the current value of the thread-id variable of the witness automaton
    */
