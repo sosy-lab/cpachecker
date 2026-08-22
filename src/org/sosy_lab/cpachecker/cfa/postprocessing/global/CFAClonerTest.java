@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.global;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.OptionalInt;
@@ -79,7 +80,7 @@ public class CFAClonerTest {
 
   /** Returns the line at which the given code snippet occurs in {@link #PROGRAM}. */
   private static int lineOf(String pSnippet) {
-    ImmutableList<String> lines = ImmutableList.copyOf(PROGRAM.split("\n", -1));
+    ImmutableList<String> lines = ImmutableList.copyOf(Splitter.on('\n').split(PROGRAM));
     for (int line = 1; line <= lines.size(); line++) {
       if (lines.get(line - 1).contains(pSnippet)) {
         return line;
@@ -173,7 +174,8 @@ public class CFAClonerTest {
             .toList();
     assertThat(clonedEdges).hasSize(1);
 
-    assertThat(CFAUtils.originatesFrom(clonedEdges.getFirst(), originalEdge, cloneRelation)).isTrue();
+    assertThat(CFAUtils.originatesFrom(clonedEdges.getFirst(), originalEdge, cloneRelation))
+        .isTrue();
     assertThat(CFAUtils.originatesFrom(originalEdge, originalEdge, cloneRelation)).isTrue();
   }
 
@@ -201,6 +203,7 @@ public class CFAClonerTest {
             .toList();
     assertThat(clonedEdges).hasSize(1);
 
-    assertThat(CFAUtils.originatesFrom(clonedEdges.getFirst(), unrelatedEdge, cloneRelation)).isFalse();
+    assertThat(CFAUtils.originatesFrom(clonedEdges.getFirst(), unrelatedEdge, cloneRelation))
+        .isFalse();
   }
 }
