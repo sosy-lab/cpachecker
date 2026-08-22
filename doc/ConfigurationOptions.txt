@@ -4623,6 +4623,9 @@ differential.variableSetMerge = false
 distributedSummaries.blockAnalysisType = ALWAYS_REPLACE
   enum:     [ALWAYS_REPLACE]
 
+# Whether to combine preconditions at same program location
+distributedSummaries.combinePresByHash = false
+
 # Whether to combine violation conditions at same program location
 distributedSummaries.combineVcsByHash = true
 

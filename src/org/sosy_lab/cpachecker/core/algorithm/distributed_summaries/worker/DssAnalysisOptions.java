@@ -82,7 +82,7 @@ public class DssAnalysisOptions {
 
   @Option(
       name = "combinePresByHash",
-      description = "Whether to combine violation conditions at same program location",
+      description = "Whether to combine preconditions at same program location",
       secure = true)
   private boolean combinePreconditionsByHash = false;
 
