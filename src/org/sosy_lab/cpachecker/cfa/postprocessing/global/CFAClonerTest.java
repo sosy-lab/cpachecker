@@ -173,7 +173,7 @@ public class CFAClonerTest {
             .toList();
     assertThat(clonedEdges).hasSize(1);
 
-    assertThat(CFAUtils.originatesFrom(clonedEdges.get(0), originalEdge, cloneRelation)).isTrue();
+    assertThat(CFAUtils.originatesFrom(clonedEdges.getFirst(), originalEdge, cloneRelation)).isTrue();
     assertThat(CFAUtils.originatesFrom(originalEdge, originalEdge, cloneRelation)).isTrue();
   }
 
@@ -188,7 +188,7 @@ public class CFAClonerTest {
         edgesOfFunction(CLONED_WRITER).filter(FunctionCallEdge.class).toList();
     assertThat(clonedCallEdges).hasSize(1);
 
-    assertThat(CFAUtils.originatesFrom(clonedCallEdges.get(0), originalEdge, cloneRelation))
+    assertThat(CFAUtils.originatesFrom(clonedCallEdges.getFirst(), originalEdge, cloneRelation))
         .isTrue();
   }
 
@@ -201,6 +201,6 @@ public class CFAClonerTest {
             .toList();
     assertThat(clonedEdges).hasSize(1);
 
-    assertThat(CFAUtils.originatesFrom(clonedEdges.get(0), unrelatedEdge, cloneRelation)).isFalse();
+    assertThat(CFAUtils.originatesFrom(clonedEdges.getFirst(), unrelatedEdge, cloneRelation)).isFalse();
   }
 }
