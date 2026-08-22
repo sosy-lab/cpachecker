@@ -35,6 +35,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.CfaCloneRelation;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
@@ -531,7 +532,7 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
     // Find out the edge which corresponds to this statement, it can either be a CFunctionCallEdge
     // or a CStatementEdge
     Optional<CFAEdge> inputEdge =
-        findFunctionEnterEdge(followLine, followColumn, startLineToCFAEdge);
+        findFunctionEnterEdge(followLine, followColumn, startLineToCFAEdge, cfa.getCloneRelation());
 
     if (inputEdge.isEmpty()) {
       throw new WitnessParseException(
@@ -578,7 +579,10 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
    * @return the matching edge, or {@link Optional#empty()} if no edge matches
    */
   private static Optional<CFAEdge> findFunctionEnterEdge(
-      Integer followLine, OptionalInt followColumn, Multimap<Integer, CFAEdge> startLineToCFAEdge) {
+      Integer followLine,
+      OptionalInt followColumn,
+      Multimap<Integer, CFAEdge> startLineToCFAEdge,
+      CfaCloneRelation pCloneRelation) {
     // We sort the edges by their column, so we can take the first one which matches the given
     // column
     Optional<CFAEdge> foundEdge = Optional.empty();
@@ -599,8 +603,11 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
         continue;
       }
 
-      Verify.verify(foundEdge.isEmpty(), "Multiple edges match the function enter waypoint");
-      foundEdge = Optional.of(edge);
+      Verify.verify(
+          foundEdge.isEmpty()
+              || pCloneRelation.getOriginalEdge(edge).equals(foundEdge.orElseThrow()),
+          "Multiple edges match the function enter waypoint");
+      foundEdge = Optional.of(pCloneRelation.getOriginalEdge(edge));
     }
 
     return foundEdge;
