@@ -1,7 +1,7 @@
 // This file is part of the SV-Benchmarks collection of verification tasks:
 // https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks
 //
-// SPDX-FileCopyrightText: unknown
+// SPDX-FileCopyrightText: Threader project
 //
 // SPDX-License-Identifier: LGPL-3.0-only
 
