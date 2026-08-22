@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.common.collect.Collections3.elementAndList;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis.blockStateOf;
 
 import com.google.common.base.Preconditions;
@@ -303,6 +304,13 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
       Precision precision,
       boolean pDiscardSummaries)
       throws CPAException, InterruptedException {
+
+    statesToProcess = transformedImmutableListCopy(statesToProcess, analysis.getDcpa()::reset);
+    if (analysis.getOptions().combinePreconditionsByHash()) {
+      statesToProcess =
+          ImmutableList.of(
+              analysis.getDcpa().getCombineOperator().combinePreconditions(statesToProcess));
+    }
 
     ImmutableSet.Builder<StateAndPrecision> summaries = ImmutableSet.builder();
     ImmutableSet.Builder<ArgPathAndCondition> violations = ImmutableSet.builder();

@@ -556,7 +556,7 @@ public final class DssBlockAnalysis {
     ImmutableListMultimap<Integer, AbstractState> statePerProgramCounter =
         statePerProgramCounterBuilder.build();
     ImmutableList.Builder<StateAndPrecision> vcs = ImmutableList.builder();
-    if (options.combineByHash()) {
+    if (options.combineViolationConditionsByHash()) {
       for (Integer i : statePerProgramCounter.keySet()) {
         vcs.add(
             new StateAndPrecision(
