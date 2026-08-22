@@ -18,10 +18,10 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
 
-@JsonPropertyOrder({DssMessage.DSS_MESSAGE_HEADER_ID, DssMessage.DSS_MESSAGE_CONTENT_ID})
+@JsonPropertyOrder({DssMessageFormat.HEADER_ID, DssMessageFormat.CONTENT_ID})
 public record DssMessagePayload(
-    @JsonProperty(DssMessage.DSS_MESSAGE_HEADER_ID) ImmutableMap<String, String> header,
-    @JsonProperty(DssMessage.DSS_MESSAGE_CONTENT_ID) ImmutableMap<String, String> content
+    @JsonProperty(DssMessageFormat.HEADER_ID) ImmutableMap<String, String> header,
+    @JsonProperty(DssMessageFormat.CONTENT_ID) ImmutableMap<String, String> content
     ) {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -33,8 +33,8 @@ public record DssMessagePayload(
 
   @JsonCreator
   DssMessagePayload(
-      @JsonProperty(DssMessage.DSS_MESSAGE_HEADER_ID) Map<String, String> pHeader,
-      @JsonProperty(DssMessage.DSS_MESSAGE_CONTENT_ID) Map<String, String> pContent) {
+      @JsonProperty(DssMessageFormat.HEADER_ID) Map<String, String> pHeader,
+      @JsonProperty(DssMessageFormat.CONTENT_ID) Map<String, String> pContent) {
     this(
         ImmutableMap.copyOf(requireHeader(pHeader)),
         ImmutableMap.copyOf(requireContent(pContent))
@@ -47,8 +47,8 @@ public record DssMessagePayload(
 
   public ImmutableMap<String, ImmutableMap<String, String>> asLegacyMap() {
     return ImmutableMap.of(
-        DssMessage.DSS_MESSAGE_HEADER_ID, header,
-        DssMessage.DSS_MESSAGE_CONTENT_ID, content
+        DssMessageFormat.HEADER_ID, header,
+        DssMessageFormat.CONTENT_ID, content
     );
   }
 

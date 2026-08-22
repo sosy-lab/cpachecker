@@ -23,12 +23,6 @@ public class DssMessageFactory {
 
   private final boolean exportTimestamp;
 
-  public static final String DSS_MESSAGE_STATUS_KEY = "status";
-  public static final String DSS_MESSAGE_PRECISE_KEY = "precise";
-  public static final String DSS_MESSAGE_PROPERTY_KEY = "property";
-  public static final String DSS_MESSAGE_SOUND_KEY = "sound";
-  public static final String DSS_MESSAGE_UNREACHABLE_BLOCK_END_KEY = "unreachableBlockEnd";
-
   public DssMessageFactory(DssAnalysisOptions pOptions) {
     exportTimestamp = pOptions.isDebugModeEnabled();
   }
@@ -36,15 +30,15 @@ public class DssMessageFactory {
   private ImmutableMap<String, String> serializeStatus(AlgorithmStatus pStatus) {
     ContentBuilder contentBuilder = ContentBuilder.builder();
     return contentBuilder
-        .pushLevel(DSS_MESSAGE_STATUS_KEY)
-        .put(DSS_MESSAGE_SOUND_KEY, Boolean.toString(pStatus.isSound()))
-        .put(DSS_MESSAGE_PRECISE_KEY, Boolean.toString(pStatus.isPrecise()))
-        .put(DSS_MESSAGE_PROPERTY_KEY, Boolean.toString(pStatus.wasPropertyChecked()))
+        .pushLevel(DssMessageFormat.STATUS_KEY)
+        .put(DssMessageFormat.SOUND_KEY, Boolean.toString(pStatus.isSound()))
+        .put(DssMessageFormat.PRECISE_KEY, Boolean.toString(pStatus.isPrecise()))
+        .put(DssMessageFormat.PROPERTY_KEY, Boolean.toString(pStatus.wasPropertyChecked()))
         .build();
   }
 
   private ImmutableMap<String, String> witnessType(WitnessType pWitnessType) {
-    return ImmutableMap.of(DssWitnessMessage.DSS_MESSAGE_WITNESS_TYPE_KEY, pWitnessType.name());
+    return ImmutableMap.of(DssMessageFormat.WITNESS_TYPE_KEY, pWitnessType.name());
   }
 
   public DssPostConditionMessage createDssPostConditionMessage(
@@ -73,7 +67,7 @@ public class DssMessageFactory {
         pSenderId,
         ImmutableMap.<String, String>builder()
             .putAll(serializeStatus(pStatus))
-            .put(DSS_MESSAGE_UNREACHABLE_BLOCK_END_KEY, "true")
+            .put(DssMessageFormat.UNREACHABLE_BLOCK_END_KEY, "true")
             .buildOrThrow());
   }
 
@@ -103,7 +97,7 @@ public class DssMessageFactory {
         pSenderId,
         ImmutableMap.<String, String>builder()
             .putAll(witnessType(WitnessType.VIOLATION))
-            .put(DssWitnessMessage.DSS_MESSAGE_VIOLATION_PATH_KEY, violationWitness.serialize())
+            .put(DssMessageFormat.VIOLATION_PATH_KEY, violationWitness.serialize())
             .buildOrThrow());
   }
 
@@ -122,15 +116,15 @@ public class DssMessageFactory {
           ImmutableMap.builder();
       ImmutableMap<String, String> header =
           Objects.requireNonNull(
-              messageContent.get(DssMessage.DSS_MESSAGE_HEADER_ID),
+              messageContent.get(DssMessageFormat.HEADER_ID),
               "Header must not be null in DssMessage export");
       Map<String, String> filteredHeader =
           Maps.filterKeys(header, key -> key != null && !key.equals("timestamp"));
-      noTimestampMessage.put(DssMessage.DSS_MESSAGE_HEADER_ID, ImmutableMap.copyOf(filteredHeader));
+      noTimestampMessage.put(DssMessageFormat.HEADER_ID, ImmutableMap.copyOf(filteredHeader));
       noTimestampMessage.put(
-          DssMessage.DSS_MESSAGE_CONTENT_ID,
+          DssMessageFormat.CONTENT_ID,
           Objects.requireNonNull(
-              messageContent.get(DssMessage.DSS_MESSAGE_CONTENT_ID),
+              messageContent.get(DssMessageFormat.CONTENT_ID),
               "Content must not be null in DssMessage export"));
       return noTimestampMessage.buildOrThrow();
     }

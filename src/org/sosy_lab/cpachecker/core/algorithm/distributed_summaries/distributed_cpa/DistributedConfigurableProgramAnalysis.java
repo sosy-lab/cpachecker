@@ -48,8 +48,6 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
     }
   }
 
-  String MULTIPLE_STATES_KEY = "states";
-
   /**
    * Operator that knows how to serialize the abstract states from {@link
    * DistributedConfigurableProgramAnalysis#getAbstractStateClass()}.

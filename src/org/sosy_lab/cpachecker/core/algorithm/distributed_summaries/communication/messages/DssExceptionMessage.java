@@ -17,13 +17,11 @@ import java.util.Map;
  */
 public class DssExceptionMessage extends DssMessage {
 
-  public static final String DSS_MESSAGE_EXCEPTION_KEY = "exception";
-
   DssExceptionMessage(String pSenderId, String pExceptionMessage) {
     super(
         pSenderId,
         DssMessageType.EXCEPTION,
-        ImmutableMap.of(DSS_MESSAGE_EXCEPTION_KEY, pExceptionMessage));
+        ImmutableMap.of(DssMessageFormat.EXCEPTION_KEY, pExceptionMessage));
   }
 
   DssExceptionMessage(String pSenderId, ImmutableMap<String, String> pExceptionMessage) {
@@ -33,8 +31,8 @@ public class DssExceptionMessage extends DssMessage {
   @Override
   boolean isValid(Map<String, String> pContent) {
     return pContent.size() == 1
-        && pContent.containsKey(DSS_MESSAGE_EXCEPTION_KEY)
-        && pContent.get(DSS_MESSAGE_EXCEPTION_KEY) != null
-        && !pContent.get(DSS_MESSAGE_EXCEPTION_KEY).isEmpty();
+        && pContent.containsKey(DssMessageFormat.EXCEPTION_KEY)
+        && pContent.get(DssMessageFormat.EXCEPTION_KEY) != null
+        && !pContent.get(DssMessageFormat.EXCEPTION_KEY).isEmpty();
   }
 }

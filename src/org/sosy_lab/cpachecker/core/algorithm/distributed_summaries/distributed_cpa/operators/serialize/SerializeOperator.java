@@ -9,11 +9,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize;
 
 import com.google.common.collect.ImmutableMap;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFormat;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 public interface SerializeOperator {
 
-  String STATE_KEY = "state";
+  String STATE_KEY = DssMessageFormat.STATE_KEY;
 
   /**
    * Serialize an abstract state to the content of a message

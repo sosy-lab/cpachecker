@@ -28,18 +28,18 @@ public class DssMessagePayloadTest {
     DssMessagePayload payload =
         new DssMessagePayload(
             ImmutableMap.of(
-                DssMessage.DSS_MESSAGE_HEADER_SENDER_ID_KEY,
+                DssMessageFormat.SENDER_ID_KEY,
                 "B1",
-                DssMessage.DSS_MESSAGE_HEADER_TYPE_KEY,
+                DssMessageFormat.HEADER_TYPE_KEY,
                 "RESULT"
             ),
             ImmutableMap.of(
-                DssResultMessage.DSS_MESSAGE_RESULT_KEY, "TRUE"
+                DssMessageFormat.RESULT_KEY, "TRUE"
             )
         );
     assertThat(payload.asLegacyMap()).containsExactly(
-        DssMessage.DSS_MESSAGE_HEADER_ID, payload.header(),
-        DssMessage.DSS_MESSAGE_CONTENT_ID, payload.content()
+        DssMessageFormat.HEADER_ID, payload.header(),
+        DssMessageFormat.CONTENT_ID, payload.content()
     );
   }
 
@@ -60,22 +60,22 @@ public class DssMessagePayloadTest {
           }
         }
         """,
-        DssMessage.DSS_MESSAGE_HEADER_ID,
-        DssMessage.DSS_MESSAGE_HEADER_SENDER_ID_KEY, "B1",
-        DssMessage.DSS_MESSAGE_HEADER_TYPE_KEY, "RESULT",
-        DssMessage.DSS_MESSAGE_HEADER_TIMESTAMP_KEY, "123",
-        DssMessage.DSS_MESSAGE_HEADER_IDENTIFIER_KEY, "0",
-        DssMessage.DSS_MESSAGE_CONTENT_ID,
-        DssResultMessage.DSS_MESSAGE_RESULT_KEY, "TRUE"
+        DssMessageFormat.HEADER_ID,
+        DssMessageFormat.SENDER_ID_KEY, "B1",
+        DssMessageFormat.HEADER_TYPE_KEY, "RESULT",
+        DssMessageFormat.HEADER_TIMESTAMP_KEY, "123",
+        DssMessageFormat.HEADER_IDENTIFIER_KEY, "0",
+        DssMessageFormat.CONTENT_ID,
+        DssMessageFormat.RESULT_KEY, "TRUE"
     );
     Files.writeString(file, jsonContent);
 
     DssMessagePayload payload = DssMessagePayload.fromJson(file);
 
     assertThat(payload.header())
-        .containsEntry(DssMessage.DSS_MESSAGE_HEADER_TYPE_KEY, "RESULT");
+        .containsEntry(DssMessageFormat.HEADER_TYPE_KEY, "RESULT");
     assertThat(payload.content())
-        .containsEntry(DssResultMessage.DSS_MESSAGE_RESULT_KEY, "TRUE");
+        .containsEntry(DssMessageFormat.RESULT_KEY, "TRUE");
   }
 
   @Test
@@ -89,8 +89,8 @@ public class DssMessagePayloadTest {
           }
         }
         """,
-        DssMessage.DSS_MESSAGE_CONTENT_ID,
-        DssResultMessage.DSS_MESSAGE_RESULT_KEY, "TRUE");
+        DssMessageFormat.CONTENT_ID,
+        DssMessageFormat.RESULT_KEY, "TRUE");
     Files.writeString(file, jsonContent);
 
     ValueInstantiationException exception = assertThrows(

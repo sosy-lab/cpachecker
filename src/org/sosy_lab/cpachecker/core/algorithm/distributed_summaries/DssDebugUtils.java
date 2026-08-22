@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFormat;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath.PathCase;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
@@ -629,7 +630,7 @@ public final class DssDebugUtils {
   public static String describe(DssMessage pMessage) {
     ImmutableMap<String, ImmutableMap<String, String>> json = pMessage.asJson();
     ImmutableMap<String, String> content =
-        Objects.requireNonNullElse(json.get(DssMessage.DSS_MESSAGE_CONTENT_ID), ImmutableMap.of());
+        Objects.requireNonNullElse(json.get(DssMessageFormat.CONTENT_ID), ImmutableMap.of());
 
     // Entries that do not belong to a specific state (states, status, result, ...).
     Map<String, String> meta = new LinkedHashMap<>();
@@ -780,7 +781,7 @@ public final class DssDebugUtils {
 
   private static ImmutableMap<String, String> contentOf(DssMessage pMessage) {
     return Objects.requireNonNullElse(
-        pMessage.asJson().get(DssMessage.DSS_MESSAGE_CONTENT_ID), ImmutableMap.of());
+        pMessage.asJson().get(DssMessageFormat.CONTENT_ID), ImmutableMap.of());
   }
 
   /**

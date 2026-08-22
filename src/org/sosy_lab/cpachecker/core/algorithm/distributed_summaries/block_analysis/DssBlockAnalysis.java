@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFormat;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPostConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -624,7 +625,7 @@ public final class DssBlockAnalysis {
       final List<@NonNull StateAndPrecision> pStatesAndPrecisions) {
     ContentBuilder serializedContent = ContentBuilder.builder();
     serializedContent.put(
-        DistributedConfigurableProgramAnalysis.MULTIPLE_STATES_KEY,
+        DssMessageFormat.MULTIPLE_STATES_KEY,
         Integer.toString(pStatesAndPrecisions.size()));
     int totalStateSize = 0;
     for (int i = 0; i < pStatesAndPrecisions.size(); i++) {

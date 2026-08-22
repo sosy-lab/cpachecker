@@ -21,7 +21,6 @@ import java.util.Objects;
 import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -42,14 +41,6 @@ public abstract class DssMessage {
     RESULT,
     WITNESS
   }
-
-  public static final String DSS_MESSAGE_HEADER_ID = "header";
-  public static final String DSS_MESSAGE_CONTENT_ID = "content";
-
-  public static final String DSS_MESSAGE_HEADER_SENDER_ID_KEY = "senderId";
-  public static final String DSS_MESSAGE_HEADER_TYPE_KEY = "messageType";
-  public static final String DSS_MESSAGE_HEADER_TIMESTAMP_KEY = "timestamp";
-  public static final String DSS_MESSAGE_HEADER_IDENTIFIER_KEY = "identifier";
 
   private final String senderId;
   private final DssMessageType type;
@@ -112,11 +103,11 @@ public abstract class DssMessage {
    * @return An OptionalInt containing the number of states, or empty if not present.
    */
   public final OptionalInt getNumberOfContainedStates() {
-    if (content.containsKey(DistributedConfigurableProgramAnalysis.MULTIPLE_STATES_KEY)) {
+    if (content.containsKey(DssMessageFormat.MULTIPLE_STATES_KEY)) {
       return OptionalInt.of(
           Integer.parseInt(
               Objects.requireNonNull(
-                  content.get(DistributedConfigurableProgramAnalysis.MULTIPLE_STATES_KEY))));
+                  content.get(DssMessageFormat.MULTIPLE_STATES_KEY))));
     }
     return OptionalInt.empty();
   }
@@ -145,7 +136,7 @@ public abstract class DssMessage {
     checkArgument(type == DssMessageType.RESULT, "Cannot get content for type: " + "%s", type);
     return Result.valueOf(
         Preconditions.checkNotNull(
-            content.get(DssResultMessage.DSS_MESSAGE_RESULT_KEY),
+            content.get(DssMessageFormat.RESULT_KEY),
             "Result content is missing in message: %s",
             this));
   }
@@ -154,7 +145,7 @@ public abstract class DssMessage {
     checkArgument(type == DssMessageType.WITNESS, "Cannot get content for type: %s", type);
     return DssWitnessMessage.WitnessType.valueOf(
         Preconditions.checkNotNull(
-            content.get(DssWitnessMessage.DSS_MESSAGE_WITNESS_TYPE_KEY),
+            content.get(DssMessageFormat.WITNESS_TYPE_KEY),
             "Witness type is missing in message: %s",
             this));
   }
@@ -166,7 +157,7 @@ public abstract class DssMessage {
         type);
     return SegmentedPaths.deserialize(
         Preconditions.checkNotNull(
-            content.get(DssWitnessMessage.DSS_MESSAGE_VIOLATION_PATH_KEY),
+            content.get(DssMessageFormat.VIOLATION_PATH_KEY),
             "No violation path present in witness message: %s",
             this));
   }
@@ -196,7 +187,7 @@ public abstract class DssMessage {
   public final boolean indicatesUnreachableBlockEnd() {
     checkArgument(type == DssMessageType.POST_CONDITION, "Cannot get content for type: %s", type);
     return Boolean.parseBoolean(
-        content.get(DssMessageFactory.DSS_MESSAGE_UNREACHABLE_BLOCK_END_KEY));
+        content.get(DssMessageFormat.UNREACHABLE_BLOCK_END_KEY));
   }
 
   public final AlgorithmStatus getAlgorithmStatus() {
@@ -205,15 +196,15 @@ public abstract class DssMessage {
         "Cannot get content for type: %s",
         type);
     ContentReader reader =
-        ContentReader.read(content).pushLevel(DssMessageFactory.DSS_MESSAGE_STATUS_KEY);
+        ContentReader.read(content).pushLevel(DssMessageFormat.STATUS_KEY);
     boolean checkedProperty =
-        Boolean.parseBoolean(reader.get(DssMessageFactory.DSS_MESSAGE_PROPERTY_KEY));
+        Boolean.parseBoolean(reader.get(DssMessageFormat.PROPERTY_KEY));
     if (!checkedProperty) {
       return AlgorithmStatus.NO_PROPERTY_CHECKED;
     } else {
-      boolean isSound = Boolean.parseBoolean(reader.get(DssMessageFactory.DSS_MESSAGE_SOUND_KEY));
+      boolean isSound = Boolean.parseBoolean(reader.get(DssMessageFormat.SOUND_KEY));
       boolean isPrecise =
-          Boolean.parseBoolean(reader.get(DssMessageFactory.DSS_MESSAGE_PRECISE_KEY));
+          Boolean.parseBoolean(reader.get(DssMessageFormat.PRECISE_KEY));
       if (isSound && isPrecise) {
         return AlgorithmStatus.SOUND_AND_PRECISE;
       } else if (isSound) {
@@ -229,7 +220,7 @@ public abstract class DssMessage {
   public final String getExceptionMessage() {
     checkArgument(type == DssMessageType.EXCEPTION, "Cannot get content for type: " + "%s", type);
     return Preconditions.checkNotNull(
-        content.get(DssExceptionMessage.DSS_MESSAGE_EXCEPTION_KEY),
+        content.get(DssMessageFormat.EXCEPTION_KEY),
         "Exception message is missing in message: %s",
         this);
   }
@@ -238,13 +229,13 @@ public abstract class DssMessage {
   public final DssMessagePayload asJsonPayloadWithIdentifier(int pIdentifier) {
     ImmutableMap<String, String> header =
         ImmutableMap.<String, String>builder()
-            .put(DSS_MESSAGE_HEADER_SENDER_ID_KEY, getSenderId())
-            .put(DSS_MESSAGE_HEADER_TYPE_KEY, getType().name())
+            .put(DssMessageFormat.SENDER_ID_KEY, getSenderId())
+            .put(DssMessageFormat.HEADER_TYPE_KEY, getType().name())
             .put(
-                DSS_MESSAGE_HEADER_TIMESTAMP_KEY,
+                DssMessageFormat.HEADER_TIMESTAMP_KEY,
                 Long.toString(
                     getTimestamp().getEpochSecond() * 1_000_000_000L + getTimestamp().getNano()))
-            .put(DSS_MESSAGE_HEADER_IDENTIFIER_KEY, Integer.toString(pIdentifier))
+            .put(DssMessageFormat.HEADER_IDENTIFIER_KEY, Integer.toString(pIdentifier))
             .buildOrThrow();
 
     return new DssMessagePayload(header, content);
@@ -280,8 +271,9 @@ public abstract class DssMessage {
     ImmutableMap<String, String> header = pProxy.header();
     ImmutableMap<String, String> content = pProxy.content();
 
-    String senderId = header.get(DSS_MESSAGE_HEADER_SENDER_ID_KEY);
-    DssMessageType type = DssMessageType.valueOf(header.get(DSS_MESSAGE_HEADER_TYPE_KEY));
+    String senderId = header.get(DssMessageFormat.SENDER_ID_KEY);
+    DssMessageType type = DssMessageType.valueOf(header.get(
+        DssMessageFormat.HEADER_TYPE_KEY));
 
     return switch (type) {
       case POST_CONDITION -> new DssPostConditionMessage(senderId, content);

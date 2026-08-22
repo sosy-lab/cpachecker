@@ -13,10 +13,8 @@ import java.util.Map;
 
 public class DssResultMessage extends DssMessage {
 
-  public static final String DSS_MESSAGE_RESULT_KEY = "result";
-
   DssResultMessage(String pSenderId, String pResult) {
-    super(pSenderId, DssMessageType.RESULT, ImmutableMap.of(DSS_MESSAGE_RESULT_KEY, pResult));
+    super(pSenderId, DssMessageType.RESULT, ImmutableMap.of(DssMessageFormat.RESULT_KEY, pResult));
   }
 
   DssResultMessage(String pSenderId, ImmutableMap<String, String> pResult) {
@@ -26,8 +24,8 @@ public class DssResultMessage extends DssMessage {
   @Override
   boolean isValid(Map<String, String> pContent) {
     return (pContent.size() == 1)
-        && pContent.containsKey(DSS_MESSAGE_RESULT_KEY)
-        && pContent.get(DSS_MESSAGE_RESULT_KEY) != null
-        && !pContent.get(DSS_MESSAGE_RESULT_KEY).isEmpty();
+        && pContent.containsKey(DssMessageFormat.RESULT_KEY)
+        && pContent.get(DssMessageFormat.RESULT_KEY) != null
+        && !pContent.get(DssMessageFormat.RESULT_KEY).isEmpty();
   }
 }
