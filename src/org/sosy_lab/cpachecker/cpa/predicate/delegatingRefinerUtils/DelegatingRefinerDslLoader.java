@@ -15,10 +15,11 @@ import java.io.IOException;
 import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAST.DelegatingRefinerPatternRule;
 
 /**
  * Loads and parses redundancy DSL rules from JSON file into a list of {@link
- * DelegatingRefinerPatternRule} rules.
+ * DelegatingRefinerAST.DelegatingRefinerPatternRule} rules.
  */
 public final class DelegatingRefinerDslLoader {
 

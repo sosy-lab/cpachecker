@@ -13,6 +13,9 @@ import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAST.DelegatingRefinerDelegatingRefinerPatternAtom;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAST.DelegatingRefinerPatternNode;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAST.DelegatingRefinerPatternOperator;
 
 public class DelegatingRefinerParserTest {
 

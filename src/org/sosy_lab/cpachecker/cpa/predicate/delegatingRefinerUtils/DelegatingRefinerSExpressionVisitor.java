@@ -8,8 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils;
 
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAST.DelegatingRefinerSExpressionAtom;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAST.DelegatingRefinerSExpressionSExpressionOperator;
+
 /**
- * Visitor for traversing a {@link DelegatingRefinerSExpression} tree.
+ * Visitor for traversing a {@link DelegatingRefinerAST.DelegatingRefinerSExpression} tree.
  *
  * @param <R> result type produced by the visitor
  */

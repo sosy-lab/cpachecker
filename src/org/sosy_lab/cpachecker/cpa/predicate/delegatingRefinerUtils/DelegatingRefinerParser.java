@@ -13,12 +13,16 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
 import java.util.List;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAST.DelegatingRefinerDelegatingRefinerPatternAtom;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAST.DelegatingRefinerPatternNode;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAST.DelegatingRefinerPatternOperator;
 
 /**
  * Parses DSL pattern strings (loaded from the DSL in JSON format via {@link
- * DelegatingRefinerDslLoader}) into a recursive, structured {@link DelegatingRefinerPatternNode}
- * tree. The tree is later traversed by the {@link DelegatingRefinerMatchingVisitor} to match
- * against normalized s-expressions. Parsing is done in two steps:
+ * DelegatingRefinerDslLoader}) into a recursive, structured {@link
+ * DelegatingRefinerAST.DelegatingRefinerPatternNode} tree. The tree is later traversed by the
+ * {@link DelegatingRefinerMatchingVisitor} to match against normalized s-expressions. Parsing is
+ * done in two steps:
  *
  * <ul>
  *   <li>{@code tokenize()} splits the input into individual tokens (parentheses, operators,

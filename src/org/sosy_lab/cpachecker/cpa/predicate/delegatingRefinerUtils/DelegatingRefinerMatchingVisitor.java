@@ -12,13 +12,22 @@ import com.google.common.collect.ImmutableList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAST.DelegatingRefinerDelegatingRefinerPatternAtom;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAST.DelegatingRefinerNormalizedFormula;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAST.DelegatingRefinerPatternNode;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAST.DelegatingRefinerPatternOperator;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAST.DelegatingRefinerPatternRule;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAST.DelegatingRefinerSExpression;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAST.DelegatingRefinerSExpressionAtom;
+import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAST.DelegatingRefinerSExpressionSExpressionOperator;
 
 /**
  * Matches normalized s-expressions against a set of DSL-rules.The Visitor traverses {@link
- * DelegatingRefinerSExpression} trees, and, for each visited node, evaluates the {@link
- * DelegatingRefinerPatternRule} rules. On a match, a {@link DelegatingRefinerNormalizedFormula} is
- * produced, containing the rule's id, normalized pattern and category. Multiple rules can match the
- * same node; results are returned in rule list order.
+ * DelegatingRefinerAST.DelegatingRefinerSExpression} trees, and, for each visited node, evaluates
+ * the {@link DelegatingRefinerAST.DelegatingRefinerPatternRule} rules. On a match, a {@link
+ * DelegatingRefinerAST.DelegatingRefinerNormalizedFormula} is produced, containing the rule's id,
+ * normalized pattern and category. Multiple rules can match the same node; results are returned in
+ * rule list order.
  */
 public final class DelegatingRefinerMatchingVisitor
     implements DelegatingRefinerSExpressionVisitor<
