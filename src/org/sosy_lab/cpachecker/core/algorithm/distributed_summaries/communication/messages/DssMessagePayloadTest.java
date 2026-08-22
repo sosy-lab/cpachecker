@@ -19,14 +19,14 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public class DssMessageProxyTest {
+public class DssMessagePayloadTest {
   @Rule
   public TemporaryFolder tempFolder = new TemporaryFolder();
 
   @Test
   public void asLegacyMapReturnsCurrentShape() {
-    DssMessageProxy proxy =
-        new DssMessageProxy(
+    DssMessagePayload payload =
+        new DssMessagePayload(
             ImmutableMap.of(
                 DssMessage.DSS_MESSAGE_HEADER_SENDER_ID_KEY,
                 "B1",
@@ -37,9 +37,9 @@ public class DssMessageProxyTest {
                 DssResultMessage.DSS_MESSAGE_RESULT_KEY, "TRUE"
             )
         );
-    assertThat(proxy.asLegacyMap()).containsExactly(
-        DssMessage.DSS_MESSAGE_HEADER_ID, proxy.header(),
-        DssMessage.DSS_MESSAGE_CONTENT_ID, proxy.content()
+    assertThat(payload.asLegacyMap()).containsExactly(
+        DssMessage.DSS_MESSAGE_HEADER_ID, payload.header(),
+        DssMessage.DSS_MESSAGE_CONTENT_ID, payload.content()
     );
   }
 
@@ -71,11 +71,11 @@ public class DssMessageProxyTest {
     );
     Files.writeString(file, jsonContent);
 
-    DssMessageProxy proxy = DssMessageProxy.fromJson(file);
+    DssMessagePayload payload = DssMessagePayload.fromJson(file);
 
-    assertThat(proxy.header())
+    assertThat(payload.header())
         .containsEntry(DssMessage.DSS_MESSAGE_HEADER_TYPE_KEY, "RESULT");
-    assertThat(proxy.content())
+    assertThat(payload.content())
         .containsEntry(DssResultMessage.DSS_MESSAGE_RESULT_KEY, "TRUE");
   }
 
@@ -96,7 +96,7 @@ public class DssMessageProxyTest {
     Files.writeString(file, jsonContent);
 
     ValueInstantiationException exception = assertThrows(
-        ValueInstantiationException.class, () -> DssMessageProxy.fromJson(file));
+        ValueInstantiationException.class, () -> DssMessagePayload.fromJson(file));
     assertThat(exception).hasMessageThat().contains("header");
   }
 }

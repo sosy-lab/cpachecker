@@ -234,7 +234,7 @@ public abstract class DssMessage {
         this);
   }
 
-  public final DssMessageProxy asJsonPayloadWithIdentifier(int pIdentifier) {
+  public final DssMessagePayload asJsonPayloadWithIdentifier(int pIdentifier) {
     ImmutableMap<String, String> header =
         ImmutableMap.<String, String>builder()
             .put(DSS_MESSAGE_HEADER_SENDER_ID_KEY, getSenderId())
@@ -246,7 +246,7 @@ public abstract class DssMessage {
             .put(DSS_MESSAGE_HEADER_IDENTIFIER_KEY, Integer.toString(pIdentifier))
             .buildOrThrow();
 
-    return new DssMessageProxy(header, content);
+    return new DssMessagePayload(header, content);
   }
 
   /**
@@ -268,11 +268,11 @@ public abstract class DssMessage {
   }
 
   public static DssMessage fromJson(Path pJson) throws IOException {
-    DssMessageProxy proxy = DssMessageProxy.fromJson(pJson);
-    return fromProxy(proxy);
+    DssMessagePayload payload = DssMessagePayload.fromJson(pJson);
+    return fromPayload(payload);
   }
 
-  public static DssMessage fromProxy(DssMessageProxy pProxy) {
+  public static DssMessage fromPayload(DssMessagePayload pProxy) {
     ImmutableMap<String, String> header = pProxy.header();
     ImmutableMap<String, String> content = pProxy.content();
 

@@ -19,18 +19,18 @@ import java.nio.file.Path;
 import java.util.Map;
 
 @JsonPropertyOrder({DssMessage.DSS_MESSAGE_HEADER_ID, DssMessage.DSS_MESSAGE_CONTENT_ID})
-public record DssMessageProxy(
+public record DssMessagePayload(
     @JsonProperty(DssMessage.DSS_MESSAGE_HEADER_ID) ImmutableMap<String, String> header,
     @JsonProperty(DssMessage.DSS_MESSAGE_CONTENT_ID) ImmutableMap<String, String> content
     ) {
 
-  public DssMessageProxy(ImmutableMap<String, String> header, ImmutableMap<String, String> content) {
+  public DssMessagePayload(ImmutableMap<String, String> header, ImmutableMap<String, String> content) {
     this.header = requireHeader(header);
     this.content = requireContent(content);
   }
 
   @JsonCreator
-  DssMessageProxy(
+  DssMessagePayload(
       @JsonProperty(DssMessage.DSS_MESSAGE_HEADER_ID) Map<String, String> pHeader,
       @JsonProperty(DssMessage.DSS_MESSAGE_CONTENT_ID) Map<String, String> pContent) {
     this(
@@ -39,9 +39,9 @@ public record DssMessageProxy(
     );
   }
 
-  public static DssMessageProxy fromJson(Path pJson) throws IOException {
+  public static DssMessagePayload fromJson(Path pJson) throws IOException {
     ObjectMapper mapper = new ObjectMapper();
-    return mapper.readValue(pJson.toFile(), DssMessageProxy.class);
+    return mapper.readValue(pJson.toFile(), DssMessagePayload.class);
   }
 
   public ImmutableMap<String, ImmutableMap<String, String>> asLegacyMap() {
