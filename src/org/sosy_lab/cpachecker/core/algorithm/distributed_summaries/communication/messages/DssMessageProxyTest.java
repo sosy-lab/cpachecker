@@ -34,7 +34,7 @@ public class DssMessageProxyTest {
                 "RESULT"
             ),
             ImmutableMap.of(
-                "result", "TRUE"
+                DssResultMessage.DSS_MESSAGE_RESULT_KEY, "TRUE"
             )
         );
     assertThat(proxy.asLegacyMap()).containsExactly(
@@ -67,7 +67,7 @@ public class DssMessageProxyTest {
         DssMessage.DSS_MESSAGE_HEADER_TIMESTAMP_KEY, "123",
         DssMessage.DSS_MESSAGE_HEADER_IDENTIFIER_KEY, "0",
         DssMessage.DSS_MESSAGE_CONTENT_ID,
-        "result", "TRUE"
+        DssResultMessage.DSS_MESSAGE_RESULT_KEY, "TRUE"
     );
     Files.writeString(file, jsonContent);
 
@@ -76,7 +76,7 @@ public class DssMessageProxyTest {
     assertThat(proxy.header())
         .containsEntry(DssMessage.DSS_MESSAGE_HEADER_TYPE_KEY, "RESULT");
     assertThat(proxy.content())
-        .containsEntry("result", "TRUE");
+        .containsEntry(DssResultMessage.DSS_MESSAGE_RESULT_KEY, "TRUE");
   }
 
   @Test
@@ -92,7 +92,7 @@ public class DssMessageProxyTest {
     String jsonContent = String.format(
         jsonTemplate,
         DssMessage.DSS_MESSAGE_CONTENT_ID,
-        "result", "TRUE");
+        DssResultMessage.DSS_MESSAGE_RESULT_KEY, "TRUE");
     Files.writeString(file, jsonContent);
 
     ValueInstantiationException exception = assertThrows(
