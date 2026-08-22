@@ -280,6 +280,17 @@ public class AutomatonGraphmlParser {
   }
 
   /**
+   * Whether the given automaton was created from a witness. Witness automata are named after {@link
+   * #WITNESS_AUTOMATON_NAME}, optionally followed by the name given in the witness and a unique id,
+   * cf. {@code parseAutomatonFile}. The name is also what several CPAs and the {@code
+   * WitnessAutomaton.*} configuration options key on.
+   */
+  public static boolean isWitnessAutomaton(Automaton pAutomaton) {
+    return pAutomaton.getName().equals(WITNESS_AUTOMATON_NAME)
+        || pAutomaton.getName().startsWith(WITNESS_AUTOMATON_NAME + "_");
+  }
+
+  /**
    * Parses a specification from an InputStream and returns the Automata found in the file.
    *
    * @param pInputStream the input stream to parse the witness from.

@@ -232,9 +232,16 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
       ShutdownManager lShutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
       ResourceLimitChecker.fromConfiguration(lConfig, lLogger, lShutdownManager).start();
 
+      // The witness automaton of the surrounding analysis must not be part of the specification
+      // of the counterexample check: the path automaton written above already describes the
+      // concrete path, which was found under that witness, so re-applying the witness adds
+      // nothing. It also cannot be kept, because every witness automaton is named
+      // WITNESS_AUTOMATON_NAME and CPABuilder rejects a specification that uses an alias twice.
       Specification lSpecification =
-          specification.withAdditionalSpecificationFile(
-              ImmutableSet.of(automatonFile), cfa, lConfig, lLogger, shutdownNotifier);
+          specification
+              .withoutWitnessAutomata()
+              .withAdditionalSpecificationFile(
+                  ImmutableSet.of(automatonFile), cfa, lConfig, lLogger, shutdownNotifier);
       CoreComponentsFactory factory =
           new CoreComponentsFactory(
               lConfig, lLogger, lShutdownManager.getNotifier(), AggregatedReachedSets.empty(), cfa);

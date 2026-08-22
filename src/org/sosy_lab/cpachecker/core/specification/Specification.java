@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
 import com.google.common.io.MoreFiles;
 import java.io.IOException;
@@ -352,6 +353,29 @@ public final class Specification {
             .putAll(pathToSpecificationAutomata)
             .putAll(newSpec.pathToSpecificationAutomata)
             .build());
+  }
+
+  /**
+   * Return a new specification instance that has everything that the current instance has, except
+   * the automata that stem from a witness (cf. {@link
+   * AutomatonGraphmlParser#isWitnessAutomaton(Automaton)}). The properties and the specification
+   * files are kept unchanged.
+   *
+   * <p>This is needed wherever a witness automaton is added to a specification that may already
+   * contain one: all witness automata share the alias {@link
+   * AutomatonGraphmlParser#WITNESS_AUTOMATON_NAME}, and {@link CPABuilder} rejects a specification
+   * that uses one alias twice.
+   */
+  public Specification withoutWitnessAutomata() {
+    ImmutableListMultimap<Path, Automaton> remainingAutomata =
+        ImmutableListMultimap.copyOf(
+            Multimaps.filterValues(
+                pathToSpecificationAutomata,
+                automaton -> !AutomatonGraphmlParser.isWitnessAutomaton(automaton)));
+    if (remainingAutomata.size() == pathToSpecificationAutomata.size()) {
+      return this;
+    }
+    return new Specification(specificationFiles, properties, remainingAutomata);
   }
 
   /**
