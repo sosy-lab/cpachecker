@@ -85,6 +85,13 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.Waypo
  * asks a set of {@code supports...} feature predicates whether a given feature may be used. This
  * keeps the shared logic in a single place and makes the version-specific behavior explicit at the
  * point where it matters.
+ *
+ * <p><pMore information about the witness format can be found in the <a
+ * href="https://gitlab.com/sosy-lab/benchmarking/sv-witnesses">Witnesses User-guide</a>.
+ *
+ * <p>In addition, the properties supported by each witness version are primarily relevant for the
+ * SV-COMP competition and therefore kept track in the SV-COMP documentation: <a
+ * href="https://sv-comp.sosy-lab.org/2027/rules.php">SV-COMP 2027 Rules</a>.
  */
 class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
 
