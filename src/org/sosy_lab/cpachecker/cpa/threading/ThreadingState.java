@@ -19,10 +19,10 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
-import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.SequencedSet;
 import java.util.Set;
@@ -69,6 +69,19 @@ public class ThreadingState
    */
   public static final String PROPERTY_ACTIVE_THREAD_WITNESS_ID = "activeThreadWitnessId";
 
+  /**
+   * Marks a thread that was created but whose identifier in the witness is not known yet, cf.
+   * {@link #threadIdsForWitness}. It never matches {@link #PROPERTY_ACTIVE_THREAD_WITNESS_ID},
+   * because identifiers of a witness are never negative.
+   */
+  private static final int AWAITING_WITNESS_THREAD_ID = -1;
+
+  /**
+   * Marks a thread that the witness does not refer to, because it did not pass a waypoint for the
+   * creation of that thread, cf. {@link #threadIdsForWitness}.
+   */
+  private static final int NO_WITNESS_THREAD_ID = -2;
+
   static final int MIN_THREAD_NUM = 0;
 
   // String :: identifier for the thread TODO change to object or memory-location
@@ -103,6 +116,11 @@ public class ThreadingState
    * validation. Without a witness that refers to threads, it should always be empty. It is filled
    * by {@link ThreadingTransferRelation#strengthen} and queried through {@link
    * #PROPERTY_ACTIVE_THREAD_WITNESS_ID}.
+   *
+   * <p>Besides the identifiers of the witness, which are never negative, the map also holds the two
+   * markers {@link #AWAITING_WITNESS_THREAD_ID} and {@link #NO_WITNESS_THREAD_ID}. Entries are
+   * never removed, not even when the thread they belong to terminates, so that a thread created
+   * afterwards cannot inherit the identifier of a thread that has already run.
    */
   private final PersistentMap<String, Integer> threadIdsForWitness;
 
@@ -482,33 +500,54 @@ public class ThreadingState
     return entryFunction;
   }
 
-  @Nullable Integer getThreadIdForWitness(String threadId) {
+  private @Nullable Integer getThreadIdForWitness(String threadId) {
     Preconditions.checkNotNull(threadId);
     return threadIdsForWitness.get(threadId);
   }
 
   /**
-   * Identifier that the next thread receives in a witness, cf. {@link #threadIdsForWitness}. The
-   * identifiers are handed out in the order in which the threads are created and are never reused,
-   * so that a thread cannot inherit the identifier of a thread that has terminated.
+   * Returns this state with the identifiers updated by which a witness refers to its threads, cf.
+   * {@link #threadIdsForWitness}.
+   *
+   * <p>Only threads whose creation the witness passes a waypoint for have an identifier at all: the
+   * automaton assigns the identifier of the created thread to its thread-id variable when it passes
+   * that waypoint.
+   *
+   * <p>That new value is not visible on the edge of the creation itself, because {@link
+   * org.sosy_lab.cpachecker.cpa.composite.CompositeTransferRelation} strengthens every component
+   * state with the states from before strengthening. A created thread hence only receives its
+   * identifier one edge later: if the automaton has advanced its variable to an identifier that no
+   * thread holds yet, that identifier belongs to the created thread, otherwise the witness does not
+   * refer to the thread at all.
+   *
+   * @param pAutomatonThreadId the current value of the thread-id variable of the witness automaton
    */
-  int nextWitnessThreadId() {
-    return threadIdsForWitness.isEmpty() ? 0 : Collections.max(threadIdsForWitness.values()) + 1;
-  }
+  ThreadingState updateThreadIdsForWitness(int pAutomatonThreadId) {
+    PersistentMap<String, Integer> ids = threadIdsForWitness;
 
-  ThreadingState setThreadIdForWitness(String threadId, int witnessId) {
-    Preconditions.checkNotNull(threadId);
-    Preconditions.checkArgument(
-        !threadIdsForWitness.containsKey(threadId), "threadId already exists");
-    Preconditions.checkArgument(
-        !threadIdsForWitness.containsValue(witnessId), "witnessId already exists");
-    return withThreadIdsForWitness(threadIdsForWitness.putAndCopy(threadId, witnessId));
-  }
+    // On the very first edge the initial thread receives the identifier the witness starts with.
+    if (ids.isEmpty() && activeThread != null) {
+      ids = ids.putAndCopy(activeThread, pAutomatonThreadId);
+    }
 
-  ThreadingState removeThreadIdForWitness(String threadId) {
-    Preconditions.checkNotNull(threadId);
-    checkArgument(
-        threadIdsForWitness.containsKey(threadId), "removing non-existant thread: %s", threadId);
-    return withThreadIdsForWitness(threadIdsForWitness.removeAndCopy(threadId));
+    // Resolve the thread created by the previous edge, see above. At most one thread can await its
+    // identifier, because at most one thread is created per edge.
+    for (Entry<String, Integer> entry : threadIdsForWitness.entrySet()) {
+      if (entry.getValue() == AWAITING_WITNESS_THREAD_ID) {
+        ids =
+            ids.putAndCopy(
+                entry.getKey(),
+                ids.containsValue(pAutomatonThreadId) ? NO_WITNESS_THREAD_ID : pAutomatonThreadId);
+      }
+    }
+
+    // A thread created by this edge only learns its identifier on the next edge, see above.
+    for (String threadId : threads.keySet()) {
+      if (!ids.containsKey(threadId)) {
+        ids = ids.putAndCopy(threadId, AWAITING_WITNESS_THREAD_ID);
+      }
+    }
+
+    return ids == threadIdsForWitness ? this : withThreadIdsForWitness(ids);
   }
 }

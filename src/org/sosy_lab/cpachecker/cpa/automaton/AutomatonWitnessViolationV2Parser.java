@@ -501,11 +501,13 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
    * @param nextStateId the id of the next state in the automaton being constructed
    * @param followLine the line at which the target is
    * @param followColumn the column at which the target is
+   * @param threadId the thread that performs the call, if the witness names one
+   * @param pPthreadFunctionEnterWaypoint the identifier that the created thread has in the witness
    * @param pDistanceToViolation the distance to the violation
    * @param startLineToCFAEdge a mapping from the start line to the CFA edge
    * @throws WitnessParseException if this waypoint is not supported
    */
-  protected Integer handleFunctionEnter(
+  protected void handleFunctionEnter(
       String nextStateId,
       Integer followLine,
       OptionalInt followColumn,
@@ -554,7 +556,6 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
             distanceToViolationAction(pDistanceToViolation)));
 
     transitions.add(transitionBuilder.build());
-    return pPthreadFunctionEnterWaypoint + 1;
   }
 
   /**
@@ -1071,7 +1072,8 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
             handleAssumption(
                 AutomatonInternalState.BOTTOM.getName(),
                 cfa.getAstCfaRelation()
-                    .getTightestStatementForStarting(followLine, followColumn)
+                    .getTightestStatementForStarting(
+                        avoid.getLocation().getLine(), avoid.getLocation().getColumn())
                     .orElseThrow(),
                 avoid.getLocation().getLine(),
                 avoid.getThread(),
@@ -1102,18 +1104,19 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
               startLineToCFAEdge,
               transitions);
         }
-        case FUNCTION_ENTER -> {
-          pPthreadFunctionEnterWaypoint =
-              handleFunctionEnter(
-                  nextStateId,
-                  followLine,
-                  followColumn,
-                  avoid.getThread(),
-                  distance,
-                  pPthreadFunctionEnterWaypoint,
-                  startLineToCFAEdge,
-                  transitions);
-        }
+        case FUNCTION_ENTER ->
+            // A thread creation that has to be avoided never happens on the path described by the
+            // witness, so it neither advances the automaton nor hands out an identifier for a
+            // thread. The counter is therefore deliberately left untouched.
+            handleFunctionEnter(
+                AutomatonInternalState.BOTTOM.getName(),
+                avoid.getLocation().getLine(),
+                avoid.getLocation().getColumn(),
+                avoid.getThread(),
+                pPthreadFunctionEnterWaypoint,
+                distance,
+                startLineToCFAEdge,
+                transitions);
         case TARGET ->
             throw new WitnessParseException("Avoid waypoints of type target are invalid.");
       }
@@ -1153,16 +1156,17 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
               Boolean.parseBoolean(follow.getConstraint().getValue()),
               transitions);
       case FUNCTION_ENTER -> {
-        pPthreadFunctionEnterWaypoint =
-            handleFunctionEnter(
-                nextStateId,
-                followLine,
-                followColumn,
-                follow.getThread(),
-                pPthreadFunctionEnterWaypoint,
-                distance,
-                startLineToCFAEdge,
-                transitions);
+        handleFunctionEnter(
+            nextStateId,
+            followLine,
+            followColumn,
+            follow.getThread(),
+            pPthreadFunctionEnterWaypoint,
+            distance,
+            startLineToCFAEdge,
+            transitions);
+        // The thread created here is the next one the witness refers to.
+        pPthreadFunctionEnterWaypoint++;
       }
       case WaypointType.FUNCTION_RETURN ->
           handleFunctionReturn(

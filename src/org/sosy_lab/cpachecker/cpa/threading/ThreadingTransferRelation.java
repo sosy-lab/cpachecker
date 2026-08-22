@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.threading;
 
 import static com.google.common.collect.Collections2.transform;
 
-import com.google.common.base.Ascii;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
@@ -20,7 +19,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -60,6 +58,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
@@ -68,7 +67,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
 @Options(prefix = "cpa.threading")
 public final class ThreadingTransferRelation extends SingleEdgeTransferRelation {
@@ -783,52 +781,18 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   }
 
   /**
-   * Assigns the identifiers by which a witness refers to the threads of this state.
-   *
-   * <p>A witness identifies threads positionally: the initial thread is {@code 0} and every thread
-   * created afterwards gets the next number. The identifiers are therefore derived from the order
-   * in which threads appear here, which makes them independent of the tool that produced the
-   * witness.
-   *
-   * <p>They are deliberately not read from the thread-id variable of the witness automaton, even
-   * though the automaton assigns the same numbers there: that variable is only updated once the
-   * automaton passes the waypoint of a thread creation, and {@link
-   * org.sosy_lab.cpachecker.cpa.composite.CompositeTransferRelation} strengthens every component
-   * state with the states from before strengthening. The new value hence only becomes visible here
-   * one edge after the creation, at which point the thread it belongs to would depend on the
-   * interleaving. For witnesses with more than one created thread that regularly left threads
-   * without an identifier or with the identifier of another thread.
-   *
-   * <p>Whether the automaton has a thread-id variable at all is still what tells us that the
-   * witness refers to threads. Without such a witness no identifiers are tracked, so that the state
-   * space of a plain verification run is unaffected.
+   * Keeps track of the identifiers by which a witness refers to threads. The presence of the
+   * thread-id variable in the automaton is what tells us that the witness refers to threads at all;
+   * without such a witness no identifiers are tracked, so that the state space of a plain
+   * verification run is unaffected. See {@link ThreadingState#updateThreadIdsForWitness(int)} for
+   * how the identifiers are derived.
    */
   private ThreadingState handleWitnessAutomaton(ThreadingState ts, AutomatonState automatonState) {
-    Map<String, AutomatonVariable> vars = automatonState.getVars();
-    if (!vars.containsKey(Ascii.toUpperCase(KeyDef.THREADID.toString()))) {
-      // the witness does not refer to threads -> ignore and return state unchanged
-      return ts;
-    }
-
-    ThreadingState result = ts;
-    // The initial thread is the only thread that can be active without having an identifier,
-    // because every other thread receives one when it is created, i.e., before it can become
-    // active. Handling it first keeps the identifiers in creation order in case it is still without
-    // one when the first thread is created.
-    String activeThread = ts.getActiveThread();
-    if (activeThread != null
-        && ts.getThreadIds().contains(activeThread)
-        && result.getThreadIdForWitness(activeThread) == null) {
-      result = result.setThreadIdForWitness(activeThread, result.nextWitnessThreadId());
-    }
-    // The thread created by this edge, if any. At most one thread is created per edge, so which
-    // thread is still without an identifier is unambiguous.
-    for (String threadId : ts.getThreadIds()) {
-      if (result.getThreadIdForWitness(threadId) == null) {
-        result = result.setThreadIdForWitness(threadId, result.nextWitnessThreadId());
-      }
-    }
-    return result;
+    AutomatonVariable automatonThreadId =
+        automatonState.getVars().get(AutomatonGraphmlParser.THREAD_ID_VAR_NAME);
+    return automatonThreadId == null
+        ? ts
+        : ts.updateThreadIdsForWitness(automatonThreadId.getValue());
   }
 
   /** if the current edge creates a new function, return its name, else nothing. */
