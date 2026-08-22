@@ -581,6 +581,7 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
       Integer followLine, OptionalInt followColumn, Multimap<Integer, CFAEdge> startLineToCFAEdge) {
     // We sort the edges by their column, so we can take the first one which matches the given
     // column
+    Optional<CFAEdge> foundEdge = Optional.empty();
     for (CFAEdge edge :
         FluentIterable.from(startLineToCFAEdge.get(followLine))
             .toSortedList(
@@ -598,10 +599,11 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
         continue;
       }
 
-      return Optional.of(edge);
+      Verify.verify(foundEdge.isEmpty(), "Multiple edges match the function enter waypoint");
+      foundEdge = Optional.of(edge);
     }
 
-    return Optional.empty();
+    return foundEdge;
   }
 
   /**
