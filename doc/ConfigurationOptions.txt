@@ -2224,6 +2224,22 @@ cpa.constraints.reuseSolver = true
 cpa.constraints.satCheckStrategy = AT_ASSUME
   enum:     [AT_ASSUME, AT_TARGET]
 
+# which stop operator to use for DataRaceCPA. A DataRaceState carries history
+# that no other CPA of the composite tracks (the memory accesses of the
+# running threads, the synchronizes-with edges and the last lock releases),
+# so with ALWAYS coverage is decided by the other components alone: of two
+# states that agree there but have different access histories, the one
+# reached later is dropped, and the analysis can miss a data race that the
+# dropped history would have exposed. Which of the two is reached first
+# depends on the traversal order, so the result is not stable either. SEP
+# only covers a state by an equal one and is therefore sound, but it enlarges
+# the reached set considerably, which costs much more than it gains when the
+# goal is to prove a program race free. Use SEP where a missed race is not
+# acceptable, most notably when validating a violation witness that claims a
+# data race.
+cpa.datarace.stop = "ALWAYS"
+  allowed values: [SEP, ALWAYS]
+
 # Export the trace-abtraction automaton to a file in dot-format.
 cpa.dca.refiner.dotExport = false
 
