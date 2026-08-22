@@ -234,6 +234,7 @@ public abstract class DssMessage {
         this);
   }
 
+  @SuppressWarnings("JavaInstantGetSecondsGetNano")
   public final DssMessagePayload asJsonPayloadWithIdentifier(int pIdentifier) {
     ImmutableMap<String, String> header =
         ImmutableMap.<String, String>builder()
@@ -261,7 +262,6 @@ public abstract class DssMessage {
    *     separation of old and new messages after the analysis, especially.
    * @return JSON representation of the message.
    */
-  @SuppressWarnings("JavaInstantGetSecondsGetNano")
   public final ImmutableMap<String, ImmutableMap<String, String>> asJsonWithIdentifier(
       int pIdentifier) {
     return asJsonPayloadWithIdentifier(pIdentifier).asLegacyMap();

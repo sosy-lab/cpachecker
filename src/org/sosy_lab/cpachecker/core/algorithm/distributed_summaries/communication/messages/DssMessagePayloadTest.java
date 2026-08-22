@@ -46,7 +46,8 @@ public class DssMessagePayloadTest {
   @Test
   public void fromJsonReadsCurrentJsonShape() throws Exception {
     Path file = tempFolder.newFile("message.json").toPath();
-    String jsonTemplate = """
+    String jsonContent = String.format(
+        """
         {
           "%s": {
             "%s": "%s",
@@ -58,9 +59,7 @@ public class DssMessagePayloadTest {
             "%s": "%s"
           }
         }
-        """;
-    String jsonContent = String.format(
-        jsonTemplate,
+        """,
         DssMessage.DSS_MESSAGE_HEADER_ID,
         DssMessage.DSS_MESSAGE_HEADER_SENDER_ID_KEY, "B1",
         DssMessage.DSS_MESSAGE_HEADER_TYPE_KEY, "RESULT",
@@ -82,15 +81,14 @@ public class DssMessagePayloadTest {
   @Test
   public void fromJsonRejectsMissingHeader() throws Exception {
     Path file = tempFolder.newFile("message.json").toPath();
-    String jsonTemplate = """
+    String jsonContent = String.format(
+        """
         {
           "%s": {
             "%s": "%s"
           }
         }
-        """;
-    String jsonContent = String.format(
-        jsonTemplate,
+        """,
         DssMessage.DSS_MESSAGE_CONTENT_ID,
         DssResultMessage.DSS_MESSAGE_RESULT_KEY, "TRUE");
     Files.writeString(file, jsonContent);
