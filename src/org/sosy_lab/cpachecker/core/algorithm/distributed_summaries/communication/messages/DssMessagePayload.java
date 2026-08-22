@@ -24,6 +24,8 @@ public record DssMessagePayload(
     @JsonProperty(DssMessage.DSS_MESSAGE_CONTENT_ID) ImmutableMap<String, String> content
     ) {
 
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
   public DssMessagePayload(ImmutableMap<String, String> header, ImmutableMap<String, String> content) {
     this.header = requireHeader(header);
     this.content = requireContent(content);
@@ -40,8 +42,7 @@ public record DssMessagePayload(
   }
 
   public static DssMessagePayload fromJson(Path pJson) throws IOException {
-    ObjectMapper mapper = new ObjectMapper();
-    return mapper.readValue(pJson.toFile(), DssMessagePayload.class);
+    return OBJECT_MAPPER.readValue(pJson.toFile(), DssMessagePayload.class);
   }
 
   public ImmutableMap<String, ImmutableMap<String, String>> asLegacyMap() {
@@ -49,6 +50,10 @@ public record DssMessagePayload(
         DssMessage.DSS_MESSAGE_HEADER_ID, header,
         DssMessage.DSS_MESSAGE_CONTENT_ID, content
     );
+  }
+
+  public void writeJson(Path pPath) throws IOException {
+    OBJECT_MAPPER.writeValue(pPath.toFile(), this);
   }
 
   private static <T extends Map<String, String>> T requireHeader(T pHeader) {

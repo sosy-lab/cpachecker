@@ -249,6 +249,10 @@ public abstract class DssMessage {
     return new DssMessagePayload(header, content);
   }
 
+  public final DssMessagePayload asJsonPayload() {
+    return asJsonPayloadWithIdentifier(0);
+  }
+
   /**
    * Convert the message to a JSON representation with an identifier.
    *

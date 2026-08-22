@@ -16,7 +16,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
-import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -117,7 +116,7 @@ public class SingleWorkerDssExecutor implements DssExecutor {
       final String outputFileNamePrefix = dssMessage.getType().name();
       final String outputFileName = outputFileNamePrefix + messageCount + ".json";
       Path outputPath = outputMessages.resolve(outputFileName);
-      JSON.writeJSONString(dssMessage.asJson(), outputPath);
+      dssMessage.asJsonPayload().writeJson(outputPath);
       messageCount++;
     }
   }

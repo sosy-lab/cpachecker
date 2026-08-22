@@ -60,9 +60,9 @@ public class DssVisualizationWorker extends DssWorker {
 
   private void log(DssMessage pMessage) throws IOException {
     if (reportFiles != null) {
-      JSON.writeJSONString(
-          pMessage.asJsonWithIdentifier(identifier),
-          reportFiles.resolve("M" + idGenerator.getFreshId() + ".json"));
+      pMessage.asJsonPayloadWithIdentifier(identifier).writeJson(
+          reportFiles.resolve("M" + idGenerator.getFreshId() + ".json")
+      );
     }
   }
 
