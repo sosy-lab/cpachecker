@@ -193,10 +193,16 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
             ThreadingState.activeThreadWitnessIdQuery(pThreadId.orElseThrow())));
   }
 
+  /**
+   * The waitlist strategy behind {@code analysis.traversal.byAutomatonVariable} pops the state with
+   * the <em>highest</em> value of the variable first, so the value has to grow as the witness is
+   * followed. We therefore store the negated distance, just like {@link AutomatonGraphmlParser}
+   * does.
+   */
   protected AutomatonAction distanceToViolationAction(int pDistanceToViolation) {
     return new AutomatonAction.Assignment(
         AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
-        new AutomatonIntExpr.Constant(pDistanceToViolation));
+        new AutomatonIntExpr.Constant(-pDistanceToViolation));
   }
 
   protected AutomatonTransition.Builder distanceToViolation(
@@ -936,7 +942,8 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
         AutomatonVariable.createAutomatonVariable(
             /* pType= */ "int",
             AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
-            Integer.toString(segments.size())));
+            // negated, cf. distanceToViolationAction; the initial state is the farthest away
+            Integer.toString(-segments.size())));
 
     // Declaring this variable is what tells the ThreadingCPA to keep track of the identifiers by
     // which the witness refers to threads, cf. ThreadingTransferRelation#strengthen. It has to be
