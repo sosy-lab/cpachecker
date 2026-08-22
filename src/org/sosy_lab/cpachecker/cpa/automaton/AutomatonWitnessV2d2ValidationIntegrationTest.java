@@ -43,6 +43,50 @@ public final class AutomatonWitnessV2d2ValidationIntegrationTest {
         inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
   }
 
+  /**
+   * The program creates two threads, but the witness only has a function-enter waypoint for the
+   * second one, so only that thread has an identifier in the witness.
+   */
+  @Test(timeout = 3000)
+  public void validate_unreach_call_witness_not_mentioning_every_thread_creation()
+      throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-unreach-two-threads.c");
+    Path witnessFilePath =
+        Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-unreach-two-threads.witness-2.2.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
+  /**
+   * The first segment of the witness must be passed without creating the first thread, which the
+   * program does unconditionally, so the witness describes no execution and must be rejected.
+   */
+  @Test(timeout = 3000)
+  public void reject_data_race_witness_avoiding_a_necessary_thread_creation() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-data-race.prp");
+    Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-data-race.c");
+    Path witnessFilePath =
+        Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-data-race.avoid-creation.witness-2.2.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.TRUE, specificationFilePath, witnessFilePath);
+  }
+
+  /**
+   * The avoid waypoint of the witness points to a thread creation that has already been passed when
+   * its segment is entered, so it can never be matched and the witness still has to be confirmed.
+   */
+  @Test(timeout = 3000)
+  public void validate_data_race_witness_avoiding_a_passed_thread_creation() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-data-race.prp");
+    Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-data-race.c");
+    Path witnessFilePath =
+        Path.of(
+            CONCURRENCY_TEST_DIR_PATH, "concurrent-data-race.avoid-past-creation.witness-2.2.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
   @Test(timeout = 3000)
   public void validate_unreach_call_concurrency_roundtrip() throws Exception {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");

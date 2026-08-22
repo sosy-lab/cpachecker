@@ -1,0 +1,78 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Regression test for avoid waypoints of type `function_enter`. The first segment must
+# be passed without creating `t1_func`, but `main` creates it unconditionally before it
+# creates `t2_func`, so this witness describes no execution of the program and must not
+# be confirmed.
+#
+# The avoid waypoint has to be matched against its own location and has to lead into the
+# bottom state of the automaton. Matching it against the location of the follow waypoint
+# of its segment, or letting it advance the automaton like a follow waypoint does, makes
+# it match the same thread creation as the follow waypoint below and this witness is then
+# wrongly confirmed.
+
+- entry_type: violation_sequence
+  metadata:
+    format_version: "2.2"
+    uuid: "a1b2c3d4-e5f6-4789-9abc-def012345678"
+    creation_time: "2026-08-21T12:00:00Z"
+    producer:
+      name: "Handcrafted"
+      version: "1.0"
+    task:
+      input_files:
+        - "./concurrent-data-race.c"
+      input_file_hashes:
+        "./concurrent-data-race.c": "85fd508d1da6f285eb1111c4796c8bcbfa117ac42ac8d541cba2a956bd2ae7ca"
+      specification: "G ! data-race"
+      data_model: "ILP32"
+      language: "C"
+  content:
+    - segment:
+        - waypoint:
+            # t1_func must not be created, ...
+            type: function_enter
+            action: avoid
+            thread_id: 0
+            location:
+              file_name: "./concurrent-data-race.c"
+              line: 27
+              column: 19
+              function: "main"
+        - waypoint:
+            # ... but reaching the creation of t2_func requires passing the creation of
+            # t1_func first
+            type: function_enter
+            action: follow
+            thread_id: 0
+            location:
+              file_name: "./concurrent-data-race.c"
+              line: 28
+              column: 19
+              function: "main"
+    - segment:
+        # multi-follow final segment: the two conflicting accesses (both targets)
+        - waypoint:
+            type: target
+            action: follow
+            thread_id: 1
+            location:
+              file_name: "./concurrent-data-race.c"
+              line: 16
+              column: 5
+              function: "t1_func"
+        - waypoint:
+            type: target
+            action: follow
+            thread_id: 2
+            location:
+              file_name: "./concurrent-data-race.c"
+              line: 21
+              column: 5
+              function: "t2_func"
