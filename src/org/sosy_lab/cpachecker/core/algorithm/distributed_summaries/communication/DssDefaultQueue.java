@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.util.concurrent.ForwardingBlockingQueue;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -78,9 +80,7 @@ public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
 
   private DssMessage startProcessing(DssMessage pMessage) {
     int remainingMessages = pendingMessages.decrementAndGet();
-    if (remainingMessages < 0) {
-      throw new IllegalStateException("Consumed a message that was not registered as pending");
-    }
+    checkState(remainingMessages >= 0, "Consumed a message that was not registered as pending");
     return pMessage;
   }
 
