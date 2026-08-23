@@ -18,17 +18,17 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.cpa.callstack.DssCallstackCPA;
 
 public class DeserializeCallstackStateOperator implements DeserializeOperator {
 
-  private final CallstackCPA parentCPA;
+  private final DssCallstackCPA parentCPA;
   private final Function<Integer, CFANode> converter;
   private final BlockNode blockNode;
 
   public DeserializeCallstackStateOperator(
-      CallstackCPA pParentCPA, BlockNode pBlockNode, Function<Integer, CFANode> pConverter) {
+      DssCallstackCPA pParentCPA, BlockNode pBlockNode, Function<Integer, CFANode> pConverter) {
     parentCPA = pParentCPA;
     converter = pConverter;
     blockNode = pBlockNode;

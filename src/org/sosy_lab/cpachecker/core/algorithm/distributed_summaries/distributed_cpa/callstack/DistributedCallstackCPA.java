@@ -34,8 +34,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.cpa.callstack.DssCallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.DssCallstackState;
 
 public class DistributedCallstackCPA implements ForwardingDistributedConfigurableProgramAnalysis {
@@ -55,7 +55,7 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   private final CombinePrecisionOperator combinePrecisionOperator;
   private final CombineViolationConditionsOperator combineViolationConditionsOperator;
 
-  private final CallstackCPA callstackCPA;
+  private final DssCallstackCPA callstackCPA;
   private final CFA cfa;
   private final BlockNode block;
   private final boolean requiresStateResets;
@@ -63,7 +63,7 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   private boolean ignoreCallstack;
 
   public DistributedCallstackCPA(
-      CallstackCPA pCallstackCPA,
+      DssCallstackCPA pCallstackCPA,
       BlockNode pBlockNode,
       CFA pCFA,
       boolean pRequiresStateResets,
