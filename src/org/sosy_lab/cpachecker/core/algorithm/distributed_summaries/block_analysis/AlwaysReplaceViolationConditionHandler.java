@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -29,6 +31,9 @@ final class AlwaysReplaceViolationConditionHandler implements DssViolationCondit
 
   private final DssBlockAnalysis analysis;
 
+  /** Conditions that still need to be explored, with equivalent ones kept only once. */
+  private ImmutableList<StateAndPrecision> conditionsToExplore = ImmutableList.of();
+
   AlwaysReplaceViolationConditionHandler(DssBlockAnalysis pAnalysis) {
     conditions =
         new BlockToProgramLocationMap(pAnalysis.getDcpa(), pAnalysis.getBlock().getSuccessorIds());
@@ -46,17 +51,28 @@ final class AlwaysReplaceViolationConditionHandler implements DssViolationCondit
     stats.getStoreViolationConditionStatesTimer().start();
 
     try {
-      // A condition counts as known only if an equal one is already stored. Comparing the
-      // witnesses alone would only compare the path through the block graph, so a refined
-      // condition for a path that was already reported would be discarded: the block would stop
-      // although the sender learned something new, which lets a reachable violation go unnoticed.
-      if (analysis.countCovered(received, ImmutableList.copyOf(conditions.getStatesAndPrecisions()))
-          == received.size()) {
+      String sender = pReceived.getSenderId();
+      ImmutableList<@NonNull StateAndPrecision> storedForSender =
+          ImmutableList.copyOf(conditions.getStatesAndPrecisionsForKey(sender));
+      // Each message replaces what we remember from this sender. Keep that separate from the
+      // other senders: if two successors report the same condition, an update from one of them
+      // must not erase the condition that still belongs to the other. We compare in both
+      // directions because removing a condition is an update as well.
+      if (analysis.allCovered(received, storedForSender)
+          && analysis.allCovered(storedForSender, received)) {
         return DssMessageProcessing.stop();
       }
-      String sender = pReceived.getSenderId();
+      conditions.clearKey(sender);
       conditions.overwriteStatesForKey(sender, received);
-      return DssMessageProcessing.proceed();
+      ImmutableList<StateAndPrecision> updatedConditionsToExplore =
+          analysis.deduplicateStatesAndPrecisions(conditions.getStatesAndPrecisions());
+      boolean globalConditionSetUnchanged =
+          analysis.allCovered(updatedConditionsToExplore, conditionsToExplore)
+              && analysis.allCovered(conditionsToExplore, updatedConditionsToExplore);
+      conditionsToExplore = updatedConditionsToExplore;
+      return globalConditionSetUnchanged
+          ? DssMessageProcessing.stop()
+          : DssMessageProcessing.proceed();
     } finally {
       stats.getStoreViolationConditionStatesTimer().stop();
       stats.getStoreViolationConditionStatesCounter().add(received.size());
@@ -75,8 +91,10 @@ final class AlwaysReplaceViolationConditionHandler implements DssViolationCondit
 
   @Override
   public ImmutableList<AbstractState> statesOf(Optional<String> pSenderId) {
-    return ImmutableList.copyOf(
-        pSenderId.map(conditions::getStatesForKey).orElse(conditions.getStates()));
+    return pSenderId
+        .map(sender -> ImmutableList.copyOf(conditions.getStatesForKey(sender)))
+        .orElseGet(
+            () -> transformedImmutableListCopy(conditionsToExplore, StateAndPrecision::state));
   }
 
   public BlockToProgramLocationMap getConditions() {

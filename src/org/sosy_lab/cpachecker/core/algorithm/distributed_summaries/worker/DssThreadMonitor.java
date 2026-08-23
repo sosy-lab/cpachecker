@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
@@ -25,8 +24,7 @@ public class DssThreadMonitor extends Thread {
   private final DssConnection connection;
   private final ImmutableList<DssConnection> monitoredConnections;
   private final DssMessageFactory messageFactory;
-
-  public static final Set<String> active = ConcurrentHashMap.newKeySet();
+  private final Set<String> activeWorkers;
 
   /**
    * @param pThreadsToMonitor the threads of all monitored actors
@@ -34,25 +32,20 @@ public class DssThreadMonitor extends Thread {
    * @param pConnection the connection to broadcast the result on
    * @param pMonitoredConnections the connections of all monitored actors, whose queues have to be
    *     empty before quiescence may be interpreted as a proof
+   * @param pActiveWorkers workers that have started and are not waiting for queue input
    */
   public DssThreadMonitor(
       ImmutableList<Thread> pThreadsToMonitor,
       DssMessageFactory pMessageFactory,
       DssConnection pConnection,
-      Collection<DssConnection> pMonitoredConnections) {
+      Collection<DssConnection> pMonitoredConnections,
+      Set<String> pActiveWorkers) {
     super(THREAD_NAME);
     threadsToMonitor = pThreadsToMonitor;
     connection = pConnection;
     monitoredConnections = ImmutableList.copyOf(pMonitoredConnections);
     messageFactory = pMessageFactory;
-  }
-
-  public static void add(String id) {
-    active.add(id);
-  }
-
-  public static void remove(String id) {
-    active.remove(id);
+    activeWorkers = pActiveWorkers;
   }
 
   @Override
@@ -71,7 +64,7 @@ public class DssThreadMonitor extends Thread {
       if (allWaiting
           && noMessageWaitingToBeProcessed
           && connection.getBroadcaster().isEmpty()
-          && active.isEmpty()) {
+          && activeWorkers.isEmpty()) {
         connection
             .getBroadcaster()
             .broadcastToAll(messageFactory.createDssResultMessage(THREAD_NAME, Result.TRUE));

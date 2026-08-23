@@ -105,8 +105,8 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
     }
     ImmutableList<@NonNull StateAndPrecision> received = analysis.deserialize(pReceived);
     preconditions.markReachable(pReceived.getSenderId());
-    ImmutableListMultimap<Integer, @NonNull StateAndPrecision> hashToState =
-        Multimaps.index(received, sap -> analysis.getDcpa().computeProgramPointHash(sap.state()));
+    ImmutableListMultimap<Object, @NonNull StateAndPrecision> programPointToState =
+        Multimaps.index(received, sap -> analysis.getDcpa().computeProgramPointId(sap.state()));
     DssSingleWorkerStatistics stats = analysis.statistics();
     stats.getStorePreconditionStatesTimer().start();
     try {
@@ -119,12 +119,15 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
 
       boolean stop = true;
 
-      for (Integer id : hashToState.keySet()) {
-        ImmutableList<@NonNull StateAndPrecision> statesAtLocation = hashToState.get(id);
+      for (Object programPoint : programPointToState.keySet()) {
+        ImmutableList<@NonNull StateAndPrecision> statesAtLocation =
+            programPointToState.get(programPoint);
         if (!analysis.allCovered(
             statesAtLocation,
-            preconditions.getStatesAndPrecisionsForKeyAndId(pReceived.getSenderId(), id))) {
-          preconditions.overwriteStatesForKey(pReceived.getSenderId(), id, statesAtLocation);
+            preconditions.getStatesAndPrecisionsForKeyAndId(
+                pReceived.getSenderId(), programPoint))) {
+          preconditions.overwriteStatesForKey(
+              pReceived.getSenderId(), programPoint, statesAtLocation);
           stop = false;
         }
       }
@@ -201,10 +204,10 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
       // every predecessor reported an unreachable block end, so this block cannot be entered
       return AnalysisResult.unreachableBlockEnd();
     }
-    ImmutableListMultimap<Integer, AbstractState> conditionsPerLocation;
+    ImmutableListMultimap<Object, AbstractState> conditionsPerLocation;
     if (analysis.getOptions().callStackStateRequiresStateReset()) {
       conditionsPerLocation =
-          ImmutableListMultimap.<Integer, AbstractState>builder()
+          ImmutableListMultimap.<Object, AbstractState>builder()
               .putAll(0, analysis.getViolationConditionHandler().statesOf(Optional.empty()))
               .build();
     } else {
@@ -217,7 +220,7 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
       conditionsPerLocation =
           Multimaps.index(
               analysis.getViolationConditionHandler().statesOf(Optional.empty()),
-              condition -> analysis.getDcpa().computeProgramPointHash(condition));
+              condition -> analysis.getDcpa().computeProgramPointId(condition));
     }
 
     Precision precisionOfAnalysis =
@@ -225,36 +228,37 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
             ? analysis.makeStartPrecision()
             : analysis.combinePrecisions(preconditions.getStatesAndPrecisions());
 
-    Multimap<Integer, Integer> safeRuns = ArrayListMultimap.create();
-    Map<ImmutableList<Integer>, AnalysisResult> rounds = new LinkedHashMap<>();
-    for (Integer conditionHash : conditionsPerLocation.keySet()) {
-      ImmutableList<AbstractState> conditionsAtLocation = conditionsPerLocation.get(conditionHash);
-      for (Integer locationHash : preconditions.getAllLocationHashes()) {
+    Multimap<Object, Object> safeRuns = ArrayListMultimap.create();
+    Map<ImmutableList<Object>, AnalysisResult> rounds = new LinkedHashMap<>();
+    for (Object conditionProgramPoint : conditionsPerLocation.keySet()) {
+      ImmutableList<AbstractState> conditionsAtLocation =
+          conditionsPerLocation.get(conditionProgramPoint);
+      for (Object preconditionProgramPoint : preconditions.getAllProgramPoints()) {
         AnalysisResult round =
             exploreFrom(
-                preconditions.getStatesPerLocation(locationHash),
+                preconditions.getStatesPerLocation(preconditionProgramPoint),
                 conditionsAtLocation,
                 precisionOfAnalysis,
                 false);
         if (!round.summaries().isEmpty()) {
-          safeRuns.put(locationHash, conditionHash);
+          safeRuns.put(preconditionProgramPoint, conditionProgramPoint);
         }
-        rounds.put(ImmutableList.of(locationHash, conditionHash), round);
+        rounds.put(ImmutableList.of(preconditionProgramPoint, conditionProgramPoint), round);
       }
     }
-    for (Integer preconditionLocationHash : safeRuns.keySet()) {
-      Collection<Integer> vcLocationHashes = safeRuns.get(preconditionLocationHash);
-      if (vcLocationHashes.size() > 1) {
-        vcLocationHashes.forEach(v -> rounds.remove(ImmutableList.of(preconditionLocationHash, v)));
+    for (Object preconditionProgramPoint : safeRuns.keySet()) {
+      Collection<Object> vcProgramPoints = safeRuns.get(preconditionProgramPoint);
+      if (vcProgramPoints.size() > 1) {
+        vcProgramPoints.forEach(v -> rounds.remove(ImmutableList.of(preconditionProgramPoint, v)));
         AnalysisResult round =
             exploreFrom(
-                preconditions.getStatesPerLocation(preconditionLocationHash),
-                FluentIterable.from(vcLocationHashes)
+                preconditions.getStatesPerLocation(preconditionProgramPoint),
+                FluentIterable.from(vcProgramPoints)
                     .transformAndConcat(conditionsPerLocation::get)
                     .toList(),
                 precisionOfAnalysis,
                 false);
-        rounds.put(elementAndList(preconditionLocationHash, vcLocationHashes), round);
+        rounds.put(elementAndList(preconditionProgramPoint, vcProgramPoints), round);
       }
     }
     if (preconditions.isEmpty() || preconditions.isAnyPredecessorTrulyEmpty()) {
@@ -339,12 +343,6 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
     if (!finalViolations.isEmpty()) {
       // summaries found alongside a violation are discarded: the violation has to be resolved first
       return AnalysisResult.ofViolationConditions(finalViolations);
-    }
-
-    if (!pDiscardSummaries
-        && finalSummaries.stream()
-            .allMatch(sap -> analysis.getDcpa().isMostGeneralBlockEntryState(sap.state()))) {
-      return AnalysisResult.empty();
     }
 
     Set<AbstractState> violationsToConsider =

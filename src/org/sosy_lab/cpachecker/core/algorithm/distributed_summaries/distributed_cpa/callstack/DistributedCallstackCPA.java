@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
-import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -187,17 +186,22 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   }
 
   @Override
-  public int computeProgramPointHash(AbstractState pAbstractState) {
-    return proofCheckingHash((CallstackState) pAbstractState);
+  public Object computeProgramPointId(AbstractState pAbstractState) {
+    return proofCheckingProgramPoint((CallstackState) pAbstractState);
   }
 
-  private static int proofCheckingHash(CallstackState pState) {
-    return Objects.hash(
+  private static CallstackProgramPoint proofCheckingProgramPoint(CallstackState pState) {
+    return new CallstackProgramPoint(
         pState.getCallNode().getNodeNumber(),
         pState.getDepth(),
         pState.getCurrentFunction(),
-        pState.getPreviousState() == null ? 0 : proofCheckingHash(pState.getPreviousState()));
+        pState.getPreviousState() == null
+            ? null
+            : proofCheckingProgramPoint(pState.getPreviousState()));
   }
+
+  private record CallstackProgramPoint(
+      int callNode, int depth, String currentFunction, @Nullable CallstackProgramPoint previous) {}
 
   public void setIgnoreTransfer(boolean pIgnoreCallstack) {
     ignoreCallstack = pIgnoreCallstack;
