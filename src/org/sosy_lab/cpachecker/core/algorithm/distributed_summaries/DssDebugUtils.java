@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath.PathCase;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
@@ -78,9 +77,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  *       #describeStates(Iterable)}.
  *   <li>Block graph: {@link #describe(BlockNode)}, {@link #describe(BlockGraph)}, {@link
  *       #blockGraphToDot(BlockGraph)}.
- *   <li>Paths through the block graph: {@link #render(BlockGraphPath)}, {@link
- *       #explainPathCase(BlockGraphPath, BlockGraphPath)}, {@link #pathCaseMatrix(Iterable,
- *       Iterable)}.
+ *   <li>Paths through the block graph: {@link #render(BlockGraphPath)}.
  *   <li>Messages: {@link #summarize(DssMessage)}, {@link #describe(DssMessage)}, {@link
  *       #messageTable(Iterable)}, {@link #diff(DssMessage, DssMessage)}.
  *   <li>Reached sets and ARGs: {@link #describeReachedSet(UnmodifiableReachedSet)}, {@link
@@ -526,69 +523,6 @@ public final class DssDebugUtils {
       return "[]";
     }
     return "[" + Joiner.on(" -> ").join(pPath.path()) + "]";
-  }
-
-  /**
-   * Explains why {@link BlockGraphPath#getFirstMatchingCase(BlockGraphPath)} picks the case it
-   * picks, by showing the outcome of every individual predicate rather than only the winner.
-   *
-   * <p>This is the decision that {@code PathBasedPreconditionHandler} bases its
-   * replace-or-keep-or-stop choice on, so when a fixpoint is not reached (or reached too early),
-   * this is the first thing to look at.
-   */
-  public static String explainPathCase(BlockGraphPath pIncoming, BlockGraphPath pExisting) {
-    PathCase matched = pIncoming.getFirstMatchingCase(pExisting);
-    return table(
-        ImmutableList.of("predicate", "result"),
-        ImmutableList.of(
-            ImmutableList.of("incoming", render(pIncoming)),
-            ImmutableList.of("existing", render(pExisting)),
-            ImmutableList.of("existing.isSuffixOf(incoming)", isSuffix(pExisting, pIncoming)),
-            ImmutableList.of("incoming.overlapsWith(existing)", overlaps(pIncoming, pExisting)),
-            ImmutableList.of("existing.isPrefixOf(incoming)", isPrefix(pExisting, pIncoming)),
-            ImmutableList.of("=> first matching case", matched.name())));
-  }
-
-  private static String isSuffix(BlockGraphPath pInner, BlockGraphPath pOuter) {
-    return Boolean.toString(pInner.isSuffixOf(pOuter));
-  }
-
-  private static String isPrefix(BlockGraphPath pInner, BlockGraphPath pOuter) {
-    return Boolean.toString(pInner.isPrefixOf(pOuter));
-  }
-
-  private static String overlaps(BlockGraphPath pLeft, BlockGraphPath pRight) {
-    return Boolean.toString(pLeft.overlapsWith(pRight));
-  }
-
-  /**
-   * Renders the {@link PathCase} of every (incoming, existing) path pair as a matrix.
-   *
-   * <p>Call this with the paths of a freshly received postcondition and the paths already stored by
-   * a block to see, in one glance, which stored preconditions are about to be replaced, kept, or
-   * declared a fixpoint.
-   */
-  public static String pathCaseMatrix(
-      Iterable<BlockGraphPath> pIncoming, Iterable<BlockGraphPath> pExisting) {
-    ImmutableList<BlockGraphPath> existing = ImmutableList.copyOf(pExisting);
-    ImmutableList.Builder<String> header = ImmutableList.builder();
-    header.add("incoming \\ existing");
-    for (BlockGraphPath path : existing) {
-      header.add(render(path));
-    }
-    List<List<String>> rows = new ArrayList<>();
-    for (BlockGraphPath incoming : pIncoming) {
-      ImmutableList.Builder<String> row = ImmutableList.builder();
-      row.add(render(incoming));
-      for (BlockGraphPath old : existing) {
-        row.add(incoming.getFirstMatchingCase(old).name());
-      }
-      rows.add(row.build());
-    }
-    if (rows.isEmpty() || existing.isEmpty()) {
-      return "<no path pairs to compare>";
-    }
-    return table(header.build(), rows);
   }
 
   // ===================================================================================

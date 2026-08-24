@@ -457,6 +457,42 @@ public final class DssBlockAnalysis {
   }
 
   /**
+   * Whether {@code pStates1} and {@code pStates2} contain the same set of states, i.e., every state
+   * on either side has an equal state (per {@link CoverageOperator#areStatesEqual}) on the other
+   * side.
+   *
+   * <p>This is equivalent to {@code allCovered(pStates1, pStates2) && allCovered(pStates2,
+   * pStates1)}, but every pair of states is compared with the coverage operator at most once
+   * instead of up to twice.
+   */
+  boolean statesEqual(
+      Collection<@NonNull StateAndPrecision> pStates1,
+      Collection<@NonNull StateAndPrecision> pStates2)
+      throws CPAException, InterruptedException {
+    CoverageOperator coverage = dcpa.getCoverageOperator();
+    ImmutableList<StateAndPrecision> states2 = ImmutableList.copyOf(pStates2);
+    boolean[] matchedInStates2 = new boolean[states2.size()];
+    for (StateAndPrecision state1 : pStates1) {
+      boolean matched = false;
+      for (int i = 0; i < states2.size(); i++) {
+        if (coverage.areStatesEqual(state1.state(), states2.get(i).state())) {
+          matched = true;
+          matchedInStates2[i] = true;
+        }
+      }
+      if (!matched) {
+        return false;
+      }
+    }
+    for (boolean matched : matchedInStates2) {
+      if (!matched) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
    * Explores the block once from the given precondition, without any violation condition attached.
    *
    * <p>This run is intentionally not counted in the block-analysis statistics, which only track the

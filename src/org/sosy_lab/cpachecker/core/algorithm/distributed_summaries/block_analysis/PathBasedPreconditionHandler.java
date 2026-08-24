@@ -20,6 +20,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +33,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analys
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPostConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath.PathCase;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -42,18 +42,30 @@ import org.sosy_lab.java_smt.api.SolverException;
 /**
  * Groups preconditions by the path through the block graph along which they were produced.
  *
- * <p>An incoming postcondition only replaces the preconditions whose path relates to the incoming
- * one (see {@link PathCase}), which lets the block tell a genuinely new context apart from a
+ * <p>An incoming postcondition only replaces the preconditions whose path the incoming overlaps
+ * (see {@link BlockGraphPath}), which lets the block tell a genuinely new context apart from a
  * repetition of one it has already explored. Only the paths affected by the last update are
  * re-explored, and a precondition that does not constrain the block entry is explored with the
  * initial precision instead of the accumulated one.
  */
 final class PathBasedPreconditionHandler implements DssPreconditionHandler {
 
+  /**
+   * The states covering all received Preconditions, sorted by their path through the blocks (for
+   * determining which should be removed when a new precondition arrives).
+   */
   private final Map<BlockGraphPath, @NonNull StatesByPath> preconditions = new LinkedHashMap<>();
 
+  /**
+   * States that have been received as precondition, but are covered by another precondition, so do
+   * not need to be analyzed as well. Needed for when the covering state is later replaced by a
+   * different one.
+   *
+   * <p>An entry A -> B means B is covered by A.
+   */
   private final Multimap<BlockGraphPath, StatesByPath> coveredStates = ArrayListMultimap.create();
 
+  /** The paths that were added / changed by the last call to store */
   private final List<BlockGraphPath> pathsToAnalyze = new ArrayList<>();
 
   private final DssBlockAnalysis analysis;
@@ -63,6 +75,7 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
     analysis = pAnalysis;
     resetPrecisionsForEveryRun = pAnalysis.getOptions().doResetPrecisionsForEveryRun();
 
+    // start from a top state, replaceable by any predecessor path
     preconditions.put(
         BlockGraphPath.of(),
         new StatesByPath(
@@ -124,76 +137,41 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
     }
   }
 
-  private void storeStates(Map<@NonNull BlockGraphPath, StatesByPath> groupedStates)
+  private void storeStates(Map<@NonNull BlockGraphPath, StatesByPath> pGroupedStates)
       throws CPAException, InterruptedException {
 
-    groupedStates = Maps.filterKeys(groupedStates, this::shouldConsiderPath);
+    Map<BlockGraphPath, StatesByPath> filteredGroups =
+        Maps.filterKeys(pGroupedStates, this::shouldConsiderPath);
 
     ImmutableSet.Builder<StatesByPath> noLongerCovered = ImmutableSet.builder();
 
-    newStateLoop:
-    for (StatesByPath newStates : groupedStates.values()) {
-
-      // Check for unchanged state
-      for (StatesByPath existing : preconditions.values()) {
-        if (statesByPathEqual(newStates, existing)) {
-          // TODO should work similarly with suffix, where we just replace the path stored with
-          // the new path, but as long as the race condition exists, we deny shorter paths and
-          // would not unroll loops properly
-          continue newStateLoop;
-        }
+    for (StatesByPath newStates : filteredGroups.values()) {
+      if (sameInformationAsExisting(newStates)) {
+        continue;
       }
 
-      // remove states that now originate from paths that have been updated / superseded with states
-      // that have a path with more knowledge at the beginning
-      ImmutableList.Builder<BlockGraphPath> toRemove = ImmutableList.builder();
-      for (StatesByPath existing : preconditions.values()) {
-        if (newStates.path.overlapsWith(existing.path)) {
-          toRemove.add(existing.path);
-        }
-      }
+      removeStatesThatUseOutdatedKnowledge(newStates.path, noLongerCovered);
 
-      for (BlockGraphPath pathToRemove : toRemove.build()) {
-        preconditions.remove(pathToRemove);
-        pathsToAnalyze.remove(pathToRemove);
-        noLongerCovered.addAll(coveredStates.removeAll(pathToRemove));
-      }
-
-      // remove from the right side of covered as well, if we would remove it according to above
-      // condition
-      ImmutableList.Builder<Entry<BlockGraphPath, StatesByPath>> toRemoveFromCovered =
-          ImmutableList.builder();
-
-      for (Entry<BlockGraphPath, StatesByPath> entry : coveredStates.entries()) {
-        if (newStates.path.overlapsWith(entry.getValue().path)) {
-          toRemoveFromCovered.add(entry);
-        }
-      }
-
-      for (Entry<BlockGraphPath, StatesByPath> entry : toRemoveFromCovered.build()) {
-        coveredStates.remove(entry.getKey(), entry.getValue());
-      }
-
-      // Check whether existing states already covered these states
-      boolean coveredByExisting = false;
-
-      for (StatesByPath existing : preconditions.values()) {
-
-        if (analysis.allCovered(newStates.states, existing.states)) {
-          coveredStates.put(existing.path, newStates);
-          coveredByExisting = true;
-          break;
-        }
-      }
-
-      // Analyze the new one, if it was not covered
-      if (!coveredByExisting) {
+      Optional<BlockGraphPath> coveringPath = findCoveringPath(newStates);
+      if (coveringPath.isPresent()) {
+        // No need to analyze now, but store in case the covering state is removed later
+        coveredStates.put(coveringPath.orElseThrow(), newStates);
+      } else {
         preconditions.put(newStates.path, newStates);
         pathsToAnalyze.add(newStates.path);
       }
     }
 
-    // All the states that were covered by a path that has been removed should be considered again
+    readdStatesThatAreNoLongerCovered(noLongerCovered);
+  }
+
+  /**
+   * Re-adds the given states to preconditions, as if they had just arrived in a new message.
+   *
+   * @param noLongerCovered A set of states that were covered before and no longer are.
+   */
+  private void readdStatesThatAreNoLongerCovered(ImmutableSet.Builder<StatesByPath> noLongerCovered)
+      throws CPAException, InterruptedException {
     ImmutableMap.Builder<BlockGraphPath, StatesByPath> toAddBuilder = ImmutableMap.builder();
     for (StatesByPath statesByPath : noLongerCovered.build()) {
       toAddBuilder.put(statesByPath.path, statesByPath);
@@ -205,10 +183,66 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
     }
   }
 
-  private boolean statesByPathEqual(StatesByPath states1, StatesByPath states2)
+  /**
+   * Tests if the new states are covered by the states of any single path in the preconditions.
+   *
+   * @param newStates the states to check
+   * @return the path of the covering precondition, if one exists
+   */
+  private Optional<BlockGraphPath> findCoveringPath(StatesByPath newStates)
       throws CPAException, InterruptedException {
-    return analysis.allCovered(states1.states, states2.states)
-        && analysis.allCovered(states2.states, states1.states);
+    for (StatesByPath existing : preconditions.values()) {
+      if (analysis.allCovered(newStates.states, existing.states)) {
+        return Optional.of(existing.path);
+      }
+    }
+    return Optional.empty();
+  }
+
+  /**
+   * Removes preconditions whose path overlaps with {@code addedPath}, since their knowledge may now
+   * be outdated. Removes from preconditions, coveredStates and pathsToAnalyze.
+   *
+   * <p>E.g. adding {@code [L0]} removes an existing {@code [L0, L5]} (prefix), and adding {@code
+   * [A, B]} removes an existing {@code [B, C]} (boundary overlap on {@code B})
+   *
+   * @param addedPath the path of the newly added precondition
+   * @param noLongerCovered A builder collecting all the states that were covered by the removed
+   *     states
+   */
+  private void removeStatesThatUseOutdatedKnowledge(
+      BlockGraphPath addedPath, ImmutableSet.Builder<StatesByPath> noLongerCovered) {
+
+    Iterator<StatesByPath> preconditionsIterator = preconditions.values().iterator();
+    while (preconditionsIterator.hasNext()) {
+      StatesByPath existing = preconditionsIterator.next();
+      if (addedPath.overlapsWith(existing.path)) {
+        preconditionsIterator.remove();
+        pathsToAnalyze.remove(existing.path);
+        noLongerCovered.addAll(coveredStates.removeAll(existing.path));
+      }
+    }
+
+    coveredStates.entries().removeIf(entry -> addedPath.overlapsWith(entry.getValue().path));
+  }
+
+  /**
+   * Checks if the new information already exists in the preconditions in the same way.
+   *
+   * @param newStates the states to check
+   * @return true if it exists
+   */
+  private boolean sameInformationAsExisting(StatesByPath newStates)
+      throws CPAException, InterruptedException {
+    for (StatesByPath existing : preconditions.values()) {
+      // TODO could work similarly with suffix instead of just equal path, where we replace the
+      // path stored with the new path, but as long as the race condition exists, we deny shorter
+      // paths and would not unroll loops properly
+      if (analysis.statesEqual(newStates.states, existing.states)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private boolean shouldConsiderPath(BlockGraphPath pBlockGraphPath) {
@@ -218,11 +252,8 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
       return false;
     }
 
-    // if this message had been here, it would have been removed because of the overlap check
-    // AB
-    //  BB
-    // L0
-    // L0,L5
+    // if this message had been here, it would have been removed because of the overlap check. This
+    // is a subset of the race condition below
     for (BlockGraphPath existingPath : preconditions.keySet()) {
       if (!existingPath.isPrefixOf(pBlockGraphPath) && existingPath.overlapsWith(pBlockGraphPath)) {
         return false;
@@ -249,7 +280,7 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
         Multimaps.index(states, state -> state.getBlockGraphPath()).asMap().entrySet()) {
       builder.put(entry.getKey(), new StatesByPath(entry.getKey(), entry.getValue()));
     }
-    return builder.build();
+    return builder.buildOrThrow();
   }
 
   @Override

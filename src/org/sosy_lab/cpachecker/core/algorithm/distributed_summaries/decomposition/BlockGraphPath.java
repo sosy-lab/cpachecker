@@ -14,14 +14,6 @@ import java.util.List;
 
 public record BlockGraphPath(ImmutableList<String> path) {
 
-  public enum PathCase {
-    SUFFIX_OR_EQUAL,
-    OVERLAP,
-    REVERSE_OVERLAP,
-    REAL_PREFIX,
-    OTHER
-  }
-
   public static BlockGraphPath of(String... pathParts) {
     return new BlockGraphPath(ImmutableList.copyOf(pathParts));
   }
@@ -35,6 +27,7 @@ public record BlockGraphPath(ImmutableList<String> path) {
         .isPrefixOf(BlockGraphPath.of(other.path().reverse()));
   }
 
+  /** Whether this path's elements are a prefix of {@code other}'s (equal paths count as well). */
   public boolean isPrefixOf(BlockGraphPath other) {
     if (other.path().size() < path.size()) {
       return false;
@@ -49,6 +42,17 @@ public record BlockGraphPath(ImmutableList<String> path) {
     return true;
   }
 
+  /**
+   * Whether a non-empty suffix of this path matches a prefix of {@code other} (including {@code
+   * other} being entirely a suffix of this path). Always true if {@code other} is empty.
+   *
+   * <p>E.g. {@code [A, B].overlapsWith([B, C])} and {@code [A, B].overlapsWith([B])} are both true,
+   * but this is not symmetric: {@code [B, C].overlapsWith([A, B])} is false.
+   *
+   * <p>Implemented as a KMP search of {@code other} inside this path, reusing {@code other}'s
+   * failure function to also detect a partial match running off the end of this path. Runs in
+   * O(n+m), with n and m the lengths of this path and {@code other}.
+   */
   public boolean overlapsWith(BlockGraphPath other) {
     List<String> newPath = path;
     List<String> existingPath = other.path();
@@ -61,6 +65,8 @@ public record BlockGraphPath(ImmutableList<String> path) {
       return false;
     }
 
+    // KMP failure function: fail[i] is the length of the longest proper prefix of
+    // existingPath[0..i] that is also a suffix of it.
     int[] fail = new int[m];
     for (int i = 1, j = 0; i < m; i++) {
       while (j > 0 && !existingPath.get(i).equals(existingPath.get(j))) {
@@ -72,6 +78,8 @@ public record BlockGraphPath(ImmutableList<String> path) {
       fail[i] = j;
     }
 
+    // Standard KMP search of existingPath in newPath; j is the length of the longest prefix of
+    // existingPath matched so far.
     int j = 0;
     for (int i = 0; i < n; i++) {
       while (j > 0 && !newPath.get(i).equals(existingPath.get(j))) {
@@ -81,6 +89,9 @@ public record BlockGraphPath(ImmutableList<String> path) {
         j++;
       }
       if (j == m) {
+        // Full match of existingPath ending here. If it ends exactly at the last element of
+        // newPath, existingPath is a suffix of newPath: report the overlap directly, since
+        // continuing to search for a later match would fall back to a shorter one (or none).
         if (i == n - 1) {
           return true;
         }
@@ -88,22 +99,8 @@ public record BlockGraphPath(ImmutableList<String> path) {
       }
     }
 
+    // No full match of existingPath ends at the last element of newPath, but j > 0 means a
+    // proper prefix of existingPath still matches a trailing suffix of newPath.
     return j > 0;
-  }
-
-  public PathCase getFirstMatchingCase(BlockGraphPath existingPath) {
-    if (existingPath.isSuffixOf(this)) {
-      return PathCase.SUFFIX_OR_EQUAL;
-    }
-    if (existingPath.isPrefixOf(this)) {
-      return PathCase.REAL_PREFIX;
-    }
-    if (overlapsWith(existingPath)) {
-      return PathCase.OVERLAP;
-    }
-    if (existingPath.overlapsWith(this)) {
-      return PathCase.REVERSE_OVERLAP;
-    }
-    return PathCase.OTHER;
   }
 }
