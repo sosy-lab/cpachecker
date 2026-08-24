@@ -219,8 +219,12 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
     }
 
     // if this message had been here, it would have been removed because of the overlap check
+    // AB
+    //  BB
+    // L0
+    // L0,L5
     for (BlockGraphPath existingPath : preconditions.keySet()) {
-      if (!existingPath.equals(pBlockGraphPath) && existingPath.overlapsWith(pBlockGraphPath)) {
+      if (!existingPath.isPrefixOf(pBlockGraphPath) && existingPath.overlapsWith(pBlockGraphPath)) {
         return false;
       }
     }

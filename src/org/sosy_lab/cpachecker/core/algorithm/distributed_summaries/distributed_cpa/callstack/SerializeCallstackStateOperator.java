@@ -30,22 +30,17 @@ public class SerializeCallstackStateOperator implements SerializeOperator {
   @Override
   public ImmutableMap<String, String> serialize(AbstractState pCallstackState) {
     boolean allowAllTransfers = DistributedCallstackCPA.allowsAllTransfers(pCallstackState);
-    String result;
-    if (allowAllTransfers) {
-      // the sending block did not know its callstack, so the stack carries no information:
-      // the receiving block starts with a fresh stack at its own initial location
-      result = "";
-    } else {
-      List<String> states = new ArrayList<>();
-      CallstackState callstackState = (CallstackState) pCallstackState;
-      while (callstackState != null) {
-        states.add(
-            nodeToId.get(callstackState.getCallNode()) + "." + callstackState.getCurrentFunction());
-        callstackState = callstackState.getPreviousState();
-      }
-      Collections.reverse(states);
-      result = Joiner.on(DistributedCallstackCPA.DELIMITER).join(states);
+
+    List<String> states = new ArrayList<>();
+    CallstackState callstackState = (CallstackState) pCallstackState;
+    while (callstackState != null) {
+      states.add(
+          nodeToId.get(callstackState.getCallNode()) + "." + callstackState.getCurrentFunction());
+      callstackState = callstackState.getPreviousState();
     }
+    Collections.reverse(states);
+    String result = Joiner.on(DistributedCallstackCPA.DELIMITER).join(states);
+
     return ContentBuilder.builder()
         .pushLevel(CallstackState.class.getName())
         .put(SerializeOperator.STATE_KEY, result)
