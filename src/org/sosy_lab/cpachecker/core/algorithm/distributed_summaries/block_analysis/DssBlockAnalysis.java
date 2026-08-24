@@ -103,6 +103,9 @@ public final class DssBlockAnalysis {
   private record AnalysisComponents(
       Algorithm algorithm, ConfigurableProgramAnalysis cpa, ReachedSet reached) {}
 
+  private record ViolationConditionProgramPoint(
+      Optional<ARGState> previousCondition, Object programPoint) {}
+
   private final BlockNode block;
   private final LogManager logger;
   private final DssMessageFactory messageFactory;
@@ -425,13 +428,12 @@ public final class DssBlockAnalysis {
       Iterable<@NonNull T> pElements, Function<T, AbstractState> pStateOf)
       throws CPAException, InterruptedException {
     CoverageOperator coverage = dcpa.getCoverageOperator();
-    ListMultimap<Integer, AbstractState> representativesPerProgramPoint =
-        ArrayListMultimap.create();
+    ListMultimap<Object, AbstractState> representativesPerProgramPoint = ArrayListMultimap.create();
     ImmutableList.Builder<T> deduplicated = ImmutableList.builder();
     for (T element : pElements) {
       AbstractState state = pStateOf.apply(element);
       List<AbstractState> representatives =
-          representativesPerProgramPoint.get(dcpa.computeProgramPointHash(state));
+          representativesPerProgramPoint.get(dcpa.computeProgramPointId(state));
       boolean isDuplicate = false;
       for (AbstractState representative : representatives) {
         if (state == representative || coverage.areStatesEqual(state, representative)) {
@@ -537,8 +539,8 @@ public final class DssBlockAnalysis {
   Collection<DssMessage> reportViolationConditions(
       Collection<ArgPathAndCondition> pRelevantViolations)
       throws InterruptedException, CPAException, SolverException {
-    ImmutableListMultimap.Builder<Integer, AbstractState> statePerProgramCounterBuilder =
-        ImmutableListMultimap.builder();
+    ImmutableListMultimap.Builder<ViolationConditionProgramPoint, AbstractState>
+        statePerProgramCounterBuilder = ImmutableListMultimap.builder();
     for (ArgPathAndCondition pathAndCondition : pRelevantViolations) {
       Optional<AbstractState> violationCondition =
           dcpa.getViolationConditionOperator()
@@ -549,20 +551,21 @@ public final class DssBlockAnalysis {
           "The analysis found a feasible counterexample "
               + "which could not be reestablished with the violation-condition operator.");
       statePerProgramCounterBuilder.put(
-          Objects.hash(
-              pathAndCondition.condition(),
-              dcpa.computeProgramPointHash(violationCondition.orElseThrow())),
+          new ViolationConditionProgramPoint(
+              Optional.ofNullable(pathAndCondition.condition()),
+              dcpa.computeProgramPointId(violationCondition.orElseThrow())),
           violationCondition.orElseThrow());
     }
-    ImmutableListMultimap<Integer, AbstractState> statePerProgramCounter =
+    ImmutableListMultimap<ViolationConditionProgramPoint, AbstractState> statePerProgramCounter =
         statePerProgramCounterBuilder.build();
     ImmutableList.Builder<StateAndPrecision> vcs = ImmutableList.builder();
     if (options.combineViolationConditionsByHash()) {
-      for (Integer i : statePerProgramCounter.keySet()) {
+      for (ViolationConditionProgramPoint programPoint : statePerProgramCounter.keySet()) {
         vcs.add(
             new StateAndPrecision(
                 dcpa.getCombineViolationConditionsOperator()
-                    .combineViolationConditionsAtSameProgramHash(statePerProgramCounter.get(i)),
+                    .combineViolationConditionsAtSameProgramHash(
+                        statePerProgramCounter.get(programPoint)),
                 makeStartPrecision()));
       }
     } else {

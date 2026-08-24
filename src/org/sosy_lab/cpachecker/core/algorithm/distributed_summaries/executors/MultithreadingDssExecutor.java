@@ -13,6 +13,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -73,14 +75,15 @@ public class MultithreadingDssExecutor implements DssExecutor {
       CFA cfa,
       BlockGraph blockGraph,
       DssWitnessArgStateCollector stateCollector,
-      DssAllWorkerStatistics allWorkerStatistics)
+      DssAllWorkerStatistics allWorkerStatistics,
+      Set<String> activeWorkers)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     ImmutableSet<BlockNode> blocks = blockGraph.getNodes();
     DssWorkerBuilder builder =
         new DssWorkerBuilder(
             cfa,
             specification,
-            () -> new DssDefaultQueue(),
+            () -> new DssDefaultQueue(activeWorkers),
             messageFactory,
             allWorkerStatistics,
             shutdownManager);
@@ -101,7 +104,9 @@ public class MultithreadingDssExecutor implements DssExecutor {
       DssWitnessArgStateCollector stateCollector,
       DssAllWorkerStatistics allWorkerStatistics)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    try (DssActors actors = createDssActors(cfa, blockGraph, stateCollector, allWorkerStatistics)) {
+    Set<String> activeWorkers = ConcurrentHashMap.newKeySet();
+    try (DssActors actors =
+        createDssActors(cfa, blockGraph, stateCollector, allWorkerStatistics, activeWorkers)) {
       DssObserverWorker observer = Iterables.getOnlyElement(actors.getObservers());
       Preconditions.checkState(
           observer.getId().equals(OBSERVER_WORKER_ID),
@@ -119,6 +124,9 @@ public class MultithreadingDssExecutor implements DssExecutor {
         threadsBuilder.add(thread);
         monitoredConnections.add(worker.getConnection());
         thread.setDaemon(true);
+        // A worker may wait for a solver or a lock before it ever reads its queue. Count it as
+        // active from the start so the monitor does not mistake that wait for a finished analysis.
+        activeWorkers.add(thread.getName());
         thread.start();
       }
 
@@ -127,7 +135,11 @@ public class MultithreadingDssExecutor implements DssExecutor {
       // sends a result message iff all workers are waiting
       DssThreadMonitor monitor =
           new DssThreadMonitor(
-              threads, messageFactory, observer.getConnection(), monitoredConnections.build());
+              threads,
+              messageFactory,
+              observer.getConnection(),
+              monitoredConnections.build(),
+              activeWorkers);
       monitor.setDaemon(true);
       monitor.start();
 
