@@ -69,6 +69,8 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 public final class BMCHelper {
 
+  public static final String DELTA_OBSERVER_ID = "bmc";
+
   public static boolean isEndState(AbstractState s) {
     ARGState argState = AbstractStates.extractStateByType(s, ARGState.class);
     return argState != null && argState.getChildren().isEmpty();
@@ -221,7 +223,7 @@ public final class BMCHelper {
       }
     }
     if (pReachedSet instanceof DeltaTrackingReachedSet dtrs) {
-      dtrs.clearDelta();
+      dtrs.clearDelta(DELTA_OBSERVER_ID);
     }
     if (pReachedSet.isEmpty()) {
       pReachedSet.add(

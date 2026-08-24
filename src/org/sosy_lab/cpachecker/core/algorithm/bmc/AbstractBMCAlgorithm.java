@@ -448,7 +448,10 @@ abstract class AbstractBMCAlgorithm
     final DeltaTrackingReachedSet trackedReachedSet =
         reachedSet instanceof DeltaTrackingReachedSet dtrs
             ? dtrs
-            : new DeltaTrackingReachedSet(reachedSet);
+            : new DeltaTrackingReachedSet(reachedSet, 0);
+    if (!trackedReachedSet.hasObserver(BMCHelper.DELTA_OBSERVER_ID)) {
+      trackedReachedSet.registerObserver(BMCHelper.DELTA_OBSERVER_ID);
+    }
 
     AlgorithmStatus status;
     final Set<Obligation> ctiBlockingClauses;
@@ -497,7 +500,7 @@ abstract class AbstractBMCAlgorithm
           stats.bmcUnrolling.stop();
         }
 
-        if (from(trackedReachedSet.getDelta())
+        if (from(trackedReachedSet.getDelta(BMCHelper.DELTA_OBSERVER_ID))
             // first state of reached is always an abstraction state, so skip it
             .filter(s -> s != trackedReachedSet.getFirstState())
             .filter(not(AbstractStates::isTargetState)) // target states may be abstraction states
@@ -767,7 +770,7 @@ abstract class AbstractBMCAlgorithm
 
     Iterable<AbstractState> assertionStates =
         pCandidateInvariant == TargetLocationCandidateInvariant.INSTANCE
-            ? DeltaTrackingReachedSet.getConsideredStates(pReachedSet)
+            ? DeltaTrackingReachedSet.getConsideredStates(pReachedSet, BMCHelper.DELTA_OBSERVER_ID)
             : pReachedSet;
     BooleanFormula program =
         bfmgr.not(pCandidateInvariant.getAssertion(assertionStates, fmgr, pmgr));
@@ -1048,7 +1051,7 @@ abstract class AbstractBMCAlgorithm
       final ReachedSet pReachedSet, final BasicProverEnvironment<?> prover)
       throws SolverException, InterruptedException {
     FluentIterable<AbstractState> stopStates =
-        from(DeltaTrackingReachedSet.getConsideredStates(pReachedSet))
+        from(DeltaTrackingReachedSet.getConsideredStates(pReachedSet, BMCHelper.DELTA_OBSERVER_ID))
             .filter(AbstractBMCAlgorithm::isStopState)
             .filter(AbstractBMCAlgorithm::isRelevantForReachability);
 

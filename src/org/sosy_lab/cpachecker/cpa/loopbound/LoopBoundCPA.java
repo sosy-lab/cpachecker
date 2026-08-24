@@ -23,6 +23,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -125,7 +126,7 @@ public class LoopBoundCPA extends AbstractCPA
       // A state's stop flag is set at creation and never changes, so only states added since the
       // last adjustment can require removal.
       Iterable<AbstractState> consideredStates =
-          DeltaTrackingReachedSet.getConsideredStates(pReachedSet);
+          DeltaTrackingReachedSet.getConsideredStates(pReachedSet, BMCHelper.DELTA_OBSERVER_ID);
 
       adjustReachedSetCalls++;
       for (AbstractState s : consideredStates) {

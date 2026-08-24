@@ -45,7 +45,10 @@ public enum TargetLocationCandidateInvariant implements CandidateInvariant {
   @Override
   public void assumeTruth(ReachedSet pReachedSet) {
     Iterable<AbstractState> targetStates =
-        filterApplicable(DeltaTrackingReachedSet.getConsideredStates(pReachedSet)).toList();
+        filterApplicable(
+                DeltaTrackingReachedSet.getConsideredStates(
+                    pReachedSet, BMCHelper.DELTA_OBSERVER_ID))
+            .toList();
     pReachedSet.removeAll(targetStates);
     for (ARGState s : from(targetStates).filter(ARGState.class)) {
       s.removeFromARG();
