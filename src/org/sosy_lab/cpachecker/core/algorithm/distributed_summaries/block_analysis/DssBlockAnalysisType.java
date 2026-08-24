@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
+// TODO Only changes Precondition handler -> refactor!
 /**
  * The pair of handlers a {@link DssBlockAnalysis} is assembled from, selected by the configuration
  * option {@code distributedSummaries.blockAnalysisType}.
@@ -24,7 +25,7 @@ public enum DssBlockAnalysisType {
 
     @Override
     DssViolationConditionHandler createViolationConditionHandler(DssBlockAnalysis pAnalysis) {
-      return new PathBasedViolationConditionHandler(pAnalysis);
+      return new AlwaysReplaceViolationConditionHandler(pAnalysis);
     }
   },
 
