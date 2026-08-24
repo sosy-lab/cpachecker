@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
+import static com.google.common.collect.ImmutableList.toImmutableList;
 import static org.sosy_lab.common.ShutdownNotifier.interruptCurrentThreadOnShutdown;
 
 import com.google.common.base.Joiner;
@@ -494,13 +495,19 @@ public class CPAchecker {
     return cfa;
   }
 
+  private static final double OPTION_SUGGESTION_THRESHOLD = 0.6;
+
   private void printConfigurationWarnings() {
     Set<String> unusedProperties = config.getUnusedProperties();
     if (!unusedProperties.isEmpty()) {
       logger.log(
           Level.WARNING,
           "The following configuration options were specified but are not used:\n",
-          Joiner.on("\n ").join(unusedProperties),
+          Joiner.on("\n ")
+              .join(
+                  unusedProperties.stream()
+                      .map(this::withSimilarOptionSuggestion)
+                      .collect(toImmutableList())),
           "\n");
     }
     Set<String> deprecatedProperties = config.getDeprecatedProperties();
@@ -511,6 +518,19 @@ public class CPAchecker {
           Joiner.on("\n ").join(deprecatedProperties),
           "\n");
     }
+  }
+
+  /**
+   * Appends a "(did you mean 'x'?)" hint to {@code unusedOptionName} if a known option name is
+   * close enough to it, e.g. to point out a likely typo.
+   */
+  private String withSimilarOptionSuggestion(String unusedOptionName) {
+    ImmutableList<String> suggestions =
+        config.findSimilarOptions(unusedOptionName, OPTION_SUGGESTION_THRESHOLD);
+    if (suggestions.isEmpty()) {
+      return unusedOptionName;
+    }
+    return unusedOptionName + " (did you mean '" + suggestions.get(0) + "'?)";
   }
 
   private void logAboutSpecification() {

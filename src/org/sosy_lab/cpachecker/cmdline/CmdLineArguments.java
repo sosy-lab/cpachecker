@@ -10,12 +10,15 @@ package org.sosy_lab.cpachecker.cmdline;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,8 +30,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Classes;
+import org.sosy_lab.common.StringSimilarity;
 import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.OptionCollector;
@@ -68,6 +73,8 @@ class CmdLineArguments {
 
   private static final Pattern SPECIFICATION_FILES_PATTERN = DEFAULT_CONFIG_FILES_PATTERN;
   private static final String SPECIFICATION_FILES_TEMPLATE = "config/specification/%s.spc";
+  private static final String SPECIFICATION_FILES_DIRECTORY = "config/specification";
+  private static final double SPECIFICATION_SUGGESTION_THRESHOLD = 0.6;
 
   static final String SECURE_MODE_OPTION = "secureMode";
   static final String PRINT_USED_OPTIONS_OPTION = "log.usedOptions.export";
@@ -435,7 +442,38 @@ class CmdLineArguments {
       return specFile;
     }
     throw Output.fatalError(
-        "Checking for property %s is currently not supported by CPAchecker.", pSpecification);
+        "Checking for property %s is currently not supported by CPAchecker.%s",
+        pSpecification, getSpecificationSuggestion(pSpecification));
+  }
+
+  /**
+   * Returns a " Did you mean 'x'?" hint for the closest-matching known specification name, or the
+   * empty string if none is close enough or the specification directory cannot be found.
+   */
+  @VisibleForTesting
+  static String getSpecificationSuggestion(String pSpecification) {
+    Path specDir = findFile(SPECIFICATION_FILES_DIRECTORY, "");
+    if (specDir == null) {
+      return "";
+    }
+    ImmutableList<String> knownSpecifications;
+    try (Stream<Path> files = Files.list(specDir)) {
+      knownSpecifications =
+          files
+              .map(file -> file.getFileName().toString())
+              .filter(name -> name.endsWith(".spc"))
+              .map(name -> name.substring(0, name.length() - ".spc".length()))
+              .collect(ImmutableList.toImmutableList());
+    } catch (IOException e) {
+      return "";
+    }
+    ImmutableList<String> suggestions =
+        StringSimilarity.findClosestMatches(
+            pSpecification, knownSpecifications, SPECIFICATION_SUGGESTION_THRESHOLD);
+    if (suggestions.isEmpty()) {
+      return "";
+    }
+    return " Did you mean '" + suggestions.get(0) + "'?";
   }
 
   @SuppressWarnings("FormatStringAnnotation")
