@@ -12,6 +12,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.google.common.collect.ImmutableMap;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 
 @JsonPropertyOrder({
   DssMessageFormat.SOUND_KEY,
@@ -25,6 +26,27 @@ public record DssStatusPayload(
 
   @JsonCreator
   public DssStatusPayload {}
+
+  public static DssStatusPayload fromAlgorithmStatus(AlgorithmStatus pStatus) {
+    return new DssStatusPayload(
+        pStatus.isSound(), pStatus.isPrecise(), pStatus.wasPropertyChecked());
+  }
+
+  public AlgorithmStatus toAlgorithmStatus() {
+    if (!propertyChecked) {
+      return AlgorithmStatus.NO_PROPERTY_CHECKED;
+    }
+    if (sound && precise) {
+      return AlgorithmStatus.SOUND_AND_PRECISE;
+    }
+    if (sound) {
+      return AlgorithmStatus.SOUND_AND_IMPRECISE;
+    }
+    if (precise) {
+      return AlgorithmStatus.UNSOUND_AND_PRECISE;
+    }
+    return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
+  }
 
   ImmutableMap<String, String> asLegacyContent() {
     return ContentBuilder.builder()
