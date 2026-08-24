@@ -502,11 +502,11 @@ public final class DssBlockAnalysis {
     return summaries.build();
   }
 
-  /**
-   */
+  /** */
   ImmutableList<StateAndPrecision> summariesOf(DssBlockAnalysisResult pResult) {
     ImmutableList.Builder<StateAndPrecision> summaries = ImmutableList.builder();
-    for (ARGState summary : pResult.getFinalLocationStates().stream().filter(a -> a.getChildren().isEmpty()).toList()) {
+    for (ARGState summary :
+        pResult.getFinalLocationStates().stream().filter(a -> a.getChildren().isEmpty()).toList()) {
       summaries.add(new StateAndPrecision(summary, reachedSet.getPrecision(summary)));
     }
     return summaries.build();

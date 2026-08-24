@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWor
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -30,8 +31,8 @@ import org.sosy_lab.java_smt.api.SolverException;
 /**
  * Accumulates the violation conditions of a sending block instead of replacing them, as long as
  * conditions at the same program point are combined anyway ({@link
- * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions#combineByHash()}).
- * A condition whose witness is already known is then dropped instead of superseding the known one.
+ * DssAnalysisOptions#combineViolationConditionsByHash()}). A condition whose witness is already
+ * known is then dropped instead of superseding the known one.
  */
 final class PathBasedViolationConditionHandler implements DssViolationConditionHandler {
 
@@ -55,7 +56,7 @@ final class PathBasedViolationConditionHandler implements DssViolationConditionH
     stats.getStoreViolationConditionStatesTimer().start();
     try {
       String sender = pReceived.getSenderId();
-      boolean combineByHash = analysis.getOptions().combineByHash();
+      boolean combineByHash = analysis.getOptions().combineViolationConditionsByHash();
 
       Collection<@NonNull StateAndPrecision> known = conditions.get(sender);
       Set<SegmentedPaths> knownWitnesses =

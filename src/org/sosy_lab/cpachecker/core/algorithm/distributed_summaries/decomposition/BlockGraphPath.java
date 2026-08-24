@@ -50,46 +50,46 @@ public record BlockGraphPath(ImmutableList<String> path) {
   }
 
   public boolean overlapsWith(BlockGraphPath other) {
-      List<String> newPath = path;
-      List<String> existingPath = other.path();
-      int n = newPath.size();
-      int m = existingPath.size();
-      if (m == 0) {
-        return true;
-      }
-      if (n == 0){
-        return false;
-      }
-
-      int[] fail = new int[m];
-      for (int i = 1, j = 0; i < m; i++) {
-        while (j > 0 && !existingPath.get(i).equals(existingPath.get(j))) {
-          j = fail[j - 1];
-        }
-        if (existingPath.get(i).equals(existingPath.get(j))) {
-          j++;
-        }
-        fail[i] = j;
-      }
-
-      int j = 0;
-      for (int i = 0; i < n; i++) {
-        while (j > 0 && !newPath.get(i).equals(existingPath.get(j))) {
-          j = fail[j - 1];
-        }
-        if (newPath.get(i).equals(existingPath.get(j))) {
-          j++;
-        }
-        if (j == m) {
-          if (i == n - 1) {
-            return true;
-          }
-          j = fail[j - 1];
-        }
-      }
-
-      return j > 0;
+    List<String> newPath = path;
+    List<String> existingPath = other.path();
+    int n = newPath.size();
+    int m = existingPath.size();
+    if (m == 0) {
+      return true;
     }
+    if (n == 0) {
+      return false;
+    }
+
+    int[] fail = new int[m];
+    for (int i = 1, j = 0; i < m; i++) {
+      while (j > 0 && !existingPath.get(i).equals(existingPath.get(j))) {
+        j = fail[j - 1];
+      }
+      if (existingPath.get(i).equals(existingPath.get(j))) {
+        j++;
+      }
+      fail[i] = j;
+    }
+
+    int j = 0;
+    for (int i = 0; i < n; i++) {
+      while (j > 0 && !newPath.get(i).equals(existingPath.get(j))) {
+        j = fail[j - 1];
+      }
+      if (newPath.get(i).equals(existingPath.get(j))) {
+        j++;
+      }
+      if (j == m) {
+        if (i == n - 1) {
+          return true;
+        }
+        j = fail[j - 1];
+      }
+    }
+
+    return j > 0;
+  }
 
   public PathCase getFirstMatchingCase(BlockGraphPath existingPath) {
     if (existingPath.isSuffixOf(this)) {

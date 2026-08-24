@@ -27,7 +27,6 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.jspecify.annotations.NonNull;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -208,7 +207,8 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
 
   private boolean statesByPathEqual(StatesByPath states1, StatesByPath states2)
       throws CPAException, InterruptedException {
-    return analysis.allCovered(states1.states, states2.states) && analysis.allCovered(states2.states, states1.states);
+    return analysis.allCovered(states1.states, states2.states)
+        && analysis.allCovered(states2.states, states1.states);
   }
 
   private boolean shouldConsiderPath(BlockGraphPath pBlockGraphPath) {
