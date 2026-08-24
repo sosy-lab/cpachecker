@@ -19,6 +19,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 import java.util.OptionalInt;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
@@ -106,8 +107,7 @@ public abstract class DssMessage {
     if (content.containsKey(DssMessageFormat.MULTIPLE_STATES_KEY)) {
       return OptionalInt.of(
           Integer.parseInt(
-              Objects.requireNonNull(
-                  content.get(DssMessageFormat.MULTIPLE_STATES_KEY))));
+              Objects.requireNonNull(content.get(DssMessageFormat.MULTIPLE_STATES_KEY))));
     }
     return OptionalInt.empty();
   }
@@ -186,8 +186,7 @@ public abstract class DssMessage {
    */
   public final boolean indicatesUnreachableBlockEnd() {
     checkArgument(type == DssMessageType.POST_CONDITION, "Cannot get content for type: %s", type);
-    return Boolean.parseBoolean(
-        content.get(DssMessageFormat.UNREACHABLE_BLOCK_END_KEY));
+    return Boolean.parseBoolean(content.get(DssMessageFormat.UNREACHABLE_BLOCK_END_KEY));
   }
 
   public final AlgorithmStatus getAlgorithmStatus() {
@@ -195,16 +194,13 @@ public abstract class DssMessage {
         type == DssMessageType.POST_CONDITION || type == DssMessageType.VIOLATION_CONDITION,
         "Cannot get content for type: %s",
         type);
-    ContentReader reader =
-        ContentReader.read(content).pushLevel(DssMessageFormat.STATUS_KEY);
-    boolean checkedProperty =
-        Boolean.parseBoolean(reader.get(DssMessageFormat.PROPERTY_KEY));
+    ContentReader reader = ContentReader.read(content).pushLevel(DssMessageFormat.STATUS_KEY);
+    boolean checkedProperty = Boolean.parseBoolean(reader.get(DssMessageFormat.PROPERTY_KEY));
     if (!checkedProperty) {
       return AlgorithmStatus.NO_PROPERTY_CHECKED;
     } else {
       boolean isSound = Boolean.parseBoolean(reader.get(DssMessageFormat.SOUND_KEY));
-      boolean isPrecise =
-          Boolean.parseBoolean(reader.get(DssMessageFormat.PRECISE_KEY));
+      boolean isPrecise = Boolean.parseBoolean(reader.get(DssMessageFormat.PRECISE_KEY));
       if (isSound && isPrecise) {
         return AlgorithmStatus.SOUND_AND_PRECISE;
       } else if (isSound) {
@@ -237,8 +233,10 @@ public abstract class DssMessage {
                     getTimestamp().getEpochSecond() * 1_000_000_000L + getTimestamp().getNano()))
             .put(DssMessageFormat.HEADER_IDENTIFIER_KEY, Integer.toString(pIdentifier))
             .buildOrThrow();
+    DssStatusPayload statusPayload = extractStatusPayload();
+    ImmutableMap<String, String> payloadContent = contentWithoutLegacyStatus();
 
-    return new DssMessagePayload(header, content);
+    return new DssMessagePayload(header, statusPayload, payloadContent);
   }
 
   public final DssMessagePayload asJsonPayload() {
@@ -272,8 +270,7 @@ public abstract class DssMessage {
     ImmutableMap<String, String> content = pProxy.content();
 
     String senderId = header.get(DssMessageFormat.SENDER_ID_KEY);
-    DssMessageType type = DssMessageType.valueOf(header.get(
-        DssMessageFormat.HEADER_TYPE_KEY));
+    DssMessageType type = DssMessageType.valueOf(header.get(DssMessageFormat.HEADER_TYPE_KEY));
 
     return switch (type) {
       case POST_CONDITION -> new DssPostConditionMessage(senderId, content);
@@ -282,5 +279,18 @@ public abstract class DssMessage {
       case RESULT -> new DssResultMessage(senderId, content);
       case WITNESS -> new DssWitnessMessage(senderId, content);
     };
+  }
+
+  private @Nullable DssStatusPayload extractStatusPayload() {
+    if (type != DssMessageType.POST_CONDITION && type != DssMessageType.VIOLATION_CONDITION) {
+      return null;
+    }
+    return DssStatusPayload.fromAlgorithmStatus(getAlgorithmStatus());
+  }
+
+  private ImmutableMap<String, String> contentWithoutLegacyStatus() {
+    return content.entrySet().stream()
+        .filter(entry -> !entry.getKey().startsWith(DssMessageFormat.STATUS_KEY + "."))
+        .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 }
