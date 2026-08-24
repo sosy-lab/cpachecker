@@ -34,10 +34,9 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 /**
  * The states a block currently knows for each neighboring block, grouped by program point.
  *
- * <p>The outer key is the id of the neighboring block that sent the states; the inner key is the
- * program-point hash of a state, so that an update can replace the states of one program point
- * without discarding what is known about the others. The set of outer keys is fixed at construction
- * time: it is exactly the set of blocks that may ever send something.
+ * <p>The outer key identifies the neighboring block that sent the states. The inner key says where
+ * those states are in the program, so an update at one point does not throw away states from other
+ * points. The outer keys are fixed when this map is created and contain every possible sender.
  *
  * <p>Independently of the stored states, each key can be marked as reachable or unreachable, which
  * records whether that neighbor reported its block end to be unreachable. A key with no states is
@@ -49,12 +48,12 @@ public class BlockToProgramLocationMap {
 
   private final Set<String> unreachablePredecessors;
 
-  private final ImmutableMap<String, Multimap<Integer, StateAndPrecision>> entriesPerKey;
+  private final ImmutableMap<String, Multimap<Object, StateAndPrecision>> entriesPerKey;
 
   BlockToProgramLocationMap(
       DistributedConfigurableProgramAnalysis pDcpa, Set<String> pPotentialKeys) {
     dcpa = pDcpa;
-    ImmutableMap.Builder<String, Multimap<Integer, StateAndPrecision>> entryBuilder =
+    ImmutableMap.Builder<String, Multimap<Object, StateAndPrecision>> entryBuilder =
         ImmutableMap.builder();
     pPotentialKeys.forEach(k -> entryBuilder.put(k, ArrayListMultimap.create()));
     entriesPerKey = entryBuilder.buildOrThrow();
@@ -125,25 +124,26 @@ public class BlockToProgramLocationMap {
   public void addStateForKey(String pKey, StateAndPrecision stateAndPrecision) {
     entriesPerKey
         .get(pKey)
-        .put(dcpa.computeProgramPointHash(stateAndPrecision.state()), stateAndPrecision);
+        .put(dcpa.computeProgramPointId(stateAndPrecision.state()), stateAndPrecision);
   }
 
-  public Collection<StateAndPrecision> getStatesAndPrecisionsForKeyAndId(String pKey, int pHash) {
-    return entriesPerKey.get(pKey).get(pHash);
+  public Collection<StateAndPrecision> getStatesAndPrecisionsForKeyAndId(
+      String pKey, Object pProgramPoint) {
+    return entriesPerKey.get(pKey).get(pProgramPoint);
   }
 
   public void overwriteStatesForKey(
-      String pKey, int pHash, Collection<StateAndPrecision> pStateAndPrecisions) {
+      String pKey, Object pProgramPoint, Collection<StateAndPrecision> pStateAndPrecisions) {
     overwriteStatesForKey(
         pKey,
-        ImmutableListMultimap.<Integer, StateAndPrecision>builder()
-            .putAll(pHash, pStateAndPrecisions)
+        ImmutableListMultimap.<Object, StateAndPrecision>builder()
+            .putAll(pProgramPoint, pStateAndPrecisions)
             .build());
   }
 
-  public void overwriteStatesForKey(String pKey, Multimap<Integer, StateAndPrecision> pStates) {
-    Multimap<Integer, StateAndPrecision> idToStates = entriesPerKey.get(pKey);
-    for (Integer id : pStates.keySet()) {
+  public void overwriteStatesForKey(String pKey, Multimap<Object, StateAndPrecision> pStates) {
+    Multimap<Object, StateAndPrecision> idToStates = entriesPerKey.get(pKey);
+    for (Object id : pStates.keySet()) {
       idToStates.removeAll(id);
       idToStates.putAll(id, pStates.get(id));
     }
@@ -152,22 +152,21 @@ public class BlockToProgramLocationMap {
   public void overwriteStatesForKey(
       String pKey, Collection<StateAndPrecision> pStateAndPrecisions) {
     overwriteStatesForKey(
-        pKey,
-        Multimaps.index(pStateAndPrecisions, sap -> dcpa.computeProgramPointHash(sap.state())));
+        pKey, Multimaps.index(pStateAndPrecisions, sap -> dcpa.computeProgramPointId(sap.state())));
   }
 
-  public Set<StateAndPrecision> getStatesAndPrecisionsPerLocation(int location) {
+  public Set<StateAndPrecision> getStatesAndPrecisionsPerLocation(Object pProgramPoint) {
     return FluentIterable.from(entriesPerKey.values())
-        .transformAndConcat(m -> m.get(location))
+        .transformAndConcat(m -> m.get(pProgramPoint))
         .toSet();
   }
 
-  public List<AbstractState> getStatesPerLocation(int location) {
+  public List<AbstractState> getStatesPerLocation(Object pProgramPoint) {
     return transformedImmutableListCopy(
-        getStatesAndPrecisionsPerLocation(location), StateAndPrecision::state);
+        getStatesAndPrecisionsPerLocation(pProgramPoint), StateAndPrecision::state);
   }
 
-  public Set<Integer> getAllLocationHashes() {
+  public Set<Object> getAllProgramPoints() {
     return FluentIterable.from(entriesPerKey.values()).transformAndConcat(Multimap::keySet).toSet();
   }
 
@@ -188,14 +187,14 @@ public class BlockToProgramLocationMap {
       // keep everything as is for the coverage check.
       return;
     }
-    ImmutableSet.Builder<Integer> toRemove = ImmutableSet.builder();
-    for (Entry<Integer, StateAndPrecision> entry : entriesPerKey.get(pKey).entries()) {
+    ImmutableSet.Builder<Object> toRemove = ImmutableSet.builder();
+    for (Entry<Object, StateAndPrecision> entry : entriesPerKey.get(pKey).entries()) {
       if (DistributedCallstackCPA.allowsAllTransfers(
           AbstractStates.extractStateByType(entry.getValue().state(), CallstackState.class))) {
         toRemove.add(entry.getKey());
       }
     }
-    for (Integer i : toRemove.build()) {
+    for (Object i : toRemove.build()) {
       entriesPerKey.get(pKey).removeAll(i);
     }
   }
@@ -207,7 +206,7 @@ public class BlockToProgramLocationMap {
   public Multimap<String, StateAndPrecision> asMultimapByKey() {
     ImmutableListMultimap.Builder<String, StateAndPrecision> statesByKey =
         ImmutableListMultimap.builder();
-    for (Entry<String, Multimap<Integer, StateAndPrecision>> entry : entriesPerKey.entrySet()) {
+    for (Entry<String, Multimap<Object, StateAndPrecision>> entry : entriesPerKey.entrySet()) {
       statesByKey.putAll(entry.getKey(), entry.getValue().values());
     }
     return statesByKey.build();

@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
-import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -35,8 +34,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.cpa.callstack.DssCallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.DssCallstackState;
 
 public class DistributedCallstackCPA implements ForwardingDistributedConfigurableProgramAnalysis {
@@ -56,7 +55,7 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   private final CombinePrecisionOperator combinePrecisionOperator;
   private final CombineViolationConditionsOperator combineViolationConditionsOperator;
 
-  private final CallstackCPA callstackCPA;
+  private final DssCallstackCPA callstackCPA;
   private final CFA cfa;
   private final BlockNode block;
   private final boolean requiresStateResets;
@@ -64,7 +63,7 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   private boolean ignoreCallstack;
 
   public DistributedCallstackCPA(
-      CallstackCPA pCallstackCPA,
+      DssCallstackCPA pCallstackCPA,
       BlockNode pBlockNode,
       CFA pCFA,
       boolean pRequiresStateResets,
@@ -187,17 +186,22 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   }
 
   @Override
-  public int computeProgramPointHash(AbstractState pAbstractState) {
-    return proofCheckingHash((CallstackState) pAbstractState);
+  public Object computeProgramPointId(AbstractState pAbstractState) {
+    return proofCheckingProgramPoint((CallstackState) pAbstractState);
   }
 
-  private static int proofCheckingHash(CallstackState pState) {
-    return Objects.hash(
+  private static CallstackProgramPoint proofCheckingProgramPoint(CallstackState pState) {
+    return new CallstackProgramPoint(
         pState.getCallNode().getNodeNumber(),
         pState.getDepth(),
         pState.getCurrentFunction(),
-        pState.getPreviousState() == null ? 0 : proofCheckingHash(pState.getPreviousState()));
+        pState.getPreviousState() == null
+            ? null
+            : proofCheckingProgramPoint(pState.getPreviousState()));
   }
+
+  private record CallstackProgramPoint(
+      int callNode, int depth, String currentFunction, @Nullable CallstackProgramPoint previous) {}
 
   public void setIgnoreTransfer(boolean pIgnoreCallstack) {
     ignoreCallstack = pIgnoreCallstack;

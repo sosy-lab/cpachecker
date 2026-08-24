@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
 
 import static com.google.common.base.Preconditions.checkState;
 
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -65,7 +64,6 @@ public final class DssBlockAnalyses {
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
     // find all target states in block, except target states that are only reachable from another
     // target state
-    Multimap<BlockState, AbstractState> previousConditions = ArrayListMultimap.create();
     while (pReachedSet.hasWaitingState()) {
       status = status.update(pAlgorithm.run(pReachedSet));
       AbstractStates.getTargetStates(pReachedSet).forEach(pReachedSet::removeOnlyFromWaitlist);
@@ -80,7 +78,6 @@ public final class DssBlockAnalyses {
             blockState,
             predecessorToStates.get(blockState),
             blockStateToState.get(blockState),
-            previousConditions,
             pReachedSet);
       }
     }
@@ -92,15 +89,14 @@ public final class DssBlockAnalyses {
    * Narrows the violation conditions of one block-end state to those not yet processed and decides
    * whether that state still has to be explored.
    *
-   * <p>The state is taken off the waitlist once no condition is left to process, or once the
-   * remaining conditions repeat what the previous round already left over, i.e. the analysis of
-   * this block end no longer makes progress.
+   * <p>The state is taken off the waitlist once no condition is left to process. If no condition of
+   * this state was processed, the state remains untouched: the analysis may have stopped because a
+   * different block-end state produced a target.
    */
   private static void advanceViolationConditions(
       BlockState pBlockState,
       Collection<AbstractState> pStatesAtGhostLocation,
       AbstractState pStateInReachedSet,
-      Multimap<BlockState, AbstractState> pPreviousConditions,
       ReachedSet pReachedSet) {
     ImmutableSet<? extends @NonNull AbstractState> processedViolationConditions =
         FluentIterable.from(pStatesAtGhostLocation)
@@ -116,12 +112,9 @@ public final class DssBlockAnalyses {
     }
     ImmutableList<AbstractState> remainingConditions = remainingBuilder.build();
 
-    Collection<AbstractState> previous = pPreviousConditions.removeAll(pBlockState);
-    if (ImmutableSet.copyOf(previous).equals(ImmutableSet.copyOf(remainingConditions))) {
-      pReachedSet.removeOnlyFromWaitlist(pStateInReachedSet);
+    if (remainingConditions.size() == pBlockState.getViolationConditions().size()) {
       return;
     }
-    pPreviousConditions.putAll(pBlockState, remainingConditions);
     if (remainingConditions.isEmpty()) {
       pReachedSet.removeOnlyFromWaitlist(pStateInReachedSet);
     }

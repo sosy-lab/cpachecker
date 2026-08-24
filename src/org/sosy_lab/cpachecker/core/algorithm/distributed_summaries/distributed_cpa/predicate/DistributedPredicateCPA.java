@@ -162,7 +162,7 @@ public class DistributedPredicateCPA
   }
 
   @Override
-  public int computeProgramPointHash(AbstractState pAbstractState) {
+  public Object computeProgramPointId(AbstractState pAbstractState) {
     // The predicate state has no information about the point in the program, so always
     // return the same number (arbitrarily chosen)
     return 0;

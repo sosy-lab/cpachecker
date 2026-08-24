@@ -2076,13 +2076,6 @@ cpa.callstack.unsupportedFunctions = {
           "__builtin_va_arg",
           "atexit"}
 
-# Use callstack states for distributed summary synthesis (DSS). Such states
-# track all traversed edges so that the callstack of a block can be verified
-# against the violation condition at the end of the block. They can also be
-# told to allow all transfers, which is required whenever a block analysis
-# does not know its callstack.
-cpa.callstack.useDssCallstackStates = false
-
 # By enabling this option the CompositeTransferRelation will compute abstract
 # successors for as many edges as possible in one call. For any chain of
 # edges in the CFA which does not have more than one outgoing or leaving edge
@@ -4622,6 +4615,9 @@ differential.variableSetMerge = false
 # Which block analysis to use for the distributed summaries algorithm
 distributedSummaries.blockAnalysisType = ALWAYS_REPLACE
   enum:     [PATH_BASED, ALWAYS_REPLACE]
+
+# Whether to combine preconditions at same program location
+distributedSummaries.combinePresByHash = false
 
 # Whether to combine violation conditions at same program location
 distributedSummaries.combineVcsByHash = true

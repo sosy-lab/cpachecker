@@ -78,7 +78,13 @@ public class DssAnalysisOptions {
       name = "combineVcsByHash",
       description = "Whether to combine violation conditions at same program location",
       secure = true)
-  private boolean combineByHash = true;
+  private boolean combineViolationConditionsByHash = true;
+
+  @Option(
+      name = "combinePresByHash",
+      description = "Whether to combine preconditions at same program location",
+      secure = true)
+  private boolean combinePreconditionsByHash = false;
 
   // TODO How to make sure the other Witness export does not overwrite this?
   @Option(
@@ -126,8 +132,12 @@ public class DssAnalysisOptions {
     return logDirectory;
   }
 
-  public boolean combineByHash() {
-    return combineByHash;
+  public boolean combineViolationConditionsByHash() {
+    return combineViolationConditionsByHash;
+  }
+
+  public boolean combinePreconditionsByHash() {
+    return combinePreconditionsByHash;
   }
 
   public PathTemplate getYamlCorrectnessWitnessOutputFileTemplate() {

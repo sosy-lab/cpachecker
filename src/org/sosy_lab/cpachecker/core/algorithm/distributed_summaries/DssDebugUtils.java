@@ -413,7 +413,7 @@ public final class DssDebugUtils {
       }
     }
     return box(
-        "program-point hash = " + pDcpa.computeProgramPointHash(pState),
+        "program point = " + pDcpa.computeProgramPointId(pState),
         table(ImmutableList.of("component", "value"), rows));
   }
 

@@ -8,10 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.callstack;
 
-import com.google.common.base.Preconditions;
 import java.util.Collection;
 import java.util.Set;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -55,37 +53,15 @@ public class CallstackCPA extends AbstractCPA
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return createState(null, pNode.getFunctionName(), pNode, /* pAllowAllTransfers= */ false);
+    return new CallstackState(null, pNode.getFunctionName(), pNode);
   }
 
-  /**
-   * Creates a callstack state of the type that this CPA operates on. Every component that creates
-   * callstack states for this CPA (for example, the deserialization of distributed summary
-   * synthesis) has to use this method instead of a constructor.
-   *
-   * @param pPreviousState the state below the created state on the callstack, or {@code null}
-   * @param pFunction the function that the created state represents
-   * @param pCallerNode the node from which the function was called
-   * @param pAllowAllTransfers whether the created state must never restrict a transfer, which is
-   *     only possible for {@link DssCallstackState}
-   * @return either a {@link CallstackState} or a {@link DssCallstackState}
-   */
-  public CallstackState createState(
-      @Nullable CallstackState pPreviousState,
-      String pFunction,
-      CFANode pCallerNode,
-      boolean pAllowAllTransfers) {
-    if (options.useDssCallstackStates()) {
-      // the stack below a DSS callstack state consists of ordinary callstack states
-      return new DssCallstackState(
-          new CallstackState(DssCallstackState.unwrap(pPreviousState), pFunction, pCallerNode),
-          pAllowAllTransfers);
-    }
-    Preconditions.checkArgument(
-        !pAllowAllTransfers,
-        "Callstack states that allow all transfers require"
-            + " cpa.callstack.useDssCallstackStates=true");
-    return new CallstackState(pPreviousState, pFunction, pCallerNode);
+  protected final CallstackOptions getCallstackOptions() {
+    return options;
+  }
+
+  protected final LogManager getLogger() {
+    return logger;
   }
 
   @Override
@@ -145,8 +121,6 @@ public class CallstackCPA extends AbstractCPA
   public CallstackTransferRelation getTransferRelation() {
     if (options.traverseBackwards()) {
       return new CallstackTransferRelationBackwards(options, logger);
-    } else if (options.useDssCallstackStates()) {
-      return new DssCallstackTransferRelation(options, logger);
     } else {
       return new CallstackTransferRelation(options, logger);
     }
