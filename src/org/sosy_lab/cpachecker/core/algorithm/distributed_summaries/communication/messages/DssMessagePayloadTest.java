@@ -38,8 +38,8 @@ public class DssMessagePayloadTest {
             )
         );
     assertThat(payload.asLegacyMap()).containsExactly(
-        DssMessageFormat.HEADER_ID, payload.header(),
-        DssMessageFormat.CONTENT_ID, payload.content()
+        DssMessageFormat.HEADER_KEY, payload.header(),
+        DssMessageFormat.CONTENT_KEY, payload.content()
     );
   }
 
@@ -60,12 +60,12 @@ public class DssMessagePayloadTest {
           }
         }
         """,
-        DssMessageFormat.HEADER_ID,
+        DssMessageFormat.HEADER_KEY,
         DssMessageFormat.SENDER_ID_KEY, "B1",
         DssMessageFormat.HEADER_TYPE_KEY, "RESULT",
         DssMessageFormat.HEADER_TIMESTAMP_KEY, "123",
         DssMessageFormat.HEADER_IDENTIFIER_KEY, "0",
-        DssMessageFormat.CONTENT_ID,
+        DssMessageFormat.CONTENT_KEY,
         DssMessageFormat.RESULT_KEY, "TRUE"
     );
     Files.writeString(file, jsonContent);
@@ -89,7 +89,7 @@ public class DssMessagePayloadTest {
           }
         }
         """,
-        DssMessageFormat.CONTENT_ID,
+        DssMessageFormat.CONTENT_KEY,
         DssMessageFormat.RESULT_KEY, "TRUE");
     Files.writeString(file, jsonContent);
 

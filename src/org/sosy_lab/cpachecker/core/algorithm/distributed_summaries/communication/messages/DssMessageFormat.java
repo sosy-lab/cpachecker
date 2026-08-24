@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 
 public class DssMessageFormat {
 
-  public static final String HEADER_ID = "header";
-  public static final String CONTENT_ID = "content";
+  public static final String HEADER_KEY = "header";
+  public static final String CONTENT_KEY = "content";
 
   public static final String SENDER_ID_KEY = "senderId";
   public static final String HEADER_TYPE_KEY = "messageType";

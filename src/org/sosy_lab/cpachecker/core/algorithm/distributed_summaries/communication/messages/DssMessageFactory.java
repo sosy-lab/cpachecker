@@ -116,15 +116,15 @@ public class DssMessageFactory {
           ImmutableMap.builder();
       ImmutableMap<String, String> header =
           Objects.requireNonNull(
-              messageContent.get(DssMessageFormat.HEADER_ID),
+              messageContent.get(DssMessageFormat.HEADER_KEY),
               "Header must not be null in DssMessage export");
       Map<String, String> filteredHeader =
           Maps.filterKeys(header, key -> key != null && !key.equals("timestamp"));
-      noTimestampMessage.put(DssMessageFormat.HEADER_ID, ImmutableMap.copyOf(filteredHeader));
+      noTimestampMessage.put(DssMessageFormat.HEADER_KEY, ImmutableMap.copyOf(filteredHeader));
       noTimestampMessage.put(
-          DssMessageFormat.CONTENT_ID,
+          DssMessageFormat.CONTENT_KEY,
           Objects.requireNonNull(
-              messageContent.get(DssMessageFormat.CONTENT_ID),
+              messageContent.get(DssMessageFormat.CONTENT_KEY),
               "Content must not be null in DssMessage export"));
       return noTimestampMessage.buildOrThrow();
     }
