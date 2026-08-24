@@ -119,6 +119,7 @@ public class DeltaTrackingReachedSet extends ForwardingReachedSet {
   public static Iterable<AbstractState> getConsideredStates(
       Iterable<AbstractState> pStates, String pObserverId) {
     checkNotNull(pStates);
+    checkNotNull(pObserverId);
     return pStates instanceof DeltaTrackingReachedSet dtrs ? dtrs.getDelta(pObserverId) : pStates;
   }
 
