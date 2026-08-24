@@ -26,6 +26,9 @@ import org.sosy_lab.java_smt.api.SolverException;
  */
 interface DssPreconditionHandler {
 
+  /** Stands in for the (nonexistent) predecessor of the root block. */
+  static final String ROOT_KEY = "root";
+
   /** Explores the block before any message was received. */
   Collection<DssMessage> runInitialAnalysis()
       throws CPAException, InterruptedException, SolverException;

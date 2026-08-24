@@ -47,9 +47,6 @@ import org.sosy_lab.java_smt.api.SolverException;
  */
 final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
 
-  /** Stands in for the (nonexistent) predecessor of the root block. */
-  private static final String ROOT_KEY = "root";
-
   private final BlockToProgramLocationMap preconditions;
 
   private final DssBlockAnalysis analysis;
@@ -316,7 +313,7 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
         violations.addAll(analysis.pathsWithCondition(result.getViolationConditionViolations()));
         violations.addAll(analysis.pathsFromOrigin(result.getTargetStates()));
       } else if (!pDiscardSummaries) {
-        summaries.addAll(analysis.summariesOf(result));
+        summaries.addAll(analysis.finalLocationStatesOf(result));
       }
     }
 

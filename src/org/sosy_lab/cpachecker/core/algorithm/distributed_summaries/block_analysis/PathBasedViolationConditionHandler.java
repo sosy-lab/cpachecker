@@ -57,8 +57,7 @@ final class PathBasedViolationConditionHandler implements DssViolationConditionH
       String sender = pReceived.getSenderId();
       boolean combineByHash = analysis.getOptions().combineByHash();
 
-      Collection<@NonNull StateAndPrecision> known =
-          combineByHash ? conditions.get(sender) : conditions.removeAll(sender);
+      Collection<@NonNull StateAndPrecision> known = conditions.get(sender);
       Set<SegmentedPaths> knownWitnesses =
           transformedImmutableSetCopy(known, sap -> analysis.witnessOf(sap.state()));
 

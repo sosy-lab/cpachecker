@@ -313,7 +313,6 @@ public final class DssBlockAnalysis {
     } finally {
       disableCallstackIfAvailable(false);
     }
-    blockStateOf(state).addHistory(block);
     return state;
   }
 
@@ -493,9 +492,19 @@ public final class DssBlockAnalysis {
   /**
    * The states at the final location of the block, paired with the precision they were found in.
    */
-  ImmutableList<StateAndPrecision> summariesOf(DssBlockAnalysisResult pResult) {
+  ImmutableList<StateAndPrecision> finalLocationStatesOf(DssBlockAnalysisResult pResult) {
     ImmutableList.Builder<StateAndPrecision> summaries = ImmutableList.builder();
     for (ARGState summary : pResult.getFinalLocationStates()) {
+      summaries.add(new StateAndPrecision(summary, reachedSet.getPrecision(summary)));
+    }
+    return summaries.build();
+  }
+
+  /**
+   */
+  ImmutableList<StateAndPrecision> summariesOf(DssBlockAnalysisResult pResult) {
+    ImmutableList.Builder<StateAndPrecision> summaries = ImmutableList.builder();
+    for (ARGState summary : pResult.getFinalLocationStates().stream().filter(a -> a.getChildren().isEmpty()).toList()) {
       summaries.add(new StateAndPrecision(summary, reachedSet.getPrecision(summary)));
     }
     return summaries.build();

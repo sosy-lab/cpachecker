@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
+import java.util.List;
 
 public record BlockGraphPath(ImmutableList<String> path) {
 
@@ -49,26 +50,46 @@ public record BlockGraphPath(ImmutableList<String> path) {
   }
 
   public boolean overlapsWith(BlockGraphPath other) {
-    // TODO Knuth Morris
-    int maxOverlap = Integer.min(path.size(), other.path().size());
+      List<String> newPath = path;
+      List<String> existingPath = other.path();
+      int n = newPath.size();
+      int m = existingPath.size();
+      if (m == 0) {
+        return true;
+      }
+      if (n == 0){
+        return false;
+      }
 
-    for (int overlap = maxOverlap; overlap >= 1; overlap--) {
-      boolean matches = true;
+      int[] fail = new int[m];
+      for (int i = 1, j = 0; i < m; i++) {
+        while (j > 0 && !existingPath.get(i).equals(existingPath.get(j))) {
+          j = fail[j - 1];
+        }
+        if (existingPath.get(i).equals(existingPath.get(j))) {
+          j++;
+        }
+        fail[i] = j;
+      }
 
-      for (int i = 0; i < overlap; i++) {
-        if (!path.get(path.size() - overlap + i).equals(other.path().get(i))) {
-          matches = false;
-          break;
+      int j = 0;
+      for (int i = 0; i < n; i++) {
+        while (j > 0 && !newPath.get(i).equals(existingPath.get(j))) {
+          j = fail[j - 1];
+        }
+        if (newPath.get(i).equals(existingPath.get(j))) {
+          j++;
+        }
+        if (j == m) {
+          if (i == n - 1) {
+            return true;
+          }
+          j = fail[j - 1];
         }
       }
 
-      if (matches) {
-        return true;
-      }
+      return j > 0;
     }
-
-    return false;
-  }
 
   public PathCase getFirstMatchingCase(BlockGraphPath existingPath) {
     if (existingPath.isSuffixOf(this)) {
