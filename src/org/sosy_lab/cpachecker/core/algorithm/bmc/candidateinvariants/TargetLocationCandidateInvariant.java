@@ -44,9 +44,8 @@ public enum TargetLocationCandidateInvariant implements CandidateInvariant {
 
   @Override
   public void assumeTruth(ReachedSet pReachedSet) {
-    Iterable<AbstractState> scope =
-        pReachedSet instanceof DeltaTrackingReachedSet dtrs ? dtrs.getDelta() : pReachedSet;
-    Iterable<AbstractState> targetStates = filterApplicable(scope).toList();
+    Iterable<AbstractState> targetStates =
+        filterApplicable(DeltaTrackingReachedSet.getConsideredStates(pReachedSet)).toList();
     pReachedSet.removeAll(targetStates);
     for (ARGState s : from(targetStates).filter(ARGState.class)) {
       s.removeFromARG();

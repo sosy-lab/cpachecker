@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.LinkedHashSet;
 import java.util.SequencedSet;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -35,6 +37,15 @@ public class DeltaTrackingReachedSet extends ForwardingReachedSet {
   /** Discards the delta. Called once per unrolling, after all consumers have read it. */
   public void clearDelta() {
     delta.clear();
+  }
+
+  /**
+   * Returns the states a consumer needs to consider: the delta if the reached set tracks one, the
+   * full reached set otherwise.
+   */
+  public static Iterable<AbstractState> getConsideredStates(Iterable<AbstractState> pStates) {
+    checkNotNull(pStates);
+    return pStates instanceof DeltaTrackingReachedSet dtrs ? dtrs.getDelta() : pStates;
   }
 
   @Override

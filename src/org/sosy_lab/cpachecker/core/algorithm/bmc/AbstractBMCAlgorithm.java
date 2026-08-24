@@ -765,11 +765,10 @@ abstract class AbstractBMCAlgorithm
       CandidateInvariant pCandidateInvariant)
       throws CPATransferException, InterruptedException, SolverException {
 
-    Iterable<AbstractState> assertionStates = pReachedSet;
-    if (pCandidateInvariant == TargetLocationCandidateInvariant.INSTANCE
-        && pReachedSet instanceof DeltaTrackingReachedSet dtrs) {
-      assertionStates = dtrs.getDelta();
-    }
+    Iterable<AbstractState> assertionStates =
+        pCandidateInvariant == TargetLocationCandidateInvariant.INSTANCE
+            ? DeltaTrackingReachedSet.getConsideredStates(pReachedSet)
+            : pReachedSet;
     BooleanFormula program =
         bfmgr.not(pCandidateInvariant.getAssertion(assertionStates, fmgr, pmgr));
     if (simplifyBooleanFormula) {
@@ -1048,10 +1047,8 @@ abstract class AbstractBMCAlgorithm
   private boolean checkBoundingAssertions(
       final ReachedSet pReachedSet, final BasicProverEnvironment<?> prover)
       throws SolverException, InterruptedException {
-    Iterable<AbstractState> scope =
-        pReachedSet instanceof DeltaTrackingReachedSet dtrs ? dtrs.getDelta() : pReachedSet;
     FluentIterable<AbstractState> stopStates =
-        from(scope)
+        from(DeltaTrackingReachedSet.getConsideredStates(pReachedSet))
             .filter(AbstractBMCAlgorithm::isStopState)
             .filter(AbstractBMCAlgorithm::isRelevantForReachability);
 
