@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 public class DssMessageFormat {
 
   public static final String HEADER_KEY = "header";
+  public static final String STATUS_KEY = "status";
   public static final String CONTENT_KEY = "content";
 
   public static final String SENDER_ID_KEY = "senderId";
@@ -18,7 +19,6 @@ public class DssMessageFormat {
   public static final String HEADER_TIMESTAMP_KEY = "timestamp";
   public static final String HEADER_IDENTIFIER_KEY = "identifier";
 
-  public static final String STATUS_KEY = "status";
   public static final String PRECISE_KEY = "precise";
   public static final String PROPERTY_KEY = "property";
   public static final String SOUND_KEY = "sound";
