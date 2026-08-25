@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -114,7 +115,7 @@ public class DistributedPredicateCPATest {
             formulaManagerView.getBooleanFormulaManager().makeTrue(), // formula = true
             formulaManagerView.getBooleanFormulaManager().makeTrue(), // instantiated formula
             emptyPf, // block formula
-            java.util.Collections.emptySet()); // id-generator set / no predicates
+            ImmutableSet.of()); // id-generator set / no predicates
 
     AbstractState state =
         PredicateAbstractState.mkAbstractionState(
