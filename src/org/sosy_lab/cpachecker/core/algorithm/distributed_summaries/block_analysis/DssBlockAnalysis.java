@@ -628,8 +628,7 @@ public final class DssBlockAnalysis {
       final List<@NonNull StateAndPrecision> pStatesAndPrecisions) {
     ContentBuilder serializedContent = ContentBuilder.builder();
     serializedContent.put(
-        DssMessageFormat.MULTIPLE_STATES_KEY,
-        Integer.toString(pStatesAndPrecisions.size()));
+        DssMessageFormat.MULTIPLE_STATES_KEY, Integer.toString(pStatesAndPrecisions.size()));
     int totalStateSize = 0;
     for (int i = 0; i < pStatesAndPrecisions.size(); i++) {
       serializedContent.pushLevel(SerializeOperator.STATE_KEY + i);

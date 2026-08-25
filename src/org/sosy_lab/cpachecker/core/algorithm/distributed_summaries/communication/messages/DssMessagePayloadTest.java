@@ -46,18 +46,18 @@ public class DssMessagePayloadTest {
     String jsonContent =
         String.format(
             """
-        {
-          "%s": {
-            "%s": "%s",
-            "%s": "%s",
-            "%s": "%s",
-            "%s": "%s"
-          },
-          "%s": {
-            "%s": "%s"
-          }
-        }
-        """,
+            {
+              "%s": {
+                "%s": "%s",
+                "%s": "%s",
+                "%s": "%s",
+                "%s": "%s"
+              },
+              "%s": {
+                "%s": "%s"
+              }
+            }
+            """,
             DssMessageFormat.HEADER_KEY,
             DssMessageFormat.SENDER_ID_KEY,
             "B1",
@@ -84,23 +84,23 @@ public class DssMessagePayloadTest {
     String jsonContent =
         String.format(
             """
-        {
-          "%s": {
-            "%s": "%s",
-            "%s": "%s",
-            "%s": "%s",
-            "%s": "%s"
-          },
-          "%s": {
-            "%s": "%s",
-            "%s": "%s",
-            "%s": "%s"
-          },
-          "%s": {
-            "%s": "%s"
-          }
-        }
-        """,
+            {
+              "%s": {
+                "%s": "%s",
+                "%s": "%s",
+                "%s": "%s",
+                "%s": "%s"
+              },
+              "%s": {
+                "%s": "%s",
+                "%s": "%s",
+                "%s": "%s"
+              },
+              "%s": {
+                "%s": "%s"
+              }
+            }
+            """,
             DssMessageFormat.HEADER_KEY,
             DssMessageFormat.SENDER_ID_KEY,
             "B1",
@@ -135,12 +135,12 @@ public class DssMessagePayloadTest {
     String jsonContent =
         String.format(
             """
-        {
-          "%s": {
-            "%s": "%s"
-          }
-        }
-        """,
+            {
+              "%s": {
+                "%s": "%s"
+              }
+            }
+            """,
             DssMessageFormat.CONTENT_KEY, DssMessageFormat.RESULT_KEY, "TRUE");
     Files.writeString(file, jsonContent);
 
