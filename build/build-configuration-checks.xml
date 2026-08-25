@@ -14,22 +14,17 @@ SPDX-License-Identifier: Apache-2.0
 <project name="configuration-check" basedir=".">
 
     <property name="configuration-checks.dir" value="configuration-checks"/>
+    <property name="configuration-checks.report" value="ConfigurationChecks.html"/>
 
-    <target name="init-configuration-checks">
-        <!-- Provide default classpath if none is specified. -->
-        <path id="classpath.junit">
-            <path refid="classpath"/>
-        </path>
+    <target name="configuration-checks" depends="build, load-junit, init-unit-tests" description="Run configuration checks">
         <delete dir="${configuration-checks.dir}"/>
         <mkdir dir="${configuration-checks.dir}"/>
-    </target>
-
-    <target name="configuration-checks" depends="build, load-junit, init-configuration-checks" description="Run configuration checks">
         <junit fork="true" printSummary="true" showOutput="false" failureproperty="configuration-checks.failed" timeout="1000000">
-            <sysproperty key="java.awt.headless" value="true" />
             <assertions><enable/></assertions>
             <formatter type="xml"/>
             <classpath refid="classpath.junit"/>
+            <sysproperty key="java.awt.headless" value="true" />
+            <jvmarg value="--enable-native-access=ALL-UNNAMED"/>
             <batchtest fork="true" todir="${configuration-checks.dir}">
                 <fileset dir="${class.dir}">
                     <include name="org/sosy_lab/cpachecker/cmdline/ConfigurationFileChecks.*"/>
@@ -38,9 +33,11 @@ SPDX-License-Identifier: Apache-2.0
         </junit>
         <junitreport todir="${configuration-checks.dir}">
             <fileset dir="${configuration-checks.dir}" includes="TEST-*.xml"/>
-            <report format="noframes"/>
+            <report format="noframes">
+                <param name="TITLE" expression="Configuration-Check Results for ${ant.project.name}"/>
+            </report>
         </junitreport>
-        <move file="junit-noframes.html" tofile="ConfigurationChecks.html"/>
-        <fail if="configuration-checks.failed" message="ConfigurationUnit tests failed, look at ConfigurationChecks.html"/>
+        <move file="junit-noframes.html" tofile="${configuration-checks.report}"/>
+        <fail if="configuration-checks.failed" message="Configuration checks failed, look at ${configuration-checks.report}"/>
     </target>
 </project>

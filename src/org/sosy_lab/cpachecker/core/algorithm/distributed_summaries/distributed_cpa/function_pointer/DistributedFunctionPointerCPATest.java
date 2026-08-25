@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.InvalidT
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.NamedFunctionTarget;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.NullTarget;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.UnknownTarget;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class DistributedFunctionPointerCPATest {
 
@@ -30,7 +30,7 @@ public class DistributedFunctionPointerCPATest {
   public void testFunctionPointerSerializationOnFile() throws Exception {
 
     Configuration config =
-        TestDataTools.configurationForTest().loadFromFile(TestUtil.DSS_CONFIGURATION_FILE).build();
+        TestUtils.configurationForTest().loadFromFile(TestUtil.DSS_CONFIGURATION_FILE).build();
     CFA cfa = TestUtil.buildTestCFA("test/programs/dss/simple-function-pointer.c");
     ConfigurableProgramAnalysis cpa =
         FunctionPointerCPA.factory()
@@ -47,7 +47,7 @@ public class DistributedFunctionPointerCPATest {
   public void testAllCombinations() throws Exception {
 
     Configuration config =
-        TestDataTools.configurationForTest().loadFromFile(TestUtil.DSS_CONFIGURATION_FILE).build();
+        TestUtils.configurationForTest().loadFromFile(TestUtil.DSS_CONFIGURATION_FILE).build();
     CFA cfa = TestUtil.buildTestCFA("test/programs/dss/simple-function-pointer.c");
     ConfigurableProgramAnalysis cpa =
         FunctionPointerCPA.factory()
@@ -78,7 +78,7 @@ public class DistributedFunctionPointerCPATest {
   public void testEmpty() throws Exception {
 
     Configuration config =
-        TestDataTools.configurationForTest().loadFromFile(TestUtil.DSS_CONFIGURATION_FILE).build();
+        TestUtils.configurationForTest().loadFromFile(TestUtil.DSS_CONFIGURATION_FILE).build();
     CFA cfa = TestUtil.buildTestCFA("test/programs/dss/simple-function-pointer.c");
     ConfigurableProgramAnalysis cpa =
         FunctionPointerCPA.factory()

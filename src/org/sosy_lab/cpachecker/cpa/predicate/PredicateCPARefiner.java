@@ -256,7 +256,7 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
       refinements++;
       BlockFormulas formulas;
       final boolean repeatedCounterexample;
-      List<ARGState> abstractionStatesTrace;
+      ImmutableList<ARGState> abstractionStatesTrace;
       ImmutableList<CFANode> errorPath =
           allStatesTrace.asStatesList().stream()
               .map(AbstractStates::extractLocation)
@@ -335,7 +335,7 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
    */
   private CounterexampleTraceInfo checkCounterexample(
       final ARGPath allStatesTrace,
-      final List<ARGState> abstractionStatesTrace,
+      final ImmutableList<ARGState> abstractionStatesTrace,
       final BlockFormulas formulas,
       final boolean repeatedCounterexample)
       throws CPAException, InterruptedException {
@@ -370,7 +370,8 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
             logger.log(
                 Level.FINEST,
                 "Fallback from Newton-based refinement to interpolation-based refinement");
-            return performInterpolatingRefinement(allStatesTrace, abstractionStatesTrace, formulas);
+            return interpolationManager.buildCounterexampleTrace(
+                formulas, abstractionStatesTrace, allStatesTrace);
           } else {
             throw e;
           }
@@ -379,7 +380,8 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
         logger.log(
             Level.FINEST,
             "Fallback from Newton-based refinement to interpolation-based refinement");
-        return performInterpolatingRefinement(allStatesTrace, abstractionStatesTrace, formulas);
+        return interpolationManager.buildCounterexampleTrace(
+            formulas, abstractionStatesTrace, allStatesTrace);
       }
     } else if (useUCBRefinement) {
       logger.log(Level.FINEST, "Starting unsat-core-based refinement");
@@ -387,29 +389,19 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
 
     } else {
       logger.log(Level.FINEST, "Starting interpolation-based refinement.");
-      return performInterpolatingRefinement(allStatesTrace, abstractionStatesTrace, formulas);
+      return interpolationManager.buildCounterexampleTrace(
+          formulas, abstractionStatesTrace, allStatesTrace);
     }
-  }
-
-  private CounterexampleTraceInfo performInterpolatingRefinement(
-      final ARGPath allStatesTrace,
-      final List<ARGState> abstractionStatesTrace,
-      final BlockFormulas formulas)
-      throws CPAException, InterruptedException {
-
-    return interpolationManager.buildCounterexampleTrace(
-        formulas, ImmutableList.copyOf(abstractionStatesTrace), Optional.of(allStatesTrace));
   }
 
   private CounterexampleTraceInfo performInvariantsRefinement(
       final ARGPath allStatesTrace,
-      final List<ARGState> abstractionStatesTrace,
+      final ImmutableList<ARGState> abstractionStatesTrace,
       final BlockFormulas formulas)
       throws CPAException, InterruptedException {
 
     CounterexampleTraceInfo counterexample =
-        interpolationManager.buildCounterexampleTraceWithoutInterpolation(
-            formulas, Optional.of(allStatesTrace));
+        interpolationManager.buildCounterexampleTraceWithoutInterpolation(formulas, allStatesTrace);
 
     // if error is spurious refine
     if (counterexample.isSpurious()) {
@@ -432,7 +424,8 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
             Level.FINEST,
             "Starting interpolation-based refinement because invariant generation was not"
                 + " successful.");
-        return performInterpolatingRefinement(allStatesTrace, abstractionStatesTrace, formulas);
+        return interpolationManager.buildCounterexampleTrace(
+            formulas, abstractionStatesTrace, allStatesTrace);
 
       } else {
         wereInvariantsusedInCurrentRefinement = true;
@@ -554,8 +547,8 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
     return !prefixPreference.equals(PrefixSelector.NO_SELECTION);
   }
 
-  static List<ARGState> filterAbstractionStates(ARGPath pPath) {
-    List<ARGState> result =
+  static ImmutableList<ARGState> filterAbstractionStates(ARGPath pPath) {
+    ImmutableList<ARGState> result =
         from(pPath.asStatesList())
             .skip(1)
             .filter(PredicateAbstractState::containsAbstractionState)

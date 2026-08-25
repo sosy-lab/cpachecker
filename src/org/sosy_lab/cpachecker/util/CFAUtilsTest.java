@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 
 public class CFAUtilsTest {
 
@@ -38,7 +38,7 @@ public class CFAUtilsTest {
       int pExpectedEndingLine,
       int pExpectedEndColumnInLine) {
     AstCfaRelation astCfaRelation = pCFA.getAstCfaRelation();
-    CFAEdge edge = TestDataTools.getEdge(pStringsToIdentifyEdge, pCFA);
+    CFAEdge edge = TestCfaUtils.getEdge(pStringsToIdentifyEdge, pCFA);
     assertThat(edge instanceof CCfaEdge).isTrue();
 
     Optional<FileLocation> optionalExpressionLocation =
@@ -64,7 +64,7 @@ public class CFAUtilsTest {
   @Test
   public void testFullExpression() throws Exception {
     Path programPath = Path.of("test/programs/cfa-ast-relation/full-expression.c");
-    CFA cfa = TestDataTools.makeCFA(Files.readString(programPath, StandardCharsets.UTF_8));
+    CFA cfa = TestCfaUtils.makeCFA(Files.readString(programPath, StandardCharsets.UTF_8));
 
     fullExpressionAtCorrectPosition(cfa, "x + y", 18, 10, 18, 15);
     fullExpressionAtCorrectPosition(cfa, "x = 1", 10, 11, 10, 12);

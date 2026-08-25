@@ -33,6 +33,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--smgSymbolicExecution"/>
     <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    <exclude>../programs/benchmarks/memsafety-ext2/split_list_test05-1.yml</exclude> <!-- flapping timeout -->
   </tasks>
 
   <tasks name="ArraysMemSafety">

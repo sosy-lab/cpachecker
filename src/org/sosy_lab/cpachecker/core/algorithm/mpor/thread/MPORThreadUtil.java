@@ -31,16 +31,20 @@ public class MPORThreadUtil {
    * Returns either {@code pCallContext} if present or the start_routine call of {@code pThread},
    * which serves as the default call context.
    */
-  public static Optional<CFAEdgeForThread> getCallContextOrStartRoutineCall(
-      Optional<CFAEdgeForThread> pCallContext, MPORThread pThread) {
+  public static SeqCallContext getCallContextOrStartRoutineCall(
+      SeqCallContext pCallContext, MPORThread pThread) {
 
-    return pCallContext.isPresent() ? pCallContext : pThread.startRoutineCall();
+    return pCallContext.cfaEdgeForThread().isPresent()
+        ? pCallContext
+        : new SeqCallContext(pThread.startRoutineCall());
   }
 
-  public static Optional<CFAEdgeForThread> getCallContextOrStartRoutineCall(
-      Optional<CFAEdgeForThread> pCallContext, Optional<CFAEdgeForThread> pStartRoutineCall) {
+  public static SeqCallContext getCallContextOrStartRoutineCall(
+      SeqCallContext pCallContext, Optional<CFAEdgeForThread> pStartRoutineCall) {
 
-    return pCallContext.isPresent() ? pCallContext : pStartRoutineCall;
+    return pCallContext.cfaEdgeForThread().isPresent()
+        ? pCallContext
+        : new SeqCallContext(pStartRoutineCall);
   }
 
   /**

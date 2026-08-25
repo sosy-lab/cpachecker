@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.Repo
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
+import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector;
 import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector.CollectedARGStates;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
@@ -33,9 +34,13 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 
 class ARGToWitnessV2 extends ARGToYAMLWitness {
   protected ARGToWitnessV2(
-      Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
+      Configuration pConfig,
+      CFA pCfa,
+      Specification pSpecification,
+      LogManager pLogger,
+      RelevantArgStatesCollector pArgStatesCollector)
       throws InvalidConfigurationException {
-    super(pConfig, pCfa, pSpecification, pLogger);
+    super(pConfig, pCfa, pSpecification, pLogger, pArgStatesCollector);
   }
 
   /**

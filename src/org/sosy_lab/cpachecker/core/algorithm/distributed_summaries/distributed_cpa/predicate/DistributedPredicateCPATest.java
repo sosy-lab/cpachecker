@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class DistributedPredicateCPATest {
 
@@ -37,7 +37,7 @@ public class DistributedPredicateCPATest {
     CFA cfa = TestUtil.buildTestCFA("doc/examples/example.c");
 
     Configuration config =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .loadFromFile(TestUtil.DSS_FORWARD_CONFIGURATION_FILE)
             .build();
     LogManager logs = LogManager.createTestLogManager();
@@ -74,7 +74,7 @@ public class DistributedPredicateCPATest {
     CFA cfa = TestUtil.buildTestCFA("doc/examples/example.c");
 
     Configuration config =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .loadFromFile(TestUtil.DSS_FORWARD_CONFIGURATION_FILE)
             .build();
     LogManager logs = LogManager.createTestLogManager();

@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysisTestBase;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class DistributedLocationCPATest {
 
@@ -28,7 +28,7 @@ public class DistributedLocationCPATest {
     CFA cfa = TestUtil.buildTestCFA("test/programs/cfa-ast-relation/full-expression.c");
 
     Configuration config =
-        TestDataTools.configurationForTest().loadFromFile(TestUtil.DSS_CONFIGURATION_FILE).build();
+        TestUtils.configurationForTest().loadFromFile(TestUtil.DSS_CONFIGURATION_FILE).build();
     ConfigurableProgramAnalysis cpa =
         LocationCPA.factory()
             .setConfiguration(config)

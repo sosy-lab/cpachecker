@@ -185,7 +185,7 @@ public class CTypesTest {
   }
 
   @Test
-  @Ignore // FIXME, cf. https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1031
+  @Ignore("FIXME, cf. issue #1031")
   public void testSizeofShouldThrowIfNotConstant() {
     assume().that(hasKnownConstantSize).isFalse();
     assertThrows(IllegalArgumentException.class, () -> TEST_MACHINE_MODEL.getSizeof(type));

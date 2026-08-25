@@ -74,7 +74,7 @@ import org.sosy_lab.cpachecker.cpa.traceabstraction.TraceAbstractionCPA;
 import org.sosy_lab.cpachecker.cpa.usage.UsageCPA;
 import org.sosy_lab.cpachecker.cpa.witnessjoiner.WitnessJoinerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 
 @RunWith(Parameterized.class)
 public class CPAsTest {
@@ -140,7 +140,7 @@ public class CPAsTest {
                 .build());
     Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
 
-    String cProgram = TestDataTools.getEmptyProgram(tempFolder, Language.C);
+    String cProgram = TestCfaUtils.getEmptyProgram(tempFolder, Language.C);
 
     config =
         Configuration.builder()
@@ -156,7 +156,7 @@ public class CPAsTest {
     tempFolder.newFile("immediatechecks.conf");
 
     cfa =
-        TestDataTools.toSingleFunctionCFA(
+        TestCfaUtils.toSingleFunctionCFA(
             new CFACreator(config, logManager, shutdownNotifier),
             """
             int a;

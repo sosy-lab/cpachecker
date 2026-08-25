@@ -12,12 +12,12 @@ import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
-record LocalVariableDeclarationSubstitute(
-    CIdExpression expression, Optional<MPORSubstitutionTracker> tracker) {
+public record LocalVariableDeclarationSubstitute(
+    CIdExpression idExpression, Optional<MPORSubstitutionTracker> tracker) {
 
   @Override
   public int hashCode() {
-    return Objects.hash(expression, tracker);
+    return Objects.hash(idExpression, tracker);
   }
 
   @Override
@@ -30,7 +30,7 @@ record LocalVariableDeclarationSubstitute(
             LocalVariableDeclarationSubstitute(
                 CIdExpression pExpression,
                 Optional<MPORSubstitutionTracker> pTracker)
-        && expression.equals(pExpression)
+        && idExpression.equals(pExpression)
         && tracker.equals(pTracker);
   }
 }

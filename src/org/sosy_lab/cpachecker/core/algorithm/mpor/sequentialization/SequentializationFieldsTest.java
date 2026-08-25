@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAs
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements.SeqFunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements.SeqFunctionStatements.SeqFunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadBuilder;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /**
  * Tests if {@link SequentializationFields} are expected depending on the input program, e.g. number
@@ -469,7 +469,7 @@ public class SequentializationFieldsTest {
       Path pInputFilePath, MPOROptions pOptions) throws Exception {
 
     // create cfa for test program pInputFilePath
-    Configuration config = TestDataTools.configurationForTest().build();
+    Configuration config = TestUtils.configurationForTest().build();
     LogManager logger = LogManager.createTestLogManager();
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
     CFACreator cfaCreator = MPORUtil.buildTestCfaCreatorWithPreprocessor(logger, shutdownNotifier);

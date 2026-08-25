@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class DistributedConfigurableProgramAnalysisTestBase {
 
@@ -53,7 +53,7 @@ public class DistributedConfigurableProgramAnalysisTestBase {
   public static void testSerialization(CFA cfa, ConfigurableProgramAnalysis cpa) throws Exception {
 
     Configuration config =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .loadFromFile(TestUtil.DSS_FORWARD_CONFIGURATION_FILE)
             .build();
     DssAnalysisOptions options = new DssAnalysisOptions(config);
@@ -111,7 +111,7 @@ public class DistributedConfigurableProgramAnalysisTestBase {
       ConfigurableProgramAnalysis cpa, AbstractState state, CFA cfa)
       throws InvalidConfigurationException, IOException, InterruptedException, CPAException {
     Configuration config =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .loadFromFile(TestUtil.DSS_FORWARD_CONFIGURATION_FILE)
             .build();
     DssAnalysisOptions options = new DssAnalysisOptions(config);
@@ -140,8 +140,9 @@ public class DistributedConfigurableProgramAnalysisTestBase {
       throws InterruptedException, CPAException {
 
     ImmutableMap<String, String> content = dcpa.getSerializeOperator().serialize(state);
-    DssMessage message =  messageFactory.createViolationConditionMessage(
-        "test", AlgorithmStatus.NO_PROPERTY_CHECKED, false, content);
+    DssMessage message =
+        messageFactory.createViolationConditionMessage(
+            "test", AlgorithmStatus.NO_PROPERTY_CHECKED, content);
     AbstractState afterSerialization = dcpa.getDeserializeOperator().deserialize(message);
 
     assertWithMessage(

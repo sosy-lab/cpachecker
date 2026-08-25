@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExportStatement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CVariableDeclarationWrapper;
 
 /**
  * Each {@link CFAEdge} from the input program corresponds to a {@link SeqThreadStatement} which is
@@ -60,22 +59,6 @@ public record SeqThreadStatement(
     checkArgument(
         targetPc.isPresent() ^ targetGoto.isPresent(),
         "Either targetPc or targetGoto must be present (exclusive or).");
-    if (data.getType().containsVariableDeclarations) {
-      checkArgument(
-          exportStatements.stream()
-              .flatMap(export -> export.getAllNestedStatements().stream())
-              .anyMatch(n -> n instanceof CVariableDeclarationWrapper),
-          "If the statement type contains variable declarations, then exportStatements must"
-              + " contain at least one CVariableDeclarationWrapper.");
-    }
-    if (!data.getType().containsVariableDeclarations) {
-      checkArgument(
-          exportStatements.stream()
-              .flatMap(export -> export.getAllNestedStatements().stream())
-              .noneMatch(n -> n instanceof CVariableDeclarationWrapper),
-          "If the statement type is does not contain variable declarations, then exportStatements"
-              + " cannot contain a CVariableDeclarationWrapper.");
-    }
   }
 
   public static SeqThreadStatement of(

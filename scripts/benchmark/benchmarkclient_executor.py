@@ -19,8 +19,6 @@ from . import vcloudutil
 
 sys.dont_write_bytecode = True  # prevent creation of .pyc files
 
-DEFAULT_CLOUD_TIMELIMIT = 300  # s
-
 DEFAULT_CLOUD_MEMORY_REQUIREMENT = 7_000_000_000  # 7 GB
 DEFAULT_CLOUD_CPUCORE_REQUIREMENT = 2  # one core with hyperthreading
 DEFAULT_CLOUD_CPUMODEL_REQUIREMENT = ""  # empty string matches every model
@@ -38,6 +36,10 @@ def set_vcloud_jar_path(p):
 def init(config, benchmark):
     global _JustReprocessResults
     _JustReprocessResults = config.reprocessResults
+
+    if not benchmark.rlimits.cputime_hard:
+        sys.exit("A CPU-time limit is required when running on Cloud.")
+
     tool_locator = benchexec.tooladapter.create_tool_locator(config)
     benchmark.executable = benchmark.tool.executable(tool_locator)
     benchmark.tool_version = benchmark.tool.version(benchmark.executable)
@@ -119,7 +121,7 @@ def execute_benchmark(benchmark, output_handler):
             cmdLine,
             stdin=subprocess.PIPE,
             universal_newlines=True,
-            shell=vcloudutil.is_windows(),  # noqa: S602
+            shell=vcloudutil.is_windows(),
         )
         try:
             cloud.communicate(cloudInput)
@@ -217,7 +219,7 @@ def getBenchmarkDataForCloud(benchmark):
     ]
 
     # get limits and number of Runs
-    timeLimit = benchmark.rlimits.cputime_hard or DEFAULT_CLOUD_TIMELIMIT
+    timeLimit = benchmark.rlimits.cputime_hard
     memLimit = bytes_to_mb(benchmark.rlimits.memory) or memRequirement
     coreLimit = benchmark.rlimits.cpu_cores
     wallTimeLimit = benchmark.rlimits.walltime
@@ -311,7 +313,7 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
             outputDir,
         )
 
-    # Write worker host informations in xml
+    # Write worker host information in xml
     parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark)
 
     # write results in runs and handle output after all runs are done
@@ -332,7 +334,7 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
                     values = parseCloudRunResultFile(dataFile)
                     if not benchmark.config.debug:
                         os.remove(dataFile)
-                except IOError as e:
+                except OSError as e:
                     logging.warning(
                         "Cannot extract measured values from output for file %s: %s",
                         run.identifier,
@@ -357,7 +359,6 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
             # BenchExec expects.
             # Move all output files from "sibling of log-file" to "sibling of parent directory".
             rawPath = run.log_file[: -len(".log")]
-            dirname, filename = os.path.split(rawPath)
             vcloudFilesDirectory = rawPath + ".files"
             benchexecFilesDirectory = run.result_files_folder
             if os.path.isdir(vcloudFilesDirectory) and not os.path.isdir(
@@ -381,7 +382,7 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
 def parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark):
     filePath = os.path.join(outputDir, "hostInformation.txt")
     try:
-        with open(filePath, "rt") as file:
+        with open(filePath) as file:
             # Parse first part of information about hosts until first blank line
             line = file.readline().strip()
             while True:
@@ -423,13 +424,13 @@ def parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark):
             output_handler.all_created_files.add(filePath)
         else:
             os.remove(filePath)
-    except IOError:
+    except OSError:
         logging.warning("Host information file not found: %s", filePath)
 
 
 def parseCloudRunResultFile(filePath):
     def read_items():
-        with open(filePath, "rt") as file:
+        with open(filePath) as file:
             for line in file:
                 key, value = line.split("=", 1)
                 yield key, value

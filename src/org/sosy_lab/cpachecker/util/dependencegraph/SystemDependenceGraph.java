@@ -1645,20 +1645,11 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
    * @see SystemDependenceGraph#createVisitOnceVisitor(ForwardsVisitor)
    * @see SystemDependenceGraph#traverse(Collection, ForwardsVisitor)
    */
-  public static final class ForwardsVisitOnceVisitor<N extends Node<?, ?, ?>>
+  private static final class ForwardsVisitOnceVisitor<N extends Node<?, ?, ?>>
       extends VisitOnceVisitor<N> implements ForwardsVisitor<N> {
 
     ForwardsVisitOnceVisitor(ForwardsVisitor<N> pDelegateVisitor, int pNodeCount) {
       super(true, pDelegateVisitor, pNodeCount);
-    }
-
-    /**
-     * Causes this visit-once-visitor to forget all previously visited nodes.
-     *
-     * <p>This can, but doesn't have to, be called between different SDG traversals of the same SDG.
-     */
-    public void reset() {
-      super.reset();
     }
 
     @Override

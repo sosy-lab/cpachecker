@@ -396,54 +396,37 @@ public abstract class AbstractExpressionValueVisitor
       }
     }
 
-    switch (op) {
-      case PLUS -> {
-        return l + r;
-      }
-      case MINUS -> {
-        return l - r;
-      }
+    return switch (op) {
+      case PLUS -> l + r;
+      case MINUS -> l - r;
       case DIVIDE -> {
         if (r == 0) {
           logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", l, r);
-          return 0;
+          yield 0;
         }
-        return l / r;
+        yield l / r;
       }
-      case REMAINDER -> {
-        return l % r;
-      }
-      case MULTIPLY -> {
-        return l * r;
-      }
-      case SHIFT_LEFT -> {
-        /* There is a difference in the SHIFT-operation in Java and C.
-         * In C a SHIFT is a normal SHIFT, in Java the rVal is used as (r%64).
-         *
-         * http://docs.oracle.com/javase/specs/jls/se7/html/jls-15.html#jls-15.19
-         *
-         * If the promoted type of the left-hand operand is long, then only the
-         * six lowest-order bits of the right-hand operand are used as the
-         * shift distance. It is as if the right-hand operand were subjected to
-         * a bitwise logical AND operator & (§15.22.1) with the mask value 0x3f.
-         * The shift distance actually used is therefore always in the range 0 to 63.
-         */
-        return (r >= SIZE_OF_JAVA_LONG) ? 0 : l << r;
-      }
-      case SHIFT_RIGHT -> {
-        return l >> r;
-      }
-      case BITWISE_AND -> {
-        return l & r;
-      }
-      case BITWISE_OR -> {
-        return l | r;
-      }
-      case BITWISE_XOR -> {
-        return l ^ r;
-      }
+      case REMAINDER -> l % r;
+      case MULTIPLY -> l * r;
+      case SHIFT_LEFT ->
+          /* There is a difference in the SHIFT-operation in Java and C.
+           * In C a SHIFT is a normal SHIFT, in Java the rVal is used as (r%64).
+           *
+           * http://docs.oracle.com/javase/specs/jls/se7/html/jls-15.html#jls-15.19
+           *
+           * If the promoted type of the left-hand operand is long, then only the
+           * six lowest-order bits of the right-hand operand are used as the
+           * shift distance. It is as if the right-hand operand were subjected to
+           * a bitwise logical AND operator & (§15.22.1) with the mask value 0x3f.
+           * The shift distance actually used is therefore always in the range 0 to 63.
+           */
+          (r >= SIZE_OF_JAVA_LONG) ? 0 : l << r;
+      case SHIFT_RIGHT -> l >> r;
+      case BITWISE_AND -> l & r;
+      case BITWISE_OR -> l | r;
+      case BITWISE_XOR -> l ^ r;
       default -> throw new AssertionError("unknown binary operation: " + op);
-    }
+    };
   }
 
   /**
@@ -631,7 +614,7 @@ public abstract class AbstractExpressionValueVisitor
       return Value.UnknownValue.getInstance();
     }
 
-    switch (type.getType()) {
+    return switch (type.getType()) {
       case INT128, CHAR, INT -> {
         CSimpleType canonicalType = type.getCanonicalType();
         int sizeInBits = machineModel.getSizeof(canonicalType) * machineModel.getSizeofCharInBits();
@@ -660,13 +643,13 @@ public abstract class AbstractExpressionValueVisitor
             };
 
         // return 1 if expression holds, 0 otherwise
-        return new NumericValue(result ? 1 : 0);
+        yield new NumericValue(result ? 1 : 0);
       }
       case FLOAT, DOUBLE, FLOAT128 -> {
         boolean result =
             comparisonOperation(
                 op, castToFloat(machineModel, type, l), castToFloat(machineModel, type, r));
-        return new NumericValue(result ? 1 : 0);
+        yield new NumericValue(result ? 1 : 0);
       }
       default -> {
         logger.logf(
@@ -674,9 +657,9 @@ public abstract class AbstractExpressionValueVisitor
             "unsupported type %s for result of binary operation %s",
             type.toString(),
             op);
-        return Value.UnknownValue.getInstance();
+        yield Value.UnknownValue.getInstance();
       }
-    }
+    };
   }
 
   /**
@@ -1075,22 +1058,19 @@ public abstract class AbstractExpressionValueVisitor
     final TypeIdOperator idOperator = pE.getOperator();
     final CType innerType = pE.getType();
 
-    switch (idOperator) {
+    return switch (idOperator) {
       case SIZEOF -> {
         if (innerType.hasKnownConstantSize()) {
           BigInteger size = machineModel.getSizeof(innerType);
-          return new NumericValue(size);
+          yield new NumericValue(size);
         }
-        return Value.UnknownValue.getInstance();
+        yield Value.UnknownValue.getInstance();
       }
-      case ALIGNOF -> {
-        return new NumericValue(machineModel.getAlignof(innerType));
-      }
-      default -> {
-        // TODO support more operators
-        return Value.UnknownValue.getInstance();
-      }
-    }
+      case ALIGNOF -> new NumericValue(machineModel.getAlignof(innerType));
+      default ->
+          // TODO support more operators
+          Value.UnknownValue.getInstance();
+    };
   }
 
   /**
@@ -1361,7 +1341,7 @@ public abstract class AbstractExpressionValueVisitor
     final long lVal = pLeftValue.longValue();
     final long rVal = pRightValue.longValue();
 
-    switch (pBinaryOperator) {
+    return switch (pBinaryOperator) {
       case PLUS,
           MINUS,
           DIVIDE,
@@ -1430,7 +1410,7 @@ public abstract class AbstractExpressionValueVisitor
           numResult = intNumResult;
         }
 
-        return new NumericValue(numResult);
+        yield new NumericValue(numResult);
       }
       case EQUALS, NOT_EQUALS, GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL -> {
         final boolean result =
@@ -1443,13 +1423,12 @@ public abstract class AbstractExpressionValueVisitor
               case LESS_EQUAL -> (lVal <= rVal);
               default -> throw new AssertionError("Unhandled operation " + pBinaryOperator);
             };
-        return BooleanValue.valueOf(result);
+        yield BooleanValue.valueOf(result);
       }
-      default -> {
-        // TODO check which cases can be handled
-        return UnknownValue.getInstance();
-      }
-    }
+      default ->
+          // TODO check which cases can be handled
+          UnknownValue.getInstance();
+    };
   }
 
   /*

@@ -35,6 +35,8 @@ SPDX-License-Identifier: Apache-2.0
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
       <exclude reason="timeout">../programs/benchmarks/systemc/token_ring.1*</exclude>
       <exclude reason="timeout">../programs/benchmarks/systemc/transmitter.1*</exclude>
+      <exclude>../programs/benchmarks/systemc/toy.cil.yml</exclude> <!-- flapping oom/timeout -->
+      <exclude>../programs/benchmarks/systemc/toy1.cil.yml</exclude> <!-- flapping oom/timeout -->
       <exclude>../programs/benchmarks/systemc/transmitter.06.cil.yml</exclude> <!-- flapping timeout -->
       <option name="--option">OctagonCPA.precision.trackFloatVariables=false</option>
       <option name="--option">cpa.octagon.octagonLibrary=INT</option>

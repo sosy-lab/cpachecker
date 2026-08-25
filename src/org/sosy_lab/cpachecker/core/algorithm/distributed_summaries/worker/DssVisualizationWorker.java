@@ -34,7 +34,7 @@ public class DssVisualizationWorker extends DssWorker {
 
   DssVisualizationWorker(
       String id,
-      BlockGraph pNode,
+      BlockGraph pBlockGraph,
       DssConnection pConnection,
       DssAnalysisOptions pOptions,
       DssMessageFactory pMessageFactory,
@@ -46,7 +46,7 @@ public class DssVisualizationWorker extends DssWorker {
     reportFiles = pOptions.getReportFiles();
     try {
       if (pOptions.getBlockCFAFile() != null) {
-        JSON.writeJSONString(pNode.getExportData(cfa), pOptions.getBlockCFAFile());
+        JSON.writeJSONString(pBlockGraph.getExportData(cfa), pOptions.getBlockCFAFile());
       }
     } catch (IOException e) {
       pLogger.logException(
@@ -70,11 +70,13 @@ public class DssVisualizationWorker extends DssWorker {
   public Collection<DssMessage> processMessage(DssMessage pMessage)
       throws InterruptedException, IOException {
     log(pMessage);
-    boolean stop = false;
+    boolean stop =
+        pMessage.getType() == DssMessageType.RESULT
+            || pMessage.getType() == DssMessageType.EXCEPTION;
     while (connection.hasPendingMessages()) {
       DssMessage m = connection.read();
       log(m);
-      stop |= m.getType() == DssMessageType.EXCEPTION || m.getType() == DssMessageType.RESULT;
+      stop |= m.getType() == DssMessageType.RESULT || m.getType() == DssMessageType.EXCEPTION;
     }
     if (stop) {
       shutdown = true;

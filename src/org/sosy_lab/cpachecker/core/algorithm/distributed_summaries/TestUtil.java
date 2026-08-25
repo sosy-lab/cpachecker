@@ -19,7 +19,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 
 /** Helper class for Distributed Summary Synthesis tests. */
 public class TestUtil {
@@ -48,6 +48,6 @@ public class TestUtil {
 
     String programText = Files.readString(Path.of(path), StandardCharsets.UTF_8);
 
-    return TestDataTools.makeCFA(programText);
+    return TestCfaUtils.makeCFA(programText);
   }
 }

@@ -12,37 +12,27 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.common.collect.Collections3.elementAndList;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import java.util.Optional;
-import java.util.logging.Level;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationFields;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIdExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements.SeqFunctionStatements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements.SeqFunctionStatements.SeqMainFunctionArgAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.SeqGhostElements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.statement_injector.CommutingThreadsFirstInjector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqComment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
@@ -55,23 +45,12 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CWhileLoopStatement;
 /** A class to represent the {@code main()} function in the sequentialization. */
 public final class SeqMainFunctionBuilder {
 
-  // CFunctionType
-
-  private static final CFunctionType MAIN_FUNCTION_TYPE =
-      new CFunctionType(CNumericTypes.INT, ImmutableList.of(), false);
-
-  // CFunctionDeclaration
-
-  public static final CFunctionDeclaration MAIN_FUNCTION_DECLARATION =
-      new CFunctionDeclaration(
-          FileLocation.DUMMY, MAIN_FUNCTION_TYPE, "main", ImmutableList.of(), ImmutableSet.of());
-
   public static CExportFunctionDefinition buildFunctionDefinition(
       MPOROptions pOptions, SequentializationFields pFields, SequentializationUtils pUtils)
       throws UnrecognizedCodeException {
 
     return new CExportFunctionDefinition(
-        MAIN_FUNCTION_DECLARATION, buildBody(pOptions, pFields, pUtils));
+        pFields.outputMainFunctionDeclaration, buildBody(pOptions, pFields, pUtils));
   }
 
   private static CCompoundStatement buildBody(
@@ -81,7 +60,7 @@ public final class SeqMainFunctionBuilder {
     ImmutableList.Builder<CCompoundStatementElement> rBody = ImmutableList.builder();
 
     // add main function argument non-deterministic assignments
-    rBody.addAll(buildMainFunctionArgNondetAssignments(pFields, pUtils.logger()));
+    rBody.addAll(buildMainFunctionArgNondetAssignments(pFields.functionStatements));
 
     if (pOptions.threadSimulationUnrolling()) {
       // when unrolling loops, add function calls to the respective thread simulation
@@ -163,38 +142,13 @@ public final class SeqMainFunctionBuilder {
    * = __VERIFIER_nondet_int;}
    */
   private static ImmutableList<CExportStatement> buildMainFunctionArgNondetAssignments(
-      SequentializationFields pFields, LogManager pLogger) {
+      ImmutableMap<MPORThread, SeqFunctionStatements> pFunctionStatements) {
 
-    // first extract all accesses to main function arguments
-    ImmutableSet<SubstituteEdge> allSubstituteEdges =
-        SeqThreadStatementClauseUtil.collectAllSubstituteEdges(pFields.clauses);
-    ImmutableSet<CVariableDeclaration> accessedMainFunctionArgs =
-        allSubstituteEdges.stream()
-            .flatMap(substituteEdge -> substituteEdge.accessedMainFunctionArgs.stream())
-            .collect(ImmutableSet.toImmutableSet());
-
-    // then add main function arg nondet assignments, if necessary
     ImmutableList.Builder<CExportStatement> rAssignments = ImmutableList.builder();
-
-    for (var entry : pFields.mainSubstitution.mainFunctionArgSubstitutes.entrySet()) {
-      // add assignment only if necessary, i.e. if it is accessed later (nondet is expensive)
-      if (accessedMainFunctionArgs.contains(entry.getKey().asVariableDeclaration())) {
-        CIdExpression mainArgSubstitute = entry.getValue();
-        CType mainArgType = mainArgSubstitute.getExpressionType();
-        Optional<CFunctionCallExpression> verifierNondet =
-            VerifierNondetFunctionType.tryBuildFunctionCallExpressionByType(mainArgType);
-        if (verifierNondet.isPresent()) {
-          CFunctionCallAssignmentStatement assignment =
-              new CFunctionCallAssignmentStatement(
-                  FileLocation.DUMMY, mainArgSubstitute, verifierNondet.orElseThrow());
-          rAssignments.add(new CStatementWrapper(assignment));
-        } else {
-          pLogger.log(
-              Level.WARNING,
-              "could not find __VERIFIER_nondet function "
-                  + "for the following main function argument type: "
-                  + mainArgType.toASTString(""));
-        }
+    for (SeqFunctionStatements functionStatements : pFunctionStatements.values()) {
+      for (SeqMainFunctionArgAssignment assignment :
+          functionStatements.mainFunctionArgAssignments()) {
+        rAssignments.add(new CStatementWrapper(assignment.functionCallAssignmentStatement()));
       }
     }
     return rAssignments.build();

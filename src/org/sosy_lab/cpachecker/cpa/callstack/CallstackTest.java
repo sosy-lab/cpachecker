@@ -21,9 +21,9 @@ import org.sosy_lab.common.io.TempFile.DeleteOnCloseFile;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
-import org.sosy_lab.cpachecker.util.test.TestResults;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class CallstackTest {
 
@@ -59,7 +59,7 @@ public class CallstackTest {
       Files.writeString(programFile.toPath(), program);
 
       Configuration config =
-          TestDataTools.configurationForTest()
+          TestUtils.configurationForTest()
               //          .setOption("cpa.arg.keepCoveredStatesInReached", "true")
               .setOption("cpa", "cpa.arg.ARGCPA")
               .setOption("ARGCPA.cpa", "cpa.composite.CompositeCPA")
@@ -69,11 +69,12 @@ public class CallstackTest {
                       + " cpa.value.ValueAnalysisCPA")
               .build();
 
-      TestResults result = CPATestRunner.run(config, programFile.toPath().toString());
+      IntegrationTestResult result =
+          IntegrationTestRunner.run(config, programFile.toPath().toString());
       result.assertIsSafe();
 
       FluentIterable<ARGState> argStates =
-          from(result.getCheckerResult().getReached()).filter(ARGState.class);
+          from(result.cpaCheckerResult().getReached()).filter(ARGState.class);
       assert_()
           .withMessage("unexpected merged")
           .that(argStates.filter(s -> s.getParents().size() > 1))

@@ -184,6 +184,7 @@ REM PerfDisableSharedMem avoids hsperfdata in /tmp (disable it to connect easily
     -cp "%CLASSPATH%" ^
     -XX:+PerfDisableSharedMem ^
     -Djava.awt.headless=true ^
+    --enable-native-access=ALL-UNNAMED ^
     %JAVA_GC% ^
     %JAVA_VM_ARGUMENTS% ^
     -Xss%JAVA_STACK_SIZE% ^

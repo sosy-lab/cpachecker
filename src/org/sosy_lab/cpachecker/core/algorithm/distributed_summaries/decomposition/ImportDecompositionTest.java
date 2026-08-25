@@ -25,7 +25,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.ImportedBlock;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class ImportDecompositionTest {
 
@@ -35,7 +36,7 @@ public class ImportDecompositionTest {
       throws IOException, InvalidConfigurationException, InterruptedException {
 
     ConfigurationBuilder decompositionOptions =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .setOption(
                 "distributedSummaries.decomposition.decompositionType", "MERGE_DECOMPOSITION");
 
@@ -67,8 +68,8 @@ public class ImportDecompositionTest {
     String programText = Files.readString(Path.of(PROGRAM), StandardCharsets.UTF_8);
 
     // read the same CFA twice (with different ids)
-    CFA originalCFA = TestDataTools.makeCFA(programText);
-    CFA shiftedCFA = TestDataTools.makeCFA(programText);
+    CFA originalCFA = TestCfaUtils.makeCFA(programText);
+    CFA shiftedCFA = TestCfaUtils.makeCFA(programText);
 
     // If the CFAs have the same nodes, then they were not shifted and this test is not valid
     assertThat(originalCFA.nodes()).isNotEmpty();
@@ -85,7 +86,7 @@ public class ImportDecompositionTest {
   @Test
   public void testValidImportDecomposition() throws Exception {
     String programText = Files.readString(Path.of(PROGRAM), StandardCharsets.UTF_8);
-    CFA originalCFA = TestDataTools.makeCFA(programText);
+    CFA originalCFA = TestCfaUtils.makeCFA(programText);
 
     ImportDecomposition decomposition = new ImportDecomposition(getExportDataFrom(originalCFA));
     BlockGraph graph = decomposition.decompose(originalCFA);

@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class DssMessageBroadcasterTest {
 
@@ -40,8 +40,7 @@ public class DssMessageBroadcasterTest {
 
     DssMessageBroadcaster broadcaster = new DssMessageBroadcaster(queues.buildOrThrow());
 
-    DssAnalysisOptions options =
-        new DssAnalysisOptions(TestDataTools.configurationForTest().build());
+    DssAnalysisOptions options = new DssAnalysisOptions(TestUtils.configurationForTest().build());
     DssMessageFactory messageFactory = new DssMessageFactory(options);
     DssMessage message = messageFactory.createDssResultMessage("bl1", Result.UNKNOWN);
     broadcaster.broadcastToAll(message);
@@ -67,8 +66,7 @@ public class DssMessageBroadcasterTest {
 
     DssMessageBroadcaster broadcaster = new DssMessageBroadcaster(queues.buildOrThrow());
 
-    DssAnalysisOptions options =
-        new DssAnalysisOptions(TestDataTools.configurationForTest().build());
+    DssAnalysisOptions options = new DssAnalysisOptions(TestUtils.configurationForTest().build());
     DssMessageFactory messageFactory = new DssMessageFactory(options);
     DssMessage message = messageFactory.createDssResultMessage("bl1", Result.UNKNOWN);
     broadcaster.broadcastToObserver(message);
@@ -94,8 +92,7 @@ public class DssMessageBroadcasterTest {
 
     DssMessageBroadcaster broadcaster = new DssMessageBroadcaster(queues.buildOrThrow());
 
-    DssAnalysisOptions options =
-        new DssAnalysisOptions(TestDataTools.configurationForTest().build());
+    DssAnalysisOptions options = new DssAnalysisOptions(TestUtils.configurationForTest().build());
     DssMessageFactory messageFactory = new DssMessageFactory(options);
     DssMessage message = messageFactory.createDssResultMessage("bl1", Result.UNKNOWN);
     broadcaster.broadcastToIds(message, ImmutableSet.of("obs", "bl1"));

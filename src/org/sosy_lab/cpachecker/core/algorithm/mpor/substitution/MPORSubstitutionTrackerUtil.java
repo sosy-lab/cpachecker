@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAl
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAssignmentType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class MPORSubstitutionTrackerUtil {
@@ -110,7 +110,7 @@ public class MPORSubstitutionTrackerUtil {
   static void trackDeclarationAccess(
       MPOROptions pOptions,
       CIdExpression pIdExpression,
-      Optional<CFAEdgeForThread> pCallContext,
+      SeqCallContext pCallContext,
       boolean pIsWrite,
       boolean pIsPointerDereference,
       boolean pIsFieldReference,
@@ -158,7 +158,7 @@ public class MPORSubstitutionTrackerUtil {
   static void trackPointerAssignment(
       CLeftHandSide pLeftHandSide,
       CRightHandSide pRightHandSide,
-      Optional<CFAEdgeForThread> pCallContext,
+      SeqCallContext pCallContext,
       CFA pInputCfa,
       MPORSubstitutionTracker pTracker)
       throws UnsupportedCodeException {
@@ -183,7 +183,7 @@ public class MPORSubstitutionTrackerUtil {
   static void trackPointerAssignmentInVariableDeclaration(
       CVariableDeclaration pVariableDeclaration,
       CIdExpression pIdExpression,
-      Optional<CFAEdgeForThread> pCallContext,
+      SeqCallContext pCallContext,
       CFA pInputCfa,
       MPORSubstitutionTracker pTracker)
       throws UnsupportedCodeException {
@@ -206,7 +206,7 @@ public class MPORSubstitutionTrackerUtil {
    */
   static void trackPointerDereferenceByLeftHandSide(
       CLeftHandSide pLeftHandSide,
-      Optional<CFAEdgeForThread> pCallContext,
+      SeqCallContext pCallContext,
       boolean pIsWrite,
       MPORSubstitutionTracker pTracker)
       throws UnsupportedCodeException {
@@ -234,7 +234,7 @@ public class MPORSubstitutionTrackerUtil {
 
   private static void trackFieldReference(
       CFieldReference pFieldReference,
-      Optional<CFAEdgeForThread> pCallContext,
+      SeqCallContext pCallContext,
       boolean pIsWrite,
       MPORSubstitutionTracker pTracker)
       throws UnsupportedCodeException {

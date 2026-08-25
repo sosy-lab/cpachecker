@@ -27,7 +27,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 import org.sosy_lab.cpachecker.util.test.ToCTranslationTest;
 
 /**
@@ -56,7 +56,7 @@ public abstract sealed class ARGToCTranslatorTest extends ToCTranslationTest {
             .create()
             .toAbsolutePath(),
         /* pVerdict= */ pVerdict,
-        /* pCheckerConfig= */ TestDataTools.configurationForTest()
+        /* pCheckerConfig= */ TestUtils.configurationForTest()
             .loadFromResource(ARGToCTranslatorTest.class, "predicateAnalysis.properties")
             .build());
 
@@ -66,7 +66,7 @@ public abstract sealed class ARGToCTranslatorTest extends ToCTranslationTest {
   }
 
   protected ConfigurationBuilder getGenerationConfig() throws InvalidConfigurationException {
-    return TestDataTools.configurationForTest()
+    return TestUtils.configurationForTest()
         .loadFromResource(ARGToCTranslatorTest.class, generationPropfile)
         .setOption("cpa.arg.export.code.handleTargetStates", "VERIFIERERROR")
         .setOption("cpa.arg.export.code.header", "false");

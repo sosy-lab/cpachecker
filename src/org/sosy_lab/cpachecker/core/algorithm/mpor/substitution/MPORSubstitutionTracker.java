@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAssignment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
 
 /**
  * A class to track certain expressions, statements, ... (such as pointer dereferences and variable
@@ -117,7 +117,7 @@ public class MPORSubstitutionTracker {
   }
 
   void addAccessedPointerDereference(
-      Optional<CFAEdgeForThread> pCallContext, CSimpleDeclaration pAccessedPointerDereference) {
+      SeqCallContext pCallContext, CSimpleDeclaration pAccessedPointerDereference) {
 
     accessedPointerDereferences.add(
         SeqMemoryLocation.of(
@@ -125,7 +125,7 @@ public class MPORSubstitutionTracker {
   }
 
   void addWrittenPointerDereference(
-      Optional<CFAEdgeForThread> pCallContext, CSimpleDeclaration pWrittenPointerDereference) {
+      SeqCallContext pCallContext, CSimpleDeclaration pWrittenPointerDereference) {
 
     writtenPointerDereferences.add(
         SeqMemoryLocation.of(
@@ -133,7 +133,7 @@ public class MPORSubstitutionTracker {
   }
 
   void addAccessedFieldReferencePointerDereference(
-      Optional<CFAEdgeForThread> pCallContext,
+      SeqCallContext pCallContext,
       CSimpleDeclaration pFieldOwner,
       CCompositeTypeMemberDeclaration pFieldMember) {
 
@@ -145,7 +145,7 @@ public class MPORSubstitutionTracker {
   }
 
   void addWrittenFieldReferencePointerDereference(
-      Optional<CFAEdgeForThread> pCallContext,
+      SeqCallContext pCallContext,
       CSimpleDeclaration pFieldOwner,
       CCompositeTypeMemberDeclaration pFieldMember) {
 
@@ -157,21 +157,20 @@ public class MPORSubstitutionTracker {
   }
 
   void addAccessedDeclaration(
-      Optional<CFAEdgeForThread> pCallContext, CSimpleDeclaration pAccessedDeclaration) {
+      SeqCallContext pCallContext, CSimpleDeclaration pAccessedDeclaration) {
     accessedDeclarations.add(
         SeqMemoryLocation.of(
             pCallContext, MPORUtil.convertToVariableDeclaration(pAccessedDeclaration)));
   }
 
-  void addWrittenDeclaration(
-      Optional<CFAEdgeForThread> pCallContext, CSimpleDeclaration pWrittenDeclaration) {
+  void addWrittenDeclaration(SeqCallContext pCallContext, CSimpleDeclaration pWrittenDeclaration) {
     writtenDeclarations.add(
         SeqMemoryLocation.of(
             pCallContext, MPORUtil.convertToVariableDeclaration(pWrittenDeclaration)));
   }
 
   void addAccessedFieldMember(
-      Optional<CFAEdgeForThread> pCallContext,
+      SeqCallContext pCallContext,
       CSimpleDeclaration pOwnerDeclaration,
       CCompositeTypeMemberDeclaration pAccessedFieldMember) {
 
@@ -183,7 +182,7 @@ public class MPORSubstitutionTracker {
   }
 
   void addWrittenFieldMember(
-      Optional<CFAEdgeForThread> pCallContext,
+      SeqCallContext pCallContext,
       CSimpleDeclaration pOwnerDeclaration,
       CCompositeTypeMemberDeclaration pWrittenFieldMember) {
 

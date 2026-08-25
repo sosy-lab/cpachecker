@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
@@ -23,7 +24,10 @@ public record SeqThreadSyncFlagsBuilder(MPOROptions options, ImmutableList<MPORT
   public SeqThreadSyncFlags buildThreadSyncFlags() {
     ImmutableMap.Builder<MPORThread, CIdExpression> syncFlags = ImmutableMap.builder();
     for (MPORThread thread : threads) {
-      String name = SeqNameUtil.buildThreadPrefix(options, thread.id()) + "_SYNC";
+      String name =
+          Sequentialization.MPOR_PREFIX
+              + SeqNameUtil.buildThreadPrefix(options, thread.id())
+              + "_SYNC";
       // use unsigned char (8 bit), we only need values 0 and 1
       CIdExpression sync =
           SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(

@@ -187,6 +187,10 @@ public final class AstCfaRelation {
    *     be uniquely determined
    */
   public Optional<CFANode> getNodeForStatementLocation(int line, int column) {
+    if (startingLocationToTightestStatement == null) {
+      initializeMapFromStartingLocationToTightestStatement();
+    }
+
     ASTElement statement =
         Objects.requireNonNull(
                 startingLocationToTightestStatement.floorEntry(new StartingLocation(column, line)))
@@ -435,5 +439,20 @@ public final class AstCfaRelation {
       return Optional.empty();
     }
     return Optional.of(globalVariables);
+  }
+
+  public ImmutableSet<AVariableDeclaration> getAstLocalVariablesInScopeByCfaNode(CFANode pCfaNode) {
+    if (!cfaNodeToAstLocalVariablesInScope.containsKey(pCfaNode)) {
+      return ImmutableSet.of();
+    }
+    return ImmutableSet.copyOf(
+        Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(pCfaNode)));
+  }
+
+  public ImmutableSet<AParameterDeclaration> getAstParametersInScopeByCfaNode(CFANode pCfaNode) {
+    if (!cfaNodeToAstParametersInScope.containsKey(pCfaNode)) {
+      return ImmutableSet.of();
+    }
+    return ImmutableSet.copyOf(Objects.requireNonNull(cfaNodeToAstParametersInScope.get(pCfaNode)));
   }
 }

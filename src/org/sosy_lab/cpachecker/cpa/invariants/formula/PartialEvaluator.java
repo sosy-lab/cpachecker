@@ -298,12 +298,7 @@ public class PartialEvaluator
       FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
     BooleanFormula<CompoundInterval> operand1 = pAnd.getOperand1().accept(this, pEvaluationVisitor);
     BooleanFormula<CompoundInterval> operand2 = pAnd.getOperand2().accept(this, pEvaluationVisitor);
-    if (operand1 instanceof Constant<?> && operand2 instanceof Constant<?>) {
-      BooleanFormula<CompoundInterval> result = pAnd.accept(pEvaluationVisitor, environment);
-      if (result != null) {
-        return result;
-      }
-    }
+
     // If either operand is false, return it
     if (operand1 instanceof BooleanConstant<?> && !((BooleanConstant<?>) operand1).getValue()) {
       return operand1;
@@ -329,12 +324,7 @@ public class PartialEvaluator
       LogicalNot<CompoundInterval> pNot,
       FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
     BooleanFormula<CompoundInterval> operand = pNot.getNegated().accept(this, pEvaluationVisitor);
-    if (operand instanceof Constant<?>) {
-      BooleanFormula<CompoundInterval> result = pNot.accept(pEvaluationVisitor, environment);
-      if (result != null) {
-        return result;
-      }
-    }
+
     // The negation of a negation yields the inner operand
     if (operand instanceof LogicalNot<?>) {
       return ((LogicalNot<CompoundInterval>) operand).getNegated();

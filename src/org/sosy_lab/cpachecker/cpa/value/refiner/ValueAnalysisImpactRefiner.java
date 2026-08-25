@@ -101,7 +101,7 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner
     return new ValueAnalysisImpactRefiner(delegate, argCpa, logger);
   }
 
-  ValueAnalysisImpactRefiner(
+  private ValueAnalysisImpactRefiner(
       final ImpactDelegateRefiner pDelegate, final ARGCPA pArgCpa, final LogManager pLogger) {
     super(pDelegate, pArgCpa, pLogger);
   }

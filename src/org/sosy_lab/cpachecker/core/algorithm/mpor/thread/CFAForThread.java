@@ -132,7 +132,7 @@ public class CFAForThread {
             // check if calling context for node and edge are the same
             if (cfaEdge instanceof CFunctionCallEdge) {
               // for call edges, we use the edge as the call context
-              if (threadNode.callContext.equals(Optional.of(threadEdge))) {
+              if (threadNode.callContext.equals(new SeqCallContext(Optional.of(threadEdge)))) {
                 threadEdge.setSuccessor(threadNode);
                 continue outerLoop;
               }
@@ -150,16 +150,16 @@ public class CFAForThread {
   }
 
   private Optional<CFANodeForThread> getReturnThreadNodeByCallContext(
-      CFANode pCfaNode, Optional<CFAEdgeForThread> pCallContext) {
+      CFANode pCfaNode, SeqCallContext pCallContext) {
 
     // no call context -> return the single thread node corresponding to pCfaNode
-    if (pCallContext.isEmpty()) {
+    if (pCallContext.cfaEdgeForThread().isEmpty()) {
       ImmutableSet<CFANodeForThread> threadNodesByCfaNode = getThreadNodesByCfaNode(pCfaNode);
       return Optional.of(Iterables.getOnlyElement(threadNodesByCfaNode));
     }
 
     // otherwise extract return node based on call context
-    CFANodeForThread callNode = pCallContext.orElseThrow().getPredecessor();
+    CFANodeForThread callNode = pCallContext.cfaEdgeForThread().orElseThrow().getPredecessor();
     for (CFAEdgeForThread threadEdge : callNode.leavingEdges()) {
       if (threadEdge.cfaEdge instanceof CFunctionSummaryEdge functionSummaryEdge) {
         return getThreadNodeByCfaNodeAndCallContext(
@@ -180,7 +180,7 @@ public class CFAForThread {
   }
 
   private Optional<CFANodeForThread> getThreadNodeByCfaNodeAndCallContext(
-      CFANode pCfaNode, Optional<CFAEdgeForThread> pCallContext) {
+      CFANode pCfaNode, SeqCallContext pCallContext) {
 
     for (CFANodeForThread threadNode : threadNodes) {
       if (threadNode.getCfaNode().equals(pCfaNode)) {

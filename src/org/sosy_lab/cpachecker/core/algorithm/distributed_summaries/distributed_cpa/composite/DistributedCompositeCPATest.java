@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class DistributedCompositeCPATest {
 
@@ -30,7 +30,7 @@ public class DistributedCompositeCPATest {
     CFA cfa = TestUtil.buildTestCFA("test/programs/cfa-ast-relation/full-expression.c");
 
     Configuration config =
-        TestDataTools.configurationForTest().loadFromFile(TestUtil.DSS_CONFIGURATION_FILE).build();
+        TestUtils.configurationForTest().loadFromFile(TestUtil.DSS_CONFIGURATION_FILE).build();
     ConfigurableProgramAnalysis cpa1 =
         LocationCPA.factory()
             .setConfiguration(config)

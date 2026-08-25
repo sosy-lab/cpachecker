@@ -26,7 +26,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /** Test that the bundled specification files are all valid. */
 @RunWith(Parameterized.class)
@@ -50,7 +50,7 @@ public class AutomatonFilesTest {
     List<Automaton> automata =
         AutomatonParser.parseAutomatonFile(
             automatonFile,
-            TestDataTools.configurationForTest().build(),
+            TestUtils.configurationForTest().build(),
             LogManager.createTestLogManager(),
             MachineModel.LINUX32,
             CProgramScope.empty(),

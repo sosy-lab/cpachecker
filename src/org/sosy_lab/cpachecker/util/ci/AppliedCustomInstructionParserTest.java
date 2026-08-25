@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 
 public class AppliedCustomInstructionParserTest {
 
@@ -49,7 +49,7 @@ public class AppliedCustomInstructionParserTest {
   @Before
   public void init() throws ParserException, InterruptedException {
     cfa =
-        TestDataTools.makeCFA(
+        TestCfaUtils.makeCFA(
             """
             extern int test3(int);
             int test(int p) {
@@ -198,7 +198,7 @@ public class AppliedCustomInstructionParserTest {
   @Test
   public void testParse() throws Exception {
     cfa =
-        TestDataTools.makeCFA(
+        TestCfaUtils.makeCFA(
             """
             void main() {
               int x;

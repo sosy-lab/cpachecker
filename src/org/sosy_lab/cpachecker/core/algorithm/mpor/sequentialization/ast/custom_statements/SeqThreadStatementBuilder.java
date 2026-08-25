@@ -76,7 +76,6 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionStatementWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
-import org.sosy_lab.cpachecker.util.cwriter.export.CVariableDeclarationWrapper;
 
 public record SeqThreadStatementBuilder(
     MPORThread thread,
@@ -120,6 +119,19 @@ public record SeqThreadStatementBuilder(
       CFANodeForThread pThreadNode, Set<CFANodeForThread> pCoveredNodes)
       throws UnrecognizedCodeException {
 
+    if (!pThreadNode.leavingEdges().isEmpty()) {
+      if (SeqThreadStatementUtil.isFunctionExitOrTerminationNode(pThreadNode.getCfaNode())) {
+        ImmutableSet<SubstituteEdge> edges =
+            pThreadNode.leavingEdges().stream()
+                .map(substituteEdges::get)
+                .filter(Objects::nonNull)
+                .collect(ImmutableSet.toImmutableSet());
+        return ImmutableList.of(
+            SeqThreadStatementBuilder.buildGhostOnlyStatement(
+                thread, edges, pcLeftHandSide, pThreadNode.firstLeavingEdge().getSuccessor().pc));
+      }
+    }
+
     ImmutableList.Builder<SeqThreadStatement> rStatements = ImmutableList.builder();
     for (CFAEdgeForThread threadEdge : pThreadNode.leavingEdges()) {
       // handle const CPAchecker_TMP first because it requires successor nodes and edges
@@ -156,11 +168,28 @@ public record SeqThreadStatementBuilder(
     pCoveredNodes.add(firstSuccessor);
     // const CPAchecker_TMP declarations can have only 1 successor edge
     CFAEdgeForThread firstSuccessorEdge = Iterables.getOnlyElement(firstSuccessor.leavingEdges());
-    assert firstSuccessorEdge.cfaEdge instanceof CStatementEdge
-        : "successor edge of const CPAchecker_TMP declaration must be CStatementEdge";
+    checkState(
+        firstSuccessorEdge.cfaEdge instanceof CStatementEdge,
+        "Expected CStatementEdge as successor edge of const CPAchecker_TMP declaration, got %s",
+        firstSuccessorEdge.cfaEdge);
+
     CFANodeForThread secondSuccessor = firstSuccessorEdge.getSuccessor();
-    // second successor of const CPAchecker_TMP declarations can have only 1 successor edge
+    checkState(!secondSuccessor.leavingEdges().isEmpty());
+    // multiple leaving edges are possible e.g. if an increment is followed by a function call:
+    // var++; function();
+    if (secondSuccessor.leavingEdges().size() > 1) {
+      checkState(secondSuccessor.leavingEdges().size() == 2);
+      checkState(secondSuccessor.leavingEdges().getFirst().cfaEdge instanceof CFunctionSummaryEdge);
+      checkState(secondSuccessor.leavingEdges().getLast().cfaEdge instanceof CFunctionCallEdge);
+      return buildTwoPartConstCpaCheckerTmpStatement(constCpaCheckerTmpEdge, firstSuccessorEdge);
+    }
+
     CFAEdgeForThread secondSuccessorEdge = Iterables.getOnlyElement(secondSuccessor.leavingEdges());
+    // the second successor edge can be blank if an increment is followed by a function return:
+    // function(int number) { number++; }
+    if (secondSuccessorEdge.cfaEdge instanceof BlankEdge) {
+      return buildTwoPartConstCpaCheckerTmpStatement(constCpaCheckerTmpEdge, firstSuccessorEdge);
+    }
 
     CStatementEdge secondSuccessorStatement = (CStatementEdge) secondSuccessorEdge.cfaEdge;
     // there are programs where a const CPAchecker_TMP statement has only two parts.
@@ -170,6 +199,9 @@ public record SeqThreadStatementBuilder(
     } else {
       // cover second successor only when it is a three part const CPAchecker_TMP statement
       pCoveredNodes.add(secondSuccessor);
+      CExpressionStatement expressionStatement =
+          (CExpressionStatement) secondSuccessorStatement.getStatement();
+      checkState(expressionStatement.getExpression() instanceof CIdExpression);
       return buildThreePartConstCpaCheckerTmpStatement(
           constCpaCheckerTmpEdge, firstSuccessorEdge, secondSuccessorEdge);
     }
@@ -236,7 +268,9 @@ public record SeqThreadStatementBuilder(
         variableDeclaration, pFirstSuccessorEdge, pSecondSuccessorEdge);
 
     ImmutableList.Builder<CCompoundStatementElement> exportStatements = ImmutableList.builder();
-    exportStatements.add(new CVariableDeclarationWrapper(variableDeclaration));
+    CExpressionAssignmentStatement assignmentStatement =
+        buildExpressionAssignmentStatementFromVariableDeclaration(variableDeclaration);
+    exportStatements.add(new CStatementWrapper(assignmentStatement));
     exportStatements.add(
         new CStatementWrapper(((CStatementEdge) pFirstSuccessorEdge.cfaEdge).getStatement()));
 
@@ -463,9 +497,10 @@ public record SeqThreadStatementBuilder(
             pSubstituteEdge,
             thread.id(),
             pcLeftHandSide);
-    CStatementWrapper assignmentStatement =
+    CExpressionAssignmentStatement assignmentStatement =
         buildExpressionAssignmentStatementFromVariableDeclaration(pVariableDeclaration);
-    return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(assignmentStatement));
+    return SeqThreadStatement.of(
+        data, pTargetPc, ImmutableList.of(new CStatementWrapper(assignmentStatement)));
   }
 
   private SeqThreadStatement buildFunctionCallStatement(
@@ -540,7 +575,7 @@ public record SeqThreadStatementBuilder(
           Objects.requireNonNull(functionStatements.returnValueAssignments().get(pThreadEdge));
       SeqThreadStatementData data =
           SeqThreadStatementData.of(
-              SeqThreadStatementType.DEFAULT, pSubstituteEdge, thread.id(), pcLeftHandSide);
+              SeqThreadStatementType.FUNCTION_EXIT, pSubstituteEdge, thread.id(), pcLeftHandSide);
       return SeqThreadStatement.of(
           data,
           pTargetPc,
@@ -886,8 +921,9 @@ public record SeqThreadStatementBuilder(
     return false;
   }
 
-  private static CStatementWrapper buildExpressionAssignmentStatementFromVariableDeclaration(
-      CVariableDeclaration pVariableDeclaration) throws UnsupportedCodeException {
+  private static CExpressionAssignmentStatement
+      buildExpressionAssignmentStatementFromVariableDeclaration(
+          CVariableDeclaration pVariableDeclaration) throws UnsupportedCodeException {
 
     if (!(pVariableDeclaration.getInitializer() instanceof CInitializerExpression)) {
       throw new UnsupportedCodeException(
@@ -899,12 +935,10 @@ public record SeqThreadStatementBuilder(
     // it is assigned the initializer e.g. 'x = 7;'
     CIdExpression idExpression =
         new CIdExpression(pVariableDeclaration.getFileLocation(), pVariableDeclaration);
-    CExpressionAssignmentStatement assignmentStatement =
-        new CExpressionAssignmentStatement(
-            FileLocation.DUMMY,
-            idExpression,
-            ((CInitializerExpression) pVariableDeclaration.getInitializer()).getExpression());
-    return new CStatementWrapper(assignmentStatement);
+    return new CExpressionAssignmentStatement(
+        FileLocation.DUMMY,
+        idExpression,
+        ((CInitializerExpression) pVariableDeclaration.getInitializer()).getExpression());
   }
 
   private static boolean isExcludedSummaryEdge(CFAEdge pCfaEdge) {
