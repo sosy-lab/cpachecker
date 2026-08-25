@@ -489,16 +489,19 @@ abstract class AbstractBMCAlgorithm
         } finally {
           stats.bmcUnrolling.stop();
         }
+        stats.abstractionCheckCandidates += Math.max(0, reachedSet.size() - 1);
+        stats.abstractionCheck.start();
         if (from(reachedSet)
             .skip(1) // first state of reached is always an abstraction state, so skip it
             .filter(not(AbstractStates::isTargetState)) // target states may be abstraction states
             .anyMatch(PredicateAbstractState::containsAbstractionState)) {
-
+          stats.abstractionCheck.stop();
           logger.log(
               Level.WARNING,
               "BMC algorithm does not work with abstractions. Could not check for satisfiability!");
           return status;
         }
+        stats.abstractionCheck.stop();
         shutdownNotifier.shutdownIfNecessary();
 
         if (invariantGenerator.isProgramSafe()) {
@@ -754,7 +757,10 @@ abstract class AbstractBMCAlgorithm
       BasicProverEnvironment<?> pProver,
       CandidateInvariant pCandidateInvariant)
       throws CPATransferException, InterruptedException, SolverException {
+    stats.targetAssertionCandidates += Iterables.size(pReachedSet);
+    stats.targetAssertionCreation.start();
     BooleanFormula program = bfmgr.not(pCandidateInvariant.getAssertion(pReachedSet, fmgr, pmgr));
+    stats.targetAssertionCreation.stop();
     if (simplifyBooleanFormula) {
       BigInteger sizeBeforeSimplification = fmgr.countBooleanOperations(program);
       program = fmgr.simplifyBooleanFormula(program);
@@ -778,7 +784,10 @@ abstract class AbstractBMCAlgorithm
 
     if (pReachedSet instanceof ReachedSet reachedSet) {
       if (safe) {
+        stats.targetStateRemovalCandidates += reachedSet.size();
+        stats.targetStateRemoval.start();
         pCandidateInvariant.assumeTruth(reachedSet);
+        stats.targetStateRemoval.stop();
       } else if (pCandidateInvariant == TargetLocationCandidateInvariant.INSTANCE) {
         analyzeCounterexample(program, reachedSet, pProver);
       }
@@ -1031,6 +1040,7 @@ abstract class AbstractBMCAlgorithm
   private boolean checkBoundingAssertions(
       final ReachedSet pReachedSet, final BasicProverEnvironment<?> prover)
       throws SolverException, InterruptedException {
+    stats.stopStateFilteringCandidates += pReachedSet.size();
     FluentIterable<AbstractState> stopStates =
         from(pReachedSet)
             .filter(AbstractBMCAlgorithm::isStopState)
