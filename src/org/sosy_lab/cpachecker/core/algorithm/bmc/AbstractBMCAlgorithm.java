@@ -500,17 +500,21 @@ abstract class AbstractBMCAlgorithm
           stats.bmcUnrolling.stop();
         }
 
+        stats.abstractionCheckCandidates +=
+            trackedReachedSet.getDelta(BMCHelper.DELTA_OBSERVER_ID).size();
+        stats.abstractionCheck.start();
         if (from(trackedReachedSet.getDelta(BMCHelper.DELTA_OBSERVER_ID))
             // first state of reached is always an abstraction state, so skip it
             .filter(s -> s != trackedReachedSet.getFirstState())
             .filter(not(AbstractStates::isTargetState)) // target states may be abstraction states
             .anyMatch(PredicateAbstractState::containsAbstractionState)) {
-
+          stats.abstractionCheck.stop();
           logger.log(
               Level.WARNING,
               "BMC algorithm does not work with abstractions. Could not check for satisfiability!");
           return status;
         }
+        stats.abstractionCheck.stop();
         shutdownNotifier.shutdownIfNecessary();
 
         if (invariantGenerator.isProgramSafe()) {
@@ -772,8 +776,11 @@ abstract class AbstractBMCAlgorithm
         pCandidateInvariant == TargetLocationCandidateInvariant.INSTANCE
             ? DeltaTrackingReachedSet.getConsideredStates(pReachedSet, BMCHelper.DELTA_OBSERVER_ID)
             : pReachedSet;
+    stats.targetAssertionCandidates += Iterables.size(assertionStates);
+    stats.targetAssertionCreation.start();
     BooleanFormula program =
         bfmgr.not(pCandidateInvariant.getAssertion(assertionStates, fmgr, pmgr));
+    stats.targetAssertionCreation.stop();
     if (simplifyBooleanFormula) {
       BigInteger sizeBeforeSimplification = fmgr.countBooleanOperations(program);
       program = fmgr.simplifyBooleanFormula(program);
@@ -797,7 +804,13 @@ abstract class AbstractBMCAlgorithm
 
     if (pReachedSet instanceof ReachedSet reachedSet) {
       if (safe) {
+        stats.targetStateRemovalCandidates +=
+            Iterables.size(
+                DeltaTrackingReachedSet.getConsideredStates(
+                    reachedSet, BMCHelper.DELTA_OBSERVER_ID));
+        stats.targetStateRemoval.start();
         pCandidateInvariant.assumeTruth(reachedSet);
+        stats.targetStateRemoval.stop();
       } else if (pCandidateInvariant == TargetLocationCandidateInvariant.INSTANCE) {
         analyzeCounterexample(program, reachedSet, pProver);
       }
@@ -1050,6 +1063,9 @@ abstract class AbstractBMCAlgorithm
   private boolean checkBoundingAssertions(
       final ReachedSet pReachedSet, final BasicProverEnvironment<?> prover)
       throws SolverException, InterruptedException {
+    stats.stopStateFilteringCandidates +=
+        Iterables.size(
+            DeltaTrackingReachedSet.getConsideredStates(pReachedSet, BMCHelper.DELTA_OBSERVER_ID));
     FluentIterable<AbstractState> stopStates =
         from(DeltaTrackingReachedSet.getConsideredStates(pReachedSet, BMCHelper.DELTA_OBSERVER_ID))
             .filter(AbstractBMCAlgorithm::isStopState)

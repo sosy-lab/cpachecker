@@ -26,6 +26,13 @@ public class BMCStatistics implements Statistics {
   final Timer errorPathCreation = new Timer();
   final Timer errorPathProcessing = new Timer();
   final Timer assertionsCheck = new Timer();
+  final Timer abstractionCheck = new Timer();
+  long abstractionCheckCandidates = 0;
+  final Timer targetAssertionCreation = new Timer();
+  long targetAssertionCandidates = 0;
+  final Timer targetStateRemoval = new Timer();
+  long targetStateRemovalCandidates = 0;
+  long stopStateFilteringCandidates = 0;
 
   // k-Induction operations
   final Timer inductionPreparation = new Timer();
@@ -71,6 +78,21 @@ public class BMCStatistics implements Statistics {
     }
     if (assertionsCheck.getNumberOfIntervals() > 0) {
       out.println("Time for bounding assertions check:              " + assertionsCheck);
+    }
+    if (abstractionCheck.getNumberOfIntervals() > 0) {
+      out.println("Time for abstraction check:                      " + abstractionCheck);
+      out.println("States scanned in abstraction check:             " + abstractionCheckCandidates);
+    }
+    if (targetAssertionCreation.getNumberOfIntervals() > 0) {
+      out.println("Time for target-state filtering:                 " + targetAssertionCreation);
+      out.println("States scanned in target-state filtering:        " + targetAssertionCandidates);
+    }
+    if (targetStateRemoval.getNumberOfIntervals() > 0) {
+      out.println("Time for target-state removal:                   " + targetStateRemoval);
+      out.println("States scanned in target-state removal:          " + targetStateRemovalCandidates);
+    }
+    if (stopStateFilteringCandidates > 0) {
+      out.println("States scanned in stop-state filtering:          " + stopStateFilteringCandidates);
     }
     if (inductionCheck.getNumberOfIntervals() > 0) {
       out.println("Time for induction formula creation:             " + inductionPreparation);
