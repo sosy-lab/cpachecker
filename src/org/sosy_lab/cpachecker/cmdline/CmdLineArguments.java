@@ -20,6 +20,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -30,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.StringSimilarity;
@@ -456,20 +456,18 @@ class CmdLineArguments {
     if (specDir == null) {
       return "";
     }
-    ImmutableList<String> knownSpecifications;
-    try (Stream<Path> files = Files.list(specDir)) {
-      knownSpecifications =
-          files
-              .map(file -> file.getFileName().toString())
-              .filter(name -> name.endsWith(".spc"))
-              .map(name -> name.substring(0, name.length() - ".spc".length()))
-              .collect(ImmutableList.toImmutableList());
+    ImmutableList.Builder<String> knownSpecifications = ImmutableList.builder();
+    try (DirectoryStream<Path> files = Files.newDirectoryStream(specDir, "*.spc")) {
+      for (Path file : files) {
+        String name = file.getFileName().toString();
+        knownSpecifications.add(name.substring(0, name.length() - ".spc".length()));
+      }
     } catch (IOException e) {
       return "";
     }
     ImmutableList<String> suggestions =
         StringSimilarity.findClosestMatches(
-            pSpecification, knownSpecifications, SPECIFICATION_SUGGESTION_THRESHOLD);
+            pSpecification, knownSpecifications.build(), SPECIFICATION_SUGGESTION_THRESHOLD);
     if (suggestions.isEmpty()) {
       return "";
     }

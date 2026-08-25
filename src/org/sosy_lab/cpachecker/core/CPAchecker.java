@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
-import static com.google.common.collect.ImmutableList.toImmutableList;
 import static org.sosy_lab.common.ShutdownNotifier.interruptCurrentThreadOnShutdown;
 
 import com.google.common.base.Joiner;
@@ -500,14 +499,14 @@ public class CPAchecker {
   private void printConfigurationWarnings() {
     Set<String> unusedProperties = config.getUnusedProperties();
     if (!unusedProperties.isEmpty()) {
+      ImmutableList.Builder<String> unusedPropertiesWithSuggestions = ImmutableList.builder();
+      for (String unusedProperty : unusedProperties) {
+        unusedPropertiesWithSuggestions.add(withSimilarOptionSuggestion(unusedProperty));
+      }
       logger.log(
           Level.WARNING,
           "The following configuration options were specified but are not used:\n",
-          Joiner.on("\n ")
-              .join(
-                  unusedProperties.stream()
-                      .map(this::withSimilarOptionSuggestion)
-                      .collect(toImmutableList())),
+          Joiner.on("\n ").join(unusedPropertiesWithSuggestions.build()),
           "\n");
     }
     Set<String> deprecatedProperties = config.getDeprecatedProperties();
