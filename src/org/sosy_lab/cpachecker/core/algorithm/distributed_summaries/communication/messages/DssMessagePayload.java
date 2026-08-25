@@ -17,24 +17,31 @@ import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
-@JsonPropertyOrder({DssMessageFormat.HEADER_KEY, DssMessageFormat.STATUS_KEY, DssMessageFormat.CONTENT_KEY})
+@JsonPropertyOrder({
+  DssMessageFormat.HEADER_KEY,
+  DssMessageFormat.STATUS_KEY,
+  DssMessageFormat.CONTENT_KEY
+})
 public record DssMessagePayload(
     @JsonProperty(DssMessageFormat.HEADER_KEY) ImmutableMap<String, String> header,
     @JsonProperty(DssMessageFormat.STATUS_KEY) @Nullable DssStatusPayload status,
-    @JsonProperty(DssMessageFormat.CONTENT_KEY) ImmutableMap<String, String> content
-    ) {
+    @JsonProperty(DssMessageFormat.CONTENT_KEY) ImmutableMap<String, String> content) {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  public DssMessagePayload(ImmutableMap<String, String> header, DssStatusPayload status, ImmutableMap<String, String> content) {
+  public DssMessagePayload(
+      ImmutableMap<String, String> header,
+      DssStatusPayload status,
+      ImmutableMap<String, String> content) {
     this.header = requireHeader(header);
     this.status = status;
     this.content = requireContent(content);
   }
 
-  public DssMessagePayload(ImmutableMap<String, String> pHeader, ImmutableMap<String, String> pContent) {
+  public DssMessagePayload(
+      ImmutableMap<String, String> pHeader, ImmutableMap<String, String> pContent) {
     this(pHeader, null, pContent);
   }
 
@@ -46,8 +53,7 @@ public record DssMessagePayload(
     this(
         ImmutableMap.copyOf(requireHeader(pHeader)),
         pStatus,
-        ImmutableMap.copyOf(requireContent(pContent))
-    );
+        ImmutableMap.copyOf(requireContent(pContent)));
   }
 
   public static DssMessagePayload fromJson(Path pJson) throws IOException {
@@ -61,9 +67,10 @@ public record DssMessagePayload(
     }
     legacyContent.putAll(content);
     return ImmutableMap.of(
-        DssMessageFormat.HEADER_KEY, header,
-        DssMessageFormat.CONTENT_KEY, legacyContent.buildKeepingLast()
-    );
+        DssMessageFormat.HEADER_KEY,
+        header,
+        DssMessageFormat.CONTENT_KEY,
+        legacyContent.buildKeepingLast());
   }
 
   public void writeJson(Path pPath) throws IOException {

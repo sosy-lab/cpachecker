@@ -125,7 +125,7 @@ public class DssMessagePayloadTest {
     DssMessagePayload payload = DssMessagePayload.fromJson(file);
 
     assertThat(payload.header()).containsEntry(DssMessageFormat.HEADER_TYPE_KEY, "RESULT");
-    assertThat(payload.status().toAlgorithmStatus() == AlgorithmStatus.SOUND_AND_PRECISE);
+    assertThat(payload.status().toAlgorithmStatus() == AlgorithmStatus.SOUND_AND_PRECISE).isTrue();
     assertThat(payload.content()).containsEntry(DssMessageFormat.RESULT_KEY, "true");
   }
 
