@@ -35,7 +35,7 @@ public record DssMessagePayload(
 
   public DssMessagePayload(
       ImmutableMap<String, String> header,
-      DssStatusPayload status,
+      @Nullable DssStatusPayload status,
       ImmutableMap<String, String> content) {
     this.header = requireHeader(header);
     this.status = status;
@@ -45,7 +45,7 @@ public record DssMessagePayload(
   @JsonCreator
   DssMessagePayload(
       @JsonProperty(DssMessageFormat.HEADER_KEY) Map<String, String> pHeader,
-      @JsonProperty(DssMessageFormat.STATUS_KEY) DssStatusPayload pStatus,
+      @JsonProperty(DssMessageFormat.STATUS_KEY) @Nullable DssStatusPayload pStatus,
       @JsonProperty(DssMessageFormat.CONTENT_KEY) Map<String, String> pContent) {
     this(
         ImmutableMap.copyOf(requireHeader(pHeader)),
@@ -58,16 +58,17 @@ public record DssMessagePayload(
   }
 
   public ImmutableMap<String, ImmutableMap<String, String>> asLegacyMap() {
+    return ImmutableMap.of(
+        DssMessageFormat.HEADER_KEY, header, DssMessageFormat.CONTENT_KEY, legacyContent());
+  }
+
+  public ImmutableMap<String, String> legacyContent() {
     ImmutableMap.Builder<String, String> legacyContent = ImmutableMap.builder();
     if (status != null) {
       legacyContent.putAll(status.asLegacyContent());
     }
     legacyContent.putAll(content);
-    return ImmutableMap.of(
-        DssMessageFormat.HEADER_KEY,
-        header,
-        DssMessageFormat.CONTENT_KEY,
-        legacyContent.buildKeepingLast());
+    return legacyContent.buildKeepingLast();
   }
 
   public void writeJson(Path pPath) throws IOException {

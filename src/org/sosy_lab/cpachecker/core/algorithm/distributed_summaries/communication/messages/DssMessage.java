@@ -265,9 +265,9 @@ public abstract class DssMessage {
     return fromPayload(payload);
   }
 
-  public static DssMessage fromPayload(DssMessagePayload pProxy) {
-    ImmutableMap<String, String> header = pProxy.header();
-    ImmutableMap<String, String> content = pProxy.content();
+  public static DssMessage fromPayload(DssMessagePayload pPayload) {
+    ImmutableMap<String, String> header = pPayload.header();
+    ImmutableMap<String, String> content = pPayload.legacyContent();
 
     String senderId = header.get(DssMessageFormat.SENDER_ID_KEY);
     DssMessageType type = DssMessageType.valueOf(header.get(DssMessageFormat.HEADER_TYPE_KEY));

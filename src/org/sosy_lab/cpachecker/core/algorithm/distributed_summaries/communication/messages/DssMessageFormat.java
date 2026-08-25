@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
-public class DssMessageFormat {
+public final class DssMessageFormat {
 
   public static final String HEADER_KEY = "header";
   public static final String STATUS_KEY = "status";
