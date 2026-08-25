@@ -13,8 +13,11 @@ import static com.google.common.truth.Truth.assertWithMessage;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -25,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.SingleBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -41,17 +45,14 @@ public class DistributedConfigurableProgramAnalysisTestBase {
 
   record State(CFANode node, AbstractState absState) {}
 
+  private record Harness(
+      DssMessageFactory messageFactory, DistributedConfigurableProgramAnalysis dcpa) {}
+
   /** Maximum number of edges that the test follows */
   private static final int MAX_DEPTH = 40;
 
-  public static void testSerialization(String programPath, ConfigurableProgramAnalysis cpa)
-      throws Exception {
-    CFA cfa = TestUtil.buildTestCFA(programPath);
-    testSerialization(cfa, cpa);
-  }
-
-  public static void testSerialization(CFA cfa, ConfigurableProgramAnalysis cpa) throws Exception {
-
+  private static Harness createHarness(ConfigurableProgramAnalysis cpa, CFA cfa)
+      throws InvalidConfigurationException, IOException, InterruptedException, CPAException {
     Configuration config =
         TestUtils.configurationForTest()
             .loadFromFile(TestUtil.DSS_FORWARD_CONFIGURATION_FILE)
@@ -71,6 +72,51 @@ public class DistributedConfigurableProgramAnalysisTestBase {
             messageFactory,
             LogManager.createTestLogManager(),
             ShutdownNotifier.createDummy());
+    return new Harness(messageFactory, dcpa);
+  }
+
+  // Routes the message through the same string-based JSON file round trip that DSS workers
+  // actually use on the wire (see SingleWorkerDssExecutor.writeAllMessages/
+  // prepareOldAndNewMessages), instead of just handing back the in-memory DssMessage object. This
+  // catches issues that only show up once formula text (which can contain e.g. embedded newlines)
+  // survives real JSON encoding and decoding.
+  private static DssMessage wrapInMessage(
+      DssMessageFactory messageFactory,
+      ImmutableMap<String, String> content,
+      DssMessageType messageType)
+      throws IOException {
+    DssMessage message =
+        switch (messageType) {
+          case POST_CONDITION ->
+              messageFactory.createDssPostConditionMessage(
+                  "test", AlgorithmStatus.NO_PROPERTY_CHECKED, content);
+          case VIOLATION_CONDITION ->
+              messageFactory.createViolationConditionMessage(
+                  "test", AlgorithmStatus.NO_PROPERTY_CHECKED, content);
+          default ->
+              throw new AssertionError(
+                  "Serialization test does not support message type: " + messageType);
+        };
+    Path tempFile = Files.createTempFile("dss-message-test", ".json");
+    try {
+      JSON.writeJSONString(message.asJson(), tempFile);
+      return DssMessage.fromJson(tempFile);
+    } finally {
+      Files.deleteIfExists(tempFile);
+    }
+  }
+
+  public static void testSerialization(String programPath, ConfigurableProgramAnalysis cpa)
+      throws Exception {
+    CFA cfa = TestUtil.buildTestCFA(programPath);
+    testSerialization(cfa, cpa);
+  }
+
+  public static void testSerialization(CFA cfa, ConfigurableProgramAnalysis cpa) throws Exception {
+
+    Harness harness = createHarness(cpa, cfa);
+    DssMessageFactory messageFactory = harness.messageFactory();
+    DistributedConfigurableProgramAnalysis dcpa = harness.dcpa();
 
     CFANode initialNode = cfa.getMainFunction();
     AbstractState initialState =
@@ -97,7 +143,8 @@ public class DistributedConfigurableProgramAnalysisTestBase {
           for (AbstractState newState :
               tr.getAbstractSuccessorsForEdge(currState.absState, prec, edge)) {
 
-            checkSingleStateSerialization(messageFactory, dcpa, newState);
+            checkSingleStateSerialization(
+                messageFactory, dcpa, newState, DssMessageType.VIOLATION_CONDITION);
             newStates.add(new State(edge.getSuccessor(), newState));
           }
         }
@@ -110,39 +157,30 @@ public class DistributedConfigurableProgramAnalysisTestBase {
   public static void checkSingleStateSerialization(
       ConfigurableProgramAnalysis cpa, AbstractState state, CFA cfa)
       throws InvalidConfigurationException, IOException, InterruptedException, CPAException {
-    Configuration config =
-        TestUtils.configurationForTest()
-            .loadFromFile(TestUtil.DSS_FORWARD_CONFIGURATION_FILE)
-            .build();
-    DssAnalysisOptions options = new DssAnalysisOptions(config);
-    DssMessageFactory messageFactory = new DssMessageFactory(options);
+    checkSingleStateSerialization(cpa, state, cfa, DssMessageType.VIOLATION_CONDITION);
+  }
 
-    BlockNode node = new SingleBlockDecomposition().decompose(cfa).getRoot();
-
-    DistributedConfigurableProgramAnalysis dcpa =
-        DssFactory.distribute(
-            cpa,
-            node,
-            cfa,
-            config,
-            options,
-            messageFactory,
-            LogManager.createTestLogManager(),
-            ShutdownNotifier.createDummy());
-
-    checkSingleStateSerialization(messageFactory, dcpa, state);
+  // Some DCPAs (e.g. the predicate DCPA) don't encode everything about a state in the serialized
+  // content: they also rely on the DssMessageType of the enclosing message to decide how to
+  // deserialize it (e.g. whether the result is an abstraction state). Callers must therefore pass
+  // the message type that such a state would actually be sent in, or the round trip is not
+  // expected to reproduce an equivalent state.
+  public static void checkSingleStateSerialization(
+      ConfigurableProgramAnalysis cpa, AbstractState state, CFA cfa, DssMessageType messageType)
+      throws InvalidConfigurationException, IOException, InterruptedException, CPAException {
+    Harness harness = createHarness(cpa, cfa);
+    checkSingleStateSerialization(harness.messageFactory(), harness.dcpa(), state, messageType);
   }
 
   private static void checkSingleStateSerialization(
       DssMessageFactory messageFactory,
       DistributedConfigurableProgramAnalysis dcpa,
-      AbstractState state)
-      throws InterruptedException, CPAException {
+      AbstractState state,
+      DssMessageType messageType)
+      throws InterruptedException, CPAException, IOException {
 
     ImmutableMap<String, String> content = dcpa.getSerializeOperator().serialize(state);
-    DssMessage message =
-        messageFactory.createViolationConditionMessage(
-            "test", AlgorithmStatus.NO_PROPERTY_CHECKED, content);
+    DssMessage message = wrapInMessage(messageFactory, content, messageType);
     AbstractState afterSerialization = dcpa.getDeserializeOperator().deserialize(message);
 
     assertWithMessage(
@@ -151,5 +189,27 @@ public class DistributedConfigurableProgramAnalysisTestBase {
             state, dcpa.getClass(), message.asJson(), afterSerialization)
         .that(dcpa.getCoverageOperator().isSubsumed(state, afterSerialization))
         .isTrue();
+  }
+
+  // Unlike states, a Precision carries no message-type-dependent semantics for any DCPA (the
+  // deserializer only reads it back via DssMessage.getPrecisionContent), so plain equality is the
+  // right round-trip invariant here rather than a coverage/subsumption check.
+  public static void checkPrecisionSerialization(
+      ConfigurableProgramAnalysis cpa, Precision precision, CFA cfa, DssMessageType messageType)
+      throws InvalidConfigurationException, IOException, InterruptedException, CPAException {
+    Harness harness = createHarness(cpa, cfa);
+    DistributedConfigurableProgramAnalysis dcpa = harness.dcpa();
+
+    ImmutableMap<String, String> content =
+        dcpa.getSerializePrecisionOperator().serializePrecision(precision);
+    DssMessage message = wrapInMessage(harness.messageFactory(), content, messageType);
+    Precision afterSerialization =
+        dcpa.getDeserializePrecisionOperator().deserializePrecision(message);
+
+    assertWithMessage(
+            "Precision %s for dcpa %s was serialized to %s but deserialized to %s",
+            precision, dcpa.getClass(), message.asJson(), afterSerialization)
+        .that(afterSerialization)
+        .isEqualTo(precision);
   }
 }
