@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,6 +20,7 @@ import java.nio.file.Path;
 import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
   DssMessageFormat.HEADER_KEY,
   DssMessageFormat.STATUS_KEY,
@@ -38,11 +40,6 @@ public record DssMessagePayload(
     this.header = requireHeader(header);
     this.status = status;
     this.content = requireContent(content);
-  }
-
-  public DssMessagePayload(
-      ImmutableMap<String, String> pHeader, ImmutableMap<String, String> pContent) {
-    this(pHeader, null, pContent);
   }
 
   @JsonCreator
