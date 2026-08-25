@@ -63,7 +63,6 @@ public class DistributedFunctionPointerCPATest {
     builder.setTarget("fp_named", new NamedFunctionTarget("myFunction"));
     builder.setTarget("fp_overwritten", new NamedFunctionTarget("first"));
     builder.setTarget("fp_overwritten", new NamedFunctionTarget("second"));
-    builder.setTarget("tmp@1", new NamedFunctionTarget("f"));
     builder.setTarget("fp_removed", new NamedFunctionTarget("f"));
     builder.setTarget("fp_removed", UnknownTarget.getInstance());
     builder.pushTarget(new NamedFunctionTarget("atExitHandler1"));
