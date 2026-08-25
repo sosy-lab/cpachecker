@@ -35,7 +35,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
-import org.sosy_lab.cpachecker.cfa.CfaCloneRelation;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
@@ -356,8 +355,7 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
     AutomatonBoolExpr expr =
         restrictToThread(
             new AutomatonBoolExpr.Or(
-                new CheckReachesElement(enterElement, cfa.getCloneRelation()),
-                new CheckEntersElement(enterElement, cfa.getCloneRelation())),
+                new CheckReachesElement(enterElement), new CheckEntersElement(enterElement)),
             threadId);
 
     AutomatonTransition.Builder transitionBuilder =
@@ -538,7 +536,7 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
     // Find out the edge which corresponds to this statement, it can either be a CFunctionCallEdge
     // or a CStatementEdge
     Optional<CFAEdge> inputEdge =
-        findFunctionEnterEdge(followLine, followColumn, startLineToCFAEdge, cfa.getCloneRelation());
+        findFunctionEnterEdge(followLine, followColumn, startLineToCFAEdge);
 
     if (inputEdge.isEmpty()) {
       throw new WitnessParseException(
@@ -585,10 +583,7 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
    * @return the matching edge, or {@link Optional#empty()} if no edge matches
    */
   private static Optional<CFAEdge> findFunctionEnterEdge(
-      Integer followLine,
-      OptionalInt followColumn,
-      Multimap<Integer, CFAEdge> startLineToCFAEdge,
-      CfaCloneRelation pCloneRelation) {
+      Integer followLine, OptionalInt followColumn, Multimap<Integer, CFAEdge> startLineToCFAEdge) {
     // We sort the edges by their column, so we can take the first one which matches the given
     // column
     Optional<CFAEdge> foundEdge = Optional.empty();
@@ -610,10 +605,9 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
       }
 
       Verify.verify(
-          foundEdge.isEmpty()
-              || pCloneRelation.getOriginalEdge(edge).equals(foundEdge.orElseThrow()),
+          foundEdge.isEmpty() || CFAUtils.equalityModuloNodes(foundEdge.orElseThrow(), edge),
           "Multiple edges match the function enter waypoint");
-      foundEdge = Optional.of(pCloneRelation.getOriginalEdge(edge));
+      foundEdge = Optional.of(edge);
     }
 
     return foundEdge;

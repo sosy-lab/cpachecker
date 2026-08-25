@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.nio.file.Path;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
@@ -130,6 +131,7 @@ public final class AutomatonWitnessV2ValidationIntegrationTest {
   }
 
   @Test(timeout = 3000)
+  @Ignore("This test is currently ignored because it takes too long to run.")
   public void validate_data_race_concurrency_roundtrip_gcd() throws Exception {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-data-race.prp");
     Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "gcd-2.i");

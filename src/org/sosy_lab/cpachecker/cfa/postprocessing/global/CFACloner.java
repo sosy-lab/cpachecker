@@ -18,7 +18,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CfaCloneRelation;
 import org.sosy_lab.cpachecker.cfa.FunctionCallCollector;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -46,10 +45,6 @@ public class CFACloner {
   public MutableCFA execute() {
     assert cfa.getLanguage() == Language.C;
 
-    // tracks which node and edge of the cloned functions belongs to which original node and edge
-    final CfaCloneRelation.Builder cloneRelation =
-        CfaCloneRelation.builder().addAll(cfa.getCloneRelation());
-
     // copy content of old CFAs
     final NavigableMap<String, FunctionEntryNode> functions = new TreeMap<>(cfa.getAllFunctions());
     final TreeMultimap<String, CFANode> nodes = TreeMultimap.create();
@@ -74,7 +69,7 @@ public class CFACloner {
 
         Preconditions.checkArgument(!cfa.getAllFunctionNames().contains(newFunctionName));
         final Pair<FunctionEntryNode, Collection<CFANode>> newFunction =
-            FunctionCloner.cloneCFA(entryNode, newFunctionName, cloneRelation);
+            FunctionCloner.cloneCFA(entryNode, newFunctionName);
         functions.put(newFunctionName, newFunction.getFirst());
         nodes.putAll(newFunctionName, newFunction.getSecond());
 
@@ -90,15 +85,13 @@ public class CFACloner {
           if (FunctionCallUnwinder.isFunctionCall(statementEdge, functions.keySet())) {
             final String calledFunctionName = FunctionCallUnwinder.getNameOfFunction(statementEdge);
             final String newCalledFunctionName = getFunctionName(calledFunctionName, i);
-            FunctionCallUnwinder.replaceFunctionCall(
-                statementEdge, newCalledFunctionName, cloneRelation);
+            FunctionCallUnwinder.replaceFunctionCall(statementEdge, newCalledFunctionName);
           }
         }
       }
     }
 
-    return new MutableCFA(
-        functions, nodes, cfa.getMetadata().withCloneRelation(cloneRelation.build()));
+    return new MutableCFA(functions, nodes, cfa.getMetadata());
   }
 
   /** build a new name consisting of a function-name and an index. */

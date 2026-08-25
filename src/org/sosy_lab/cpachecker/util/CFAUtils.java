@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
@@ -40,7 +41,6 @@ import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CfaCloneRelation;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNodeVisitor;
@@ -80,6 +80,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -124,17 +125,16 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibSymbolApplicationRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
@@ -804,37 +804,36 @@ public class CFAUtils {
     return rGlobalVariables.build();
   }
 
-  /**
-   * Returns whether the given edge of the CFA that is analyzed originates from the given edge of
-   * the CFA as it was created by the parser.
-   *
-   * <p>The CFA that is analyzed usually differs from the CFA as it was created by the parser: whole
-   * functions may have been cloned, e.g., for concurrent programs, and building the supergraph
-   * replaces the statement edge of a function call by a function call edge. Edges of the CFA as it
-   * was created by the parser are for example stored in an {@link
-   * org.sosy_lab.cpachecker.util.ast.ASTElement ASTElement}.
-   *
-   * @param pEdge an edge of the CFA that is analyzed
-   * @param pOriginalEdge an edge of the CFA as it was created by the parser
-   * @param pCloneRelation the relation between the cloned functions of the analyzed CFA and the
-   *     functions they were cloned from
-   * @return whether {@code pEdge} originates from {@code pOriginalEdge}
-   */
-  public static boolean originatesFrom(
-      CFAEdge pEdge, CFAEdge pOriginalEdge, CfaCloneRelation pCloneRelation) {
-    CFAEdge edge = pCloneRelation.getOriginalEdge(pEdge);
+  public static boolean compareFunctionCallAndStatementEdges(CFAEdge pFirst, CFAEdge pOther) {
+    return pFirst instanceof CStatementEdge pStatementEdge
+        && pOther instanceof CFunctionCallEdge pCallEdge
+        && pStatementEdge.getStatement() instanceof CFunctionCallStatement pStatement
+        && pStatement
+            .getFunctionCallExpression()
+            .getParameterExpressions()
+            .toString()
+            .equals(pCallEdge.getFunctionCallExpression().getParameterExpressions().toString())
+        && pStatement
+            .getFunctionCallExpression()
+            .getExpressionType()
+            .equals(pCallEdge.getFunctionCallExpression().getExpressionType())
+        && pStatement
+            .getFunctionCallExpression()
+            .getDeclaration()
+            .getOrigName()
+            .equals(pCallEdge.getFunctionCallExpression().getDeclaration().getOrigName());
+  }
 
-    if (edge instanceof FunctionCallEdge) {
-      // Function call edges do not exist before the supergraph is built, they replace the statement
-      // edge of the function call. Since a function call is the only leaving edge of its
-      // predecessor, the replaced statement edge is the edge starting at the same node.
-      return pOriginalEdge instanceof AStatementEdge
-          && pCloneRelation
-              .getOriginalNode(edge.getPredecessor())
-              .equals(pOriginalEdge.getPredecessor());
-    }
-
-    return edge.equals(pOriginalEdge);
+  public static boolean equalityModuloNodes(CFAEdge pFirst, CFAEdge pOther) {
+    // Only necessary to compare CFA Edges of cloned CFAs, which is done for concurrency and makes
+    // the matching with the original CFA difficult
+    //
+    // Is just an approximation for now. This would need to be
+    return Objects.equals(pFirst.getFileLocation(), pOther.getFileLocation())
+        && (Objects.equals(pFirst.getClass(), pOther.getClass())
+            || compareFunctionCallAndStatementEdges(pFirst, pOther)
+            || compareFunctionCallAndStatementEdges(pOther, pFirst))
+        && Objects.equals(pFirst.getRawStatement(), pOther.getRawStatement());
   }
 
   /**

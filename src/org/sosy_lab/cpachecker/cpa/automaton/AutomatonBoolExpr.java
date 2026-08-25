@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
-import static org.sosy_lab.cpachecker.util.CFAUtils.originatesFrom;
+import static org.sosy_lab.cpachecker.util.CFAUtils.equalityModuloNodes;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -30,7 +30,6 @@ import java.util.logging.Level;
 import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CfaCloneRelation;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
@@ -249,21 +248,19 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   public static class CheckEntersElement implements AutomatonBoolExpr {
 
     private final ASTElement elementToEnter;
-    private final CfaCloneRelation cloneRelation;
 
-    public CheckEntersElement(ASTElement pElement, CfaCloneRelation pCloneRelation) {
+    public CheckEntersElement(ASTElement pElement) {
       elementToEnter = pElement;
-      cloneRelation = pCloneRelation;
     }
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
 
-      // The edges of the element are the edges of the CFA as it was created by the parser, the
-      // clone relation is required to match them with the edges of cloned functions
+      // The equality modulo the nodes is necessary for concurrent analysis where functions
+      // are cloned during the analysis
       if (elementToEnter.edges().stream()
-          .anyMatch(pCFAEdge -> originatesFrom(edge, pCFAEdge, cloneRelation))) {
+          .anyMatch(pCFAEdge -> equalityModuloNodes(pCFAEdge, edge))) {
         return CONST_TRUE;
       }
       return CONST_FALSE;
@@ -293,13 +290,11 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   public static class CheckReachesElement implements AutomatonBoolExpr {
 
     private final ImmutableSet<CFAEdge> incomingFrontierEdges;
-    private final CfaCloneRelation cloneRelation;
 
     private final ASTElement elementToEnter;
 
-    public CheckReachesElement(ASTElement pElement, CfaCloneRelation pCloneRelation) {
+    public CheckReachesElement(ASTElement pElement) {
       elementToEnter = pElement;
-      cloneRelation = pCloneRelation;
       incomingFrontierEdges =
           FluentIterable.from(
                   Sets.difference(
@@ -314,14 +309,14 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
 
-      // The frontier edges are edges of the CFA as it was created by the parser, the clone
-      // relation is required to match them with the edges of cloned functions
+      // The equality modulo the nodes is necessary for concurrent analysis where functions
+      // are cloned during the analysis
       if (edge.getSuccessor()
           .getLeavingEdges()
           .anyMatch(
               e ->
                   FluentIterable.from(incomingFrontierEdges)
-                      .anyMatch(pEdge -> originatesFrom(e, pEdge, cloneRelation)))) {
+                      .anyMatch(pEdge -> equalityModuloNodes(pEdge, e)))) {
         return CONST_TRUE;
       }
 
