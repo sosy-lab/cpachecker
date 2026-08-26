@@ -28,7 +28,7 @@ public class StatementElement {
     return new ASTElement(pConditionLocation);
   }
 
-  public void setEdges(ImmutableSet<CFAEdge> pEdges) {
+  protected void setEdges(ImmutableSet<CFAEdge> pEdges) {
     completeElement.setEdges(pEdges);
   }
 }

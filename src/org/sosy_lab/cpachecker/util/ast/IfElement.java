@@ -45,7 +45,7 @@ public final class IfElement extends StatementElement {
   }
 
   @Override
-  public void setEdges(ImmutableSet<CFAEdge> pEdges) {
+  protected void setEdges(ImmutableSet<CFAEdge> pEdges) {
     super.setEdges(pEdges);
     conditionElement.setEdges(pEdges);
     thenElement.setEdges(pEdges);

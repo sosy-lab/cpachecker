@@ -52,7 +52,7 @@ public final class IterationElement extends BranchingElement {
   }
 
   @Override
-  public void setEdges(ImmutableSet<CFAEdge> pEdges) {
+  protected void setEdges(ImmutableSet<CFAEdge> pEdges) {
     super.setEdges(pEdges);
     clause.ifPresent(x -> x.setEdges(pEdges));
     body.setEdges(pEdges);

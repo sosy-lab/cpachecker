@@ -25,7 +25,7 @@ public final class ASTElement {
     allEdges = null;
   }
 
-  public void setEdges(ImmutableSet<CFAEdge> pEdges) {
+  void setEdges(ImmutableSet<CFAEdge> pEdges) {
     Verify.verify(allEdges == null && edges == null, "Edges can only be set once.");
     allEdges = pEdges;
   }
