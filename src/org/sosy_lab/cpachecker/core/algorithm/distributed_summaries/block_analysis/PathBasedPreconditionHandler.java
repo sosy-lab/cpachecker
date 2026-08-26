@@ -15,6 +15,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
@@ -82,15 +83,20 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
             BlockGraphPath.of(),
             ImmutableList.of(
                 new StateAndPrecision(
-                    pAnalysis.makeStartState(true), pAnalysis.makeStartPrecision()))));
+                    pAnalysis.makeStartState(!analysis.getBlock().isRoot()),
+                    pAnalysis.makeStartPrecision()))));
   }
 
   @Override
   public Collection<DssMessage> runInitialAnalysis()
       throws CPAException, InterruptedException, SolverException {
+
+    StateAndPrecision initialTopState =
+        Iterables.getOnlyElement(
+            FluentIterable.from(preconditions.values()).transformAndConcat(StatesByPath::states));
+
     DssBlockAnalysisResult result =
-        analysis.runInitialBlockAnalysis(
-            analysis.makeStartState(true), analysis.makeStartPrecision());
+        analysis.runInitialBlockAnalysis(initialTopState.state(), initialTopState.precision());
 
     ImmutableList.Builder<DssMessage> initialMessages = ImmutableList.builder();
     if (!result.getFinalLocationStates().isEmpty()) {
@@ -355,9 +361,8 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
                 precision,
                 analysis.getViolationConditionHandler().statesOf(pSender));
 
-        if (!preconditions.isEmpty() || analysis.getBlock().isRoot()) {
-          summaries.addAll(analysis.summariesOf(result));
-        }
+        summaries.addAll(analysis.summariesOf(result));
+
         if (!result.getAllViolations().isEmpty()) {
           violations.addAll(analysis.pathsWithCondition(result.getViolationConditionViolations()));
           violations.addAll(analysis.pathsFromOrigin(result.getTargetStates()));

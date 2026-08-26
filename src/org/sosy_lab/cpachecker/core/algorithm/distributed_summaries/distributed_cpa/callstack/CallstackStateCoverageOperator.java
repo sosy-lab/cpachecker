@@ -10,14 +10,17 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.cpa.callstack.DssCallstackState;
 
 public class CallstackStateCoverageOperator implements CoverageOperator {
 
   @Override
   public boolean isSubsumed(AbstractState state1, AbstractState state2) {
-    CallstackState callstackState1 = (CallstackState) state1;
-    CallstackState callstackState2 = (CallstackState) state2;
+    DssCallstackState callstackState1 = (DssCallstackState) state1;
+    DssCallstackState callstackState2 = (DssCallstackState) state2;
+    if (callstackState1.allowsAllTransfers() && callstackState2.allowsAllTransfers()) {
+      return true;
+    }
     return callstackState1.sameStateInProofChecking(callstackState2);
   }
 
