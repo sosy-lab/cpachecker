@@ -14,6 +14,10 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 
+/**
+ * Integration tests for the violation of witness validation for witness files in version 2.*
+ * format.
+ */
 public final class AutomatonWitnessV2ValidationViolationIntegrationTest {
 
   @BeforeClass
