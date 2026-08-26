@@ -14,7 +14,7 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 
-public final class AutomatonWitnessV2ValidationIntegrationTest {
+public final class AutomatonWitnessV2ValidationViolationIntegrationTest {
 
   @BeforeClass
   public static void skipUnlessExtendedTestsEnabled() {
