@@ -194,7 +194,8 @@ public class DistributedPredicateCPATest {
                 .getBooleanFormulaManager()
                 .toConjunctionArgs(pathFormula.getFormula(), true));
     AbstractionPredicate globalPredicate =
-        cpa.getAbstractionManager().makePredicate(formulaManagerView.uninstantiate(atoms.getFirst()));
+        cpa.getAbstractionManager()
+            .makePredicate(formulaManagerView.uninstantiate(atoms.getFirst()));
     AbstractionPredicate localPredicate =
         cpa.getAbstractionManager().makePredicate(formulaManagerView.uninstantiate(atoms.get(1)));
 
