@@ -42,14 +42,22 @@ public final class IterationElement extends BranchingElement {
       Optional<FileLocation> pControllingExpression,
       FileLocation pBodyLocation,
       Optional<FileLocation> pMaybeInitClause,
-      Optional<FileLocation> pMaybeIterationExpression,
-      ImmutableSet<CFAEdge> pEdges) {
-    super(pIterationStatementLocation, pEdges);
-    clause = pClauseLocation.map(x -> determineElement(x, pEdges));
-    body = determineElement(pBodyLocation, pEdges);
-    controllingExpression = pControllingExpression.map(x -> determineElement(x, pEdges));
-    initClause = pMaybeInitClause.map(x -> determineElement(x, pEdges));
-    iterationExpression = pMaybeIterationExpression.map(x -> determineElement(x, pEdges));
+      Optional<FileLocation> pMaybeIterationExpression) {
+    super(pIterationStatementLocation);
+    clause = pClauseLocation.map(x -> determineElement(x));
+    body = determineElement(pBodyLocation);
+    controllingExpression = pControllingExpression.map(x -> determineElement(x));
+    initClause = pMaybeInitClause.map(x -> determineElement(x));
+    iterationExpression = pMaybeIterationExpression.map(x -> determineElement(x));
+  }
+
+  public void setEdges(ImmutableSet<CFAEdge> pEdges) {
+    super.setEdges(pEdges);
+    clause.ifPresent(x -> x.setEdges(pEdges));
+    body.setEdges(pEdges);
+    controllingExpression.ifPresent(x -> x.setEdges(pEdges));
+    initClause.ifPresent(x -> x.setEdges(pEdges));
+    iterationExpression.ifPresent(x -> x.setEdges(pEdges));
   }
 
   @Override

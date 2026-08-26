@@ -37,12 +37,18 @@ public final class IfElement extends StatementElement {
       FileLocation pIfLocation,
       FileLocation pConditionLocation,
       FileLocation pThenLocation,
-      Optional<FileLocation> pMaybeElseLocation,
-      ImmutableSet<CFAEdge> pEdges) {
-    super(pIfLocation, pEdges);
-    conditionElement = determineElement(pConditionLocation, pEdges);
-    thenElement = determineElement(pThenLocation, pEdges);
-    maybeElseElement = pMaybeElseLocation.map(x -> determineElement(x, pEdges));
+      Optional<FileLocation> pMaybeElseLocation) {
+    super(pIfLocation);
+    conditionElement = determineElement(pConditionLocation);
+    thenElement = determineElement(pThenLocation);
+    maybeElseElement = pMaybeElseLocation.map(x -> determineElement(x));
+  }
+
+  public void setEdges(ImmutableSet<CFAEdge> pEdges) {
+    super.setEdges(pEdges);
+    conditionElement.setEdges(pEdges);
+    thenElement.setEdges(pEdges);
+    maybeElseElement.ifPresent(x -> x.setEdges(pEdges));
   }
 
   public ASTElement getConditionElement() {

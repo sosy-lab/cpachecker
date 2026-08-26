@@ -16,16 +16,19 @@ public class StatementElement {
 
   private final ASTElement completeElement;
 
-  public StatementElement(FileLocation pStatementLocation, ImmutableSet<CFAEdge> pEdges) {
-    completeElement = determineElement(pStatementLocation, pEdges);
+  public StatementElement(FileLocation pStatementLocation) {
+    completeElement = determineElement(pStatementLocation);
   }
 
   public ASTElement getCompleteElement() {
     return completeElement;
   }
 
-  public ASTElement determineElement(
-      FileLocation pConditionLocation, ImmutableSet<CFAEdge> pEdges) {
-    return new ASTElement(pConditionLocation, pEdges);
+  public ASTElement determineElement(FileLocation pConditionLocation) {
+    return new ASTElement(pConditionLocation);
+  }
+
+  public void setEdges(ImmutableSet<CFAEdge> pEdges) {
+    completeElement.setEdges(pEdges);
   }
 }

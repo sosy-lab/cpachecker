@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.ast;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.concurrent.LazyInit;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -16,12 +17,17 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 public final class ASTElement {
   private final FileLocation location;
-  private ImmutableSet<CFAEdge> allEdges;
+  @LazyInit private ImmutableSet<CFAEdge> allEdges;
   @LazyInit private ImmutableSet<CFAEdge> edges = null;
 
-  public ASTElement(FileLocation pLocation, ImmutableSet<CFAEdge> pAllEdges) {
+  public ASTElement(FileLocation pLocation) {
     location = pLocation;
-    allEdges = pAllEdges;
+    allEdges = null;
+  }
+
+  public void setEdges(ImmutableSet<CFAEdge> pEdges) {
+    Verify.verify(allEdges == null && edges == null, "Edges can only be set once.");
+    allEdges = pEdges;
   }
 
   public FileLocation location() {

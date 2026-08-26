@@ -31,7 +31,6 @@ class AstCfaRelationBuilder {
 
   public static AstCfaRelation getASTCFARelation(
       CSourceOriginMapping pSourceOriginMapping,
-      ImmutableSet<CFAEdge> pEdges,
       List<IASTTranslationUnit> pAsts,
       ImmutableMap<CFANode, Set<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
       ImmutableMap<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersVariablesInScope,
@@ -41,18 +40,17 @@ class AstCfaRelationBuilder {
       ast.accept(classifier);
     }
     return new AstCfaRelation(
-        getIfStructures(pEdges, classifier),
-        getIterationStructures(pEdges, classifier),
+        getIfStructures(classifier),
+        getIterationStructures(classifier),
         classifier.getStatementOffsetsToLocations(),
-        getStatementStructures(pEdges, classifier),
+        getStatementStructures(classifier),
         pCfaNodeToAstLocalVariablesInScope,
         pCfaNodeToAstParametersVariablesInScope,
         pGlobalVariables,
         classifier.getExpressionLocations());
   }
 
-  private static ImmutableSet<IfElement> getIfStructures(
-      ImmutableSet<CFAEdge> pEdges, AstLocationClassifier classifier) {
+  private static ImmutableSet<IfElement> getIfStructures(AstLocationClassifier classifier) {
     ImmutableMap<FileLocation, FileLocation> ifCondition = classifier.getIfCondition();
     ImmutableMap<FileLocation, FileLocation> ifThenClause = classifier.getIfThenClause();
     ImmutableMap<FileLocation, FileLocation> ifElseClause = classifier.getIfElseClause();
@@ -63,14 +61,13 @@ class AstCfaRelationBuilder {
               loc,
               ifCondition.get(loc),
               ifThenClause.get(loc),
-              Optional.ofNullable(ifElseClause.get(loc)),
-              pEdges));
+              Optional.ofNullable(ifElseClause.get(loc))));
     }
     return ifStructures.build();
   }
 
   private static ImmutableSet<IterationElement> getIterationStructures(
-      ImmutableSet<CFAEdge> pEdges, AstLocationClassifier classifier) {
+      AstLocationClassifier classifier) {
     Map<FileLocation, FileLocation> loopParenthesesBlock = classifier.getLoopParenthesesBlock();
     Map<FileLocation, FileLocation> loopControllingExpression =
         classifier.getLoopControllingExpression();
@@ -88,8 +85,7 @@ class AstCfaRelationBuilder {
               Optional.ofNullable(loopControllingExpression.get(loc)),
               loopBody.get(loc),
               Optional.ofNullable(loopInitializer.get(loc)),
-              Optional.ofNullable(loopIterationStatement.get(loc)),
-              pEdges));
+              Optional.ofNullable(loopIterationStatement.get(loc))));
     }
     return iterationStructures.build();
   }
@@ -99,16 +95,16 @@ class AstCfaRelationBuilder {
       ImmutableSet<CFAEdge> pEdges, AstLocationClassifier classifier) {
     ImmutableSet.Builder<DeclarationElement> declarationStructures = new ImmutableSet.Builder<>();
     for (FileLocation loc : classifier.getDeclarationLocations()) {
-      declarationStructures.add(new DeclarationElement(loc, pEdges));
+      declarationStructures.add(new DeclarationElement(loc));
     }
     return declarationStructures.build();
   }
 
   private static ImmutableSet<StatementElement> getStatementStructures(
-      ImmutableSet<CFAEdge> pEdges, AstLocationClassifier classifier) {
+      AstLocationClassifier classifier) {
     ImmutableSet.Builder<StatementElement> statementStructures = new ImmutableSet.Builder<>();
     for (FileLocation loc : classifier.getStatementLocations()) {
-      statementStructures.add(new StatementElement(loc, pEdges));
+      statementStructures.add(new StatementElement(loc));
     }
     return statementStructures.build();
   }

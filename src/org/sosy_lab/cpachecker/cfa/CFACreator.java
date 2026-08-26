@@ -772,6 +772,9 @@ public class CFACreator {
     logger.log(
         Level.FINE, "DONE, CFA for", immutableCFA.getNumberOfFunctions(), "functions created.");
 
+    // Now finally set the edges for the AstCfaRelation, as the CFA is now complete and immutable.
+    immutableCFA.getAstCfaRelation().setEdgesForAstElements(immutableCFA.edges());
+
     return immutableCFA;
   }
 

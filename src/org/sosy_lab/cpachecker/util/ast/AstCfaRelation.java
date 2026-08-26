@@ -90,6 +90,22 @@ public final class AstCfaRelation {
   }
 
   /**
+   * Set the edges of the CFA that belong to the AST elements. This is done lazily, since it we
+   * first need to finish building the CFA before we know about all the edges.
+   */
+  public void setEdgesForAstElements(ImmutableSet<CFAEdge> pEdges) {
+    for (IfElement structure : ifElements) {
+      structure.setEdges(pEdges);
+    }
+    for (IterationElement structure : iterationStructures) {
+      structure.setEdges(pEdges);
+    }
+    for (StatementElement structure : statementElements) {
+      structure.setEdges(pEdges);
+    }
+  }
+
+  /**
    * Returns the next location after the given offset at which a statement starts.
    *
    * @param offset the offset to start from
