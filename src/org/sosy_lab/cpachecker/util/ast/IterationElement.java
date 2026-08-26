@@ -51,6 +51,7 @@ public final class IterationElement extends BranchingElement {
     iterationExpression = pMaybeIterationExpression.map(x -> determineElement(x));
   }
 
+  @Override
   public void setEdges(ImmutableSet<CFAEdge> pEdges) {
     super.setEdges(pEdges);
     clause.ifPresent(x -> x.setEdges(pEdges));

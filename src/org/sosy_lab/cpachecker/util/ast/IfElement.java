@@ -44,6 +44,7 @@ public final class IfElement extends StatementElement {
     maybeElseElement = pMaybeElseLocation.map(x -> determineElement(x));
   }
 
+  @Override
   public void setEdges(ImmutableSet<CFAEdge> pEdges) {
     super.setEdges(pEdges);
     conditionElement.setEdges(pEdges);
