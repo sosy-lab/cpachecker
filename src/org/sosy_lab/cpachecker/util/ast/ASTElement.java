@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 public final class ASTElement {
   private final FileLocation location;
-  @LazyInit private ImmutableSet<CFAEdge> allEdges;
+  private ImmutableSet<CFAEdge> allEdges;
   @LazyInit private ImmutableSet<CFAEdge> edges = null;
 
   public ASTElement(FileLocation pLocation) {
