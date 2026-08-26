@@ -27,14 +27,14 @@ import org.checkerframework.checker.nullness.qual.Nullable;
   DssMessageFormat.CONTENT_KEY
 })
 public record DssMessagePayload(
-    @JsonProperty(DssMessageFormat.HEADER_KEY) ImmutableMap<String, String> header,
+    @JsonProperty(DssMessageFormat.HEADER_KEY) DssHeaderPayload header,
     @JsonProperty(DssMessageFormat.STATUS_KEY) @Nullable DssStatusPayload status,
     @JsonProperty(DssMessageFormat.CONTENT_KEY) ImmutableMap<String, String> content) {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   public DssMessagePayload(
-      ImmutableMap<String, String> header,
+      DssHeaderPayload header,
       @Nullable DssStatusPayload status,
       ImmutableMap<String, String> content) {
     this.header = requireHeader(header);
@@ -44,22 +44,26 @@ public record DssMessagePayload(
 
   @JsonCreator
   DssMessagePayload(
-      @JsonProperty(DssMessageFormat.HEADER_KEY) Map<String, String> pHeader,
+      @JsonProperty(DssMessageFormat.HEADER_KEY) DssHeaderPayload pHeader,
       @JsonProperty(DssMessageFormat.STATUS_KEY) @Nullable DssStatusPayload pStatus,
       @JsonProperty(DssMessageFormat.CONTENT_KEY) Map<String, String> pContent) {
-    this(
-        ImmutableMap.copyOf(requireHeader(pHeader)),
-        pStatus,
-        ImmutableMap.copyOf(requireContent(pContent)));
+    this(requireHeader(pHeader), pStatus, ImmutableMap.copyOf(requireContent(pContent)));
   }
 
   public static DssMessagePayload fromJson(Path pJson) throws IOException {
     return OBJECT_MAPPER.readValue(pJson.toFile(), DssMessagePayload.class);
   }
 
+  public DssMessagePayload withoutTimestamp() {
+    return new DssMessagePayload(header.withoutTimestamp(), status, content);
+  }
+
   public ImmutableMap<String, ImmutableMap<String, String>> asLegacyMap() {
     return ImmutableMap.of(
-        DssMessageFormat.HEADER_KEY, header, DssMessageFormat.CONTENT_KEY, legacyContent());
+        DssMessageFormat.HEADER_KEY,
+        header.asLegacyHeader(),
+        DssMessageFormat.CONTENT_KEY,
+        legacyContent());
   }
 
   public ImmutableMap<String, String> legacyContent() {
@@ -75,7 +79,7 @@ public record DssMessagePayload(
     OBJECT_MAPPER.writeValue(pPath.toFile(), this);
   }
 
-  private static <T extends Map<String, String>> T requireHeader(T pHeader) {
+  private static DssHeaderPayload requireHeader(DssHeaderPayload pHeader) {
     return Preconditions.checkNotNull(pHeader, "Message JSON does not contain header");
   }
 

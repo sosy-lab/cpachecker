@@ -35,11 +35,7 @@ public class DssMessagePayloadTest {
   public void asLegacyMapReturnsLegacyShape() {
     DssMessagePayload payload =
         new DssMessagePayload(
-            ImmutableMap.of(
-                DssMessageFormat.SENDER_ID_KEY,
-                "B1",
-                DssMessageFormat.HEADER_TYPE_KEY,
-                DssMessageType.RESULT.name()),
+            new DssHeaderPayload("B1", DssMessageType.RESULT, "123", 0),
             new DssStatusPayload(true, true, true),
             ImmutableMap.of(DssMessageFormat.RESULT_KEY, "true"));
     ImmutableMap.Builder<String, String> legacyContent = ImmutableMap.builder();
@@ -47,7 +43,7 @@ public class DssMessagePayloadTest {
     legacyContent.putAll(payload.content());
     assertThat(payload.asLegacyMap())
         .containsExactly(
-            DssMessageFormat.HEADER_KEY, payload.header(),
+            DssMessageFormat.HEADER_KEY, payload.header().asLegacyHeader(),
             DssMessageFormat.CONTENT_KEY, legacyContent.buildKeepingLast());
   }
 
@@ -85,8 +81,7 @@ public class DssMessagePayloadTest {
 
     DssMessagePayload payload = DssMessagePayload.fromJson(file);
 
-    assertThat(payload.header())
-        .containsEntry(DssMessageFormat.HEADER_TYPE_KEY, DssMessageType.RESULT.name());
+    assertThat(payload.header().messageType()).isEqualTo(DssMessageType.RESULT);
     assertThat(payload.content()).containsEntry(DssMessageFormat.RESULT_KEY, "true");
   }
 
@@ -136,8 +131,7 @@ public class DssMessagePayloadTest {
 
     DssMessagePayload payload = DssMessagePayload.fromJson(file);
 
-    assertThat(payload.header())
-        .containsEntry(DssMessageFormat.HEADER_TYPE_KEY, DssMessageType.RESULT.name());
+    assertThat(payload.header().messageType()).isEqualTo(DssMessageType.RESULT);
     assertThat(payload.status().toAlgorithmStatus()).isEqualTo(AlgorithmStatus.SOUND_AND_PRECISE);
     assertThat(payload.content()).containsEntry(DssMessageFormat.RESULT_KEY, "true");
   }
@@ -166,11 +160,7 @@ public class DssMessagePayloadTest {
   public void fromPayloadUsesTopLevelStatus() {
     DssMessagePayload payload =
         new DssMessagePayload(
-            ImmutableMap.of(
-                DssMessageFormat.SENDER_ID_KEY,
-                "B1",
-                DssMessageFormat.HEADER_TYPE_KEY,
-                DssMessageType.POST_CONDITION.name()),
+            new DssHeaderPayload("B1", DssMessageType.POST_CONDITION, "123", 0),
             new DssStatusPayload(true, false, true),
             ImmutableMap.of(DssMessageFormat.UNREACHABLE_BLOCK_END_KEY, "true"));
     DssMessage message = DssMessage.fromPayload(payload);

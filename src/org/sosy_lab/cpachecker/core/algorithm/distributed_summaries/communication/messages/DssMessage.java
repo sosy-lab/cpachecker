@@ -223,16 +223,13 @@ public abstract class DssMessage {
 
   @SuppressWarnings("JavaInstantGetSecondsGetNano")
   public final DssMessagePayload asJsonPayloadWithIdentifier(int pIdentifier) {
-    ImmutableMap<String, String> header =
-        ImmutableMap.<String, String>builder()
-            .put(DssMessageFormat.SENDER_ID_KEY, getSenderId())
-            .put(DssMessageFormat.HEADER_TYPE_KEY, getType().name())
-            .put(
-                DssMessageFormat.HEADER_TIMESTAMP_KEY,
-                Long.toString(
-                    getTimestamp().getEpochSecond() * 1_000_000_000L + getTimestamp().getNano()))
-            .put(DssMessageFormat.HEADER_IDENTIFIER_KEY, Integer.toString(pIdentifier))
-            .buildOrThrow();
+    DssHeaderPayload header =
+        new DssHeaderPayload(
+            senderId,
+            type,
+            Long.toString(
+                getTimestamp().getEpochSecond() * 1_000_000_000L + getTimestamp().getNano()),
+            pIdentifier);
     DssStatusPayload statusPayload = extractStatusPayload();
     ImmutableMap<String, String> payloadContent = contentWithoutLegacyStatus();
 
@@ -266,11 +263,11 @@ public abstract class DssMessage {
   }
 
   public static DssMessage fromPayload(DssMessagePayload pPayload) {
-    ImmutableMap<String, String> header = pPayload.header();
+    DssHeaderPayload header = pPayload.header();
     ImmutableMap<String, String> content = pPayload.legacyContent();
 
-    String senderId = header.get(DssMessageFormat.SENDER_ID_KEY);
-    DssMessageType type = DssMessageType.valueOf(header.get(DssMessageFormat.HEADER_TYPE_KEY));
+    String senderId = header.senderId();
+    DssMessageType type = header.messageType();
 
     return switch (type) {
       case POST_CONDITION -> new DssPostConditionMessage(senderId, content);

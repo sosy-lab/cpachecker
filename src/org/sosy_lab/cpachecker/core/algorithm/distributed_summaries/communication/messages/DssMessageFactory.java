@@ -10,9 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
-import java.util.Map;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssWitnessMessage.WitnessType;
@@ -109,25 +106,8 @@ public class DssMessageFactory {
     return new DssExceptionMessage(pSenderId, Throwables.getStackTraceAsString(pThrowable));
   }
 
-  public ImmutableMap<String, ImmutableMap<String, String>> export(DssMessage pMessage) {
-    if (!exportTimestamp) {
-      ImmutableMap<String, ImmutableMap<String, String>> messageContent = pMessage.asJson();
-      ImmutableMap.Builder<String, ImmutableMap<String, String>> noTimestampMessage =
-          ImmutableMap.builder();
-      ImmutableMap<String, String> header =
-          Objects.requireNonNull(
-              messageContent.get(DssMessageFormat.HEADER_KEY),
-              "Header must not be null in DssMessage export");
-      Map<String, String> filteredHeader =
-          Maps.filterKeys(header, key -> key != null && !key.equals("timestamp"));
-      noTimestampMessage.put(DssMessageFormat.HEADER_KEY, ImmutableMap.copyOf(filteredHeader));
-      noTimestampMessage.put(
-          DssMessageFormat.CONTENT_KEY,
-          Objects.requireNonNull(
-              messageContent.get(DssMessageFormat.CONTENT_KEY),
-              "Content must not be null in DssMessage export"));
-      return noTimestampMessage.buildOrThrow();
-    }
-    return pMessage.asJson();
+  public DssMessagePayload export(DssMessage pMessage) {
+    DssMessagePayload payload = pMessage.asJsonPayload();
+    return exportTimestamp ? payload : payload.withoutTimestamp();
   }
 }
