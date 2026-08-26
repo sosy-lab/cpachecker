@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
@@ -368,12 +367,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
               configFilesIterator,
               LastAnalysisResult.FAILED,
               e.getMessage().contains("recursion"),
-              e.getMessage().contains("pthread_create")
-                  // A violation witness whose waypoints name the thread they belong to queries the
-                  // ThreadingCPA, cf. ThreadingState#PROPERTY_ACTIVE_THREAD_WITNESS_ID. An analysis
-                  // without that CPA cannot answer the query and aborts, which tells us that we are
-                  // validating a witness for a concurrent program.
-                  || e.getMessage().contains(ThreadingState.CPA_NAME));
+              e.getMessage().contains("pthread_create"));
 
           if (e instanceof CounterexampleAnalysisFailed
               || e instanceof RefinementFailedException
