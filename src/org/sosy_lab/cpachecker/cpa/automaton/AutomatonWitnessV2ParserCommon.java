@@ -45,7 +45,8 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.Waypo
  * Common class for parsing witnesses in version 2.
  *
  * <p><pMore information about the witness format can be found in the <a *
- * href="https://gitlab.com/sosy-lab/benchmarking/sv-witnesses">Witnesses User-guide</a>. * *
+ * href="https://gitlab.com/sosy-lab/benchmarking/sv-witnesses/-/blob/main/user-guide/Witness-Format.md">Witnesses
+ * Format</a>. * *
  *
  * <p>In addition, the properties supported by each witness version are primarily relevant for the *
  * SV-COMP competition and therefore kept track in the SV-COMP documentation: <a *
