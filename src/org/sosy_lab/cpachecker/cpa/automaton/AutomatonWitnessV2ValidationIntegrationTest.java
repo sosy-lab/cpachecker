@@ -147,7 +147,9 @@ public final class AutomatonWitnessV2ValidationIntegrationTest {
   }
 
   @Test(timeout = 3000)
-  @Ignore("This test is currently ignored because it takes too long to run.")
+  @Ignore(
+      "This test is currently ignored because the witness seems correct, "
+          + "but is rejected for some reason.")
   public void validate_data_race_concurrency_roundtrip_qw2004_2() throws Exception {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-data-race.prp");
     Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "qw2004-2.i");
