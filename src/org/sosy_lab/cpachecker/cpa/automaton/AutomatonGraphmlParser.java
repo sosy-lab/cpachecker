@@ -1393,7 +1393,7 @@ public class AutomatonGraphmlParser {
    *
    * @param pThreadId the thread id to assign.
    */
-  public static AutomatonAction getThreadIdAssignment(int pThreadId) {
+  protected static AutomatonAction getThreadIdAssignment(int pThreadId) {
     AutomatonIntExpr expr = new AutomatonIntExpr.Constant(pThreadId);
     return new AutomatonAction.Assignment(THREAD_ID_VAR_NAME, expr);
   }
