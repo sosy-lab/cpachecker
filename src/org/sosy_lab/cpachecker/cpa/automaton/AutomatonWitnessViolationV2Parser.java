@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.THREAD_ID_VAR_NAME;
 import static org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.getThreadIdAssignment;
 
@@ -556,8 +557,8 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
     AutomatonBoolExpr expr =
         restrictToThread(
             new CheckPassesThroughNodes(
-                FluentIterable.from(inputEdges).transform(CFAEdge::getPredecessor).toSet(),
-                FluentIterable.from(inputEdges).transform(CFAEdge::getSuccessor).toSet()),
+                transformedImmutableSetCopy(inputEdges, CFAEdge::getPredecessor),
+                transformedImmutableSetCopy(inputEdges, CFAEdge::getSuccessor)),
             threadId);
 
     AutomatonTransition.Builder transitionBuilder =
