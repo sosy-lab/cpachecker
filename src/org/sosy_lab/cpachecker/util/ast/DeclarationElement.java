@@ -22,8 +22,7 @@ public final class DeclarationElement {
     return completeElement;
   }
 
-  public ASTElement determineElement(
-      FileLocation pConditionLocation) {
+  public ASTElement determineElement(FileLocation pConditionLocation) {
     return new ASTElement(pConditionLocation);
   }
 }

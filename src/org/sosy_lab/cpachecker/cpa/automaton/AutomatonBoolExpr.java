@@ -312,9 +312,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       if (edge.getSuccessor()
           .getLeavingEdges()
           .anyMatch(
-              e ->
-                  FluentIterable.from(incomingFrontierEdges)
-                      .anyMatch(pEdge -> pEdge.equals(e)))) {
+              e -> FluentIterable.from(incomingFrontierEdges).anyMatch(pEdge -> pEdge.equals(e)))) {
         return CONST_TRUE;
       }
 
