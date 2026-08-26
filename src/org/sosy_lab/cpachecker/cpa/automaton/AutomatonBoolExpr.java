@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
-import static org.sosy_lab.cpachecker.util.CFAUtils.equalityModuloNodes;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -259,8 +258,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
       // The equality modulo the nodes is necessary for concurrent analysis where functions
       // are cloned during the analysis
-      if (elementToEnter.edges().stream()
-          .anyMatch(pCFAEdge -> equalityModuloNodes(pCFAEdge, edge))) {
+      if (elementToEnter.edges().stream().anyMatch(pCFAEdge -> pCFAEdge.equals(edge))) {
         return CONST_TRUE;
       }
       return CONST_FALSE;
@@ -316,7 +314,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
           .anyMatch(
               e ->
                   FluentIterable.from(incomingFrontierEdges)
-                      .anyMatch(pEdge -> equalityModuloNodes(pEdge, e)))) {
+                      .anyMatch(pEdge -> pEdge.equals(e)))) {
         return CONST_TRUE;
       }
 

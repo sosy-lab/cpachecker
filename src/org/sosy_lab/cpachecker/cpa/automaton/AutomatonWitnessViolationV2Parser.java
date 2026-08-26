@@ -535,18 +535,16 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
 
     // Find out the edge which corresponds to this statement, it can either be a CFunctionCallEdge
     // or a CStatementEdge
-    Optional<CFAEdge> inputEdge =
+    ImmutableSet<CFAEdge> inputEdges =
         findFunctionEnterEdge(followLine, followColumn, startLineToCFAEdge);
 
-    if (inputEdge.isEmpty()) {
+    if (inputEdges.isEmpty()) {
       throw new WitnessParseException(
           "No CFAEdge could be matched for the function enter waypoint passing line "
               + followLine
               + " and column "
               + followColumn);
     }
-
-    CFAEdge edge = inputEdge.orElseThrow();
 
     // If we are matching a `pthread_create` function call we need to handle this specially
     // to be able to correctly validate violation witnesses for concurrent programs,
@@ -557,7 +555,8 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
     AutomatonBoolExpr expr =
         restrictToThread(
             new CheckPassesThroughNodes(
-                ImmutableSet.of(edge.getPredecessor()), ImmutableSet.of(edge.getSuccessor())),
+                FluentIterable.from(inputEdges).transform(CFAEdge::getPredecessor).toSet(),
+                FluentIterable.from(inputEdges).transform(CFAEdge::getSuccessor).toSet()),
             threadId);
 
     AutomatonTransition.Builder transitionBuilder =
@@ -582,11 +581,11 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
    * @param startLineToCFAEdge mapping from start lines to the CFA edges starting there
    * @return the matching edge, or {@link Optional#empty()} if no edge matches
    */
-  private static Optional<CFAEdge> findFunctionEnterEdge(
+  private static ImmutableSet<CFAEdge> findFunctionEnterEdge(
       Integer followLine, OptionalInt followColumn, Multimap<Integer, CFAEdge> startLineToCFAEdge) {
     // We sort the edges by their column, so we can take the first one which matches the given
     // column
-    Optional<CFAEdge> foundEdge = Optional.empty();
+    ImmutableSet.Builder<CFAEdge> foundEdges = ImmutableSet.builder();
     for (CFAEdge edge :
         FluentIterable.from(startLineToCFAEdge.get(followLine))
             .toSortedList(
@@ -604,13 +603,10 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
         continue;
       }
 
-      Verify.verify(
-          foundEdge.isEmpty() || CFAUtils.equalityModuloNodes(foundEdge.orElseThrow(), edge),
-          "Multiple edges match the function enter waypoint");
-      foundEdge = Optional.of(edge);
+      foundEdges.add(edge);
     }
 
-    return foundEdge;
+    return foundEdges.build();
   }
 
   /**

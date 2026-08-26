@@ -31,7 +31,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
@@ -80,7 +79,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -134,7 +132,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
@@ -802,38 +799,6 @@ public class CFAUtils {
       currentEdge = Iterables.getOnlyElement(currentEdge.getSuccessor().getLeavingEdges());
     }
     return rGlobalVariables.build();
-  }
-
-  public static boolean compareFunctionCallAndStatementEdges(CFAEdge pFirst, CFAEdge pOther) {
-    return pFirst instanceof CStatementEdge pStatementEdge
-        && pOther instanceof CFunctionCallEdge pCallEdge
-        && pStatementEdge.getStatement() instanceof CFunctionCallStatement pStatement
-        && pStatement
-            .getFunctionCallExpression()
-            .getParameterExpressions()
-            .toString()
-            .equals(pCallEdge.getFunctionCallExpression().getParameterExpressions().toString())
-        && pStatement
-            .getFunctionCallExpression()
-            .getExpressionType()
-            .equals(pCallEdge.getFunctionCallExpression().getExpressionType())
-        && pStatement
-            .getFunctionCallExpression()
-            .getDeclaration()
-            .getOrigName()
-            .equals(pCallEdge.getFunctionCallExpression().getDeclaration().getOrigName());
-  }
-
-  public static boolean equalityModuloNodes(CFAEdge pFirst, CFAEdge pOther) {
-    // Only necessary to compare CFA Edges of cloned CFAs, which is done for concurrency and makes
-    // the matching with the original CFA difficult
-    //
-    // Is just an approximation for now. This would need to be
-    return Objects.equals(pFirst.getFileLocation(), pOther.getFileLocation())
-        && (Objects.equals(pFirst.getClass(), pOther.getClass())
-            || compareFunctionCallAndStatementEdges(pFirst, pOther)
-            || compareFunctionCallAndStatementEdges(pOther, pFirst))
-        && Objects.equals(pFirst.getRawStatement(), pOther.getRawStatement());
   }
 
   /**
