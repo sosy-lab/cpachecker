@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Message sent by analysis workers carrying witness information: either the ARG states of all
@@ -25,7 +26,7 @@ public class DssWitnessMessage extends DssMessage {
   }
 
   DssWitnessMessage(String pSenderId, ImmutableMap<String, String> pContent) {
-    super(pSenderId, DssMessageType.WITNESS, pContent);
+    super(pSenderId, DssMessageType.WITNESS, Optional.empty(), pContent);
   }
 
   @Override

@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.OptionalInt;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -46,6 +47,7 @@ public abstract class DssMessage {
   private final String senderId;
   private final DssMessageType type;
   private final Instant timestamp;
+  private final Optional<AlgorithmStatus> status;
   private final ImmutableMap<String, String> content;
 
   /**
@@ -53,12 +55,19 @@ public abstract class DssMessage {
    *
    * @param pSenderId the ID of the sender
    * @param pType the type of the message
+   * @param pStatus the optional status of the message
    * @param pContent the content of the message
    */
-  DssMessage(String pSenderId, DssMessageType pType, Map<String, String> pContent) {
+  DssMessage(
+      String pSenderId,
+      DssMessageType pType,
+      Optional<AlgorithmStatus> pStatus,
+      Map<String, String> pContent) {
     checkArgument(isValid(pContent), "Invalid content for message type: %s", pType);
+    checkArgument(hasStatus(pType) && pStatus.isEmpty(), "Message type requires status: %s", pType);
     senderId = pSenderId;
     type = pType;
+    status = pStatus;
     timestamp = Instant.now();
     content = ImmutableMap.copyOf(pContent);
   }
@@ -70,6 +79,10 @@ public abstract class DssMessage {
    * @return true if the content is valid, false otherwise
    */
   abstract boolean isValid(Map<String, String> pContent);
+
+  private boolean hasStatus(DssMessageType pType) {
+    return pType == DssMessageType.POST_CONDITION || pType == DssMessageType.VIOLATION_CONDITION;
+  }
 
   public final Instant getTimestamp() {
     return timestamp;
@@ -116,7 +129,7 @@ public abstract class DssMessage {
     Map<String, String> prefixContent = ContentReader.read(content).pushLevel(pPrefix).getContent();
     ImmutableMap.Builder<String, String> advanced = ImmutableMap.builder();
     advanced.putAll(content).putAll(prefixContent);
-    return new DssMessage(senderId, type, advanced.buildOrThrow()) {
+    return new DssMessage(senderId, type, status, advanced.buildOrThrow()) {
       @Override
       boolean isValid(Map<String, String> pContent) {
         return DssMessage.this.isValid(pContent);
@@ -190,27 +203,8 @@ public abstract class DssMessage {
   }
 
   public final AlgorithmStatus getAlgorithmStatus() {
-    checkArgument(
-        type == DssMessageType.POST_CONDITION || type == DssMessageType.VIOLATION_CONDITION,
-        "Cannot get content for type: %s",
-        type);
-    ContentReader reader = ContentReader.read(content).pushLevel(DssMessageFormat.STATUS_KEY);
-    boolean checkedProperty = Boolean.parseBoolean(reader.get(DssMessageFormat.PROPERTY_KEY));
-    if (!checkedProperty) {
-      return AlgorithmStatus.NO_PROPERTY_CHECKED;
-    } else {
-      boolean isSound = Boolean.parseBoolean(reader.get(DssMessageFormat.SOUND_KEY));
-      boolean isPrecise = Boolean.parseBoolean(reader.get(DssMessageFormat.PRECISE_KEY));
-      if (isSound && isPrecise) {
-        return AlgorithmStatus.SOUND_AND_PRECISE;
-      } else if (isSound) {
-        return AlgorithmStatus.SOUND_AND_IMPRECISE;
-      } else if (isPrecise) {
-        return AlgorithmStatus.UNSOUND_AND_PRECISE;
-      } else {
-        return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
-      }
-    }
+    checkArgument(hasStatus(type), "Cannot get content for type: %s", type);
+    return status.get();
   }
 
   public final String getExceptionMessage() {
@@ -264,14 +258,19 @@ public abstract class DssMessage {
 
   public static DssMessage fromPayload(DssMessagePayload pPayload) {
     DssHeaderPayload header = pPayload.header();
-    ImmutableMap<String, String> content = pPayload.legacyContent();
+    Optional<AlgorithmStatus> algorithmStatus =
+        pPayload.status() == null
+            ? Optional.empty()
+            : Optional.of(pPayload.status().toAlgorithmStatus());
+    ImmutableMap<String, String> content = pPayload.content();
 
     String senderId = header.senderId();
     DssMessageType type = header.messageType();
 
     return switch (type) {
-      case POST_CONDITION -> new DssPostConditionMessage(senderId, content);
-      case VIOLATION_CONDITION -> new DssViolationConditionMessage(senderId, content);
+      case POST_CONDITION -> new DssPostConditionMessage(senderId, algorithmStatus.get(), content);
+      case VIOLATION_CONDITION ->
+          new DssViolationConditionMessage(senderId, algorithmStatus.get(), content);
       case EXCEPTION -> new DssExceptionMessage(senderId, content);
       case RESULT -> new DssResultMessage(senderId, content);
       case WITNESS -> new DssWitnessMessage(senderId, content);
@@ -279,10 +278,10 @@ public abstract class DssMessage {
   }
 
   private @Nullable DssStatusPayload extractStatusPayload() {
-    if (type != DssMessageType.POST_CONDITION && type != DssMessageType.VIOLATION_CONDITION) {
+    if (!hasStatus(type)) {
       return null;
     }
-    return DssStatusPayload.fromAlgorithmStatus(getAlgorithmStatus());
+    return DssStatusPayload.fromAlgorithmStatus(status.get());
   }
 
   private ImmutableMap<String, String> contentWithoutLegacyStatus() {

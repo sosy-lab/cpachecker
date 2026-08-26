@@ -42,10 +42,8 @@ public class DssMessageFactory {
       String pSenderId, AlgorithmStatus pStatus, ImmutableMap<String, String> pStateContent) {
     return new DssPostConditionMessage(
         pSenderId,
-        ImmutableMap.<String, String>builder()
-            .putAll(serializeStatus(pStatus))
-            .putAll(pStateContent)
-            .buildOrThrow());
+        pStatus,
+        ImmutableMap.<String, String>builder().putAll(pStateContent).buildOrThrow());
   }
 
   /**
@@ -62,8 +60,8 @@ public class DssMessageFactory {
       String pSenderId, AlgorithmStatus pStatus) {
     return new DssPostConditionMessage(
         pSenderId,
+        pStatus,
         ImmutableMap.<String, String>builder()
-            .putAll(serializeStatus(pStatus))
             .put(DssMessageFormat.UNREACHABLE_BLOCK_END_KEY, "true")
             .buildOrThrow());
   }
@@ -72,10 +70,8 @@ public class DssMessageFactory {
       String pSenderId, AlgorithmStatus pStatus, ImmutableMap<String, String> pStateContent) {
     return new DssViolationConditionMessage(
         pSenderId,
-        ImmutableMap.<String, String>builder()
-            .putAll(serializeStatus(pStatus))
-            .putAll(pStateContent)
-            .buildOrThrow());
+        pStatus,
+        ImmutableMap.<String, String>builder().putAll(pStateContent).buildOrThrow());
   }
 
   public DssWitnessMessage createDssCorrectnessWitnessMessage(

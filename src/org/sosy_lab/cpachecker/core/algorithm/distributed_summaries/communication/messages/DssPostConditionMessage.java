@@ -10,11 +10,14 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
+import java.util.Optional;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 
 public class DssPostConditionMessage extends DssMessage {
 
-  DssPostConditionMessage(String pSenderId, ImmutableMap<String, String> pContent) {
-    super(pSenderId, DssMessageType.POST_CONDITION, pContent);
+  DssPostConditionMessage(
+      String pSenderId, AlgorithmStatus pStatus, ImmutableMap<String, String> pContent) {
+    super(pSenderId, DssMessageType.POST_CONDITION, Optional.of(pStatus), pContent);
   }
 
   @Override

@@ -10,15 +10,20 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class DssResultMessage extends DssMessage {
 
   DssResultMessage(String pSenderId, String pResult) {
-    super(pSenderId, DssMessageType.RESULT, ImmutableMap.of(DssMessageFormat.RESULT_KEY, pResult));
+    super(
+        pSenderId,
+        DssMessageType.RESULT,
+        Optional.empty(),
+        ImmutableMap.of(DssMessageFormat.RESULT_KEY, pResult));
   }
 
   DssResultMessage(String pSenderId, ImmutableMap<String, String> pResult) {
-    super(pSenderId, DssMessageType.RESULT, pResult);
+    super(pSenderId, DssMessageType.RESULT, Optional.empty(), pResult);
   }
 
   @Override
