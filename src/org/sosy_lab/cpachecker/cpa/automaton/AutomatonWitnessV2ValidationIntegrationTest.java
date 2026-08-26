@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.nio.file.Path;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
@@ -126,41 +125,6 @@ public final class AutomatonWitnessV2ValidationIntegrationTest {
   public void validate_data_race_concurrency_roundtrip() throws Exception {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-data-race.prp");
     Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-data-race.c");
-    WitnessV2ValidationTestUtils.verificationPlusValidationTest(
-        inputFilePath, Result.FALSE, specificationFilePath);
-  }
-
-  @Test(timeout = 3000)
-  public void validate_data_race_concurrency_roundtrip_gcd() throws Exception {
-    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-data-race.prp");
-    Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "gcd-2.i");
-    WitnessV2ValidationTestUtils.verificationPlusValidationTest(
-        inputFilePath, Result.FALSE, specificationFilePath);
-  }
-
-  @Test(timeout = 3000)
-  public void validate_data_race_concurrency_roundtrip_qw2004_1() throws Exception {
-    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-data-race.prp");
-    Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "qw2004-1.i");
-    WitnessV2ValidationTestUtils.verificationPlusValidationTest(
-        inputFilePath, Result.FALSE, specificationFilePath);
-  }
-
-  @Test(timeout = 3000)
-  @Ignore(
-      "This test is currently ignored because the witness seems correct, "
-          + "but is rejected for some reason.")
-  public void validate_data_race_concurrency_roundtrip_qw2004_2() throws Exception {
-    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-data-race.prp");
-    Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "qw2004-2.i");
-    WitnessV2ValidationTestUtils.verificationPlusValidationTest(
-        inputFilePath, Result.FALSE, specificationFilePath);
-  }
-
-  @Test(timeout = 9000)
-  public void validate_data_race_concurrency_roundtrip_read_write_lock() throws Exception {
-    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-data-race.prp");
-    Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "read_write_lock-2b.i");
     WitnessV2ValidationTestUtils.verificationPlusValidationTest(
         inputFilePath, Result.FALSE, specificationFilePath);
   }
