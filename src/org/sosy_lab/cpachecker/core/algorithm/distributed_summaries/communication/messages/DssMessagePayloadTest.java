@@ -13,6 +13,7 @@ import static org.junit.Assert.assertThrows;
 
 import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
 import com.google.common.collect.ImmutableMap;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Rule;
@@ -179,5 +180,73 @@ public class DssMessagePayloadTest {
     assertThat(payload.content())
         .doesNotContainKey(DssMessageFormat.STATUS_KEY + "." + DssMessageFormat.SOUND_KEY);
     assertThat(payload.content()).containsEntry(DssMessageFormat.UNREACHABLE_BLOCK_END_KEY, "true");
+  }
+
+  @Test
+  public void writeJsonCreatesJsonFile() throws IOException {
+    DssMessagePayload payload =
+        new DssMessagePayload(
+            new DssHeaderPayload("B1", DssMessageType.RESULT, "123", 0),
+            null,
+            ImmutableMap.of(DssMessageFormat.RESULT_KEY, "true"));
+    Path file = tempFolder.getRoot().toPath().resolve("missing/message.json");
+
+    payload.writeJson(file);
+
+    assertThat(Files.isRegularFile(file)).isTrue();
+    assertThat(Files.readString(file)).contains(DssMessageFormat.HEADER_KEY);
+  }
+
+  @Test
+  public void roundTripPreservesStatusAndContent()
+      throws InvalidConfigurationException, IOException {
+    DssMessage original =
+        defaultFactory()
+            .createDssUnreachableBlockEndMessage("B1", AlgorithmStatus.SOUND_AND_PRECISE);
+    Path file = tempFolder.newFile("message.json").toPath();
+
+    original.asJsonPayload().writeJson(file);
+    DssMessage parsed = DssMessage.fromJson(file);
+
+    assertThat(parsed.getType()).isEqualTo(original.getType());
+    assertThat(parsed.getAlgorithmStatus()).isEqualTo(original.getAlgorithmStatus());
+    assertThat(parsed.getSenderId()).isEqualTo(original.getSenderId());
+    assertThat(parsed.indicatesUnreachableBlockEnd()).isTrue();
+  }
+
+  @Test
+  public void fromPayloadRejectsPostConditionWithoutStatus() {
+    DssMessagePayload payload =
+        new DssMessagePayload(
+            new DssHeaderPayload("B1", DssMessageType.POST_CONDITION, "123", 0),
+            null,
+            ImmutableMap.of(DssMessageFormat.UNREACHABLE_BLOCK_END_KEY, "true"));
+
+    assertThrows(IllegalArgumentException.class, () -> DssMessage.fromPayload(payload));
+  }
+
+  @Test
+  public void fromPayloadRejectsResultWithStatus() {
+    DssMessagePayload payload =
+        new DssMessagePayload(
+            new DssHeaderPayload("B1", DssMessageType.RESULT, "123", 0),
+            new DssStatusPayload(true, true, true),
+            ImmutableMap.of(DssMessageFormat.RESULT_KEY, "true"));
+
+    assertThrows(IllegalArgumentException.class, () -> DssMessage.fromPayload(payload));
+  }
+
+  @Test
+  public void advancePreservesStatus() {
+    DssMessagePayload payload =
+        new DssMessagePayload(
+            new DssHeaderPayload("B1", DssMessageType.POST_CONDITION, "123", 0),
+            new DssStatusPayload(true, true, true),
+            ImmutableMap.of("state0.precision", "true"));
+
+    DssMessage message = DssMessage.fromPayload(payload);
+    DssMessage advanced = message.advance("state0");
+
+    assertThat(advanced.getAlgorithmStatus()).isEqualTo(message.getAlgorithmStatus());
   }
 }

@@ -83,7 +83,7 @@ public abstract class DssMessage {
    */
   abstract boolean isValid(Map<String, String> pContent);
 
-  private boolean hasStatus(DssMessageType pType) {
+  private static boolean hasStatus(DssMessageType pType) {
     return pType == DssMessageType.POST_CONDITION || pType == DssMessageType.VIOLATION_CONDITION;
   }
 
@@ -266,9 +266,13 @@ public abstract class DssMessage {
             ? Optional.empty()
             : Optional.of(pPayload.status().toAlgorithmStatus());
     ImmutableMap<String, String> content = pPayload.content();
-
     String senderId = header.senderId();
     DssMessageType type = header.messageType();
+
+    checkArgument(
+        !hasStatus(type) || algorithmStatus.isPresent(), "Message type requires status: %s", type);
+    checkArgument(
+        hasStatus(type) || algorithmStatus.isEmpty(), "Message type can't have status: %s", type);
 
     return switch (type) {
       case POST_CONDITION -> new DssPostConditionMessage(senderId, algorithmStatus.get(), content);
