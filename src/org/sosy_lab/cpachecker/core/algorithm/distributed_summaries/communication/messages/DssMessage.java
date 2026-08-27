@@ -64,7 +64,8 @@ public abstract class DssMessage {
       Optional<AlgorithmStatus> pStatus,
       Map<String, String> pContent) {
     checkArgument(isValid(pContent), "Invalid content for message type: %s", pType);
-    checkArgument(hasStatus(pType) && pStatus.isEmpty(), "Message type requires status: %s", pType);
+    checkArgument(
+        !hasStatus(pType) || pStatus.isPresent(), "Message type requires status: %s", pType);
     senderId = pSenderId;
     type = pType;
     status = pStatus;

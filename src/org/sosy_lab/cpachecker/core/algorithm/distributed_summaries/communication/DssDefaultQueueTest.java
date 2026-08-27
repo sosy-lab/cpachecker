@@ -34,7 +34,7 @@ public class DssDefaultQueueTest {
     DssDefaultQueue queue = new DssDefaultQueue();
     DssMessage postCondition =
         messageFactory.createDssPostConditionMessage(
-            "worker", AlgorithmStatus.SOUND_AND_PRECISE, ImmutableMap.of());
+            "worker", AlgorithmStatus.SOUND_AND_PRECISE, ImmutableMap.of("dummy", "entry"));
     DssMessage result = messageFactory.createDssResultMessage("monitor", Result.TRUE);
 
     queue.add(postCondition);
