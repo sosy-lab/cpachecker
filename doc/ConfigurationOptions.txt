@@ -1354,7 +1354,7 @@ counterexample.checker.checkMemorySafetySubproperty = false
 # of other configs besides the loaded config and command-line settings.
 counterexample.checker.config = no default value
 
-# Internal representation of the counterexample path used.
+# Internal representation of the counterexample path used for the check.
 counterexample.checker.counterexampleFormat = AUTOMATON
   enum:     [AUTOMATON, YAML_WITNESS]
 
