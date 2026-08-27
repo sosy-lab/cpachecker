@@ -66,6 +66,8 @@ public abstract class DssMessage {
     checkArgument(isValid(pContent), "Invalid content for message type: %s", pType);
     checkArgument(
         !hasStatus(pType) || pStatus.isPresent(), "Message type requires status: %s", pType);
+    checkArgument(
+        hasStatus(pType) || pStatus.isEmpty(), "Message type can't have status: %s", pType);
     senderId = pSenderId;
     type = pType;
     status = pStatus;
