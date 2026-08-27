@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 
-import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -48,8 +48,8 @@ public class DelegatingRefinerHeuristicRedundantPredicatesPlateau
   private int plateauSteps = 0;
   private int previousDominantPatternCount = 0;
 
-  private final Multiset<String> accumulatedPatternFrequency = HashMultiset.create();
-  private final Multiset<String> accumulatedCategoryFrequency = HashMultiset.create();
+  private final Multiset<String> accumulatedPatternFrequency = LinkedHashMultiset.create();
+  private final Multiset<String> accumulatedCategoryFrequency = LinkedHashMultiset.create();
 
   /**
    * Construct a redundant predicates heuristic that checks if redundancy has plateaued and only a

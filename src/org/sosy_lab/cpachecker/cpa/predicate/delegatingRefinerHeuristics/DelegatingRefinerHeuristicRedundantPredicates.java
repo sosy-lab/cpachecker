@@ -10,9 +10,9 @@ package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 import com.google.common.io.Resources;
 import java.io.BufferedReader;
@@ -84,8 +84,8 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
   private final DelegatingRefinerAtomNormalizer normalizer;
   private final DelegatingRefinerMatchingVisitor matcher;
 
-  private final Multiset<String> accumulatedPatternFrequency = HashMultiset.create();
-  private final Multiset<String> accumulatedCategoryFrequency = HashMultiset.create();
+  private final Multiset<String> accumulatedPatternFrequency = LinkedHashMultiset.create();
+  private final Multiset<String> accumulatedCategoryFrequency = LinkedHashMultiset.create();
 
   /**
    * Construct a redundant predicates heuristic which checks for pattern and category redundancy as
