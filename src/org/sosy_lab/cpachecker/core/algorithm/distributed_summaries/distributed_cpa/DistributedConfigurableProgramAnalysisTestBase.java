@@ -76,10 +76,7 @@ public class DistributedConfigurableProgramAnalysisTestBase {
   }
 
   // Routes the message through the same string-based JSON file round trip that DSS workers
-  // actually use on the wire (see SingleWorkerDssExecutor.writeAllMessages/
-  // prepareOldAndNewMessages), instead of just handing back the in-memory DssMessage object. This
-  // catches issues that only show up once formula text (which can contain e.g. embedded newlines)
-  // survives real JSON encoding and decoding.
+  // actually use to catch issues that only show up during that
   private static DssMessage wrapInMessage(
       DssMessageFactory messageFactory,
       ImmutableMap<String, String> content,
@@ -162,9 +159,7 @@ public class DistributedConfigurableProgramAnalysisTestBase {
 
   // Some DCPAs (e.g. the predicate DCPA) don't encode everything about a state in the serialized
   // content: they also rely on the DssMessageType of the enclosing message to decide how to
-  // deserialize it (e.g. whether the result is an abstraction state). Callers must therefore pass
-  // the message type that such a state would actually be sent in, or the round trip is not
-  // expected to reproduce an equivalent state.
+  // deserialize it (e.g. whether the result is an abstraction state). -> allow tests to specify
   public static void checkSingleStateSerialization(
       ConfigurableProgramAnalysis cpa, AbstractState state, CFA cfa, DssMessageType messageType)
       throws InvalidConfigurationException, IOException, InterruptedException, CPAException {
@@ -191,9 +186,7 @@ public class DistributedConfigurableProgramAnalysisTestBase {
         .isTrue();
   }
 
-  // Unlike states, a Precision carries no message-type-dependent semantics for any DCPA (the
-  // deserializer only reads it back via DssMessage.getPrecisionContent), so plain equality is the
-  // right round-trip invariant here rather than a coverage/subsumption check.
+  // Precision must stay equal instead of using a coverage check
   public static void checkPrecisionSerialization(
       ConfigurableProgramAnalysis cpa, Precision precision, CFA cfa, DssMessageType messageType)
       throws InvalidConfigurationException, IOException, InterruptedException, CPAException {

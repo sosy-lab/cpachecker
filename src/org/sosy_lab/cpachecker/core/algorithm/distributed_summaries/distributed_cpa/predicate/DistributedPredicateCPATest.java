@@ -98,8 +98,7 @@ public class DistributedPredicateCPATest {
   @Test
   public void testPredicateSerializationOnFile() throws Exception {
 
-    // TODO find program which tests something interesting!!
-    CFA cfa = TestUtil.buildTestCFA("doc/examples/example.c");
+    CFA cfa = TestUtil.buildTestCFA("test/programs/dss/predicate_loop_invariant.c");
     PredicateCPA cpa = createPredicateCpa(cfa);
 
     DistributedConfigurableProgramAnalysisTestBase.testSerialization(cfa, cpa);

@@ -24,7 +24,6 @@ public class DistributedLocationCPATest {
   @Test
   public void testLocationSerializationOnFile() throws Exception {
 
-    // TODO find program which tests something interesting!!
     CFA cfa = TestUtil.buildTestCFA("test/programs/cfa-ast-relation/full-expression.c");
 
     Configuration config =
