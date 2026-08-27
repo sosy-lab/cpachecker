@@ -872,12 +872,14 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
       WaypointRecord secondWaypoint,
       ImmutableList.Builder<AutomatonTransition> currentStateTransitions) {
 
+    // The two waypoints of a multi-follow segment are unordered, so there must be no preference
+    // between the two.
     handleIntermediateTarget(
         pIntermediateState,
         firstWaypoint.getLocation().getLine(),
         firstWaypoint.getLocation().getColumn(),
         firstWaypoint.getThread(),
-        pDistanceToViolation - 1,
+        pDistanceToViolation + 1,
         currentStateTransitions);
 
     handleTarget(
@@ -885,7 +887,7 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
         secondWaypoint.getLocation().getLine(),
         secondWaypoint.getLocation().getColumn(),
         secondWaypoint.getThread(),
-        pDistanceToViolation - 2,
+        pDistanceToViolation,
         pIntermediateState,
         new ImmutableList.Builder<>(),
         automatonStates);
