@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -76,6 +77,10 @@ public record DssMessagePayload(
   }
 
   public void writeJson(Path pPath) throws IOException {
+    Path parent = pPath.getParent();
+    if (parent != null) {
+      Files.createDirectories(parent);
+    }
     OBJECT_MAPPER.writeValue(pPath.toFile(), this);
   }
 
