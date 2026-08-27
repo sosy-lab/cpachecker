@@ -149,8 +149,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
   @Option(
       secure = true,
       name = "counterexampleFormat",
-      description =
-          "Internal representation of the counterexample path used.")
+      description = "Internal representation of the counterexample path used for the check.")
   private CounterexampleFormat counterexampleFormat = CounterexampleFormat.AUTOMATON;
 
   private final Function<ARGState, Optional<CounterexampleInfo>> getCounterexampleInfo;
@@ -191,7 +190,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
       try (DeleteOnCloseFile automatonFile =
           TempFile.builder()
               .prefix("counterexample-automaton")
-              .suffix(counterexampleFormat == CounterexampleFormat.AUTOMATON ? ".spc" : ".yml")
+              .suffix(getFileSuffix(counterexampleFormat))
               .createDeleteOnClose()) {
 
         return checkCounterexample(
@@ -204,6 +203,13 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
     }
   }
 
+  private String getFileSuffix(CounterexampleFormat format) {
+    return switch (format) {
+      case AUTOMATON -> ".spc";
+      case YAML_WITNESS -> ".yaml";
+    };
+  }
+
   private boolean checkCounterexample(
       ARGState pRootState,
       ARGState pErrorState,
@@ -212,25 +218,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
       Optional<CounterexampleInfo> cexInfo)
       throws IOException, CPAException, InterruptedException {
 
-    if (counterexampleFormat == CounterexampleFormat.AUTOMATON) {
-      logger.log(Level.INFO, "Exporting counterexample using automaton format.");
-      try (Writer w = IO.openOutputFile(automatonFile, Charset.defaultCharset())) {
-        ARGUtils.producePathAutomaton(
-            w,
-            pRootState,
-            pErrorPathStates,
-            AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME,
-            cexInfo.orElse(null));
-      }
-    } else {
-      logger.log(Level.INFO, "Exporting counterexample using witness version 2 format.");
-      if (cexInfo.isEmpty()) {
-        throw new CounterexampleAnalysisFailed(
-            "Could not determine counterexample information for error state, "
-                + "which is required to export a witness version 2 for the counterexample check.");
-      }
-      yamlWitnessExporter.export(cexInfo.orElseThrow(), automatonFile);
-    }
+    exportCounterexample(pRootState, pErrorPathStates, automatonFile, cexInfo);
 
     // We assume only one initial node for an analysis, even for mutli-threaded tasks.
     CFANode entryNode = Iterables.getOnlyElement(extractLocations(pRootState));
@@ -325,6 +313,35 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
     } catch (InterruptedException e) {
       shutdownNotifier.shutdownIfNecessary();
       throw new CounterexampleAnalysisFailed("Counterexample check aborted", e);
+    }
+  }
+
+  private void exportCounterexample(
+      ARGState pRootState,
+      Set<ARGState> pErrorPathStates,
+      Path automatonFile,
+      Optional<CounterexampleInfo> cexInfo)
+      throws IOException, CPAException {
+    logger.logf(
+        Level.FINE,
+        "Exporting counterexample using %s format for the counterexample check",
+        counterexampleFormat.toString());
+    if (counterexampleFormat == CounterexampleFormat.AUTOMATON) {
+      try (Writer w = IO.openOutputFile(automatonFile, Charset.defaultCharset())) {
+        ARGUtils.producePathAutomaton(
+            w,
+            pRootState,
+            pErrorPathStates,
+            AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME,
+            cexInfo.orElse(null));
+      }
+    } else {
+      if (cexInfo.isEmpty()) {
+        throw new CounterexampleAnalysisFailed(
+            "Could not determine counterexample information for error state, "
+                + "which is required to export the counterexample in witness version 2.0 format.");
+      }
+      yamlWitnessExporter.export(cexInfo.orElseThrow(), automatonFile);
     }
   }
 
