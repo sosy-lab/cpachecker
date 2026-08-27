@@ -15,10 +15,12 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.OptionalInt;
@@ -288,6 +290,18 @@ public abstract class DssMessage {
 
   public final ImmutableMap<String, ImmutableMap<String, String>> asJson() {
     return asJsonWithIdentifier(0);
+  }
+
+  public final ImmutableList<String> getRemainingPreconditions() {
+    Preconditions.checkState(
+        type == DssMessageType.VIOLATION_CONDITION,
+        "Cannot get remaining preconditions for message type: %s",
+        type);
+    String remainingPreconditions = content.get("remainingPreconditions");
+    if (remainingPreconditions == null || remainingPreconditions.isEmpty()) {
+      return ImmutableList.of();
+    }
+    return ImmutableList.copyOf(List.of(remainingPreconditions.split(",")));
   }
 
   public static DssMessage fromJson(Path pJson) throws IOException {

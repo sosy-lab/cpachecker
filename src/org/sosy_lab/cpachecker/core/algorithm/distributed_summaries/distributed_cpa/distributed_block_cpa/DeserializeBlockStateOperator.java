@@ -41,6 +41,7 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
     ParseResult parsed = parseWitness(content);
     Preconditions.checkNotNull(parsed.serializedBlockState);
     return new BlockState(
+        parsed.id,
         null,
         DeserializeOperator.startLocationFromMessageType(pMessage, blockNode),
         blockNode,
@@ -51,7 +52,10 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
   }
 
   public static ParseResult parseWitness(String content) {
-    List<String> idAndWitnessAndMaybeHistory = Splitter.on(" W:").limit(2).splitToList(content);
+    List<String> idAndRest = Splitter.on(" ").limit(2).splitToList(content);
+    String id = idAndRest.getFirst();
+    List<String> idAndWitnessAndMaybeHistory =
+        Splitter.on(" W:").limit(2).splitToList(idAndRest.getLast());
     Preconditions.checkArgument(idAndWitnessAndMaybeHistory.size() == 2);
     String serializedBlockState = idAndWitnessAndMaybeHistory.getFirst();
     List<String> witnessAndMaybeHistory =
@@ -61,9 +65,9 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
         witnessAndMaybeHistory.size() == 2
             ? Splitter.on(",").splitToList(witnessAndMaybeHistory.getLast())
             : ImmutableList.of();
-    return new ParseResult(serializedBlockState, finalWitness, BlockGraphPath.of(history));
+    return new ParseResult(id, serializedBlockState, finalWitness, BlockGraphPath.of(history));
   }
 
   public record ParseResult(
-      String serializedBlockState, SegmentedPaths witness, BlockGraphPath history) {}
+      String id, String serializedBlockState, SegmentedPaths witness, BlockGraphPath history) {}
 }

@@ -624,8 +624,12 @@ public final class DssBlockAnalysis {
     if (allVcs.isEmpty()) {
       return ImmutableSet.of();
     }
+    ImmutableList<String> ids =
+        transformedImmutableListCopy(
+            preconditions.getKnownPreconditions(), sap -> blockStateOf(sap.state()).getUniqueId());
     return ImmutableSet.of(
-        messageFactory.createViolationConditionMessage(block.getId(), status, serialize(allVcs)));
+        messageFactory.createViolationConditionMessage(
+            block.getId(), status, ids, serialize(allVcs)));
   }
 
   /** All ARG paths reaching the given states, without an originating violation condition. */

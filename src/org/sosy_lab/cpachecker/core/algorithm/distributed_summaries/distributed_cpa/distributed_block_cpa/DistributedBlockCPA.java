@@ -53,7 +53,7 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
   private final CombinePreconditionsOperator combinePreconditionsOperator;
   private final CombineViolationConditionsOperator combineViolationConditionsOperator;
 
-  private final ConfigurableProgramAnalysis blockCpa;
+  private final BlockCPA blockCpa;
   private final BlockNode node;
   private final Function<CFANode, BlockState> blockStateSupplier;
   private final CombinePrecisionOperator combinePrecisionOperator;
@@ -62,11 +62,12 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
       ConfigurableProgramAnalysis pBlockCpa, BlockNode pNode, DssAnalysisOptions pOptions) {
     checkArgument(
         pBlockCpa instanceof BlockCPA, "%s is no %s", pBlockCpa.getClass(), BlockCPA.class);
-    blockCpa = pBlockCpa;
+    blockCpa = ((BlockCPA) pBlockCpa);
     node = pNode;
     blockStateSupplier =
         location ->
             new BlockState(
+                pNode.getId() + "#" + blockCpa.getIdGenerator().getFreshId(),
                 null,
                 location,
                 pNode,
@@ -136,7 +137,7 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
 
   @Override
   public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) {
-    Preconditions.checkArgument(
+    checkArgument(
         pAbstractState instanceof BlockState,
         "Expected BlockState, but got %s",
         pAbstractState.getClass().getSimpleName());
@@ -146,7 +147,7 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
 
   @Override
   public AbstractState reset(AbstractState pAbstractState) {
-    Preconditions.checkArgument(
+    checkArgument(
         pAbstractState instanceof BlockState,
         "Expected BlockState, but got %s",
         pAbstractState.getClass().getSimpleName());

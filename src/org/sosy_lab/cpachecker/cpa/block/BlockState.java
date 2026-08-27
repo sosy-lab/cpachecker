@@ -51,6 +51,7 @@ public class BlockState
     WITNESS
   }
 
+  private final String id;
   private final BlockState predecessor;
   private final CFANode node;
   private final BlockStateType type;
@@ -64,6 +65,7 @@ public class BlockState
   private final transient Set<AbstractState> hinderedByCallstack;
 
   public BlockState(
+      String pId,
       BlockState pPredecessor,
       CFANode pNode,
       BlockNode pTargetNode,
@@ -75,6 +77,7 @@ public class BlockState
     Preconditions.checkArgument(
         pType == BlockStateType.WITNESS || pWitnessCheckPathState == null,
         "Added path state while not being in Witnes state");
+    id = pId;
     predecessor = pPredecessor;
     node = pNode;
     type = pType;
@@ -87,6 +90,7 @@ public class BlockState
   }
 
   public BlockState(
+      String pId,
       BlockState pPredecessor,
       CFANode pNode,
       BlockNode pTargetNode,
@@ -94,7 +98,20 @@ public class BlockState
       List<? extends AbstractState> pViolationConditions,
       BlockGraphPath pHistory,
       SegmentedPaths pWitness) {
-    this(pPredecessor, pNode, pTargetNode, pType, pViolationConditions, pHistory, pWitness, null);
+    this(
+        pId,
+        pPredecessor,
+        pNode,
+        pTargetNode,
+        pType,
+        pViolationConditions,
+        pHistory,
+        pWitness,
+        null);
+  }
+
+  public String getUniqueId() {
+    return id;
   }
 
   public Set<AbstractState> getHinderedByCallstack() {

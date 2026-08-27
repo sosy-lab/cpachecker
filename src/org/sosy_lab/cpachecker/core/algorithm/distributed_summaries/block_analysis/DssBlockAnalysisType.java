@@ -25,7 +25,7 @@ public enum DssBlockAnalysisType {
 
     @Override
     DssViolationConditionHandler createViolationConditionHandler(DssBlockAnalysis pAnalysis) {
-      return new AlwaysReplaceViolationConditionHandler(pAnalysis);
+      return new PathBasedViolationConditionHandler(pAnalysis);
     }
   },
 

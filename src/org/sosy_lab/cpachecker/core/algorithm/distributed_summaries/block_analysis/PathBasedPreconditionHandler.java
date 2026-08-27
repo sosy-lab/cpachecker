@@ -244,7 +244,8 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
       // TODO could work similarly with suffix instead of just equal path, where we replace the
       // path stored with the new path, but as long as the race condition exists, we deny shorter
       // paths and would not unroll loops properly
-      if (newStates.path.equals(existing.path) && analysis.statesEqual(newStates.states, existing.states)) {
+      if (newStates.path.equals(existing.path)
+          && analysis.statesEqual(newStates.states, existing.states)) {
         return true;
       }
     }

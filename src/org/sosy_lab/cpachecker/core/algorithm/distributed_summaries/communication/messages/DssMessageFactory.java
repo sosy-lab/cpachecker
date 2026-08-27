@@ -8,9 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -78,10 +80,14 @@ public class DssMessageFactory {
   }
 
   public DssViolationConditionMessage createViolationConditionMessage(
-      String pSenderId, AlgorithmStatus pStatus, ImmutableMap<String, String> pStateContent) {
+      String pSenderId,
+      AlgorithmStatus pStatus,
+      List<String> pRemainingPreconditions,
+      ImmutableMap<String, String> pStateContent) {
     return new DssViolationConditionMessage(
         pSenderId,
         ImmutableMap.<String, String>builder()
+            .put("remainingPreconditions", Joiner.on(",").join(pRemainingPreconditions))
             .putAll(serializeStatus(pStatus))
             .putAll(pStateContent)
             .buildOrThrow());

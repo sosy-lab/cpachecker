@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.block;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.concurrent.LazyInit;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -22,15 +23,20 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
 import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 
 public class BlockCPA extends AbstractCPA {
 
   private @LazyInit BlockNode blockNode;
+  private final UniqueIdGenerator idGenerator;
+  private final TransferRelation transferRelation;
 
   public BlockCPA(Configuration pConfiguration) throws InvalidConfigurationException {
-    super("sep", "sep", new FlatLatticeDomain(), new BlockTransferRelation(pConfiguration));
+    super("sep", "sep", new FlatLatticeDomain(), null);
+    idGenerator = new UniqueIdGenerator();
+    transferRelation = new BlockTransferRelation(pConfiguration, idGenerator);
   }
 
   public void init(BlockNode pBlockNode) {
@@ -43,6 +49,7 @@ public class BlockCPA extends AbstractCPA {
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
     return new BlockState(
+        blockNode.getId() + "#" + idGenerator.getFreshId(),
         null,
         node,
         blockNode,
@@ -50,6 +57,15 @@ public class BlockCPA extends AbstractCPA {
         ImmutableList.of(),
         BlockGraphPath.of(),
         SegmentedPaths.EMPTY);
+  }
+
+  public UniqueIdGenerator getIdGenerator() {
+    return idGenerator;
+  }
+
+  @Override
+  public TransferRelation getTransferRelation() {
+    return transferRelation;
   }
 
   @Override
