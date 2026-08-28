@@ -8,25 +8,29 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis.blockStateOf;
 
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimap;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.jspecify.annotations.NonNull;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssDebugUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Keeps only the violation conditions of the latest message per sending block: an update discards
@@ -38,6 +42,9 @@ final class PathBasedViolationConditionHandler implements DssViolationConditionH
 
   private final DssBlockAnalysis analysis;
 
+  /** Conditions that still need to be explored, with equivalent ones kept only once. */
+  private ImmutableList<StateAndPrecision> conditionsToExplore = ImmutableList.of();
+
   PathBasedViolationConditionHandler(DssBlockAnalysis pAnalysis) {
     conditions = new LinkedHashMap<>();
     analysis = pAnalysis;
@@ -45,7 +52,7 @@ final class PathBasedViolationConditionHandler implements DssViolationConditionH
 
   @Override
   public DssMessageProcessing store(DssViolationConditionMessage pReceived)
-      throws InterruptedException {
+      throws InterruptedException, CPAException {
     analysis
         .getLogger()
         .log(Level.INFO, "Running forward analysis with respect to error condition");
@@ -70,7 +77,16 @@ final class PathBasedViolationConditionHandler implements DssViolationConditionH
       stats.getStoreViolationConditionStatesTimer().stop();
       stats.getStoreViolationConditionStatesCounter().add(received.size());
     }
-    return received.isEmpty() ? DssMessageProcessing.stop() : DssMessageProcessing.proceed();
+    ImmutableList<StateAndPrecision> updatedConditionsToExplore =
+        analysis.deduplicateStatesAndPrecisions(
+            conditions.values().stream().flatMap(m -> m.values().stream()).toList());
+    boolean globalConditionSetUnchanged =
+        analysis.allCovered(updatedConditionsToExplore, conditionsToExplore)
+            && analysis.allCovered(conditionsToExplore, updatedConditionsToExplore);
+    conditionsToExplore = updatedConditionsToExplore;
+    return globalConditionSetUnchanged
+        ? DssMessageProcessing.stop()
+        : DssMessageProcessing.proceed();
   }
 
   /**
@@ -106,19 +122,53 @@ final class PathBasedViolationConditionHandler implements DssViolationConditionH
 
   @Override
   public ImmutableList<AbstractState> statesOf(Optional<String> pSenderId) {
-    // a combined violation condition is stored under each of the precondition ids it stems from,
-    // so it has to be reported only once
-    if (pSenderId.isPresent()) {
-      return FluentIterable.from(
-              conditions.getOrDefault(pSenderId.orElseThrow(), ImmutableListMultimap.of()).values())
-          .transform(StateAndPrecision::state)
-          .toSet()
-          .asList();
+    return transformedImmutableListCopy(conditionsToExplore, StateAndPrecision::state);
+  }
+
+  /** Renders {@link #conditions} and {@link #conditionsToExplore} for debugging. */
+  @Override
+  public String toString() {
+    List<List<String>> conditionRows = new ArrayList<>();
+    for (Entry<String, Multimap<String, StateAndPrecision>> bySender : conditions.entrySet()) {
+      String sender = bySender.getKey();
+      for (Entry<String, StateAndPrecision> byPrecondition : bySender.getValue().entries()) {
+        conditionRows.add(
+            ImmutableList.of(
+                sender,
+                byPrecondition.getKey(),
+                DssDebugUtils.oneLine(byPrecondition.getValue().state())));
+        sender = "";
+      }
     }
-    return FluentIterable.from(conditions.values())
-        .transformAndConcat(Multimap::values)
-        .transform(StateAndPrecision::state)
-        .toSet()
-        .asList();
+    String conditionsBody =
+        conditionRows.isEmpty()
+            ? "<none>"
+            : DssDebugUtils.table(
+                ImmutableList.of("from", "preconditionId", "state"), conditionRows);
+
+    List<List<String>> toExploreRows = new ArrayList<>();
+    int index = 0;
+    for (StateAndPrecision stateAndPrecision : conditionsToExplore) {
+      toExploreRows.add(
+          ImmutableList.of(
+              Integer.toString(index++), DssDebugUtils.oneLine(stateAndPrecision.state())));
+    }
+    String toExploreBody =
+        toExploreRows.isEmpty()
+            ? "<none>"
+            : DssDebugUtils.table(ImmutableList.of("#", "state"), toExploreRows);
+
+    String body =
+        "conditions ("
+            + conditionRows.size()
+            + " states from "
+            + conditions.size()
+            + " senders):\n"
+            + DssDebugUtils.indent("  ", conditionsBody)
+            + "\n\nconditions to explore ("
+            + conditionsToExplore.size()
+            + "):\n"
+            + DssDebugUtils.indent("  ", toExploreBody);
+    return DssDebugUtils.box("ViolationConditions of Block " + analysis.getBlock().getId(), body);
   }
 }

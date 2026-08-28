@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
  *     state among the {@code summaries}, because top is also a valid postcondition of a reachable
  *     but unconstrained block end.
  */
-record AnalysisResult(
+public record AnalysisResult(
     Collection<StateAndPrecision> summaries,
     Set<ArgPathAndCondition> violationConditions,
     boolean blockEndUnreachable) {

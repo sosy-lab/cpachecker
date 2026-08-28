@@ -40,12 +40,12 @@ public class DeserializeCallstackStateOperator implements DeserializeOperator {
     String stateJson = content.get(STATE_KEY);
     assert stateJson != null;
     // states of a block analysis that did not know its callstack must stay unrestricted
-    boolean allowAllTransfers =
+    boolean canBeTopState =
         Boolean.parseBoolean(
             content.getOrDefault(DistributedCallstackCPA.ALLOW_ALL_TRANSFERS_KEY, "false"));
     if (stateJson.isBlank()) {
       CFANode location = DeserializeOperator.startLocationFromMessageType(pMessage, blockNode);
-      return parentCPA.createState(null, location.getFunctionName(), location, allowAllTransfers);
+      return parentCPA.createState(null, location.getFunctionName(), location, canBeTopState);
     }
     List<String> parts = Splitter.on(DistributedCallstackCPA.DELIMITER).splitToList(stateJson);
     CallstackState current = null;
@@ -56,7 +56,7 @@ public class DeserializeCallstackStateOperator implements DeserializeOperator {
               current,
               properties.get(1),
               Objects.requireNonNull(converter.apply(Integer.parseInt(properties.getFirst()))),
-              allowAllTransfers);
+              canBeTopState);
     }
     return current;
   }

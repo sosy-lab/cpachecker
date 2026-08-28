@@ -41,6 +41,8 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.AnalysisResult;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.ArgPathAndCondition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
@@ -84,6 +86,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  *       #describe(ARGPath)}, {@link #argToDot(UnmodifiableReachedSet)}.
  *   <li>Pre-/violation conditions of a block: {@link #prettyPrintBlock(String, Multimap,
  *       Multimap)}.
+ *   <li>Analysis rounds: {@link #describe(AnalysisResult)}.
  *   <li>Writing any of the above to disk: {@link #dump(String, String)}, {@link #dumpArg(String,
  *       UnmodifiableReachedSet)}.
  * </ul>
@@ -331,7 +334,9 @@ public final class DssDebugUtils {
           + shortValue(blockState.getWitness().serialize())
           + " violationConditions="
           + blockState.getViolationConditions().size()
-          + (blockState.isTarget() ? " TARGET" : "");
+          + (blockState.isTarget() ? " TARGET" : "")
+          + " callStackMistmatch="
+          + blockState.getHinderedByCallstack();
     }
     if (pComponent instanceof CallstackState callstackState) {
       return renderCallstack(callstackState) + " (depth " + callstackState.getDepth() + ")";
@@ -373,12 +378,13 @@ public final class DssDebugUtils {
   }
 
   private static String renderCallstack(CallstackState pState) {
-    if (pState instanceof DssCallstackState dssState && dssState.allowsAllTransfers()) {
-      return "__ignore";
-    }
+    boolean canBeTop = pState instanceof DssCallstackState dssState && dssState.canBeTopState();
     Deque<String> frames = new ArrayDeque<>();
     for (CallstackState current = pState; current != null; current = current.getPreviousState()) {
-      frames.addFirst(current.getCallNode().getNodeNumber() + "." + current.getCurrentFunction());
+      frames.addFirst(
+          canBeTop && current.getPreviousState() == null
+              ? "__top__"
+              : current.getCallNode().getNodeNumber() + "." + current.getCurrentFunction());
     }
     return Joiner.on("->").join(frames);
   }
@@ -895,6 +901,56 @@ public final class DssDebugUtils {
         + " ("
         + (blockState == null ? "<no block state>" : render(blockState.getHistory()))
         + ")";
+  }
+
+  // ===================================================================================
+  // Analysis rounds
+  // ===================================================================================
+
+  /**
+   * Renders what one round of exploring a block produced: whether the block end was reachable, the
+   * summaries to publish to successor blocks, and the violation-condition paths to publish to
+   * predecessor blocks.
+   */
+  public static String describe(AnalysisResult pResult) {
+    List<List<String>> summaryRows = new ArrayList<>();
+    int index = 0;
+    for (StateAndPrecision summary : pResult.summaries()) {
+      summaryRows.add(ImmutableList.of(Integer.toString(index++), describe(summary)));
+    }
+    String summariesBody =
+        summaryRows.isEmpty() ? "<none>" : table(ImmutableList.of("#", "summary"), summaryRows);
+
+    List<List<String>> violationRows = new ArrayList<>();
+    index = 0;
+    for (ArgPathAndCondition violation : pResult.violationConditions()) {
+      ARGPath path = violation.path();
+      violationRows.add(
+          ImmutableList.of(
+              Integer.toString(index++),
+              oneLine(path.getFirstState()) + " ~> " + oneLine(path.getLastState()),
+              Integer.toString(path.size()),
+              violation.condition() == null ? "<none>" : oneLine(violation.condition())));
+    }
+    String violationsBody =
+        violationRows.isEmpty()
+            ? "<none>"
+            : table(
+                ImmutableList.of("#", "path (first ~> last)", "states", "condition"),
+                violationRows);
+
+    String body =
+        "blockEndUnreachable="
+            + pResult.blockEndUnreachable()
+            + "\n\nsummaries ("
+            + summaryRows.size()
+            + "):\n"
+            + indent("  ", summariesBody)
+            + "\n\nviolation conditions ("
+            + violationRows.size()
+            + "):\n"
+            + indent("  ", violationsBody);
+    return box("AnalysisResult", body);
   }
 
   // ===================================================================================

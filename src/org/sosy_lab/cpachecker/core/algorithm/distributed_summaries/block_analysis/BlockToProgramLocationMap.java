@@ -87,7 +87,7 @@ public class BlockToProgramLocationMap {
                     || getStatesForKey(p).stream()
                         .allMatch(
                             s ->
-                                DistributedCallstackCPA.allowsAllTransfers(
+                                DistributedCallstackCPA.canBeTopState(
                                     AbstractStates.extractStateByType(s, CallstackState.class))));
   }
 
@@ -181,7 +181,7 @@ public class BlockToProgramLocationMap {
     if (pReceived.stream()
         .anyMatch(
             sap ->
-                DistributedCallstackCPA.allowsAllTransfers(
+                DistributedCallstackCPA.canBeTopState(
                     AbstractStates.extractStateByType(sap.state(), CallstackState.class)))) {
       // if the old and the new have ignored callstack,
       // keep everything as is for the coverage check.
@@ -189,7 +189,7 @@ public class BlockToProgramLocationMap {
     }
     ImmutableSet.Builder<Object> toRemove = ImmutableSet.builder();
     for (Entry<Object, StateAndPrecision> entry : entriesPerKey.get(pKey).entries()) {
-      if (DistributedCallstackCPA.allowsAllTransfers(
+      if (DistributedCallstackCPA.canBeTopState(
           AbstractStates.extractStateByType(entry.getValue().state(), CallstackState.class))) {
         toRemove.add(entry.getKey());
       }

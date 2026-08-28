@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
  * <p>The condition is {@code null} if the path leads to a violation that originates inside this
  * block instead of a violation condition received from a successor block.
  */
-final class ArgPathAndCondition {
+public final class ArgPathAndCondition {
 
   private final ARGPath path;
   private final @Nullable ARGState condition;
@@ -39,11 +39,11 @@ final class ArgPathAndCondition {
             .join(Joiner.on(", "));
   }
 
-  ARGPath path() {
+  public ARGPath path() {
     return path;
   }
 
-  @Nullable ARGState condition() {
+  public @Nullable ARGState condition() {
     return condition;
   }
 

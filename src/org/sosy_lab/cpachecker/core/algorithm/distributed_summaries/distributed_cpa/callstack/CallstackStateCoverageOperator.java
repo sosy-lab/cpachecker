@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstack.DssCallstackState;
 
 public class CallstackStateCoverageOperator implements CoverageOperator {
@@ -18,14 +19,36 @@ public class CallstackStateCoverageOperator implements CoverageOperator {
   public boolean isSubsumed(AbstractState state1, AbstractState state2) {
     DssCallstackState callstackState1 = (DssCallstackState) state1;
     DssCallstackState callstackState2 = (DssCallstackState) state2;
-    if (callstackState1.allowsAllTransfers() && callstackState2.allowsAllTransfers()) {
-      return true;
+
+    if (!callstackState2.canBeTopState()) {
+      if (callstackState1.canBeTopState()) {
+        return false;
+      }
+      return callstackState1.sameStateInProofChecking(callstackState2);
     }
-    return callstackState1.sameStateInProofChecking(callstackState2);
+
+    CallstackState curr2 = callstackState2.getWrappedState();
+    CallstackState curr1 = callstackState1.getWrappedState();
+
+    while (curr2.getPreviousState() != null) {
+      if (!stackFrameEqual(curr1, curr2)) {
+        return false;
+      }
+      curr2 = curr2.getPreviousState();
+      curr1 = curr1.getPreviousState();
+    }
+
+    return true;
+  }
+
+  private boolean stackFrameEqual(CallstackState curr1, CallstackState curr2) {
+    return (curr1 != null)
+        && curr2.getCallNode().equals(curr1.getCallNode())
+        && curr2.getCurrentFunction().equals(curr1.getCurrentFunction());
   }
 
   @Override
   public boolean isBasedOnEquality() {
-    return true;
+    return false;
   }
 }

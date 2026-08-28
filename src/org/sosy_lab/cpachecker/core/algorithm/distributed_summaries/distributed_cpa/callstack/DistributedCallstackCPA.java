@@ -42,8 +42,8 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
 
   static final String DELIMITER = ",  ";
 
-  /** Key under which the serialized callstack state stores {@code allowAllTransfers}. */
-  static final String ALLOW_ALL_TRANSFERS_KEY = "allowAllTransfers";
+  /** Key under which the serialized callstack state stores {@code canBeTopState}. */
+  static final String ALLOW_ALL_TRANSFERS_KEY = "canBeTopState ";
 
   private final SerializeOperator serialize;
   private final DeserializeOperator deserialize;
@@ -160,14 +160,14 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
           null,
           block.getInitialLocation().getFunctionName(),
           block.getInitialLocation(),
-          allowsAllTransfers(pAbstractState));
+          canBeTopState(pAbstractState));
     }
     return pAbstractState;
   }
 
   /** Whether the given state stems from a block analysis that does not know its callstack. */
-  public static boolean allowsAllTransfers(@Nullable AbstractState pState) {
-    return pState instanceof DssCallstackState dssState && dssState.allowsAllTransfers();
+  public static boolean canBeTopState(@Nullable AbstractState pState) {
+    return pState instanceof DssCallstackState dssState && dssState.canBeTopState();
   }
 
   @Override

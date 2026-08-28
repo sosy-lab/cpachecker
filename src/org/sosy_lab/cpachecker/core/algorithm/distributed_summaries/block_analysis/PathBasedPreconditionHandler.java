@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis.blockStateOf;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -30,6 +31,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.jspecify.annotations.NonNull;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssDebugUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -80,7 +82,8 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
 
     // Start from a top state, replaceable by any predecessor path. Its own path already contains
     // this block instead of being empty, so that a path which loops all the way back to this block
-    // without ever incorporating a real predecessor still starts with this block's id, no matter how
+    // without ever incorporating a real predecessor still starts with this block's id, no matter
+    // how
     // many other blocks the loop passes through in between -- see shouldConsiderPath and store(),
     // which appends to a path's history on receipt instead of on send for the same reason.
     AbstractState startState = pAnalysis.makeStartState(!analysis.getBlock().isRoot());
@@ -342,6 +345,73 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
   public void violationConditionsChanged() {
     pathsToAnalyze.clear();
     pathsToAnalyze.addAll(preconditions.keySet());
+  }
+
+  /**
+   * Renders {@link #preconditions}, {@link #coveredStates} and {@link #pathsToAnalyze} for
+   * debugging.
+   */
+  @Override
+  public String toString() {
+    List<List<String>> preconditionRows = new ArrayList<>();
+    for (StatesByPath statesByPath : preconditions.values()) {
+      String renderedPath = DssDebugUtils.render(statesByPath.path());
+      for (StateAndPrecision stateAndPrecision : statesByPath.states()) {
+        preconditionRows.add(
+            ImmutableList.of(renderedPath, DssDebugUtils.oneLine(stateAndPrecision.state())));
+        renderedPath = "";
+      }
+    }
+    String preconditionsBody =
+        preconditionRows.isEmpty()
+            ? "<none>"
+            : DssDebugUtils.table(ImmutableList.of("path", "state"), preconditionRows);
+
+    List<List<String>> coveredRows = new ArrayList<>();
+    for (BlockGraphPath coveringPath : coveredStates.keySet()) {
+      String renderedCoveringPath = DssDebugUtils.render(coveringPath);
+      for (StatesByPath covered : coveredStates.get(coveringPath)) {
+        String renderedCoveredPath = DssDebugUtils.render(covered.path());
+        for (StateAndPrecision stateAndPrecision : covered.states()) {
+          coveredRows.add(
+              ImmutableList.of(
+                  renderedCoveringPath,
+                  renderedCoveredPath,
+                  DssDebugUtils.oneLine(stateAndPrecision.state())));
+          renderedCoveringPath = "";
+          renderedCoveredPath = "";
+        }
+      }
+    }
+    String coveredBody =
+        coveredRows.isEmpty()
+            ? "<none>"
+            : DssDebugUtils.table(ImmutableList.of("coveredBy", "path", "state"), coveredRows);
+
+    String pathsToAnalyzeBody =
+        pathsToAnalyze.isEmpty()
+            ? "<none>"
+            : Joiner.on('\n')
+                .join(FluentIterable.from(pathsToAnalyze).transform(DssDebugUtils::render));
+
+    String body =
+        "preconditions ("
+            + preconditionRows.size()
+            + " states in "
+            + preconditions.size()
+            + " paths):\n"
+            + DssDebugUtils.indent("  ", preconditionsBody)
+            + "\n\ncovered states ("
+            + coveredRows.size()
+            + " states covered by "
+            + coveredStates.keySet().size()
+            + " paths):\n"
+            + DssDebugUtils.indent("  ", coveredBody)
+            + "\n\npaths to analyze ("
+            + pathsToAnalyze.size()
+            + "):\n"
+            + DssDebugUtils.indent("  ", pathsToAnalyzeBody);
+    return DssDebugUtils.box("Block " + analysis.getBlock().getId(), body);
   }
 
   /**
