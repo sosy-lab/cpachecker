@@ -10,12 +10,14 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
 
 import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis.blockStateOf;
 
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -52,18 +54,24 @@ final class PathBasedViolationConditionHandler implements DssViolationConditionH
     stats.getStoreViolationConditionStatesTimer().start();
 
     try {
+      conditions.putIfAbsent(pReceived.getSenderId(), ArrayListMultimap.create() );
       Multimap<String, StateAndPrecision> mapForSuccessor = conditions.get(pReceived.getSenderId());
+      //TODO when merging, this id represents multiple ids -> split and save as each!
+      ImmutableListMultimap<String, @NonNull StateAndPrecision> vcsByID =
+          Multimaps.index(received, sap -> blockStateOf(sap.state()).getUniqueId());
+      //replace all newly received keys
+      vcsByID.keySet().forEach(id -> mapForSuccessor.removeAll(id));
       mapForSuccessor.putAll(
-          Multimaps.index(received, sap -> blockStateOf(sap.state()).getUniqueId()));
-      mapForSuccessor.keySet().stream()
-          .filter(k -> !pReceived.getRemainingPreconditions().contains(k))
+          vcsByID);
+      List<String> toRemove = mapForSuccessor.keySet().stream()
+          .filter(k -> !pReceived.getRemainingPreconditions().contains(k)).toList();
+      toRemove
           .forEach(remainingId -> mapForSuccessor.removeAll(remainingId));
     } finally {
       stats.getStoreViolationConditionStatesTimer().stop();
       stats.getStoreViolationConditionStatesCounter().add(received.size());
     }
-
-    return DssMessageProcessing.proceed();
+    return received.isEmpty() ? DssMessageProcessing.stop() : DssMessageProcessing.proceed();
   }
 
   @Override
