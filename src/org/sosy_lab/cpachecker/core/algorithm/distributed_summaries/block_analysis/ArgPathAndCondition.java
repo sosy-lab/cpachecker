@@ -61,8 +61,7 @@ final class ArgPathAndCondition {
     }
     return obj instanceof ArgPathAndCondition other
         && Objects.equals(id, other.id)
-        && Objects.equals(condition, other.condition)
-        && Objects.equals(path.getFirstState(), other.path.getFirstState());
+        && Objects.equals(condition, other.condition);
   }
 
   @Override
