@@ -12,6 +12,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 
 import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -38,6 +39,7 @@ public class DssMessagePayloadTest {
         new DssMessagePayload(
             new DssHeaderPayload("B1", DssMessageType.RESULT, "123", 0),
             new DssStatusPayload(true, true, true),
+            ImmutableList.<ImmutableMap<String, String>>of(),
             ImmutableMap.of(DssMessageFormat.RESULT_KEY, "true"));
     ImmutableMap.Builder<String, String> legacyContent = ImmutableMap.builder();
     legacyContent.putAll(payload.status().asLegacyContent());
@@ -163,6 +165,7 @@ public class DssMessagePayloadTest {
         new DssMessagePayload(
             new DssHeaderPayload("B1", DssMessageType.POST_CONDITION, "123", 0),
             new DssStatusPayload(true, false, true),
+            ImmutableList.of(ImmutableMap.of("dummy", "state")),
             ImmutableMap.of(DssMessageFormat.UNREACHABLE_BLOCK_END_KEY, "true"));
     DssMessage message = DssMessage.fromPayload(payload);
 
@@ -188,6 +191,7 @@ public class DssMessagePayloadTest {
         new DssMessagePayload(
             new DssHeaderPayload("B1", DssMessageType.RESULT, "123", 0),
             null,
+            ImmutableList.<ImmutableMap<String, String>>of(),
             ImmutableMap.of(DssMessageFormat.RESULT_KEY, "true"));
     Path file = tempFolder.getRoot().toPath().resolve("missing/message.json");
 
@@ -220,6 +224,7 @@ public class DssMessagePayloadTest {
         new DssMessagePayload(
             new DssHeaderPayload("B1", DssMessageType.POST_CONDITION, "123", 0),
             null,
+            ImmutableList.<ImmutableMap<String, String>>of(),
             ImmutableMap.of(DssMessageFormat.UNREACHABLE_BLOCK_END_KEY, "true"));
 
     assertThrows(IllegalArgumentException.class, () -> DssMessage.fromPayload(payload));
@@ -231,6 +236,7 @@ public class DssMessagePayloadTest {
         new DssMessagePayload(
             new DssHeaderPayload("B1", DssMessageType.RESULT, "123", 0),
             new DssStatusPayload(true, true, true),
+            ImmutableList.<ImmutableMap<String, String>>of(),
             ImmutableMap.of(DssMessageFormat.RESULT_KEY, "true"));
 
     assertThrows(IllegalArgumentException.class, () -> DssMessage.fromPayload(payload));
@@ -242,6 +248,7 @@ public class DssMessagePayloadTest {
         new DssMessagePayload(
             new DssHeaderPayload("B1", DssMessageType.POST_CONDITION, "123", 0),
             new DssStatusPayload(true, true, true),
+            ImmutableList.of(ImmutableMap.of("dummy", "state")),
             ImmutableMap.of("state0.precision", "true"));
 
     DssMessage message = DssMessage.fromPayload(payload);

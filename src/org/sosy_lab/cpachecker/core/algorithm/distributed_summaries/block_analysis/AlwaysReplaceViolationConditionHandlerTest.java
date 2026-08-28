@@ -50,13 +50,19 @@ public class AlwaysReplaceViolationConditionHandlerTest {
         new DssMessageFactory(new DssAnalysisOptions(Configuration.defaultConfiguration()));
     DssViolationConditionMessage messageAX =
         messageFactory.createViolationConditionMessage(
-            senderA, AlgorithmStatus.SOUND_AND_PRECISE, ImmutableMap.of("state", "x"));
+            senderA,
+            AlgorithmStatus.SOUND_AND_PRECISE,
+            ImmutableList.of(ImmutableMap.of("label", "x")));
     DssViolationConditionMessage messageBX =
         messageFactory.createViolationConditionMessage(
-            senderB, AlgorithmStatus.SOUND_AND_PRECISE, ImmutableMap.of("state", "x"));
+            senderB,
+            AlgorithmStatus.SOUND_AND_PRECISE,
+            ImmutableList.of(ImmutableMap.of("label", "x")));
     DssViolationConditionMessage messageAY =
         messageFactory.createViolationConditionMessage(
-            senderA, AlgorithmStatus.SOUND_AND_PRECISE, ImmutableMap.of("state", "y"));
+            senderA,
+            AlgorithmStatus.SOUND_AND_PRECISE,
+            ImmutableList.of(ImmutableMap.of("label", "y")));
 
     DssBlockAnalysis analysis = mock(DssBlockAnalysis.class);
     DistributedConfigurableProgramAnalysis dcpa =

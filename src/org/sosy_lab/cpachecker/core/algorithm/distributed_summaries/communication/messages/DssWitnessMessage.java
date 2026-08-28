@@ -8,9 +8,14 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 
 /**
  * Message sent by analysis workers carrying witness information: either the ARG states of all
@@ -25,25 +30,42 @@ public class DssWitnessMessage extends DssMessage {
     VIOLATION
   }
 
-  DssWitnessMessage(String pSenderId, ImmutableMap<String, String> pContent) {
-    super(pSenderId, DssMessageType.WITNESS, Optional.empty(), pContent);
+  DssWitnessMessage(String pSenderId, ImmutableList<ImmutableMap<String, String>> pStates) {
+    super(pSenderId, DssMessageType.WITNESS, Optional.empty(), pStates, ImmutableMap.of());
+  }
+
+  DssWitnessMessage(
+      String pSenderId,
+      ImmutableList<ImmutableMap<String, String>> pStates,
+      ImmutableMap<String, String> pContent) {
+    super(pSenderId, DssMessageType.WITNESS, Optional.empty(), pStates, pContent);
   }
 
   @Override
-  boolean isValid(Map<String, String> pContent) {
+  void validateParameters(
+      Optional<AlgorithmStatus> pStatus,
+      List<? extends Map<String, String>> pStates,
+      Map<String, String> pContent) {
+    checkArgument(pStatus.isEmpty(), "Witness message must not contain status");
+
     String witnessType = pContent.get(DssMessageFormat.WITNESS_TYPE_KEY);
-    if (witnessType == null) {
-      return false;
-    }
+    checkArgument(witnessType != null, "Witness message requires witnessType");
     WitnessType type;
     try {
       type = WitnessType.valueOf(witnessType);
     } catch (IllegalArgumentException e) {
-      return false;
+      throw new IllegalArgumentException("Unknown witness type: " + witnessType, e);
     }
-    return switch (type) {
-      case CORRECTNESS -> pContent.size() > 1;
-      case VIOLATION -> pContent.containsKey(DssMessageFormat.VIOLATION_PATH_KEY);
-    };
+    switch (type) {
+      case CORRECTNESS ->
+          checkArgument(
+              !pStates.isEmpty() || pContent.size() > 1,
+              "Correctness witness requires states or serialized preconditions");
+      case VIOLATION ->
+          checkArgument(
+              pContent.containsKey(DssMessageFormat.VIOLATION_PATH_KEY),
+              "Violation witness requires violationPath");
+    }
+    ;
   }
 }

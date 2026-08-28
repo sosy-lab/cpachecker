@@ -12,10 +12,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -48,6 +50,7 @@ public abstract class DssMessage {
   private final DssMessageType type;
   private final Instant timestamp;
   private final Optional<AlgorithmStatus> status;
+  private final ImmutableList<ImmutableMap<String, String>> states;
   private final ImmutableMap<String, String> content;
 
   /**
@@ -62,26 +65,29 @@ public abstract class DssMessage {
       String pSenderId,
       DssMessageType pType,
       Optional<AlgorithmStatus> pStatus,
+      List<? extends Map<String, String>> pStates,
       Map<String, String> pContent) {
-    checkArgument(isValid(pContent), "Invalid content for message type: %s", pType);
-    checkArgument(
-        !hasStatus(pType) || pStatus.isPresent(), "Message type requires status: %s", pType);
-    checkArgument(
-        hasStatus(pType) || pStatus.isEmpty(), "Message type can't have status: %s", pType);
+    validateParameters(pStatus, pStates, pContent);
     senderId = pSenderId;
     type = pType;
     status = pStatus;
+    states = pStates.stream().map(ImmutableMap::copyOf).collect(ImmutableList.toImmutableList());
     timestamp = Instant.now();
     content = ImmutableMap.copyOf(pContent);
   }
 
   /**
-   * Checks whether the given content is valid for this message type.
+   * Checks whether the given parameters are valid for this message type.
    *
+   * @param pStatus the algorithm status to check
+   * @param pStates the states to check
    * @param pContent the content to check
-   * @return true if the content is valid, false otherwise
+   * @throws IllegalArgumentException if parameters are invalid for this message type.
    */
-  abstract boolean isValid(Map<String, String> pContent);
+  abstract void validateParameters(
+      Optional<AlgorithmStatus> pStatus,
+      List<? extends Map<String, String>> pStates,
+      Map<String, String> pContent);
 
   private static boolean hasStatus(DssMessageType pType) {
     return pType == DssMessageType.POST_CONDITION || pType == DssMessageType.VIOLATION_CONDITION;
@@ -120,7 +126,10 @@ public abstract class DssMessage {
    * @return An OptionalInt containing the number of states, or empty if not present.
    */
   public final OptionalInt getNumberOfContainedStates() {
-    if (content.containsKey(DssMessageFormat.MULTIPLE_STATES_KEY)) {
+    if (!states.isEmpty()) {
+      return OptionalInt.of(states.size());
+    }
+    if (content.containsKey(DssMessageFormat.WITNESS_TYPE_KEY)) {
       return OptionalInt.of(
           Integer.parseInt(
               Objects.requireNonNull(content.get(DssMessageFormat.MULTIPLE_STATES_KEY))));
@@ -129,13 +138,23 @@ public abstract class DssMessage {
   }
 
   public final DssMessage advance(String pPrefix) {
-    Map<String, String> prefixContent = ContentReader.read(content).pushLevel(pPrefix).getContent();
     ImmutableMap.Builder<String, String> advanced = ImmutableMap.builder();
-    advanced.putAll(content).putAll(prefixContent);
-    return new DssMessage(senderId, type, status, advanced.buildOrThrow()) {
+    advanced.putAll(content).putAll(content);
+
+    OptionalInt stateIndex = parseStatePrefix(pPrefix);
+    if (stateIndex.isPresent()) {
+      advanced.putAll(states.get(stateIndex.orElseThrow()));
+    } else {
+      advanced.putAll(ContentReader.read(content).pushLevel(pPrefix).getContent());
+    }
+
+    return new DssMessage(senderId, type, status, states, advanced.buildKeepingLast()) {
       @Override
-      boolean isValid(Map<String, String> pContent) {
-        return DssMessage.this.isValid(pContent);
+      void validateParameters(
+          Optional<AlgorithmStatus> pStatus,
+          List<? extends Map<String, String>> pStates,
+          Map<String, String> pContent) {
+        DssMessage.this.validateParameters(pStatus, pStates, pContent);
       }
     };
   }
@@ -184,9 +203,8 @@ public abstract class DssMessage {
 
     checkState(getNumberOfContainedStates().orElse(-1) >= 1, "No state to extract witness from");
 
-    return ContentReader.read(content)
+    return ContentReader.read(states.getFirst())
         .pushLevel(BlockState.class.getName())
-        .pushLevel(SerializeOperator.STATE_KEY + 0)
         .get(SerializeOperator.STATE_KEY);
   }
 
@@ -227,10 +245,9 @@ public abstract class DssMessage {
             Long.toString(
                 getTimestamp().getEpochSecond() * 1_000_000_000L + getTimestamp().getNano()),
             pIdentifier);
-    DssStatusPayload statusPayload = extractStatusPayload();
-    ImmutableMap<String, String> payloadContent = contentWithoutLegacyStatus();
+    DssStatusPayload statusPayload = status.map(DssStatusPayload::fromAlgorithmStatus).orElse(null);
 
-    return new DssMessagePayload(header, statusPayload, payloadContent);
+    return new DssMessagePayload(header, statusPayload, states, content);
   }
 
   public final DssMessagePayload asJsonPayload() {
@@ -265,6 +282,7 @@ public abstract class DssMessage {
         pPayload.status() == null
             ? Optional.empty()
             : Optional.of(pPayload.status().toAlgorithmStatus());
+    ImmutableList<ImmutableMap<String, String>> states = pPayload.states();
     ImmutableMap<String, String> content = pPayload.content();
     String senderId = header.senderId();
     DssMessageType type = header.messageType();
@@ -275,12 +293,13 @@ public abstract class DssMessage {
         hasStatus(type) || algorithmStatus.isEmpty(), "Message type can't have status: %s", type);
 
     return switch (type) {
-      case POST_CONDITION -> new DssPostConditionMessage(senderId, algorithmStatus.get(), content);
+      case POST_CONDITION ->
+          new DssPostConditionMessage(senderId, algorithmStatus.get(), states, content);
       case VIOLATION_CONDITION ->
-          new DssViolationConditionMessage(senderId, algorithmStatus.get(), content);
+          new DssViolationConditionMessage(senderId, algorithmStatus.get(), states, content);
       case EXCEPTION -> new DssExceptionMessage(senderId, content);
       case RESULT -> new DssResultMessage(senderId, content);
-      case WITNESS -> new DssWitnessMessage(senderId, content);
+      case WITNESS -> new DssWitnessMessage(senderId, states, content);
     };
   }
 
@@ -291,9 +310,15 @@ public abstract class DssMessage {
     return DssStatusPayload.fromAlgorithmStatus(status.get());
   }
 
-  private ImmutableMap<String, String> contentWithoutLegacyStatus() {
-    return content.entrySet().stream()
-        .filter(entry -> !entry.getKey().startsWith(DssMessageFormat.STATUS_KEY + "."))
-        .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
+  private static OptionalInt parseStatePrefix(String pPrefix) {
+    if (!pPrefix.startsWith(DssMessageFormat.STATE_KEY)) {
+      return OptionalInt.empty();
+    }
+    String suffix = pPrefix.substring(DssMessageFormat.STATE_KEY.length());
+    try {
+      return OptionalInt.of(Integer.parseInt(suffix));
+    } catch (NumberFormatException e) {
+      return OptionalInt.empty();
+    }
   }
 }

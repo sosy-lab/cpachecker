@@ -42,11 +42,9 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFormat;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPostConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -59,7 +57,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -286,7 +283,7 @@ public final class DssBlockAnalysis {
     return preconditions.analyzeFor(pSenderId);
   }
 
-  public ImmutableMap<String, String> serializedPreconditions() {
+  public ImmutableList<ImmutableMap<String, String>> serializedPreconditions() {
     return serialize(preconditions.getKnownPreconditions());
   }
 
@@ -617,22 +614,18 @@ public final class DssBlockAnalysis {
 
   /**
    * Serialize a list of states and precisions into a map of strings. Every entry in the list will
-   * be serialized under its own key (prefixed by state#num. The {@link #deserialize(DssMessage)}
+   * be serialized under its own key (prefixed by state#num). The {@link #deserialize(DssMessage)}
    * method restores the list of states and precisions.
    *
    * @param pStatesAndPrecisions List of abstract states and their corresponding precision.
    * @return Map of strings representing the serialized states and precisions. Every state will be
    *     serialized with the given serialize operators but all keys will be prefixed with state#num.
    */
-  ImmutableMap<String, String> serialize(
+  ImmutableList<ImmutableMap<String, String>> serialize(
       final List<@NonNull StateAndPrecision> pStatesAndPrecisions) {
-    ContentBuilder serializedContent = ContentBuilder.builder();
-    serializedContent.put(
-        DssMessageFormat.MULTIPLE_STATES_KEY, Integer.toString(pStatesAndPrecisions.size()));
+    ImmutableList.Builder<ImmutableMap<String, String>> serializedStates = ImmutableList.builder();
     int totalStateSize = 0;
-    for (int i = 0; i < pStatesAndPrecisions.size(); i++) {
-      serializedContent.pushLevel(SerializeOperator.STATE_KEY + i);
-      StateAndPrecision stateAndPrecision = pStatesAndPrecisions.get(i);
+    for (StateAndPrecision stateAndPrecision : pStatesAndPrecisions) {
       ImmutableMap<String, String> content =
           ImmutableMap.<String, String>builder()
               .putAll(dcpa.getSerializeOperator().serialize(stateAndPrecision.state()))
@@ -640,14 +633,13 @@ public final class DssBlockAnalysis {
                   dcpa.getSerializePrecisionOperator()
                       .serializePrecision(stateAndPrecision.precision()))
               .buildOrThrow();
+      serializedStates.add(content);
       for (Entry<String, String> contents : content.entrySet()) {
-        serializedContent.put(contents.getKey(), contents.getValue());
         totalStateSize += contents.getKey().length() + contents.getValue().length();
       }
-      serializedContent.popLevel();
     }
     workerStats.getSerializedStatesSizeStats().setNextValue(totalStateSize);
-    return serializedContent.build();
+    return serializedStates.build();
   }
 
   LogManager getLogger() {

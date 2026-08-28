@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 import static com.google.common.truth.Truth.assertThat;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,7 +35,9 @@ public class DssDefaultQueueTest {
     DssDefaultQueue queue = new DssDefaultQueue();
     DssMessage postCondition =
         messageFactory.createDssPostConditionMessage(
-            "worker", AlgorithmStatus.SOUND_AND_PRECISE, ImmutableMap.of("dummy", "entry"));
+            "worker",
+            AlgorithmStatus.SOUND_AND_PRECISE,
+            ImmutableList.of(ImmutableMap.of("dummy", "state")));
     DssMessage result = messageFactory.createDssResultMessage("monitor", Result.TRUE);
 
     queue.add(postCondition);

@@ -8,9 +8,14 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 
 public class DssResultMessage extends DssMessage {
 
@@ -19,18 +24,28 @@ public class DssResultMessage extends DssMessage {
         pSenderId,
         DssMessageType.RESULT,
         Optional.empty(),
+        ImmutableList.of(),
         ImmutableMap.of(DssMessageFormat.RESULT_KEY, pResult));
   }
 
   DssResultMessage(String pSenderId, ImmutableMap<String, String> pResult) {
-    super(pSenderId, DssMessageType.RESULT, Optional.empty(), pResult);
+    super(pSenderId, DssMessageType.RESULT, Optional.empty(), ImmutableList.of(), pResult);
   }
 
   @Override
-  boolean isValid(Map<String, String> pContent) {
-    return (pContent.size() == 1)
-        && pContent.containsKey(DssMessageFormat.RESULT_KEY)
-        && pContent.get(DssMessageFormat.RESULT_KEY) != null
-        && !pContent.get(DssMessageFormat.RESULT_KEY).isEmpty();
+  void validateParameters(
+      Optional<AlgorithmStatus> pStatus,
+      List<? extends Map<String, String>> pStates,
+      Map<String, String> pContent) {
+
+    checkArgument(pStatus.isEmpty(), "Result message must not contain status");
+    checkArgument(pStates.isEmpty(), "Result message must not contain states");
+    checkArgument(
+        pContent.size() == 1
+            && pContent.containsKey(DssMessageFormat.RESULT_KEY)
+            && pContent.get(DssMessageFormat.RESULT_KEY) != null
+            && !pContent.get(DssMessageFormat.RESULT_KEY).isEmpty(),
+        "Result message requires exactly one non-empty content entry: %s",
+        DssMessageFormat.RESULT_KEY);
   }
 }

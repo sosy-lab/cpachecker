@@ -12,6 +12,7 @@ public final class DssMessageFormat {
 
   public static final String HEADER_KEY = "header";
   public static final String STATUS_KEY = "status";
+  public static final String STATES_KEY = "states";
   public static final String CONTENT_KEY = "content";
 
   public static final String SENDER_ID_KEY = "senderId";

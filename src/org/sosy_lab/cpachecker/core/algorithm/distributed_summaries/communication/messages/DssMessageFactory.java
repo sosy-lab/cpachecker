@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
@@ -39,11 +40,10 @@ public class DssMessageFactory {
   }
 
   public DssPostConditionMessage createDssPostConditionMessage(
-      String pSenderId, AlgorithmStatus pStatus, ImmutableMap<String, String> pStateContent) {
-    return new DssPostConditionMessage(
-        pSenderId,
-        pStatus,
-        ImmutableMap.<String, String>builder().putAll(pStateContent).buildOrThrow());
+      String pSenderId,
+      AlgorithmStatus pStatus,
+      ImmutableList<ImmutableMap<String, String>> pStates) {
+    return new DssPostConditionMessage(pSenderId, pStatus, pStates, ImmutableMap.of());
   }
 
   /**
@@ -61,26 +61,27 @@ public class DssMessageFactory {
     return new DssPostConditionMessage(
         pSenderId,
         pStatus,
+        ImmutableList.of(),
         ImmutableMap.<String, String>builder()
             .put(DssMessageFormat.UNREACHABLE_BLOCK_END_KEY, "true")
             .buildOrThrow());
   }
 
   public DssViolationConditionMessage createViolationConditionMessage(
-      String pSenderId, AlgorithmStatus pStatus, ImmutableMap<String, String> pStateContent) {
-    return new DssViolationConditionMessage(
-        pSenderId,
-        pStatus,
-        ImmutableMap.<String, String>builder().putAll(pStateContent).buildOrThrow());
+      String pSenderId,
+      AlgorithmStatus pStatus,
+      ImmutableList<ImmutableMap<String, String>> pStates) {
+    return new DssViolationConditionMessage(pSenderId, pStatus, pStates, ImmutableMap.of());
   }
 
   public DssWitnessMessage createDssCorrectnessWitnessMessage(
-      String pSenderId, ImmutableMap<String, String> pSerializedRelevantPreconditions) {
+      String pSenderId,
+      ImmutableList<ImmutableMap<String, String>> pSerializedRelevantPreconditions) {
     return new DssWitnessMessage(
         pSenderId,
+        pSerializedRelevantPreconditions,
         ImmutableMap.<String, String>builder()
             .putAll(witnessType(WitnessType.CORRECTNESS))
-            .putAll(pSerializedRelevantPreconditions)
             .buildOrThrow());
   }
 
@@ -88,6 +89,7 @@ public class DssMessageFactory {
       String pSenderId, SegmentedPaths violationWitness) {
     return new DssWitnessMessage(
         pSenderId,
+        ImmutableList.of(),
         ImmutableMap.<String, String>builder()
             .putAll(witnessType(WitnessType.VIOLATION))
             .put(DssMessageFormat.VIOLATION_PATH_KEY, violationWitness.serialize())
