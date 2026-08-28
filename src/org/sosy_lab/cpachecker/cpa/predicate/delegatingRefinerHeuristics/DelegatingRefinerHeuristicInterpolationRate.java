@@ -52,10 +52,16 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
   private int totalAbstractionLocationCount = 0;
   private int totalInterpolantCount = 0;
 
-  // Holds rateWindowSize + 1 samples, so that rateWindowSize intervals can be derived.
+  // Persistent counter of refinement iterations processed by this heuristic. Cannot rely on
+  // pDeltas.size(), since the delta history supplied by the CEGAR algorithm is bounded (an
+  // EvictingQueue), so its size plateaus once the window is full.
+  private long numberRefinements = 0;
+
+  // Holds rateWindowSize + 1 samples, so that rateWindowSize intervals can be derived. This window
+  // is owned by the heuristic itself and is independent of the bound on the delta history supplied
+  // by the CEGAR algorithm.
   private final EvictingQueue<Integer> recentInterpolantCounts;
   private int consecutivePersistentIterations = 0;
-  private int lastProcessedDeltaIndex = -1;
 
   @Option(
       secure = true,
@@ -191,10 +197,11 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
 
   /**
    * Evaluates if the recent net-active interpolant growth rate is within acceptable limits and has
-   * not persistently exceeded the threshold. State updates from the latest delta are idempotent.
+   * not persistently exceeded the threshold.
    *
    * @param pReached unused
-   * @param pDeltas sequence of deltas used to update counts and compute rates
+   * @param pDeltas sequence of recently observed deltas, bounded in size by the CEGAR algorithm;
+   *     only the latest delta is used to update this heuristic's internal state
    * @return {@code true} if the interpolant rate is acceptable, {@code false} if divergence is
    *     detected
    */
@@ -204,9 +211,9 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
       return false;
     }
 
-    processLatestDeltaIfNeeded(pDeltas);
+    numberRefinements++;
+    processLatestDelta(pDeltas.getLast());
 
-    int numberRefinements = pDeltas.size();
     currentAbstractionLocationRefinementRatio =
         (double) totalAbstractionLocationCount / numberRefinements;
     currentTotalInterpolantRate = computeRecentInterpolantRate();
@@ -233,21 +240,13 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
   }
 
   /**
-   * Updates the interpolant and abstraction-location counts based on the latest delta, unless it
-   * has already been processed.
+   * Updates the interpolant and abstraction-location counts based on the given delta.
    *
-   * @param pDeltas sequence of deltas, of which only the latest is considered
+   * @param pLatestDelta the most recently observed delta
    */
-  private void processLatestDeltaIfNeeded(ImmutableList<ReachedSetDelta> pDeltas) {
-    int latestIndex = pDeltas.size() - 1;
-    if (latestIndex <= lastProcessedDeltaIndex) {
-      return;
-    }
-
-    ReachedSetDelta latestDelta = pDeltas.get(latestIndex);
-
+  private void processLatestDelta(ReachedSetDelta pLatestDelta) {
     // Increment count for newly added states
-    for (AbstractState pState : latestDelta.addedStates()) {
+    for (AbstractState pState : pLatestDelta.addedStates()) {
       PredicateAbstractState predState =
           AbstractStates.extractStateByType(pState, PredicateAbstractState.class);
 
@@ -261,7 +260,7 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
     }
 
     // Decrement counts for removed states to track a "true" net state
-    for (AbstractState pState : latestDelta.removedStates()) {
+    for (AbstractState pState : pLatestDelta.removedStates()) {
       PredicateAbstractState predState =
           AbstractStates.extractStateByType(pState, PredicateAbstractState.class);
 
@@ -276,7 +275,6 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
     }
 
     recentInterpolantCounts.add(totalInterpolantCount);
-    lastProcessedDeltaIndex = latestIndex;
   }
 
   /**

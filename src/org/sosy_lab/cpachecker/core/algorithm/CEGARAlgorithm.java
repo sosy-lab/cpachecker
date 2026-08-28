@@ -35,10 +35,13 @@ import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdate
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdater;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ReachedSetDeltaConsumer;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.TrackingForwardingReachedSet.TrackingSession;
+import org.sosy_lab.cpachecker.core.reachedset.TrackingSessionFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.value.refiner.UnsoundRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -229,6 +232,14 @@ public class CEGARAlgorithm
 
   @Override
   public AlgorithmStatus run(ReachedSet reached) throws CPAException, InterruptedException {
+    TrackingSession session =
+        mRefiner instanceof ReachedSetDeltaConsumer
+            ? TrackingSessionFactory.startTracking(reached)
+            : null;
+    if (session != null) {
+      reached = session.reachedSet();
+    }
+
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
     boolean refinedInPreviousIteration = false;
@@ -260,7 +271,7 @@ public class CEGARAlgorithm
 
         if (refinementNecessary(reached, previousLastState)) {
           // if there is any target state do refinement
-          refinementSuccessful = refine(reached);
+          refinementSuccessful = refine(reached, session);
           refinedInPreviousIteration = true;
           // Note, with special options reached set still contains violated properties
           // i.e (stopAfterError = true) or race conditions analysis
@@ -303,13 +314,19 @@ public class CEGARAlgorithm
   @SuppressFBWarnings(
       value = "VO_VOLATILE_INCREMENT",
       justification = "only one thread writes countRefinements, others read")
-  private boolean refine(ReachedSet reached) throws CPAException, InterruptedException {
+  private boolean refine(ReachedSet reached, TrackingSession pSession)
+      throws CPAException, InterruptedException {
     logger.log(Level.FINE, "Error found, performing CEGAR");
     stats.countRefinements++;
     stats.totalReachedSizeBeforeRefinement += reached.size();
     stats.maxReachedSizeBeforeRefinement =
         Math.max(stats.maxReachedSizeBeforeRefinement, reached.size());
     sizeOfReachedSetBeforeRefinement = reached.size();
+
+    if (pSession != null) {
+      pSession.closeWindow();
+      ((ReachedSetDeltaConsumer) mRefiner).consumeDeltaHistory(pSession.getHistory());
+    }
 
     stats.refinementTimer.start();
     boolean refinementResult;

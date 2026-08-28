@@ -10,57 +10,120 @@ package org.sosy_lab.cpachecker.core.reachedset;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.EvictingQueue;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Queue;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /**
- * Extension of {@link ForwardingReachedSet} that tracks changes in the ReachedSet (such as added or
- * removed states) and exposes them as {@link ReachedSetDelta}. Intended for use with
- * PredicateDelegatingRefiner and its DelegatingRefinerHeuristics.
+ * Extension of {@link ForwardingReachedSet} that records which states are added to and removed from
+ * the reached set and exposes them as {@link ReachedSetDelta}.
+ *
+ * <p>The recorded changes and the possibility to reset them belong to the component that defines
+ * what a tracking window is, which obtains them as a {@link TrackingSession} from {@link
+ * TrackingSessionFactory}. To every other component an instance of this class is indistinguishable
+ * from a plain {@link ReachedSet}, so no component can invalidate the view of the owner.
  */
-public class TrackingForwardingReachedSet extends ForwardingReachedSet {
+public final class TrackingForwardingReachedSet extends ForwardingReachedSet {
 
   /**
-   * Immutable snapshot of the changes in a reached set. The class stores a record of the
-   * differences between the current and the previous reached set. It is produced by the {@link
-   * TrackingForwardingReachedSet} and consumed by the PredicateDelegatingRefiner and its
-   * DelegatingRefinerHeuristics.
+   * Immutable snapshot of the changes of a reached set during one tracking window. Produced by a
+   * {@link TrackingSession} and safe to hand to arbitrary consumers, such as refiners or heuristics
+   * evaluating refinement progress.
+   *
+   * @param addedStates states added during the window, in the order in which they were added
+   * @param removedStates states removed during the window, in the order in which they were removed
    */
   public record ReachedSetDelta(
       ImmutableSet<AbstractState> addedStates, ImmutableSet<AbstractState> removedStates) {
+
+    private static final ReachedSetDelta EMPTY =
+        new ReachedSetDelta(ImmutableSet.of(), ImmutableSet.of());
 
     public ReachedSetDelta {
       checkNotNull(addedStates, "addedStates must not be null.");
       checkNotNull(removedStates, "removedStates must not be null.");
     }
-  }
 
-  private final Set<AbstractState> addedStates = new HashSet<>();
-  private final Set<AbstractState> removedStates = new HashSet<>();
+    public static ReachedSetDelta empty() {
+      return EMPTY;
+    }
 
-  public TrackingForwardingReachedSet(ReachedSet pDelegate) {
-    super(pDelegate);
-  }
-
-  /** Clears all records of states added and removed in prior refinement iterations. */
-  public void resetTracking() {
-    addedStates.clear();
-    removedStates.clear();
+    public boolean isEmpty() {
+      return addedStates.isEmpty() && removedStates.isEmpty();
+    }
   }
 
   /**
-   * Returns a snapshot of the states added and removed since the last refinement iteration. Used by
-   * PredicateDelegatingRefiner in its DelegatingRefinerHeuristics to evaluate refinement progress.
+   * Owner handle for a reached set whose changes are tracked.
    *
-   * @return a {@link ReachedSetDelta} containing added and removed states.
+   * <p>A session is created by {@link TrackingSessionFactory} and must not be shared: whoever holds
+   * it decides where one tracking window ends and the next begins. The reached set returned by
+   * {@link #reachedSet()} does not expose the tracking.
+   *
+   * <p>The session keeps a bounded history of closed windows to prevent the history from retaining
+   * every state that was ever removed from the reached set.
    */
-  public ReachedSetDelta getDelta() {
-    return new ReachedSetDelta(
-        ImmutableSet.copyOf(addedStates), ImmutableSet.copyOf(removedStates));
+  public static final class TrackingSession {
+
+    private final TrackingForwardingReachedSet trackingReachedSet;
+    private final Queue<ReachedSetDelta> history;
+
+    private TrackingSession(TrackingForwardingReachedSet pTrackingReachedSet, int pHistorySize) {
+      trackingReachedSet = checkNotNull(pTrackingReachedSet);
+      history = EvictingQueue.create(pHistorySize);
+    }
+
+    /** Returns the reached set to be used by the analysis. */
+    public ReachedSet reachedSet() {
+      return trackingReachedSet;
+    }
+
+    /**
+     * Closes the current tracking window, appends its delta to the history, and opens the next
+     * window.
+     */
+    public void closeWindow() {
+      history.add(trackingReachedSet.closeWindow());
+    }
+
+    /**
+     * Returns the deltas of the most recently closed windows, oldest first. At most as many entries
+     * are returned as the history size configured for this session.
+     */
+    public ImmutableList<ReachedSetDelta> getHistory() {
+      return ImmutableList.copyOf(history);
+    }
+  }
+
+  private final Set<AbstractState> addedStates = new LinkedHashSet<>();
+  private final Set<AbstractState> removedStates = new LinkedHashSet<>();
+
+  private TrackingForwardingReachedSet(ReachedSet pDelegate) {
+    super(pDelegate);
+  }
+
+  /** Creates a session together with the reached set it owns. */
+  static TrackingSession createSession(ReachedSet pDelegate, int pHistorySize) {
+    return new TrackingSession(new TrackingForwardingReachedSet(pDelegate), pHistorySize);
+  }
+
+  /**
+   * Closes the current tracking window and immediately opens the next one.
+   *
+   * @return the changes recorded during the window closed by this call
+   */
+  private ReachedSetDelta closeWindow() {
+    ReachedSetDelta delta =
+        new ReachedSetDelta(ImmutableSet.copyOf(addedStates), ImmutableSet.copyOf(removedStates));
+    addedStates.clear();
+    removedStates.clear();
+    return delta;
   }
 
   @Override
@@ -72,10 +135,7 @@ public class TrackingForwardingReachedSet extends ForwardingReachedSet {
   @Override
   public void addAll(Iterable<Pair<AbstractState, Precision>> pToAdd) {
     for (Pair<AbstractState, Precision> pair : pToAdd) {
-      AbstractState pState = pair.getFirst();
-      if (pState != null) {
-        addedStates.add(pState);
-      }
+      addedStates.add(checkNotNull(pair.getFirst()));
     }
     super.addAll(pToAdd);
   }
@@ -88,15 +148,16 @@ public class TrackingForwardingReachedSet extends ForwardingReachedSet {
 
   @Override
   public void removeAll(Iterable<? extends AbstractState> pToRemove) {
-    for (AbstractState pState : pToRemove) {
-      removedStates.add(pState);
+    for (AbstractState state : pToRemove) {
+      removedStates.add(checkNotNull(state));
     }
     super.removeAll(pToRemove);
   }
 
   @Override
   public void clear() {
-    resetTracking();
+    addedStates.clear();
+    removedStates.clear();
     super.clear();
   }
 }

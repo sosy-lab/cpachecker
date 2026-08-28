@@ -8,14 +8,16 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableList;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ReachedSetDeltaConsumer;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.TrackingForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.TrackingForwardingReachedSet.ReachedSetDelta;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristic;
@@ -27,16 +29,19 @@ import org.sosy_lab.cpachecker.util.CPAs;
  * A heuristic-driven refinement orchestrator for predicate analysis. The refiner delegates
  * refinement to one of several {@link Refiner} instances based on a set of core heuristics. Each
  * refiner is paired with a heuristic. During each refinement, the heuristics are evaluated in order
- * against the current {@link TrackingForwardingReachedSet} and its delta history. If all heuristics
- * indicate likely divergence in the verification, the PredicateDelegatingRefiner uses a {@link
- * PredicateStopRefiner} to signal the CEGAR algorithm to stop with refinement and end verification
- * early.
+ * against the current reached set and the history of reached-set changes supplied by the CEGAR
+ * algorithm. If all heuristics indicate likely divergence in the verification, the
+ * PredicateDelegatingRefiner uses a {@link PredicateStopRefiner} to signal the CEGAR algorithm to
+ * stop with refinement and end verification early.
+ *
+ * <p>This refiner is a pure consumer of the change history. The tracking itself is owned by the
+ * CEGAR algorithm, which closes a tracking window and supplies the resulting history before every
+ * refinement.
  */
-public class PredicateDelegatingRefiner implements Refiner {
+public class PredicateDelegatingRefiner implements Refiner, ReachedSetDeltaConsumer {
   private final ImmutableList<HeuristicDelegatingRefinerRecord> heuristicRefinerRecords;
   private final LogManager logger;
-  private final ImmutableList.Builder<ReachedSetDelta> deltaSequenceBuilder =
-      ImmutableList.builder();
+  private ImmutableList<ReachedSetDelta> deltaHistory = ImmutableList.of();
 
   public PredicateDelegatingRefiner(
       LogManager pLogger,
@@ -85,39 +90,37 @@ public class PredicateDelegatingRefiner implements Refiner {
   }
 
   /**
+   * Receives the history of reached-set changes from the CEGAR algorithm. Called before every
+   * refinement, so the heuristics always evaluate against an up-to-date history.
+   *
+   * @param pDeltaHistory the deltas of the tracking windows closed so far, oldest first
+   */
+  @Override
+  public void consumeDeltaHistory(ImmutableList<ReachedSetDelta> pDeltaHistory) {
+    deltaHistory = checkNotNull(pDeltaHistory);
+  }
+
+  /**
    * Performs refinement by evaluating its internal heuristic-refiner map in order. It delegates the
    * refinement execution to the first refiner whose associated heuristic returns {@code true}.
-   * Requires a {@link TrackingForwardingReachedSet}.
    *
    * @param pReached the current reached Set
    * @return {@code true} refinement was successful, {@code false} otherwise
-   * @throws CPAException if no heuristic matches or if {@link TrackingForwardingReachedSet} is
-   *     disabled
+   * @throws CPAException if no heuristic matches
    * @throws InterruptedException if refinement is interrupted
    */
   @Override
   public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
-    // PredicateDelegatingRefiner only works with a TrackingForwardingReachedSet
-    if (!(pReached instanceof TrackingForwardingReachedSet trackingForwardingReachedSet)) {
-      throw new CPAException(
-          "To use the Delegating Refiner, you need to enable tracking via"
-              + " 'analysis.reachedSet.trackChanges=true'");
-    }
-
-    deltaSequenceBuilder.add(trackingForwardingReachedSet.getDelta());
-    trackingForwardingReachedSet.resetTracking();
-    ImmutableList<ReachedSetDelta> deltaSequence = deltaSequenceBuilder.build();
-
     for (HeuristicDelegatingRefinerRecord pRecord : heuristicRefinerRecords) {
       DelegatingRefinerHeuristic pHeuristic = pRecord.pHeuristic();
-      if (pHeuristic.fulfilled(trackingForwardingReachedSet.getDelegate(), deltaSequence)) {
+      if (pHeuristic.fulfilled(pReached, deltaHistory)) {
         logger.logf(
             Level.FINER,
             "Heuristic %s matched for %s",
             pHeuristic.getClass().getSimpleName(),
             pRecord.pRefiner().getClass().getSimpleName());
         Refiner refiner = pRecord.pRefiner();
-        return refiner.performRefinement(trackingForwardingReachedSet);
+        return refiner.performRefinement(pReached);
       }
     }
     throw new CPAException("No heuristic matched for refinement.");

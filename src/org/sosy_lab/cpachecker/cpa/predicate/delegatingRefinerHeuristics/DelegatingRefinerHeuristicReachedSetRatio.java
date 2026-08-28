@@ -32,6 +32,7 @@ public class DelegatingRefinerHeuristicReachedSetRatio implements DelegatingRefi
 
   private final LogManager logger;
   private double currentAbstractionLocationRefinementRatio;
+  private int numberRefinements = 0;
 
   private int totalAbstractionLocations = 0;
 
@@ -107,6 +108,7 @@ public class DelegatingRefinerHeuristicReachedSetRatio implements DelegatingRefi
   @Override
   public boolean fulfilled(ReachedSet pReached, ImmutableList<ReachedSetDelta> pDeltas) {
     if (!pDeltas.isEmpty()) {
+      numberRefinements++;
       ReachedSetDelta latestDelta = pDeltas.getLast();
 
       for (AbstractState pState : latestDelta.addedStates()) {
@@ -126,7 +128,6 @@ public class DelegatingRefinerHeuristicReachedSetRatio implements DelegatingRefi
       }
     }
 
-    int numberRefinements = pDeltas.size();
     if (numberRefinements == 0) {
       return false;
     }

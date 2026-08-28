@@ -704,9 +704,6 @@ analysis.programNames = []
 analysis.reachedSet = PARTITIONED
   enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED, USAGE]
 
-# enable tracking of changes for the reachedSet
-analysis.reachedSet.trackChanges = false
-
 # track more statistics about the reachedset
 analysis.reachedSet.withStatistics = false
 
