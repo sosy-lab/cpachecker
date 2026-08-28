@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
@@ -39,12 +38,11 @@ public class BlockStateCombineViolationConditionOperator
                 .transform(BlockState::getWitness)
                 .toList());
     String id =
-        Joiner.on("+")
-            .join(
-                FluentIterable.from(states)
-                    .filter(BlockState.class)
-                    .transform(BlockState::getUniqueId)
-                    .toSortedList(Comparator.comparing(String::toString)));
+        BlockState.combineUniqueIds(
+            FluentIterable.from(states)
+                .filter(BlockState.class)
+                .transform(BlockState::getUniqueId)
+                .toSortedList(Comparator.comparing(String::toString)));
 
     AbstractState reference = Iterables.getFirst(states, null);
     Preconditions.checkNotNull(reference);

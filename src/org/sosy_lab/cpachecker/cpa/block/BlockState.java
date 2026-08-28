@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.cpa.block;
 
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -50,6 +52,9 @@ public class BlockState
     ABSTRACTION,
     WITNESS
   }
+
+  /** Separator between the ids of the states that a combined state was created from. */
+  private static final String ID_SEPARATOR = "+";
 
   private final String id;
   private final BlockState predecessor;
@@ -112,6 +117,22 @@ public class BlockState
 
   public String getUniqueId() {
     return id;
+  }
+
+  /**
+   * Joins the ids of states that are combined into a single state, so that the parts remain
+   * recoverable with {@link #splitUniqueId(String)}.
+   */
+  public static String combineUniqueIds(Iterable<String> pIds) {
+    return Joiner.on(ID_SEPARATOR).join(pIds);
+  }
+
+  /**
+   * Splits an id created by {@link #combineUniqueIds(Iterable)} into the ids of the states it
+   * combines. An id that does not combine several states is returned as the only element.
+   */
+  public static ImmutableList<String> splitUniqueId(String pId) {
+    return ImmutableList.copyOf(Splitter.on(ID_SEPARATOR).split(pId));
   }
 
   public Set<AbstractState> getHinderedByCallstack() {

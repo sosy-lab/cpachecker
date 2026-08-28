@@ -101,6 +101,11 @@ final class AlwaysReplacePreconditionHandler implements DssPreconditionHandler {
       return DssMessageProcessing.proceed();
     }
     ImmutableList<@NonNull StateAndPrecision> received = analysis.deserialize(pReceived);
+    // Recorded here, by the receiver, instead of by the sender before it serializes its
+    // postcondition (see DssBlockAnalysis#reportPostconditions): this handler does not consume the
+    // history itself, but keeps recording it for debugging and for violation conditions derived from
+    // these states, which otherwise would carry no history at all.
+    received.forEach(sap -> sap.getBlockState().addHistory(analysis.getBlock()));
     preconditions.markReachable(pReceived.getSenderId());
     ImmutableListMultimap<Object, @NonNull StateAndPrecision> programPointToState =
         Multimaps.index(received, sap -> analysis.getDcpa().computeProgramPointId(sap.state()));

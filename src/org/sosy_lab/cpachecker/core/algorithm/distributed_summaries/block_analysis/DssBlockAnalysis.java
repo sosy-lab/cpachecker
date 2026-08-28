@@ -553,7 +553,9 @@ public final class DssBlockAnalysis {
       return ImmutableList.of();
     }
 
-    pSummaries.forEach(sap -> sap.getBlockState().addHistory(block));
+    // History is recorded by the receiver (see DssPreconditionHandler#store implementations), not
+    // here: a path-based receiver needs its own block already in a precondition's history to tell a
+    // repeat visit of a cycle apart from one reached via a genuinely new predecessor.
     return ImmutableList.of(
         messageFactory.createDssPostConditionMessage(
             block.getId(), status, serialize(ImmutableList.copyOf(pSummaries))));

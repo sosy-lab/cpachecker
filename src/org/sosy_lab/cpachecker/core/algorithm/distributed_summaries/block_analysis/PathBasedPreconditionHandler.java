@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis.blockStateOf;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
@@ -36,6 +37,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -76,15 +78,19 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
     analysis = pAnalysis;
     resetPrecisionsForEveryRun = pAnalysis.getOptions().doResetPrecisionsForEveryRun();
 
-    // start from a top state, replaceable by any predecessor path
+    // Start from a top state, replaceable by any predecessor path. Its own path already contains
+    // this block instead of being empty, so that a path which loops all the way back to this block
+    // without ever incorporating a real predecessor still starts with this block's id, no matter how
+    // many other blocks the loop passes through in between -- see shouldConsiderPath and store(),
+    // which appends to a path's history on receipt instead of on send for the same reason.
+    AbstractState startState = pAnalysis.makeStartState(!analysis.getBlock().isRoot());
+    blockStateOf(startState).addHistory(analysis.getBlock());
+    BlockGraphPath startPath = BlockGraphPath.of(analysis.getBlock().getId());
     preconditions.put(
-        BlockGraphPath.of(),
+        startPath,
         new StatesByPath(
-            BlockGraphPath.of(),
-            ImmutableList.of(
-                new StateAndPrecision(
-                    pAnalysis.makeStartState(!analysis.getBlock().isRoot()),
-                    pAnalysis.makeStartPrecision()))));
+            startPath,
+            ImmutableList.of(new StateAndPrecision(startState, pAnalysis.makeStartPrecision()))));
   }
 
   @Override
@@ -114,6 +120,9 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
     pathsToAnalyze.clear();
     analysis.getLogger().log(Level.INFO, "Running forward analysis with new precondition");
     ImmutableList<@NonNull StateAndPrecision> received = analysis.deserialize(pReceived);
+    // Recorded here, by the receiver, rather than by the sender before it serializes its
+    // postcondition: see the constructor for why this block has to end up in its own history.
+    received.forEach(sap -> sap.getBlockState().addHistory(analysis.getBlock()));
     DssSingleWorkerStatistics stats = analysis.statistics();
     stats.getStorePreconditionStatesTimer().start();
     try {
