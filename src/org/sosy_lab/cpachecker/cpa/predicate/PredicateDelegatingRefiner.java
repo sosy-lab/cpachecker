@@ -28,11 +28,23 @@ import org.sosy_lab.cpachecker.util.CPAs;
 /**
  * A heuristic-driven refinement orchestrator for predicate analysis. The refiner delegates
  * refinement to one of several {@link Refiner} instances based on a set of core heuristics. Each
- * refiner is paired with a heuristic. During each refinement, the heuristics are evaluated in order
- * against the current reached set and the history of reached-set changes supplied by the CEGAR
- * algorithm. If all heuristics indicate likely divergence in the verification, the
- * PredicateDelegatingRefiner uses a {@link PredicateStopRefiner} to signal the CEGAR algorithm to
- * stop with refinement and end verification early.
+ * refiner is paired with a heuristic.
+ *
+ * <p>During each refinement, the heuristics are evaluated in order against the current reached set
+ * and the history of reached-set changes supplied by the CEGAR algorithm. The chain operates as a
+ * fallback mechanism:
+ *
+ * <ul>
+ *   <li>If a heuristic evaluates to {@code true}, it considers the refinement progress promising.
+ *       Its associated refiner is immediately invoked, and the chain execution breaks.
+ *   <li>If a heuristic evaluates to {@code false}, it suspects divergence but delegates the final
+ *       decision to the next heuristic in the chain.
+ * </ul>
+ *
+ * <p>Verification is only terminated if <i>all</i> standard heuristics evaluate to {@code false}.
+ * In this case, the chain typically falls through to a final, unconditional stop-heuristic (e.g.,
+ * paired with a {@link PredicateStopRefiner}) to safely signal the CEGAR algorithm to terminate
+ * early.
  *
  * <p>This refiner is a pure consumer of the change history. The tracking itself is owned by the
  * CEGAR algorithm, which closes a tracking window and supplies the resulting history before every
@@ -101,12 +113,16 @@ public class PredicateDelegatingRefiner implements Refiner, ReachedSetDeltaConsu
   }
 
   /**
-   * Performs refinement by evaluating its internal heuristic-refiner map in order. It delegates the
-   * refinement execution to the first refiner whose associated heuristic returns {@code true}.
+   * Performs refinement by evaluating its internal heuristic-refiner chain in order.
+   *
+   * <p>It delegates the refinement execution to the first refiner whose associated heuristic
+   * returns {@code true} (indicating promising progress). If a heuristic returns {@code false},
+   * evaluation falls through to the next heuristic.
    *
    * @param pReached the current reached Set
-   * @return {@code true} refinement was successful, {@code false} otherwise
-   * @throws CPAException if no heuristic matches
+   * @return {@code true} if refinement was successful, {@code false} otherwise
+   * @throws CPAException if no heuristic matches (meaning the chain did not end with a catch-all
+   *     stop heuristic)
    * @throws InterruptedException if refinement is interrupted
    */
   @Override
