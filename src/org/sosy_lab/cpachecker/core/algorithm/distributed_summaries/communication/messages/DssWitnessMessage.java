@@ -59,8 +59,7 @@ public class DssWitnessMessage extends DssMessage {
     switch (type) {
       case CORRECTNESS ->
           checkArgument(
-              !pStates.isEmpty() || pContent.size() > 1,
-              "Correctness witness requires states or serialized preconditions");
+              !pStates.isEmpty(), "Correctness witness requires serialized preconditions");
       case VIOLATION ->
           checkArgument(
               pContent.containsKey(DssMessageFormat.VIOLATION_PATH_KEY),

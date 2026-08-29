@@ -129,7 +129,7 @@ public abstract class DssMessage {
     if (!states.isEmpty()) {
       return OptionalInt.of(states.size());
     }
-    if (content.containsKey(DssMessageFormat.WITNESS_TYPE_KEY)) {
+    if (content.containsKey(DssMessageFormat.MULTIPLE_STATES_KEY)) {
       return OptionalInt.of(
           Integer.parseInt(
               Objects.requireNonNull(content.get(DssMessageFormat.MULTIPLE_STATES_KEY))));
@@ -139,7 +139,7 @@ public abstract class DssMessage {
 
   public final DssMessage advance(String pPrefix) {
     ImmutableMap.Builder<String, String> advanced = ImmutableMap.builder();
-    advanced.putAll(content).putAll(content);
+    advanced.putAll(content);
 
     OptionalInt stateIndex = parseStatePrefix(pPrefix);
     if (stateIndex.isPresent()) {
@@ -148,7 +148,7 @@ public abstract class DssMessage {
       advanced.putAll(ContentReader.read(content).pushLevel(pPrefix).getContent());
     }
 
-    return new DssMessage(senderId, type, status, states, advanced.buildKeepingLast()) {
+    return new DssMessage(senderId, type, status, states, advanced.buildOrThrow()) {
       @Override
       void validateParameters(
           Optional<AlgorithmStatus> pStatus,
