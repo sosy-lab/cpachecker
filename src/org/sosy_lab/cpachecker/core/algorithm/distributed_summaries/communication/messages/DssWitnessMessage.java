@@ -65,6 +65,5 @@ public class DssWitnessMessage extends DssMessage {
               pContent.containsKey(DssMessageFormat.VIOLATION_PATH_KEY),
               "Violation witness requires violationPath");
     }
-    ;
   }
 }

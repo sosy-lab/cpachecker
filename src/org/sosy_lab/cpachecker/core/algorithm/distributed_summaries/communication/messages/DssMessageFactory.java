@@ -25,16 +25,6 @@ public class DssMessageFactory {
     exportTimestamp = pOptions.isDebugModeEnabled();
   }
 
-  private ImmutableMap<String, String> serializeStatus(AlgorithmStatus pStatus) {
-    ContentBuilder contentBuilder = ContentBuilder.builder();
-    return contentBuilder
-        .pushLevel(DssMessageFormat.STATUS_KEY)
-        .put(DssMessageFormat.SOUND_KEY, Boolean.toString(pStatus.isSound()))
-        .put(DssMessageFormat.PRECISE_KEY, Boolean.toString(pStatus.isPrecise()))
-        .put(DssMessageFormat.PROPERTY_KEY, Boolean.toString(pStatus.wasPropertyChecked()))
-        .build();
-  }
-
   private ImmutableMap<String, String> witnessType(WitnessType pWitnessType) {
     return ImmutableMap.of(DssMessageFormat.WITNESS_TYPE_KEY, pWitnessType.name());
   }

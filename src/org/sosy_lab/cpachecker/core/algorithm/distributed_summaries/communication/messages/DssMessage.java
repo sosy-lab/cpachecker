@@ -225,7 +225,7 @@ public abstract class DssMessage {
 
   public final AlgorithmStatus getAlgorithmStatus() {
     checkArgument(hasStatus(type), "Cannot get content for type: %s", type);
-    return status.get();
+    return status.orElseThrow();
   }
 
   public final String getExceptionMessage() {
@@ -294,9 +294,10 @@ public abstract class DssMessage {
 
     return switch (type) {
       case POST_CONDITION ->
-          new DssPostConditionMessage(senderId, algorithmStatus.get(), states, content);
+          new DssPostConditionMessage(senderId, algorithmStatus.orElseThrow(), states, content);
       case VIOLATION_CONDITION ->
-          new DssViolationConditionMessage(senderId, algorithmStatus.get(), states, content);
+          new DssViolationConditionMessage(
+              senderId, algorithmStatus.orElseThrow(), states, content);
       case EXCEPTION -> new DssExceptionMessage(senderId, content);
       case RESULT -> new DssResultMessage(senderId, content);
       case WITNESS -> new DssWitnessMessage(senderId, states, content);
@@ -307,7 +308,7 @@ public abstract class DssMessage {
     if (!hasStatus(type)) {
       return null;
     }
-    return DssStatusPayload.fromAlgorithmStatus(status.get());
+    return DssStatusPayload.fromAlgorithmStatus(status.orElseThrow());
   }
 
   private static OptionalInt parseStatePrefix(String pPrefix) {
