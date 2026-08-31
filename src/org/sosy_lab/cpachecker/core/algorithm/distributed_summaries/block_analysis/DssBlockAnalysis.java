@@ -394,7 +394,7 @@ public final class DssBlockAnalysis {
     int covered = 0;
     for (StateAndPrecision state : pStates) {
       for (StateAndPrecision candidate : pCandidates) {
-        if (dcpa.getCoverageOperator().isSubsumed(state.state(), candidate.state())) {
+        if (dcpa.getCoverageOperator().areStatesEqual(state.state(), candidate.state())) {
           covered++;
           break;
         }
