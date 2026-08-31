@@ -33,8 +33,8 @@ import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 
 /**
  * Abstract base class for messages used in distributed summary synthesis. Each message has a sender
- * ID, a type, a timestamp, and content. The content is a flat map of key-value pairs, where keys
- * can be hierarchical using dot notation.
+ * ID, a type, a timestamp, a status, a list of states and content. The content is a flat map of
+ * key-value pairs, where keys can be hierarchical using dot notation.
  */
 public abstract class DssMessage {
 
@@ -59,6 +59,7 @@ public abstract class DssMessage {
    * @param pSenderId the ID of the sender
    * @param pType the type of the message
    * @param pStatus the optional status of the message
+   * @param pStates the list of states associated with this message
    * @param pContent the content of the message
    */
   DssMessage(
@@ -236,6 +237,14 @@ public abstract class DssMessage {
         this);
   }
 
+  /**
+   * Convert the message to the current DSS JSON payload representation with an identifier.
+   *
+   * @param pIdentifier A unique identifier indicating a set of messages that belong together. All
+   *     messages produced in one run of DSS should have the same identifier. This simplifies the
+   *     separation of old and new messages after the analysis, especially.
+   * @return the structured payload containing header, optional status, states and content.
+   */
   @SuppressWarnings("JavaInstantGetSecondsGetNano")
   public final DssMessagePayload asJsonPayloadWithIdentifier(int pIdentifier) {
     DssHeaderPayload header =
@@ -255,20 +264,23 @@ public abstract class DssMessage {
   }
 
   /**
-   * Convert the message to a JSON representation with an identifier.
+   * Convert the message to the legacy flattened JSON representation with an identifier.
+   *
+   * <p>This exists for callers that still expect states and status to be embedded in the content
+   * map. New code should use {@link #asJsonPayloadWithIdentifier(int)}
    *
    * @param pIdentifier A unique identifier indicating a set of messages that belong together. All
    *     messages produced in one run of DSS should have the same identifier. This simplifies the
    *     separation of old and new messages after the analysis, especially.
    * @return JSON representation of the message.
    */
-  public final ImmutableMap<String, ImmutableMap<String, String>> asJsonWithIdentifier(
+  public final ImmutableMap<String, ImmutableMap<String, String>> asLegacyJsonWithIdentifier(
       int pIdentifier) {
     return asJsonPayloadWithIdentifier(pIdentifier).asLegacyMap();
   }
 
-  public final ImmutableMap<String, ImmutableMap<String, String>> asJson() {
-    return asJsonWithIdentifier(0);
+  public final ImmutableMap<String, ImmutableMap<String, String>> asLegacyJson() {
+    return asLegacyJsonWithIdentifier(0);
   }
 
   public static DssMessage fromJson(Path pJson) throws IOException {

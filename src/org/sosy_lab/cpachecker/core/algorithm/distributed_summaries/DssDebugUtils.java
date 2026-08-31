@@ -628,7 +628,7 @@ public final class DssDebugUtils {
    * {@link BlockState} is expanded into block, history and witness.
    */
   public static String describe(DssMessage pMessage) {
-    ImmutableMap<String, ImmutableMap<String, String>> json = pMessage.asJson();
+    ImmutableMap<String, ImmutableMap<String, String>> json = pMessage.asLegacyJson();
     ImmutableMap<String, String> content =
         Objects.requireNonNullElse(json.get(DssMessageFormat.CONTENT_KEY), ImmutableMap.of());
 
@@ -781,7 +781,7 @@ public final class DssDebugUtils {
 
   private static ImmutableMap<String, String> contentOf(DssMessage pMessage) {
     return Objects.requireNonNullElse(
-        pMessage.asJson().get(DssMessageFormat.CONTENT_KEY), ImmutableMap.of());
+        pMessage.asLegacyJson().get(DssMessageFormat.CONTENT_KEY), ImmutableMap.of());
   }
 
   /**

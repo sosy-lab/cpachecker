@@ -613,13 +613,12 @@ public final class DssBlockAnalysis {
   }
 
   /**
-   * Serialize a list of states and precisions into a map of strings. Every entry in the list will
-   * be serialized under its own key (prefixed by state#num). The {@link #deserialize(DssMessage)}
-   * method restores the list of states and precisions.
+   * Serialize a list of states and precisions into a list of maps of strings. The {@link
+   * #deserialize(DssMessage)} method restores the list of states and precisions.
    *
    * @param pStatesAndPrecisions List of abstract states and their corresponding precision.
-   * @return Map of strings representing the serialized states and precisions. Every state will be
-   *     serialized with the given serialize operators but all keys will be prefixed with state#num.
+   * @return List of Maps of strings representing the serialized states and precisions. Every state
+   *     will be serialized with the given serialize operators.
    */
   ImmutableList<ImmutableMap<String, String>> serialize(
       final List<@NonNull StateAndPrecision> pStatesAndPrecisions) {

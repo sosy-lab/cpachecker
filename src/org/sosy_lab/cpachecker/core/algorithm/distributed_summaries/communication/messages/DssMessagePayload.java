@@ -8,10 +8,14 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -65,7 +69,25 @@ public record DssMessagePayload(
   }
 
   public static DssMessagePayload fromJson(Path pJson) throws IOException {
-    return OBJECT_MAPPER.readValue(pJson.toFile(), DssMessagePayload.class);
+    JsonNode root = OBJECT_MAPPER.readTree(pJson.toFile());
+
+    boolean hasCurrentOnlyFields =
+        root.has(DssMessageFormat.STATUS_KEY) || root.has(DssMessageFormat.STATES_KEY);
+
+    ImmutableMap<String, String> content =
+        ImmutableMap.copyOf(
+            OBJECT_MAPPER.convertValue(
+                root.required(DssMessageFormat.CONTENT_KEY),
+                new TypeReference<Map<String, String>>() {}));
+
+    boolean contentLooksLegacy = content.keySet().stream().anyMatch(k -> isLegacyKey(k));
+
+    checkArgument(
+        !hasCurrentOnlyFields || !contentLooksLegacy, "JSON mixes legacy and current format.");
+    if (!hasCurrentOnlyFields && contentLooksLegacy) {
+      return fromLegacyJson(root);
+    }
+    return OBJECT_MAPPER.treeToValue(root, DssMessagePayload.class);
   }
 
   public DssMessagePayload withoutTimestamp() {
@@ -104,6 +126,64 @@ public record DssMessagePayload(
       Files.createDirectories(parent);
     }
     OBJECT_MAPPER.writeValue(pPath.toFile(), this);
+  }
+
+  private static DssMessagePayload fromLegacyJson(JsonNode root) {
+    DssHeaderPayload header =
+        OBJECT_MAPPER.convertValue(
+            root.required(DssMessageFormat.HEADER_KEY), DssHeaderPayload.class);
+    ImmutableMap<String, String> legacyContent =
+        ImmutableMap.copyOf(
+            OBJECT_MAPPER.convertValue(
+                root.required(DssMessageFormat.CONTENT_KEY),
+                new TypeReference<Map<String, String>>() {}));
+
+    DssStatusPayload status = extractLegacyStatus(legacyContent);
+    ImmutableList<ImmutableMap<String, String>> states = extractLegacyStates(legacyContent);
+    ImmutableMap<String, String> content = extractRemainingContent(legacyContent);
+
+    return new DssMessagePayload(header, status, states, content);
+  }
+
+  private static DssStatusPayload extractLegacyStatus(ImmutableMap<String, String> pLegacyContent) {
+    boolean sound = Boolean.parseBoolean(pLegacyContent.get(DssMessageFormat.SOUND_KEY));
+    boolean precise = Boolean.parseBoolean(pLegacyContent.get(DssMessageFormat.PRECISE_KEY));
+    boolean propertyChecked =
+        Boolean.parseBoolean(pLegacyContent.get(DssMessageFormat.PROPERTY_KEY));
+
+    return new DssStatusPayload(sound, precise, propertyChecked);
+  }
+
+  private static ImmutableList<ImmutableMap<String, String>> extractLegacyStates(
+      ImmutableMap<String, String> pLegacyContent) {
+    String numberOfStates = pLegacyContent.get(DssMessageFormat.MULTIPLE_STATES_KEY);
+    if (numberOfStates == null) {
+      return ImmutableList.of();
+    }
+    int stateCount = Integer.parseInt(numberOfStates);
+    ImmutableList.Builder<ImmutableMap<String, String>> states =
+        ImmutableList.builderWithExpectedSize(stateCount);
+    for (int i = 0; i < stateCount; i++) {
+      String statePrefix = DssMessageFormat.STATE_KEY + i;
+      ImmutableMap<String, String> stateContent =
+          ImmutableMap.copyOf(
+              ContentReader.read(pLegacyContent).pushLevel(statePrefix).getContent());
+      states.add(stateContent);
+    }
+    return states.build();
+  }
+
+  private static ImmutableMap<String, String> extractRemainingContent(
+      ImmutableMap<String, String> pLegacyContent) {
+    return pLegacyContent.entrySet().stream()
+        .filter(entry -> !isLegacyKey(entry.getKey()))
+        .collect(ImmutableMap.toImmutableMap(Entry::getKey, Entry::getValue));
+  }
+
+  private static boolean isLegacyKey(String pKey) {
+    return pKey.equals(DssMessageFormat.MULTIPLE_STATES_KEY)
+        || pKey.startsWith(DssMessageFormat.STATUS_KEY)
+        || pKey.matches(DssMessageFormat.STATE_KEY + "\\d+\\..*");
   }
 
   private static DssHeaderPayload requireHeader(DssHeaderPayload pHeader) {
