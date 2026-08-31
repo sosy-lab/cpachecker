@@ -147,8 +147,9 @@ public class DssWorkerBuilder {
       Path logDirectory = pOptions.getLogDirectory();
       if (logDirectory != null) {
         Files.createDirectories(logDirectory);
-        return BasicLogManager.createWithHandler(
-            new FileHandler(logDirectory + "/" + workerId + ".log"));
+        FileHandler handler = new FileHandler(logDirectory + "/" + workerId + ".log");
+        handler.setLevel(pOptions.getLogLevel());
+        return BasicLogManager.createWithHandler(handler);
       }
     } catch (IOException e) {
       // fall-through to return null-log manager

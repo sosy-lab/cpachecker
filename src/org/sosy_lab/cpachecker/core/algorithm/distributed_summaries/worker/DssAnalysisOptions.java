@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
 import java.nio.file.Path;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -58,6 +59,16 @@ public class DssAnalysisOptions {
       secure = true)
   @FileOption(Type.OUTPUT_DIRECTORY)
   private Path logDirectory = Path.of("block_analysis/logfiles");
+
+  @Option(
+      name = "worker.logLevel",
+      toUppercase = true,
+      description =
+          "Log level of the logfile of every DssWorker. Levels below INFO make every block analysis"
+              + " write its complete abstract states, which costs far more time than the analysis"
+              + " itself, so only lower this to debug a single block.",
+      secure = true)
+  private Level logLevel = Level.INFO;
 
   @Option(
       description =
@@ -130,6 +141,10 @@ public class DssAnalysisOptions {
 
   public Path getLogDirectory() {
     return logDirectory;
+  }
+
+  public Level getLogLevel() {
+    return logLevel;
   }
 
   public boolean combineViolationConditionsByHash() {
