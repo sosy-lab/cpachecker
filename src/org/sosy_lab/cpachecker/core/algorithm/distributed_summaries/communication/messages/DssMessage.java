@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
@@ -301,24 +300,5 @@ public abstract class DssMessage {
       case RESULT -> new DssResultMessage(senderId, content);
       case WITNESS -> new DssWitnessMessage(senderId, states, content);
     };
-  }
-
-  private @Nullable DssStatusPayload extractStatusPayload() {
-    if (!hasStatus(type)) {
-      return null;
-    }
-    return DssStatusPayload.fromAlgorithmStatus(status.orElseThrow());
-  }
-
-  private static OptionalInt parseStatePrefix(String pPrefix) {
-    if (!pPrefix.startsWith(DssMessageFormat.STATE_KEY)) {
-      return OptionalInt.empty();
-    }
-    String suffix = pPrefix.substring(DssMessageFormat.STATE_KEY.length());
-    try {
-      return OptionalInt.of(Integer.parseInt(suffix));
-    } catch (NumberFormatException e) {
-      return OptionalInt.empty();
-    }
   }
 }
