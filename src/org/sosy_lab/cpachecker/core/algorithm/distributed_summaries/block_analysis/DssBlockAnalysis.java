@@ -370,7 +370,19 @@ public final class DssBlockAnalysis {
   }
 
   /**
-   * Counts how many of {@code pStates} are equal to at least one state in {@code pCandidates}.
+   * Counts how many of {@code pStates} are covered by at least one state in {@code pCandidates}.
+   *
+   * <p>This is a one-way check, i.e. it uses {@link CoverageOperator#isSubsumed} and not {@link
+   * CoverageOperator#areStatesEqual}. A strictly more general candidate has to count as a cover;
+   * otherwise a precondition whose callstack is only partially known (see {@link
+   * org.sosy_lab.cpachecker.cpa.callstack.DssCallstackState}) could never cover a precondition with
+   * a fully known callstack, because {@link CoverageOperator#areStatesEqual} also requires the
+   * reverse direction, which {@link
+   * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack
+   * .CallstackStateCoverageOperator} rejects by design.
+   *
+   * <p>Callers that want the two states to be equivalent call this in both directions, or use
+   * {@link #statesEqual}.
    *
    * @return a number between 0 and {@code pStates.size()}
    */
@@ -382,7 +394,7 @@ public final class DssBlockAnalysis {
     int covered = 0;
     for (StateAndPrecision state : pStates) {
       for (StateAndPrecision candidate : pCandidates) {
-        if (dcpa.getCoverageOperator().areStatesEqual(state.state(), candidate.state())) {
+        if (dcpa.getCoverageOperator().isSubsumed(state.state(), candidate.state())) {
           covered++;
           break;
         }

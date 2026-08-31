@@ -236,8 +236,26 @@ public class BlockState
     throw new UnsupportedOperationException();
   }
 
-  // error condition intentionally left out as it is mutable
-  // the equals method is deliberately not implemented like this
+  /**
+   * Whether this state and the given state describe the same point of the same block.
+   *
+   * <p>This comparison deliberately ignores everything that only records where a state came from:
+   * {@link #id}, {@link #predecessor}, {@link #hinderedByCallstack} and, most importantly, {@link
+   * #history}. Two preconditions that reach the same block entry with the same callstack and the
+   * same abstraction have to subsume each other even if they arrived along different paths through
+   * the block graph, otherwise a block collects one precondition per block-graph path.
+   *
+   * <p>Ignoring {@link #history} is also safe for {@link BlockCPA}, which uses this method for
+   * coverage: {@link org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis
+   * .PathBasedPreconditionHandler} groups the start states by their block-graph path and explores
+   * one path at a time, so the history is constant within a reached set. The same holds for {@link
+   * #witness}, which {@link BlockTransferRelation} propagates unchanged, and for {@link
+   * #violationConditions}, which {@link #getPartitionKey()} already separates.
+   *
+   * <p>The equals method is deliberately not implemented like this, because {@link
+   * #violationConditions} and {@link #history} are mutable and a matching hashCode would therefore
+   * be unstable in a {@link org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet}.
+   */
   public boolean isEqualTo(BlockState that) {
     return this == that
         || (Objects.equals(node, that.node)
