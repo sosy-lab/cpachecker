@@ -10,17 +10,18 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.OptionalInt;
@@ -298,10 +299,10 @@ public abstract class DssMessage {
         "Cannot get remaining preconditions for message type: %s",
         type);
     String remainingPreconditions = content.get("remainingPreconditions");
-    if (remainingPreconditions == null || remainingPreconditions.isEmpty()) {
+    if (isNullOrEmpty(remainingPreconditions)) {
       return ImmutableList.of();
     }
-    return ImmutableList.copyOf(List.of(remainingPreconditions.split(",")));
+    return ImmutableList.copyOf(Splitter.on(',').split(remainingPreconditions));
   }
 
   public static DssMessage fromJson(Path pJson) throws IOException {

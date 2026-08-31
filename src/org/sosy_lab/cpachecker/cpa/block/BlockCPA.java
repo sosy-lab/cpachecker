@@ -44,10 +44,7 @@ public class BlockCPA extends AbstractCPA {
    *
    * <p>{@link BlockTransferRelation} creates a fresh block state for every CFA edge, so the
    * identity-based equality that {@link BlockState} inherits from {@link Object} would make every
-   * coverage check fail. Since {@link
-   * org.sosy_lab.cpachecker.cpa.composite.CompositeMergeAgreeOperator} only merges if every
-   * component covers its successor, that would also prevent all merges of the enclosing composite
-   * analysis, and a block analysis would enumerate every path through its block.
+   * coverage check fail.
    */
   private static final class BlockDomain implements AbstractDomain {
 
