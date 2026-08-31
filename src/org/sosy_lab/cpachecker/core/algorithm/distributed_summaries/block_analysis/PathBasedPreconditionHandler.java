@@ -443,7 +443,7 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
 
         summaries.addAll(analysis.summariesOf(result));
 
-        //TODO we only want to combine violations with the same precondition id
+        // TODO we only want to combine violations with the same precondition id
         if (!result.getAllViolations().isEmpty()) {
           violations.addAll(analysis.pathsWithCondition(result.getViolationConditionViolations()));
           violations.addAll(analysis.pathsFromOrigin(result.getTargetStates()));

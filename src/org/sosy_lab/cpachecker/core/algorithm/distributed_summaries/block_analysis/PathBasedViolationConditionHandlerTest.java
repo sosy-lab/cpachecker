@@ -9,11 +9,14 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
@@ -49,6 +52,26 @@ public class PathBasedViolationConditionHandlerTest {
     analysis = mock(DssBlockAnalysis.class);
     when(analysis.getLogger()).thenReturn(mock(LogManager.class));
     when(analysis.statistics()).thenReturn(new DssSingleWorkerStatistics("test-block"));
+
+    // The handler collects the conditions to explore through the analysis, so the mock has to
+    // stand in for these two collaborators. All violation conditions of this test are pairwise
+    // distinct states, so comparing them by identity is equivalent to the coverage-based
+    // comparison that the real implementations use.
+    when(analysis.deduplicateStatesAndPrecisions(any()))
+        .thenAnswer(
+            invocation -> {
+              Iterable<StateAndPrecision> statesAndPrecisions = invocation.getArgument(0);
+              return ImmutableList.copyOf(
+                  new LinkedHashSet<>(ImmutableList.copyOf(statesAndPrecisions)));
+            });
+    when(analysis.allCovered(any(), any()))
+        .thenAnswer(
+            invocation -> {
+              Collection<StateAndPrecision> states = invocation.getArgument(0);
+              Collection<StateAndPrecision> candidates = invocation.getArgument(1);
+              return candidates.containsAll(states);
+            });
+
     handler = new PathBasedViolationConditionHandler(analysis);
   }
 

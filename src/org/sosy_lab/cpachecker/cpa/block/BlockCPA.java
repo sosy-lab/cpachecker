@@ -72,7 +72,7 @@ public class BlockCPA extends AbstractCPA {
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
     return new BlockState(
-        blockNode.getId() + "#" + idGenerator.getFreshId(),
+        blockNode == null ? "null" : blockNode.getId() + "#" + idGenerator.getFreshId(),
         null,
         node,
         blockNode,
