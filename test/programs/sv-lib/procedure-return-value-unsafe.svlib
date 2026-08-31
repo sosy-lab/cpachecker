@@ -1,0 +1,42 @@
+; This file is part of CPAchecker,
+; a tool for configurable software verification:
+; https://cpachecker.sosy-lab.org
+;
+; SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+;
+; SPDX-License-Identifier: Apache-2.0
+
+; The counterexample of this program leads through two calls of a procedure that returns a value and
+; that changes a global variable, so replaying it precisely needs the value of the global variable
+; after the call and the value that the procedure returns.
+
+(set-logic LIA)
+(set-info :format-version 1.0)
+
+(declare-var counter Int)
+
+(define-proc
+  next
+  ()
+  ((result Int))
+  ()
+  (! (sequence
+    (assign (result counter))
+    (assign (counter (+ counter 1)))) :tag proc-next))
+
+(define-proc
+  main
+  ()
+  ((|c#result| Int))
+  ((a Int) (b Int) (i Int))
+  (! (sequence
+    (assign (counter 0))
+    (assign (i 0))
+    (! (while (< i 1) (assign (i (+ i 1)))) :tag loop)
+    (call next () (a))
+    (call next () (b))
+    (if (= b (+ a 1)) (! (sequence) :check-true false))
+    (assign (|c#result| 1))
+    (return)) :tag proc-main))
+
+(verify-call main ())

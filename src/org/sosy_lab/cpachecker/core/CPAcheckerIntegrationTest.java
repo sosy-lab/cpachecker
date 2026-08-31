@@ -68,6 +68,8 @@ public class CPAcheckerIntegrationTest {
   private static final String SAFE_LOOP_PROGRAM_SvLib =
       "test/programs/sv-lib/loop-simple-safe.svlib";
   private static final String UNSAFE_PROGRAM_SvLib = "test/programs/sv-lib/simple-incorrect.svlib";
+  private static final String UNSAFE_PROGRAM_RETURN_VALUE_SvLib =
+      "test/programs/sv-lib/procedure-return-value-unsafe.svlib";
   private static final String UNSAFE_LOOP_PROGRAM_SvLib =
       "test/programs/sv-lib/loop-simple-unsafe.svlib";
 
@@ -178,6 +180,18 @@ public class CPAcheckerIntegrationTest {
     Configuration config =
         getConfigWithOutputFiles(CONFIGURATION_FILE_SvLib, Language.SVLIB, SPECIFICATION_SvLib);
     IntegrationTestResult result = IntegrationTestRunner.run(config, UNSAFE_PROGRAM_SvLib);
+    result.cpaCheckerResult().printStatistics(statisticsStream);
+    result.cpaCheckerResult().writeOutputFiles();
+
+    result.assertIsUnsafe();
+  }
+
+  @Test
+  public void testRunForUnsafeSvLibProgramWithReturnValue() throws Exception {
+    Configuration config =
+        getConfigWithOutputFiles(CONFIGURATION_FILE_SvLib, Language.SVLIB, SPECIFICATION_SvLib);
+    IntegrationTestResult result =
+        IntegrationTestRunner.run(config, UNSAFE_PROGRAM_RETURN_VALUE_SvLib);
     result.cpaCheckerResult().printStatistics(statisticsStream);
     result.cpaCheckerResult().writeOutputFiles();
 

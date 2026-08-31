@@ -11,12 +11,14 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter.PARAM_VARIABLE_NAME;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
@@ -29,6 +31,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclarationTuple;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -591,9 +595,28 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
     return rootBuilder.build();
   }
 
+  /**
+   * Is the variable with the given name the one that holds a value which the function of the given
+   * exit node returns?
+   *
+   * <p>A function of C returns a single value, and the variable for it is the return variable of
+   * the function. A procedure of SV-LIB returns a tuple of values, and each of them is a variable
+   * of the procedure of its own, so the variables of the tuple have to be checked as well. They
+   * must keep the index that they have at the exit of the procedure, because the caller reads the
+   * returned values from them.
+   */
   private static boolean isReturnVar(String var, FunctionExitNode functionExitNode) {
-    return functionExitNode.getEntryNode().getReturnVariable().isPresent()
-        && functionExitNode.getEntryNode().getReturnVariable().get().getQualifiedName().equals(var);
+    Optional<? extends AVariableDeclaration> returnVariable =
+        functionExitNode.getEntryNode().getReturnVariable();
+    if (returnVariable.isEmpty()) {
+      return false;
+    }
+    if (returnVariable.orElseThrow().getQualifiedName().equals(var)) {
+      return true;
+    }
+    return returnVariable.orElseThrow() instanceof SvLibVariableDeclarationTuple returnValues
+        && FluentIterable.from(returnValues.getDeclarations())
+            .anyMatch(returnValue -> returnValue.getQualifiedName().equals(var));
   }
 
   /**

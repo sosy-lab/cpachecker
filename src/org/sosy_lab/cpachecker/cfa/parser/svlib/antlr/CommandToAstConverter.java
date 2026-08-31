@@ -112,7 +112,9 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
             variableType,
             variableName,
             variableName,
-            variableName);
+            // A variable that is declared with declare-var is global and belongs to no procedure,
+            // so its qualified name must not contain the name of one.
+            null);
 
     scope.addVariable(variableDeclaration);
 
@@ -132,7 +134,8 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
             variableType,
             variableName,
             variableName,
-            variableName);
+            // A constant that is declared with declare-const is global as well.
+            null);
 
     scope.addVariable(variableDeclaration);
 

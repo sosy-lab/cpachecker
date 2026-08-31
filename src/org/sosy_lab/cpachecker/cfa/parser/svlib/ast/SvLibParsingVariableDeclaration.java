@@ -44,8 +44,9 @@ public final class SvLibParsingVariableDeclaration implements SvLibParsingDeclar
   }
 
   public static SvLibParsingVariableDeclaration dummyVariableForName(String pName) {
+    // A variable that is only known by its name belongs to no procedure.
     return new SvLibParsingVariableDeclaration(
-        FileLocation.DUMMY, true, false, new SvLibAnyType(), pName, pName, pName);
+        FileLocation.DUMMY, true, false, new SvLibAnyType(), pName, pName, null);
   }
 
   @Override
