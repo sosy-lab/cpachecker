@@ -73,20 +73,22 @@ final class PathBasedViolationConditionHandler implements DssViolationConditionH
               .filter(k -> !pReceived.getRemainingPreconditions().contains(k))
               .toList();
       toRemove.forEach(remainingId -> mapForSuccessor.removeAll(remainingId));
+
+      ImmutableList<StateAndPrecision> updatedConditionsToExplore =
+          analysis.deduplicateStatesAndPrecisions(
+              conditions.values().stream().flatMap(m -> m.values().stream()).toList());
+      boolean globalConditionSetUnchanged =
+          analysis.allCovered(updatedConditionsToExplore, conditionsToExplore)
+              && analysis.allCovered(conditionsToExplore, updatedConditionsToExplore);
+      conditionsToExplore = updatedConditionsToExplore;
+
+      return globalConditionSetUnchanged
+          ? DssMessageProcessing.stop()
+          : DssMessageProcessing.proceed();
     } finally {
       stats.getStoreViolationConditionStatesTimer().stop();
       stats.getStoreViolationConditionStatesCounter().add(received.size());
     }
-    ImmutableList<StateAndPrecision> updatedConditionsToExplore =
-        analysis.deduplicateStatesAndPrecisions(
-            conditions.values().stream().flatMap(m -> m.values().stream()).toList());
-    boolean globalConditionSetUnchanged =
-        analysis.allCovered(updatedConditionsToExplore, conditionsToExplore)
-            && analysis.allCovered(conditionsToExplore, updatedConditionsToExplore);
-    conditionsToExplore = updatedConditionsToExplore;
-    return globalConditionSetUnchanged
-        ? DssMessageProcessing.stop()
-        : DssMessageProcessing.proceed();
   }
 
   /**
