@@ -86,9 +86,11 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
   }
 
   @Override
-  public AbstractState deserialize(DssMessage pMessage) throws InterruptedException {
+  public AbstractState deserialize(DssMessage pMessage, int pStateIndex)
+      throws InterruptedException {
     SerializationInfoStorage.storeSerializationInformation(predicateCPA, cfa);
-    ContentReader predicateContent = pMessage.getAbstractStateContent(PredicateAbstractState.class);
+    ContentReader predicateContent =
+        pMessage.getAbstractStateContent(PredicateAbstractState.class, pStateIndex);
     try {
       String serializedSsaMap = predicateContent.get(SerializePredicateStateOperator.SSA_KEY);
       Preconditions.checkNotNull(serializedSsaMap, "SSA Map must be provided");

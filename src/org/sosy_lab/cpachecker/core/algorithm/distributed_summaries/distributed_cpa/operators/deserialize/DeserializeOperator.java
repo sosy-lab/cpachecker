@@ -32,9 +32,11 @@ public interface DeserializeOperator {
   /**
    * Deserialize a message to an abstract state
    *
-   * @param pMessage The message that is converted to an abstract state {@link AbstractState}
-   * @return An abstract state described by {@code pMessage}
+   * @param pMessage The message that contains the serialized state that is converted to an abstract state {@link AbstractState}
+   * @param pStateIndex The index of the state to deserialize
+   * @return An abstract state described by {@code pMessage, pStateContent}
    * @throws InterruptedException thrown if program is interrupted from the outside.
    */
-  AbstractState deserialize(DssMessage pMessage) throws InterruptedException;
+  AbstractState deserialize(DssMessage pMessage, int pStateIndex)
+      throws InterruptedException;
 }

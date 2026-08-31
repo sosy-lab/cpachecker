@@ -34,23 +34,6 @@ public class DssMessagePayloadTest {
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
   @Test
-  public void asLegacyMapReturnsLegacyShape() {
-    DssMessagePayload payload =
-        new DssMessagePayload(
-            new DssHeaderPayload("B1", DssMessageType.RESULT, "123", 0),
-            new DssStatusPayload(true, true, true),
-            ImmutableList.<ImmutableMap<String, String>>of(),
-            ImmutableMap.of(DssMessageFormat.RESULT_KEY, "true"));
-    ImmutableMap.Builder<String, String> legacyContent = ImmutableMap.builder();
-    legacyContent.putAll(payload.status().asLegacyContent());
-    legacyContent.putAll(payload.content());
-    assertThat(payload.asLegacyMap())
-        .containsExactly(
-            DssMessageFormat.HEADER_KEY, payload.header().asLegacyHeader(),
-            DssMessageFormat.CONTENT_KEY, legacyContent.buildKeepingLast());
-  }
-
-  @Test
   public void fromJsonReadsCurrentJsonShape() throws Exception {
     Path file = tempFolder.newFile("message.json").toPath();
     String jsonContent =
@@ -240,20 +223,5 @@ public class DssMessagePayloadTest {
             ImmutableMap.of(DssMessageFormat.RESULT_KEY, "true"));
 
     assertThrows(IllegalArgumentException.class, () -> DssMessage.fromPayload(payload));
-  }
-
-  @Test
-  public void advancePreservesStatus() {
-    DssMessagePayload payload =
-        new DssMessagePayload(
-            new DssHeaderPayload("B1", DssMessageType.POST_CONDITION, "123", 0),
-            new DssStatusPayload(true, true, true),
-            ImmutableList.of(ImmutableMap.of("dummy", "state")),
-            ImmutableMap.of("state0.precision", "true"));
-
-    DssMessage message = DssMessage.fromPayload(payload);
-    DssMessage advanced = message.advance("state0");
-
-    assertThat(advanced.getAlgorithmStatus()).isEqualTo(message.getAlgorithmStatus());
   }
 }

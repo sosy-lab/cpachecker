@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkElementIndex;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Preconditions;
@@ -106,14 +107,20 @@ public abstract class DssMessage {
     return senderId;
   }
 
-  private ContentReader getArbitraryContent(String pKey) {
+  public final ImmutableList<ImmutableMap<String, String>> getStates() {
+    return states;
+  }
+
+  private ContentReader getArbitraryContent(String pKey, int pStateIndex) {
+    checkElementIndex(pStateIndex, states.size(), "state index");
     checkArgument(
         type == DssMessageType.POST_CONDITION
             || type == DssMessageType.VIOLATION_CONDITION
             || type == DssMessageType.WITNESS,
         "Cannot get content for type: %s",
         type);
-    Map<String, String> stateContent = ContentReader.read(content).pushLevel(pKey).getContent();
+    Map<String, String> stateContent =
+        ContentReader.read(states.get(pStateIndex)).pushLevel(pKey).getContent();
     checkState(!stateContent.isEmpty(), "State content cannot be empty for key %s.", pKey);
     checkState(
         stateContent.values().stream().noneMatch(Objects::isNull),
@@ -138,34 +145,14 @@ public abstract class DssMessage {
     return OptionalInt.empty();
   }
 
-  public final DssMessage advance(String pPrefix) {
-    ImmutableMap.Builder<String, String> advanced = ImmutableMap.builder();
-    advanced.putAll(content);
-
-    OptionalInt stateIndex = parseStatePrefix(pPrefix);
-    if (stateIndex.isPresent()) {
-      advanced.putAll(states.get(stateIndex.orElseThrow()));
-    } else {
-      advanced.putAll(ContentReader.read(content).pushLevel(pPrefix).getContent());
-    }
-
-    return new DssMessage(senderId, type, status, states, advanced.buildOrThrow()) {
-      @Override
-      void validateParameters(
-          Optional<AlgorithmStatus> pStatus,
-          List<? extends Map<String, String>> pStates,
-          Map<String, String> pContent) {
-        DssMessage.this.validateParameters(pStatus, pStates, pContent);
-      }
-    };
+  public final ContentReader getAbstractStateContent(
+      Class<? extends AbstractState> pType, int pStateIndex) {
+    return getArbitraryContent(pType.getName(), pStateIndex);
   }
 
-  public final ContentReader getAbstractStateContent(Class<? extends AbstractState> pType) {
-    return getArbitraryContent(pType.getName());
-  }
-
-  public final ContentReader getPrecisionContent(Class<? extends Precision> pPrecision) {
-    return getArbitraryContent(pPrecision.getName());
+  public final ContentReader getPrecisionContent(
+      Class<? extends Precision> pPrecision, int pStateIndex) {
+    return getArbitraryContent(pPrecision.getName(), pStateIndex);
   }
 
   public final Result getResult() {

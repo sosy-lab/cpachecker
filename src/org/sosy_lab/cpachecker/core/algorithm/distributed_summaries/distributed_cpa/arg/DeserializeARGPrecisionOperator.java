@@ -22,7 +22,7 @@ public class DeserializeARGPrecisionOperator implements DeserializePrecisionOper
   }
 
   @Override
-  public Precision deserializePrecision(DssMessage pMessage) {
-    return wrapped.getDeserializePrecisionOperator().deserializePrecision(pMessage);
+  public Precision deserializePrecision(DssMessage pMessage, int pStateIndex) {
+    return wrapped.getDeserializePrecisionOperator().deserializePrecision(pMessage, pStateIndex);
   }
 }

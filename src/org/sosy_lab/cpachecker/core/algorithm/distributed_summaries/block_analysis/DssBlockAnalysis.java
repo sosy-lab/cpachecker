@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DistributedCallstackCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -684,13 +683,12 @@ public final class DssBlockAnalysis {
     ImmutableList.Builder<StateAndPrecision> statesAndPrecisions =
         ImmutableList.builderWithExpectedSize(numStates);
     for (int i = 0; i < numStates; i++) {
-      DssMessage advancedMessage = pMessage.advance(DeserializeOperator.STATE_KEY + i);
-      AbstractState state = dcpa.getDeserializeOperator().deserialize(advancedMessage);
+      AbstractState state = dcpa.getDeserializeOperator().deserialize(pMessage, i);
       if (pMessage.getType() == DssMessageType.POST_CONDITION) {
         state = dcpa.reset(state);
       }
       Precision precision =
-          dcpa.getDeserializePrecisionOperator().deserializePrecision(advancedMessage);
+          dcpa.getDeserializePrecisionOperator().deserializePrecision(pMessage, i);
       statesAndPrecisions.add(new StateAndPrecision(state, precision));
     }
     return statesAndPrecisions.build();

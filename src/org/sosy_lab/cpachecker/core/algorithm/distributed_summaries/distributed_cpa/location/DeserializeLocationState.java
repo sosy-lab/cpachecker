@@ -28,9 +28,11 @@ public class DeserializeLocationState implements DeserializeOperator {
   }
 
   @Override
-  public AbstractState deserialize(DssMessage pMessage) throws InterruptedException {
+  public AbstractState deserialize(DssMessage pMessage, int pStateIndex)
+      throws InterruptedException {
     int nodeNumber =
-        Integer.parseInt(pMessage.getAbstractStateContent(LocationState.class).get(STATE_KEY));
+        Integer.parseInt(
+            pMessage.getAbstractStateContent(LocationState.class, pStateIndex).get(STATE_KEY));
     return locationStateFactory.getState(availableNodes.get(nodeNumber));
   }
 }

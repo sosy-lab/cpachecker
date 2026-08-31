@@ -33,8 +33,9 @@ public class DeserializeFunctionPointerStateOperator implements DeserializeOpera
   }
 
   @Override
-  public AbstractState deserialize(DssMessage pMessage) {
-    String serialized = pMessage.getAbstractStateContent(FunctionPointerState.class).get(STATE_KEY);
+  public AbstractState deserialize(DssMessage pMessage, int pStateIndex) {
+    String serialized =
+        pMessage.getAbstractStateContent(FunctionPointerState.class, pStateIndex).get(STATE_KEY);
     Preconditions.checkNotNull(serialized, "If entry is contained, it cannot be null");
     if (serialized.isBlank()) {
       CFANode location = DeserializeOperator.startLocationFromMessageType(pMessage, blockNode);

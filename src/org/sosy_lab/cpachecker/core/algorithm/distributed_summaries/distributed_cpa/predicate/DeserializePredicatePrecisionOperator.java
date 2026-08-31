@@ -117,8 +117,9 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
   }
 
   @Override
-  public Precision deserializePrecision(DssMessage pMessage) {
-    ContentReader contentReader = pMessage.getPrecisionContent(PredicatePrecision.class);
+  public Precision deserializePrecision(DssMessage pMessage, int pStateIndex) {
+    ContentReader contentReader =
+        pMessage.getPrecisionContent(PredicatePrecision.class, pStateIndex);
     return new PredicatePrecision(
         parseLocationInstances(contentReader),
         parseLocalPredicates(contentReader),

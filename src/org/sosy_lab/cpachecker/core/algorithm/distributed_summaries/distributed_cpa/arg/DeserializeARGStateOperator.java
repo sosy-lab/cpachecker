@@ -23,7 +23,8 @@ public class DeserializeARGStateOperator implements DeserializeOperator {
   }
 
   @Override
-  public AbstractState deserialize(DssMessage pMessage) throws InterruptedException {
-    return new ARGState(wrapped.getDeserializeOperator().deserialize(pMessage), null);
+  public AbstractState deserialize(DssMessage pMessage, int pStateIndex)
+      throws InterruptedException {
+    return new ARGState(wrapped.getDeserializeOperator().deserialize(pMessage, pStateIndex), null);
   }
 }

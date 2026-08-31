@@ -32,11 +32,12 @@ public class DeserializeCompositePrecisionOperator implements DeserializePrecisi
   }
 
   @Override
-  public Precision deserializePrecision(DssMessage pMessage) {
+  public Precision deserializePrecision(DssMessage pMessage, int pStateIndex) {
     ImmutableList.Builder<Precision> precisions = ImmutableList.builder();
     for (ConfigurableProgramAnalysis cpa : wrapped) {
       if (cpa instanceof DistributedConfigurableProgramAnalysis dcpa) {
-        precisions.add(dcpa.getDeserializePrecisionOperator().deserializePrecision(pMessage));
+        precisions.add(
+            dcpa.getDeserializePrecisionOperator().deserializePrecision(pMessage, pStateIndex));
       } else {
         try {
           precisions.add(

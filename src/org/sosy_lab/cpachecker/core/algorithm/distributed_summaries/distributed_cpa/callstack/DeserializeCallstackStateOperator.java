@@ -35,8 +35,8 @@ public class DeserializeCallstackStateOperator implements DeserializeOperator {
   }
 
   @Override
-  public AbstractState deserialize(DssMessage pMessage) {
-    ContentReader content = pMessage.getAbstractStateContent(CallstackState.class);
+  public AbstractState deserialize(DssMessage pMessage, int pStateIndex) {
+    ContentReader content = pMessage.getAbstractStateContent(CallstackState.class, pStateIndex);
     String stateJson = content.get(STATE_KEY);
     assert stateJson != null;
     // states of a block analysis that did not know its callstack must stay unrestricted

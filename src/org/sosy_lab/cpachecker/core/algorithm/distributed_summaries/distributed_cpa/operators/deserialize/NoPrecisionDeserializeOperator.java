@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 public class NoPrecisionDeserializeOperator implements DeserializePrecisionOperator {
 
   @Override
-  public Precision deserializePrecision(DssMessage pMessage) {
+  public Precision deserializePrecision(DssMessage pMessage, int pStateIndex) {
     return SingletonPrecision.getInstance();
   }
 }

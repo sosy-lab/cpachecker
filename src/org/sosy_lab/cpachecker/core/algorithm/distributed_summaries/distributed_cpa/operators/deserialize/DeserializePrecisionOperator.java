@@ -13,5 +13,5 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 public interface DeserializePrecisionOperator {
 
-  Precision deserializePrecision(DssMessage pMessage);
+  Precision deserializePrecision(DssMessage pMessage, int pStateIndex);
 }
