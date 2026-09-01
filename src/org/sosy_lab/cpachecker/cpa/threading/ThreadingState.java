@@ -17,10 +17,8 @@ import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.is
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -43,6 +41,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessViolationV2Parser;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
@@ -61,13 +60,6 @@ public class ThreadingState
   public static final String CPA_NAME = "ThreadingCPA";
 
   private static final String PROPERTY_DEADLOCK = "deadlock";
-
-  /**
-   * Query for checking whether the thread that is currently active is the thread with a given
-   * identifier in a witness, e.g. {@code activeThreadWitnessId == 1}. Witness automata for
-   * concurrent programs use this to restrict a transition to a single thread.
-   */
-  public static final String PROPERTY_ACTIVE_THREAD_WITNESS_ID = "activeThreadWitnessId";
 
   /**
    * Marks a thread that was created but whose identifier in the witness is not known yet, cf.
@@ -335,19 +327,13 @@ public class ThreadingState
         throw new InvalidQueryException("deadlock-check had a problem", e);
       }
     }
-    List<String> parts = Splitter.on("==").trimResults().splitToList(pProperty);
-    if (parts.size() == 2 && PROPERTY_ACTIVE_THREAD_WITNESS_ID.equals(parts.getFirst())) {
-      return checkActiveThreadHasWitnessId(pProperty, parts.get(1));
+    if (pProperty.startsWith(AutomatonWitnessViolationV2Parser.THREAD_ID_QUERY)) {
+      return checkActiveThreadHasWitnessId(
+          pProperty,
+          pProperty.substring(AutomatonWitnessViolationV2Parser.THREAD_ID_QUERY.length()));
     }
-    throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
-  }
 
-  /**
-   * Builds the query answered by {@link #PROPERTY_ACTIVE_THREAD_WITNESS_ID} for a given thread
-   * identifier of a witness.
-   */
-  public static String activeThreadWitnessIdQuery(int pWitnessThreadId) {
-    return PROPERTY_ACTIVE_THREAD_WITNESS_ID + " == " + pWitnessThreadId;
+    throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
   }
 
   private boolean checkActiveThreadHasWitnessId(String pProperty, String pExpectedWitnessId)

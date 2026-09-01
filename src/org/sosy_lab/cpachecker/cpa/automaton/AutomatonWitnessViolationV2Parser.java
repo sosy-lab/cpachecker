@@ -47,8 +47,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.ALLCPAQuery;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.And;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CPAQuery;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckClosestFullExpressionMatchesColumnAndLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversColumnAndLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckEntersElement;
@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.IsStatementEdge;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.Or;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
-import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
@@ -95,11 +94,13 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.Waypo
  * SV-COMP competition and therefore kept track in the SV-COMP documentation: <a
  * href="https://sv-comp.sosy-lab.org/2027/rules.php">SV-COMP 2027 Rules</a>.
  */
-class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
+public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
 
   private final YAMLWitnessVersion version;
   private final CParser cparser;
   private final ParserTools parserTools;
+
+  public static String THREAD_ID_QUERY = "checkCurrentThreadId==";
 
   AutomatonWitnessViolationV2Parser(
       Configuration pConfig,
@@ -187,11 +188,7 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
     if (!supportsThreadIdentifiers() || pThreadId.isEmpty()) {
       return pTrigger;
     }
-    return new And(
-        pTrigger,
-        new CPAQuery(
-            ThreadingState.CPA_NAME,
-            ThreadingState.activeThreadWitnessIdQuery(pThreadId.orElseThrow())));
+    return new And(pTrigger, new ALLCPAQuery(THREAD_ID_QUERY + pThreadId.orElseThrow()));
   }
 
   /**
