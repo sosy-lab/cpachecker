@@ -485,9 +485,7 @@ class KInductionProver implements AutoCloseable {
         // or want to log the model
         if (!loopHeadInvChanged || logger.wouldBeLogged(Level.ALL)) {
           List<ValueAssignment> modelAssignments = prover.getModelAssignments();
-          if (logger.wouldBeLogged(Level.ALL)) {
-            logger.log(Level.ALL, "Model returned for induction check:", modelAssignments);
-          }
+          logger.log(Level.ALL, "Model returned for induction check:", modelAssignments);
 
           if (!loopHeadInvChanged) {
             // We are in the last iteration and failed to prove the candidate invariant
