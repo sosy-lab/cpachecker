@@ -720,7 +720,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         ImmutableList<WaypointRecord> targetWaypoints =
             ImmutableList.of(
                 targetWaypoint(lastEdgeOnThread, astCFARelation).withThreadId(lastThreadId),
-                targetWaypoint(Objects.requireNonNull(lastEdgeOnDifferentThread), astCFARelation)
+                targetWaypoint(lastEdgeOnDifferentThread, astCFARelation)
                     .withThreadId(secondToLastThreadId));
 
         SegmentRecord lastSegment = segments.build().getLast();
@@ -759,7 +759,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     return FluentIterable.from(pSegment.getSegment())
         .anyMatch(
             existingWaypoint ->
-                Objects.requireNonNull(existingWaypoint).getAction().equals(WaypointAction.FOLLOW)
+                existingWaypoint.getAction().equals(WaypointAction.FOLLOW)
                     && Objects.equals(
                         existingWaypoint.getLocation().getLine(),
                         pWaypoint.getLocation().getLine()));
