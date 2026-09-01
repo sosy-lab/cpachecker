@@ -723,20 +723,9 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
                 targetWaypoint(Objects.requireNonNull(lastEdgeOnDifferentThread), astCFARelation)
                     .withThreadId(secondToLastThreadId));
 
+        SegmentRecord lastSegment = segments.build().getLast();
         if (FluentIterable.from(targetWaypoints)
-            .anyMatch(
-                waypoint ->
-                    FluentIterable.from(segments.build().getLast().getSegment())
-                        .anyMatch(
-                            existingWaypoint ->
-                                Objects.requireNonNull(existingWaypoint)
-                                        .getAction()
-                                        .equals(WaypointAction.FOLLOW)
-                                    && Objects.equals(
-                                        existingWaypoint.getLocation().getLine(),
-                                        Objects.requireNonNull(waypoint)
-                                            .getLocation()
-                                            .getLine())))) {
+            .anyMatch(waypoint -> isWaypointAtTheSameLineInSegment(lastSegment, waypoint))) {
           removeSecondToLastSegment = true;
         }
 
@@ -762,6 +751,18 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       buildSegment = ImmutableList.copyOf(arrayList);
     }
     exportEntries(new ViolationSequenceEntry(getMetadata(pWitnessVersion), buildSegment), pPath);
+  }
+
+  /** Wether there exists a follow waypoint at the same line in the segment. */
+  private static boolean isWaypointAtTheSameLineInSegment(
+      SegmentRecord pSegment, WaypointRecord pWaypoint) {
+    return FluentIterable.from(pSegment.getSegment())
+        .anyMatch(
+            existingWaypoint ->
+                Objects.requireNonNull(existingWaypoint).getAction().equals(WaypointAction.FOLLOW)
+                    && Objects.equals(
+                        existingWaypoint.getLocation().getLine(),
+                        pWaypoint.getLocation().getLine()));
   }
 
   /**
