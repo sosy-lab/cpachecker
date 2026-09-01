@@ -28,6 +28,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -59,6 +60,7 @@ import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.ast.ASTElement;
@@ -81,6 +83,39 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
       throws InvalidConfigurationException {
     super(pConfig, pCfa, pSpecification, pLogger);
+  }
+
+  /**
+   * An edge of a counterexample together with the {@link ARGState}s directly before and after it.
+   * For edges which fill a hole of the {@link ARGPath} these are the states enclosing the whole
+   * hole.
+   */
+  private record EdgeWithStates(CFAEdge edge, ARGState previousState, ARGState state) {}
+
+  /**
+   * Return all CFA edges of the given path together with their surrounding states. Consecutive
+   * states of an {@link ARGPath} are not necessarily connected by a single CFA edge, since an
+   * analysis may handle a whole basic block in one step (cf. option
+   * cpa.composite.aggregateBasicBlocks). {@link ARGPath#getInnerEdges()} contains null for these
+   * holes, this method resolves them into the edges they stand for. Holes which cannot be resolved,
+   * as may happen with BAM, are ignored.
+   */
+  private static ImmutableList<EdgeWithStates> getEdgesWithStates(ARGPath pPath) {
+    ImmutableList<ARGState> states = pPath.asStatesList();
+    List<@Nullable CFAEdge> innerEdges = pPath.getInnerEdges();
+    ImmutableList.Builder<EdgeWithStates> edgesWithStates = ImmutableList.builder();
+
+    for (int i = 0; i < innerEdges.size(); i++) {
+      ARGState previousState = states.get(i);
+      ARGState state = states.get(i + 1);
+      CFAEdge innerEdge = innerEdges.get(i);
+      for (CFAEdge edge :
+          innerEdge == null ? previousState.getEdgesToChild(state) : ImmutableList.of(innerEdge)) {
+        edgesWithStates.add(new EdgeWithStates(edge, previousState, state));
+      }
+    }
+
+    return edgesWithStates.build();
   }
 
   /**
@@ -595,7 +630,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     ImmutableListMultimap<CFAEdge, String> edgeToAssumptions = edgeToAssumptionsBuilder.build();
 
     ImmutableList.Builder<SegmentRecord> segments = ImmutableList.builder();
-    List<CFAEdge> edges = pCex.getTargetPath().getInnerEdges();
+    ImmutableList<EdgeWithStates> edges = getEdgesWithStates(pCex.getTargetPath());
 
     // This builder keeps track of the mapping between thread IDs and the order in which they were
     // created such that we can refer to them in the witness. Main always has the thread ID 0.
@@ -613,20 +648,16 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     //  The location has to point to the beginning of a statement.'
     // Therefore, an assumption waypoint needs to point to the beginning of the statement before
     // which it is valid
-    for (int i = 0; i < edges.size(); i++) {
-      CFAEdge edge = edges.get(i);
-      ARGState state = pCex.getTargetPath().getStateSet().asList().get(i + 1);
-      ARGState previousState = pCex.getTargetPath().getStateSet().asList().get(i);
-
+    for (EdgeWithStates edgeWithStates : edges) {
       List<WaypointRecord> waypoints =
           buildWaypoints(
-              edge,
+              edgeWithStates.edge(),
               edgeToAssumptions,
               astCFARelation,
               edgeToCurrentExpressionIndex,
               threadNameToIdBuilder,
-              state,
-              previousState,
+              edgeWithStates.state(),
+              edgeWithStates.previousState(),
               pWitnessVersion);
 
       if (!waypoints.isEmpty()) {
@@ -634,7 +665,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       }
 
       edgeToCurrentExpressionIndex.compute(
-          edge, (key, value) -> (value == null) ? null : value + 1);
+          edgeWithStates.edge(), (key, value) -> (value == null) ? null : value + 1);
     }
 
     // Add target
@@ -643,11 +674,11 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     // assumptions,
     // this needs to be done using another function
     // Ignore blank egdes, since the violation could not have happened there.
-    ImmutableList<CFAEdge> edgesWithoutBlankEdges =
-        FluentIterable.from(edges).filter(edge -> !(edge instanceof BlankEdge)).toList();
+    ImmutableList<EdgeWithStates> edgesWithoutBlankEdges =
+        FluentIterable.from(edges).filter(edge -> !(edge.edge() instanceof BlankEdge)).toList();
 
-    CFAEdge lastEdge = edgesWithoutBlankEdges.getLast();
-    WaypointRecord waypointRecord = targetWaypoint(lastEdge, astCFARelation);
+    EdgeWithStates lastEdge = edgesWithoutBlankEdges.getLast();
+    WaypointRecord waypointRecord = targetWaypoint(lastEdge.edge(), astCFARelation);
 
     // Required for data races, since sometimes the last
     // waypoint may collide with the target waypoint
@@ -668,43 +699,34 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         // edges since the race should not be possible there
         edgesWithoutBlankEdges =
             FluentIterable.from(edgesWithoutBlankEdges)
-                .filter(edge -> !(edge instanceof CFunctionReturnEdge))
+                .filter(edge -> !(edge.edge() instanceof CFunctionReturnEdge))
                 .filter(
                     edge ->
-                        !(edge instanceof CReturnStatementEdge pStatementReturnEdge
+                        !(edge.edge() instanceof CReturnStatementEdge pStatementReturnEdge
                                 && (pStatementReturnEdge.getExpression().isEmpty()
                                     || hasNoVariables(
                                         pStatementReturnEdge.getExpression().orElseThrow(),
                                         pStatementReturnEdge.getPredecessor())))
-                            && !(edge instanceof CStatementEdge pStatementEdge
+                            && !(edge.edge() instanceof CStatementEdge pStatementEdge
                                 && hasNoVariables(
                                     pStatementEdge.getStatement(),
                                     pStatementEdge.getPredecessor())))
                 .toList();
 
-        CFAEdge lastEdgeOnThread = edgesWithoutBlankEdges.getLast();
+        EdgeWithStates lastEdgeOnThread = edgesWithoutBlankEdges.getLast();
         OptionalInt lastThreadId =
             getThreadIdIfExists(
-                pCex.getTargetPath()
-                    .getStateSet()
-                    .asList()
-                    .get(edges.size() - edges.reversed().indexOf(lastEdgeOnThread)),
-                lastEdgeOnThread,
+                lastEdgeOnThread.state(),
+                lastEdgeOnThread.edge(),
                 threadNameToIdBuilder.buildOrThrow());
         Verify.verify(lastThreadId.isPresent(), "Last thread ID should be present for data races");
 
         OptionalInt secondToLastThreadId = OptionalInt.empty();
-        CFAEdge lastEdgeOnDifferentThread = null;
-        for (CFAEdge edge :
+        EdgeWithStates lastEdgeOnDifferentThread = null;
+        for (EdgeWithStates edge :
             edgesWithoutBlankEdges.reverse().subList(1, edgesWithoutBlankEdges.size())) {
           secondToLastThreadId =
-              getThreadIdIfExists(
-                  pCex.getTargetPath()
-                      .getStateSet()
-                      .asList()
-                      .get(edges.size() - edges.reversed().indexOf(edge)),
-                  edge,
-                  threadNameToIdBuilder.buildOrThrow());
+              getThreadIdIfExists(edge.state(), edge.edge(), threadNameToIdBuilder.buildOrThrow());
 
           if (secondToLastThreadId.isPresent()
               && secondToLastThreadId.orElseThrow() != lastThreadId.orElseThrow()) {
@@ -719,8 +741,8 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
 
         ImmutableList<WaypointRecord> targetWaypoints =
             ImmutableList.of(
-                targetWaypoint(lastEdgeOnThread, astCFARelation).withThreadId(lastThreadId),
-                targetWaypoint(lastEdgeOnDifferentThread, astCFARelation)
+                targetWaypoint(lastEdgeOnThread.edge(), astCFARelation).withThreadId(lastThreadId),
+                targetWaypoint(lastEdgeOnDifferentThread.edge(), astCFARelation)
                     .withThreadId(secondToLastThreadId));
 
         SegmentRecord lastSegment = segments.build().getLast();
@@ -735,8 +757,8 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
             SegmentRecord.ofOnlyElement(
                 waypointRecord.withThreadId(
                     getThreadIdIfExists(
-                        pCex.getTargetPath().getStateSet().asList().get(edges.size()),
-                        lastEdge,
+                        pCex.getTargetPath().getLastState(),
+                        lastEdge.edge(),
                         threadNameToIdBuilder.buildOrThrow()))));
       }
     } else {
