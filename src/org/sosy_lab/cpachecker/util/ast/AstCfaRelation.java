@@ -90,8 +90,9 @@ public final class AstCfaRelation {
   }
 
   /**
-   * Set the edges of the CFA that belong to the AST elements. This is done lazily, since it we
-   * first need to finish building the CFA before we know about all the edges.
+   * Set the edges of the CFA that belong to the AST elements. This is done after finalizing the
+   * CFA, since we first need to finish building the CFA before we know about all the edges due to
+   * edges being added to the CFA like for example with function cloning for concurrency.
    */
   public void setEdgesForAstElements(ImmutableSet<CFAEdge> pEdges) {
     for (IfElement structure : ifElements) {
