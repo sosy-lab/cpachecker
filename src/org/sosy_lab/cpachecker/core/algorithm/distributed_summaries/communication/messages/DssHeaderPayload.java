@@ -18,16 +18,16 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
-  DssMessageFormat.SENDER_ID_KEY,
-  DssMessageFormat.HEADER_TYPE_KEY,
-  DssMessageFormat.HEADER_TIMESTAMP_KEY,
-  DssMessageFormat.HEADER_IDENTIFIER_KEY
+  DssMessageKeys.SENDER_ID,
+  DssMessageKeys.MESSAGE_TYPE,
+  DssMessageKeys.TIMESTAMP,
+  DssMessageKeys.IDENTIFIER
 })
 public record DssHeaderPayload(
-    @JsonProperty(DssMessageFormat.SENDER_ID_KEY) String senderId,
-    @JsonProperty(DssMessageFormat.HEADER_TYPE_KEY) DssMessageType messageType,
-    @JsonProperty(DssMessageFormat.HEADER_TIMESTAMP_KEY) @Nullable String timestamp,
-    @JsonProperty(DssMessageFormat.HEADER_IDENTIFIER_KEY) int identifier) {
+    @JsonProperty(DssMessageKeys.SENDER_ID) String senderId,
+    @JsonProperty(DssMessageKeys.MESSAGE_TYPE) DssMessageType messageType,
+    @JsonProperty(DssMessageKeys.TIMESTAMP) @Nullable String timestamp,
+    @JsonProperty(DssMessageKeys.IDENTIFIER) int identifier) {
 
   @JsonCreator
   public DssHeaderPayload {}
@@ -38,12 +38,12 @@ public record DssHeaderPayload(
 
   public ImmutableMap<String, String> asLegacyHeader() {
     ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
-    builder.put(DssMessageFormat.SENDER_ID_KEY, senderId);
-    builder.put(DssMessageFormat.HEADER_TYPE_KEY, messageType.name());
+    builder.put(DssMessageKeys.SENDER_ID, senderId);
+    builder.put(DssMessageKeys.MESSAGE_TYPE, messageType.name());
     if (timestamp != null) {
-      builder.put(DssMessageFormat.HEADER_TIMESTAMP_KEY, timestamp);
+      builder.put(DssMessageKeys.TIMESTAMP, timestamp);
     }
-    builder.put(DssMessageFormat.HEADER_IDENTIFIER_KEY, identifier + "");
+    builder.put(DssMessageKeys.IDENTIFIER, identifier + "");
     return builder.buildOrThrow();
   }
 }

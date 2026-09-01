@@ -26,7 +26,7 @@ public class DssMessageFactory {
   }
 
   private ImmutableMap<String, String> witnessType(WitnessType pWitnessType) {
-    return ImmutableMap.of(DssMessageFormat.WITNESS_TYPE_KEY, pWitnessType.name());
+    return ImmutableMap.of(DssMessageKeys.WITNESS_TYPE, pWitnessType.name());
   }
 
   public DssPostConditionMessage createDssPostConditionMessage(
@@ -53,7 +53,7 @@ public class DssMessageFactory {
         pStatus,
         ImmutableList.of(),
         ImmutableMap.<String, String>builder()
-            .put(DssMessageFormat.UNREACHABLE_BLOCK_END_KEY, "true")
+            .put(DssMessageKeys.UNREACHABLE_BLOCK_END, "true")
             .buildOrThrow());
   }
 
@@ -82,7 +82,7 @@ public class DssMessageFactory {
         ImmutableList.of(),
         ImmutableMap.<String, String>builder()
             .putAll(witnessType(WitnessType.VIOLATION))
-            .put(DssMessageFormat.VIOLATION_PATH_KEY, violationWitness.serialize())
+            .put(DssMessageKeys.VIOLATION_PATH, violationWitness.serialize())
             .buildOrThrow());
   }
 

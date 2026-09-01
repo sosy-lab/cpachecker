@@ -35,8 +35,8 @@ public class DssPostConditionMessage extends DssMessage {
     checkArgument(pStatus.isPresent(), "Post-condition message requires status");
     checkArgument(
         !pStates.isEmpty()
-            || Boolean.parseBoolean(pContent.get(DssMessageFormat.UNREACHABLE_BLOCK_END_KEY)),
+            || Boolean.parseBoolean(pContent.get(DssMessageKeys.UNREACHABLE_BLOCK_END)),
         "Post-condition message requires at least one state or %s=\"true\"",
-        DssMessageFormat.UNREACHABLE_BLOCK_END_KEY);
+        DssMessageKeys.UNREACHABLE_BLOCK_END);
   }
 }

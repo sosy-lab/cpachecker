@@ -51,24 +51,24 @@ public class DssMessagePayloadTest {
               }
             }
             """,
-            DssMessageFormat.HEADER_KEY,
-            DssMessageFormat.SENDER_ID_KEY,
+            DssMessageKeys.HEADER,
+            DssMessageKeys.SENDER_ID,
             "B1",
-            DssMessageFormat.HEADER_TYPE_KEY,
+            DssMessageKeys.MESSAGE_TYPE,
             DssMessageType.RESULT.name(),
-            DssMessageFormat.HEADER_TIMESTAMP_KEY,
+            DssMessageKeys.TIMESTAMP,
             "123",
-            DssMessageFormat.HEADER_IDENTIFIER_KEY,
+            DssMessageKeys.IDENTIFIER,
             "0",
-            DssMessageFormat.CONTENT_KEY,
-            DssMessageFormat.RESULT_KEY,
+            DssMessageKeys.CONTENT,
+            DssMessageKeys.RESULT,
             "true");
     Files.writeString(file, jsonContent);
 
     DssMessagePayload payload = DssMessagePayload.fromJson(file);
 
     assertThat(payload.header().messageType()).isEqualTo(DssMessageType.RESULT);
-    assertThat(payload.content()).containsEntry(DssMessageFormat.RESULT_KEY, "true");
+    assertThat(payload.content()).containsEntry(DssMessageKeys.RESULT, "true");
   }
 
   @Test
@@ -94,24 +94,24 @@ public class DssMessagePayloadTest {
               }
             }
             """,
-            DssMessageFormat.HEADER_KEY,
-            DssMessageFormat.SENDER_ID_KEY,
+            DssMessageKeys.HEADER,
+            DssMessageKeys.SENDER_ID,
             "B1",
-            DssMessageFormat.HEADER_TYPE_KEY,
+            DssMessageKeys.MESSAGE_TYPE,
             DssMessageType.RESULT.name(),
-            DssMessageFormat.HEADER_TIMESTAMP_KEY,
+            DssMessageKeys.TIMESTAMP,
             "123",
-            DssMessageFormat.HEADER_IDENTIFIER_KEY,
+            DssMessageKeys.IDENTIFIER,
             "0",
-            DssMessageFormat.STATUS_KEY,
-            DssMessageFormat.SOUND_KEY,
+            DssMessageKeys.STATUS,
+            DssMessageKeys.SOUND,
             "true",
-            DssMessageFormat.PRECISE_KEY,
+            DssMessageKeys.PRECISE,
             "true",
-            DssMessageFormat.PROPERTY_KEY,
+            DssMessageKeys.PROPERTY,
             "true",
-            DssMessageFormat.CONTENT_KEY,
-            DssMessageFormat.RESULT_KEY,
+            DssMessageKeys.CONTENT,
+            DssMessageKeys.RESULT,
             "true");
     Files.writeString(file, jsonContent);
 
@@ -119,7 +119,7 @@ public class DssMessagePayloadTest {
 
     assertThat(payload.header().messageType()).isEqualTo(DssMessageType.RESULT);
     assertThat(payload.status().toAlgorithmStatus()).isEqualTo(AlgorithmStatus.SOUND_AND_PRECISE);
-    assertThat(payload.content()).containsEntry(DssMessageFormat.RESULT_KEY, "true");
+    assertThat(payload.content()).containsEntry(DssMessageKeys.RESULT, "true");
   }
 
   @Test
@@ -134,12 +134,12 @@ public class DssMessagePayloadTest {
               }
             }
             """,
-            DssMessageFormat.CONTENT_KEY, DssMessageFormat.RESULT_KEY, "true");
+            DssMessageKeys.CONTENT, DssMessageKeys.RESULT, "true");
     Files.writeString(file, jsonContent);
 
     ValueInstantiationException exception =
         assertThrows(ValueInstantiationException.class, () -> DssMessagePayload.fromJson(file));
-    assertThat(exception).hasMessageThat().contains(DssMessageFormat.HEADER_KEY);
+    assertThat(exception).hasMessageThat().contains(DssMessageKeys.HEADER);
   }
 
   @Test
@@ -149,7 +149,7 @@ public class DssMessagePayloadTest {
             new DssHeaderPayload("B1", DssMessageType.POST_CONDITION, "123", 0),
             new DssStatusPayload(true, false, true),
             ImmutableList.of(ImmutableMap.of("dummy", "state")),
-            ImmutableMap.of(DssMessageFormat.UNREACHABLE_BLOCK_END_KEY, "true"));
+            ImmutableMap.of(DssMessageKeys.UNREACHABLE_BLOCK_END, "true"));
     DssMessage message = DssMessage.fromPayload(payload);
 
     assertThat(message.getAlgorithmStatus()).isEqualTo(AlgorithmStatus.SOUND_AND_IMPRECISE);
@@ -164,8 +164,8 @@ public class DssMessagePayloadTest {
 
     assertThat(payload.status().toAlgorithmStatus()).isEqualTo(AlgorithmStatus.UNSOUND_AND_PRECISE);
     assertThat(payload.content())
-        .doesNotContainKey(DssMessageFormat.STATUS_KEY + "." + DssMessageFormat.SOUND_KEY);
-    assertThat(payload.content()).containsEntry(DssMessageFormat.UNREACHABLE_BLOCK_END_KEY, "true");
+        .doesNotContainKey(DssMessageKeys.STATUS + "." + DssMessageKeys.SOUND);
+    assertThat(payload.content()).containsEntry(DssMessageKeys.UNREACHABLE_BLOCK_END, "true");
   }
 
   @Test
@@ -175,13 +175,13 @@ public class DssMessagePayloadTest {
             new DssHeaderPayload("B1", DssMessageType.RESULT, "123", 0),
             null,
             ImmutableList.<ImmutableMap<String, String>>of(),
-            ImmutableMap.of(DssMessageFormat.RESULT_KEY, "true"));
+            ImmutableMap.of(DssMessageKeys.RESULT, "true"));
     Path file = tempFolder.getRoot().toPath().resolve("missing/message.json");
 
     payload.writeJson(file);
 
     assertThat(Files.isRegularFile(file)).isTrue();
-    assertThat(Files.readString(file)).contains(DssMessageFormat.HEADER_KEY);
+    assertThat(Files.readString(file)).contains(DssMessageKeys.HEADER);
   }
 
   @Test
@@ -208,7 +208,7 @@ public class DssMessagePayloadTest {
             new DssHeaderPayload("B1", DssMessageType.POST_CONDITION, "123", 0),
             null,
             ImmutableList.<ImmutableMap<String, String>>of(),
-            ImmutableMap.of(DssMessageFormat.UNREACHABLE_BLOCK_END_KEY, "true"));
+            ImmutableMap.of(DssMessageKeys.UNREACHABLE_BLOCK_END, "true"));
 
     assertThrows(IllegalArgumentException.class, () -> DssMessage.fromPayload(payload));
   }
@@ -220,7 +220,7 @@ public class DssMessagePayloadTest {
             new DssHeaderPayload("B1", DssMessageType.RESULT, "123", 0),
             new DssStatusPayload(true, true, true),
             ImmutableList.<ImmutableMap<String, String>>of(),
-            ImmutableMap.of(DssMessageFormat.RESULT_KEY, "true"));
+            ImmutableMap.of(DssMessageKeys.RESULT, "true"));
 
     assertThrows(IllegalArgumentException.class, () -> DssMessage.fromPayload(payload));
   }

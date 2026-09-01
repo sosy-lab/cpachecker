@@ -29,7 +29,7 @@ public class DssExceptionMessage extends DssMessage {
         DssMessageType.EXCEPTION,
         Optional.empty(),
         ImmutableList.of(),
-        ImmutableMap.of(DssMessageFormat.EXCEPTION_KEY, pExceptionMessage));
+        ImmutableMap.of(DssMessageKeys.EXCEPTION, pExceptionMessage));
   }
 
   DssExceptionMessage(String pSenderId, ImmutableMap<String, String> pExceptionMessage) {
@@ -50,10 +50,10 @@ public class DssExceptionMessage extends DssMessage {
     checkArgument(pStates.isEmpty(), "Exception message must not contain states");
     checkArgument(
         pContent.size() == 1
-            && pContent.containsKey(DssMessageFormat.EXCEPTION_KEY)
-            && pContent.get(DssMessageFormat.EXCEPTION_KEY) != null
-            && !pContent.get(DssMessageFormat.EXCEPTION_KEY).isEmpty(),
+            && pContent.containsKey(DssMessageKeys.EXCEPTION)
+            && pContent.get(DssMessageKeys.EXCEPTION) != null
+            && !pContent.get(DssMessageKeys.EXCEPTION).isEmpty(),
         "Exception message requires exactly one non-empty content entry: %s",
-        DssMessageFormat.EXCEPTION_KEY);
+        DssMessageKeys.EXCEPTION);
   }
 }

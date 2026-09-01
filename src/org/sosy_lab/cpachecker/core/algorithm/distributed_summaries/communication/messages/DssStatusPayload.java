@@ -15,14 +15,14 @@ import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 
 @JsonPropertyOrder({
-  DssMessageFormat.SOUND_KEY,
-  DssMessageFormat.PRECISE_KEY,
-  DssMessageFormat.PROPERTY_KEY,
+  DssMessageKeys.SOUND,
+  DssMessageKeys.PRECISE,
+  DssMessageKeys.PROPERTY,
 })
 public record DssStatusPayload(
-    @JsonProperty(DssMessageFormat.SOUND_KEY) boolean sound,
-    @JsonProperty(DssMessageFormat.PRECISE_KEY) boolean precise,
-    @JsonProperty(DssMessageFormat.PROPERTY_KEY) boolean propertyChecked) {
+    @JsonProperty(DssMessageKeys.SOUND) boolean sound,
+    @JsonProperty(DssMessageKeys.PRECISE) boolean precise,
+    @JsonProperty(DssMessageKeys.PROPERTY) boolean propertyChecked) {
 
   @JsonCreator
   public DssStatusPayload {}
@@ -50,10 +50,10 @@ public record DssStatusPayload(
 
   ImmutableMap<String, String> asLegacyContent() {
     return ContentBuilder.builder()
-        .pushLevel(DssMessageFormat.STATUS_KEY)
-        .put(DssMessageFormat.SOUND_KEY, Boolean.toString(sound))
-        .put(DssMessageFormat.PRECISE_KEY, Boolean.toString(precise))
-        .put(DssMessageFormat.PROPERTY_KEY, Boolean.toString(propertyChecked))
+        .pushLevel(DssMessageKeys.STATUS)
+        .put(DssMessageKeys.SOUND, Boolean.toString(sound))
+        .put(DssMessageKeys.PRECISE, Boolean.toString(precise))
+        .put(DssMessageKeys.PROPERTY, Boolean.toString(propertyChecked))
         .build();
   }
 }

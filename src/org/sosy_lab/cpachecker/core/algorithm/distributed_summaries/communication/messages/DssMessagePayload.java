@@ -30,16 +30,16 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
-  DssMessageFormat.HEADER_KEY,
-  DssMessageFormat.STATUS_KEY,
-  DssMessageFormat.STATES_KEY,
-  DssMessageFormat.CONTENT_KEY
+  DssMessageKeys.HEADER,
+  DssMessageKeys.STATUS,
+  DssMessageKeys.STATES,
+  DssMessageKeys.CONTENT
 })
 public record DssMessagePayload(
-    @JsonProperty(DssMessageFormat.HEADER_KEY) DssHeaderPayload header,
-    @JsonProperty(DssMessageFormat.STATUS_KEY) @Nullable DssStatusPayload status,
-    @JsonProperty(DssMessageFormat.STATES_KEY) ImmutableList<ImmutableMap<String, String>> states,
-    @JsonProperty(DssMessageFormat.CONTENT_KEY) ImmutableMap<String, String> content) {
+    @JsonProperty(DssMessageKeys.HEADER) DssHeaderPayload header,
+    @JsonProperty(DssMessageKeys.STATUS) @Nullable DssStatusPayload status,
+    @JsonProperty(DssMessageKeys.STATES) ImmutableList<ImmutableMap<String, String>> states,
+    @JsonProperty(DssMessageKeys.CONTENT) ImmutableMap<String, String> content) {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -56,11 +56,10 @@ public record DssMessagePayload(
 
   @JsonCreator
   DssMessagePayload(
-      @JsonProperty(DssMessageFormat.HEADER_KEY) DssHeaderPayload pHeader,
-      @JsonProperty(DssMessageFormat.STATUS_KEY) @Nullable DssStatusPayload pStatus,
-      @JsonProperty(DssMessageFormat.STATES_KEY)
-          @Nullable List<? extends Map<String, String>> pStates,
-      @JsonProperty(DssMessageFormat.CONTENT_KEY) Map<String, String> pContent) {
+      @JsonProperty(DssMessageKeys.HEADER) DssHeaderPayload pHeader,
+      @JsonProperty(DssMessageKeys.STATUS) @Nullable DssStatusPayload pStatus,
+      @JsonProperty(DssMessageKeys.STATES) @Nullable List<? extends Map<String, String>> pStates,
+      @JsonProperty(DssMessageKeys.CONTENT) Map<String, String> pContent) {
     this(
         requireHeader(pHeader),
         pStatus,
@@ -72,12 +71,12 @@ public record DssMessagePayload(
     JsonNode root = OBJECT_MAPPER.readTree(pJson.toFile());
 
     boolean hasCurrentOnlyFields =
-        root.has(DssMessageFormat.STATUS_KEY) || root.has(DssMessageFormat.STATES_KEY);
+        root.has(DssMessageKeys.STATUS) || root.has(DssMessageKeys.STATES);
 
     ImmutableMap<String, String> content =
         ImmutableMap.copyOf(
             OBJECT_MAPPER.convertValue(
-                root.required(DssMessageFormat.CONTENT_KEY),
+                root.required(DssMessageKeys.CONTENT),
                 new TypeReference<Map<String, String>>() {}));
 
     boolean contentLooksLegacy = content.keySet().stream().anyMatch(k -> isLegacyKey(k));
@@ -96,10 +95,7 @@ public record DssMessagePayload(
 
   public ImmutableMap<String, ImmutableMap<String, String>> asLegacyMap() {
     return ImmutableMap.of(
-        DssMessageFormat.HEADER_KEY,
-        header.asLegacyHeader(),
-        DssMessageFormat.CONTENT_KEY,
-        legacyContent());
+        DssMessageKeys.HEADER, header.asLegacyHeader(), DssMessageKeys.CONTENT, legacyContent());
   }
 
   public ImmutableMap<String, String> legacyContent() {
@@ -108,9 +104,9 @@ public record DssMessagePayload(
       legacyContent.putAll(status.asLegacyContent());
     }
     if (!states.isEmpty()) {
-      legacyContent.put(DssMessageFormat.MULTIPLE_STATES_KEY, Integer.toString(states.size()));
+      legacyContent.put(DssMessageKeys.MULTIPLE_STATES, Integer.toString(states.size()));
       for (int i = 0; i < states.size(); i++) {
-        String statePrefix = DssMessageFormat.STATE_KEY + i;
+        String statePrefix = DssMessageKeys.STATE + i;
         for (Entry<String, String> entry : states.get(i).entrySet()) {
           legacyContent.put(statePrefix + "." + entry.getKey(), entry.getValue());
         }
@@ -130,12 +126,11 @@ public record DssMessagePayload(
 
   private static DssMessagePayload fromLegacyJson(JsonNode root) {
     DssHeaderPayload header =
-        OBJECT_MAPPER.convertValue(
-            root.required(DssMessageFormat.HEADER_KEY), DssHeaderPayload.class);
+        OBJECT_MAPPER.convertValue(root.required(DssMessageKeys.HEADER), DssHeaderPayload.class);
     ImmutableMap<String, String> legacyContent =
         ImmutableMap.copyOf(
             OBJECT_MAPPER.convertValue(
-                root.required(DssMessageFormat.CONTENT_KEY),
+                root.required(DssMessageKeys.CONTENT),
                 new TypeReference<Map<String, String>>() {}));
 
     DssStatusPayload status = extractLegacyStatus(legacyContent);
@@ -146,17 +141,16 @@ public record DssMessagePayload(
   }
 
   private static DssStatusPayload extractLegacyStatus(ImmutableMap<String, String> pLegacyContent) {
-    boolean sound = Boolean.parseBoolean(pLegacyContent.get(DssMessageFormat.SOUND_KEY));
-    boolean precise = Boolean.parseBoolean(pLegacyContent.get(DssMessageFormat.PRECISE_KEY));
-    boolean propertyChecked =
-        Boolean.parseBoolean(pLegacyContent.get(DssMessageFormat.PROPERTY_KEY));
+    boolean sound = Boolean.parseBoolean(pLegacyContent.get(DssMessageKeys.SOUND));
+    boolean precise = Boolean.parseBoolean(pLegacyContent.get(DssMessageKeys.PRECISE));
+    boolean propertyChecked = Boolean.parseBoolean(pLegacyContent.get(DssMessageKeys.PROPERTY));
 
     return new DssStatusPayload(sound, precise, propertyChecked);
   }
 
   private static ImmutableList<ImmutableMap<String, String>> extractLegacyStates(
       ImmutableMap<String, String> pLegacyContent) {
-    String numberOfStates = pLegacyContent.get(DssMessageFormat.MULTIPLE_STATES_KEY);
+    String numberOfStates = pLegacyContent.get(DssMessageKeys.MULTIPLE_STATES);
     if (numberOfStates == null) {
       return ImmutableList.of();
     }
@@ -164,7 +158,7 @@ public record DssMessagePayload(
     ImmutableList.Builder<ImmutableMap<String, String>> states =
         ImmutableList.builderWithExpectedSize(stateCount);
     for (int i = 0; i < stateCount; i++) {
-      String statePrefix = DssMessageFormat.STATE_KEY + i;
+      String statePrefix = DssMessageKeys.STATE + i;
       ImmutableMap<String, String> stateContent =
           ImmutableMap.copyOf(
               ContentReader.read(pLegacyContent).pushLevel(statePrefix).getContent());
@@ -181,9 +175,9 @@ public record DssMessagePayload(
   }
 
   private static boolean isLegacyKey(String pKey) {
-    return pKey.equals(DssMessageFormat.MULTIPLE_STATES_KEY)
-        || pKey.startsWith(DssMessageFormat.STATUS_KEY)
-        || pKey.matches(DssMessageFormat.STATE_KEY + "\\d+\\..*");
+    return pKey.equals(DssMessageKeys.MULTIPLE_STATES)
+        || pKey.startsWith(DssMessageKeys.STATUS)
+        || pKey.matches(DssMessageKeys.STATE + "\\d+\\..*");
   }
 
   private static DssHeaderPayload requireHeader(DssHeaderPayload pHeader) {

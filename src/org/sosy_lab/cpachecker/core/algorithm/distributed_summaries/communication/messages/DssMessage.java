@@ -136,10 +136,9 @@ public abstract class DssMessage {
     if (!states.isEmpty()) {
       return OptionalInt.of(states.size());
     }
-    if (content.containsKey(DssMessageFormat.MULTIPLE_STATES_KEY)) {
+    if (content.containsKey(DssMessageKeys.MULTIPLE_STATES)) {
       return OptionalInt.of(
-          Integer.parseInt(
-              Objects.requireNonNull(content.get(DssMessageFormat.MULTIPLE_STATES_KEY))));
+          Integer.parseInt(Objects.requireNonNull(content.get(DssMessageKeys.MULTIPLE_STATES))));
     }
     return OptionalInt.empty();
   }
@@ -158,16 +157,14 @@ public abstract class DssMessage {
     checkArgument(type == DssMessageType.RESULT, "Cannot get content for type: " + "%s", type);
     return Result.valueOf(
         Preconditions.checkNotNull(
-            content.get(DssMessageFormat.RESULT_KEY),
-            "Result content is missing in message: %s",
-            this));
+            content.get(DssMessageKeys.RESULT), "Result content is missing in message: %s", this));
   }
 
   public final DssWitnessMessage.WitnessType getWitnessType() {
     checkArgument(type == DssMessageType.WITNESS, "Cannot get content for type: %s", type);
     return DssWitnessMessage.WitnessType.valueOf(
         Preconditions.checkNotNull(
-            content.get(DssMessageFormat.WITNESS_TYPE_KEY),
+            content.get(DssMessageKeys.WITNESS_TYPE),
             "Witness type is missing in message: %s",
             this));
   }
@@ -179,7 +176,7 @@ public abstract class DssMessage {
         type);
     return SegmentedPaths.deserialize(
         Preconditions.checkNotNull(
-            content.get(DssMessageFormat.VIOLATION_PATH_KEY),
+            content.get(DssMessageKeys.VIOLATION_PATH),
             "No violation path present in witness message: %s",
             this));
   }
@@ -207,7 +204,7 @@ public abstract class DssMessage {
    */
   public final boolean indicatesUnreachableBlockEnd() {
     checkArgument(type == DssMessageType.POST_CONDITION, "Cannot get content for type: %s", type);
-    return Boolean.parseBoolean(content.get(DssMessageFormat.UNREACHABLE_BLOCK_END_KEY));
+    return Boolean.parseBoolean(content.get(DssMessageKeys.UNREACHABLE_BLOCK_END));
   }
 
   public final AlgorithmStatus getAlgorithmStatus() {
@@ -218,9 +215,7 @@ public abstract class DssMessage {
   public final String getExceptionMessage() {
     checkArgument(type == DssMessageType.EXCEPTION, "Cannot get content for type: " + "%s", type);
     return Preconditions.checkNotNull(
-        content.get(DssMessageFormat.EXCEPTION_KEY),
-        "Exception message is missing in message: %s",
-        this);
+        content.get(DssMessageKeys.EXCEPTION), "Exception message is missing in message: %s", this);
   }
 
   /**

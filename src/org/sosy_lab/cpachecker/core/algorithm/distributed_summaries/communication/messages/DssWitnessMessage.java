@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
  * Message sent by analysis workers carrying witness information: either the ARG states of all
  * preconditions after a TRUE result ({@link WitnessType#CORRECTNESS}), or the violation path after
  * a FALSE result ({@link WitnessType#VIOLATION}), differentiated by the field {@link
- * DssMessageFormat#WITNESS_TYPE_KEY}
+ * DssMessageKeys#WITNESS_TYPE}
  */
 public class DssWitnessMessage extends DssMessage {
 
@@ -48,7 +48,7 @@ public class DssWitnessMessage extends DssMessage {
       Map<String, String> pContent) {
     checkArgument(pStatus.isEmpty(), "Witness message must not contain status");
 
-    String witnessType = pContent.get(DssMessageFormat.WITNESS_TYPE_KEY);
+    String witnessType = pContent.get(DssMessageKeys.WITNESS_TYPE);
     checkArgument(witnessType != null, "Witness message requires witnessType");
     WitnessType type;
     try {
@@ -63,7 +63,7 @@ public class DssWitnessMessage extends DssMessage {
       }
       case VIOLATION ->
           checkArgument(
-              pContent.containsKey(DssMessageFormat.VIOLATION_PATH_KEY),
+              pContent.containsKey(DssMessageKeys.VIOLATION_PATH),
               "Violation witness requires violationPath");
     }
   }

@@ -25,7 +25,7 @@ public class DssResultMessage extends DssMessage {
         DssMessageType.RESULT,
         Optional.empty(),
         ImmutableList.of(),
-        ImmutableMap.of(DssMessageFormat.RESULT_KEY, pResult));
+        ImmutableMap.of(DssMessageKeys.RESULT, pResult));
   }
 
   DssResultMessage(String pSenderId, ImmutableMap<String, String> pResult) {
@@ -42,10 +42,10 @@ public class DssResultMessage extends DssMessage {
     checkArgument(pStates.isEmpty(), "Result message must not contain states");
     checkArgument(
         pContent.size() == 1
-            && pContent.containsKey(DssMessageFormat.RESULT_KEY)
-            && pContent.get(DssMessageFormat.RESULT_KEY) != null
-            && !pContent.get(DssMessageFormat.RESULT_KEY).isEmpty(),
+            && pContent.containsKey(DssMessageKeys.RESULT)
+            && pContent.get(DssMessageKeys.RESULT) != null
+            && !pContent.get(DssMessageKeys.RESULT).isEmpty(),
         "Result message requires exactly one non-empty content entry: %s",
-        DssMessageFormat.RESULT_KEY);
+        DssMessageKeys.RESULT);
   }
 }
