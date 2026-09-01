@@ -25,7 +25,7 @@ public final class AutomatonWitnessV2ValidationCorrectnessIntegrationTest {
     IntegrationTestRunner.skipUnlessExtendedTestsEnabled();
   }
 
-  private String TEST_DIR_PATH = "test/programs/witness-v2-validation";
+  private String TEST_DIR_PATH = "test/programs/witness-v2-validation/no-overflow";
   private String SPECIFICATION_PATH = "config/properties/";
 
   @Test(timeout = 3000)

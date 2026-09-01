@@ -11,7 +11,7 @@ format_version: '2.1'
 additional_information:
   task_type: validation
   verification:
-    - property_file: ../../config/properties/no-overflow.prp
+    - property_file: ../../../config/properties/no-overflow.prp
       expected_verdict: true
 
 input_files:
@@ -19,7 +19,7 @@ input_files:
   - 'simple-valid-witness-v2--1.yml'
 
 properties:
-  - property_file: ../../config/properties/no-overflow.prp
+  - property_file: ../../../config/properties/no-overflow.prp
     expected_verdict: true
 
 options:

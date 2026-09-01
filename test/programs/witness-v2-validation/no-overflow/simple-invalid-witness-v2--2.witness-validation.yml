@@ -11,18 +11,19 @@ format_version: '2.1'
 additional_information:
   task_type: validation
   verification:
-    - property_file: ../../config/properties/no-overflow.prp
+    - property_file: ../../../config/properties/no-overflow.prp
       expected_verdict: true
 
 input_files:
   - 'simple.c'
-  - 'simple-valid-witness-v2--2.yml'
+  - 'simple-invalid-witness-v2--2.yml'
 
 properties:
-  - property_file: ../../config/properties/no-overflow.prp
-    expected_verdict: true
+  # The invariant is not inductive, so the witness must be rejected.
+  - property_file: ../../../config/properties/no-overflow.prp
+    expected_verdict: false
 
 options:
   language: C
   data_model: ILP32
-  witness_input_file: 'simple-valid-witness-v2--2.yml'
+  witness_input_file: 'simple-invalid-witness-v2--2.yml'
