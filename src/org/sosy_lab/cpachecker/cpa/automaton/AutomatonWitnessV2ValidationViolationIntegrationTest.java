@@ -26,7 +26,7 @@ public final class AutomatonWitnessV2ValidationViolationIntegrationTest {
   }
 
   private String CONCURRENCY_TEST_DIR_PATH = "test/programs/witness-v2-validation/concurrency";
-  ;
+
   private String SPECIFICATION_PATH = "config/properties/";
 
   @Test(timeout = 3000)

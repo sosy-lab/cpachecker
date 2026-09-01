@@ -60,8 +60,8 @@ public class ThreadingState
 
   /**
    * Marks a thread that was created but whose identifier in the witness is not known yet, cf.
-   * {@link #threadIdsForWitness}. It never matches {@link #PROPERTY_ACTIVE_THREAD_WITNESS_ID},
-   * because identifiers of a witness are never negative.
+   * {@link #threadIdsForWitness}. It never matches the current thread, because identifiers of a
+   * witness are never negative.
    */
   private static final int AWAITING_WITNESS_THREAD_ID = -1;
 
@@ -103,8 +103,7 @@ public class ThreadingState
   /**
    * This map contains the mapping of threadIds to the unique identifier used for witness
    * validation. Without a witness that refers to threads, it should always be empty. It is filled
-   * by {@link ThreadingTransferRelation#strengthen} and queried through {@link
-   * #PROPERTY_ACTIVE_THREAD_WITNESS_ID}.
+   * by {@link ThreadingTransferRelation#strengthen}.
    *
    * <p>Besides the identifiers of the witness, which are never negative, the map also holds the two
    * markers {@link #AWAITING_WITNESS_THREAD_ID} and {@link #NO_WITNESS_THREAD_ID}. Entries are
