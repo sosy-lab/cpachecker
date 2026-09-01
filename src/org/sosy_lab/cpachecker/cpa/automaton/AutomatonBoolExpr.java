@@ -256,9 +256,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
 
-      // The equality modulo the nodes is necessary for concurrent analysis where functions
-      // are cloned during the analysis
-      if (elementToEnter.edges().stream().anyMatch(pCFAEdge -> pCFAEdge.equals(edge))) {
+      if (elementToEnter.edges().contains(edge)) {
         return CONST_TRUE;
       }
       return CONST_FALSE;
@@ -307,12 +305,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
 
-      // The equality modulo the nodes is necessary for concurrent analysis where functions
-      // are cloned during the analysis
-      if (edge.getSuccessor()
-          .getLeavingEdges()
-          .anyMatch(
-              e -> FluentIterable.from(incomingFrontierEdges).anyMatch(pEdge -> pEdge.equals(e)))) {
+      if (edge.getSuccessor().getLeavingEdges().anyMatch(e -> incomingFrontierEdges.contains(e))) {
         return CONST_TRUE;
       }
 
