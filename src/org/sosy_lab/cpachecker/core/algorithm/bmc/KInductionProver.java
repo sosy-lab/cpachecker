@@ -670,7 +670,12 @@ class KInductionProver implements AutoCloseable {
         return AlgorithmStatus.SOUND_AND_PRECISE;
       }
     }
-    return unroll(logger, pReached, pAlg, pCPA);
+    stats.inductionUnrolling.start();
+    try {
+      return unroll(logger, pReached, pAlg, pCPA);
+    } finally {
+      stats.inductionUnrolling.stop();
+    }
   }
 
   private Multimap<String, Integer> extractInputs(

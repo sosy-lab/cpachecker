@@ -29,6 +29,7 @@ public class BMCStatistics implements Statistics {
 
   // k-Induction operations
   final Timer inductionPreparation = new Timer();
+  final Timer inductionUnrolling = new Timer();
   final Timer inductionCheck = new Timer();
 
   // IMC/ISMC/DAR operations
@@ -58,7 +59,7 @@ public class BMCStatistics implements Statistics {
           "Time waited for head start of invariant gen.:    " + bmcWaitForInvariantHeadStart);
     }
     if (bmcUnrolling.getNumberOfIntervals() > 0) {
-      out.println("Time for BMC formula creation:                   " + bmcUnrolling);
+      out.println("Time for unrolling for BMC:                      " + bmcUnrolling);
     }
     if (satCheck.getNumberOfIntervals() > 0) {
       out.println("Time for final sat check:                        " + satCheck);
@@ -73,7 +74,8 @@ public class BMCStatistics implements Statistics {
       out.println("Time for bounding assertions check:              " + assertionsCheck);
     }
     if (inductionPreparation.getNumberOfIntervals() > 0) {
-      out.println("Time for induction formula creation:             " + inductionPreparation);
+      out.println("Time for preparing induction step:               " + inductionPreparation);
+      out.println("  Time for unrolling for induction step:         " + inductionUnrolling);
     }
     if (inductionCheck.getNumberOfIntervals() > 0) {
       out.println("Time for induction check:                        " + inductionCheck);
