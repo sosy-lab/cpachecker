@@ -72,8 +72,10 @@ public class BMCStatistics implements Statistics {
     if (assertionsCheck.getNumberOfIntervals() > 0) {
       out.println("Time for bounding assertions check:              " + assertionsCheck);
     }
-    if (inductionCheck.getNumberOfIntervals() > 0) {
+    if (inductionPreparation.getNumberOfIntervals() > 0) {
       out.println("Time for induction formula creation:             " + inductionPreparation);
+    }
+    if (inductionCheck.getNumberOfIntervals() > 0) {
       out.println("Time for induction check:                        " + inductionCheck);
     }
     if (fixedPointComputation.getNumberOfIntervals() > 0) {
