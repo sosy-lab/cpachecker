@@ -56,9 +56,6 @@ public class ThreadingState
         Partitionable,
         AbstractQueryableState {
 
-  /** Name of the {@link ThreadingCPA}, as used for queries from specification automata. */
-  public static final String CPA_NAME = "ThreadingCPA";
-
   private static final String PROPERTY_DEADLOCK = "deadlock";
 
   /**
@@ -315,7 +312,7 @@ public class ThreadingState
 
   @Override
   public String getCPAName() {
-    return CPA_NAME;
+    return "ThreadingCPA";
   }
 
   @Override
