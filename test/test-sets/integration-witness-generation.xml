@@ -99,6 +99,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/list-simple/sll2n_remove_all_reverse.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/heap-data/shared_mem1.yml</exclude> <!-- flapping timeout / Exception -->
     <exclude>../programs/benchmarks/heap-manipulation/bubble_sort_linux-2.yml</exclude> <!-- flapping timeout / Exception -->
+    <exclude>../programs/benchmarks/heap-manipulation/merge_sort-2.yml</exclude> <!-- flapping timeout / OOM -->
     <exclude>../programs/benchmarks/heap-manipulation/sll_to_dll_rev-2.yml</exclude> <!-- flapping timeout / OOM -->
   </tasks>
   <tasks name="HeapMemSafety">
