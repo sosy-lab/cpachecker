@@ -601,6 +601,10 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
       // If the column does not match we continue by not matching this edge
       if (followColumn.isPresent()
           && followColumn.orElseThrow()
+              // This code is overly simplistic, but it is the best we can do without tracking the
+              // opening parenthesis of the function call.
+              // https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1687 keeps track of
+              // this
               != edge.getFileLocation().getStartColumnInLine() + edge.getCode().indexOf("(")) {
         continue;
       }
