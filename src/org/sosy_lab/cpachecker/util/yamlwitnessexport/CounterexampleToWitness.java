@@ -29,6 +29,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.PathTemplate;
@@ -745,11 +746,11 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
 
     ImmutableList<SegmentRecord> buildSegment = segments.build();
     if (removeSecondToLastSegment) {
-      List<SegmentRecord> arrayList =
-          new ArrayList<>(buildSegment.subList(0, buildSegment.size() - 2));
-      arrayList.add(buildSegment.getLast());
-      buildSegment = ImmutableList.copyOf(arrayList);
+      buildSegment =
+          Collections3.listAndElement(
+              buildSegment.subList(0, buildSegment.size() - 2), buildSegment.getLast());
     }
+
     exportEntries(new ViolationSequenceEntry(getMetadata(pWitnessVersion), buildSegment), pPath);
   }
 
