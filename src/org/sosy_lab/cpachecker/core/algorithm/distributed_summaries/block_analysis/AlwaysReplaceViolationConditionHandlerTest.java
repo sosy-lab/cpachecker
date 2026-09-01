@@ -80,16 +80,12 @@ public class AlwaysReplaceViolationConditionHandlerTest {
     when(analysis.deserialize(messageAX)).thenReturn(ImmutableList.of(conditionXAndPrecision));
     when(analysis.deserialize(messageBX)).thenReturn(ImmutableList.of(conditionXAndPrecision));
     when(analysis.deserialize(messageAY)).thenReturn(ImmutableList.of(conditionYAndPrecision));
-    when(analysis.allCovered(any(), any()))
+    when(analysis.statesEqual(any(), any()))
         .thenAnswer(
             invocation -> {
-              Collection<StateAndPrecision> states = invocation.getArgument(0);
-              Collection<StateAndPrecision> candidates = invocation.getArgument(1);
-              return states.stream()
-                  .allMatch(
-                      state ->
-                          candidates.stream()
-                              .anyMatch(candidate -> candidate.state() == state.state()));
+              Collection<StateAndPrecision> states1 = invocation.getArgument(0);
+              Collection<StateAndPrecision> states2 = invocation.getArgument(1);
+              return sameStates(states1, states2) && sameStates(states2, states1);
             });
     when(analysis.deduplicateStatesAndPrecisions(any()))
         .thenAnswer(
@@ -110,5 +106,18 @@ public class AlwaysReplaceViolationConditionHandlerTest {
     assertThat(handler.statesOf(Optional.of(senderB))).containsExactly(conditionX);
     assertThat(handler.statesOf(Optional.empty())).containsExactly(conditionY, conditionX);
     assertThat(handler.store(messageBX).shouldProceed()).isFalse();
+  }
+
+  /**
+   * Whether every state of {@code pStates} occurs in {@code pCandidates}. All violation conditions
+   * of this test are distinct mocks, so comparing them by identity stands in for the coverage-based
+   * comparison of the real implementation.
+   */
+  private static boolean sameStates(
+      Collection<StateAndPrecision> pStates, Collection<StateAndPrecision> pCandidates) {
+    return pStates.stream()
+        .allMatch(
+            state ->
+                pCandidates.stream().anyMatch(candidate -> candidate.state() == state.state()));
   }
 }

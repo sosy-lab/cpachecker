@@ -381,8 +381,11 @@ public final class DssBlockAnalysis {
    * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack
    * .CallstackStateCoverageOperator} rejects by design.
    *
-   * <p>Callers that want the two states to be equivalent call this in both directions, or use
-   * {@link #statesEqual}.
+   * <p>This answers "does {@code pStates} need to be analyzed, given that {@code pCandidates} has
+   * been?", not "did the state set change?". Coverage is not a decision procedure for the latter:
+   * since every state only needs <em>some</em> partner, mutual coverage of two sets only says that
+   * their disjunctions are equivalent, so a set that gains a strictly stronger state still counts
+   * as covered in both directions. Use {@link #statesEqual} to detect a change.
    *
    * @return a number between 0 and {@code pStates.size()}
    */
@@ -394,7 +397,7 @@ public final class DssBlockAnalysis {
     int covered = 0;
     for (StateAndPrecision state : pStates) {
       for (StateAndPrecision candidate : pCandidates) {
-        if (dcpa.getCoverageOperator().areStatesEqual(state.state(), candidate.state())) {
+        if (dcpa.getCoverageOperator().isSubsumed(state.state(), candidate.state())) {
           covered++;
           break;
         }
@@ -473,9 +476,10 @@ public final class DssBlockAnalysis {
    * on either side has an equal state (per {@link CoverageOperator#areStatesEqual}) on the other
    * side.
    *
-   * <p>This is equivalent to {@code allCovered(pStates1, pStates2) && allCovered(pStates2,
-   * pStates1)}, but every pair of states is compared with the coverage operator at most once
-   * instead of up to twice.
+   * <p>This is strictly stronger than {@code allCovered(pStates1, pStates2) && allCovered(pStates2,
+   * pStates1)}: mutual coverage already holds once the disjunctions of the two sets are equivalent,
+   * which hides a set that gained a strictly stronger state. That distinction matters wherever the
+   * state set drives further exploration -- see {@link PathBasedViolationConditionHandler}.
    */
   boolean statesEqual(
       Collection<@NonNull StateAndPrecision> pStates1,

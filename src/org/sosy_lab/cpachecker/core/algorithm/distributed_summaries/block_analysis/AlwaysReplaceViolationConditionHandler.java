@@ -56,10 +56,12 @@ final class AlwaysReplaceViolationConditionHandler implements DssViolationCondit
           ImmutableList.copyOf(conditions.getStatesAndPrecisionsForKey(sender));
       // Each message replaces what we remember from this sender. Keep that separate from the
       // other senders: if two successors report the same condition, an update from one of them
-      // must not erase the condition that still belongs to the other. We compare in both
-      // directions because removing a condition is an update as well.
-      if (analysis.allCovered(received, storedForSender)
-          && analysis.allCovered(storedForSender, received)) {
+      // must not erase the condition that still belongs to the other.
+      // Compared with equality, not coverage: a condition that unrolls one more loop iteration
+      // refines the condition it came from and is therefore subsumed by it, so under coverage it
+      // would never look new and the loop would stop unrolling. Equality also covers the removal
+      // of a condition, which is an update as well.
+      if (analysis.statesEqual(received, storedForSender)) {
         return DssMessageProcessing.stop();
       }
       conditions.clearKey(sender);
@@ -67,8 +69,7 @@ final class AlwaysReplaceViolationConditionHandler implements DssViolationCondit
       ImmutableList<StateAndPrecision> updatedConditionsToExplore =
           analysis.deduplicateStatesAndPrecisions(conditions.getStatesAndPrecisions());
       boolean globalConditionSetUnchanged =
-          analysis.allCovered(updatedConditionsToExplore, conditionsToExplore)
-              && analysis.allCovered(conditionsToExplore, updatedConditionsToExplore);
+          analysis.statesEqual(updatedConditionsToExplore, conditionsToExplore);
       conditionsToExplore = updatedConditionsToExplore;
       return globalConditionSetUnchanged
           ? DssMessageProcessing.stop()

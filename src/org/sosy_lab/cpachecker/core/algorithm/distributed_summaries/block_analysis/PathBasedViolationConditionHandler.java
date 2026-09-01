@@ -77,9 +77,13 @@ final class PathBasedViolationConditionHandler implements DssViolationConditionH
       ImmutableList<StateAndPrecision> updatedConditionsToExplore =
           analysis.deduplicateStatesAndPrecisions(
               conditions.values().stream().flatMap(m -> m.values().stream()).toList());
+      // Compared with equality, not coverage: a condition that unrolls one more loop iteration is
+      // the previous one's path formula conjoined with the next loop guard, so it is subsumed by
+      // the condition it refines. Under coverage such a condition would never look new, this block
+      // would stop instead of exploring it, and the loop would never unroll far enough to reach a
+      // violation that only occurs after several iterations.
       boolean globalConditionSetUnchanged =
-          analysis.allCovered(updatedConditionsToExplore, conditionsToExplore)
-              && analysis.allCovered(conditionsToExplore, updatedConditionsToExplore);
+          analysis.statesEqual(updatedConditionsToExplore, conditionsToExplore);
       conditionsToExplore = updatedConditionsToExplore;
 
       return globalConditionSetUnchanged

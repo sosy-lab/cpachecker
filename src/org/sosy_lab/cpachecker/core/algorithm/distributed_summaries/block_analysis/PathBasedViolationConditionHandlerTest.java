@@ -64,12 +64,12 @@ public class PathBasedViolationConditionHandlerTest {
               return ImmutableList.copyOf(
                   new LinkedHashSet<>(ImmutableList.copyOf(statesAndPrecisions)));
             });
-    when(analysis.allCovered(any(), any()))
+    when(analysis.statesEqual(any(), any()))
         .thenAnswer(
             invocation -> {
-              Collection<StateAndPrecision> states = invocation.getArgument(0);
-              Collection<StateAndPrecision> candidates = invocation.getArgument(1);
-              return candidates.containsAll(states);
+              Collection<StateAndPrecision> states1 = invocation.getArgument(0);
+              Collection<StateAndPrecision> states2 = invocation.getArgument(1);
+              return states1.containsAll(states2) && states2.containsAll(states1);
             });
 
     handler = new PathBasedViolationConditionHandler(analysis);
