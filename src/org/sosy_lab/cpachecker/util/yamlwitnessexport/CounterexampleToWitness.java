@@ -722,7 +722,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         Verify.verify(lastThreadId.isPresent(), "Last thread ID should be present for data races");
 
         OptionalInt secondToLastThreadId = OptionalInt.empty();
-        EdgeWithStates lastEdgeOnDifferentThread = null;
+        Optional<EdgeWithStates> lastEdgeOnDifferentThread = Optional.empty();
         for (EdgeWithStates edge :
             edgesWithoutBlankEdges.reverse().subList(1, edgesWithoutBlankEdges.size())) {
           secondToLastThreadId =
@@ -730,7 +730,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
 
           if (secondToLastThreadId.isPresent()
               && secondToLastThreadId.orElseThrow() != lastThreadId.orElseThrow()) {
-            lastEdgeOnDifferentThread = edge;
+            lastEdgeOnDifferentThread = Optional.of(edge);
             break;
           }
         }
@@ -742,7 +742,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         ImmutableList<WaypointRecord> targetWaypoints =
             ImmutableList.of(
                 targetWaypoint(lastEdgeOnThread.edge(), astCFARelation).withThreadId(lastThreadId),
-                targetWaypoint(lastEdgeOnDifferentThread.edge(), astCFARelation)
+                targetWaypoint(lastEdgeOnDifferentThread.orElseThrow().edge(), astCFARelation)
                     .withThreadId(secondToLastThreadId));
 
         SegmentRecord lastSegment = segments.build().getLast();
