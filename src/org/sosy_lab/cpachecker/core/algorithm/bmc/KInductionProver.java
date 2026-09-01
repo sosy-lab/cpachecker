@@ -436,11 +436,11 @@ class KInductionProver implements AutoCloseable {
 
     // Obtain the predecessor assertion created earlier
     final BooleanFormula predecessorAssertion =
-        bfmgr.and(
-            from(CandidateInvariantCombination.getConjunctiveParts(
-                    CandidateInvariantCombination.conjunction(pPredecessorAssumptions)))
-                .transform(conjunctivePart -> assertions.get(conjunctivePart))
-                .toList());
+        CandidateInvariantCombination.getConjunctiveParts(
+                CandidateInvariantCombination.conjunction(pPredecessorAssumptions))
+            .stream()
+            .map(conjunctivePart -> assertions.get(conjunctivePart))
+            .collect(bfmgr.toConjunction());
     // Create the successor violation formula
     Multimap<BooleanFormula, BooleanFormula> successorViolationAssertions =
         getSuccessorViolationAssertions(
