@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -402,6 +401,10 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
                   functionCallLocation.getFileName().toString(),
                   functionCallLocation.getStartingLineInOrigin(),
                   functionCallLocation.getStartColumnInLine()
+                      // This code is overly simplistic, but it is the best we can do
+                      // without tracking the opening parenthesis of the function call.
+                      // https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1687 keeps
+                      // track of this issue
                       + pFunctionCallStatement.toASTString().indexOf("("),
                   pStatementEdge.getPredecessor().getFunctionName()),
               OptionalInt.empty());
