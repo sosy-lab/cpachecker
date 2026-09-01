@@ -57,9 +57,10 @@ public class DssWitnessMessage extends DssMessage {
       throw new IllegalArgumentException("Unknown witness type: " + witnessType, e);
     }
     switch (type) {
-      case CORRECTNESS ->
-          checkArgument(
-              !pStates.isEmpty(), "Correctness witness requires serialized preconditions");
+      case CORRECTNESS -> {
+        // since the multiple states field was removed, correctness witness messages can exist w/
+        // only the witness type, which was already checked
+      }
       case VIOLATION ->
           checkArgument(
               pContent.containsKey(DssMessageFormat.VIOLATION_PATH_KEY),
