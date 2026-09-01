@@ -493,7 +493,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public boolean equals(Object o) {
       return o instanceof CheckClosestFullExpressionMatchesColumnAndLine c
-          && columnToReach == c.columnToReach
+          && columnToReach.equals(c.columnToReach)
           && lineNumber == c.lineNumber
           && astCfaRelation.equals(c.astCfaRelation);
     }
