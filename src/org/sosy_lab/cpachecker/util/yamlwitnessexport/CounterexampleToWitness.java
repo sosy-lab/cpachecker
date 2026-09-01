@@ -644,11 +644,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     // this needs to be done using another function
     // Ignore blank egdes, since the violation could not have happened there.
     ImmutableList<CFAEdge> edgesWithoutBlankEdges =
-        FluentIterable.from(edges)
-            .filter(edge -> !(edge instanceof BlankEdge))
-            // For some reason the BlankEdges are transformed into null here.
-            .filter(edge -> edge != null)
-            .toList();
+        FluentIterable.from(edges).filter(edge -> !(edge instanceof BlankEdge)).toList();
 
     CFAEdge lastEdge = edgesWithoutBlankEdges.getLast();
     WaypointRecord waypointRecord = targetWaypoint(lastEdge, astCFARelation);
