@@ -457,9 +457,8 @@ class KInductionProver implements AutoCloseable {
 
     // Try to prove the invariance of the assertion
     Object successorExistsAssertionId = prover.push(successorExistsAssertion);
-    Object predecessorAssertionId =
-        prover.push(
-            predecessorAssertion); // Assert the formula we want to prove at the predecessors
+    // Assert the formula we want to prove at the predecessors
+    Object predecessorAssertionId = prover.push(predecessorAssertion);
     // Assert that the formula is violated at a successor
     prover.push(successorViolation);
 
