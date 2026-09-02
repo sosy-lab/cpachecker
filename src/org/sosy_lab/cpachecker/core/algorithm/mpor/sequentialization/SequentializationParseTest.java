@@ -46,6 +46,25 @@ public class SequentializationParseTest {
   // pthread-divine/tls_basic
 
   @Test
+  public void test_array_eq_symm_wvr() throws Exception {
+    // this program allocates memory with a helper function that returns (void *) and casts the
+    // result, i.e. a pointer dereference resolves to a memory location of a different CType
+    Path path = Path.of("./test/programs/mpor/sequentialization/array-eq-symm.wvr.c");
+    assertThat(Files.exists(path)).isTrue();
+    Configuration config =
+        TestUtils.configurationForTest()
+            .setOption("analysis.algorithm.MPOR.bitVectorEncoding", "HEXADECIMAL")
+            .setOption("analysis.algorithm.MPOR.executeThreadsUntilConflict", "true")
+            .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
+            .setOption("analysis.algorithm.MPOR.partialOrderReductionPrecision", "ACCESS_ONLY")
+            .setOption("analysis.algorithm.MPOR.pruneBitVectorEvaluations", "true")
+            .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
+            .build();
+    MPOROptions options = new MPOROptions(config);
+    testProgram(path, options);
+  }
+
+  @Test
   public void test_13_privatized_04_priv_multi_true() throws Exception {
     // this program contains multiple loops whose condition only contains local variables
     Path path =
