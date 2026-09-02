@@ -174,9 +174,9 @@ public final class DynamicMemoryHandler {
             || conv.options.isSuccessfulZallocFunctionName(functionName);
 
     final String delegateFunctionName =
-        !isZeroing
-            ? conv.options.getSuccessfulAllocFunctionName()
-            : conv.options.getSuccessfulZallocFunctionName();
+        isZeroing
+            ? conv.options.getSuccessfulZallocFunctionName()
+            : conv.options.getSuccessfulAllocFunctionName();
 
     Formula successfulAllocation =
         handleSuccessfulMemoryAllocation(delegateFunctionName, allocationSize, e);
