@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
@@ -61,10 +62,22 @@ public class InputRejection {
         "MPOR expects concurrent C program with at least one pthread_create call", false),
     DUPLICATE_STRUCT_MEMBER_NAMES(
         "MPOR does not support non unique nested struct member names in line ", true),
+    FIELD_MEMBER_NOT_FOUND(
+        "MPOR cannot determine the memory location of the following struct member because it is"
+            + " not part of the CType of the accessed variable: ",
+        false),
     MULTIPLE_DECLARATIONS_IN_FIELD_REFERENCE_OWNER(
         "MPOR does not support multiple declarations in the owner expression of field references in"
             + " line ",
         true),
+    POINTER_ASSIGNMENT_TO_NON_POINTER(
+        "MPOR does not support the assignment to the following non-pointer: ", false),
+    POINTER_DEREFERENCE_OF_NON_POINTER(
+        "MPOR does not support the dereference of the following non-pointer: ", false),
+    POINTER_DEREFERENCE_TYPE_MISMATCH(
+        "MPOR does not support the following pointer dereference, its type is not compatible with"
+            + " the type of the memory location it points to: ",
+        false),
     POINTER_WRITE_BINARY_EXPRESSION(
         "MPOR does not support binary expressions as assignments to pointers in line ", true),
     POINTER_WRITE(
@@ -313,6 +326,106 @@ public class InputRejection {
         }
       }
     }
+  }
+
+  /**
+   * Checks that {@code pFieldMember}, i.e. the member with name {@code pFieldName}, is part of
+   * {@code pType}.
+   */
+  public static void checkFieldMemberFound(
+      Optional<CCompositeTypeMemberDeclaration> pFieldMember, CType pType, String pFieldName)
+      throws UnsupportedCodeException {
+
+    if (pFieldMember.isEmpty()) {
+      throw new UnsupportedCodeException(
+          String.format(
+              "%s%s in %s",
+              InputRejectionMessage.FIELD_MEMBER_NOT_FOUND.message, pFieldName, pType),
+          null);
+    }
+  }
+
+  /** Checks that the left-hand side of a pointer assignment is actually a pointer. */
+  public static void checkPointerAssignmentLeftHandSide(SeqMemoryLocation pLeftHandSide)
+      throws UnsupportedCodeException {
+
+    if (pLeftHandSide.declaration() != null
+        && !isPointerOrArrayOfPointersType(pLeftHandSide.declaration().getType())
+        && (pLeftHandSide.fieldMember().isEmpty()
+            || !isPointerOrArrayOfPointersType(
+                pLeftHandSide.fieldMember().orElseThrow().getType()))) {
+      throw new UnsupportedCodeException(
+          InputRejectionMessage.POINTER_ASSIGNMENT_TO_NON_POINTER.message + describe(pLeftHandSide),
+          null);
+    }
+  }
+
+  /**
+   * Checks that {@code pPointerDereference} is actually a pointer and that the {@link CType} of
+   * {@code pTargetMemoryLocation}, i.e. of the memory location it points to, is compatible.
+   */
+  public static void checkPointerDereferenceTypes(
+      SeqMemoryLocation pPointerDereference, SeqMemoryLocation pTargetMemoryLocation)
+      throws UnsupportedCodeException {
+
+    if (pPointerDereference.declaration() != null
+        && !isPointerOrArrayType(pPointerDereference.declaration().getType())
+        && (pPointerDereference.fieldMember().isEmpty()
+            || !isPointerOrArrayType(pPointerDereference.fieldMember().orElseThrow().getType()))) {
+      throw new UnsupportedCodeException(
+          InputRejectionMessage.POINTER_DEREFERENCE_OF_NON_POINTER.message
+              + describe(pPointerDereference),
+          null);
+    }
+
+    // function call right-hand sides are not tracked, e.g. malloc always returns (void *)
+    if (pTargetMemoryLocation.functionCallExpression().isPresent()) {
+      return;
+    }
+    // start_routine target memory locations are always (void *)
+    if (pTargetMemoryLocation.callContext().isStartRoutineCallContext()) {
+      return;
+    }
+    CType dereferenceType = pPointerDereference.getUnwrappedType();
+    CType targetType = pTargetMemoryLocation.getUnwrappedType();
+    if (!areTypesCompatible(dereferenceType, targetType)) {
+      throw new UnsupportedCodeException(
+          String.format(
+              "%s%s (%s) -> %s (%s)",
+              InputRejectionMessage.POINTER_DEREFERENCE_TYPE_MISMATCH.message,
+              describe(pPointerDereference),
+              dereferenceType,
+              describe(pTargetMemoryLocation),
+              targetType),
+          null);
+    }
+  }
+
+  /**
+   * Returns whether a pointer to {@code pTypeA} may point to a memory location of {@code pTypeB}.
+   */
+  private static boolean areTypesCompatible(CType pTypeA, CType pTypeB) {
+    return pTypeA.equals(pTypeB) || pTypeA.canBeAssignedFrom(pTypeB);
+  }
+
+  private static boolean isPointerOrArrayType(CType pType) {
+    return pType instanceof CPointerType || pType instanceof CArrayType;
+  }
+
+  private static boolean isPointerOrArrayOfPointersType(CType pType) {
+    // CArrayType.getType() corresponds to the CType of the arrays elements
+    return pType instanceof CPointerType
+        || (pType instanceof CArrayType arrayType && arrayType.getType() instanceof CPointerType);
+  }
+
+  /** Returns the name of {@code pMemoryLocation} as used in the input program. */
+  private static String describe(SeqMemoryLocation pMemoryLocation) {
+    if (pMemoryLocation.declaration() == null) {
+      return pMemoryLocation.getName();
+    }
+    StringBuilder name = new StringBuilder(pMemoryLocation.declaration().getName());
+    pMemoryLocation.fieldMember().ifPresent(member -> name.append(".").append(member.getName()));
+    return name.toString();
   }
 
   /** Public, because checking is done in {@link MPORSubstitution}. */
