@@ -203,8 +203,10 @@ public class CFormulaEncodingWithPointerAliasingOptions extends CFormulaEncoding
     return successfulZallocFunctionName;
   }
 
-  boolean makeMemoryAllocationsAlwaysSucceed() {
-    return memoryAllocationsAlwaysSucceed;
+  boolean memoryAllocationFunctionSucceeds(String function) {
+    return memoryAllocationsAlwaysSucceed
+        || function.equals(successfulAllocFunctionName)
+        || function.equals(successfulZallocFunctionName);
   }
 
   boolean revealAllocationTypeFromLHS() {

@@ -181,9 +181,7 @@ public final class DynamicMemoryHandler {
     Formula successfulAllocation =
         handleSuccessfulMemoryAllocation(delegateFunctionName, allocationSize, e);
 
-    if (conv.options.makeMemoryAllocationsAlwaysSucceed()
-        || conv.options.isSuccessfulAllocFunctionName(functionName)
-        || conv.options.isSuccessfulZallocFunctionName(functionName)) {
+    if (conv.options.memoryAllocationFunctionSucceeds(functionName)) {
       return successfulAllocation;
 
     } else {
