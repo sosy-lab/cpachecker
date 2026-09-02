@@ -62,7 +62,7 @@ public class BlockState
   private final BlockStateType type;
   private final BlockNode blockNode;
   private BlockGraphPath history;
-  private List<? extends AbstractState> violationConditions;
+  private ImmutableList<? extends AbstractState> violationConditions;
   private final SegmentedPaths witness;
 
   private final Optional<SegmentedPaths> witnessCheckPathState;
@@ -75,7 +75,7 @@ public class BlockState
       CFANode pNode,
       BlockNode pTargetNode,
       BlockStateType pType,
-      List<? extends AbstractState> pViolationConditions,
+      ImmutableList<? extends AbstractState> pViolationConditions,
       BlockGraphPath pHistory,
       SegmentedPaths pWitness,
       SegmentedPaths pWitnessCheckPathState) {
@@ -87,7 +87,7 @@ public class BlockState
     node = pNode;
     type = pType;
     blockNode = pTargetNode;
-    violationConditions = ImmutableList.copyOf(pViolationConditions);
+    violationConditions = pViolationConditions;
     history = pHistory;
     witness = pWitness;
     witnessCheckPathState = Optional.ofNullable(pWitnessCheckPathState);
@@ -100,7 +100,7 @@ public class BlockState
       CFANode pNode,
       BlockNode pTargetNode,
       BlockStateType pType,
-      List<? extends AbstractState> pViolationConditions,
+      ImmutableList<? extends AbstractState> pViolationConditions,
       BlockGraphPath pHistory,
       SegmentedPaths pWitness) {
     this(
@@ -204,7 +204,7 @@ public class BlockState
         : ImmutableSet.of();
   }
 
-  public List<? extends @NonNull AbstractState> getViolationConditions() {
+  public ImmutableList<? extends @NonNull AbstractState> getViolationConditions() {
     return violationConditions;
   }
 
@@ -261,7 +261,8 @@ public class BlockState
         || (Objects.equals(node, that.node)
             && Objects.equals(witnessCheckPathState, that.witnessCheckPathState)
             && type == that.type
-            && blockNode == that.getBlockNode());
+            && blockNode == that.getBlockNode()
+            && violationConditions == that.violationConditions);
   }
 
   @Override
