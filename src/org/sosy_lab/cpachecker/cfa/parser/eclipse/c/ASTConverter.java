@@ -719,6 +719,18 @@ class ASTConverter {
     CExpression arrayExpr = convertExpressionWithoutSideEffects(e.getArrayExpression());
     CExpression subscriptExpr = convertExpressionWithoutSideEffects(toExpression(e.getArgument()));
 
+    if (!CTypes.isIntegerType(subscriptExpr.getExpressionType())) {
+      if (CTypes.isIntegerType(arrayExpr.getExpressionType())) {
+        // i[a] is the same as a[i] in C, we normalize it.
+        CExpression tmp = arrayExpr;
+        arrayExpr = subscriptExpr;
+        subscriptExpr = tmp;
+      } else if (!(subscriptExpr.getExpressionType() instanceof CProblemType)) {
+        parseContext.parseError(
+            "Array subscript with non-integer type " + subscriptExpr.getExpressionType(), e);
+      }
+    }
+
     // Eclipse CDT has a bug in determining the result type if the array type is a typedef.
     CType resultType = arrayExpr.getExpressionType();
     while (resultType instanceof CTypedefType typedefType) {
@@ -728,7 +740,7 @@ class ASTConverter {
       resultType = arrayType.getType();
     } else if (resultType instanceof CPointerType pointerType) {
       resultType = pointerType.getType();
-    } else if (resultType instanceof CTypedefType || resultType instanceof CProblemType) {
+    } else if (resultType instanceof CProblemType) {
       // TODO probably we should throw exception,
       // but for now we delegate to Eclipse CDT and see whether it knows better than we do
       resultType = typeConverter.convert(e.getExpressionType());
