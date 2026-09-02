@@ -213,7 +213,6 @@ public class CFormulaEncodingWithPointerAliasingOptions extends CFormulaEncoding
         || function.equals(successfulZallocFunctionName);
   }
 
-
   boolean revealAllocationTypeFromLHS() {
     return revealAllocationTypeFromLhs;
   }
