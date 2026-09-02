@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 
+import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.Comparator;
@@ -158,40 +159,8 @@ public final class DynamicMemoryHandler {
     List<CExpression> parameters = e.getParameterExpressions();
 
     if (functionName.equals(CALLOC_FUNCTION) && parameters.size() == 2) {
-      CExpression param0 = parameters.getFirst();
-      CExpression param1 = parameters.get(1);
-
-      // Build expression for param0 * param1 as new parameter.
-      CBinaryExpressionBuilder builder =
-          new CBinaryExpressionBuilder(conv.machineModel, conv.logger);
-      CBinaryExpression multiplication =
-          builder.buildBinaryExpression(param0, param1, BinaryOperator.MULTIPLY);
-
-      // Try to evaluate the multiplication if possible.
-      Long value0 = tryEvaluateExpression(param0);
-      Long value1 = tryEvaluateExpression(param1);
-      if (value0 != null && value1 != null) {
-        long result =
-            ((NumericValue)
-                    AbstractExpressionValueVisitor.calculateBinaryOperation(
-                        new NumericValue(value0),
-                        new NumericValue(value1),
-                        multiplication,
-                        conv.machineModel,
-                        conv.logger))
-                .asLong(multiplication.getExpressionType())
-                .orElseThrow();
-
-        CExpression newParam =
-            new CIntegerLiteralExpression(
-                param0.getFileLocation(),
-                multiplication.getExpressionType(),
-                BigInteger.valueOf(result));
-        parameters = Collections.singletonList(newParam);
-
-      } else {
-        parameters = Collections.singletonList(multiplication);
-      }
+      parameters =
+          ImmutableList.of(evaluateCallocParameters(parameters.getFirst(), parameters.getLast()));
 
     } else if (parameters.size() != 1) {
       if (parameters.size() > 1 && conv.options.hasSuperfluousParameters(functionName)) {
@@ -336,6 +305,40 @@ public final class DynamicMemoryHandler {
       constraints.addConstraint(conv.fmgr.makeEqual(conv.makeBaseAddressOfTerm(address), address));
     }
     return address;
+  }
+
+  /**
+   * Convert the two parameters of a "calloc" call into a single expression by multiplying them, if
+   * possible concretely, else symbolically.
+   */
+  private CExpression evaluateCallocParameters(CExpression param0, CExpression param1)
+      throws UnrecognizedCodeException {
+    // Build expression for param0 * param1 as new parameter.
+    CBinaryExpressionBuilder builder = new CBinaryExpressionBuilder(conv.machineModel, conv.logger);
+    CBinaryExpression multiplication =
+        builder.buildBinaryExpression(param0, param1, BinaryOperator.MULTIPLY);
+
+    // Try to evaluate the multiplication if possible.
+    Long value0 = tryEvaluateExpression(param0);
+    Long value1 = tryEvaluateExpression(param1);
+    if (value0 != null && value1 != null) {
+      long result =
+          ((NumericValue)
+                  AbstractExpressionValueVisitor.calculateBinaryOperation(
+                      new NumericValue(value0),
+                      new NumericValue(value1),
+                      multiplication,
+                      conv.machineModel,
+                      conv.logger))
+              .asLong(multiplication.getExpressionType())
+              .orElseThrow();
+
+      return new CIntegerLiteralExpression(
+          param0.getFileLocation(), multiplication.getExpressionType(), BigInteger.valueOf(result));
+
+    } else {
+      return multiplication;
+    }
   }
 
   /**
