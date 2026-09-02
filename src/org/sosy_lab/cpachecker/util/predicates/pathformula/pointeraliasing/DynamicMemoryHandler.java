@@ -11,9 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 
-import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -125,13 +123,10 @@ public final class DynamicMemoryHandler {
       final CExpressionVisitorWithPointerAliasing expressionVisitor)
       throws UnrecognizedCodeException, InterruptedException {
 
-    if ((conv.options.isSuccessfulAllocFunctionName(functionName)
-        || conv.options.isSuccessfulZallocFunctionName(functionName))) {
-      return Value.ofValue(
-          handleSuccessfulMemoryAllocation(functionName, e.getParameterExpressions(), e));
-
-    } else if ((conv.options.isMemoryAllocationFunction(functionName)
-        || conv.options.isMemoryAllocationFunctionWithZeroing(functionName))) {
+    if (conv.options.isSuccessfulAllocFunctionName(functionName)
+        || conv.options.isSuccessfulZallocFunctionName(functionName)
+        || conv.options.isMemoryAllocationFunction(functionName)
+        || conv.options.isMemoryAllocationFunctionWithZeroing(functionName)) {
       return Value.ofValue(handleMemoryAllocation(e, functionName));
 
     } else if (conv.options.isMemoryFreeFunction(functionName)) {
@@ -144,8 +139,8 @@ public final class DynamicMemoryHandler {
   }
 
   /**
-   * Handle memory allocation functions that may fail (i.e., return null) and that may or may not
-   * zero the memory.
+   * Handle memory allocation functions, which may or may not fail (i.e., return nulland which may
+   * or may not zero the memory.
    *
    * @param e The function call expression.
    * @param functionName The name of the allocation function.
@@ -155,17 +150,15 @@ public final class DynamicMemoryHandler {
    */
   private Formula handleMemoryAllocation(final CFunctionCallExpression e, final String functionName)
       throws UnrecognizedCodeException, InterruptedException {
-    final boolean isZeroing = conv.options.isMemoryAllocationFunctionWithZeroing(functionName);
     List<CExpression> parameters = e.getParameterExpressions();
 
+    final CExpression allocationSize;
     if (functionName.equals(CALLOC_FUNCTION) && parameters.size() == 2) {
-      parameters =
-          ImmutableList.of(evaluateCallocParameters(parameters.getFirst(), parameters.getLast()));
+      allocationSize = evaluateCallocParameters(parameters.getFirst(), parameters.getLast());
 
-    } else if (parameters.size() != 1) {
-      if (parameters.size() > 1 && conv.options.hasSuperfluousParameters(functionName)) {
-        parameters = Collections.singletonList(parameters.getFirst());
-      } else {
+    } else {
+      if (parameters.size() < 1
+          || (parameters.size() > 1 && !conv.options.hasSuperfluousParameters(functionName))) {
         throw new UnrecognizedCodeException(
             String.format(
                 "Memory allocation function %s() called with %d parameters instead of 1",
@@ -173,22 +166,31 @@ public final class DynamicMemoryHandler {
             edge,
             e);
       }
+      allocationSize = parameters.getFirst();
     }
+
+    final boolean isZeroing =
+        conv.options.isMemoryAllocationFunctionWithZeroing(functionName)
+            || conv.options.isSuccessfulZallocFunctionName(functionName);
 
     final String delegateFunctionName =
         !isZeroing
             ? conv.options.getSuccessfulAllocFunctionName()
             : conv.options.getSuccessfulZallocFunctionName();
 
-    if (!conv.options.makeMemoryAllocationsAlwaysSucceed()) {
+    if (!(conv.options.makeMemoryAllocationsAlwaysSucceed()
+        || conv.options.isSuccessfulAllocFunctionName(functionName)
+        || conv.options.isSuccessfulZallocFunctionName(functionName))) {
+
       final Formula nondet =
           conv.makeFreshVariable(functionName, CPointerType.POINTER_TO_VOID, ssa);
       return conv.bfmgr.ifThenElse(
           conv.bfmgr.not(conv.fmgr.makeEqual(nondet, conv.nullPointer)),
-          handleSuccessfulMemoryAllocation(delegateFunctionName, parameters, e),
+          handleSuccessfulMemoryAllocation(delegateFunctionName, allocationSize, e),
           conv.nullPointer);
+
     } else {
-      return handleSuccessfulMemoryAllocation(delegateFunctionName, parameters, e);
+      return handleSuccessfulMemoryAllocation(delegateFunctionName, allocationSize, e);
     }
   }
 
@@ -197,31 +199,18 @@ public final class DynamicMemoryHandler {
    * the memory.
    *
    * @param functionName The name of the memory allocation function.
-   * @param parameters The list of function parameters.
+   * @param parameter The one parameter with the allocation size.
    * @param e The function call expression.
    * @return A formula for the function call.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
   private Formula handleSuccessfulMemoryAllocation(
-      final String functionName, List<CExpression> parameters, final CFunctionCallExpression e)
+      final String functionName, final CExpression parameter, final CFunctionCallExpression e)
       throws UnrecognizedCodeException, InterruptedException {
     // e.getFunctionNameExpression() should not be used
     // as it might refer to another function if this method is called from handleMemoryAllocation()
-    if (parameters.size() != 1) {
-      if (parameters.size() > 1 && conv.options.hasSuperfluousParameters(functionName)) {
-        parameters = Collections.singletonList(parameters.getFirst());
-      } else {
-        throw new UnrecognizedCodeException(
-            String.format(
-                "Memory allocation function %s() called with %d parameters instead of 1",
-                functionName, parameters.size()),
-            edge,
-            e);
-      }
-    }
 
-    final CExpression parameter = parameters.getFirst();
     Long size = null;
     final CType newType;
     if (isSizeof(parameter)) {
