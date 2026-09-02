@@ -59,8 +59,15 @@ public class CFormulaEncodingOptions extends FormulaEncodingOptions {
       description =
           "Set of functions that non-deterministically provide new memory on the heap, "
               + "i.e. they can return either a valid pointer or zero.")
-  private Set<String> memoryAllocationFunctions =
-      ImmutableSet.of("malloc", "__kmalloc", "kmalloc", "alloca", "__builtin_alloca");
+  private Set<String> memoryAllocationFunctions = ImmutableSet.of("malloc", "__kmalloc", "kmalloc");
+
+  @Option(
+      secure = true,
+      description =
+          "Set of functions that deterministically provide new memory on the heap, "
+              + "i.e. they always return valid pointer.")
+  private Set<String> successfulMemoryAllocationFunctions =
+      ImmutableSet.of("alloca", "__builtin_alloca");
 
   @Option(
       secure = true,
@@ -134,11 +141,16 @@ public class CFormulaEncodingOptions extends FormulaEncodingOptions {
 
   public boolean isMemoryAllocationFunction(String function) {
     return memoryAllocationFunctions.contains(function)
+        || successfulMemoryAllocationFunctions.contains(function)
         || isMemoryAllocationFunctionWithZeroing(function);
   }
 
   public boolean isExternModelFunction(String function) {
     return function.equals(externModelFunctionName);
+  }
+
+  public boolean memoryAllocationFunctionSucceeds(String function) {
+    return successfulMemoryAllocationFunctions.contains(function);
   }
 
   public boolean isMemoryAllocationFunctionWithZeroing(final String name) {
