@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
@@ -63,6 +64,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver.SolverRe
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAAddressVisitor;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPABuiltins;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAExportOptions;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAValueVisitor;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
@@ -111,12 +113,16 @@ public class SMGCPAExpressionEvaluator {
       LogManagerWithoutDuplicates pLogger,
       SMGCPAExportOptions pExportSMGOptions,
       SMGOptions pSMGOptions,
-      ConstraintsSolver pSolver) {
+      ConstraintsSolver pSolver,
+      @Nullable CFA pCfa,
+      SMGCPAStatistics pStatistics) {
     logger = pLogger;
     machineModel = pMachineModel;
     exportSMGOptions = pExportSMGOptions;
     options = pSMGOptions;
-    builtins = new SMGCPABuiltins(this, options, exportSMGOptions, machineModel, logger);
+    builtins =
+        new SMGCPABuiltins(
+            this, options, exportSMGOptions, machineModel, logger, pCfa, pSolver, pStatistics);
     solver = pSolver;
     BIT_PRECISE_MEMORY_ADDRESS_TYPE = getBitPreciseMemoryAddressType(machineModel);
   }

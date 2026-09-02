@@ -145,7 +145,8 @@ public class SMGTransferRelation
 
   private final ConstraintsSolver solver;
 
-  private final CFA cfa;
+  // Nullable for tests
+  @Nullable private final CFA cfa;
 
   public SMGTransferRelation(
       LogManager pLogger,
@@ -172,17 +173,22 @@ public class SMGTransferRelation
     evaluator = pEvaluator;
     constraintsStrengthenOperator = pConstraintsStrengthenOperator;
     stats = pStats;
-    maybeLoopHeads = cfa.getAllLoopHeads();
-    Optional<LoopStructure> loopStructure = cfa.getLoopStructure();
-    ImmutableSet.Builder<CFAEdge> incomingAndOutgoing = ImmutableSet.builder();
-    if (loopStructure.isPresent()) {
-      ImmutableCollection<Loop> allLoops = loopStructure.orElseThrow().getAllLoops();
-      for (Loop loop : allLoops) {
-        incomingAndOutgoing.addAll(loop.getOutgoingEdges());
-        incomingAndOutgoing.addAll(loop.getIncomingEdges());
+    if (cfa != null) {
+      maybeLoopHeads = cfa.getAllLoopHeads();
+      Optional<LoopStructure> loopStructure = cfa.getLoopStructure();
+      ImmutableSet.Builder<CFAEdge> incomingAndOutgoing = ImmutableSet.builder();
+      if (loopStructure.isPresent()) {
+        ImmutableCollection<Loop> allLoops = loopStructure.orElseThrow().getAllLoops();
+        for (Loop loop : allLoops) {
+          incomingAndOutgoing.addAll(loop.getOutgoingEdges());
+          incomingAndOutgoing.addAll(loop.getIncomingEdges());
+        }
       }
+      incomingAndOutgoingLoopEdges = incomingAndOutgoing.build();
+    } else {
+      maybeLoopHeads = Optional.empty();
+      incomingAndOutgoingLoopEdges = ImmutableSet.of();
     }
-    incomingAndOutgoingLoopEdges = incomingAndOutgoing.build();
   }
 
   /* For tests only. */
@@ -1207,7 +1213,7 @@ public class SMGTransferRelation
    * The lValue is transformed into its memory (SMG) counterpart in which the rValue,
    * evaluated by the value visitor, is then saved.
    */
-  private List<SMGState> handleAssignment(
+  protected List<SMGState> handleAssignment(
       SMGState pState, CFAEdge cfaEdge, CExpression lValue, CRightHandSide rValue)
       throws CPATransferException {
 
@@ -1289,7 +1295,9 @@ public class SMGTransferRelation
                 rightHandSideType,
                 rValue,
                 valueAndState.getState(),
-                cfaEdge));
+                cfaEdge,
+                evaluator,
+                options));
       }
     }
 
@@ -1299,7 +1307,7 @@ public class SMGTransferRelation
   /*
    * Handles the concrete assignment of the value to its destination based on the types given.
    */
-  private List<SMGState> handleAssignmentOfValueTo(
+  private static List<SMGState> handleAssignmentOfValueTo(
       Value valueToWrite,
       CType leftHandSideType,
       CExpression lValueExpr,
@@ -1308,7 +1316,9 @@ public class SMGTransferRelation
       CType rightHandSideType,
       CRightHandSide rValueExpr,
       SMGState pCurrentState,
-      CFAEdge edge)
+      CFAEdge edge,
+      SMGCPAExpressionEvaluator evaluator,
+      SMGOptions options)
       throws CPATransferException {
 
     SMGState currentState = pCurrentState;

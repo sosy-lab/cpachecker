@@ -53,6 +53,7 @@ public class SMGStrongestPostOperator implements StrongestPostOperator<SMGState>
     SMGCPAExportOptions exportOptions =
         new SMGCPAExportOptions(options.getExportSMGFilePattern(), options.getExportSMGLevel());
     // TODO: get global PrecAdjustmentOptions
+    // TODO: get global statistics and the correct solver!
     transfer =
         new SMGTransferRelation(
             pLogger,
@@ -63,7 +64,7 @@ public class SMGStrongestPostOperator implements StrongestPostOperator<SMGState>
             null,
             pSolver,
             new SMGCPAExpressionEvaluator(
-                pCfa.getMachineModel(), pLogger, exportOptions, options, null));
+                pCfa.getMachineModel(), pLogger, exportOptions, options, null, pCfa, null));
   }
 
   @Override

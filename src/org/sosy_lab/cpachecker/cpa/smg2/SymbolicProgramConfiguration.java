@@ -1029,7 +1029,9 @@ public class SymbolicProgramConfiguration {
                               new LogManagerWithoutDuplicates(LogManager.createTestLogManager()),
                               new SMGCPAExportOptions(null, SMGExportLevel.NEVER),
                               new SMGOptions(Configuration.defaultConfiguration(), null),
-                              null),
+                              null,
+                              null,
+                              new SMGCPAStatistics()),
                           new SMGCPAStatistics())
                       .copyAndReplaceMemoryModel(pSpc));
       if (matList.size() != 1) {
