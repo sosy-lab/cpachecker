@@ -123,12 +123,8 @@ public final class DynamicMemoryHandler {
       final CExpressionVisitorWithPointerAliasing expressionVisitor)
       throws UnrecognizedCodeException, InterruptedException {
 
-    if (conv.options.isSuccessfulAllocFunctionName(functionName)
-        || conv.options.isSuccessfulZallocFunctionName(functionName)
-        || conv.options.isMemoryAllocationFunction(functionName)
-        || conv.options.isMemoryAllocationFunctionWithZeroing(functionName)) {
+    if (conv.options.isMemoryAllocationFunction(functionName)) {
       return Value.ofValue(handleMemoryAllocation(e, functionName));
-
     } else if (conv.options.isMemoryFreeFunction(functionName)) {
       return handleMemoryFree(e, expressionVisitor);
     } else if (conv.options.isMemoryReallocFunction(functionName)) {
@@ -169,12 +165,8 @@ public final class DynamicMemoryHandler {
       allocationSize = parameters.getFirst();
     }
 
-    final boolean isZeroing =
-        conv.options.isMemoryAllocationFunctionWithZeroing(functionName)
-            || conv.options.isSuccessfulZallocFunctionName(functionName);
-
     final String delegateFunctionName =
-        isZeroing
+        conv.options.isMemoryAllocationFunctionWithZeroing(functionName)
             ? conv.options.getSuccessfulZallocFunctionName()
             : conv.options.getSuccessfulAllocFunctionName();
 
@@ -265,7 +257,7 @@ public final class DynamicMemoryHandler {
       final PointerBase newBase = makeAllocBase(functionName, newType, pts.getFreshAllocationId());
       address =
           makeAllocation(
-              conv.options.isSuccessfulZallocFunctionName(functionName),
+              conv.options.getSuccessfulZallocFunctionName().equals(functionName),
               newType,
               newBase,
               Optional.of(sizeExp));
@@ -274,7 +266,7 @@ public final class DynamicMemoryHandler {
           makeAllocBase(functionName, CVoidType.VOID, pts.getFreshAllocationId());
       pts.addNextBaseAddressConstraints(newBase, null, sizeExp, true, constraints);
       pts.addTemporaryDeferredAllocation(
-          conv.options.isSuccessfulZallocFunctionName(functionName),
+          conv.options.getSuccessfulZallocFunctionName().equals(functionName),
           Optional.ofNullable(size)
               .map(
                   s ->
