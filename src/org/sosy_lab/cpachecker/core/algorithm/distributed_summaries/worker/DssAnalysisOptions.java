@@ -64,9 +64,8 @@ public class DssAnalysisOptions {
       name = "worker.logLevel",
       toUppercase = true,
       description =
-          "Log level of the logfile of every DssWorker. Levels below INFO make every block analysis"
-              + " write its complete abstract states, which costs far more time than the analysis"
-              + " itself, so only lower this to debug a single block.",
+          "Log level of the logfile of every DssWorker. Using ALL might slowdown the analysis"
+              + " noticeably",
       secure = true)
   private Level logLevel = Level.INFO;
 
