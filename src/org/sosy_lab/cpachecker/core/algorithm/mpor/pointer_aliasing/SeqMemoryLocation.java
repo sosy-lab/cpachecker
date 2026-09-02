@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.util.Objects;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -106,7 +107,11 @@ public record SeqMemoryLocation(
     }
 
     if (functionCallExpression.isPresent()) {
-      name.append("_").append(functionCallExpression.orElseThrow().toASTString());
+      // use the function name since the function call expression contains
+      // invalid characters for a variable name such as the brackets '(...)'
+      CExpression functionNameExpression =
+          functionCallExpression.orElseThrow().getFunctionNameExpression();
+      name.append("_").append(functionNameExpression.toASTString());
     }
 
     return name.toString();

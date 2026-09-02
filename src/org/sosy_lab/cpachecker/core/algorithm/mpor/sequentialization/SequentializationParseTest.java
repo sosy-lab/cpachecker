@@ -59,7 +59,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.executeThreadsUntilConflict", "true")
             .setOption("analysis.algorithm.MPOR.noBackwardLoopGoto", "false")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
-            .setOption("analysis.algorithm.MPOR.partialOrderReductionMode", "READ_AND_WRITE")
+            .setOption("analysis.algorithm.MPOR.partialOrderReductionPrecision", "READ_AND_WRITE")
             .setOption("analysis.algorithm.MPOR.selectionEncodingForStatements", "IF_ELSE_CHAIN")
             .setOption("analysis.algorithm.MPOR.shortVariableNames", "false")
             .build();
@@ -80,7 +80,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.comments", "true")
             .setOption("analysis.algorithm.MPOR.executeThreadsUntilConflict", "true")
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
-            .setOption("analysis.algorithm.MPOR.partialOrderReductionMode", "READ_AND_WRITE")
+            .setOption("analysis.algorithm.MPOR.partialOrderReductionPrecision", "READ_AND_WRITE")
             .setOption("analysis.algorithm.MPOR.scalarProgramCounters", "false")
             .setOption(
                 "analysis.algorithm.MPOR.selectionEncodingForStatements", "BINARY_SEARCH_TREE")
@@ -125,7 +125,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.noBackwardLoopGoto", "false")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
             .setOption("analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD")
-            .setOption("analysis.algorithm.MPOR.partialOrderReductionMode", "READ_AND_WRITE")
+            .setOption("analysis.algorithm.MPOR.partialOrderReductionPrecision", "READ_AND_WRITE")
             .setOption("analysis.algorithm.MPOR.pruneBitVectorEvaluations", "true")
             .setOption("analysis.algorithm.MPOR.scalarProgramCounters", "false")
             .setOption("analysis.algorithm.MPOR.selectionEncodingForStatements", "IF_ELSE_CHAIN")
@@ -155,7 +155,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
             .setOption(
                 "analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD_AND_NUM_STATEMENTS")
-            .setOption("analysis.algorithm.MPOR.partialOrderReductionMode", "ACCESS_ONLY")
+            .setOption("analysis.algorithm.MPOR.partialOrderReductionPrecision", "ACCESS_ONLY")
             .setOption("analysis.algorithm.MPOR.selectionEncodingForThreads", "BINARY_SEARCH_TREE")
             .setOption("analysis.algorithm.MPOR.validateNoBackwardGoto", "false")
             .build();
@@ -173,7 +173,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.executeThreadsUntilConflict", "true")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
             .setOption("analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD")
-            .setOption("analysis.algorithm.MPOR.partialOrderReductionMode", "ACCESS_ONLY")
+            .setOption("analysis.algorithm.MPOR.partialOrderReductionPrecision", "ACCESS_ONLY")
             .setOption("analysis.algorithm.MPOR.scalarProgramCounters", "false")
             .setOption("analysis.algorithm.MPOR.threadSimulationIterations", "7")
             .setOption("analysis.algorithm.MPOR.threadSimulationUnrolling", "true")
@@ -197,7 +197,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.noBackwardLoopGoto", "false")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
             .setOption("analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD")
-            .setOption("analysis.algorithm.MPOR.partialOrderReductionMode", "READ_AND_WRITE")
+            .setOption("analysis.algorithm.MPOR.partialOrderReductionPrecision", "READ_AND_WRITE")
             .setOption("analysis.algorithm.MPOR.pruneBitVectorEvaluations", "true")
             .setOption("analysis.algorithm.MPOR.scalarProgramCounters", "false")
             .setOption("analysis.algorithm.MPOR.selectionEncodingForThreads", "IF_ELSE_CHAIN")
@@ -243,7 +243,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.inputFunctionDeclarations", "true")
             .setOption(
                 "analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD_AND_NUM_STATEMENTS")
-            .setOption("analysis.algorithm.MPOR.partialOrderReductionMode", "READ_AND_WRITE")
+            .setOption("analysis.algorithm.MPOR.partialOrderReductionPrecision", "READ_AND_WRITE")
             .setOption("analysis.algorithm.MPOR.pruneBitVectorEvaluations", "true")
             .setOption("analysis.algorithm.MPOR.scalarProgramCounters", "false")
             .setOption("analysis.algorithm.MPOR.selectionEncodingForStatements", "IF_ELSE_CHAIN")
@@ -271,7 +271,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.noBackwardGoto", "false")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
             .setOption("analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD")
-            .setOption("analysis.algorithm.MPOR.partialOrderReductionMode", "ACCESS_ONLY")
+            .setOption("analysis.algorithm.MPOR.partialOrderReductionPrecision", "ACCESS_ONLY")
             .setOption(
                 "analysis.algorithm.MPOR.selectionEncodingForStatements", "BINARY_SEARCH_TREE")
             .setOption("analysis.algorithm.MPOR.selectionEncodingForThreads", "BINARY_SEARCH_TREE")
@@ -293,7 +293,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.executeThreadsUntilConflict", "true")
             .setOption(
                 "analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD_AND_NUM_STATEMENTS")
-            .setOption("analysis.algorithm.MPOR.partialOrderReductionMode", "READ_AND_WRITE")
+            .setOption("analysis.algorithm.MPOR.partialOrderReductionPrecision", "READ_AND_WRITE")
             .setOption("analysis.algorithm.MPOR.pruneBitVectorEvaluations", "true")
             .setOption("analysis.algorithm.MPOR.pruneSparseBitVectors", "true")
             .setOption("analysis.algorithm.MPOR.pruneSparseBitVectorWrites", "true")
@@ -342,7 +342,7 @@ public class SequentializationParseTest {
             .setOption("analysis.algorithm.MPOR.noBackwardLoopGoto", "false")
             .setOption("analysis.algorithm.MPOR.nondeterminismSigned", "true")
             .setOption("analysis.algorithm.MPOR.nondeterminismSource", "NEXT_THREAD")
-            .setOption("analysis.algorithm.MPOR.partialOrderReductionMode", "ACCESS_ONLY")
+            .setOption("analysis.algorithm.MPOR.partialOrderReductionPrecision", "ACCESS_ONLY")
             .setOption("analysis.algorithm.MPOR.scalarProgramCounters", "false")
             .setOption(
                 "analysis.algorithm.MPOR.selectionEncodingForStatements", "BINARY_SEARCH_TREE")
