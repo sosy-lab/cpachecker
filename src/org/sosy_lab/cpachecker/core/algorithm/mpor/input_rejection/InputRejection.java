@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
@@ -403,19 +404,29 @@ public class InputRejection {
 
   /**
    * Returns whether a pointer to {@code pTypeA} may point to a memory location of {@code pTypeB}.
+   *
+   * <p>{@code void} is compatible with any type because {@code void *} is the generic object
+   * pointer that can be converted to and from any other object pointer type, e.g. in {@code int
+   * *array = (int *) malloc(size);}.
    */
   private static boolean areTypesCompatible(CType pTypeA, CType pTypeB) {
-    return pTypeA.equals(pTypeB) || pTypeA.canBeAssignedFrom(pTypeB);
+    return pTypeA instanceof CVoidType
+        || pTypeB instanceof CVoidType
+        || pTypeA.equals(pTypeB)
+        || pTypeA.canBeAssignedFrom(pTypeB);
   }
 
   private static boolean isPointerOrArrayType(CType pType) {
-    return pType instanceof CPointerType || pType instanceof CArrayType;
+    CType canonicalType = pType.getCanonicalType();
+    return canonicalType instanceof CPointerType || canonicalType instanceof CArrayType;
   }
 
   private static boolean isPointerOrArrayOfPointersType(CType pType) {
+    CType canonicalType = pType.getCanonicalType();
     // CArrayType.getType() corresponds to the CType of the arrays elements
-    return pType instanceof CPointerType
-        || (pType instanceof CArrayType arrayType && arrayType.getType() instanceof CPointerType);
+    return canonicalType instanceof CPointerType
+        || (canonicalType instanceof CArrayType arrayType
+            && arrayType.getType().getCanonicalType() instanceof CPointerType);
   }
 
   /** Returns the name of {@code pMemoryLocation} as used in the input program. */
