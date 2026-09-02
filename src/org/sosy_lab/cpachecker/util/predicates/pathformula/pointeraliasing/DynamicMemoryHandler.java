@@ -178,19 +178,21 @@ public final class DynamicMemoryHandler {
             ? conv.options.getSuccessfulAllocFunctionName()
             : conv.options.getSuccessfulZallocFunctionName();
 
-    if (!(conv.options.makeMemoryAllocationsAlwaysSucceed()
-        || conv.options.isSuccessfulAllocFunctionName(functionName)
-        || conv.options.isSuccessfulZallocFunctionName(functionName))) {
+    Formula successfulAllocation =
+        handleSuccessfulMemoryAllocation(delegateFunctionName, allocationSize, e);
 
+    if (conv.options.makeMemoryAllocationsAlwaysSucceed()
+        || conv.options.isSuccessfulAllocFunctionName(functionName)
+        || conv.options.isSuccessfulZallocFunctionName(functionName)) {
+      return successfulAllocation;
+
+    } else {
       final Formula nondet =
           conv.makeFreshVariable(functionName, CPointerType.POINTER_TO_VOID, ssa);
       return conv.bfmgr.ifThenElse(
           conv.bfmgr.not(conv.fmgr.makeEqual(nondet, conv.nullPointer)),
-          handleSuccessfulMemoryAllocation(delegateFunctionName, allocationSize, e),
+          successfulAllocation,
           conv.nullPointer);
-
-    } else {
-      return handleSuccessfulMemoryAllocation(delegateFunctionName, allocationSize, e);
     }
   }
 
