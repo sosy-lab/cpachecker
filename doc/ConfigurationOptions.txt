@@ -4713,9 +4713,8 @@ distributedSummaries.worker.forwardConfiguration = "config/distributed-summary-s
 # the same name as the ID of the worker.
 distributedSummaries.worker.logDirectory = "block_analysis/logfiles"
 
-# Log level of the logfile of every DssWorker. Levels below INFO make every
-# block analysis write its complete abstract states, which costs far more
-# time than the analysis itself, so only lower this to debug a single block.
+# Log level of the logfile of every DssWorker. Using ALL might slowdown the
+# analysis noticeably
 distributedSummaries.worker.logLevel = Level.INFO
 
 # The path to which the different versions of the correctness witnesses will
