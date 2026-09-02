@@ -868,6 +868,8 @@ public class SMGCPABuiltins {
     CCastExpression calculationCast =
         new CCastExpression(FileLocation.DUMMY, typeOfThirdArg, calculation);
 
+    // If the stored result is equal to the infinite precision result,
+    //  the built-in functions return false, otherwise they return true.
     CBinaryExpression overflowComparison =
         new CBinaryExpression(
             FileLocation.DUMMY,
