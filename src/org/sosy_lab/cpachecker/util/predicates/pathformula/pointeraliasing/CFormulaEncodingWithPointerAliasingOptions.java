@@ -188,7 +188,7 @@ public class CFormulaEncodingWithPointerAliasingOptions extends CFormulaEncoding
   public boolean isMemoryAllocationFunction(final String name) {
     return super.isMemoryAllocationFunction(name)
         || successfulAllocFunctionName.equals(name)
-        || isMemoryAllocationFunctionWithZeroing(name);
+        || successfulZallocFunctionName.equals(name);
   }
 
   String getSuccessfulAllocFunctionName() {

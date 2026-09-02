@@ -133,7 +133,8 @@ public class CFormulaEncodingOptions extends FormulaEncodingOptions {
   }
 
   public boolean isMemoryAllocationFunction(String function) {
-    return memoryAllocationFunctions.contains(function);
+    return memoryAllocationFunctions.contains(function)
+        || isMemoryAllocationFunctionWithZeroing(function);
   }
 
   public boolean isExternModelFunction(String function) {
