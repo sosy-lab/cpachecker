@@ -647,8 +647,7 @@ public class ExpressionToFormulaVisitor
       functionName = cIdExpression.getName();
 
       if (conv.options.isNondetFunction(functionName)
-          || conv.options.isMemoryAllocationFunction(functionName)
-          || conv.options.isMemoryAllocationFunctionWithZeroing(functionName)) {
+          || conv.options.isMemoryAllocationFunction(functionName)) {
         // Function call like "random()".
         // Also "malloc()" etc. just return a random value, so handle them similarly.
         // Ignore parameters and just create a fresh variable for it.
