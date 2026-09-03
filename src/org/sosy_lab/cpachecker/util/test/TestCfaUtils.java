@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.test;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import java.io.File;
 import java.io.IOException;
@@ -70,7 +71,7 @@ public class TestCfaUtils {
     try {
       @SuppressWarnings("varargs")
       ConfigurationBuilder config =
-          TestUtils.configurationForTest().setOptions(Map.ofEntries(options));
+          TestUtils.configurationForTest().setOptions(ImmutableMap.ofEntries(options));
       // TODO: once #1706 is fixed hard-code parser.usePreprocessor=false here
 
       CFACreator creator =
