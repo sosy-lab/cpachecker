@@ -470,7 +470,7 @@ public class SMGStateTest {
   @Before
   public void setUp() throws SMGInconsistentException, InvalidConfigurationException {
 
-    ConfigurationBuilder builder = Configuration.builder();
+    ConfigurationBuilder builder = TestUtils.configurationForTest();
     builder.setOption("cpa.smg.runtimeCheck", "HALF");
     Configuration config = builder.build();
 
