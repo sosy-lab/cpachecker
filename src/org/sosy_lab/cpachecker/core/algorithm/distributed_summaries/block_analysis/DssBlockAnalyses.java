@@ -12,12 +12,12 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimaps;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Objects;
 import org.jspecify.annotations.NonNull;
@@ -44,10 +44,40 @@ public final class DssBlockAnalyses {
         .toList();
   }
 
-  private static Multimap<BlockState, AbstractState> sortGhostStatesByPredecessor(
+  /**
+   * Groups the given ghost states by the block-end state they were spawned from.
+   *
+   * <p>Keyed by object identity: {@link BlockState} describes only where in the block a state is,
+   * so several states of one reached set can be equal without being the same state. The predecessor
+   * is a back-pointer to one specific state, and only identity preserves that.
+   */
+  private static ListMultimap<BlockState, AbstractState> sortGhostStatesByPredecessor(
       List<AbstractState> states) {
-    return Multimaps.index(
-        states, a -> AbstractStates.extractStateByType(a, BlockState.class).getPredecessor());
+    ListMultimap<BlockState, AbstractState> byPredecessor =
+        Multimaps.newListMultimap(new IdentityHashMap<>(), ArrayList::new);
+    for (AbstractState state : states) {
+      byPredecessor.put(
+          AbstractStates.extractStateByType(state, BlockState.class).getPredecessor(), state);
+    }
+    return byPredecessor;
+  }
+
+  /**
+   * Maps every {@link BlockState} of the reached set to the state that contains it, so that a
+   * back-pointer into the block CPA can be resolved to the entry of the reached set that the
+   * waitlist knows.
+   *
+   * <p>Keyed by object identity for the same reason as {@link #sortGhostStatesByPredecessor(List)}:
+   * equal block states would collide, while every state of the reached set has its own block state
+   * instance.
+   */
+  private static IdentityHashMap<BlockState, AbstractState> indexByBlockState(
+      ReachedSet pReachedSet) {
+    IdentityHashMap<BlockState, AbstractState> blockStateToState = new IdentityHashMap<>();
+    for (AbstractState state : pReachedSet) {
+      blockStateToState.put(AbstractStates.extractStateByType(state, BlockState.class), state);
+    }
+    return blockStateToState;
   }
 
   /**
@@ -67,10 +97,8 @@ public final class DssBlockAnalyses {
     while (pReachedSet.hasWaitingState()) {
       status = status.update(pAlgorithm.run(pReachedSet));
       AbstractStates.getTargetStates(pReachedSet).forEach(pReachedSet::removeOnlyFromWaitlist);
-      ImmutableMap<BlockState, AbstractState> blockStateToState =
-          Maps.uniqueIndex(
-              pReachedSet, a -> AbstractStates.extractStateByType(a, BlockState.class));
-      Multimap<BlockState, AbstractState> predecessorToStates =
+      IdentityHashMap<BlockState, AbstractState> blockStateToState = indexByBlockState(pReachedSet);
+      ListMultimap<BlockState, AbstractState> predecessorToStates =
           sortGhostStatesByPredecessor(extractBlockStatesAtGhostLocation(pReachedSet));
       for (BlockState blockState : predecessorToStates.keySet()) {
         checkState(blockState.getType() == BlockStateType.FINAL);
