@@ -170,7 +170,7 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
   private ImmutableCollection<CFANode> getAtomicBlockNodes(CFA pCFA) {
     ImmutableSet.Builder<CFANode> atomicBlockNodesBuilder = ImmutableSet.builder();
     for (CFAEdge edge : pCFA.edges()) {
-      if (MutexFunctions.isAtomicBeginCall(edge)) {
+      if (MutexFunctions.isAtomicBegin(edge)) {
         Set<CFANode> nodesToVisit = new LinkedHashSet<>();
         nodesToVisit.add(edge.getSuccessor());
         while (!nodesToVisit.isEmpty()) {
@@ -178,7 +178,7 @@ class SingleGlobalStatementBlockAggregator extends StraightLineBlockAggregator {
           nodesToVisit.remove(currentNode);
           atomicBlockNodesBuilder.add(currentNode);
           for (CFAEdge leavingEdge : currentNode.getLeavingEdges()) {
-            if (!MutexFunctions.isAtomicEndCall(leavingEdge)) {
+            if (!MutexFunctions.isAtomicEnd(leavingEdge)) {
               nodesToVisit.add(leavingEdge.getSuccessor());
             }
           }

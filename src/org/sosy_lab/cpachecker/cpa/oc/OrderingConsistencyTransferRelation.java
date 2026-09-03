@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.oc;
 
+import static org.sosy_lab.cpachecker.util.CFAUtils.getFunctionCallName;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -19,6 +21,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -222,16 +225,16 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       CFAEdge pEdge,
       List<AbstractState> pSuccessors)
       throws CPATransferException, InterruptedException {
-    String callee = getCalledFunctionName(pEdge);
-    if (callee != null && cpa.getErrorFunctions().contains(callee)) {
+    Optional<String> callee = getFunctionCallName(pEdge);
+    if (callee.isPresent() && cpa.getErrorFunctions().contains(callee.get())) {
       handleError(pState, pEdge, pSuccessors);
       return;
     }
-    if (callee != null && ThreadFunctions.isThreadExitFunction(callee)) {
+    if (callee.isPresent() && ThreadFunctions.isThreadExitFunction(callee.get())) {
       addThreadExitEvent(pState, pEdge); // the path ends here, the thread terminates normally
       return;
     }
-    if (callee != null && PROGRAM_EXIT_FUNCTIONS.contains(callee)) {
+    if (callee.isPresent() && PROGRAM_EXIT_FUNCTIONS.contains(callee.get())) {
       // the whole program dies here; the event blocks any pthread_join of this instance
       addEventAfter(
           pState,
@@ -246,17 +249,17 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
           pEdge);
       return;
     }
-    if (callee != null && ThreadFunctions.isCreateFunction(callee)) {
+    if (callee.isPresent() && ThreadFunctions.isCreateFunction(callee.get())) {
       handleCreate(pState, pEdge, pSuccessors);
       return;
     }
-    if (callee != null && ThreadFunctions.isJoinFunction(callee)) {
+    if (callee.isPresent() && ThreadFunctions.isJoinFunction(callee.get())) {
       handleJoin(pState, pEdge, pSuccessors);
       return;
     }
     if (pEdge instanceof CFunctionCallEdge
-        && callee != null
-        && callee.startsWith(ATOMIC_FUNCTION_PREFIX)) {
+        && callee.isPresent()
+        && callee.get().startsWith(ATOMIC_FUNCTION_PREFIX)) {
       // SV-COMP semantics: the body of a __VERIFIER_atomic_* function executes atomically. Model
       // the call as acquiring the global atomic-block pseudo-mutex; the matching release happens
       // at the function-return edge below. A body that never returns (abort/error inside) keeps
@@ -302,11 +305,11 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
       }
       return;
     }
-    if (callee != null
-        && WRITE_THROUGH_POINTER_FUNCTIONS.contains(callee)
+    if (callee.isPresent()
+        && WRITE_THROUGH_POINTER_FUNCTIONS.contains(callee.get())
         && callsWithAddressOfGlobal(pEdge)) {
       throw new UnsupportedCodeException(
-          callee
+          callee.get()
               + " writes to a global through a pointer argument, which the data-race analysis"
               + " does not model",
           pEdge);
@@ -367,14 +370,6 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
         null,
         null,
         pEdge);
-  }
-
-  /** Returns the name of the function called by this edge, or null if it is not a call. */
-  private static @Nullable String getCalledFunctionName(CFAEdge pEdge) {
-    if (pEdge instanceof CFunctionCallEdge callEdge) {
-      return callEdge.getSuccessor().getFunctionName();
-    }
-    return MutexFunctions.getFunctionCallName(pEdge);
   }
 
   private void handleError(
@@ -857,24 +852,24 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     @Nullable String regionId = null;
     @Nullable Formula addressTerm = null;
     ImmutableList<Integer> lastEventIds = pState.getLastEventIds();
-    if (MutexFunctions.isAtomicBeginCall(pEdge)) {
+    if (MutexFunctions.isAtomicBegin(pEdge)) {
       kind = EventKind.LOCK;
       mutexId = MemoryEvent.ATOMIC_BLOCK_MUTEX;
-    } else if (MutexFunctions.isAtomicEndCall(pEdge)) {
+    } else if (MutexFunctions.isAtomicEnd(pEdge)) {
       kind = EventKind.UNLOCK;
       mutexId = MemoryEvent.ATOMIC_BLOCK_MUTEX;
     } else {
-      String callee = MutexFunctions.getFunctionCallName(pEdge);
-      if (callee != null && MutexFunctions.isLockFunction(callee)) {
+      Optional<String> callee = getFunctionCallName(pEdge);
+      if (callee.isPresent() && MutexFunctions.isLockFunction(callee.get())) {
         kind = EventKind.LOCK;
-        readLock = MutexFunctions.isReadLockFunction(callee);
-      } else if (callee != null && MutexFunctions.isUnlockFunction(callee)) {
+        readLock = MutexFunctions.isReadLockFunction(callee.get());
+      } else if (callee.isPresent() && MutexFunctions.isUnlockFunction(callee.get())) {
         kind = EventKind.UNLOCK;
       } else {
         // a mutex init/destroy is a no-op for ordering; any other call is not ours
-        if (callee != null
-            && (MutexFunctions.isInitFunction(callee)
-                || MutexFunctions.isDestroyFunction(callee))) {
+        if (callee.isPresent()
+            && (MutexFunctions.isInitFunction(callee.get())
+                || MutexFunctions.isDestroyFunction(callee.get()))) {
           addSuccessor(
               pSuccessors,
               pState,
@@ -955,8 +950,8 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
   private boolean handleTrylock(
       OrderingConsistencyState pState, CFAEdge pEdge, List<AbstractState> pSuccessors)
       throws CPATransferException, InterruptedException {
-    String callee = MutexFunctions.getFunctionCallName(pEdge);
-    if (callee == null || !MutexFunctions.isTrylockFunction(callee)) {
+    Optional<String> callee = getFunctionCallName(pEdge);
+    if (callee.isEmpty() || !MutexFunctions.isTrylockFunction(callee.get())) {
       return false;
     }
     List<? extends AExpression> arguments = getCallParameters(pEdge);
@@ -1046,7 +1041,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
             MemoryEvent.MUTEX_REGION,
             mutexAddress.term(),
             pEdge);
-    if (MutexFunctions.isReadTrylockFunction(callee)) {
+    if (MutexFunctions.isReadTrylockFunction(callee.get())) {
       registry.markReadLock(lockEvent.id());
     }
     addSuccessor(

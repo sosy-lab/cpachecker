@@ -225,7 +225,7 @@ public class MutexState implements AbstractState {
 
   public MutexState update(CFAEdge edge, int pid, ImmutableSet<String> mutexCandidates) {
     // Handle __VERIFIER_atomic_begin / __VERIFIER_atomic_end (no parameters needed)
-    if (MutexFunctions.isAtomicBeginCall(edge)) {
+    if (MutexFunctions.isAtomicBegin(edge)) {
       if (isAtomicBlockedFor(pid)) {
         // Another thread already holds the atomic block — should not happen (POR filters it)
         return null;
@@ -233,7 +233,7 @@ public class MutexState implements AbstractState {
       return withAtomicBegin(pid);
     }
 
-    if (MutexFunctions.isAtomicEndCall(edge)) {
+    if (MutexFunctions.isAtomicEnd(edge)) {
       return withAtomicEnd();
     }
 

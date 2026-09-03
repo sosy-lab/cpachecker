@@ -8,8 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.mutex;
 
+import static org.sosy_lab.cpachecker.util.CFAUtils.getFunctionCallName;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -149,12 +152,12 @@ public final class MutexFunctions {
 
   /** Returns {@code true} if the given CFA edge is a mutex lock function call. */
   public static boolean isLockCall(CFAEdge edge) {
-    return getLockMutex(edge) != null || isAtomicBeginCall(edge);
+    return getLockMutex(edge) != null || isAtomicBegin(edge);
   }
 
   /** Returns {@code true} if the given CFA edge is a mutex unlock function call. */
   public static boolean isUnlockCall(CFAEdge edge) {
-    return getUnlockMutex(edge) != null || isAtomicEndCall(edge);
+    return getUnlockMutex(edge) != null || isAtomicEnd(edge);
   }
 
   /**
@@ -223,45 +226,20 @@ public final class MutexFunctions {
     return DESTROY_FUNCTIONS.contains(functionName);
   }
 
-  /** Returns {@code true} if the given function name is {@code __VERIFIER_atomic_begin}. */
-  public static boolean isAtomicBegin(String functionName) {
-    return ATOMIC_BEGIN.equals(functionName);
-  }
-
-  /** Returns {@code true} if the given function name is {@code __VERIFIER_atomic_end}. */
-  public static boolean isAtomicEnd(String functionName) {
-    return ATOMIC_END.equals(functionName);
-  }
-
   /** Returns {@code true} if the CFA edge is a {@code __VERIFIER_atomic_begin} call. */
-  public static boolean isAtomicBeginCall(CFAEdge edge) {
-    String name = getFunctionCallName(edge);
-    return isAtomicBegin(name)
+  public static boolean isAtomicBegin(CFAEdge edge) {
+    Optional<String> name = getFunctionCallName(edge);
+    return ATOMIC_BEGIN.equals(name.orElse(null))
         || (edge.getPredecessor() instanceof FunctionEntryNode
             && edge.getPredecessor().getFunctionName().startsWith(ATOMIC_PREFIX));
   }
 
   /** Returns {@code true} if the CFA edge is a {@code __VERIFIER_atomic_end} call. */
-  public static boolean isAtomicEndCall(CFAEdge edge) {
-    String name = getFunctionCallName(edge);
-    return isAtomicEnd(name)
+  public static boolean isAtomicEnd(CFAEdge edge) {
+    Optional<String> name = getFunctionCallName(edge);
+    return ATOMIC_END.equals(name.orElse(null))
         || (edge.getSuccessor() instanceof FunctionExitNode
             && edge.getPredecessor().getFunctionName().startsWith(ATOMIC_PREFIX));
-  }
-
-  /**
-   * Extracts the function name from a CFA edge if it is a function call statement, or returns
-   * {@code null}.
-   */
-  public static String getFunctionCallName(CFAEdge edge) {
-    if (edge instanceof AStatementEdge sEdge
-        && sEdge.getStatement() instanceof AFunctionCall funcCall) {
-      AExpression funcNameExpr = funcCall.getFunctionCallExpression().getFunctionNameExpression();
-      if (funcNameExpr instanceof AIdExpression funcName) {
-        return funcName.getName();
-      }
-    }
-    return null;
   }
 
   private static @Nullable MutexLock getMutexLockForFunctionSet(

@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
@@ -125,6 +126,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibSymbolApplicationRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -326,6 +328,21 @@ public class CFAUtils {
             .getLeavingEdges()
             .filter(e -> !e.equals(edge))
             .filter(AssumeEdge.class));
+  }
+
+  /** Returns the function name from a CFA edge if it contains a function call, or empty. */
+  public static Optional<String> getFunctionCallName(CFAEdge edge) {
+    if (edge instanceof CFunctionCallEdge callEdge) {
+      return Optional.of(callEdge.getSuccessor().getFunctionName());
+    }
+    if (edge instanceof AStatementEdge sEdge
+        && sEdge.getStatement() instanceof AFunctionCall funcCall) {
+      AExpression funcNameExpr = funcCall.getFunctionCallExpression().getFunctionNameExpression();
+      if (funcNameExpr instanceof AIdExpression funcName) {
+        return Optional.of(funcName.getName());
+      }
+    }
+    return Optional.empty();
   }
 
   /**
