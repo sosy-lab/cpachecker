@@ -32,7 +32,7 @@ public class DistributedSummarySynthesisTest {
   private static final String CONFIGURATION_FILE_GENERATE_BLOCK_GRAPH =
       "config/generateBlockGraph.properties";
   private static final String PROGRAM = "doc/examples/example.c";
-  private static final String BLOCKS_JSON_PATH = "output/block_analysis/blocks.json";
+  private static final String BLOCKS_JSON_PATH = "block_analysis/blocks.json";
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 

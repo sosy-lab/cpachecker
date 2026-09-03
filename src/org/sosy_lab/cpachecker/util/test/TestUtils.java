@@ -89,7 +89,7 @@ public class TestUtils {
   /**
    * Create a configuration suitable for tests where output files should be enabled. In order to not
    * clutter the current directory, we require a temporary directory where the files will be
-   * written.
+   * written. Note that all output files will be written directly to this directory.
    *
    * @return A {@link ConfigurationBuilder} which can be further modified and then can be used to
    *     {@link ConfigurationBuilder#build()} a {@link Configuration} object.
@@ -99,6 +99,7 @@ public class TestUtils {
     Configuration typeConverterConfig =
         Configuration.builder()
             .setOption("rootDirectory", rootDirectory.getRoot().toString())
+            .setOption("output.path", ".")
             .build();
     FileTypeConverter fileTypeConverter = FileTypeConverter.create(typeConverterConfig);
     Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
