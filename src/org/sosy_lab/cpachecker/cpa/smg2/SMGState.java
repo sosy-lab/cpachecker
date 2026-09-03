@@ -5033,7 +5033,7 @@ public class SMGState
       // The offset is not necessarily concrete now! We assign a concrete value in one state and
       //   block it in the symbolic value for another state.
       List<SMGStateAndOptionalSMGObjectAndOffset> assignedAndEvaldStates =
-          expr.accept(new SMGCPAAddressVisitor(evaluator, assignedState, edge, logger, options));
+          expr.accept(new SMGCPAAddressVisitor(evaluator, assignedState, edge, logger));
       if (options.isMemoryErrorTarget()) {
         for (SMGStateAndOptionalSMGObjectAndOffset assignedAndEvaldState : assignedAndEvaldStates) {
           if (assignedAndEvaldState.getSMGState().hasMemoryErrors()) {
@@ -5055,8 +5055,7 @@ public class SMGState
     List<SMGStateAndOptionalSMGObjectAndOffset> targetsAndOffsetsAndStates;
     try {
       targetsAndOffsetsAndStates =
-          lValueExpr.accept(
-              new SMGCPAAddressVisitor(evaluator, assignedState, edge, logger, options));
+          lValueExpr.accept(new SMGCPAAddressVisitor(evaluator, assignedState, edge, logger));
     } catch (CPATransferException e) {
       if (e instanceof SMGException smgException) {
         throw smgException;
@@ -5088,8 +5087,7 @@ public class SMGState
     List<ValueAndSMGState> valuesAndStates;
     try {
       valuesAndStates =
-          exprReading.accept(
-              new SMGCPAValueVisitor(evaluator, assignedState, edge, logger, options));
+          exprReading.accept(new SMGCPAValueVisitor(evaluator, assignedState, edge, logger));
     } catch (CPATransferException e) {
       if (e instanceof SMGException sMGException) {
         throw sMGException;
@@ -5106,8 +5104,7 @@ public class SMGState
   private ValueAndSMGState reEvaluateValueToWriteAfterConcreteAssignment(
       CRightHandSide rValueExpr, CFAEdge edge, SMGState currentAssignedState)
       throws SMGException, SMGSolverException {
-    SMGCPAValueVisitor vv =
-        new SMGCPAValueVisitor(evaluator, currentAssignedState, edge, logger, options);
+    SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, currentAssignedState, edge, logger);
     List<ValueAndSMGState> possibleValues;
     try {
       possibleValues = rValueExpr.accept(vv);

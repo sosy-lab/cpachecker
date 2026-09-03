@@ -320,7 +320,7 @@ public class SMGTransferRelation
         rightHandSideType = returnAssignment.orElseThrow().getRightHandSide().getExpressionType();
       }
 
-      SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, state, returnEdge, logger, options);
+      SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, state, returnEdge, logger);
       for (ValueAndSMGState returnValueAndState : vv.evaluate(returnExp, retType)) {
         // We get the size per state as it could theoretically change per state (abstraction)
         Value sizeInBits = evaluator.getBitSizeof(state, retType, returnEdge);
@@ -657,8 +657,7 @@ public class SMGTransferRelation
         // Evaluate the CExpr into a Value
         // Note: this evaluates local arrays into pointers!!!!!
         List<ValueAndSMGState> valuesAndStates =
-            cParamExp.accept(
-                new SMGCPAValueVisitor(evaluator, currentState, callEdge, logger, options));
+            cParamExp.accept(new SMGCPAValueVisitor(evaluator, currentState, callEdge, logger));
 
         // If this ever fails; we need to take all states/values into account, meaning we would need
         // to proceed from this point onwards with all of them with all following operations
@@ -900,7 +899,7 @@ public class SMGTransferRelation
 
     ImmutableList.Builder<SMGState> resultStateBuilder = ImmutableList.builder();
     // Get the value of the expression (either true[1L], false[0L], or unknown[null])
-    SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger, options);
+    SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger);
     for (ValueAndSMGState valueAndState :
         vv.evaluate(
             cExpression, SMGCPAExpressionEvaluator.getCanonicalType((CExpression) expression))) {
@@ -924,7 +923,6 @@ public class SMGTransferRelation
                 cfaEdge,
                 logger,
                 truthValue,
-                options,
                 booleanVariables,
                 functionName);
         try {
@@ -1251,8 +1249,7 @@ public class SMGTransferRelation
         // No memory for the left hand side found -> UNKNOWN
         // We still evaluate the right hand side to find errors though
         List<ValueAndSMGState> listOfStates =
-            rValue.accept(
-                new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger, options));
+            rValue.accept(new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger));
         returnStateBuilder.addAll(Lists.transform(listOfStates, ValueAndSMGState::getState));
         continue;
       }
@@ -1302,8 +1299,7 @@ public class SMGTransferRelation
       // The right hand side either returns Values representing values or an AddressExpression. In
       // the later case this means the entire structure behind it needs to be copied as C is
       // pass-by-value.
-      SMGCPAValueVisitor vv =
-          new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger, options);
+      SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger);
       for (ValueAndSMGState valueAndState : vv.evaluate(rValue, leftHandSideType)) {
         returnStateBuilder.addAll(
             handleAssignmentOfValueTo(
