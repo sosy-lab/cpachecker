@@ -986,14 +986,15 @@ public class SMGTransferRelation
   protected Collection<SMGState> handleStatementEdge(CStatementEdge pCfaEdge, CStatement cStmt)
       throws CPATransferException {
     // Either assignments a = b; or function calls foo(..);
-    return handleStatement(cStmt, pCfaEdge, state, evaluator);
+    return handleStatement(cStmt, pCfaEdge, state, evaluator, logger);
   }
 
   private static ImmutableList<SMGState> handleStatement(
       CStatement cStmt,
       CStatementEdge pCfaEdge,
       final SMGState initialState,
-      SMGCPAExpressionEvaluator evaluator)
+      SMGCPAExpressionEvaluator evaluator,
+      LogManager logger)
       throws CPATransferException {
     if (cStmt instanceof CAssignment cAssignment) {
       // Assignments, evaluate the right hand side value using the value visitor and write it into
@@ -1022,7 +1023,8 @@ public class SMGTransferRelation
       // Memory allocating function calls that need to be freed without remembering the pointer
       // leads to memory-leaks. Speed up this process.
       handledFunReturn =
-          postprocessBuiltinCFunctionWithoutReturn(handledFunReturn, pCfaEdge, calledFunctionName);
+          postprocessBuiltinCFunctionWithoutReturn(
+              handledFunReturn, pCfaEdge, calledFunctionName, logger);
 
       return transformedImmutableListCopy(handledFunReturn, ValueAndSMGState::getState);
 
@@ -1038,10 +1040,11 @@ public class SMGTransferRelation
    * freed. Other function calls are handled normally. Expects the input states to already have the
    * functions handled, and the values being the return values of the functions.
    */
-  private List<ValueAndSMGState> postprocessBuiltinCFunctionWithoutReturn(
+  private static List<ValueAndSMGState> postprocessBuiltinCFunctionWithoutReturn(
       List<ValueAndSMGState> statesWithHandledFunctions,
       CStatementEdge pCfaEdge,
-      String calledFunctionName)
+      String calledFunctionName,
+      LogManager logger)
       throws CPATransferException {
 
     if (isMemoryAllocatingFunction(calledFunctionName)) {
@@ -1080,7 +1083,7 @@ public class SMGTransferRelation
               "Error: unexpected return value "
                   + funReturn
                   + " encountered in post-processing of function call to "
-                  + functionName
+                  + calledFunctionName
                   + "() without assigning the functions return value at "
                   + pCfaEdge);
         }
