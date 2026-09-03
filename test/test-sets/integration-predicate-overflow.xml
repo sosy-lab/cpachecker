@@ -21,15 +21,11 @@ SPDX-License-Identifier: Apache-2.0
   </rundefinition>
 
   <tasks name="Systems_BusyBox_Overflows">
-    <!-- all tasks in ../programs/benchmarks assume malloc always succeeds-->
-    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
     <exclude>../programs/benchmarks/busybox-1.22.0/realpath-1.yml</exclude> <!-- flapping unknown/timeout -->
   </tasks>
   <tasks name="Overflows-Main">
-    <!-- all tasks in ../programs/benchmarks assume malloc always succeeds-->
-    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <includesfile>../programs/benchmarks/Arrays.set</includesfile>
     <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
     <includesfile>../programs/benchmarks/BitVectors-Termination.set</includesfile>
