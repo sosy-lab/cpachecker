@@ -78,7 +78,7 @@ public class TestCfaUtils {
 
       return creator.parseSourceAndCreateCFA(program);
     } catch (InvalidConfigurationException e) {
-      throw new AssertionError("Default configuration is invalid?");
+      throw new AssertionError("Default configuration is invalid?", e);
     }
   }
 
