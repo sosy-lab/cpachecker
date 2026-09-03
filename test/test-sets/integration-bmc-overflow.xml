@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "http://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="2">
+
+  <!--
+    Bounded model checking does not stop at the first violation, so it is the only kind of
+    analysis that creates counterexamples for an ARG which the OverflowCPA branches.
+  -->
+
+  <option name="--no-output-files"/>
+  <option name="--heap">2000M</option>
+
+  <rundefinition>
+    <option name="--bmc--overflow"/>
+  </rundefinition>
+
+  <tasks name="Overflow-Simple">
+    <includesfile>../programs/simple/overflow/overflow.set</includesfile>
+    <propertyfile>../config/properties/no-overflow.prp</propertyfile>
+    <!-- Some tasks in this set use malloc-->
+    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+  </tasks>
+</benchmark>
