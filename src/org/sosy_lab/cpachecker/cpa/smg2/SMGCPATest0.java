@@ -133,9 +133,7 @@ public class SMGCPATest0 {
             logger,
             SMGCPAExportOptions.getNoExportInstance(),
             smgOptions,
-            makeTestSolver(machineModel, logger),
-            null,
-            new SMGCPAStatistics());
+            makeTestSolver(machineModel, logger));
     currentState = SMGState.of(machineModel, logger, smgOptions, evaluator, new SMGCPAStatistics());
     numericPointerSizeInBits = new NumericValue(pointerSizeInBits);
     currentState = currentState.copyAndAddDummyStackFrame();
@@ -750,9 +748,7 @@ public class SMGCPATest0 {
             logger,
             SMGCPAExportOptions.getNoExportInstance(),
             smgOptions,
-            SMGCPATest0.makeTestSolver(machineModel, logger),
-            null,
-            new SMGCPAStatistics());
+            SMGCPATest0.makeTestSolver(machineModel, logger));
     SMGState state =
         SMGState.of(machineModel, logger, smgOptions, evaluator, new SMGCPAStatistics());
     return state.copyAndReplaceMemoryModel(state.getMemoryModel().copyWithNewSMG(pSmg));

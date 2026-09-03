@@ -175,13 +175,7 @@ public class SMGCPATransferRelationTest {
     smgOptions = new SMGOptions(defaultOptionsNoPreciseRead, null);
     SMGCPAExpressionEvaluator evaluator =
         new SMGCPAExpressionEvaluator(
-            MACHINE_MODEL,
-            logManager,
-            SMGCPAExportOptions.getNoExportInstance(),
-            smgOptions,
-            null,
-            null,
-            new SMGCPAStatistics());
+            MACHINE_MODEL, logManager, SMGCPAExportOptions.getNoExportInstance(), smgOptions, null);
 
     initialState =
         SMGState.of(MACHINE_MODEL, logManager, smgOptions, evaluator, new SMGCPAStatistics())

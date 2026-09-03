@@ -1232,7 +1232,7 @@ public class SMGTransferRelation
    * lValue = foo();. The left value lValue is transformed into its memory (SMG) counterpart in
    * which the rValue, evaluated by the value-visitor, is then saved.
    */
-  private static List<SMGState> handleAssignment(
+  static List<SMGState> handleAssignment(
       SMGState pState,
       CFAEdge cfaEdge,
       CExpression lValue,

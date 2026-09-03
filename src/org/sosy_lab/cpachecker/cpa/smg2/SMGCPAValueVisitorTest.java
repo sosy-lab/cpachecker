@@ -173,8 +173,7 @@ public class SMGCPAValueVisitorTest {
 
     // null, null is fine as long as builtin functions are not used!
     evaluator =
-        new SMGCPAExpressionEvaluator(
-            MACHINE_MODEL, logger, null, options, makeTestSolver(), null, new SMGCPAStatistics());
+        new SMGCPAExpressionEvaluator(MACHINE_MODEL, logger, null, options, makeTestSolver());
 
     currentState = SMGState.of(MACHINE_MODEL, logger, options, evaluator, new SMGCPAStatistics());
 

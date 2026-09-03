@@ -166,7 +166,7 @@ public class SMGCPA
         new ConstraintsSolver(pConfig, machineModel, solver, formulaManager, converter, statistics);
     evaluator =
         new SMGCPAExpressionEvaluator(
-            machineModel, logger, exportOptions, options, constraintsSolver, cfa, statistics);
+            machineModel, logger, exportOptions, options, constraintsSolver);
   }
 
   public static CPAFactory factory() {

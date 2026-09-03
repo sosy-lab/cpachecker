@@ -64,7 +64,7 @@ public class SMGStrongestPostOperator implements StrongestPostOperator<SMGState>
             null,
             pSolver,
             new SMGCPAExpressionEvaluator(
-                pCfa.getMachineModel(), pLogger, exportOptions, options, null, pCfa, null));
+                pCfa.getMachineModel(), pLogger, exportOptions, options, null));
   }
 
   @Override

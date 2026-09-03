@@ -36,11 +36,9 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -68,7 +66,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
-import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.UnknownFunctionHandling;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintFactory;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.SatisfiabilityAndSMGState;
@@ -143,56 +140,18 @@ public class SMGCPABuiltins {
   private final SMGCPAExportOptions exportSMGOptions;
   private final SMGOptions options;
 
-  private final SMGCPAStatistics statistics;
-  private final ConstraintsSolver solver;
-  private final CFA cfa;
-
   public SMGCPABuiltins(
       SMGCPAExpressionEvaluator pExpressionEvaluator,
       SMGOptions pOptions,
       SMGCPAExportOptions pExportSMGOptions,
       MachineModel pMachineModel,
-      LogManagerWithoutDuplicates pLogger,
-      @Nullable CFA pCfa,
-      ConstraintsSolver pSolver,
-      SMGCPAStatistics pStatistics) {
+      LogManagerWithoutDuplicates pLogger) {
 
     evaluator = pExpressionEvaluator;
     machineModel = pMachineModel;
     logger = pLogger;
     exportSMGOptions = pExportSMGOptions;
     options = pOptions;
-    statistics = pStatistics;
-    solver = pSolver;
-    cfa = pCfa;
-  }
-
-  /**
-   * Creates a fresh copy a {@link SMGTransferRelation} and sets the info to the arguments. This is
-   * ONLY meant to be used to perform an operation defined on CExpressions. The new
-   * transfer-relation should be discarded afterward!
-   *
-   * @param newState set new {@link SMGState} set in the info of the new transfer relation.
-   * @param newCFAEdge the edge that is used in the operation performed on the new transfer. This
-   *     must have a valid predecessor, and should be a real edge from the CFA!
-   * @param newPrecision may be null if not used.
-   */
-  protected SMGTransferRelation getDummyTransferRelation(
-      SMGState newState, @Nullable SMGPrecision newPrecision, CFAEdge newCFAEdge) {
-    // TODO: this pulls infos from the CFA. Check whether this is already computed or whether this
-    // is costly!
-    SMGTransferRelation newTransfer =
-        new SMGTransferRelation(
-            logger,
-            options,
-            exportSMGOptions,
-            cfa,
-            null, // unused anyway
-            statistics,
-            solver,
-            evaluator);
-    newTransfer.setInfo(newState, newPrecision, newCFAEdge);
-    return newTransfer;
   }
 
   private static final int MEMSET_BUFFER_PARAMETER = 0;
@@ -643,16 +602,16 @@ public class SMGCPABuiltins {
     CExpression overflowComparison = resultExpressions.getFunctionReturn();
 
     // Assign the cast calculation result
-    SMGTransferRelation temporaryTransfer = getDummyTransferRelation(initialState, null, pCfaEdge);
     Collection<SMGState> assignedStates =
-        temporaryTransfer.handleAssignment(initialState, pCfaEdge, res, castCalculationResult);
+        SMGTransferRelation.handleAssignment(
+            initialState, pCfaEdge, res, castCalculationResult, evaluator, logger);
     checkState(assignedStates.size() == 1);
     SMGState currentState = assignedStates.iterator().next();
 
     // Calculate actual value returned by the function
     List<ValueAndSMGState> overflowComparisonResults =
         overflowComparison.accept(
-            new SMGCPAValueVisitor(evaluator, currentState, pCfaEdge, logger, options));
+            new SMGCPAValueVisitor(evaluator, currentState, pCfaEdge, logger));
     checkState(overflowComparisonResults.size() == 1);
     Value overflowComparisonResult = overflowComparisonResults.getFirst().getValue();
     currentState = overflowComparisonResults.getFirst().getState();
@@ -851,7 +810,7 @@ public class SMGCPABuiltins {
 
     List<ValueAndSMGState> overflowComparisonResults =
         overflowComparison.accept(
-            new SMGCPAValueVisitor(evaluator, initialState, pCfaEdge, logger, options));
+            new SMGCPAValueVisitor(evaluator, initialState, pCfaEdge, logger));
     checkState(overflowComparisonResults.size() == 1);
     Value overflowComparisonResult = overflowComparisonResults.getFirst().getValue();
     SMGState currentState = overflowComparisonResults.getFirst().getState();
@@ -1030,18 +989,19 @@ public class SMGCPABuiltins {
     // TODO: extract CExpression based part into its own method, as it can be used outside of SMG2!
     // return CExprAndCExpr.of(s, carryOutAssignment);
 
-    SMGTransferRelation temporaryTransfer = getDummyTransferRelation(initialState, null, pCfaEdge);
     Collection<SMGState> assignedStates =
-        temporaryTransfer.handleAssignment(
+        SMGTransferRelation.handleAssignment(
             initialState,
             pCfaEdge,
             carryOutAssignment.getLeftHandSide(),
-            carryOutAssignment.getRightHandSide());
+            carryOutAssignment.getRightHandSide(),
+            evaluator,
+            logger);
     checkState(assignedStates.size() == 1);
     SMGState currentState = assignedStates.iterator().next();
 
     List<ValueAndSMGState> functionResultValuesAndStates =
-        s.accept(new SMGCPAValueVisitor(evaluator, currentState, pCfaEdge, logger, options));
+        s.accept(new SMGCPAValueVisitor(evaluator, currentState, pCfaEdge, logger));
     checkState(functionResultValuesAndStates.size() == 1);
     Value functionResult = functionResultValuesAndStates.getFirst().getValue();
     currentState = functionResultValuesAndStates.getFirst().getState();
