@@ -625,18 +625,20 @@ public final class DssBlockAnalysis {
           dcpa.getViolationConditionOperator()
               .computeViolationCondition(
                   pathAndCondition.path(), Optional.ofNullable(pathAndCondition.condition()));
-      Preconditions.checkState(
-          violationCondition.isPresent(),
-          "The analysis found a feasible counterexample "
-              + "which could not be reestablished with the violation-condition operator.");
-      statePerProgramCounterBuilder.put(
-          new ViolationConditionProgramPoint(
-              Optional.ofNullable(pathAndCondition.condition()),
-              dcpa.computeProgramPointId(violationCondition.orElseThrow())),
-          violationCondition.orElseThrow());
+      if (violationCondition.isPresent()) {
+        statePerProgramCounterBuilder.put(
+            new ViolationConditionProgramPoint(
+                Optional.ofNullable(pathAndCondition.condition()),
+                dcpa.computeProgramPointId(violationCondition.orElseThrow())),
+            violationCondition.orElseThrow());
+      }
     }
     ImmutableListMultimap<ViolationConditionProgramPoint, AbstractState> statePerProgramCounter =
         statePerProgramCounterBuilder.build();
+    Preconditions.checkState(
+        !statePerProgramCounter.isEmpty(),
+        "The analysis found a feasible counterexample "
+            + "which could not be reestablished with the violation-condition operator.");
     ImmutableList.Builder<StateAndPrecision> vcs = ImmutableList.builder();
     if (options.combineViolationConditionsByHash()) {
       for (ViolationConditionProgramPoint programPoint : statePerProgramCounter.keySet()) {
