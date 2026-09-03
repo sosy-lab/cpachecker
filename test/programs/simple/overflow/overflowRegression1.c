@@ -10,6 +10,9 @@ typedef unsigned int size_t;
 void * __attribute__((__cdecl__)) malloc (size_t __size) ;
 int main() {
     char *s = malloc(3 * sizeof(char));
+    if (s == 0) {
+      return 0;
+    }
     char *p = s;
     s[2] = 0;
     while (*p != 0) {
