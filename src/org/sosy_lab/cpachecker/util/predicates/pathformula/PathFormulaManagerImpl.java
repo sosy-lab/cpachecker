@@ -28,11 +28,13 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -42,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -52,6 +55,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedOperationByDesignException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
@@ -499,7 +503,20 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       return ARGUtils.getPathFromBranchingInformation(
           root,
           stateFilter,
-          (pathElement, positiveEdge) -> {
+          (pathElement, successor) -> {
+            if (!(pathElement.getEdgeToChild(successor) instanceof AssumeEdge successorEdge)) {
+              // A CPA can create several successors for the same edge, which are then only
+              // distinguished by the assumptions that they carry.
+              try {
+                return evaluateAssumptions(model, successor);
+              } catch (CPATransferException | InterruptedException e) {
+                throw new WrappingException(e);
+              }
+            }
+            final AssumeEdge positiveEdge =
+                successorEdge.getTruthAssumption()
+                    ? successorEdge
+                    : CFAUtils.getComplimentaryAssumeEdge(successorEdge);
             final Pair<ARGState, CFAEdge> key = Pair.of(pathElement, positiveEdge);
             PathFormula pf = branchingFormulasOverride.get(key);
 
@@ -519,7 +536,10 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
               }
             }
 
-            return model.evaluate(pf.getFormula());
+            Boolean positiveEdgeTaken = model.evaluate(pf.getFormula());
+            return positiveEdgeTaken == null
+                ? null
+                : positiveEdgeTaken == successorEdge.getTruthAssumption();
           });
     } catch (WrappingException e) {
       Throwables.throwIfInstanceOf(e.getCause(), CPATransferException.class);
@@ -527,6 +547,40 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       Throwables.throwIfUnchecked(e.getCause());
       throw e;
     }
+  }
+
+  /**
+   * Evaluate the assumptions of an ARG state in a model. This is the branching information for
+   * successors that are not distinguished by an assume edge, because they were created by a CPA
+   * that returns several successors for the same edge (e.g., {@link
+   * org.sosy_lab.cpachecker.cpa.overflow.OverflowCPA}).
+   *
+   * @return the value of the assumptions, or null if the state has none.
+   */
+  private @Nullable Boolean evaluateAssumptions(Model pModel, ARGState pState)
+      throws CPATransferException, InterruptedException {
+    // The assumptions of a state were added to its path formula after its entering edge,
+    // so the context of that path formula has the SSA indices that we need here.
+    PredicateAbstractState pe =
+        AbstractStates.extractStateByType(pState, PredicateAbstractState.class);
+    verifyNotNull(pe, "Cannot find precise error path information without PredicateCPA.");
+    PathFormula pf = makeEmptyPathFormulaWithContextFrom(pe.getPathFormula());
+    boolean hasAssumptions = false;
+    for (AbstractStateWithAssumptions state :
+        AbstractStates.asIterable(pState).filter(AbstractStateWithAssumptions.class)) {
+      for (AExpression assumption : state.getAssumptions()) {
+        pf =
+            switch (assumption) {
+              case CExpression cAssumption -> makeAnd(pf, cAssumption);
+              case SvLibRelationalTerm svLibAssumption -> makeAnd(pf, svLibAssumption);
+              default ->
+                  throw new CPATransferException(
+                      "Unsupported assumption " + assumption.getClass().getSimpleName());
+            };
+        hasAssumptions = true;
+      }
+    }
+    return hasAssumptions ? pModel.evaluate(pf.getFormula()) : null;
   }
 
   @Override

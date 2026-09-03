@@ -475,15 +475,17 @@ public class ARGUtils {
 
   /**
    * Find a path in the ARG. The necessary information to find the path is a boolean value for each
-   * branching situation that indicates which of the two AssumeEdges should be taken.
+   * successor of a branching state that indicates whether this successor is on the path.
+   *
+   * <p>Note that a branching in the ARG is not necessarily a branching of the CFA: a CPA may create
+   * several successors for the same edge, for example to check a location invariant of an SV-LIB
+   * program.
    *
    * @param root The root element of the ARG (where to start the path)
    * @param stateFilter Only consider the subset of ARG states that satisfy this filter.
-   * @param branchingInformation A function from ARG states to boolean values indicating the
-   *     outgoing direction. It is only called for an ARG state with exactly two outgoing
-   *     AssumeEdges, and the positive variant of the edge is passed as well. The function needs to
-   *     return TRUE if the positive variant should be taken and FALSE otherwise, null indicates an
-   *     error.
+   * @param branchingInformation A function from an ARG state and one of its successors to a boolean
+   *     value indicating whether this successor is on the path. It is only called for ARG states
+   *     with more than one successor, and null indicates missing information.
    * @return A path through the ARG unambiguously described by the branching information.
    * @throws IllegalArgumentException If the direction information doesn't match the ARG or the ARG
    *     is inconsistent.
@@ -491,7 +493,7 @@ public class ARGUtils {
   public static ARGPath getPathFromBranchingInformation(
       ARGState root,
       Predicate<? super ARGState> stateFilter,
-      BiFunction<ARGState, AssumeEdge, Boolean> branchingInformation)
+      BiFunction<ARGState, ARGState, Boolean> branchingInformation)
       throws IllegalArgumentException {
 
     checkArgument(stateFilter.test(root));
@@ -502,63 +504,27 @@ public class ARGUtils {
       final ImmutableSet<ARGState> childrenInArg =
           from(currentElement.getChildren()).filter(stateFilter).toSet();
 
-      ARGState child;
-      CFAEdge edge;
-      switch (childrenInArg.size()) {
-        case 0 -> {
-          return builder.build(currentElement);
-        }
-        case 1 -> {
-          // only one successor, easy
-          child = Iterables.getOnlyElement(childrenInArg);
-          edge = currentElement.getEdgeToChild(child);
-        }
-        case 2 -> {
-          // branch
-          // first, find out the edges and the children
-          AssumeEdge trueEdge = null;
-          AssumeEdge falseEdge = null;
-          ARGState trueChild = null;
-          ARGState falseChild = null;
-
-          for (ARGState currentChild : childrenInArg) {
-            CFAEdge currentEdge = currentElement.getEdgeToChild(currentChild);
-            checkArgument(
-                currentEdge instanceof AssumeEdge,
-                "ARG branches with edge that is not an AssumeEdge!");
-            if (((AssumeEdge) currentEdge).getTruthAssumption()) {
-              trueEdge = (AssumeEdge) currentEdge;
-              trueChild = currentChild;
-            } else {
-              falseEdge = (AssumeEdge) currentEdge;
-              falseChild = currentChild;
-            }
-          }
-          checkArgument(
-              trueEdge != null && falseEdge != null,
-              "ARG branches with non-complementary AssumeEdges!");
-          assert trueChild != null;
-          assert falseChild != null;
-
-          // search first idx where we have a predicate for the current branching
-          Boolean predValue = branchingInformation.apply(currentElement, trueEdge);
-          checkArgument(predValue != null, "ARG branches without direction information!");
-
-          // now select the right edge
-          if (predValue) {
-            edge = trueEdge;
-            child = trueChild;
-          } else {
-            edge = falseEdge;
-            child = falseChild;
-          }
-        }
-        default -> throw new IllegalArgumentException("ARG splits with more than two branches!");
+      if (childrenInArg.isEmpty()) {
+        return builder.build(currentElement);
       }
 
-      checkArgument(stateFilter.test(child), "ARG and direction information from solver disagree!");
+      ARGState child;
+      if (childrenInArg.size() == 1) {
+        // only one successor, easy
+        child = Iterables.getOnlyElement(childrenInArg);
+      } else {
+        child = null;
+        for (ARGState currentChild : childrenInArg) {
+          Boolean isOnPath = branchingInformation.apply(currentElement, currentChild);
+          if (isOnPath != null && isOnPath) {
+            child = currentChild;
+            break;
+          }
+        }
+        checkArgument(child != null, "ARG branches without direction information!");
+      }
 
-      builder.add(currentElement, edge);
+      builder.add(currentElement, currentElement.getEdgeToChild(child));
       currentElement = child;
     }
 
