@@ -15,33 +15,22 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 
 /**
- * Don't use this because it is convenient! This is for its special use-case only! There are no
+ * Carries the {@link CExpression}s modeling the boolean result of GCC built-in functions (e.g.
+ * {@code bool __builtin_sadd_overflow(int a, int b, int *res)}) in {@code functionReturn} and the
+ * internal calculation result after casting in {@code castCalculationResult} that is assigned to
+ * {@code res} (i.e. {@code *res = castCalculationResult;}).
+ *
+ * <p>Don't use this because it is convenient! This is for its special use-case only! There are no
  * guarantees that this implementation is not changed or deleted at some point!
  */
-public class OverflowFunctionReturnAndCastCalculationResult {
+public record OverflowFunctionReturnAndCastCalculationResult(
+    CExpression functionReturn, CExpression castCalculationResult) {
 
-  private final CExpression functionReturn;
-  private final CExpression castCalculationResult;
-
-  private OverflowFunctionReturnAndCastCalculationResult(
-      CExpression pFunctionReturn, CExpression pCastCalculationResult) {
-    functionReturn = checkNotNull(pFunctionReturn);
-    checkArgument(
-        pFunctionReturn.getExpressionType().getCanonicalType().equals(CNumericTypes.BOOL));
-    castCalculationResult = checkNotNull(pCastCalculationResult);
-  }
-
-  /**
-   * Carries the {@link CExpression}s modeling the boolean result of GCC built-in functions (e.g.
-   * {@code bool __builtin_sadd_overflow(int a, int b, int *res)}) in 'functionReturn' and the
-   * internal calculation result after casting in 'castCalculationResult' that is assigned to res
-   * (i.e. {@code *res = castCalculationResult;}).
-   *
-   * <p>Don't use this because it is convenient! This is for its special use-case only! There are no
-   * guarantees that this class/implementation is not changed or deleted at some point!
-   */
   public static OverflowFunctionReturnAndCastCalculationResult of(
       CExpression functionReturn, CExpression castCalculationResult) {
+    checkNotNull(functionReturn);
+    checkNotNull(castCalculationResult);
+    checkArgument(functionReturn.getExpressionType().getCanonicalType().equals(CNumericTypes.BOOL));
     return new OverflowFunctionReturnAndCastCalculationResult(
         functionReturn, castCalculationResult);
   }
@@ -56,9 +45,8 @@ public class OverflowFunctionReturnAndCastCalculationResult {
 
   /**
    * Returns the {@link CExpression} modeling the internal calculation result, after casting, that
-   * needs to be assigned to the 'res' argument (i.e. {@code *res = getCastCalculationResult();}) of
-   * GCC built-in overflow functions (e.g. {@code bool __builtin_sadd_overflow(int a, int b, int
-   * *res)}).
+   * needs to be assigned to the {@code res} argument (i.e. {@code *res =
+   * getCastCalculationResult();}) of GCC built-in overflow functions.
    */
   public CExpression getCastCalculationResult() {
     return castCalculationResult;
