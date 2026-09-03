@@ -43,6 +43,6 @@ public class SvLibSafetySpecCPA extends AbstractCPA implements ConfigurableProgr
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return new SvLibSafetySpecState(ImmutableSet.of(), false);
+    return new SvLibSafetySpecState(ImmutableSet.of(), false, false);
   }
 }

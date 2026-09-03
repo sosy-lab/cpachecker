@@ -28,6 +28,19 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
+/**
+ * Transfer relation for the safety specification of SV-LIB programs.
+ *
+ * <p>The assumptions of a state are conjoined to the path formula of that state, i.e., after its
+ * entering edge. A location invariant of a node therefore has to be an assumption of the states at
+ * that node, which is why the annotations of the successor of an edge are the relevant ones here.
+ * For the same reason the violation of an invariant cannot be reported by the state that assumes
+ * it: the counterexample check would evaluate the assumption of the last state of the
+ * counterexample in its predecessor (cf. {@link
+ * org.sosy_lab.cpachecker.util.predicates.PathChecker}). Like {@link
+ * org.sosy_lab.cpachecker.cpa.overflow.OverflowTransferRelation}, this transfer relation therefore
+ * reports the violation one edge later, in states without assumptions.
+ */
 public class SvLibSafetySpecTransferRelation extends SingleEdgeTransferRelation {
 
   private final CFA cfa;
@@ -52,6 +65,12 @@ public class SvLibSafetySpecTransferRelation extends SingleEdgeTransferRelation 
       return ImmutableList.of();
     }
 
+    if (state.nextStateViolatesProperty()) {
+      // The property that the predecessor assumed to be violated is reported here.
+      return ImmutableList.of(
+          new SvLibSafetySpecState(ImmutableSet.of(), false, /* pHasPropertyViolation= */ true));
+    }
+
     ImmutableList.Builder<SvLibSafetySpecState> outStates = ImmutableList.builder();
 
     Set<SvLibTagProperty> propertiesToProof =
@@ -59,7 +78,7 @@ public class SvLibSafetySpecTransferRelation extends SingleEdgeTransferRelation 
             .getSvLibCfaMetadata()
             .orElseThrow()
             .tagAnnotations()
-            .get(cfaEdge.getPredecessor());
+            .get(cfaEdge.getSuccessor());
 
     // First construct one successor per property we need to proof
     ImmutableList.Builder<SvLibRelationalTerm> assumptionsBuilder =
@@ -72,7 +91,8 @@ public class SvLibSafetySpecTransferRelation extends SingleEdgeTransferRelation 
               yield new SvLibSafetySpecState(
                   ImmutableSet.of(
                       SvLibRelationalTerm.booleanNegation(pSvLibCheckTrueTag.getTerm())),
-                  true);
+                  /* pNextStateViolatesProperty= */ true,
+                  false);
             }
             case SvLibEnsuresTag pSvLibEnsuresTag ->
                 throw new UnsupportedCodeException(
@@ -92,7 +112,8 @@ public class SvLibSafetySpecTransferRelation extends SingleEdgeTransferRelation 
     outStates.add(
         new SvLibSafetySpecState(
             ImmutableSet.of(SvLibRelationalTerm.booleanConjunction(assumptionsBuilder.build())),
-            state.hasPropertyViolation()));
+            false,
+            false));
 
     return outStates.build();
   }
