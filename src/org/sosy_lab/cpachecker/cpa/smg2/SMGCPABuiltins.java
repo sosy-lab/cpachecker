@@ -739,10 +739,8 @@ public class SMGCPABuiltins {
     final CType typeOfA = a.getExpressionType().getCanonicalType();
     final CType typeOfB = b.getExpressionType().getCanonicalType();
 
-    // TODO: add casts if types demand them!
     CExpression castAExpr = a;
     CExpression castBExpr = b;
-    CType castTypeOfResBelowPointer = typeOfResBelowPointer;
 
     if (coreFunctionName.equals("add")
         || coreFunctionName.equals("mul")
@@ -756,33 +754,53 @@ public class SMGCPABuiltins {
 
     } else {
       // fixed type functions, i.e. all arguments need the same numeric type
-      checkArgument(typeOfA.equals(typeOfB) && typeOfA.equals(typeOfResBelowPointer));
       checkArgument(CTypes.isIntegerType(typeOfA));
+      checkArgument(CTypes.isIntegerType(typeOfB));
       if (coreFunctionName.startsWith("s")) {
         // signed fixed type functions
         if (coreFunctionName.endsWith("ll")) {
-          checkArgument(typeOfA == CNumericTypes.LONG_LONG_INT);
+          castAExpr = castIfNecessary(a, CNumericTypes.LONG_LONG_INT);
+          castBExpr = castIfNecessary(b, CNumericTypes.LONG_LONG_INT);
+          checkArgument(typeOfResBelowPointer == CNumericTypes.LONG_LONG_INT);
         } else if (coreFunctionName.endsWith("l")) {
-          checkArgument(typeOfA == CNumericTypes.LONG_INT);
+          castAExpr = castIfNecessary(a, CNumericTypes.LONG_INT);
+          castBExpr = castIfNecessary(b, CNumericTypes.LONG_INT);
+          checkArgument(typeOfResBelowPointer == CNumericTypes.LONG_INT);
         } else {
-          checkArgument(typeOfA == CNumericTypes.INT);
+          castAExpr = castIfNecessary(a, CNumericTypes.INT);
+          castBExpr = castIfNecessary(b, CNumericTypes.INT);
+          checkArgument(typeOfResBelowPointer == CNumericTypes.INT);
         }
       } else {
         checkArgument(
             coreFunctionName.startsWith("u"), "Unexpected function name: %s", fullFunctionName);
         // unsigned fixed type functions
         if (coreFunctionName.endsWith("ll")) {
-          checkArgument(typeOfA == CNumericTypes.UNSIGNED_LONG_LONG_INT);
+          castAExpr = castIfNecessary(a, CNumericTypes.UNSIGNED_LONG_LONG_INT);
+          castBExpr = castIfNecessary(b, CNumericTypes.UNSIGNED_LONG_LONG_INT);
+          checkArgument(typeOfResBelowPointer == CNumericTypes.UNSIGNED_LONG_LONG_INT);
         } else if (coreFunctionName.endsWith("l")) {
-          checkArgument(typeOfA == CNumericTypes.UNSIGNED_LONG_INT);
+          castAExpr = castIfNecessary(a, CNumericTypes.UNSIGNED_LONG_INT);
+          castBExpr = castIfNecessary(b, CNumericTypes.UNSIGNED_LONG_INT);
+          checkArgument(typeOfResBelowPointer == CNumericTypes.UNSIGNED_LONG_INT);
         } else {
-          checkArgument(typeOfA == CNumericTypes.UNSIGNED_INT);
+          castAExpr = castIfNecessary(a, CNumericTypes.UNSIGNED_INT);
+          castBExpr = castIfNecessary(b, CNumericTypes.UNSIGNED_INT);
+          checkArgument(typeOfResBelowPointer == CNumericTypes.UNSIGNED_INT);
         }
       }
     }
 
     return buildGccOverflowFunctionCalculationAndResult(
-        castAExpr, castBExpr, castTypeOfResBelowPointer, operator);
+        castAExpr, castBExpr, typeOfResBelowPointer, operator);
+  }
+
+  private static CExpression castIfNecessary(CExpression expr, CType targetType) {
+    checkArgument(!(expr instanceof CPointerExpression));
+    if (expr.getExpressionType().getCanonicalType() != targetType) {
+      return new CCastExpression(FileLocation.DUMMY, targetType, expr);
+    }
+    return expr;
   }
 
   private static void checkIntegralTypeButNoBoolOrEnum(CType typeToCheck) {
