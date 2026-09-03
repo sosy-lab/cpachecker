@@ -38,7 +38,8 @@ public class CompositePrecisionCoverageOperator implements PrecisionCoverageOper
       Precision wrappedPrecision2 = compositePrecision2.getWrappedPrecisions().get(i);
       // TODO: Handle cases where the wrapped analysis is no DCPA and, thus, has no operator
       if (wrapped.get(i) instanceof DistributedConfigurableProgramAnalysis dcpa
-          && !dcpa.getPrecisionCoverageOperator().isSubsumed(wrappedPrecision1, wrappedPrecision2)) {
+          && !dcpa.getPrecisionCoverageOperator()
+              .isSubsumed(wrappedPrecision1, wrappedPrecision2)) {
         return false;
       }
     }
