@@ -68,8 +68,8 @@ public class ImportDecompositionTest {
     String programText = Files.readString(Path.of(PROGRAM), StandardCharsets.UTF_8);
 
     // read the same CFA twice (with different ids)
-    CFA originalCFA = TestCfaUtils.makeCFA(programText);
-    CFA shiftedCFA = TestCfaUtils.makeCFA(programText);
+    CFA originalCFA = TestCfaUtils.makeCfaFromString(programText);
+    CFA shiftedCFA = TestCfaUtils.makeCfaFromString(programText);
 
     // If the CFAs have the same nodes, then they were not shifted and this test is not valid
     assertThat(originalCFA.nodes()).isNotEmpty();
@@ -86,7 +86,7 @@ public class ImportDecompositionTest {
   @Test
   public void testValidImportDecomposition() throws Exception {
     String programText = Files.readString(Path.of(PROGRAM), StandardCharsets.UTF_8);
-    CFA originalCFA = TestCfaUtils.makeCFA(programText);
+    CFA originalCFA = TestCfaUtils.makeCfaFromString(programText);
 
     ImportDecomposition decomposition = new ImportDecomposition(getExportDataFrom(originalCFA));
     BlockGraph graph = decomposition.decompose(originalCFA);

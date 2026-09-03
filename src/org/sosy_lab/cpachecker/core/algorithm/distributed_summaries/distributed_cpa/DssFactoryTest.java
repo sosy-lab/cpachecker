@@ -26,8 +26,8 @@ public class DssFactoryTest {
   @Test
   public void testCanResetCfaNodeIdMap() throws Exception {
     String programText = Files.readString(Path.of(PROGRAM), StandardCharsets.UTF_8);
-    CFA originalCFA = TestCfaUtils.makeCFA(programText);
-    CFA shiftedCFA = TestCfaUtils.makeCFA(programText);
+    CFA originalCFA = TestCfaUtils.makeCfaFromString(programText);
+    CFA shiftedCFA = TestCfaUtils.makeCfaFromString(programText);
 
     // If the CFAs have the same nodes, then they were not shifted and this test is not valid
     assertThat(originalCFA.nodes()).isNotEmpty();

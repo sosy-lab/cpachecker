@@ -55,15 +55,16 @@ public class TestCfaUtils {
     return new CIdExpression(loc, decl);
   }
 
-  public static ImmutableCFA makeCFA(String program) throws ParserException, InterruptedException {
+  public static ImmutableCFA makeCfaFromString(String program)
+      throws ParserException, InterruptedException {
     try {
-      return makeCFA(TestUtils.configurationForTest().build(), program);
+      return makeCfaFromString(TestUtils.configurationForTest().build(), program);
     } catch (InvalidConfigurationException e) {
       throw new AssertionError("Default configuration is invalid?");
     }
   }
 
-  public static ImmutableCFA makeCFA(Configuration config, String program)
+  public static ImmutableCFA makeCfaFromString(Configuration config, String program)
       throws InvalidConfigurationException, ParserException, InterruptedException {
 
     CFACreator creator =

@@ -64,7 +64,7 @@ public class CFAUtilsTest {
   @Test
   public void testFullExpression() throws Exception {
     Path programPath = Path.of("test/programs/cfa-ast-relation/full-expression.c");
-    CFA cfa = TestCfaUtils.makeCFA(Files.readString(programPath, StandardCharsets.UTF_8));
+    CFA cfa = TestCfaUtils.makeCfaFromString(Files.readString(programPath, StandardCharsets.UTF_8));
 
     fullExpressionAtCorrectPosition(cfa, "x + y", 18, 10, 18, 15);
     fullExpressionAtCorrectPosition(cfa, "x = 1", 10, 11, 10, 12);
