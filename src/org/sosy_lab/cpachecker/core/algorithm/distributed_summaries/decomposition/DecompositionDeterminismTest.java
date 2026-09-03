@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /** Decomposing the same CFA twice must assign exactly the same block ids. */
@@ -55,13 +56,13 @@ public class DecompositionDeterminismTest {
   }
 
   private void assertSameIdsWhenDecomposedTwice(boolean pInline) throws Exception {
-    CFA firstCfa = TestUtil.buildTestCFA(path);
+    CFA firstCfa = TestCfaUtils.makeCfaFromFile(path);
     List<String> first = fingerprint(createDecomposition(firstCfa, pInline).decompose(firstCfa));
 
-    CFA secondCfa = TestUtil.buildTestCFA(path);
+    CFA secondCfa = TestCfaUtils.makeCfaFromFile(path);
     List<String> second = fingerprint(createDecomposition(secondCfa, pInline).decompose(secondCfa));
 
-    CFA thirdCfa = TestUtil.buildTestCFA(path);
+    CFA thirdCfa = TestCfaUtils.makeCfaFromFile(path);
     List<String> third = fingerprint(createDecomposition(thirdCfa, pInline).decompose(thirdCfa));
 
     Truth.assertWithMessage(

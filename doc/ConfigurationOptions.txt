@@ -340,6 +340,13 @@ analysis.algorithm.MPOR.comments = false
 # statement being unreachable, but can be useful for debugging.
 analysis.algorithm.MPOR.consecutiveLabels = true
 
+# Whether the const CPAchecker_TMP auxiliary variables should be declared
+# globally (true) or inside the thread simulation functions (false). For some
+# backends like CBMC it should be set to true, otherwise the programs cannot
+# be parsed. For CPAchecker it is set to false by default, otherwise it can
+# produce incorrect results.
+analysis.algorithm.MPOR.declareConstAuxiliaryVariablesGlobally = false
+
 # Prefer the execution of threads that commute, i.e., they are not in
 # conflict with any other thread. Enabling this option together with
 # abortCommutingContextSwitches is unsound, because the next thread is chosen
@@ -398,12 +405,12 @@ analysis.algorithm.MPOR.nondeterminismSigned = false
 analysis.algorithm.MPOR.nondeterminismSource = NUM_STATEMENTS
   enum:     [NEXT_THREAD, NUM_STATEMENTS, NEXT_THREAD_AND_NUM_STATEMENTS]
 
-# How the partial order reduction defines whether threads commute based on
-# their current locations and their reachable memory location accesses.
-# READ_AND_WRITE reduces the state space more than ACCESS_ONLY, but
-# introduces additional overhead (i.e., number of variables, assignments, and
-# expression evaluations).
-analysis.algorithm.MPOR.partialOrderReductionMode = NONE
+# The precision of the partial order reduction instrumentation, i.e., how
+# close the reduction is to the state space of the input program.
+# READ_AND_WRITE is more precise because it reduces the state space more than
+# ACCESS_ONLY, but it adds more overhead (i.e., more variables, more
+# assignments, and more expression evaluations).
+analysis.algorithm.MPOR.partialOrderReductionPrecision = NONE
   enum:     [NONE, ACCESS_ONLY, READ_AND_WRITE]
 
 # Prune and simplify bit vector evaluation expressions based on perfect
@@ -2924,7 +2931,7 @@ cpa.predicate.maxPreciseStrFunctionSize = 100
 
 # Set of functions that non-deterministically provide new memory on the heap,
 # i.e. they can return either a valid pointer or zero.
-cpa.predicate.memoryAllocationFunctions = {"malloc", "__kmalloc", "kmalloc", "alloca", "__builtin_alloca"}
+cpa.predicate.memoryAllocationFunctions = {"malloc", "__kmalloc", "kmalloc"}
 
 # Memory allocation functions of which all parameters but the first should be
 # ignored.
@@ -3262,6 +3269,10 @@ cpa.predicate.strengthenWithReusedAbstractionsFile = "abstractions.txt"
 # The function used to model successful heap object allocation. This is only
 # used, when pointer analysis with UFs is enabled.
 cpa.predicate.successfulAllocFunctionName = "__VERIFIER_successful_alloc"
+
+# Set of functions that deterministically provide new memory on the heap,
+# i.e. they always return valid pointer.
+cpa.predicate.successfulMemoryAllocationFunctions = {"alloca", "__builtin_alloca"}
 
 # The function used to model successful heap object allocation with zeroing.
 # This is only used, when pointer analysis with UFs is enabled.

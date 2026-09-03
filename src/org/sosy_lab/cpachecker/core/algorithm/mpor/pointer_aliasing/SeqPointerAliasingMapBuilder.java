@@ -94,14 +94,13 @@ public record SeqPointerAliasingMapBuilder(
     // useful e.g. when a pointer points to a memory location that is a member of a struct. If the
     // struct member is never accessed directly but e.g. only the struct owner, then the struct
     // member is not part of initialMemoryLocations and can be found through the dereference.
-    ImmutableSet<SeqMemoryLocation> pointerDereferenceMemoryLocations =
-        pointerDereferences.stream()
-            .flatMap(
-                d ->
-                    SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
-                        d, allPointerAssignments)
-                        .stream())
-            .collect(ImmutableSet.toImmutableSet());
+    ImmutableSet.Builder<SeqMemoryLocation> pointerDereferenceMemoryLocations =
+        ImmutableSet.builder();
+    for (SeqMemoryLocation pointerDereference : pointerDereferences) {
+      pointerDereferenceMemoryLocations.addAll(
+          SeqMemoryLocationFinder.findMemoryLocationsByPointerDereference(
+              pointerDereference, allPointerAssignments));
+    }
 
     ImmutableSet<SeqMemoryLocation> allMemoryLocations =
         ImmutableSet.<SeqMemoryLocation>builder()
@@ -140,7 +139,7 @@ public record SeqPointerAliasingMapBuilder(
                     .collect(ImmutableSet.toImmutableSet()))
             // add memory locations from pointer dereferences
             .addAll(pointerDereferences)
-            .addAll(pointerDereferenceMemoryLocations)
+            .addAll(pointerDereferenceMemoryLocations.build())
             .build();
 
     ImmutableMap<SeqMemoryLocation, Integer> relevantMemoryLocationIds =
@@ -161,7 +160,8 @@ public record SeqPointerAliasingMapBuilder(
   private ImmutableMap<SeqMemoryLocation, Integer> getRelevantMemoryLocationsIds(
       ImmutableSet<SeqMemoryLocation> pAllMemoryLocations,
       ImmutableSet<SeqPointerAssignment> pPointerAssignments,
-      ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
+      ImmutableSet<SeqMemoryLocation> pPointerDereferences)
+      throws UnsupportedCodeException {
 
     ImmutableMap.Builder<SeqMemoryLocation, Integer> rRelevantIds = ImmutableMap.builder();
     int currentId = INITIAL_MEMORY_LOCATION_ID;
@@ -176,7 +176,8 @@ public record SeqPointerAliasingMapBuilder(
   private boolean isRelevantMemoryLocation(
       SeqMemoryLocation pMemoryLocation,
       ImmutableSet<SeqPointerAssignment> pPointerAssignments,
-      ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
+      ImmutableSet<SeqMemoryLocation> pPointerDereferences)
+      throws UnsupportedCodeException {
 
     // exclude const CPAchecker_TMP, they do not have any effect in the input program
     if (pMemoryLocation.declaration() instanceof CVariableDeclaration variableDeclaration) {
@@ -199,7 +200,8 @@ public record SeqPointerAliasingMapBuilder(
   static boolean isImplicitGlobal(
       SeqMemoryLocation pMemoryLocation,
       ImmutableSet<SeqPointerAssignment> pPointerAssignments,
-      ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
+      ImmutableSet<SeqMemoryLocation> pPointerDereferences)
+      throws UnsupportedCodeException {
 
     if (pMemoryLocation.isGlobal()) {
       return false;
@@ -236,7 +238,8 @@ public record SeqPointerAliasingMapBuilder(
   private static boolean isImplicitGlobalByPointerAssignmentsAndDereferences(
       SeqMemoryLocation pMemoryLocation,
       ImmutableSet<SeqPointerAssignment> pPointerAssignments,
-      ImmutableSet<SeqMemoryLocation> pPointerDereferences) {
+      ImmutableSet<SeqMemoryLocation> pPointerDereferences)
+      throws UnsupportedCodeException {
 
     // check for explicit pointer assignments
     for (SeqPointerAssignment pointerAssignment : pPointerAssignments) {

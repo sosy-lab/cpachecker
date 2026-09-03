@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class FunctionGraphTest {
@@ -123,7 +124,7 @@ public class FunctionGraphTest {
 
   static BlockGraph createBlockGraph(String program)
       throws Exception, InvalidConfigurationException, IOException, InterruptedException {
-    CFA cfa = TestUtil.buildTestCFA(program);
+    CFA cfa = TestCfaUtils.makeCfaFromFile(program);
 
     BlockOperator blockOperator = new BlockOperator();
     Configuration config =

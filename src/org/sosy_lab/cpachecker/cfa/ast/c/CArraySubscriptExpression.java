@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 
 public final class CArraySubscriptExpression extends AArraySubscriptExpression
     implements CLeftHandSide {
@@ -35,10 +35,15 @@ public final class CArraySubscriptExpression extends AArraySubscriptExpression
     checkArgument(
         arrayType instanceof CArrayType
             || arrayType instanceof CPointerType
-            || arrayType instanceof CProblemType
-            || arrayType instanceof CTypedefType,
+            || arrayType instanceof CProblemType,
         "Array subscript of non-array type %s",
         arrayType);
+    CType indexType = pSubscriptExpression.getExpressionType();
+    checkArgument(
+        CTypes.isIntegerType(indexType) || indexType instanceof CProblemType,
+        "Array subscript with non-integer index '%s' of type %s",
+        pSubscriptExpression,
+        indexType);
   }
 
   @Override
@@ -46,11 +51,21 @@ public final class CArraySubscriptExpression extends AArraySubscriptExpression
     return (CType) super.getExpressionType();
   }
 
+  /**
+   * The array or pointer to access. Note that while C defines <code>a[i]</code> to be the same as
+   * <code>i[a]</code> we normalize this and the array expression is guaranteed to have array or
+   * pointer type.
+   */
   @Override
   public CExpression getArrayExpression() {
     return (CExpression) super.getArrayExpression();
   }
 
+  /**
+   * The index of the array access. Note that while C defines <code>a[i]</code> to be the same as
+   * <code>i[a]</code> we normalize this and the subscript expression is guaranteed to have integer
+   * type.
+   */
   @Override
   public CExpression getSubscriptExpression() {
     return (CExpression) super.getSubscriptExpression();

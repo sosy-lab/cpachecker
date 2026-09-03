@@ -326,7 +326,7 @@ public class SMGTransferRelation
         rightHandSideType = returnAssignment.orElseThrow().getRightHandSide().getExpressionType();
       }
 
-      SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, state, returnEdge, logger, options);
+      SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, state, returnEdge, logger);
       for (ValueAndSMGState returnValueAndState : vv.evaluate(returnExp, retType)) {
         // We get the size per state as it could theoretically change per state (abstraction)
         Value sizeInBits = evaluator.getBitSizeof(state, retType, returnEdge);
@@ -474,7 +474,7 @@ public class SMGTransferRelation
           SMGState currentState = readValueAndState.getState().dropStackFrame();
           // The memory on the left hand side might not exist because of CEGAR
           for (SMGState stateWithNewVar :
-              createVariableOnTheSpot(leftValue, currentState, functionReturnEdge)) {
+              createVariableOnTheSpot(leftValue, currentState, functionReturnEdge, evaluator)) {
             stateBuilder.addAll(
                 evaluator.writeValueToExpression(
                     summaryEdge, leftValue, readValueAndState.getValue(), stateWithNewVar));
@@ -499,7 +499,8 @@ public class SMGTransferRelation
 
     // Create variable on the stack below
     ImmutableList.Builder<SMGState> returnListBuilder = ImmutableList.builder();
-    for (SMGState stateWVar : createVariableOnTheSpot(leftHandSideExpr, tempState, pEdge)) {
+    for (SMGState stateWVar :
+        createVariableOnTheSpot(leftHandSideExpr, tempState, pEdge, evaluator)) {
       // Restore the stack
       PersistentStack<StackFrame> incompleteStack = stateWVar.getMemoryModel().getStackFrames();
       PersistentStack<StackFrame> newCompleteStack = incompleteStack.pushAndCopy(topStackframe);
@@ -520,8 +521,12 @@ public class SMGTransferRelation
    * @return a new SMGState with the variable added.
    * @throws CPATransferException for errors and unhandled cases
    */
-  private List<SMGState> createVariableOnTheSpot(
-      CExpression leftHandSideExpr, SMGState pState, CFAEdge pEdge) throws CPATransferException {
+  private static List<SMGState> createVariableOnTheSpot(
+      CExpression leftHandSideExpr,
+      SMGState pState,
+      CFAEdge pEdge,
+      SMGCPAExpressionEvaluator evaluator)
+      throws CPATransferException {
     return switch (leftHandSideExpr) {
       case CIdExpression leftCIdExpr -> {
         CSimpleDeclaration decl = leftCIdExpr.getDeclaration();
@@ -544,19 +549,20 @@ public class SMGTransferRelation
         yield ImmutableList.of(pState);
       }
       case CArraySubscriptExpression cArraySubscriptExpression ->
-          createVariableOnTheSpot(cArraySubscriptExpression.getArrayExpression(), pState, pEdge);
+          createVariableOnTheSpot(
+              cArraySubscriptExpression.getArrayExpression(), pState, pEdge, evaluator);
 
       case CFieldReference cFieldReference ->
-          createVariableOnTheSpot(cFieldReference.getFieldOwner(), pState, pEdge);
+          createVariableOnTheSpot(cFieldReference.getFieldOwner(), pState, pEdge, evaluator);
 
       case CPointerExpression cPointerExpression ->
-          createVariableOnTheSpot(cPointerExpression.getOperand(), pState, pEdge);
+          createVariableOnTheSpot(cPointerExpression.getOperand(), pState, pEdge, evaluator);
 
       case CUnaryExpression cUnaryExpression ->
-          createVariableOnTheSpot(cUnaryExpression.getOperand(), pState, pEdge);
+          createVariableOnTheSpot(cUnaryExpression.getOperand(), pState, pEdge, evaluator);
 
       case CCastExpression cCastExpression ->
-          createVariableOnTheSpot(cCastExpression.getOperand(), pState, pEdge);
+          createVariableOnTheSpot(cCastExpression.getOperand(), pState, pEdge, evaluator);
 
       case null /*TODO check if null is necessary*/, default -> ImmutableList.of(pState);
     };
@@ -657,8 +663,7 @@ public class SMGTransferRelation
         // Evaluate the CExpr into a Value
         // Note: this evaluates local arrays into pointers!!!!!
         List<ValueAndSMGState> valuesAndStates =
-            cParamExp.accept(
-                new SMGCPAValueVisitor(evaluator, currentState, callEdge, logger, options));
+            cParamExp.accept(new SMGCPAValueVisitor(evaluator, currentState, callEdge, logger));
 
         // If this ever fails; we need to take all states/values into account, meaning we would need
         // to proceed from this point onwards with all of them with all following operations
@@ -900,7 +905,7 @@ public class SMGTransferRelation
 
     ImmutableList.Builder<SMGState> resultStateBuilder = ImmutableList.builder();
     // Get the value of the expression (either true[1L], false[0L], or unknown[null])
-    SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger, options);
+    SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger);
     for (ValueAndSMGState valueAndState :
         vv.evaluate(
             cExpression, SMGCPAExpressionEvaluator.getCanonicalType((CExpression) expression))) {
@@ -924,7 +929,6 @@ public class SMGTransferRelation
                 cfaEdge,
                 logger,
                 truthValue,
-                options,
                 booleanVariables,
                 functionName);
         try {
@@ -986,14 +990,26 @@ public class SMGTransferRelation
   protected Collection<SMGState> handleStatementEdge(CStatementEdge pCfaEdge, CStatement cStmt)
       throws CPATransferException {
     // Either assignments a = b; or function calls foo(..);
+    return handleStatement(cStmt, pCfaEdge, state, evaluator, logger);
+  }
+
+  private static ImmutableList<SMGState> handleStatement(
+      CStatement cStmt,
+      CStatementEdge pCfaEdge,
+      final SMGState initialState,
+      SMGCPAExpressionEvaluator evaluator,
+      LogManager logger)
+      throws CPATransferException {
     if (cStmt instanceof CAssignment cAssignment) {
       // Assignments, evaluate the right hand side value using the value visitor and write it into
       // the address returned by the address evaluator for the left hand side.
       CExpression lValue = cAssignment.getLeftHandSide();
       CRightHandSide rValue = cAssignment.getRightHandSide();
       ImmutableList.Builder<SMGState> stateBuilder = ImmutableList.builder();
-      for (SMGState currentState : createVariableOnTheSpot(lValue, state, pCfaEdge)) {
-        stateBuilder.addAll(handleAssignment(currentState, pCfaEdge, lValue, rValue));
+      for (SMGState currentState :
+          createVariableOnTheSpot(lValue, initialState, pCfaEdge, evaluator)) {
+        stateBuilder.addAll(
+            handleAssignment(currentState, pCfaEdge, lValue, rValue, evaluator, logger));
       }
       return stateBuilder.build();
 
@@ -1006,18 +1022,20 @@ public class SMGTransferRelation
       List<ValueAndSMGState> handledFunReturn =
           evaluator
               .getBuiltinFunctionHandler()
-              .handleFunctionCallWithoutBody(cFCExpression, calledFunctionName, state, pCfaEdge);
+              .handleFunctionCallWithoutBody(
+                  cFCExpression, calledFunctionName, initialState, pCfaEdge);
 
       // Memory allocating function calls that need to be freed without remembering the pointer
       // leads to memory-leaks. Speed up this process.
       handledFunReturn =
-          postprocessBuiltinCFunctionWithoutReturn(handledFunReturn, pCfaEdge, calledFunctionName);
+          postprocessBuiltinCFunctionWithoutReturn(
+              handledFunReturn, pCfaEdge, calledFunctionName, logger);
 
       return transformedImmutableListCopy(handledFunReturn, ValueAndSMGState::getState);
 
     } else {
       // Fall through for unneeded cases
-      return ImmutableList.of(state);
+      return ImmutableList.of(initialState);
     }
   }
 
@@ -1027,10 +1045,11 @@ public class SMGTransferRelation
    * freed. Other function calls are handled normally. Expects the input states to already have the
    * functions handled, and the values being the return values of the functions.
    */
-  private List<ValueAndSMGState> postprocessBuiltinCFunctionWithoutReturn(
+  private static List<ValueAndSMGState> postprocessBuiltinCFunctionWithoutReturn(
       List<ValueAndSMGState> statesWithHandledFunctions,
       CStatementEdge pCfaEdge,
-      String calledFunctionName)
+      String calledFunctionName,
+      LogManager logger)
       throws CPATransferException {
 
     if (isMemoryAllocatingFunction(calledFunctionName)) {
@@ -1069,7 +1088,7 @@ public class SMGTransferRelation
               "Error: unexpected return value "
                   + funReturn
                   + " encountered in post-processing of function call to "
-                  + functionName
+                  + calledFunctionName
                   + "() without assigning the functions return value at "
                   + pCfaEdge);
         }
@@ -1208,13 +1227,18 @@ public class SMGTransferRelation
     return Objects.requireNonNullElseGet(newStates, ImmutableList::of);
   }
 
-  /*
-   * Handles any form of assignments a = b; a = foo();.
-   * The lValue is transformed into its memory (SMG) counterpart in which the rValue,
-   * evaluated by the value visitor, is then saved.
+  /**
+   * Handles any form of assignments, e.g. lValue = rValue; or, if rValue is a function call foo(),
+   * lValue = foo();. The left value lValue is transformed into its memory (SMG) counterpart in
+   * which the rValue, evaluated by the value-visitor, is then saved.
    */
-  protected List<SMGState> handleAssignment(
-      SMGState pState, CFAEdge cfaEdge, CExpression lValue, CRightHandSide rValue)
+  private static List<SMGState> handleAssignment(
+      SMGState pState,
+      CFAEdge cfaEdge,
+      CExpression lValue,
+      CRightHandSide rValue,
+      SMGCPAExpressionEvaluator evaluator,
+      LogManager logger)
       throws CPATransferException {
 
     CType rightHandSideType = SMGCPAExpressionEvaluator.getCanonicalType(rValue);
@@ -1223,16 +1247,14 @@ public class SMGTransferRelation
     ImmutableList.Builder<SMGState> returnStateBuilder = ImmutableList.builder();
     SMGState currentState = pState;
     for (SMGStateAndOptionalSMGObjectAndOffset targetAndOffsetAndState :
-        lValue.accept(
-            new SMGCPAAddressVisitor(evaluator, currentState, cfaEdge, logger, options))) {
+        lValue.accept(new SMGCPAAddressVisitor(evaluator, currentState, cfaEdge, logger))) {
       currentState = targetAndOffsetAndState.getSMGState();
 
       if (!targetAndOffsetAndState.hasSMGObjectAndOffset()) {
         // No memory for the left hand side found -> UNKNOWN
         // We still evaluate the right hand side to find errors though
         List<ValueAndSMGState> listOfStates =
-            rValue.accept(
-                new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger, options));
+            rValue.accept(new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger));
         returnStateBuilder.addAll(Lists.transform(listOfStates, ValueAndSMGState::getState));
         continue;
       }
@@ -1282,8 +1304,7 @@ public class SMGTransferRelation
       // The right hand side either returns Values representing values or an AddressExpression. In
       // the later case this means the entire structure behind it needs to be copied as C is
       // pass-by-value.
-      SMGCPAValueVisitor vv =
-          new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger, options);
+      SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger);
       for (ValueAndSMGState valueAndState : vv.evaluate(rValue, leftHandSideType)) {
         returnStateBuilder.addAll(
             handleAssignmentOfValueTo(
@@ -1296,8 +1317,7 @@ public class SMGTransferRelation
                 rValue,
                 valueAndState.getState(),
                 cfaEdge,
-                evaluator,
-                options));
+                evaluator));
       }
     }
 
@@ -1317,11 +1337,11 @@ public class SMGTransferRelation
       CRightHandSide rValueExpr,
       SMGState pCurrentState,
       CFAEdge edge,
-      SMGCPAExpressionEvaluator evaluator,
-      SMGOptions options)
+      SMGCPAExpressionEvaluator evaluator)
       throws CPATransferException {
 
     SMGState currentState = pCurrentState;
+    SMGOptions options = currentState.getOptions();
 
     // Size of the left hand side as vv.evaluate() casts automatically to this type
     Value sizeInBits = evaluator.getBitSizeof(currentState, leftHandSideType, edge);
