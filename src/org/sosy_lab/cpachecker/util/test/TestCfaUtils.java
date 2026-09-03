@@ -68,6 +68,7 @@ public class TestCfaUtils {
       throws ParserException, InterruptedException {
 
     try {
+      @SuppressWarnings("varargs")
       ConfigurationBuilder config =
           TestUtils.configurationForTest().setOptions(Map.ofEntries(options));
       // TODO: once #1706 is fixed hard-code parser.usePreprocessor=false here
