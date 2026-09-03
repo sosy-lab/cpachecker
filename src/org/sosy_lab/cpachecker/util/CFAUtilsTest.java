@@ -12,9 +12,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Optional;
 import java.util.Set;
 import org.junit.Test;
@@ -63,8 +60,7 @@ public class CFAUtilsTest {
    */
   @Test
   public void testFullExpression() throws Exception {
-    Path programPath = Path.of("test/programs/cfa-ast-relation/full-expression.c");
-    CFA cfa = TestCfaUtils.makeCfaFromString(Files.readString(programPath, StandardCharsets.UTF_8));
+    CFA cfa = TestCfaUtils.makeCfaFromFile("test/programs/cfa-ast-relation/full-expression.c");
 
     fullExpressionAtCorrectPosition(cfa, "x + y", 18, 10, 18, 15);
     fullExpressionAtCorrectPosition(cfa, "x = 1", 10, 11, 10, 12);

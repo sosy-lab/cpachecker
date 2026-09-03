@@ -13,6 +13,7 @@ import com.google.common.collect.Iterables;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -53,6 +54,12 @@ public class TestCfaUtils {
             loc, true, CStorageClass.AUTO, varType, varName, varName, varName, null);
 
     return new CIdExpression(loc, decl);
+  }
+
+  public static ImmutableCFA makeCfaFromFile(String filename)
+      throws ParserException, InterruptedException, IOException {
+    String programText = Files.readString(Path.of(filename), StandardCharsets.UTF_8);
+    return makeCfaFromString(programText);
   }
 
   public static ImmutableCFA makeCfaFromString(String program)

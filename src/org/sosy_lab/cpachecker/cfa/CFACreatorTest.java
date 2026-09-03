@@ -20,8 +20,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -241,9 +239,7 @@ public class CFACreatorTest {
 
   @Test
   public void testFileLocationsInCfa() throws IOException, InterruptedException, ParserException {
-    Path programPath = Path.of("test/programs/cfa-creation/cfa-creation-test.c");
-    CFA createdCFA =
-        TestCfaUtils.makeCfaFromString(Files.readString(programPath, StandardCharsets.UTF_8));
+    CFA createdCFA = TestCfaUtils.makeCfaFromFile("test/programs/cfa-creation/cfa-creation-test.c");
 
     Path testFilepath = Path.of("./test");
     assertThat(TestCfaUtils.getEdge("x = 0", createdCFA).getFileLocation())

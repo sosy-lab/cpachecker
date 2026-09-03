@@ -10,9 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 
 import static com.google.common.truth.Truth.assertThat;
 
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -31,9 +28,8 @@ public class BlockGraphTest {
    */
   @Test
   public void testCanExportWithNodeIdThatStartsAtNonZero() throws Exception {
-    String programText = Files.readString(Path.of(PROGRAM), StandardCharsets.UTF_8);
-    CFA originalCFA = TestCfaUtils.makeCfaFromString(programText);
-    CFA shiftedCFA = TestCfaUtils.makeCfaFromString(programText);
+    CFA originalCFA = TestCfaUtils.makeCfaFromFile(PROGRAM);
+    CFA shiftedCFA = TestCfaUtils.makeCfaFromFile(PROGRAM);
 
     // If the CFAs have the same nodes, then they were not shifted and this test is not valid
     assertThat(originalCFA.nodes()).isNotEmpty();
