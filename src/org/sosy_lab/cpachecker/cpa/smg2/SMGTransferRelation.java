@@ -1004,7 +1004,8 @@ public class SMGTransferRelation
       ImmutableList.Builder<SMGState> stateBuilder = ImmutableList.builder();
       for (SMGState currentState :
           createVariableOnTheSpot(lValue, initialState, pCfaEdge, evaluator)) {
-        stateBuilder.addAll(handleAssignment(currentState, pCfaEdge, lValue, rValue));
+        stateBuilder.addAll(
+            handleAssignment(currentState, pCfaEdge, lValue, rValue, evaluator, logger));
       }
       return stateBuilder.build();
 
@@ -1222,23 +1223,28 @@ public class SMGTransferRelation
     return Objects.requireNonNullElseGet(newStates, ImmutableList::of);
   }
 
-  /*
-   * Handles any form of assignments a = b; a = foo();.
-   * The lValue is transformed into its memory (SMG) counterpart in which the rValue,
-   * evaluated by the value visitor, is then saved.
+  /**
+   * Handles any form of assignments, e.g. lValue = rValue; or, if rValue is a function call foo(),
+   * lValue = foo();. The left value lValue is transformed into its memory (SMG) counterpart in
+   * which the rValue, evaluated by the value-visitor, is then saved.
    */
-  private List<SMGState> handleAssignment(
-      SMGState pState, CFAEdge cfaEdge, CExpression lValue, CRightHandSide rValue)
+  private static List<SMGState> handleAssignment(
+      SMGState pState,
+      CFAEdge cfaEdge,
+      CExpression lValue,
+      CRightHandSide rValue,
+      SMGCPAExpressionEvaluator evaluator,
+      LogManager logger)
       throws CPATransferException {
 
     CType rightHandSideType = SMGCPAExpressionEvaluator.getCanonicalType(rValue);
     CType leftHandSideType = SMGCPAExpressionEvaluator.getCanonicalType(lValue);
 
     ImmutableList.Builder<SMGState> returnStateBuilder = ImmutableList.builder();
+    SMGOptions options = pState.getOptions();
     SMGState currentState = pState;
     for (SMGStateAndOptionalSMGObjectAndOffset targetAndOffsetAndState :
-        lValue.accept(
-            new SMGCPAAddressVisitor(evaluator, currentState, cfaEdge, logger, options))) {
+        lValue.accept(new SMGCPAAddressVisitor(evaluator, currentState, cfaEdge, logger))) {
       currentState = targetAndOffsetAndState.getSMGState();
 
       if (!targetAndOffsetAndState.hasSMGObjectAndOffset()) {
