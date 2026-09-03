@@ -78,7 +78,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
-import org.sosy_lab.cpachecker.util.StandardFunctions;
 import org.sosy_lab.cpachecker.util.smg.SMGProveNequality;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
@@ -134,22 +133,6 @@ public class SMGCPABuiltins {
    */
   protected static String getAllocaCommonIdentifier() {
     return ALLOCA_ALLOCATION_COMMON_IDENTIFIER;
-  }
-
-  /**
-   * Returns true if the functionName equals a known C builtin function (either defined by the C
-   * standard or extensions like GNU (GCC)) OR our internal handling for atexit
-   * (__CPACHECKER_atexit_next).
-   */
-  boolean isABuiltIn(String functionName) {
-    // __CPACHECKER_atexit_next is not a constant function, but returns a different function
-    // pointer from the atexit stack every time it is being called. We model this by returning a
-    // fresh variable that may point to any function in the program. The function pointer CPA,
-    // which will be run in parallel, tracks the actual target of the pointer and makes sure
-    // that the right function is always called.
-    return BuiltinFunctions.isBuiltinFunction(functionName)
-        || functionName.equals("__CPACHECKER_atexit_next")
-        || StandardFunctions.C11_ALL_FUNCTIONS.contains(functionName);
   }
 
   /**
