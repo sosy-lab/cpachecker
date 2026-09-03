@@ -251,7 +251,7 @@ public class ConfigurationFileChecks {
   @SuppressWarnings("CheckReturnValue")
   public void parse() throws URISyntaxException {
     try {
-      parse(configFile).build();
+      Configuration.builder().loadFromFile(configFileAsPath()).build();
     } catch (InvalidConfigurationException | IOException e) {
       assertWithMessage(
               "Error during parsing of configuration file %s : %s", configFile, e.getMessage())
@@ -259,17 +259,14 @@ public class ConfigurationFileChecks {
     }
   }
 
-  private static ConfigurationBuilder parse(Object pConfigFile)
-      throws IOException, InvalidConfigurationException, URISyntaxException {
-    Path configFile;
-    if (pConfigFile instanceof Path path) {
-      configFile = path;
-    } else if (pConfigFile instanceof URL uRL) {
-      configFile = Path.of(uRL.toURI());
+  private Path configFileAsPath() throws URISyntaxException {
+    if (configFile instanceof Path path) {
+      return path;
+    } else if (configFile instanceof URL uRL) {
+      return Path.of(uRL.toURI());
     } else {
-      throw new AssertionError("Unexpected config file " + pConfigFile);
+      throw new AssertionError("Unexpected config file " + configFile);
     }
-    return Configuration.builder().loadFromFile(configFile);
   }
 
   @Rule public final Expect expect = Expect.create();
@@ -278,7 +275,7 @@ public class ConfigurationFileChecks {
   public void checkUndesiredOptions() {
     Configuration config;
     try {
-      config = parse(configFile).build();
+      config = Configuration.builder().loadFromFile(configFileAsPath()).build();
     } catch (InvalidConfigurationException | IOException | URISyntaxException e) {
       assumeNoException(e);
       throw new AssertionError(e);
@@ -617,7 +614,8 @@ public class ConfigurationFileChecks {
                   .build());
       Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
 
-      return parse(configFile)
+      return Configuration.builder()
+          .loadFromFile(configFileAsPath())
           .addConverter(FileOption.class, fileTypeConverter)
           .setOption("java.sourcepath", tempFolder.getRoot().toString())
           .setOption("differential.program", createEmptyProgram(Language.C))
