@@ -35,9 +35,7 @@ import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.annotations.Unmaintained;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
@@ -75,6 +73,7 @@ import org.sosy_lab.cpachecker.cpa.usage.UsageCPA;
 import org.sosy_lab.cpachecker.cpa.witnessjoiner.WitnessJoinerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 @RunWith(Parameterized.class)
 public class CPAsTest {
@@ -132,19 +131,10 @@ public class CPAsTest {
 
   @BeforeClass
   public static void setup() throws Exception {
-    FileTypeConverter fileTypeConverter =
-        FileTypeConverter.create(
-            Configuration.builder()
-                .setOption("output.disable", "true")
-                .setOption("rootDirectory", tempFolder.getRoot().toString())
-                .build());
-    Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
-
     String cProgram = TestCfaUtils.getEmptyProgram(tempFolder, Language.C);
 
     config =
-        Configuration.builder()
-            .addConverter(FileOption.class, fileTypeConverter)
+        TestUtils.configurationForTest()
             .setOption("cpa.conditions.path.condition", "PathLengthCondition")
             .setOption("cpa.automaton.inputFile", "test/config/automata/AssumptionAutomaton.spc")
             .setOption("differential.program", cProgram)
