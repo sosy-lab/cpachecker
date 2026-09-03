@@ -69,7 +69,6 @@ import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.UnknownFunctionHandling;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintFactory;
 import org.sosy_lab.cpachecker.cpa.smg2.constraint.SatisfiabilityAndSMGState;
-import org.sosy_lab.cpachecker.cpa.smg2.util.OverflowFunctionReturnAndCastCalculationResult;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGSolverException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
@@ -4061,6 +4060,46 @@ public class SMGCPABuiltins {
               + options.getHandleUnknownFunctions()
               + " set, as this would lead to overapproximated handling. Location in program "
               + pCfaEdge);
+    }
+  }
+
+  /**
+   * Carries the {@link CExpression}s modeling the boolean result of GCC built-in functions (e.g.
+   * {@code bool __builtin_sadd_overflow(int a, int b, int *res)}) in {@code functionReturn} and the
+   * internal calculation result after casting in {@code castCalculationResult} that is assigned to
+   * {@code res} (i.e. {@code *res = castCalculationResult;}).
+   *
+   * <p>Don't use this because it is convenient! This is for its special use-case only! There are no
+   * guarantees that this implementation is not changed or deleted at some point!
+   */
+  public record OverflowFunctionReturnAndCastCalculationResult(
+      CExpression functionReturn, CExpression castCalculationResult) {
+
+    public static OverflowFunctionReturnAndCastCalculationResult of(
+        CExpression functionReturn, CExpression castCalculationResult) {
+      checkNotNull(functionReturn);
+      checkNotNull(castCalculationResult);
+      checkArgument(
+          functionReturn.getExpressionType().getCanonicalType().equals(CNumericTypes.BOOL));
+      return new OverflowFunctionReturnAndCastCalculationResult(
+          functionReturn, castCalculationResult);
+    }
+
+    /**
+     * Returns the {@link CExpression} modeling the boolean return value of GCC built-in overflow
+     * functions (e.g. {@code bool __builtin_sadd_overflow(int a, int b, int *res)}).
+     */
+    public CExpression getFunctionReturn() {
+      return functionReturn;
+    }
+
+    /**
+     * Returns the {@link CExpression} modeling the internal calculation result, after casting, that
+     * needs to be assigned to the {@code res} argument (i.e. {@code *res =
+     * getCastCalculationResult();}) of GCC built-in overflow functions.
+     */
+    public CExpression getCastCalculationResult() {
+      return castCalculationResult;
     }
   }
 }
