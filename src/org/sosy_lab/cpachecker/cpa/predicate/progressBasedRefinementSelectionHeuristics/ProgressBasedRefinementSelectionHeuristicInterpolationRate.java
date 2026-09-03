@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
+package org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics;
 
 import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.ImmutableList;
@@ -30,8 +30,9 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
  * heuristic signals divergence if the growth rate remains above a configured threshold for too many
  * consecutive refinement iterations.
  */
-@Options(prefix = "cpa.predicate.delegatingRefinerHeuristics.InterpolationRate")
-public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRefinerHeuristic {
+@Options(prefix = "cpa.predicate.progressBasedRefinementSelectionHeuristics.InterpolationRate")
+public class ProgressBasedRefinementSelectionHeuristicInterpolationRate
+    implements ProgressBasedRefinementSelectionHeuristic {
 
   /**
    * Describes, relative to the configured bounds, how the abstraction-location-to-refinement ratio
@@ -68,7 +69,7 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
       name = "acceptableInterpolantRate",
       description =
           "Acceptable interpolant rate generated per refinement for"
-              + " PredicateDelegatingRefiner heuristic.")
+              + " ProgressBasedRefinementSelection heuristic.")
   private double acceptableInterpolantRate = 8.0;
 
   @Option(
@@ -76,7 +77,7 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
       name = "increaseFactorInterpolants",
       description =
           "Factor to increase the acceptable interpolant rate in productive runs in the"
-              + " PredicateDelegatingRefiner heuristic.")
+              + " ProgressBasedRefinementSelection heuristic.")
   private double increaseFactorInterpolants = 1.5;
 
   @Option(
@@ -84,7 +85,7 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
       name = "decreaseFactorInterpolants",
       description =
           "Factor to decrease the acceptable interpolant rate in unproductive runs in the"
-              + " PredicateDelegatingRefiner heuristic.")
+              + " ProgressBasedRefinementSelection heuristic.")
   private double decreaseFactorInterpolants = 2.0;
 
   @Option(
@@ -137,7 +138,7 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
    *     true}
    * @throws InvalidConfigurationException if any provided configuration value is invalid
    */
-  public DelegatingRefinerHeuristicInterpolationRate(
+  public ProgressBasedRefinementSelectionHeuristicInterpolationRate(
       FormulaManagerView pFormulaManager, final LogManager pLogger, Configuration pConfig)
       throws InvalidConfigurationException {
     formulaManager = pFormulaManager;
@@ -154,44 +155,45 @@ public class DelegatingRefinerHeuristicInterpolationRate implements DelegatingRe
     if (acceptableInterpolantRate < 0.0) {
       throw new InvalidConfigurationException(
           "Acceptable number of interpolants per refinement used in"
-              + " DelegatingRefinerHeuristicInterpolationRate must not be negative");
+              + " ProgressBasedRefinementSelectionHeuristicInterpolationRate must not be negative");
     }
     if (increaseFactorInterpolants < 0.0) {
       throw new InvalidConfigurationException(
-          "Increase factor used in DelegatingRefinerHeuristicInterpolationRate must not be"
-              + " negative");
+          "Increase factor used in ProgressBasedRefinementSelectionHeuristicInterpolationRate must"
+              + " not be negative");
     }
     if (decreaseFactorInterpolants <= 0.0) {
       throw new InvalidConfigurationException(
-          "Decrease factor used in DelegatingRefinerHeuristicInterpolationRate must be strictly"
-              + " positive");
+          "Decrease factor used in ProgressBasedRefinementSelectionHeuristicInterpolationRate must"
+              + " be strictly positive");
     }
     if (abstractionLocationRefinementRatioUpper < 0
         || abstractionLocationRefinementRatioLower < 0) {
       throw new InvalidConfigurationException(
           "The bounds for the number of abstraction locations to refinement iterations used in"
-              + " DelegatingRefinerHeuristicInterpolationRate must not be negative");
+              + " ProgressBasedRefinementSelectionHeuristicInterpolationRate must not be negative");
     }
     if (abstractionLocationRefinementRatioLower >= abstractionLocationRefinementRatioUpper) {
       throw new InvalidConfigurationException(
-          "The lower bound for the number of abstraction locations to refinement iterations used"
-              + " in DelegatingRefinerHeuristicInterpolationRate must be strictly smaller than the"
-              + " upper bound");
+          "The lower bound for the number of abstraction locations to refinement iterations used in"
+              + " ProgressBasedRefinementSelectionHeuristicInterpolationRate must be strictly"
+              + " smaller than the upper bound");
     }
     if (rateWindowSize <= 0) {
       throw new InvalidConfigurationException(
-          "Rate window size used in DelegatingRefinerHeuristicInterpolationRate must be strictly"
-              + " positive");
+          "Rate window size used in ProgressBasedRefinementSelectionHeuristicInterpolationRate must"
+              + " be strictly positive");
     }
     if (persistentRateThreshold < 0.0) {
       throw new InvalidConfigurationException(
-          "Persistent rate threshold used in DelegatingRefinerHeuristicInterpolationRate must not"
-              + " be negative");
+          "Persistent rate threshold used in"
+              + " ProgressBasedRefinementSelectionHeuristicInterpolationRate must not be negative");
     }
     if (maxPersistentIterations <= 0) {
       throw new InvalidConfigurationException(
-          "Maximum persistent iterations used in DelegatingRefinerHeuristicInterpolationRate must"
-              + " be strictly positive");
+          "Maximum persistent iterations used in"
+              + " ProgressBasedRefinementSelectionHeuristicInterpolationRate must be strictly"
+              + " positive");
     }
   }
 

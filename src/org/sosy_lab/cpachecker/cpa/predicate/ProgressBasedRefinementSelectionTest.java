@@ -27,19 +27,19 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicInterpolationRate;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicReachedSetRatio;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRedundantPredicates;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicResultNegation;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRunRefinerNTimes;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerRefinerType;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.HeuristicDelegatingRefinerRecord;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics.ProgressBasedRefinementSelectionHeuristicInterpolationRate;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics.ProgressBasedRefinementSelectionHeuristicReachedSetRatio;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics.ProgressBasedRefinementSelectionHeuristicRedundantPredicates;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics.ProgressBasedRefinementSelectionHeuristicRefinerRecord;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics.ProgressBasedRefinementSelectionHeuristicResultNegation;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics.ProgressBasedRefinementSelectionHeuristicRunRefinerNTimes;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics.ProgressBasedRefinementSelectionRefinerType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
-public class PredicateDelegatingRefinerTest {
+public class ProgressBasedRefinementSelectionTest {
   private Configuration config;
   private LogManager logger;
   private ShutdownNotifier shutdownNotifier;
@@ -51,8 +51,8 @@ public class PredicateDelegatingRefinerTest {
   private Refiner defaultRefiner;
 
   /**
-   * Create shared components for the DelegatingRefiner configuration tests that do not change
-   * between different tests.
+   * Create shared components for the ProgressBasedRefinementSelection configuration tests that do
+   * not change between different tests.
    */
   @Before
   public void setupShared() {
@@ -88,205 +88,212 @@ public class PredicateDelegatingRefinerTest {
     return new PredicateCPARefinerFactory(argCpa);
   }
 
-  // Creates a default map of available refiners for the DelegatingRefiner
-  private ImmutableMap<DelegatingRefinerRefinerType, Refiner> setUpRefinerMap(
+  // Creates a default map of available refiners for the ProgressBasedRefinementSelection
+  private ImmutableMap<ProgressBasedRefinementSelectionRefinerType, Refiner> setUpRefinerMap(
       PredicateCPARefinerFactory pRefinerFactory) throws InvalidConfigurationException {
     return pRefinerFactory.buildRefinerMap(defaultRefiner, staticRefiner);
   }
 
   /**
-   * This test checks if DelegatingRefiner parses the command-line input for a custom reached
-   * set/refinement number ratio for the DelegatingRefinerHeuristicRunNTimes correctly.
+   * This test checks if ProgressBasedRefinementSelection parses the command-line input for a custom
+   * reached set/refinement number ratio for the
+   * ProgressBasedRefinementSelectionHeuristicRunRefinerNTimes correctly.
    */
   @Test
   public void setUpDefaultRefinementIndividualRuns() throws Exception {
     Configuration pDefaultIndividualRunsConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
+                "cpa.predicate.refinement.progressBasedRefinementSelectionHeuristics.heuristicRefinerPairs",
                 "REACHED_SET_RATIO:DEFAULT")
             .setOption(
-                "cpa.predicate.delegatingRefinerHeuristics.ReachedSetRatio.abstractionLocationRefinementRatio",
+                "cpa.predicate.progressBasedRefinementSelectionHeuristics.ReachedSetRatio.abstractionLocationRefinementRatio",
                 "5.0")
             .build();
 
     PredicateCPARefinerFactory pDefaultIndividualRunsRefinerFactory =
         setUpRefinerFactory(pDefaultIndividualRunsConfig);
 
-    ImmutableList<HeuristicDelegatingRefinerRecord> pRefinerRecords =
-        pDefaultIndividualRunsRefinerFactory.createDelegatingRefinerConfig(
+    ImmutableList<ProgressBasedRefinementSelectionHeuristicRefinerRecord> pRefinerRecords =
+        pDefaultIndividualRunsRefinerFactory.createProgressBasedRefinementSelectionConfig(
             setUpRefinerMap(pDefaultIndividualRunsRefinerFactory));
 
     assertThat(
-            ((DelegatingRefinerHeuristicReachedSetRatio) pRefinerRecords.getFirst().pHeuristic())
+            ((ProgressBasedRefinementSelectionHeuristicReachedSetRatio)
+                    pRefinerRecords.getFirst().pHeuristic())
                 .getAbstractionLocationRefinementRatio())
         .isEqualTo(5.0);
   }
 
   /**
-   * This test checks if DelegatingRefiner correctly instantiates a negated heuristic and if that
-   * heuristics correctly negates the result of another heuristic.
+   * This test checks if progressBasedRefinementSelection correctly instantiates a negated heuristic
+   * and if that heuristics correctly negates the result of another heuristic.
    */
   @Test
   public void setUpNegatedHeuristic() throws Exception {
     Configuration pNegatedConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
+                "cpa.predicate.refinement.progressBasedRefinementSelectionHeuristics.heuristicRefinerPairs",
                 "NEGATED(RUNREFINERNTIMES):DEFAULT,NEGATED(INTERPOLATION_RATE):DEFAULT")
             .build();
 
     PredicateCPARefinerFactory pNegatedRunsRefinerFactory = setUpRefinerFactory(pNegatedConfig);
 
-    ImmutableList<HeuristicDelegatingRefinerRecord> pRefinerRecords =
-        pNegatedRunsRefinerFactory.createDelegatingRefinerConfig(
+    ImmutableList<ProgressBasedRefinementSelectionHeuristicRefinerRecord> pRefinerRecords =
+        pNegatedRunsRefinerFactory.createProgressBasedRefinementSelectionConfig(
             setUpRefinerMap(pNegatedRunsRefinerFactory));
 
     assertThat(pRefinerRecords.getFirst().pHeuristic())
-        .isInstanceOf(DelegatingRefinerHeuristicResultNegation.class);
+        .isInstanceOf(ProgressBasedRefinementSelectionHeuristicResultNegation.class);
     assertThat(pRefinerRecords.getLast().pHeuristic())
-        .isInstanceOf(DelegatingRefinerHeuristicResultNegation.class);
+        .isInstanceOf(ProgressBasedRefinementSelectionHeuristicResultNegation.class);
 
-    DelegatingRefinerHeuristicResultNegation firstHeuristic =
-        (DelegatingRefinerHeuristicResultNegation) pRefinerRecords.getFirst().pHeuristic();
+    ProgressBasedRefinementSelectionHeuristicResultNegation firstHeuristic =
+        (ProgressBasedRefinementSelectionHeuristicResultNegation)
+            pRefinerRecords.getFirst().pHeuristic();
     assertThat(firstHeuristic.getDelegateHeuristic())
-        .isInstanceOf(DelegatingRefinerHeuristicRunRefinerNTimes.class);
+        .isInstanceOf(ProgressBasedRefinementSelectionHeuristicRunRefinerNTimes.class);
 
-    DelegatingRefinerHeuristicResultNegation secondHeuristic =
-        (DelegatingRefinerHeuristicResultNegation) pRefinerRecords.getLast().pHeuristic();
+    ProgressBasedRefinementSelectionHeuristicResultNegation secondHeuristic =
+        (ProgressBasedRefinementSelectionHeuristicResultNegation)
+            pRefinerRecords.getLast().pHeuristic();
     assertThat(secondHeuristic.getDelegateHeuristic())
-        .isInstanceOf(DelegatingRefinerHeuristicInterpolationRate.class);
+        .isInstanceOf(ProgressBasedRefinementSelectionHeuristicInterpolationRate.class);
   }
 
   /**
-   * This test checks if DelegatingRefiner parses the command-line input for a custom redundancy
-   * threshold for the predicate redundancy heuristic correctly.
+   * This test checks if ProgressBasedRefinementSelection parses the command-line input for a custom
+   * redundancy threshold for the predicate redundancy heuristic correctly.
    */
   @Test
   public void setUpRedundantHeuristicCustomThreshold() throws Exception {
     Configuration pRedundantCustomThresholdConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
+                "cpa.predicate.refinement.progressBasedRefinementSelectionHeuristics.heuristicRefinerPairs",
                 "REDUNDANT_PREDICATES:DEFAULT")
             .setOption(
-                "cpa.predicate.delegatingRefinerHeuristics.RedundantPredicates.redundancyThreshold",
+                "cpa.predicate.progressBasedRefinementSelectionHeuristics.RedundantPredicates.redundancyThreshold",
                 "0.1")
             .build();
     PredicateCPARefinerFactory pRedundantCustomThresholdRefinerFactory =
         setUpRefinerFactory(pRedundantCustomThresholdConfig);
 
-    ImmutableList<HeuristicDelegatingRefinerRecord> pRefinerRecords =
-        pRedundantCustomThresholdRefinerFactory.createDelegatingRefinerConfig(
+    ImmutableList<ProgressBasedRefinementSelectionHeuristicRefinerRecord> pRefinerRecords =
+        pRedundantCustomThresholdRefinerFactory.createProgressBasedRefinementSelectionConfig(
             setUpRefinerMap(pRedundantCustomThresholdRefinerFactory));
 
     assertThat(
-            ((DelegatingRefinerHeuristicRedundantPredicates)
+            ((ProgressBasedRefinementSelectionHeuristicRedundantPredicates)
                     pRefinerRecords.getFirst().pHeuristic())
                 .getRedundancyThreshold())
         .isEqualTo(0.1);
   }
 
   /**
-   * This test checks if DelegatingRefiner parses the command-line input multiple heuristic-refiner
-   * pairs.
+   * This test checks if ProgressBasedRefinementSelection parses the command-line input multiple
+   * heuristic-refiner pairs.
    */
   @Test
   public void setUpMultipleRefinerHeuristicPairs() throws Exception {
     Configuration pMultipleConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
+                "cpa.predicate.refinement.progressBasedRefinementSelectionHeuristics.heuristicRefinerPairs",
                 "REDUNDANT_PREDICATES:STATIC,RUNREFINERNTIMES:STATIC")
             .build();
     PredicateCPARefinerFactory pMultipleRefinerFactory = setUpRefinerFactory(pMultipleConfig);
 
-    ImmutableList<HeuristicDelegatingRefinerRecord> pRefinerRecords =
-        pMultipleRefinerFactory.createDelegatingRefinerConfig(
+    ImmutableList<ProgressBasedRefinementSelectionHeuristicRefinerRecord> pRefinerRecords =
+        pMultipleRefinerFactory.createProgressBasedRefinementSelectionConfig(
             setUpRefinerMap(pMultipleRefinerFactory));
 
     assertThat(pRefinerRecords.getFirst().pHeuristic())
-        .isInstanceOf(DelegatingRefinerHeuristicRedundantPredicates.class);
+        .isInstanceOf(ProgressBasedRefinementSelectionHeuristicRedundantPredicates.class);
     assertThat(pRefinerRecords.getLast().pHeuristic())
-        .isInstanceOf(DelegatingRefinerHeuristicRunRefinerNTimes.class);
+        .isInstanceOf(ProgressBasedRefinementSelectionHeuristicRunRefinerNTimes.class);
     assertThat(pRefinerRecords.getFirst().pRefiner()).isSameInstanceAs(staticRefiner);
     assertThat(pRefinerRecords.getLast().pRefiner()).isSameInstanceAs(staticRefiner);
     assertThat(pRefinerRecords).hasSize(2);
   }
 
-  /** This test checks if DelegatingRefiner parses command-line input case-insensitively. */
+  /**
+   * This test checks if ProgressBasedRefinementSelection parses command-line input
+   * case-insensitively.
+   */
   @Test
   public void checkCaseInsensitivity() throws Exception {
     Configuration plowerCaseConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
+                "cpa.predicate.refinement.progressBasedRefinementSelectionHeuristics.heuristicRefinerPairs",
                 "runrefinerntimes:STATIC,RUNREFINERNTIMES:default")
             .build();
     PredicateCPARefinerFactory pLowerCaseRefinerFactory = setUpRefinerFactory(plowerCaseConfig);
 
-    ImmutableList<HeuristicDelegatingRefinerRecord> pRefinerRecords =
-        pLowerCaseRefinerFactory.createDelegatingRefinerConfig(
+    ImmutableList<ProgressBasedRefinementSelectionHeuristicRefinerRecord> pRefinerRecords =
+        pLowerCaseRefinerFactory.createProgressBasedRefinementSelectionConfig(
             setUpRefinerMap(pLowerCaseRefinerFactory));
 
     assertThat(pRefinerRecords.getFirst().pHeuristic())
-        .isInstanceOf(DelegatingRefinerHeuristicRunRefinerNTimes.class);
+        .isInstanceOf(ProgressBasedRefinementSelectionHeuristicRunRefinerNTimes.class);
     assertThat(pRefinerRecords.getLast().pHeuristic())
-        .isInstanceOf(DelegatingRefinerHeuristicRunRefinerNTimes.class);
+        .isInstanceOf(ProgressBasedRefinementSelectionHeuristicRunRefinerNTimes.class);
     assertThat(pRefinerRecords.getFirst().pRefiner()).isSameInstanceAs(staticRefiner);
     assertThat(pRefinerRecords.getLast().pRefiner()).isSameInstanceAs(defaultRefiner);
   }
 
   /**
-   * This test checks if DelegatingRefiner ignores whitespaces around the colon in command-line
-   * input.
+   * This test checks if ProgressBasedRefinementSelection ignores whitespaces around the colon in
+   * command-line input.
    */
   @Test
   public void ignoreWhiteSpaceColon() throws Exception {
     Configuration pIgnoreWhiteSpaceColonConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
+                "cpa.predicate.refinement.progressBasedRefinementSelectionHeuristics.heuristicRefinerPairs",
                 "RUNREFINERNTIMES : STATIC")
             .build();
     PredicateCPARefinerFactory pIgnoreWhiteSpaceColonConfigRefinerFactory =
         setUpRefinerFactory(pIgnoreWhiteSpaceColonConfig);
 
-    ImmutableList<HeuristicDelegatingRefinerRecord> pRefinerRecords =
-        pIgnoreWhiteSpaceColonConfigRefinerFactory.createDelegatingRefinerConfig(
+    ImmutableList<ProgressBasedRefinementSelectionHeuristicRefinerRecord> pRefinerRecords =
+        pIgnoreWhiteSpaceColonConfigRefinerFactory.createProgressBasedRefinementSelectionConfig(
             setUpRefinerMap(pIgnoreWhiteSpaceColonConfigRefinerFactory));
 
     assertThat(pRefinerRecords.getFirst().pHeuristic())
-        .isInstanceOf(DelegatingRefinerHeuristicRunRefinerNTimes.class);
+        .isInstanceOf(ProgressBasedRefinementSelectionHeuristicRunRefinerNTimes.class);
     assertThat(pRefinerRecords.getFirst().pRefiner()).isSameInstanceAs(staticRefiner);
     assertThat(pRefinerRecords).hasSize(1);
   }
 
   /**
-   * This test checks if DelegatingRefiner ignores whitespaces between the heuristic-refiner pairs
-   * in command-line input.
+   * This test checks if ProgressBasedRefinementSelection ignores whitespaces between the
+   * heuristic-refiner pairs in command-line input.
    */
   @Test
   public void ignoreWhiteSpaceComma() throws Exception {
     Configuration pIgnoreWhiteSpaceCommaConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
+                "cpa.predicate.refinement.progressBasedRefinementSelectionHeuristics.heuristicRefinerPairs",
                 "RUNREFINERNTIMES:STATIC, REACHED_SET_RATIO:DEFAULT ,REDUNDANT_PREDICATES:DEFAULT")
             .build();
     PredicateCPARefinerFactory pIgnoreWhiteSpaceCommaConfigRefinerFactory =
         setUpRefinerFactory(pIgnoreWhiteSpaceCommaConfig);
 
-    ImmutableList<HeuristicDelegatingRefinerRecord> pRefinerRecords =
-        pIgnoreWhiteSpaceCommaConfigRefinerFactory.createDelegatingRefinerConfig(
+    ImmutableList<ProgressBasedRefinementSelectionHeuristicRefinerRecord> pRefinerRecords =
+        pIgnoreWhiteSpaceCommaConfigRefinerFactory.createProgressBasedRefinementSelectionConfig(
             setUpRefinerMap(pIgnoreWhiteSpaceCommaConfigRefinerFactory));
 
     assertThat(pRefinerRecords.getFirst().pHeuristic())
-        .isInstanceOf(DelegatingRefinerHeuristicRunRefinerNTimes.class);
+        .isInstanceOf(ProgressBasedRefinementSelectionHeuristicRunRefinerNTimes.class);
     assertThat(pRefinerRecords.get(1).pHeuristic())
-        .isInstanceOf(DelegatingRefinerHeuristicReachedSetRatio.class);
+        .isInstanceOf(ProgressBasedRefinementSelectionHeuristicReachedSetRatio.class);
     assertThat(pRefinerRecords.get(2).pHeuristic())
-        .isInstanceOf(DelegatingRefinerHeuristicRedundantPredicates.class);
+        .isInstanceOf(ProgressBasedRefinementSelectionHeuristicRedundantPredicates.class);
     assertThat(pRefinerRecords.getFirst().pRefiner()).isSameInstanceAs(staticRefiner);
     assertThat(pRefinerRecords.get(1).pRefiner()).isSameInstanceAs(defaultRefiner);
     assertThat(pRefinerRecords.get(2).pRefiner()).isSameInstanceAs(defaultRefiner);
@@ -302,18 +309,20 @@ public class PredicateDelegatingRefinerTest {
     Configuration pOtherSeparatorsConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
+                "cpa.predicate.refinement.progressBasedRefinementSelectionHeuristics.heuristicRefinerPairs",
                 "RUNREFINERNTIMES:STATIC;REACHED_SET_RATIO:DEFAULT")
             .build();
     PredicateCPARefinerFactory pIgnoreOtherSeparatorsRefinerFactory =
         setUpRefinerFactory(pOtherSeparatorsConfig);
 
-    ImmutableMap<DelegatingRefinerRefinerType, Refiner> refiners =
+    ImmutableMap<ProgressBasedRefinementSelectionRefinerType, Refiner> refiners =
         setUpRefinerMap(pIgnoreOtherSeparatorsRefinerFactory);
 
     assertThrows(
         InvalidConfigurationException.class,
-        () -> pIgnoreOtherSeparatorsRefinerFactory.createDelegatingRefinerConfig(refiners));
+        () ->
+            pIgnoreOtherSeparatorsRefinerFactory.createProgressBasedRefinementSelectionConfig(
+                refiners));
   }
 
   /**
@@ -325,18 +334,18 @@ public class PredicateDelegatingRefinerTest {
     Configuration pMissingColonConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
+                "cpa.predicate.refinement.progressBasedRefinementSelectionHeuristics.heuristicRefinerPairs",
                 "RUNREFINERNTIMESSTATIC")
             .build();
     PredicateCPARefinerFactory pMissingColonRefinerFactory =
         setUpRefinerFactory(pMissingColonConfig);
 
-    ImmutableMap<DelegatingRefinerRefinerType, Refiner> refiners =
+    ImmutableMap<ProgressBasedRefinementSelectionRefinerType, Refiner> refiners =
         setUpRefinerMap(pMissingColonRefinerFactory);
 
     assertThrows(
         InvalidConfigurationException.class,
-        () -> pMissingColonRefinerFactory.createDelegatingRefinerConfig(refiners));
+        () -> pMissingColonRefinerFactory.createProgressBasedRefinementSelectionConfig(refiners));
   }
 
   /**
@@ -348,18 +357,19 @@ public class PredicateDelegatingRefinerTest {
     Configuration pOnlyOneComponentConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
+                "cpa.predicate.refinement.progressBasedRefinementSelectionHeuristics.heuristicRefinerPairs",
                 "RUNREFINERNTIMES")
             .build();
     PredicateCPARefinerFactory pOnlyOneComponentRefinerFactory =
         setUpRefinerFactory(pOnlyOneComponentConfig);
 
-    ImmutableMap<DelegatingRefinerRefinerType, Refiner> refiners =
+    ImmutableMap<ProgressBasedRefinementSelectionRefinerType, Refiner> refiners =
         setUpRefinerMap(pOnlyOneComponentRefinerFactory);
 
     assertThrows(
         InvalidConfigurationException.class,
-        () -> pOnlyOneComponentRefinerFactory.createDelegatingRefinerConfig(refiners));
+        () ->
+            pOnlyOneComponentRefinerFactory.createProgressBasedRefinementSelectionConfig(refiners));
   }
 
   /**
@@ -371,18 +381,19 @@ public class PredicateDelegatingRefinerTest {
     Configuration pThreeComponentsConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
+                "cpa.predicate.refinement.progressBasedRefinementSelectionHeuristics.heuristicRefinerPairs",
                 "RUNREFINERNTIMES:RUNREFINERNTIMES:STATIC")
             .build();
     PredicateCPARefinerFactory pThreeComponentsRefinerFactory =
         setUpRefinerFactory(pThreeComponentsConfig);
 
-    ImmutableMap<DelegatingRefinerRefinerType, Refiner> refiners =
+    ImmutableMap<ProgressBasedRefinementSelectionRefinerType, Refiner> refiners =
         setUpRefinerMap(pThreeComponentsRefinerFactory);
 
     assertThrows(
         InvalidConfigurationException.class,
-        () -> pThreeComponentsRefinerFactory.createDelegatingRefinerConfig(refiners));
+        () ->
+            pThreeComponentsRefinerFactory.createProgressBasedRefinementSelectionConfig(refiners));
   }
 
   /**
@@ -394,18 +405,19 @@ public class PredicateDelegatingRefinerTest {
     Configuration pUnknownHeuristicConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
+                "cpa.predicate.refinement.progressBasedRefinementSelectionHeuristics.heuristicRefinerPairs",
                 "FOO:RUNREFINERNTIMES")
             .build();
     PredicateCPARefinerFactory pUnknownHeuristicRefinerFactory =
         setUpRefinerFactory(pUnknownHeuristicConfig);
 
-    ImmutableMap<DelegatingRefinerRefinerType, Refiner> refiners =
+    ImmutableMap<ProgressBasedRefinementSelectionRefinerType, Refiner> refiners =
         setUpRefinerMap(pUnknownHeuristicRefinerFactory);
 
     assertThrows(
         InvalidConfigurationException.class,
-        () -> pUnknownHeuristicRefinerFactory.createDelegatingRefinerConfig(refiners));
+        () ->
+            pUnknownHeuristicRefinerFactory.createProgressBasedRefinementSelectionConfig(refiners));
   }
 
   /**
@@ -417,18 +429,18 @@ public class PredicateDelegatingRefinerTest {
     Configuration pUnknownRefinerConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
+                "cpa.predicate.refinement.progressBasedRefinementSelectionHeuristics.heuristicRefinerPairs",
                 "RUNREFINERNTIMES:FOO")
             .build();
     PredicateCPARefinerFactory pUnknownRefinerRefinerFactory =
         setUpRefinerFactory(pUnknownRefinerConfig);
 
-    ImmutableMap<DelegatingRefinerRefinerType, Refiner> refiners =
+    ImmutableMap<ProgressBasedRefinementSelectionRefinerType, Refiner> refiners =
         setUpRefinerMap(pUnknownRefinerRefinerFactory);
 
     assertThrows(
         InvalidConfigurationException.class,
-        () -> pUnknownRefinerRefinerFactory.createDelegatingRefinerConfig(refiners));
+        () -> pUnknownRefinerRefinerFactory.createProgressBasedRefinementSelectionConfig(refiners));
   }
 
   /**
@@ -440,21 +452,21 @@ public class PredicateDelegatingRefinerTest {
     Configuration pNegativeFixedRunsConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
+                "cpa.predicate.refinement.progressBasedRefinementSelectionHeuristics.heuristicRefinerPairs",
                 "REACHED_SET_RATIO:DEFAULT")
             .setOption(
-                "cpa.predicate.delegatingRefinerHeuristics.ReachedSetRatio.abstractionLocationRefinementRatio",
+                "cpa.predicate.progressBasedRefinementSelectionHeuristics.ReachedSetRatio.abstractionLocationRefinementRatio",
                 "-10")
             .build();
     PredicateCPARefinerFactory pNegativeFixedRunsFactory =
         setUpRefinerFactory(pNegativeFixedRunsConfig);
 
-    ImmutableMap<DelegatingRefinerRefinerType, Refiner> refiners =
+    ImmutableMap<ProgressBasedRefinementSelectionRefinerType, Refiner> refiners =
         setUpRefinerMap(pNegativeFixedRunsFactory);
 
     assertThrows(
         InvalidConfigurationException.class,
-        () -> pNegativeFixedRunsFactory.createDelegatingRefinerConfig(refiners));
+        () -> pNegativeFixedRunsFactory.createProgressBasedRefinementSelectionConfig(refiners));
   }
 
   /**
@@ -466,21 +478,23 @@ public class PredicateDelegatingRefinerTest {
     Configuration pNegativeRedundancyConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
+                "cpa.predicate.refinement.progressBasedRefinementSelectionHeuristics.heuristicRefinerPairs",
                 "REDUNDANT_PREDICATES:DEFAULT")
             .setOption(
-                "cpa.predicate.delegatingRefinerHeuristics.RedundantPredicates.redundancyThreshold",
+                "cpa.predicate.progressBasedRefinementSelectionHeuristics.RedundantPredicates.redundancyThreshold",
                 "-0.1")
             .build();
     PredicateCPARefinerFactory pNegativeRedundancyRefinerFactory =
         setUpRefinerFactory(pNegativeRedundancyConfig);
 
-    ImmutableMap<DelegatingRefinerRefinerType, Refiner> refiners =
+    ImmutableMap<ProgressBasedRefinementSelectionRefinerType, Refiner> refiners =
         setUpRefinerMap(pNegativeRedundancyRefinerFactory);
 
     assertThrows(
         InvalidConfigurationException.class,
-        () -> pNegativeRedundancyRefinerFactory.createDelegatingRefinerConfig(refiners));
+        () ->
+            pNegativeRedundancyRefinerFactory.createProgressBasedRefinementSelectionConfig(
+                refiners));
   }
 
   /**
@@ -492,21 +506,23 @@ public class PredicateDelegatingRefinerTest {
     Configuration pTooLargeRedundancyConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
+                "cpa.predicate.refinement.progressBasedRefinementSelectionHeuristics.heuristicRefinerPairs",
                 "REDUNDANT_PREDICATES:DEFAULT")
             .setOption(
-                "cpa.predicate.delegatingRefinerHeuristics.RedundantPredicates.redundancyThreshold",
+                "cpa.predicate.progressBasedRefinementSelectionHeuristics.RedundantPredicates.redundancyThreshold",
                 "2.0")
             .build();
     PredicateCPARefinerFactory pTooLargeRedundancyRefinerFactory =
         setUpRefinerFactory(pTooLargeRedundancyConfig);
 
-    ImmutableMap<DelegatingRefinerRefinerType, Refiner> refiners =
+    ImmutableMap<ProgressBasedRefinementSelectionRefinerType, Refiner> refiners =
         setUpRefinerMap(pTooLargeRedundancyRefinerFactory);
 
     assertThrows(
         InvalidConfigurationException.class,
-        () -> pTooLargeRedundancyRefinerFactory.createDelegatingRefinerConfig(refiners));
+        () ->
+            pTooLargeRedundancyRefinerFactory.createProgressBasedRefinementSelectionConfig(
+                refiners));
   }
 
   /**
@@ -518,22 +534,25 @@ public class PredicateDelegatingRefinerTest {
     Configuration pStringRedundancyThresholdConfig =
         TestUtils.configurationForTest()
             .setOption(
-                "cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs",
+                "cpa.predicate.refinement.progressBasedRefinementSelectionHeuristics.heuristicRefinerPairs",
                 "REDUNDANT_PREDICATES:DEFAULT")
             .setOption(
-                "cpa.predicate.delegatingRefinerHeuristics.RedundantPredicates.redundancyThreshold",
+                "cpa.predicate.progressBasedRefinementSelectionHeuristics.RedundantPredicates.redundancyThreshold",
                 "xyz")
             .build();
 
     PredicateCPARefinerFactory factory = setUpRefinerFactory(pStringRedundancyThresholdConfig);
 
-    ImmutableMap<DelegatingRefinerRefinerType, Refiner> refiners = setUpRefinerMap(factory);
+    ImmutableMap<ProgressBasedRefinementSelectionRefinerType, Refiner> refiners =
+        setUpRefinerMap(factory);
 
     assertThrows(
-        InvalidConfigurationException.class, () -> factory.createDelegatingRefinerConfig(refiners));
+        InvalidConfigurationException.class,
+        () -> factory.createProgressBasedRefinementSelectionConfig(refiners));
   }
 
-  // A dummy refiner to serve as Refiner instances the DelegatingRefiner adds to its map of
+  // A dummy refiner to serve as Refiner instances the progressBasedRefinementSelection adds to its
+  // map of
   // available refiners.
   private static class DummyRefiner implements Refiner {
 

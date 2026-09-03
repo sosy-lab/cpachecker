@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
+package org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics;
 
 import com.google.common.collect.ImmutableList;
 import java.util.logging.Level;
@@ -21,10 +21,11 @@ import org.sosy_lab.cpachecker.core.reachedset.TrackingForwardingReachedSet.Reac
 /**
  * A simple heuristic that runs a configurable number of times. To mirror the default predicate
  * abstraction functionality, this heuristic should be set with N = 1 and used as the first
- * heuristic in the PredicateDelegatingRefiner, paired with a PredicateStaticRefiner.
+ * heuristic in the ProgressBasedRefinementSelection, paired with a PredicateStaticRefiner.
  */
-@Options(prefix = "cpa.predicate.delegatingRefinerHeuristics.RunRefinerNTimes")
-public class DelegatingRefinerHeuristicRunRefinerNTimes implements DelegatingRefinerHeuristic {
+@Options(prefix = "cpa.predicate.progressBasedRefinementSelectionHeuristics.RunRefinerNTimes")
+public class ProgressBasedRefinementSelectionHeuristicRunRefinerNTimes
+    implements ProgressBasedRefinementSelectionHeuristic {
 
   private final LogManager logger;
   private int currentCount = 0;
@@ -34,14 +35,14 @@ public class DelegatingRefinerHeuristicRunRefinerNTimes implements DelegatingRef
       description = "Number of times the RunRefinerNTimes heuristic is allowed to run.")
   private int numberRuns = 1;
 
-  public DelegatingRefinerHeuristicRunRefinerNTimes(Configuration pConfig, LogManager pLogger)
-      throws InvalidConfigurationException {
+  public ProgressBasedRefinementSelectionHeuristicRunRefinerNTimes(
+      Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     pConfig.inject(this);
 
     if (numberRuns < 0) {
       throw new InvalidConfigurationException(
-          "Number of times DelegatingRefinerHeuristicRunRefinerNTimes should run must not be"
-              + " negative.");
+          "Number of times ProgressBasedRefinementSelectionHeuristicRunRefinerNTimes should run"
+              + " must not be negative.");
     }
     this.logger = pLogger;
   }
@@ -60,7 +61,8 @@ public class DelegatingRefinerHeuristicRunRefinerNTimes implements DelegatingRef
       currentCount++;
       logger.logf(
           Level.FINE,
-          "DelegatingRefinerHeuristicRunRefinerNTimes has run %d times out of %d configured.",
+          "ProgressBasedRefinementSelectionHeuristicRunRefinerNTimes has run %d times out of %d"
+              + " configured.",
           currentCount,
           numberRuns);
       return true;

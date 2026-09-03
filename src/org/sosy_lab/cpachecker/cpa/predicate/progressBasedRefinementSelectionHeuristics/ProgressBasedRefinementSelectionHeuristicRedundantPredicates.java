@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
+package org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -33,13 +33,13 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.TrackingForwardingReachedSet.ReachedSetDelta;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAST.DelegatingRefinerNormalizedFormula;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAST.DelegatingRefinerPatternRule;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAST.DelegatingRefinerSExpression;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAST.DelegatingRefinerSExpressionSExpressionOperator;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAtomNormalizer;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerDslLoader;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerMatchingVisitor;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionUtils.ProgressBasedRefinementSelectionAST.ProgressBasedRefinementSExpression;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionUtils.ProgressBasedRefinementSelectionAST.ProgressBasedRefinementSelectionNormalizedFormula;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionUtils.ProgressBasedRefinementSelectionAST.ProgressBasedRefinementSelectionPatternRule;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionUtils.ProgressBasedRefinementSelectionAST.ProgressBasedRefinementSelectionSExpressionOperator;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionUtils.ProgressBasedRefinementSelectionAtomNormalizer;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionUtils.ProgressBasedRefinementSelectionDslLoader;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionUtils.ProgressBasedRefinementSelectionMatchingVisitor;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -57,16 +57,18 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  *   <li>Overall pattern redundancy exceeds beyond the configured threshold.
  * </ul>
  */
-@Options(prefix = "cpa.predicate.delegatingRefinerHeuristics.RedundantPredicates")
-public class DelegatingRefinerHeuristicRedundantPredicates implements DelegatingRefinerHeuristic {
-  private static final String DSL_RESOURCE_NAME = "delegatingRefiner-redundancyRules.json";
+@Options(prefix = "cpa.predicate.progressBasedRefinementSelectionHeuristics.RedundantPredicates")
+public class ProgressBasedRefinementSelectionHeuristicRedundantPredicates
+    implements ProgressBasedRefinementSelectionHeuristic {
+  private static final String DSL_RESOURCE_NAME =
+      "progressBasedRefinementSelection-redundancyRules.json";
 
   @Option(
       secure = true,
       name = "redundancyThreshold",
       description =
-          "Acceptable redundancy percentage for added predicates for PredicateDelegatingRefiner"
-              + " heuristic (0.0 - 1.0).")
+          "Acceptable redundancy percentage for added predicates for"
+              + " ProgressBasedRefinementSelection heuristic (0.0 - 1.0).")
   private double redundancyThreshold = 0.2;
 
   @Option(
@@ -81,8 +83,8 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
 
   private final FormulaManagerView formulaManager;
   protected final LogManager logger;
-  private final DelegatingRefinerAtomNormalizer normalizer;
-  private final DelegatingRefinerMatchingVisitor matcher;
+  private final ProgressBasedRefinementSelectionAtomNormalizer normalizer;
+  private final ProgressBasedRefinementSelectionMatchingVisitor matcher;
 
   private final Multiset<String> accumulatedPatternFrequency = LinkedHashMultiset.create();
   private final Multiset<String> accumulatedCategoryFrequency = LinkedHashMultiset.create();
@@ -98,22 +100,22 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
    *     0%) or higher than 1.0 (= 100%)
    * @throws IllegalStateException if the DSL rules cannot be loaded
    */
-  public DelegatingRefinerHeuristicRedundantPredicates(
+  public ProgressBasedRefinementSelectionHeuristicRedundantPredicates(
       Configuration pConfiguration,
       final FormulaManagerView pFormulaManager,
       final LogManager pLogger)
       throws InvalidConfigurationException {
 
-    pConfiguration.inject(this, DelegatingRefinerHeuristicRedundantPredicates.class);
+    pConfiguration.inject(this, ProgressBasedRefinementSelectionHeuristicRedundantPredicates.class);
     if (redundancyThreshold < 0.0 || redundancyThreshold > 1.0) {
       throw new InvalidConfigurationException(
           "Acceptable redundancy rate must be between 0.0 and 1.0.");
     }
     this.formulaManager = checkNotNull(pFormulaManager);
     this.logger = pLogger;
-    normalizer = new DelegatingRefinerAtomNormalizer(formulaManager);
+    normalizer = new ProgressBasedRefinementSelectionAtomNormalizer(formulaManager);
 
-    ImmutableList<DelegatingRefinerPatternRule> allPatternRules;
+    ImmutableList<ProgressBasedRefinementSelectionPatternRule> allPatternRules;
     try {
       if (dslRulePath != null) {
         if (!Files.exists(dslRulePath)) {
@@ -122,7 +124,7 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
         }
         logger.logf(Level.FINEST, "Loading redundancy rules from file: %s ", dslRulePath);
         try (Reader reader = Files.newBufferedReader(dslRulePath)) {
-          allPatternRules = DelegatingRefinerDslLoader.loadDsl(reader);
+          allPatternRules = ProgressBasedRefinementSelectionDslLoader.loadDsl(reader);
         }
       } else {
         logger.logf(
@@ -132,10 +134,11 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
         try (BufferedReader reader =
             Resources.asCharSource(
                     Resources.getResource(
-                        DelegatingRefinerHeuristicRedundantPredicates.class, DSL_RESOURCE_NAME),
+                        ProgressBasedRefinementSelectionHeuristicRedundantPredicates.class,
+                        DSL_RESOURCE_NAME),
                     StandardCharsets.UTF_8)
                 .openBufferedStream()) {
-          allPatternRules = DelegatingRefinerDslLoader.loadDsl(reader);
+          allPatternRules = ProgressBasedRefinementSelectionDslLoader.loadDsl(reader);
         }
       }
     } catch (IOException e) {
@@ -143,7 +146,7 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
           "Failed to load DSL rules for redundancy matching.", e);
     }
 
-    this.matcher = new DelegatingRefinerMatchingVisitor(allPatternRules);
+    this.matcher = new ProgressBasedRefinementSelectionMatchingVisitor(allPatternRules);
   }
 
   /**
@@ -191,7 +194,8 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
 
       if (predState != null && predState.isAbstractionState()) {
         BooleanFormula abstractionFormula = predState.getAbstractionFormula().asFormula();
-        DelegatingRefinerSExpression rootExpression = normalizer.buildAtom(abstractionFormula);
+        ProgressBasedRefinementSExpression rootExpression =
+            normalizer.buildAtom(abstractionFormula);
         removeMatches(rootExpression, matcher, pPatternAccumulator, pCategoryAccumulator);
       }
     }
@@ -203,44 +207,47 @@ public class DelegatingRefinerHeuristicRedundantPredicates implements Delegating
 
       if (predState.isAbstractionState()) {
         BooleanFormula abstractionFormula = predState.getAbstractionFormula().asFormula();
-        DelegatingRefinerSExpression rootExpression = normalizer.buildAtom(abstractionFormula);
+        ProgressBasedRefinementSExpression rootExpression =
+            normalizer.buildAtom(abstractionFormula);
         collectMatches(rootExpression, matcher, pPatternAccumulator, pCategoryAccumulator);
       }
     }
   }
 
   private void removeMatches(
-      DelegatingRefinerSExpression pExpression,
-      DelegatingRefinerMatchingVisitor pMatcher,
+      ProgressBasedRefinementSExpression pExpression,
+      ProgressBasedRefinementSelectionMatchingVisitor pMatcher,
       Multiset<String> pPatternAccumulator,
       Multiset<String> pCategoryAccumulator) {
 
-    ImmutableList<DelegatingRefinerNormalizedFormula> matches = pExpression.accept(pMatcher);
+    ImmutableList<ProgressBasedRefinementSelectionNormalizedFormula> matches =
+        pExpression.accept(pMatcher);
 
-    for (DelegatingRefinerNormalizedFormula match : matches) {
+    for (ProgressBasedRefinementSelectionNormalizedFormula match : matches) {
       pPatternAccumulator.remove(match.id());
       pCategoryAccumulator.remove(match.category());
     }
 
-    if (pExpression instanceof DelegatingRefinerSExpressionSExpressionOperator operator) {
-      for (DelegatingRefinerSExpression subAtom : operator.sExpressionList()) {
+    if (pExpression instanceof ProgressBasedRefinementSelectionSExpressionOperator operator) {
+      for (ProgressBasedRefinementSExpression subAtom : operator.sExpressionList()) {
         removeMatches(subAtom, pMatcher, pPatternAccumulator, pCategoryAccumulator);
       }
     }
   }
 
   private void collectMatches(
-      DelegatingRefinerSExpression pExpression,
-      DelegatingRefinerMatchingVisitor pMatcher,
+      ProgressBasedRefinementSExpression pExpression,
+      ProgressBasedRefinementSelectionMatchingVisitor pMatcher,
       Multiset<String> pPatternAccumulator,
       Multiset<String> pCategoryAccumulator) {
-    ImmutableList<DelegatingRefinerNormalizedFormula> matches = pExpression.accept(pMatcher);
-    for (DelegatingRefinerNormalizedFormula match : matches) {
+    ImmutableList<ProgressBasedRefinementSelectionNormalizedFormula> matches =
+        pExpression.accept(pMatcher);
+    for (ProgressBasedRefinementSelectionNormalizedFormula match : matches) {
       pPatternAccumulator.add(match.id());
       pCategoryAccumulator.add(match.category());
     }
-    if (pExpression instanceof DelegatingRefinerSExpressionSExpressionOperator operator) {
-      for (DelegatingRefinerSExpression subAtom : operator.sExpressionList()) {
+    if (pExpression instanceof ProgressBasedRefinementSelectionSExpressionOperator operator) {
+      for (ProgressBasedRefinementSExpression subAtom : operator.sExpressionList()) {
         collectMatches(subAtom, pMatcher, pPatternAccumulator, pCategoryAccumulator);
       }
     }

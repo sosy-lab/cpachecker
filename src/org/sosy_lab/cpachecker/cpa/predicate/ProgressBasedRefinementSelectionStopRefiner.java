@@ -16,11 +16,11 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 /**
  * A refiner that's sole job is to stop the refinement and end the verification run. It is not
  * intended to perform any refinement execution. Intended for use with the {@link
- * PredicateDelegatingRefiner} to stop refinement when all its heuristics have indicated likely
- * divergence.
+ * ProgressBasedRefinementSelection} to stop refinement when all its heuristics have indicated
+ * likely divergence.
  */
-public class PredicateStopRefiner implements Refiner {
-  public PredicateStopRefiner() {}
+public class ProgressBasedRefinementSelectionStopRefiner implements Refiner {
+  public ProgressBasedRefinementSelectionStopRefiner() {}
 
   /**
    * Performs no refinement and returns false. The method is a placeholder to satisfy requirements

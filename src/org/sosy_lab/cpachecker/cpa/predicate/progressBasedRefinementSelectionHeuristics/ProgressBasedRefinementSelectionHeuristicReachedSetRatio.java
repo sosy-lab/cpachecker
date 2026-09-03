@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
+package org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics;
 
 import com.google.common.collect.ImmutableList;
 import java.util.logging.Level;
@@ -27,8 +27,9 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  * diagnostic heuristics and, at the same time, data can be collected in order to evaluate
  * refinement progress with subsequent diagnostic heuristics.
  */
-@Options(prefix = "cpa.predicate.delegatingRefinerHeuristics.ReachedSetRatio")
-public class DelegatingRefinerHeuristicReachedSetRatio implements DelegatingRefinerHeuristic {
+@Options(prefix = "cpa.predicate.progressBasedRefinementSelectionHeuristics.ReachedSetRatio")
+public class ProgressBasedRefinementSelectionHeuristicReachedSetRatio
+    implements ProgressBasedRefinementSelectionHeuristic {
 
   private final LogManager logger;
   private double currentAbstractionLocationRefinementRatio;
@@ -71,23 +72,23 @@ public class DelegatingRefinerHeuristicReachedSetRatio implements DelegatingRefi
    * @param pLogger logger used to log messages
    * @throws InvalidConfigurationException if the provided ratio is negative
    */
-  public DelegatingRefinerHeuristicReachedSetRatio(Configuration pConfig, LogManager pLogger)
-      throws InvalidConfigurationException {
+  public ProgressBasedRefinementSelectionHeuristicReachedSetRatio(
+      Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     pConfig.inject(this);
     if (abstractionLocationRefinementRatio < 0) {
       throw new InvalidConfigurationException(
           "The ratio of the number of abstraction locations to refinement iterations used in"
-              + " DelegatingRefinerHeuristicReachedSetRatio must not be negative");
+              + " ProgressBasedRefinementSelectionHeuristicReachedSetRatio must not be negative");
     }
     if (refinementThreshold < 0) {
       throw new InvalidConfigurationException(
           "The maximum number of refinement iterations allowed in"
-              + " DelegatingRefinerHeuristicReachedSetRatio must not be negative");
+              + " ProgressBasedRefinementSelectionHeuristicReachedSetRatio must not be negative");
     }
     if (abstractionLocationThreshold < 0) {
       throw new InvalidConfigurationException(
           "The maximum number of abstraction locations discovered in"
-              + " DelegatingRefinerHeuristicReachedSetRatio must not be negative");
+              + " ProgressBasedRefinementSelectionHeuristicReachedSetRatio must not be negative");
     }
 
     this.logger = pLogger;

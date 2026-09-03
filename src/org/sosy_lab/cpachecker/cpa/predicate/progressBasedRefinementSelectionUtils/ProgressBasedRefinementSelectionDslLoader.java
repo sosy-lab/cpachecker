@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils;
+package org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionUtils;
 
 import com.fasterxml.jackson.core.JsonParser.Feature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,27 +15,27 @@ import java.io.IOException;
 import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAST.DelegatingRefinerPatternRule;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionUtils.ProgressBasedRefinementSelectionAST.ProgressBasedRefinementSelectionPatternRule;
 
 /**
  * Loads and parses redundancy DSL rules from JSON file into a list of {@link
- * DelegatingRefinerAST.DelegatingRefinerPatternRule} rules.
+ * ProgressBasedRefinementSelectionAST.ProgressBasedRefinementSelectionPatternRule} rules.
  */
-public final class DelegatingRefinerDslLoader {
+public final class ProgressBasedRefinementSelectionDslLoader {
 
-  public static ImmutableList<DelegatingRefinerPatternRule> loadDsl(Path pPathToDsl)
+  public static ImmutableList<ProgressBasedRefinementSelectionPatternRule> loadDsl(Path pPathToDsl)
       throws IOException {
     try (Reader reader = Files.newBufferedReader(pPathToDsl)) {
       return loadDsl(reader);
     }
   }
 
-  public static ImmutableList<DelegatingRefinerPatternRule> loadDsl(Reader pReader)
+  public static ImmutableList<ProgressBasedRefinementSelectionPatternRule> loadDsl(Reader pReader)
       throws IOException {
     ObjectMapper JSONMapper = new ObjectMapper();
     JSONMapper.configure(Feature.ALLOW_COMMENTS, true);
-    DelegatingRefinerPatternRule[] patternRules =
-        JSONMapper.readValue(pReader, DelegatingRefinerPatternRule[].class);
+    ProgressBasedRefinementSelectionPatternRule[] patternRules =
+        JSONMapper.readValue(pReader, ProgressBasedRefinementSelectionPatternRule[].class);
     return ImmutableList.copyOf(patternRules);
   }
 }

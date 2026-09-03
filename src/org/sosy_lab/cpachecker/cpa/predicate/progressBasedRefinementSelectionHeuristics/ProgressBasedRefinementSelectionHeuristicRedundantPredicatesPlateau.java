@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
+package org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
@@ -25,16 +25,16 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 /**
  * A heuristic that detects saturation in predicate abstraction by analyzing pattern redundancy
  * across the added predicates stored in the {@link ReachedSetDelta}. Inherits from {@link
- * DelegatingRefinerHeuristicRedundantPredicates}. For each predicate, its abstraction formula is
- * split into atomic expressions, normalized and matched against a declarative DSL rules set. The
- * heuristic tracks the frequency of matched patterns and their semantic categories and returns
- * {@code false} if redundancy has plateaued and only a single patterns continues to grow.
+ * ProgressBasedRefinementSelectionHeuristicRedundantPredicates}. For each predicate, its
+ * abstraction formula is split into atomic expressions, normalized and matched against a
+ * declarative DSL rules set. The heuristic tracks the frequency of matched patterns and their
+ * semantic categories and returns {@code false} if redundancy has plateaued and only a single
+ * patterns continues to grow.
  */
 @Options(
-    prefix =
-        "cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRedundantPredicatesPlateau")
-public class DelegatingRefinerHeuristicRedundantPredicatesPlateau
-    extends DelegatingRefinerHeuristicRedundantPredicates {
+    prefix = "cpa.predicate.progressBasedRefinementSelectionHeuristics.RedundantPredicatesPlateau")
+public class ProgressBasedRefinementSelectionHeuristicRedundantPredicatesPlateau
+    extends ProgressBasedRefinementSelectionHeuristicRedundantPredicates {
   private static final double EPSILON = 0.03;
 
   @Option(
@@ -60,12 +60,13 @@ public class DelegatingRefinerHeuristicRedundantPredicatesPlateau
    * @param pLogger logger for diagnostic output
    * @throws InvalidConfigurationException if the provided maxPlateauSteps is negative
    */
-  public DelegatingRefinerHeuristicRedundantPredicatesPlateau(
+  public ProgressBasedRefinementSelectionHeuristicRedundantPredicatesPlateau(
       Configuration pConfiguration, FormulaManagerView pFormulaManager, LogManager pLogger)
       throws InvalidConfigurationException {
 
     super(pConfiguration, pFormulaManager, pLogger);
-    pConfiguration.inject(this, DelegatingRefinerHeuristicRedundantPredicatesPlateau.class);
+    pConfiguration.inject(
+        this, ProgressBasedRefinementSelectionHeuristicRedundantPredicatesPlateau.class);
 
     if (maxPlateauSteps < 0) {
       throw new InvalidConfigurationException(

@@ -6,30 +6,30 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
+package org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.TrackingForwardingReachedSet.ReachedSetDelta;
 
 /**
- * Interface for the heuristics in the PredicateDelegatingRefiner. The delegating refiner uses them
- * to decide which refiner to apply.
+ * Interface for the heuristics in the ProgressBasedRefinementSelection. The
+ * ProgressBasedRefinementSelection uses them to decide which refiner to apply.
  *
- * <p>Each heuristic is paired with one subordinate refiner. The delegating refiner evaluates the
- * configured heuristics in order and delegates to the refiner of the first heuristic that is
- * fulfilled; the remaining heuristics are not evaluated. Consequently, a fulfilled heuristic means
- * that under its specific aspect, refinement progress looks promising enough to apply its refiner.
- * A heuristic that is not fulfilled implies that under its specific aspect, refinement progress
- * does not look promising, so its refiner is skipped and another heuristic evaluates the progress
- * next.
+ * <p>Each heuristic is paired with one subordinate refiner. The ProgressBasedRefinementSelection
+ * evaluates the configured heuristics in order and delegates to the refiner of the first heuristic
+ * that is fulfilled; the remaining heuristics are not evaluated. Consequently, a fulfilled
+ * heuristic means that under its specific aspect, refinement progress looks promising enough to
+ * apply its refiner. A heuristic that is not fulfilled implies that under its specific aspect,
+ * refinement progress does not look promising, so its refiner is skipped and another heuristic
+ * evaluates the progress next.
  *
  * <p>Because a fulfilled heuristic always leads to its refiner being applied, the configured chain
  * of heuristics is expected to end in a heuristic that is always fulfilled and is paired with a
- * refiner signalling early termination of CEGAR. Otherwise, all heuristics may reject a refinement
- * and the delegating refiner cannot make progress.
+ * refiner signaling early termination of CEGAR. Otherwise, all heuristics may reject a refinement
+ * and the ProgressBasedRefinementSelection cannot make progress.
  */
-public interface DelegatingRefinerHeuristic {
+public interface ProgressBasedRefinementSelectionHeuristic {
   /**
    * Checks whether the current refinement progress satisfies this heuristic, i.e., whether the
    * subordinate refiner associated with this heuristic should perform the next refinement.

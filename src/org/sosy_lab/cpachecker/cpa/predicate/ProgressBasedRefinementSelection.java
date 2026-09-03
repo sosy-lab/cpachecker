@@ -20,8 +20,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.TrackingForwardingReachedSet.ReachedSetDelta;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristic;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.HeuristicDelegatingRefinerRecord;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics.ProgressBasedRefinementSelectionHeuristic;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics.ProgressBasedRefinementSelectionHeuristicRefinerRecord;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 
@@ -43,42 +43,45 @@ import org.sosy_lab.cpachecker.util.CPAs;
  *
  * <p>Verification is only terminated if <i>all</i> standard heuristics evaluate to {@code false}.
  * In this case, the chain typically falls through to a final, unconditional stop-heuristic (e.g.,
- * paired with a {@link PredicateStopRefiner}) to safely signal the CEGAR algorithm to terminate
- * early.
+ * paired with a {@link ProgressBasedRefinementSelectionStopRefiner}) to safely signal the CEGAR
+ * algorithm to terminate early.
  *
  * <p>This refiner is a pure consumer of the change history. The tracking itself is owned by the
  * CEGAR algorithm, which closes a tracking window and supplies the resulting history before every
  * refinement.
  */
-public class PredicateDelegatingRefiner implements Refiner, ReachedSetDeltaConsumer {
-  private final ImmutableList<HeuristicDelegatingRefinerRecord> heuristicRefinerRecords;
+public class ProgressBasedRefinementSelection implements Refiner, ReachedSetDeltaConsumer {
+  private final ImmutableList<ProgressBasedRefinementSelectionHeuristicRefinerRecord>
+      heuristicRefinerRecords;
   private final LogManager logger;
   private ImmutableList<ReachedSetDelta> deltaHistory = ImmutableList.of();
 
-  public PredicateDelegatingRefiner(
+  public ProgressBasedRefinementSelection(
       LogManager pLogger,
-      ImmutableList<HeuristicDelegatingRefinerRecord> pHeuristicRefinerRecords) {
+      ImmutableList<ProgressBasedRefinementSelectionHeuristicRefinerRecord>
+          pHeuristicRefinerRecords) {
     this.heuristicRefinerRecords = ImmutableList.copyOf(pHeuristicRefinerRecords);
     this.logger = pLogger;
   }
 
   /**
-   * Factory method to create a PredicateDelegatingRefiner from the given CPA configuration and
-   * initialize its internal map of heuristic-refiner records.
+   * Factory method to create a ProgressBasedRefinementSelection from the given CPA configuration
+   * and initialize its internal map of heuristic-refiner records.
    *
    * @param pCpa the CPA configuration needed to retrieve the ARGCPA and the PredicateCPA
-   * @return a configured PredicateDelegatingRefiner
+   * @return a configured ProgressBasedRefinementSelection
    * @throws InvalidConfigurationException if predicateCPA required for initializing the
    *     heuristic-refiner map is missing
    */
   public static Refiner create(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
-    ARGCPA argcpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, PredicateDelegatingRefiner.class);
+    ARGCPA argcpa =
+        CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, ProgressBasedRefinementSelection.class);
     PredicateCPA predicateCpa =
-        CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, PredicateDelegatingRefiner.class);
+        CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, ProgressBasedRefinementSelection.class);
     if (predicateCpa == null) {
       throw new InvalidConfigurationException(
-          PredicateDelegatingRefiner.class.getSimpleName() + " needs a PredicateCPA");
+          ProgressBasedRefinementSelection.class.getSimpleName() + " needs a PredicateCPA");
     }
 
     RefinementStrategy strategy =
@@ -90,15 +93,17 @@ public class PredicateDelegatingRefiner implements Refiner, ReachedSetDeltaConsu
 
     PredicateCPARefinerFactory factory = new PredicateCPARefinerFactory(argcpa);
 
-    // to create refiners and populate the ImmutableList<HeuristicDelegatingRefinerRecord>
+    // to create refiners and populate the
+    // ImmutableList<ProgressBasedRefinementSelectionHeuristicRefinerRecord>
     // refinerRecords, it is necessary to call factory.create(strategy) but the resulting refiner is
     // not needed for DelegatingRefiner functionality
     factory.create(strategy);
 
-    ImmutableList<HeuristicDelegatingRefinerRecord> availableHeuristicRefinerRecords =
-        factory.getRefinerRecords();
+    ImmutableList<ProgressBasedRefinementSelectionHeuristicRefinerRecord>
+        availableHeuristicRefinerRecords = factory.getRefinerRecords();
 
-    return new PredicateDelegatingRefiner(argcpa.getLogger(), availableHeuristicRefinerRecords);
+    return new ProgressBasedRefinementSelection(
+        argcpa.getLogger(), availableHeuristicRefinerRecords);
   }
 
   /**
@@ -127,8 +132,8 @@ public class PredicateDelegatingRefiner implements Refiner, ReachedSetDeltaConsu
    */
   @Override
   public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
-    for (HeuristicDelegatingRefinerRecord pRecord : heuristicRefinerRecords) {
-      DelegatingRefinerHeuristic pHeuristic = pRecord.pHeuristic();
+    for (ProgressBasedRefinementSelectionHeuristicRefinerRecord pRecord : heuristicRefinerRecords) {
+      ProgressBasedRefinementSelectionHeuristic pHeuristic = pRecord.pHeuristic();
       if (pHeuristic.fulfilled(pReached, deltaHistory)) {
         logger.logf(
             Level.FINER,

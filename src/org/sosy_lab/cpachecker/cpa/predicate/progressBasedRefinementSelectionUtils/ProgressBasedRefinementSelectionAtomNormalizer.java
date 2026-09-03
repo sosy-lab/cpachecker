@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils;
+package org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionUtils;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.elementsAndList;
@@ -17,9 +17,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAST.DelegatingRefinerSExpression;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAST.DelegatingRefinerSExpressionAtom;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAST.DelegatingRefinerSExpressionSExpressionOperator;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionUtils.ProgressBasedRefinementSelectionAST.ProgressBasedRefinementSExpression;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionUtils.ProgressBasedRefinementSelectionAST.ProgressBasedRefinementSelectionSExpressionAtom;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionUtils.ProgressBasedRefinementSelectionAST.ProgressBasedRefinementSelectionSExpressionOperator;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
@@ -30,7 +30,7 @@ import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
 /**
  * Normalizes a Boolean formula (Abstraction formulas) into an s-expression tree for structural
  * matching. The visitor traverses the Boolean formula and produces a tree of {@link
- * DelegatingRefinerSExpression} nodes used for rule-based structural pattern matching.
+ * ProgressBasedRefinementSExpression} nodes used for rule-based structural pattern matching.
  *
  * <p>The normalizer performs
  *
@@ -47,8 +47,8 @@ import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
  *       unless a quantifier is detected.
  * </ul>
  */
-public class DelegatingRefinerAtomNormalizer
-    implements FormulaVisitor<DelegatingRefinerSExpression> {
+public class ProgressBasedRefinementSelectionAtomNormalizer
+    implements FormulaVisitor<ProgressBasedRefinementSExpression> {
 
   private final FormulaManagerView formulaManager;
 
@@ -73,7 +73,7 @@ public class DelegatingRefinerAtomNormalizer
    *
    * @param pFormulaManager the formulaManager traverses and normalizes boolean formulas
    */
-  public DelegatingRefinerAtomNormalizer(FormulaManagerView pFormulaManager) {
+  public ProgressBasedRefinementSelectionAtomNormalizer(FormulaManagerView pFormulaManager) {
     this.formulaManager = checkNotNull(pFormulaManager);
   }
 
@@ -83,7 +83,7 @@ public class DelegatingRefinerAtomNormalizer
    * @param pFormula the boolean formula to normalize
    * @return the root of a normalized s-expression tree
    */
-  public DelegatingRefinerSExpression buildAtom(BooleanFormula pFormula) {
+  public ProgressBasedRefinementSExpression buildAtom(BooleanFormula pFormula) {
     return formulaManager.visit(pFormula, this);
   }
 
@@ -122,20 +122,22 @@ public class DelegatingRefinerAtomNormalizer
   }
 
   // BVextract needs special processing to handle bit-slicing, e.g. BVextract_32_32
-  private static DelegatingRefinerSExpression normalizeBitvectorIfNeeded(
-      String pRawOperator, String pNormalized, ImmutableList<DelegatingRefinerSExpression> pList) {
+  private static ProgressBasedRefinementSExpression normalizeBitvectorIfNeeded(
+      String pRawOperator,
+      String pNormalized,
+      ImmutableList<ProgressBasedRefinementSExpression> pList) {
     Optional<HiLo> hiLo = parseBVExtract(pRawOperator);
 
     if (hiLo.isPresent() && pList.size() == 1) {
 
-      ImmutableList<DelegatingRefinerSExpression> expressionsList =
+      ImmutableList<ProgressBasedRefinementSExpression> expressionsList =
           elementsAndList(
-              new DelegatingRefinerSExpressionAtom(hiLo.orElseThrow().hi()),
-              new DelegatingRefinerSExpressionAtom(hiLo.orElseThrow().lo()),
+              new ProgressBasedRefinementSelectionSExpressionAtom(hiLo.orElseThrow().hi()),
+              new ProgressBasedRefinementSelectionSExpressionAtom(hiLo.orElseThrow().lo()),
               pList);
-      return new DelegatingRefinerSExpressionSExpressionOperator("bvextract", expressionsList);
+      return new ProgressBasedRefinementSelectionSExpressionOperator("bvextract", expressionsList);
     }
-    return new DelegatingRefinerSExpressionSExpressionOperator(pNormalized, pList);
+    return new ProgressBasedRefinementSelectionSExpressionOperator(pNormalized, pList);
   }
 
   private static Optional<HiLo> parseBVExtract(String pOperator) {
@@ -168,8 +170,8 @@ public class DelegatingRefinerAtomNormalizer
   }
 
   @Override
-  public DelegatingRefinerSExpression visitFreeVariable(Formula pFormula, String pS) {
-    return new DelegatingRefinerSExpressionAtom(pS);
+  public ProgressBasedRefinementSExpression visitFreeVariable(Formula pFormula, String pS) {
+    return new ProgressBasedRefinementSelectionSExpressionAtom(pS);
   }
 
   // When implementing the FormulaVisitor interface, it is necessary to implement
@@ -177,59 +179,61 @@ public class DelegatingRefinerAtomNormalizer
   // fails if the deprecation warning is not suppressed
   @SuppressWarnings("deprecation")
   @Override
-  public DelegatingRefinerSExpression visitBoundVariable(Formula pFormula, int pI) {
+  public ProgressBasedRefinementSExpression visitBoundVariable(Formula pFormula, int pI) {
     return null;
   }
 
   @Override
-  public DelegatingRefinerSExpression visitConstant(Formula pFormula, Object pO) {
-    return new DelegatingRefinerSExpressionAtom(String.valueOf(pO));
+  public ProgressBasedRefinementSExpression visitConstant(Formula pFormula, Object pO) {
+    return new ProgressBasedRefinementSelectionSExpressionAtom(String.valueOf(pO));
   }
 
   @Override
-  public DelegatingRefinerSExpression visitQuantifier(
+  public ProgressBasedRefinementSExpression visitQuantifier(
       BooleanFormula pBooleanFormula,
       Quantifier pQuantifier,
       List<Formula> pList,
       BooleanFormula pBooleanFormula1) {
-    ImmutableList.Builder<DelegatingRefinerSExpression> subAtomsBuilder = ImmutableList.builder();
+    ImmutableList.Builder<ProgressBasedRefinementSExpression> subAtomsBuilder =
+        ImmutableList.builder();
     subAtomsBuilder.add(
-        new DelegatingRefinerSExpressionAtom(
+        new ProgressBasedRefinementSelectionSExpressionAtom(
             "quant" + pQuantifier.toString().toLowerCase(Locale.ROOT)));
     if (pList != null) {
       for (Formula formula : pList) {
-        DelegatingRefinerSExpression subAtom = formulaManager.visit(formula, this);
+        ProgressBasedRefinementSExpression subAtom = formulaManager.visit(formula, this);
         if (subAtom != null) {
           subAtomsBuilder.add(subAtom);
         }
       }
 
-      DelegatingRefinerSExpression outerAtom = formulaManager.visit(pBooleanFormula1, this);
+      ProgressBasedRefinementSExpression outerAtom = formulaManager.visit(pBooleanFormula1, this);
       if (outerAtom != null) {
         subAtomsBuilder.add(outerAtom);
       }
     }
 
-    return new DelegatingRefinerSExpressionSExpressionOperator(
+    return new ProgressBasedRefinementSelectionSExpressionOperator(
         "quantifier", subAtomsBuilder.build());
   }
 
   @Override
-  public DelegatingRefinerSExpression visitFunction(
+  public ProgressBasedRefinementSExpression visitFunction(
       Formula pFormula, List<Formula> pList, FunctionDeclaration<?> pFunctionDeclaration) {
     String rawOperator = pFunctionDeclaration.getName();
     String normalizedOperator = normalizeOperator(rawOperator);
-    ImmutableList.Builder<DelegatingRefinerSExpression> subAtomsBuilder = ImmutableList.builder();
+    ImmutableList.Builder<ProgressBasedRefinementSExpression> subAtomsBuilder =
+        ImmutableList.builder();
 
     if (pList != null) {
       for (Formula formula : pList) {
-        DelegatingRefinerSExpression subAtom = formulaManager.visit(formula, this);
+        ProgressBasedRefinementSExpression subAtom = formulaManager.visit(formula, this);
         if (subAtom != null) {
           subAtomsBuilder.add(subAtom);
         }
       }
     }
-    ImmutableList<DelegatingRefinerSExpression> subAtoms = subAtomsBuilder.build();
+    ImmutableList<ProgressBasedRefinementSExpression> subAtoms = subAtomsBuilder.build();
     return normalizeBitvectorIfNeeded(rawOperator, normalizedOperator, subAtoms);
   }
 }

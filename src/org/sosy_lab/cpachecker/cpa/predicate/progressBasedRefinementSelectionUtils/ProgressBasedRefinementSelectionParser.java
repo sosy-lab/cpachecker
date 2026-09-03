@@ -6,36 +6,37 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils;
+package org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionUtils;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
 import java.util.List;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAST.DelegatingRefinerDelegatingRefinerPatternAtom;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAST.DelegatingRefinerPatternNode;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerUtils.DelegatingRefinerAST.DelegatingRefinerPatternOperator;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionUtils.ProgressBasedRefinementSelectionAST.ProgressBasedRefinementSelectionPatternAtom;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionUtils.ProgressBasedRefinementSelectionAST.ProgressBasedRefinementSelectionPatternNode;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionUtils.ProgressBasedRefinementSelectionAST.ProgressBasedRefinementSelectionPatternOperator;
 
 /**
  * Parses DSL pattern strings (loaded from the DSL in JSON format via {@link
- * DelegatingRefinerDslLoader}) into a recursive, structured {@link
- * DelegatingRefinerAST.DelegatingRefinerPatternNode} tree. The tree is later traversed by the
- * {@link DelegatingRefinerMatchingVisitor} to match against normalized s-expressions. Parsing is
- * done in two steps:
+ * ProgressBasedRefinementSelectionDslLoader}) into a recursive, structured {@link
+ * ProgressBasedRefinementSelectionAST.ProgressBasedRefinementSelectionPatternNode} tree. The tree
+ * is later traversed by the {@link ProgressBasedRefinementSelectionMatchingVisitor} to match
+ * against normalized s-expressions. Parsing is done in two steps:
  *
  * <ul>
  *   <li>{@code tokenize()} splits the input into individual tokens (parentheses, operators,
  *       wildcards).
- *   <li>{@code parseNode()} recursively builds {@link DelegatingRefinerPatternOperator} and {@link
- *       DelegatingRefinerDelegatingRefinerPatternAtom} nodes.
+ *   <li>{@code parseNode()} recursively builds {@link
+ *       ProgressBasedRefinementSelectionPatternOperator} and {@link
+ *       ProgressBasedRefinementSelectionPatternAtom} nodes.
  * </ul>
  *
  * Wildcards such as {@code <var>} are parsed as {@link
- * DelegatingRefinerDelegatingRefinerPatternAtom}, operators and functions applications as {@link
- * DelegatingRefinerPatternOperator}.
+ * ProgressBasedRefinementSelectionPatternAtom}, operators and functions applications as {@link
+ * ProgressBasedRefinementSelectionPatternOperator}.
  */
-public class DelegatingRefinerParser {
+public class ProgressBasedRefinementSelectionParser {
 
   /**
    * Parses a DSL pattern String into a structured pattern tree.
@@ -44,11 +45,11 @@ public class DelegatingRefinerParser {
    * @return the root node of the parsed, structured pattern tree
    * @throws IllegalArgumentException if the input contains extra tokens
    */
-  public static DelegatingRefinerPatternNode parseExpression(String pPatternMatch) {
+  public static ProgressBasedRefinementSelectionPatternNode parseExpression(String pPatternMatch) {
     List<String> tokens = tokenize(pPatternMatch);
     ArrayDeque<String> stack = new ArrayDeque<>(tokens);
 
-    DelegatingRefinerPatternNode root = parseNode(stack);
+    ProgressBasedRefinementSelectionPatternNode root = parseNode(stack);
 
     if (!stack.isEmpty()) {
       throw new IllegalArgumentException("Extra tokens after pattern: " + stack);
@@ -97,19 +98,20 @@ public class DelegatingRefinerParser {
    * @param stack the tokens to consume
    * @return a structured pattern node tree
    */
-  private static DelegatingRefinerPatternNode parseNode(ArrayDeque<String> stack) {
+  private static ProgressBasedRefinementSelectionPatternNode parseNode(ArrayDeque<String> stack) {
     checkArgument(!stack.isEmpty(), "Pattern ended unexpectedly");
     String token = stack.removeFirst();
 
     if ("(".equals(token)) {
       String operator = require(stack);
-      ImmutableList.Builder<DelegatingRefinerPatternNode> subNodes = ImmutableList.builder();
+      ImmutableList.Builder<ProgressBasedRefinementSelectionPatternNode> subNodes =
+          ImmutableList.builder();
 
       while (!")".equals(peek(stack))) {
         subNodes.add(parseNode(stack));
       }
       stack.removeFirst();
-      return new DelegatingRefinerPatternOperator(operator, subNodes.build());
+      return new ProgressBasedRefinementSelectionPatternOperator(operator, subNodes.build());
     }
 
     // Unmatched ')'
@@ -117,12 +119,12 @@ public class DelegatingRefinerParser {
 
     // Wildcard <var>
     if (token.length() >= 2 && token.startsWith("<") && token.endsWith(">")) {
-      return new DelegatingRefinerDelegatingRefinerPatternAtom(
+      return new ProgressBasedRefinementSelectionPatternAtom(
           token.substring(1, token.length() - 1));
     }
 
     // Zero-arity operator / atom as operator
-    return new DelegatingRefinerPatternOperator(token, ImmutableList.of());
+    return new ProgressBasedRefinementSelectionPatternOperator(token, ImmutableList.of());
   }
 
   /**

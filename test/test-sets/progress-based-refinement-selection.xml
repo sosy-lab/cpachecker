@@ -14,8 +14,8 @@
     <option name="--heap">4000M</option>
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
 
-    <rundefinition name="PredicateDelegatingRefiner">
-        <option name="--predicateAnalysis-delegatingrefiner"/>
+    <rundefinition name="ProgressBasedRefinementSelection">
+        <option name="--predicateAnalysis-progressbasedrefinementselection"/>
     </rundefinition>
 
   <tasks name="Simple">

@@ -6,13 +6,13 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
+package org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics;
 
 /**
- * Describes which types of heuristics can be added to the {@link HeuristicDelegatingRefinerRecord}
- * as possible heuristic.
+ * Describes which types of heuristics can be added to the {@link
+ * ProgressBasedRefinementSelectionHeuristicRefinerRecord} as possible heuristic.
  */
-public enum DelegatingRefinerHeuristicType {
+public enum ProgressBasedRefinementSelectionHeuristicType {
   RUNREFINERNTIMES,
   REACHED_SET_RATIO,
   REDUNDANT_PREDICATES,

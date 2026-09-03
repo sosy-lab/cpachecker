@@ -33,16 +33,16 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristic;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicInterpolationRate;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicReachedSetRatio;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRedundantPredicates;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRedundantPredicatesPlateau;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicResultNegation;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRunRefinerNTimes;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicType;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerRefinerType;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.HeuristicDelegatingRefinerRecord;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics.ProgressBasedRefinementSelectionHeuristic;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics.ProgressBasedRefinementSelectionHeuristicInterpolationRate;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics.ProgressBasedRefinementSelectionHeuristicReachedSetRatio;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics.ProgressBasedRefinementSelectionHeuristicRedundantPredicates;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics.ProgressBasedRefinementSelectionHeuristicRedundantPredicatesPlateau;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics.ProgressBasedRefinementSelectionHeuristicRefinerRecord;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics.ProgressBasedRefinementSelectionHeuristicResultNegation;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics.ProgressBasedRefinementSelectionHeuristicRunRefinerNTimes;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics.ProgressBasedRefinementSelectionHeuristicType;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics.ProgressBasedRefinementSelectionRefinerType;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
@@ -77,15 +77,16 @@ public final class PredicateCPARefinerFactory {
   @Option(
       secure = true,
       description =
-          "use PredicateDelegatingRefiner to switch between refiners bases on a set of heuristics.")
-  private boolean usePredicateDelegatingRefiner = false;
+          "use ProgressBasedRefinementSelection to switch between refiners bases on a set of"
+              + " heuristics.")
+  private boolean useProgressBasedRefinementSelection = false;
 
   @Option(
       secure = true,
-      name = "delegatingRefinerHeuristics.heuristicRefinerPairs",
+      name = "progressBasedRefinementSelectionHeuristics.heuristicRefinerPairs",
       description =
-          "List of heuristic-refiner pairs for the PredicateDelegatingRefiner. Only use when"
-              + " usePredicateDelegatingRefiner = true.")
+          "List of heuristic-refiner pairs for the ProgressBasedRefinementSelection. Only use when"
+              + " useProgressBasedRefinementSelection = true.")
   private ImmutableList<String> heuristicRefinerPairs =
       ImmutableList.of(
           "RUNREFINERNTIMES:STATIC",
@@ -97,7 +98,8 @@ public final class PredicateCPARefinerFactory {
 
   private @Nullable BlockFormulaStrategy blockFormulaStrategy = null;
 
-  private ImmutableList<HeuristicDelegatingRefinerRecord> refinerRecords = null;
+  private ImmutableList<ProgressBasedRefinementSelectionHeuristicRefinerRecord> refinerRecords =
+      null;
 
   private ConfigurableProgramAnalysis cpa;
 
@@ -212,7 +214,8 @@ public final class PredicateCPARefinerFactory {
       }
     }
 
-    // To add both refiners to the DelegatingRefiner, they temporarily need different identifiers
+    // To add both refiners to the createProgressBasedRefinementSelectionConfig, they temporarily
+    // need different identifiers
     // in the create method.
 
     ARGBasedRefiner defaultRefiner =
@@ -248,49 +251,53 @@ public final class PredicateCPARefinerFactory {
     }
     ARGBasedRefiner refiner = staticRefiner;
 
-    if (usePredicateDelegatingRefiner) {
+    if (useProgressBasedRefinementSelection) {
       ARGCPA argCpa =
           CPAs.retrieveCPAOrFail(checkNotNull(cpa), ARGCPA.class, PredicateCPARefiner.class);
 
-      ImmutableMap<DelegatingRefinerRefinerType, Refiner> pRefinersAvailable =
+      ImmutableMap<ProgressBasedRefinementSelectionRefinerType, Refiner> pRefinersAvailable =
           buildRefinerMap(
               AbstractARGBasedRefiner.forARGBasedRefiner(defaultRefiner, argCpa),
               AbstractARGBasedRefiner.forARGBasedRefiner(staticRefiner, argCpa));
-      refinerRecords = createDelegatingRefinerConfig(pRefinersAvailable);
+      refinerRecords = createProgressBasedRefinementSelectionConfig(pRefinersAvailable);
     }
 
     return refiner;
   }
 
   // Maps available refiner implementations to their corresponding enum identifiers to choose as
-  // value for the DelegatingRefiner heuristics. To support a new refiner, please add an entry to
-  // DelegatingRefinerRefinerType and extend this map accordingly.
-  ImmutableMap<DelegatingRefinerRefinerType, Refiner> buildRefinerMap(
+  // value for the createProgressBasedRefinementSelectionConfig heuristics. To support a new
+  // refiner, please add an entry to
+  // ProgressBasedRefinementSelectionRefinerType and extend this map accordingly.
+  ImmutableMap<ProgressBasedRefinementSelectionRefinerType, Refiner> buildRefinerMap(
       Refiner defaultRefiner, Refiner staticRefiner) throws InvalidConfigurationException {
     return ImmutableMap.of(
-        DelegatingRefinerRefinerType.DEFAULT,
+        ProgressBasedRefinementSelectionRefinerType.DEFAULT,
         defaultRefiner,
-        DelegatingRefinerRefinerType.STATIC,
+        ProgressBasedRefinementSelectionRefinerType.STATIC,
         staticRefiner,
-        DelegatingRefinerRefinerType.IMPACT_GLOBAL,
+        ProgressBasedRefinementSelectionRefinerType.IMPACT_GLOBAL,
         ImpactGlobalRefiner.create(cpa),
-        DelegatingRefinerRefinerType.PREDICATE_GLOBAL,
+        ProgressBasedRefinementSelectionRefinerType.PREDICATE_GLOBAL,
         PredicateGlobalRefiner.create(cpa),
-        DelegatingRefinerRefinerType.STOP,
-        new PredicateStopRefiner());
+        ProgressBasedRefinementSelectionRefinerType.STOP,
+        new ProgressBasedRefinementSelectionStopRefiner());
   }
 
-  // Creates a List of records for the DelegatingRefiner for what refiner to choose for which
+  // Creates a List of records for the ProgressBasedRefinementSelection for what refiner to choose
+  // for which
   // heuristics, based on user input in the command-line.
-  public ImmutableList<HeuristicDelegatingRefinerRecord> createDelegatingRefinerConfig(
-      ImmutableMap<DelegatingRefinerRefinerType, Refiner> pRefinersAvailable)
-      throws InvalidConfigurationException {
+  public ImmutableList<ProgressBasedRefinementSelectionHeuristicRefinerRecord>
+      createProgressBasedRefinementSelectionConfig(
+          ImmutableMap<ProgressBasedRefinementSelectionRefinerType, Refiner> pRefinersAvailable)
+          throws InvalidConfigurationException {
 
-    ImmutableList.Builder<HeuristicDelegatingRefinerRecord> recordBuilder = ImmutableList.builder();
-    DelegatingRefinerHeuristicType pHeuristicName;
+    ImmutableList.Builder<ProgressBasedRefinementSelectionHeuristicRefinerRecord> recordBuilder =
+        ImmutableList.builder();
+    ProgressBasedRefinementSelectionHeuristicType pHeuristicName;
 
     for (String heuristicRefinerPair : heuristicRefinerPairs) {
-      DelegatingRefinerHeuristicType pInnerNegatedHeuristic = null;
+      ProgressBasedRefinementSelectionHeuristicType pInnerNegatedHeuristic = null;
       Iterable<String> rawPair = Splitter.on(':').trimResults().split(heuristicRefinerPair);
       ImmutableList<String> pairs = ImmutableList.copyOf(rawPair);
       if (pairs.size() != 2) {
@@ -305,15 +312,16 @@ public final class PredicateCPARefinerFactory {
         String heuristicSpec = pairs.getFirst().trim();
 
         if (heuristicSpec.startsWith("NEGATED(") && pairs.getFirst().trim().endsWith(")")) {
-          pHeuristicName = DelegatingRefinerHeuristicType.NEGATED;
+          pHeuristicName = ProgressBasedRefinementSelectionHeuristicType.NEGATED;
 
           String inner =
               heuristicSpec.substring("NEGATED(".length(), heuristicSpec.length() - 1).trim();
           pInnerNegatedHeuristic =
-              DelegatingRefinerHeuristicType.valueOf(inner.toUpperCase(Locale.ROOT));
+              ProgressBasedRefinementSelectionHeuristicType.valueOf(inner.toUpperCase(Locale.ROOT));
         } else {
           pHeuristicName =
-              DelegatingRefinerHeuristicType.valueOf(heuristicSpec.toUpperCase(Locale.ROOT));
+              ProgressBasedRefinementSelectionHeuristicType.valueOf(
+                  heuristicSpec.toUpperCase(Locale.ROOT));
         }
 
       } catch (IllegalArgumentException unknownHeuristicType) {
@@ -321,14 +329,16 @@ public final class PredicateCPARefinerFactory {
             "Unknown heuristic type: "
                 + pairs.getFirst()
                 + ". Available heuristics: "
-                + Joiner.on(",").join(EnumSet.allOf(DelegatingRefinerHeuristicType.class)),
+                + Joiner.on(",")
+                    .join(EnumSet.allOf(ProgressBasedRefinementSelectionHeuristicType.class)),
             unknownHeuristicType);
       }
 
-      DelegatingRefinerRefinerType pRefinerName;
+      ProgressBasedRefinementSelectionRefinerType pRefinerName;
       try {
         pRefinerName =
-            DelegatingRefinerRefinerType.valueOf(pairs.getLast().toUpperCase(Locale.ROOT));
+            ProgressBasedRefinementSelectionRefinerType.valueOf(
+                pairs.getLast().toUpperCase(Locale.ROOT));
       } catch (IllegalArgumentException unknownRefinerType) {
         throw new InvalidConfigurationException(
             "Unknown refiner type: "
@@ -343,49 +353,50 @@ public final class PredicateCPARefinerFactory {
         throw new InvalidConfigurationException(
             "Refiner must not be null. Available refiners: " + pRefinersAvailable.keySet());
       }
-      DelegatingRefinerHeuristic pHeuristic =
+      ProgressBasedRefinementSelectionHeuristic pHeuristic =
           buildHeuristics(pHeuristicName, pInnerNegatedHeuristic);
-      recordBuilder.add(new HeuristicDelegatingRefinerRecord(pHeuristic, pRefiner));
+      recordBuilder.add(
+          new ProgressBasedRefinementSelectionHeuristicRefinerRecord(pHeuristic, pRefiner));
     }
     return recordBuilder.build();
   }
 
-  private DelegatingRefinerHeuristic buildHeuristics(
-      DelegatingRefinerHeuristicType pHeuristicType,
-      @Nullable DelegatingRefinerHeuristicType pNegatedInnerHeuristic)
+  private ProgressBasedRefinementSelectionHeuristic buildHeuristics(
+      ProgressBasedRefinementSelectionHeuristicType pHeuristicType,
+      @Nullable ProgressBasedRefinementSelectionHeuristicType pNegatedInnerHeuristic)
       throws InvalidConfigurationException {
-    DelegatingRefinerHeuristic heuristic =
+    ProgressBasedRefinementSelectionHeuristic heuristic =
         switch (pHeuristicType) {
           case RUNREFINERNTIMES ->
-              new DelegatingRefinerHeuristicRunRefinerNTimes(
+              new ProgressBasedRefinementSelectionHeuristicRunRefinerNTimes(
                   predicateCpa.getConfiguration(), predicateCpa.getLogger());
           case REACHED_SET_RATIO ->
-              new DelegatingRefinerHeuristicReachedSetRatio(
+              new ProgressBasedRefinementSelectionHeuristicReachedSetRatio(
                   predicateCpa.getConfiguration(), predicateCpa.getLogger());
           case INTERPOLATION_RATE ->
-              new DelegatingRefinerHeuristicInterpolationRate(
+              new ProgressBasedRefinementSelectionHeuristicInterpolationRate(
                   predicateCpa.getSolver().getFormulaManager(),
                   predicateCpa.getLogger(),
                   predicateCpa.getConfiguration());
           case REDUNDANT_PREDICATES ->
-              new DelegatingRefinerHeuristicRedundantPredicates(
+              new ProgressBasedRefinementSelectionHeuristicRedundantPredicates(
                   predicateCpa.getConfiguration(),
                   predicateCpa.getSolver().getFormulaManager(),
                   predicateCpa.getLogger());
           case REDUNDANT_PREDICATES_PLATEAU ->
-              new DelegatingRefinerHeuristicRedundantPredicatesPlateau(
+              new ProgressBasedRefinementSelectionHeuristicRedundantPredicatesPlateau(
                   predicateCpa.getConfiguration(),
                   predicateCpa.getSolver().getFormulaManager(),
                   predicateCpa.getLogger());
           case STOP -> (pReached, pDeltas) -> true;
           case NEGATED ->
-              new DelegatingRefinerHeuristicResultNegation(
+              new ProgressBasedRefinementSelectionHeuristicResultNegation(
                   buildHeuristics(checkNotNull(pNegatedInnerHeuristic), null));
         };
     return heuristic;
   }
 
-  public ImmutableList<HeuristicDelegatingRefinerRecord> getRefinerRecords() {
+  public ImmutableList<ProgressBasedRefinementSelectionHeuristicRefinerRecord> getRefinerRecords() {
     if (refinerRecords == null) {
       return ImmutableList.of();
     }

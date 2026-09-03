@@ -30,8 +30,8 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRunRefinerNTimes;
-import org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics.HeuristicDelegatingRefinerRecord;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics.ProgressBasedRefinementSelectionHeuristicRefinerRecord;
+import org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics.ProgressBasedRefinementSelectionHeuristicRunRefinerNTimes;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
-public class PredicateStopRefinerTest {
+public class ProgressBasedRefinementSelectionStopRefinerTest {
   DummyAlgorithm countCallsToAlgorithmInCEGAR;
   private LogManager logger;
   private Configuration config;
@@ -49,8 +49,8 @@ public class PredicateStopRefinerTest {
   private ARGCPA argCpa;
 
   /**
-   * * Create common set up for all StopRefinerPredicateStopRefiner in PredicateDelegatingRefiner *
-   * tests.
+   * * Create common set up for all ProgressBasedRefinementSelectionStopRefiner in
+   * ProgressBasedRefinementSelection * tests.
    */
   @Before
   public void setup()
@@ -59,9 +59,11 @@ public class PredicateStopRefinerTest {
     shutdownNotifier = ShutdownNotifier.createDummy();
     config =
         TestUtils.configurationForTest()
-            .setOption("cegar.refiner", "cpa.predicate.PredicateDelegatingRefiner")
+            .setOption("cegar.refiner", "cpa.predicate.ProgressBasedRefinementSelection")
             .setOption("analysis.reachedSet.trackChanges", "true")
-            .setOption("cpa.predicate.delegatingRefinerHeuristics.RunRefinerNTimes.numberRuns", "2")
+            .setOption(
+                "cpa.predicate.progressBasedRefinementSelectionHeuristics.RunRefinerNTimes.numberRuns",
+                "2")
             .build();
     cfa =
         TestCfaUtils.toSingleFunctionCFA(
@@ -95,14 +97,15 @@ public class PredicateStopRefinerTest {
   @Test
   public void checkTerminationSignalReachesCEGAR()
       throws CPAException, InterruptedException, InvalidConfigurationException {
-    ImmutableList<HeuristicDelegatingRefinerRecord> refinerRecords =
+    ImmutableList<ProgressBasedRefinementSelectionHeuristicRefinerRecord> refinerRecords =
         ImmutableList.of(
-            new HeuristicDelegatingRefinerRecord(
-                new DelegatingRefinerHeuristicRunRefinerNTimes(config, logger), new DummyRefiner()),
-            new HeuristicDelegatingRefinerRecord(
-                (pReached, pDeltas) -> true, new PredicateStopRefiner()));
-    PredicateDelegatingRefiner delegatingRefiner =
-        new PredicateDelegatingRefiner(logger, refinerRecords);
+            new ProgressBasedRefinementSelectionHeuristicRefinerRecord(
+                new ProgressBasedRefinementSelectionHeuristicRunRefinerNTimes(config, logger),
+                new DummyRefiner()),
+            new ProgressBasedRefinementSelectionHeuristicRefinerRecord(
+                (pReached, pDeltas) -> true, new ProgressBasedRefinementSelectionStopRefiner()));
+    ProgressBasedRefinementSelection delegatingRefiner =
+        new ProgressBasedRefinementSelection(logger, refinerRecords);
     countCallsToAlgorithmInCEGAR = new DummyAlgorithm(delegatingRefiner);
     CEGARAlgorithm cegarAlgorithm =
         new CEGARAlgorithmFactory(
@@ -129,13 +132,13 @@ public class PredicateStopRefinerTest {
    */
   @Test
   public void checkOnlyStopRefinerInDelegatingRefiner() {
-    ImmutableList<HeuristicDelegatingRefinerRecord> stopOnly =
+    ImmutableList<ProgressBasedRefinementSelectionHeuristicRefinerRecord> stopOnly =
         ImmutableList.of(
-            new HeuristicDelegatingRefinerRecord(
-                (pReached, pDeltas) -> true, new PredicateStopRefiner()));
+            new ProgressBasedRefinementSelectionHeuristicRefinerRecord(
+                (pReached, pDeltas) -> true, new ProgressBasedRefinementSelectionStopRefiner()));
 
-    PredicateDelegatingRefiner stopOnlyDelegatingRefiner =
-        new PredicateDelegatingRefiner(logger, stopOnly);
+    ProgressBasedRefinementSelection stopOnlyDelegatingRefiner =
+        new ProgressBasedRefinementSelection(logger, stopOnly);
 
     countCallsToAlgorithmInCEGAR = new DummyAlgorithm(stopOnlyDelegatingRefiner);
 

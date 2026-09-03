@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.predicate.delegatingRefinerHeuristics;
+package org.sosy_lab.cpachecker.cpa.predicate.progressBasedRefinementSelectionHeuristics;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -14,25 +14,27 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.TrackingForwardingReachedSet.ReachedSetDelta;
 
 /**
- * This class implements a DelegatingRefinerHeuristicResultNegation. This is a heuristic that wraps
- * any {@link DelegatingRefinerHeuristic} and negates its result. This way, every heuristic can be
- * used to either signal that a refinement should stop or that it should continue.
+ * This class implements a ProgressBasedRefinementSelectionHeuristic. This is a heuristic that wraps
+ * any {@link ProgressBasedRefinementSelectionHeuristic} and negates its result. This way, every
+ * heuristic can be used to either signal that a refinement should stop or that it should continue.
  */
-public class DelegatingRefinerHeuristicResultNegation implements DelegatingRefinerHeuristic {
+public class ProgressBasedRefinementSelectionHeuristicResultNegation
+    implements ProgressBasedRefinementSelectionHeuristic {
 
-  private final DelegatingRefinerHeuristic delegateHeuristic;
+  private final ProgressBasedRefinementSelectionHeuristic delegateHeuristic;
 
   /**
-   * Constructs a DelegatingRefinerHeuristicResultNegation that negates the result of the given
+   * Constructs a ProgressBasedRefinementSelectionHeuristic that negates the result of the given
    * delegate heuristic.
    *
    * @param pDelegateHeuristic the heuristic whose result to negate
    */
-  public DelegatingRefinerHeuristicResultNegation(DelegatingRefinerHeuristic pDelegateHeuristic)
+  public ProgressBasedRefinementSelectionHeuristicResultNegation(
+      ProgressBasedRefinementSelectionHeuristic pDelegateHeuristic)
       throws InvalidConfigurationException {
     if (pDelegateHeuristic == null) {
       throw new InvalidConfigurationException(
-          "DelegatingRefinerHeuristic to be negated cannot be null");
+          "ProgressBasedRefinementSelectionHeuristic to be negated cannot be null");
     }
     this.delegateHeuristic = pDelegateHeuristic;
   }
@@ -56,7 +58,7 @@ public class DelegatingRefinerHeuristicResultNegation implements DelegatingRefin
    *
    * @return the wrapped heuristic
    */
-  public DelegatingRefinerHeuristic getDelegateHeuristic() {
+  public ProgressBasedRefinementSelectionHeuristic getDelegateHeuristic() {
     return delegateHeuristic;
   }
 }

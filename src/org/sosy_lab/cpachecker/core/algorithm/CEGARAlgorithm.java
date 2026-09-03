@@ -102,7 +102,7 @@ public class CEGARAlgorithm
 
   private final CEGARStatistics stats = new CEGARStatistics();
 
-  // boolean flag used by PredicateDelegatingRefiner to stop refinement and return with result
+  // boolean flag used by ProgressBasedRefinementSelection to stop refinement and return with result
   // "Unknown"
   private boolean terminationSignalReceived = false;
   private final List<ReachedSetUpdateListener> reachedSetUpdateListeners =

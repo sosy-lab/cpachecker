@@ -2731,69 +2731,6 @@ cpa.predicate.defaultArrayLength = 20
 # actual type of the allocation is figured out.
 cpa.predicate.deferUntypedAllocations = true
 
-# Number of steps a redundancy threshold is allowed to plateau
-cpa.predicate.delegatingRefinerHeuristics.DelegatingRefinerHeuristicRedundantPredicatesPlateau.maxPlateauSteps = 3
-
-# The lower bound for the ratio of the number of abstraction locations to the
-# number of refinements. Used to prevent premature early termination.
-cpa.predicate.delegatingRefinerHeuristics.InterpolationRate.abstractionLocationRefinementRatioLower = 0.18
-
-# The upper bound for the ratio of the number of abstraction locations to the
-# number of refinements. Used to prevent unproductive long runs.
-cpa.predicate.delegatingRefinerHeuristics.InterpolationRate.abstractionLocationRefinementRatioUpper = 0.28
-
-# Acceptable interpolant rate generated per refinement for
-# PredicateDelegatingRefiner heuristic.
-cpa.predicate.delegatingRefinerHeuristics.InterpolationRate.acceptableInterpolantRate = 8.0
-
-# Factor to decrease the acceptable interpolant rate in unproductive runs in
-# the PredicateDelegatingRefiner heuristic.
-cpa.predicate.delegatingRefinerHeuristics.InterpolationRate.decreaseFactorInterpolants = 2.0
-
-# Factor to increase the acceptable interpolant rate in productive runs in
-# the PredicateDelegatingRefiner heuristic.
-cpa.predicate.delegatingRefinerHeuristics.InterpolationRate.increaseFactorInterpolants = 1.5
-
-# The maximum number of consecutive refinement iterations for which the
-# net-active interpolant rate of change may remain at or above
-# persistentRateThreshold before the heuristic signals divergence.
-cpa.predicate.delegatingRefinerHeuristics.InterpolationRate.maxPersistentIterations = 10
-
-# The minimum net-active interpolant rate of change that is considered
-# 'non-vanishing' for the purposes of detecting sustained, unbounded
-# predicate growth.
-cpa.predicate.delegatingRefinerHeuristics.InterpolationRate.persistentRateThreshold = 0.05
-
-# The size of the sliding window, in refinement iterations, used to compute
-# the recent net-active interpolant rate of change.
-cpa.predicate.delegatingRefinerHeuristics.InterpolationRate.rateWindowSize = 10
-
-# The maximum acceptable ratio of the number of abstraction locations to the
-# number of refinements before this heuristic should stop in favor of other
-# diagnostic heuristics.
-cpa.predicate.delegatingRefinerHeuristics.ReachedSetRatio.abstractionLocationRefinementRatio = 3.0
-
-# The maximum number of abstraction locations discovered before this
-# heuristic should stop in favor of other diagnostic heuristics.
-cpa.predicate.delegatingRefinerHeuristics.ReachedSetRatio.abstractionLocationThreshold = 3
-
-# The maximum number of refinement iterations allowed before this heuristic
-# should stop in favor of other diagnostic heuristics.
-cpa.predicate.delegatingRefinerHeuristics.ReachedSetRatio.refinementThreshold = 10
-
-# Threshold of maximum acceptable dominance of one category
-cpa.predicate.delegatingRefinerHeuristics.RedundantPredicates.categoryRedundancyThreshold = 0.6
-
-# Path to the DSL rules file
-cpa.predicate.delegatingRefinerHeuristics.RedundantPredicates.dslRulePath = no default value
-
-# Acceptable redundancy percentage for added predicates for
-# PredicateDelegatingRefiner heuristic (0.0 - 1.0).
-cpa.predicate.delegatingRefinerHeuristics.RedundantPredicates.redundancyThreshold = 0.2
-
-# Number of times the RunRefinerNTimes heuristic is allowed to run.
-cpa.predicate.delegatingRefinerHeuristics.RunRefinerNTimes.numberRuns = 1
-
 # Direction of the analysis?
 cpa.predicate.direction = FORWARD
   enum:     [FORWARD, BACKWARD]
@@ -3051,6 +2988,69 @@ cpa.predicate.predmap.file = "predmap.txt"
 cpa.predicate.predmap.predicateFormat = SMTLIB2
   enum:     [PLAIN, SMTLIB2]
 
+# The lower bound for the ratio of the number of abstraction locations to the
+# number of refinements. Used to prevent premature early termination.
+cpa.predicate.progressBasedRefinementSelectionHeuristics.InterpolationRate.abstractionLocationRefinementRatioLower = 0.18
+
+# The upper bound for the ratio of the number of abstraction locations to the
+# number of refinements. Used to prevent unproductive long runs.
+cpa.predicate.progressBasedRefinementSelectionHeuristics.InterpolationRate.abstractionLocationRefinementRatioUpper = 0.28
+
+# Acceptable interpolant rate generated per refinement for
+# ProgressBasedRefinementSelection heuristic.
+cpa.predicate.progressBasedRefinementSelectionHeuristics.InterpolationRate.acceptableInterpolantRate = 8.0
+
+# Factor to decrease the acceptable interpolant rate in unproductive runs in
+# the ProgressBasedRefinementSelection heuristic.
+cpa.predicate.progressBasedRefinementSelectionHeuristics.InterpolationRate.decreaseFactorInterpolants = 2.0
+
+# Factor to increase the acceptable interpolant rate in productive runs in
+# the ProgressBasedRefinementSelection heuristic.
+cpa.predicate.progressBasedRefinementSelectionHeuristics.InterpolationRate.increaseFactorInterpolants = 1.5
+
+# The maximum number of consecutive refinement iterations for which the
+# net-active interpolant rate of change may remain at or above
+# persistentRateThreshold before the heuristic signals divergence.
+cpa.predicate.progressBasedRefinementSelectionHeuristics.InterpolationRate.maxPersistentIterations = 10
+
+# The minimum net-active interpolant rate of change that is considered
+# 'non-vanishing' for the purposes of detecting sustained, unbounded
+# predicate growth.
+cpa.predicate.progressBasedRefinementSelectionHeuristics.InterpolationRate.persistentRateThreshold = 0.05
+
+# The size of the sliding window, in refinement iterations, used to compute
+# the recent net-active interpolant rate of change.
+cpa.predicate.progressBasedRefinementSelectionHeuristics.InterpolationRate.rateWindowSize = 10
+
+# The maximum acceptable ratio of the number of abstraction locations to the
+# number of refinements before this heuristic should stop in favor of other
+# diagnostic heuristics.
+cpa.predicate.progressBasedRefinementSelectionHeuristics.ReachedSetRatio.abstractionLocationRefinementRatio = 3.0
+
+# The maximum number of abstraction locations discovered before this
+# heuristic should stop in favor of other diagnostic heuristics.
+cpa.predicate.progressBasedRefinementSelectionHeuristics.ReachedSetRatio.abstractionLocationThreshold = 3
+
+# The maximum number of refinement iterations allowed before this heuristic
+# should stop in favor of other diagnostic heuristics.
+cpa.predicate.progressBasedRefinementSelectionHeuristics.ReachedSetRatio.refinementThreshold = 10
+
+# Threshold of maximum acceptable dominance of one category
+cpa.predicate.progressBasedRefinementSelectionHeuristics.RedundantPredicates.categoryRedundancyThreshold = 0.6
+
+# Path to the DSL rules file
+cpa.predicate.progressBasedRefinementSelectionHeuristics.RedundantPredicates.dslRulePath = no default value
+
+# Acceptable redundancy percentage for added predicates for
+# ProgressBasedRefinementSelection heuristic (0.0 - 1.0).
+cpa.predicate.progressBasedRefinementSelectionHeuristics.RedundantPredicates.redundancyThreshold = 0.2
+
+# Number of steps a redundancy threshold is allowed to plateau
+cpa.predicate.progressBasedRefinementSelectionHeuristics.RedundantPredicatesPlateau.maxPlateauSteps = 3
+
+# Number of times the RunRefinerNTimes heuristic is allowed to run.
+cpa.predicate.progressBasedRefinementSelectionHeuristics.RunRefinerNTimes.numberRuns = 1
+
 # Specify whether to overapproximate quantified formula, if one or more
 # quantifiers couldn't be eliminated.(Otherwise an exception will be thrown)
 cpa.predicate.pseudoExistQE.overapprox = false
@@ -3082,14 +3082,6 @@ cpa.predicate.refinement.atomicInterpolants = true
 cpa.predicate.refinement.cexTraceCheckDirection = ZIGZAG
   enum:     [FORWARDS, BACKWARDS, ZIGZAG, LOOP_FREE_FIRST, RANDOM, LOWEST_AVG_SCORE,
              HIGHEST_AVG_SCORE, LOOP_FREE_FIRST_BACKWARDS]
-
-# List of heuristic-refiner pairs for the PredicateDelegatingRefiner. Only
-# use when usePredicateDelegatingRefiner = true.
-cpa.predicate.refinement.delegatingRefinerHeuristics.heuristicRefinerPairs = [
-          "RUNREFINERNTIMES:STATIC",
-          "REACHED_SET_RATIO:DEFAULT",
-          "INTERPOLATION_RATE:DEFAULT",
-          "REDUNDANT_PREDICATES:DEFAULT"]
 
 # Actually compute an abstraction, otherwise just convert the interpolants to
 # BDDs as they are.
@@ -3174,6 +3166,14 @@ cpa.predicate.refinement.predicateBasisStrategy = SUBGRAPH
 # which sliced prefix should be used for interpolation
 cpa.predicate.refinement.prefixPreference = PrefixSelector.NO_SELECTION
 
+# List of heuristic-refiner pairs for the ProgressBasedRefinementSelection.
+# Only use when useProgressBasedRefinementSelection = true.
+cpa.predicate.refinement.progressBasedRefinementSelectionHeuristics.heuristicRefinerPairs = [
+          "RUNREFINERNTIMES:STATIC",
+          "REACHED_SET_RATIO:DEFAULT",
+          "INTERPOLATION_RATE:DEFAULT",
+          "REDUNDANT_PREDICATES:DEFAULT"]
+
 # Do a complete restart (clearing the reached set) after N refinements. 0 to
 # disable, 1 for always.
 cpa.predicate.refinement.restartAfterRefinements = 0
@@ -3252,9 +3252,9 @@ cpa.predicate.refinement.useNewtonRefinement = false
 # the other invariants)
 cpa.predicate.refinement.usePathInvariants = false
 
-# use PredicateDelegatingRefiner to switch between refiners bases on a set of
-# heuristics.
-cpa.predicate.refinement.usePredicateDelegatingRefiner = false
+# use ProgressBasedRefinementSelection to switch between refiners bases on a
+# set of heuristics.
+cpa.predicate.refinement.useProgressBasedRefinementSelection = false
 
 # use UCB predicates for the CPA-Refinement, experimental feature!
 cpa.predicate.refinement.useUCBRefinement = false
