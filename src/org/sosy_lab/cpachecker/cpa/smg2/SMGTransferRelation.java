@@ -986,13 +986,23 @@ public class SMGTransferRelation
   protected Collection<SMGState> handleStatementEdge(CStatementEdge pCfaEdge, CStatement cStmt)
       throws CPATransferException {
     // Either assignments a = b; or function calls foo(..);
+    return handleStatement(cStmt, pCfaEdge, state, evaluator);
+  }
+
+  private static ImmutableList<SMGState> handleStatement(
+      CStatement cStmt,
+      CStatementEdge pCfaEdge,
+      final SMGState initialState,
+      SMGCPAExpressionEvaluator evaluator)
+      throws CPATransferException {
     if (cStmt instanceof CAssignment cAssignment) {
       // Assignments, evaluate the right hand side value using the value visitor and write it into
       // the address returned by the address evaluator for the left hand side.
       CExpression lValue = cAssignment.getLeftHandSide();
       CRightHandSide rValue = cAssignment.getRightHandSide();
       ImmutableList.Builder<SMGState> stateBuilder = ImmutableList.builder();
-      for (SMGState currentState : createVariableOnTheSpot(lValue, state, pCfaEdge, evaluator)) {
+      for (SMGState currentState :
+          createVariableOnTheSpot(lValue, initialState, pCfaEdge, evaluator)) {
         stateBuilder.addAll(handleAssignment(currentState, pCfaEdge, lValue, rValue));
       }
       return stateBuilder.build();
@@ -1006,7 +1016,8 @@ public class SMGTransferRelation
       List<ValueAndSMGState> handledFunReturn =
           evaluator
               .getBuiltinFunctionHandler()
-              .handleFunctionCallWithoutBody(cFCExpression, calledFunctionName, state, pCfaEdge);
+              .handleFunctionCallWithoutBody(
+                  cFCExpression, calledFunctionName, initialState, pCfaEdge);
 
       // Memory allocating function calls that need to be freed without remembering the pointer
       // leads to memory-leaks. Speed up this process.
@@ -1017,7 +1028,7 @@ public class SMGTransferRelation
 
     } else {
       // Fall through for unneeded cases
-      return ImmutableList.of(state);
+      return ImmutableList.of(initialState);
     }
   }
 
