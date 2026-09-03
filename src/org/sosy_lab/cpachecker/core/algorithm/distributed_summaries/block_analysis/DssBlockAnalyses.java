@@ -75,7 +75,11 @@ public final class DssBlockAnalyses {
       ReachedSet pReachedSet) {
     IdentityHashMap<BlockState, AbstractState> blockStateToState = new IdentityHashMap<>();
     for (AbstractState state : pReachedSet) {
-      blockStateToState.put(AbstractStates.extractStateByType(state, BlockState.class), state);
+      BlockState blockState = AbstractStates.extractStateByType(state, BlockState.class);
+      checkState(
+          blockStateToState.put(blockState, state) == null,
+          "Multiple states of the reached set contain the block state %s",
+          blockState);
     }
     return blockStateToState;
   }
