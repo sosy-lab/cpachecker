@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.BOOL;
 import static org.sosy_lab.cpachecker.util.BuiltinFunctions.getParameterTypeOfBuiltinPopcountFunction;
 import static org.sosy_lab.cpachecker.util.StandardFunctions.isMemoryAllocatingFunction;
 import static org.sosy_lab.cpachecker.util.StandardFunctions.isMemoryDeallocatingFunction;
@@ -34,6 +35,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -64,6 +66,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.UnknownFunctionHandling;
@@ -645,26 +648,13 @@ public class SMGCPABuiltins {
     CExpression b = parameters.get(1);
     CPointerExpression res = (CPointerExpression) parameters.get(2);
 
+    CType typeOfRes = res.getExpressionType().getCanonicalType();
+    checkArgument(typeOfRes instanceof CPointerType);
+    CType typeOfResBelowPointer = ((CPointerType) typeOfRes).getType().getCanonicalType();
+
     OverflowFunctionReturnAndCastCalculationResult resultExpressions =
-        switch (functionName) {
-          case String fun
-              when fun.equals("__builtin_add_overflow")
-                  || fun.startsWith("__builtin_sadd")
-                  || fun.startsWith("__builtin_uadd") ->
-              handleGccBuiltinAddOverflowFunction(functionName, a, b, res);
-          case String fun
-              when fun.equals("__builtin_sub_overflow")
-                  || fun.startsWith("__builtin_ssub")
-                  || fun.startsWith("__builtin_usub") ->
-              handleGccBuiltinSubOverflowFunction(functionName, a, b, res);
-          case String fun
-              when fun.equals("__builtin_mul_overflow")
-                  || fun.startsWith("__builtin_smul")
-                  || fun.startsWith("__builtin_umul") ->
-              handleGccBuiltinMulOverflowFunction(functionName, a, b, res);
-          default ->
-              throw new UnsupportedOperationException("Unexpected function-call: " + functionName);
-        };
+        buildGccOverflowFunctionWithPreprocessingReturningCalculationAndResult(
+            functionName, a, b, typeOfResBelowPointer, pCfaEdge);
 
     CExpression castCalculationResult = resultExpressions.getCastCalculationResult();
     CExpression overflowComparison = resultExpressions.getFunctionReturn();
@@ -688,157 +678,136 @@ public class SMGCPABuiltins {
   }
 
   /**
-   * Handles the following addition based GCC builtin overflow functions:
+   * Handles the following GCC builtin overflow functions:
    *
-   * <p>{@code bool __builtin_sadd_overflow(int a, int b, int *res)}
+   * <ul>
+   *   <li>__builtin_add_overflow
+   *   <li>__builtin_sadd_overflow
+   *   <li>__builtin_saddl_overflow
+   *   <li>__builtin_saddll_overflow
+   *   <li>__builtin_uadd_overflow
+   *   <li>__builtin_uaddl_overflow
+   *   <li>__builtin_uaddll_overflow
+   *   <li>__builtin_sub_overflow
+   *   <li>__builtin_ssub_overflow
+   *   <li>__builtin_ssubl_overflow
+   *   <li>__builtin_ssubll_overflow
+   *   <li>__builtin_usub_overflow
+   *   <li>__builtin_usubl_overflow
+   *   <li>__builtin_usubll_overflow
+   *   <li>__builtin_mul_overflow
+   *   <li>__builtin_smul_overflow
+   *   <li>__builtin_smull_overflow
+   *   <li>__builtin_smulll_overflow
+   *   <li>__builtin_umul_overflow
+   *   <li>__builtin_umull_overflow
+   *   <li>__builtin_umulll_overflow
+   * </ul>
    *
-   * <p>{@code bool __builtin_saddl_overflow (long int a, long int b, long int *res)}
+   * <p>As defined for <a
+   * href="https://gcc.gnu.org/onlinedocs/gcc/Integer-Overflow-Builtins.html">GCCs built-in
+   * functions performing simple arithmetic operations together with checking whether the operations
+   * overflowed</a>, this first checks the argument types and casts the arguments a and b to their
+   * correct types if needed, before applying the {@link BinaryOperator} o derived from the used
+   * function name on a and b in this form: a o b Then casts the result of this calculation to the
+   * correct type for 'typeOfResBelowPointer', and checks whether there was an overflow by comparing
+   * the cast calculation result with the uncast. Returns the C expressions for the boolean overflow
+   * result, as well as the calculation result cast to its correct type. There is no assignment
+   * expression etc. included, and the calculation result needs to be handled (assigned) by the
+   * calling function if needed.
    *
-   * <p>{@code bool __builtin_saddll_overflow (long long int a, long long int b, long long int
-   * *res)}
-   *
-   * <p>{@code bool __builtin_uadd_overflow (unsigned int a, unsigned int b, unsigned int *res)}
-   *
-   * <p>{@code bool __builtin_uaddl_overflow (unsigned long int a, unsigned long int b, unsigned
-   * long int *res)}
-   *
-   * <p>{@code bool __builtin_uaddll_overflow (unsigned long long int a, unsigned long long int b,
-   * unsigned long long int *res)}
-   *
-   * <p>{@code bool __builtin_add_overflow (type1 a, type2 b, type3 *res)}
-   *
-   * <p>From <a href="https://gcc.gnu.org/onlinedocs/gcc/Integer-Overflow-Builtins.html">GCC §7.2.5
-   * Built-in Functions to Perform Arithmetic with Overflow Checking</a>: These built-in functions
-   * promote the first two operands into infinite precision signed type and perform addition on
-   * those promoted operands. The result is then cast to the type the third pointer argument points
-   * to and stored there. If the stored result is equal to the infinite precision result, the
-   * built-in functions return false, otherwise they return true. As the addition is performed in
-   * infinite signed precision, these built-in functions have fully defined behavior for all
-   * argument values.
-   *
-   * <p>The first built-in function (__builtin_add_overflow) allows arbitrary integral types for
-   * operands and the result type must be pointer to some integral type other than enumerated or
-   * boolean type, the rest of the built-in functions have explicit integer types.
+   * @param fullFunctionName function-name {@link String} as defined in the list of handled
+   *     functions.
    */
-  private OverflowFunctionReturnAndCastCalculationResult handleGccBuiltinAddOverflowFunction(
-      String functionName, CExpression a, CExpression b, CExpression resPtr) {
+  private static OverflowFunctionReturnAndCastCalculationResult
+      buildGccOverflowFunctionWithPreprocessingReturningCalculationAndResult(
+          String fullFunctionName,
+          final CExpression a,
+          final CExpression b,
+          final CType typeOfResBelowPointer,
+          CFAEdge pCFAEdge)
+          throws UnrecognizedCodeException {
 
-    CType typeA = a.getExpressionType().getCanonicalType();
-    CType typeB = b.getExpressionType().getCanonicalType();
-    CType typeResPtr = resPtr.getExpressionType().getCanonicalType();
-    checkArgument(typeResPtr instanceof CPointerType);
-    CType typeRes = ((CPointerType) typeResPtr).getType().getCanonicalType();
+    assert fullFunctionName.startsWith("__builtin_");
+    assert fullFunctionName.endsWith("_overflow");
+    // Cut off common parts for checks, i.e. "__builtin_" and "_overflow"
+    final String coreFunctionName = fullFunctionName.substring(10, fullFunctionName.length() - 9);
 
-    if (!functionName.equals("__builtin_add_overflow")) {
-      // Types need to be the same ones
-      checkArgument(typeA.equals(typeB) && typeA.equals(typeRes));
-      switch (functionName) {
-        case "__builtin_sadd_overflow" -> checkArgument(typeA == CNumericTypes.INT);
-        case "__builtin_saddl_overflow" -> checkArgument(typeA == CNumericTypes.LONG_INT);
-        case "__builtin_saddll_overflow" -> checkArgument(typeA == CNumericTypes.LONG_LONG_INT);
-        case "__builtin_uadd_overflow" -> checkArgument(typeA == CNumericTypes.UNSIGNED_INT);
-        case "__builtin_uaddl_overflow" -> checkArgument(typeA == CNumericTypes.UNSIGNED_LONG_INT);
-        case "__builtin_uaddll_overflow" ->
-            checkArgument(typeA == CNumericTypes.UNSIGNED_LONG_LONG_INT);
-        default -> throw new UnsupportedOperationException("Unexpected function: " + functionName);
+    final BinaryOperator operator =
+        getOperatorFromFunctionName(fullFunctionName, pCFAEdge, coreFunctionName);
+
+    final CType typeOfA = a.getExpressionType().getCanonicalType();
+    final CType typeOfB = b.getExpressionType().getCanonicalType();
+
+    // TODO: add casts if types demand them!
+    CExpression castAExpr = a;
+    CExpression castBExpr = b;
+    CType castTypeOfResBelowPointer = typeOfResBelowPointer;
+
+    if (coreFunctionName.equals("add")
+        || coreFunctionName.equals("mul")
+        || coreFunctionName.equals("sub")) {
+      // __builtin_add_overflow or __builtin_sub_overflow or __builtin_mul_overflow
+      // Allows arbitrary integral types for operands and the result type must be pointer to some
+      //  integral type other than enumerated or boolean type
+      checkIntegralTypeButNoBoolOrEnum(typeOfA);
+      checkIntegralTypeButNoBoolOrEnum(typeOfB);
+      checkIntegralTypeButNoBoolOrEnum(typeOfResBelowPointer);
+
+    } else {
+      // fixed type functions, i.e. all arguments need the same numeric type
+      checkArgument(typeOfA.equals(typeOfB) && typeOfA.equals(typeOfResBelowPointer));
+      checkArgument(CTypes.isIntegerType(typeOfA));
+      if (coreFunctionName.startsWith("s")) {
+        // signed fixed type functions
+        if (coreFunctionName.endsWith("ll")) {
+          checkArgument(typeOfA == CNumericTypes.LONG_LONG_INT);
+        } else if (coreFunctionName.endsWith("l")) {
+          checkArgument(typeOfA == CNumericTypes.LONG_INT);
+        } else {
+          checkArgument(typeOfA == CNumericTypes.INT);
+        }
+      } else {
+        checkArgument(
+            coreFunctionName.startsWith("u"), "Unexpected function name: %s", fullFunctionName);
+        // unsigned fixed type functions
+        if (coreFunctionName.endsWith("ll")) {
+          checkArgument(typeOfA == CNumericTypes.UNSIGNED_LONG_LONG_INT);
+        } else if (coreFunctionName.endsWith("l")) {
+          checkArgument(typeOfA == CNumericTypes.UNSIGNED_LONG_INT);
+        } else {
+          checkArgument(typeOfA == CNumericTypes.UNSIGNED_INT);
+        }
       }
     }
 
-    return buildGccOverflowFunctionCalculationAndResult(a, b, typeRes, BinaryOperator.PLUS);
+    return buildGccOverflowFunctionCalculationAndResult(
+        castAExpr, castBExpr, castTypeOfResBelowPointer, operator);
   }
 
-  /**
-   * Handles the following subtraction based GCC builtin overflow functions:
-   *
-   * <p>{@code bool __builtin_ssub_overflow (int a, int b, int *res)}
-   *
-   * <p>{@code bool __builtin_ssubl_overflow (long int a, long int b, long int *res)}
-   *
-   * <p>{@code bool __builtin_ssubll_overflow (long long int a, long long int b, long long int
-   * *res)}
-   *
-   * <p>{@code bool __builtin_usub_overflow (unsigned int a, unsigned int b, unsigned int *res)}
-   *
-   * <p>{@code bool __builtin_usubl_overflow (unsigned long int a, unsigned long int b, unsigned
-   * long int *res)}
-   *
-   * <p>{@code bool __builtin_usubll_overflow (unsigned long long int a, unsigned long long int b,
-   * unsigned long long int *res)}
-   *
-   * <p>{@code bool __builtin_sub_overflow (type1 a, type2 b, type3 *res)}
-   */
-  private OverflowFunctionReturnAndCastCalculationResult handleGccBuiltinSubOverflowFunction(
-      String functionName, CExpression a, CExpression b, CExpression resPtr) {
-
-    CType typeA = a.getExpressionType().getCanonicalType();
-    CType typeB = b.getExpressionType().getCanonicalType();
-    CType typeResPtr = resPtr.getExpressionType().getCanonicalType();
-    checkArgument(typeResPtr instanceof CPointerType);
-    CType typeRes = ((CPointerType) typeResPtr).getType().getCanonicalType();
-
-    if (!functionName.equals("__builtin_sub_overflow")) {
-      // Types need to be the same ones
-      checkArgument(typeA.equals(typeB) && typeA.equals(typeRes));
-      switch (functionName) {
-        case "__builtin_ssub_overflow" -> checkArgument(typeA == CNumericTypes.INT);
-        case "__builtin_ssubl_overflow" -> checkArgument(typeA == CNumericTypes.LONG_INT);
-        case "__builtin_ssubll_overflow" -> checkArgument(typeA == CNumericTypes.LONG_LONG_INT);
-        case "__builtin_usub_overflow" -> checkArgument(typeA == CNumericTypes.UNSIGNED_INT);
-        case "__builtin_usubl_overflow" -> checkArgument(typeA == CNumericTypes.UNSIGNED_LONG_INT);
-        case "__builtin_usubll_overflow" ->
-            checkArgument(typeA == CNumericTypes.UNSIGNED_LONG_LONG_INT);
-        default -> throw new UnsupportedOperationException("Unexpected function: " + functionName);
-      }
-    }
-
-    return buildGccOverflowFunctionCalculationAndResult(a, b, typeRes, BinaryOperator.MINUS);
+  private static void checkIntegralTypeButNoBoolOrEnum(CType typeToCheck) {
+    checkArgument(CTypes.isIntegerType(typeToCheck));
+    checkArgument(!(typeToCheck instanceof CEnumType));
+    checkArgument(
+        !(typeToCheck instanceof CSimpleType simpleTypeToCheck)
+            || simpleTypeToCheck.getType() != BOOL);
   }
 
-  /**
-   * Handles the following multiplication based GCC builtin overflow functions:
-   *
-   * <p>{@code bool __builtin_smul_overflow (int a, int b, int *res)}
-   *
-   * <p>{@code bool __builtin_smull_overflow (long int a, long int b, long int *res)}
-   *
-   * <p>{@code bool __builtin_smulll_overflow (long long int a, long long int b, long long int
-   * *res)}
-   *
-   * <p>{@code bool __builtin_umul_overflow (unsigned int a, unsigned int b, unsigned int *res)}
-   *
-   * <p>{@code bool __builtin_umull_overflow (unsigned long int a, unsigned long int b, unsigned
-   * long int *res)}
-   *
-   * <p>{@code bool __builtin_umulll_overflow (unsigned long long int a, unsigned long long int b,
-   * unsigned long long int *res)}
-   *
-   * <p>{@code bool __builtin_mul_overflow (type1 a, type2 b, type3 *res)}
-   */
-  private OverflowFunctionReturnAndCastCalculationResult handleGccBuiltinMulOverflowFunction(
-      String functionName, CExpression a, CExpression b, CExpression resPtr) {
-
-    CType typeA = a.getExpressionType().getCanonicalType();
-    CType typeB = b.getExpressionType().getCanonicalType();
-    CType typeResPtr = resPtr.getExpressionType().getCanonicalType();
-    checkArgument(typeResPtr instanceof CPointerType);
-    CType typeRes = ((CPointerType) typeResPtr).getType().getCanonicalType();
-
-    if (!functionName.equals("__builtin_mul_overflow")) {
-      // Types need to be the same ones
-      checkArgument(typeA.equals(typeB) && typeA.equals(typeRes));
-      switch (functionName) {
-        case "__builtin_smul_overflow" -> checkArgument(typeA == CNumericTypes.INT);
-        case "__builtin_smull_overflow" -> checkArgument(typeA == CNumericTypes.LONG_INT);
-        case "__builtin_smulll_overflow" -> checkArgument(typeA == CNumericTypes.LONG_LONG_INT);
-        case "__builtin_umul_overflow" -> checkArgument(typeA == CNumericTypes.UNSIGNED_INT);
-        case "__builtin_umull_overflow" -> checkArgument(typeA == CNumericTypes.UNSIGNED_LONG_INT);
-        case "__builtin_umulll_overflow" ->
-            checkArgument(typeA == CNumericTypes.UNSIGNED_LONG_LONG_INT);
-        default -> throw new UnsupportedOperationException("Unexpected function: " + functionName);
-      }
+  private static @NonNull BinaryOperator getOperatorFromFunctionName(
+      String fullFunctionName, CFAEdge pCFAEdge, String coreFunctionName)
+      throws UnrecognizedCodeException {
+    final BinaryOperator operator;
+    if (coreFunctionName.contains("add")) {
+      operator = BinaryOperator.PLUS;
+    } else if (coreFunctionName.contains("sub")) {
+      operator = BinaryOperator.MINUS;
+    } else if (coreFunctionName.contains("mul")) {
+      operator = BinaryOperator.MULTIPLY;
+    } else {
+      throw new UnrecognizedCodeException(
+          "Unknown builtin function: " + fullFunctionName, pCFAEdge);
     }
-
-    return buildGccOverflowFunctionCalculationAndResult(a, b, typeRes, BinaryOperator.MULTIPLY);
+    return operator;
   }
 
   /**
@@ -871,20 +840,12 @@ public class SMGCPABuiltins {
     CExpression c = parameter.get(2);
 
     CType typeOfArgumentC = c.getExpressionType().getCanonicalType();
-    checkArgument(!(typeOfArgumentC instanceof CEnumType));
-    checkArgument(typeOfArgumentC != CNumericTypes.BOOL);
 
-    BinaryOperator binaryOperator =
-        switch (functionName) {
-          case "__builtin_add_overflow_p" -> BinaryOperator.PLUS;
-          case "__builtin_sub_overflow_p" -> BinaryOperator.MINUS;
-          case "__builtin_mul_overflow_p" -> BinaryOperator.MULTIPLY;
-          default ->
-              throw new UnsupportedOperationException("Unexpected function: " + functionName);
-        };
-
+    // Cut off the "_p" so that we get the associated function handling
+    final String modifiedFunctionName = functionName.substring(0, functionName.length() - 2);
     OverflowFunctionReturnAndCastCalculationResult overflowBoolCalcResAndState =
-        buildGccOverflowFunctionCalculationAndResult(a, b, typeOfArgumentC, binaryOperator);
+        buildGccOverflowFunctionWithPreprocessingReturningCalculationAndResult(
+            modifiedFunctionName, a, b, typeOfArgumentC, pCfaEdge);
     CExpression overflowComparison = overflowBoolCalcResAndState.getFunctionReturn();
 
     List<ValueAndSMGState> overflowComparisonResults =
@@ -910,12 +871,13 @@ public class SMGCPABuiltins {
    * for the boolean overflow result in the first return value, and the calculation result cast to
    * the type of thirdArgRes in the second.
    */
-  private OverflowFunctionReturnAndCastCalculationResult
+  private static OverflowFunctionReturnAndCastCalculationResult
       buildGccOverflowFunctionCalculationAndResult(
           final CExpression a,
           final CExpression b,
           final CType typeOfThirdArg,
           final BinaryOperator binaryOperator) {
+
     // Since 2^128 > 2^65 + 1, we simply use __int128
     CSimpleType calculationType = GnuInt128;
 
@@ -1025,26 +987,31 @@ public class SMGCPABuiltins {
     //      *(carry_out) = c1 | c2; \
     //      s; })
 
-    final BinaryOperator usedInternalOperation;
+    final String usedFunctionName;
     if (functionName.contains("__builtin_subc")) {
       // Handle sub (__builtin_subcll, __builtin_subcl, or __builtin_subc)
-      usedInternalOperation = BinaryOperator.MINUS;
+      usedFunctionName = "__builtin_sub_overflow";
     } else {
-      checkArgument(functionName.contains("__builtin_addc"));
+      checkArgument(
+          functionName.contains("__builtin_addc"), "Unexpected function name: %s", functionName);
       // Handle add (__builtin_addcll, __builtin_addcl, or __builtin_addc)
-      usedInternalOperation = BinaryOperator.PLUS;
+      usedFunctionName = "__builtin_add_overflow";
     }
 
-    //      __typeof__ (a) c1 = __builtin_sub_overflow (a, b, &s); \
+    //      __typeof__ (a) c1 = __builtin_sub/add_overflow (a, b, &s); \
     OverflowFunctionReturnAndCastCalculationResult c1AndS =
-        buildGccOverflowFunctionCalculationAndResult(
-            aArgumentCExpr, bArgumentCExpr, type, usedInternalOperation);
+        buildGccOverflowFunctionWithPreprocessingReturningCalculationAndResult(
+            usedFunctionName, aArgumentCExpr, bArgumentCExpr, type, pCfaEdge);
 
-    //      __typeof__ (a) c2 = __builtin_sub_overflow (s, carry_in, &s); \
+    //      __typeof__ (a) c2 = __builtin_sub/add_overflow (s, carry_in, &s); \
     CExpression c1 = c1AndS.getFunctionReturn();
     OverflowFunctionReturnAndCastCalculationResult c2AndS =
-        buildGccOverflowFunctionCalculationAndResult(
-            c1AndS.getCastCalculationResult(), carryInArgumentCExpr, type, usedInternalOperation);
+        buildGccOverflowFunctionWithPreprocessingReturningCalculationAndResult(
+            usedFunctionName,
+            c1AndS.getCastCalculationResult(),
+            carryInArgumentCExpr,
+            type,
+            pCfaEdge);
 
     CExpression c2 = c2AndS.getFunctionReturn();
     // s is the return of the function
