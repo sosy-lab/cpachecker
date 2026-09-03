@@ -27,10 +27,7 @@ import java.util.Map;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
@@ -51,7 +48,6 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
-import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class CFACreatorTest {
 
@@ -142,14 +138,11 @@ public class CFACreatorTest {
 
   @Test
   public void testParseSourceAndCreateCfaWithNoReturnAbort()
-      throws InvalidConfigurationException, ParserException, InterruptedException {
-    final Configuration config =
-        TestUtils.configurationForTest().setOption("language", "C").build();
-    final CFACreator creator = createCfaCreatorForTesting(config);
+      throws ParserException, InterruptedException {
     final String programSource =
         "extern void abort() __attribute__((__noreturn__));int main() { abort(); }";
 
-    final CFA created = creator.parseSourceAndCreateCFA(programSource);
+    final CFA created = TestCfaUtils.makeCfaFromString(programSource);
 
     Predicate<CFAEdge> isNoReturnFunctionCall =
         Predicates.and(
@@ -165,14 +158,11 @@ public class CFACreatorTest {
 
   @Test
   public void testParseSourceAndCreateCfaWithNoReturnFunctionAttribute()
-      throws InvalidConfigurationException, ParserException, InterruptedException {
-    final Configuration config =
-        TestUtils.configurationForTest().setOption("language", "C").build();
-    final CFACreator creator = createCfaCreatorForTesting(config);
+      throws ParserException, InterruptedException {
     final String programSource =
         "extern void myfunc() __attribute__((__noreturn__));int main() { myfunc(); }";
 
-    final CFA created = creator.parseSourceAndCreateCFA(programSource);
+    final CFA created = TestCfaUtils.makeCfaFromString(programSource);
 
     Predicate<CFAEdge> isNoReturnFunctionCall =
         Predicates.and(
@@ -188,17 +178,12 @@ public class CFACreatorTest {
 
   @Test
   public void testParseSourceAndCreateCfaWithReturningAbort()
-      throws InvalidConfigurationException, ParserException, InterruptedException {
-    final Configuration config =
-        TestUtils.configurationForTest()
-            .setOption("language", "C")
-            .setOption(
-                "cfa.nonReturningFunctions", "[]") // do not handle 'abort' as aborting function
-            .build();
-    final CFACreator creator = createCfaCreatorForTesting(config);
+      throws ParserException, InterruptedException {
     final String programSource = "extern void abort();int main() { abort(); }";
 
-    final CFA created = creator.parseSourceAndCreateCFA(programSource);
+    final CFA created =
+        TestCfaUtils.makeCfaFromString(
+            programSource, Map.entry("cfa.nonReturningFunctions", "[]")); // do not handle 'abort'
 
     Predicate<CFAEdge> isNoReturnFunctionCall =
         Predicates.and(
@@ -214,16 +199,14 @@ public class CFACreatorTest {
 
   @Test
   public void testParseSourceAndCreateCfaWithReturningAbortButExplicitTermination()
-      throws InvalidConfigurationException, ParserException, InterruptedException {
-    final Configuration config =
-        TestUtils.configurationForTest()
-            .setOption("language", "C")
-            .setOption("cfa.nonReturningFunctions", "abort") // handle 'abort' as aborting function
-            .build();
-    final CFACreator creator = createCfaCreatorForTesting(config);
+      throws ParserException, InterruptedException {
     final String programSource = "extern void abort();int main() { abort(); }";
 
-    final CFA created = creator.parseSourceAndCreateCFA(programSource);
+    final CFA created =
+        TestCfaUtils.makeCfaFromString(
+            programSource,
+            Map.entry("cfa.nonReturningFunctions", "abort") // handle 'abort' as aborting function
+            );
 
     Predicate<CFAEdge> isNoReturnFunctionCall =
         Predicates.and(
@@ -270,13 +253,6 @@ public class CFACreatorTest {
         .isEqualTo(new FileLocation(testFilepath, 426, 17, 23, 24, 10, 12));
     assertThat(TestCfaUtils.getEdge("!(t2 == t3)", createdCFA).getFileLocation())
         .isEqualTo(new FileLocation(testFilepath, 426, 17, 23, 24, 10, 12));
-  }
-
-  private CFACreator createCfaCreatorForTesting(Configuration config)
-      throws InvalidConfigurationException {
-    final LogManager logger = LogManager.createTestLogManager();
-    final ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
-    return new CFACreator(config, logger, shutdownNotifier);
   }
 
   /**
