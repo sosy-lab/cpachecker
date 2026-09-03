@@ -8,34 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.converters.FileTypeConverter;
-import org.sosy_lab.cpachecker.cfa.Language;
-
 /** Helper class for Distributed Summary Synthesis tests. */
 public class TestUtil {
-  private static final Language language = Language.C;
 
   // public so that this can be accessed for the LinearDecomposition test
   public static final String DSS_CONFIGURATION_FILE = "config/dss.properties";
-
-  // Do not use TestDataTools.configurationForTest() because we want output files
-  public static Configuration generateConfig(String configFile, Path testFolder)
-      throws InvalidConfigurationException, IOException {
-    Configuration configForFiles =
-        Configuration.builder().setOption("output.path", testFolder.toString()).build();
-    FileTypeConverter fileTypeConverter = FileTypeConverter.create(configForFiles);
-    Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
-    ConfigurationBuilder configBuilder = Configuration.builder();
-    configBuilder
-        .loadFromFile(configFile)
-        .setOption("language", language.name())
-        .addConverter(FileOption.class, fileTypeConverter);
-    return configBuilder.build();
-  }
 }

@@ -55,12 +55,10 @@ import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
-import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.ConsoleLogFormatter;
 import org.sosy_lab.common.log.LogManager;
@@ -69,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /** Test that the bundled configuration files are all valid. */
 @RunWith(Parameterized.class)
@@ -607,16 +606,8 @@ public class ConfigurationFileChecks {
 
   private Configuration createConfigurationForTestInstantiation() {
     try {
-      FileTypeConverter fileTypeConverter =
-          FileTypeConverter.create(
-              Configuration.builder()
-                  .setOption("rootDirectory", tempFolder.getRoot().toString())
-                  .build());
-      Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
-
-      return Configuration.builder()
+      return TestUtils.configurationForTestWithOutput(tempFolder)
           .loadFromFile(configFileAsPath())
-          .addConverter(FileOption.class, fileTypeConverter)
           .setOption("java.sourcepath", tempFolder.getRoot().toString())
           .setOption("differential.program", createEmptyProgram(Language.C))
           .setOption("statistics.memory", "false")
