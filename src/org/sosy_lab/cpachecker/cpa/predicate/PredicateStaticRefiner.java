@@ -252,8 +252,10 @@ final class PredicateStaticRefiner extends StaticRefiner
       shutdownNotifier.shutdownIfNecessary();
       argUpdateTime.start();
       for (ARGState refinementRoot : ImmutableList.copyOf(root.getChildren())) {
-        pReached.removeSubtree(
-            refinementRoot, newPrecision, Predicates.instanceOf(PredicatePrecision.class));
+        if (!refinementRoot.isDestroyed()) {
+          pReached.removeSubtree(
+              refinementRoot, newPrecision, Predicates.instanceOf(PredicatePrecision.class));
+        }
       }
       argUpdateTime.stop();
 
