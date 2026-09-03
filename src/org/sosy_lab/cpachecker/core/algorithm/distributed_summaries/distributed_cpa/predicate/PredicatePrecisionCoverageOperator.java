@@ -16,18 +16,14 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 public class PredicatePrecisionCoverageOperator implements PrecisionCoverageOperator {
 
   /**
-   * Check whether precision1 is subsumed by precision2, i.e., whether precision2 tracks a superset
-   * of the predicates of precision1. Predicates count as different when they are tracked at
-   * different locations, so a predicate that precision2 only tracks locally does not cover the same
-   * predicate tracked globally by precision1.
+   * For a state B to cover state A, it has to be explored with at least the same precision as A
    *
    * <p>This is a syntactic check on the tracked predicates, not a semantic one: two precisions that
-   * track equivalent but differently written predicates do not cover each other. Since a missed
-   * cover only means that the block is analyzed again, this is on the safe side.
+   * track equivalent but differently written predicates do not cover each other.
    *
-   * @param precision1 First precision
-   * @param precision2 Second precision
-   * @return True if precision1 is subsumed by precision2
+   * @param precision1 The precision of the state that is to be covered.
+   * @param precision2 The precision of the covering state, which has to track at least as much.
+   * @return True if precision2 misses none of the predicates of precision1
    */
   @Override
   public boolean isSubsumed(Precision precision1, Precision precision2) {
@@ -38,6 +34,6 @@ public class PredicatePrecisionCoverageOperator implements PrecisionCoverageOper
         precision2);
     PredicatePrecision predicatePrecision1 = (PredicatePrecision) precision1;
     PredicatePrecision predicatePrecision2 = (PredicatePrecision) precision2;
-    return predicatePrecision2.calculateDifferenceTo(predicatePrecision1) == 0;
+    return predicatePrecision1.calculateDifferenceTo(predicatePrecision2) == 0;
   }
 }
