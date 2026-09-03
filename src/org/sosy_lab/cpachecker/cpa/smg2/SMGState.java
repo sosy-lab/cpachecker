@@ -8269,6 +8269,10 @@ public class SMGState
     return memoryModel.isPointer(value);
   }
 
+  public SMGOptions getOptions() {
+    return options;
+  }
+
   // TODO: To be replaced with a better structure, i.e. union-find
   // This is mutable on purpose!
   public static class EqualityCache<V> {
