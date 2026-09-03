@@ -517,26 +517,46 @@ public class SMGCPABuiltins {
   }
 
   /**
-   * Checks for GCC builtin overflow functions: __builtin_add_overflow_p __builtin_sub_overflow_p,
-   * __builtin_mul_overflow_p
+   * Returns true for the following GCC builtin overflow functions:
+   *
+   * <ul>
+   *   <li>__builtin_add_overflow_p
+   *   <li>__builtin_sub_overflow_p
+   *   <li>__builtin_mul_overflow_p
+   * </ul>
    */
   private boolean isGccBuiltinSimpleOverflowFunction(String functionName) {
     return GCC_BUILTIN_SIMPLE_OVERFLOW_FUNCTIONS.contains(functionName);
   }
 
   /**
-   * Checks for GCC builtin overflow functions returning also their calculation result in a
-   * carry-out: __builtin_add_overflow __builtin_sadd_overflow __builtin_saddl_overflow
-   * __builtin_saddll_overflow __builtin_uadd_overflow __builtin_uaddl_overflow
-   * __builtin_uaddll_overflow
+   * Returns true for the following GCC builtin overflow function names, that return whether their
+   * operation overflowed in a safe way, but also store their calculation result using a carry-out
+   * pointer:
    *
-   * <p>__builtin_sub_overflow __builtin_ssub_overflow __builtin_ssubl_overflow
-   * __builtin_ssubll_overflow __builtin_usub_overflow __builtin_usubl_overflow
-   * __builtin_usubll_overflow
-   *
-   * <p>__builtin_mul_overflow __builtin_smul_overflow __builtin_smull_overflow
-   * __builtin_smulll_overflow __builtin_umul_overflow __builtin_umull_overflow
-   * __builtin_umulll_overflow
+   * <ul>
+   *   <li>__builtin_add_overflow
+   *   <li>__builtin_sadd_overflow
+   *   <li>__builtin_saddl_overflow
+   *   <li>__builtin_saddll_overflow
+   *   <li>__builtin_uadd_overflow
+   *   <li>__builtin_uaddl_overflow
+   *   <li>__builtin_uaddll_overflow
+   *   <li>__builtin_sub_overflow
+   *   <li>__builtin_ssub_overflow
+   *   <li>__builtin_ssubl_overflow
+   *   <li>__builtin_ssubll_overflow
+   *   <li>__builtin_usub_overflow
+   *   <li>__builtin_usubl_overflow
+   *   <li>__builtin_usubll_overflow
+   *   <li>__builtin_mul_overflow
+   *   <li>__builtin_smul_overflow
+   *   <li>__builtin_smull_overflow
+   *   <li>__builtin_smulll_overflow
+   *   <li>__builtin_umul_overflow
+   *   <li>__builtin_umull_overflow
+   *   <li>__builtin_umulll_overflow
+   * </ul>
    */
   private boolean isGccBuiltinOverflowFunctionWithCalculationResult(String functionName) {
     return GCC_BUILTIN_OVERFLOW_FUNCTIONS_RETURNING_CALC_RES.contains(functionName);
@@ -550,12 +570,12 @@ public class SMGCPABuiltins {
    *
    * <p>{@code bool __builtin_XXX_overflow (type1 a, type2 b, type3 *res)}
    *
-   * <p>These functions first promote the operands a and b to infinite precision signed type, and
-   * then apply the operation specified in their name (add, sub, mul) to the arguments a and b. This
-   * result is then cast to the type that the third argument points to, before storing the result of
-   * this calculation using the pointer in the third argument. If the stored result is equal to the
-   * infinite precision result, the functions return false, otherwise they return true. This
-   * following functions are handled by this method:
+   * <p>These functions first promote the operands a and b to infinite precision signed type (we use
+   * INT128 internally), and then apply the operation specified in their name (add, sub, mul) to the
+   * arguments a and b. This result is then cast to the type that the third argument points to,
+   * before storing the result of this calculation using the pointer in the third argument. If the
+   * stored result is equal to the infinite precision result, the functions return false, otherwise
+   * they return true. The following functions are handled by this method:
    *
    * <p>{@code bool __builtin_sadd_overflow(int a, int b, int *res)}
    *
@@ -669,13 +689,24 @@ public class SMGCPABuiltins {
   }
 
   /**
-   * Handles the following GCC builtin overflow functions: bool __builtin_add_overflow (type1 a,
-   * type2 b, type3 *res) ¶ bool __builtin_sadd_overflow (int a, int b, int *res) bool
-   * __builtin_saddl_overflow (long int a, long int b, long int *res) bool __builtin_saddll_overflow
-   * (long long int a, long long int b, long long int *res) bool __builtin_uadd_overflow (unsigned
-   * int a, unsigned int b, unsigned int *res) bool __builtin_uaddl_overflow (unsigned long int a,
-   * unsigned long int b, ...) bool __builtin_uaddll_overflow (unsigned long long int a, unsigned
-   * long long int b, ...)
+   * Handles the following addition based GCC builtin overflow functions:
+   *
+   * <p>{@code bool __builtin_sadd_overflow(int a, int b, int *res)}
+   *
+   * <p>{@code bool __builtin_saddl_overflow (long int a, long int b, long int *res)}
+   *
+   * <p>{@code bool __builtin_saddll_overflow (long long int a, long long int b, long long int
+   * *res)}
+   *
+   * <p>{@code bool __builtin_uadd_overflow (unsigned int a, unsigned int b, unsigned int *res)}
+   *
+   * <p>{@code bool __builtin_uaddl_overflow (unsigned long int a, unsigned long int b, unsigned
+   * long int *res)}
+   *
+   * <p>{@code bool __builtin_uaddll_overflow (unsigned long long int a, unsigned long long int b,
+   * unsigned long long int *res)}
+   *
+   * <p>{@code bool __builtin_add_overflow (type1 a, type2 b, type3 *res)}
    *
    * <p>From <a href="https://gcc.gnu.org/onlinedocs/gcc/Integer-Overflow-Builtins.html">GCC §7.2.5
    * Built-in Functions to Perform Arithmetic with Overflow Checking</a>: These built-in functions
@@ -718,13 +749,24 @@ public class SMGCPABuiltins {
   }
 
   /**
-   * Handles the following GCC builtin overflow functions: bool __builtin_sub_overflow (type1 a,
-   * type2 b, type3 *res) bool __builtin_ssub_overflow (int a, int b, int *res) bool
-   * __builtin_ssubl_overflow (long int a, long int b, long int *res) bool __builtin_ssubll_overflow
-   * (long long int a, long long int b, long long int *res) bool __builtin_usub_overflow (unsigned
-   * int a, unsigned int b, unsigned int *res) bool __builtin_usubl_overflow (unsigned long int a,
-   * unsigned long int b, ...) bool __builtin_usubll_overflow (unsigned long long int a, unsigned
-   * long long int b, ...)
+   * Handles the following subtraction based GCC builtin overflow functions:
+   *
+   * <p>{@code bool __builtin_ssub_overflow (int a, int b, int *res)}
+   *
+   * <p>{@code bool __builtin_ssubl_overflow (long int a, long int b, long int *res)}
+   *
+   * <p>{@code bool __builtin_ssubll_overflow (long long int a, long long int b, long long int
+   * *res)}
+   *
+   * <p>{@code bool __builtin_usub_overflow (unsigned int a, unsigned int b, unsigned int *res)}
+   *
+   * <p>{@code bool __builtin_usubl_overflow (unsigned long int a, unsigned long int b, unsigned
+   * long int *res)}
+   *
+   * <p>{@code bool __builtin_usubll_overflow (unsigned long long int a, unsigned long long int b,
+   * unsigned long long int *res)}
+   *
+   * <p>{@code bool __builtin_sub_overflow (type1 a, type2 b, type3 *res)}
    */
   private OverflowFunctionReturnAndCastCalculationResult handleGccBuiltinSubOverflowFunction(
       String functionName, CExpression a, CExpression b, CExpression resPtr) {
@@ -754,13 +796,24 @@ public class SMGCPABuiltins {
   }
 
   /**
-   * Handles the following GCC builtin overflow functions: bool __builtin_mul_overflow (type1 a,
-   * type2 b, type3 *res) bool __builtin_smul_overflow (int a, int b, int *res) bool
-   * __builtin_smull_overflow (long int a, long int b, long int *res) bool __builtin_smulll_overflow
-   * (long long int a, long long int b, long long int *res) bool __builtin_umul_overflow (unsigned
-   * int a, unsigned int b, unsigned int *res) bool __builtin_umull_overflow (unsigned long int a,
-   * unsigned long int b, ...) bool __builtin_umulll_overflow (unsigned long long int a, unsigned
-   * long long int b, ...)
+   * Handles the following multiplication based GCC builtin overflow functions:
+   *
+   * <p>{@code bool __builtin_smul_overflow (int a, int b, int *res)}
+   *
+   * <p>{@code bool __builtin_smull_overflow (long int a, long int b, long int *res)}
+   *
+   * <p>{@code bool __builtin_smulll_overflow (long long int a, long long int b, long long int
+   * *res)}
+   *
+   * <p>{@code bool __builtin_umul_overflow (unsigned int a, unsigned int b, unsigned int *res)}
+   *
+   * <p>{@code bool __builtin_umull_overflow (unsigned long int a, unsigned long int b, unsigned
+   * long int *res)}
+   *
+   * <p>{@code bool __builtin_umulll_overflow (unsigned long long int a, unsigned long long int b,
+   * unsigned long long int *res)}
+   *
+   * <p>{@code bool __builtin_mul_overflow (type1 a, type2 b, type3 *res)}
    */
   private OverflowFunctionReturnAndCastCalculationResult handleGccBuiltinMulOverflowFunction(
       String functionName, CExpression a, CExpression b, CExpression resPtr) {
@@ -790,15 +843,20 @@ public class SMGCPABuiltins {
   }
 
   /**
-   * Handles the following built-in functions that allow checking if simple arithmetic operations
-   * would overflow: bool __builtin_add_overflow_p (type1 a, type2 b, type3 c) bool
-   * __builtin_sub_overflow_p (type1 a, type2 b, type3 c) bool __builtin_mul_overflow_p (type1 a,
-   * type2 b, type3 c)
+   * Handles the following GCC built-in functions that allow checking whether a simple arithmetic
+   * operation would overflow:
    *
-   * <p>These built-in functions are similar to __builtin_add_overflow, __builtin_sub_overflow, or
-   * __builtin_mul_overflow, except that they don’t store the result of the arithmetic operation
-   * anywhere and the last argument is not a pointer, but some expression with integral type other
-   * than enumerated or boolean type.
+   * <p>{@code bool __builtin_add_overflow_p (type1 a, type2 b, type3 c)}
+   *
+   * <p>{@code bool __builtin_sub_overflow_p (type1 a, type2 b, type3 c)}
+   *
+   * <p>{@code bool __builtin_mul_overflow_p (type1 a, type2 b, type3 c)}
+   *
+   * <p>These built-in functions are similar to {@code __builtin_add_overflow}, {@code
+   * __builtin_sub_overflow}, and {@code __builtin_mul_overflow} respectively, except that they
+   * don’t store the result of the arithmetic operation anywhere and that the last argument is not a
+   * pointer, but some expression with integral type other than enumerated or boolean type, that is
+   * only used to cast the calculation result before determining whether an overflow occurs.
    */
   private List<ValueAndSMGState> handleGccBuiltinSimpleOverflowFunction(
       final String functionName,
@@ -883,16 +941,38 @@ public class SMGCPABuiltins {
   }
 
   /**
-   * returns true for the following GCC builtin borrow/carry functions: __builtin_subcll,
-   * __builtin_subcl, __builtin_subc, __builtin_addcll, __builtin_addcl, __builtin_addc
+   * Returns true for the following GCC builtin borrow/carry function names:
+   *
+   * <ul>
+   *   <li>__builtin_subcll
+   *   <li>__builtin_subcl
+   *   <li>__builtin_subc
+   *   <li>__builtin_addcll
+   *   <li>__builtin_addcl
+   *   <li>__builtin_addc
+   * </ul>
    */
   private boolean isGccBuiltinBorrowCarryOverflowFunction(String functionName) {
     return GCC_BUILTIN_BORROW_CARRY_OVERFLOW_FUNCTIONS.contains(functionName);
   }
 
   /**
-   * Handles the following GCC builtin borrow/carry functions: __builtin_subcll, __builtin_subcl,
-   * __builtin_subc, __builtin_addcll, __builtin_addcl, __builtin_addc
+   * Handles the following GCC builtin borrow/carry functions:
+   *
+   * <ul>
+   *   <li>{@code unsigned int __builtin_subc (unsigned int a, unsigned int b, unsigned int
+   *       carry_in, unsigned int *carry_out)}
+   *   <li>{@code unsigned long int __builtin_subcl (unsigned long int a, unsigned long int b,
+   *       unsigned int carry_in, unsigned long int *carry_out)}
+   *   <li>{@code unsigned long int __builtin_subcl (unsigned long int a, unsigned long int b,
+   *       unsigned int carry_in, unsigned long int *carry_out)}
+   *   <li>{@code unsigned int __builtin_addc (unsigned int a, unsigned int b, unsigned int
+   *       carry_in, unsigned int *carry_out)}
+   *   <li>{@code unsigned long int __builtin_addcl (unsigned long int a, unsigned long int b,
+   *       unsigned int carry_in, unsigned long int *carry_out)}
+   *   <li>{@code unsigned long long int __builtin_addcll (unsigned long long int a, unsigned long
+   *       long int b, unsigned long long int carry_in, unsigned long long int *carry_out)}
+   * </ul>
    */
   private List<ValueAndSMGState> handleGccBuiltinCarryBorrowFunctions(
       final String functionName,
