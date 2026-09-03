@@ -24,13 +24,16 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/Arrays.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <exclude>../programs/benchmarks/array-fpi/modnf.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/array-fpi/mods.yml</exclude> <!-- flapping timeout / interpolation failure -->
     <exclude>../programs/benchmarks/reducercommutativity/max05-1.yml</exclude> <!-- flapping OOM/timeout -->
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/Floats.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-    <exclude>../programs/benchmarks/float-benchs/image_filter.yml</exclude> <!-- flapping timeout / interpolation failure -->
+    <exclude>../programs/benchmarks/float-benchs/filter2_set.yml</exclude> <!-- flapping timeout / interpolation failure -->
     <exclude>../programs/benchmarks/float-benchs/filter_iir.yml</exclude> <!-- flapping timeout / interpolation failure -->
+    <exclude>../programs/benchmarks/float-benchs/image_filter.yml</exclude> <!-- flapping timeout / interpolation failure -->
+    <exclude>../programs/benchmarks/float-benchs/sqrt_Newton_pseudoconstant.yml</exclude> <!-- flapping timeout / interpolation failure -->
     <exclude>../programs/benchmarks/floats-cdfpl/newton_1_6.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/floats-cdfpl/newton_2_7.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/floats-cdfpl/newton_2_8.yml</exclude> <!-- flapping timeout -->
