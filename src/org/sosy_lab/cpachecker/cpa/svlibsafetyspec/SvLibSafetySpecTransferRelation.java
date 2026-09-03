@@ -34,12 +34,6 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
  * <p>The assumptions of a state are conjoined to the path formula of that state, i.e., after its
  * entering edge. A location invariant of a node therefore has to be an assumption of the states at
  * that node, which is why the annotations of the successor of an edge are the relevant ones here.
- * For the same reason the violation of an invariant cannot be reported by the state that assumes
- * it: the counterexample check would evaluate the assumption of the last state of the
- * counterexample in its predecessor (cf. {@link
- * org.sosy_lab.cpachecker.util.predicates.PathChecker}). Like {@link
- * org.sosy_lab.cpachecker.cpa.overflow.OverflowTransferRelation}, this transfer relation therefore
- * reports the violation one edge later, in states without assumptions.
  */
 public class SvLibSafetySpecTransferRelation extends SingleEdgeTransferRelation {
 
