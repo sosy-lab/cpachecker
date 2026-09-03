@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN"
+  "https://www.sosy-lab.org/benchexec/benchmark-1.9.dtd">
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="2">
+
+  <!--
+    Bounded model checking does not stop at the first violated annotation, so it is the only kind
+    of analysis that creates counterexamples for an ARG which the SvLibSafetySpecCPA branches.
+    Only the hand-written programs are used here, because the generated ones are too large for a
+    bounded analysis.
+  -->
+
+  <option name="--no-output-files"/>
+  <option name="--heap">2000M</option>
+
+  <rundefinition>
+    <option name="--bmc-incremental-svlib"/>
+  </rundefinition>
+
+  <tasks name="SV-LIB.Simple">
+    <include>../programs/sv-lib/*.yml</include>
+    <propertyfile>../config/properties/correct-annotations.prp</propertyfile>
+    <exclude>../programs/sv-lib/loop-add.yml</exclude> <!-- ':requires' is not supported yet -->
+  </tasks>
+</benchmark>
