@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.junit.rules.TemporaryFolder;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
@@ -55,25 +56,38 @@ public class TestCfaUtils {
     return new CIdExpression(loc, decl);
   }
 
-  public static ImmutableCFA makeCfaFromFile(String filename)
+  @SafeVarargs
+  public static ImmutableCFA makeCfaFromFile(String filename, Map.Entry<String, String>... options)
       throws ParserException, InterruptedException, IOException {
     String programText = Files.readString(Path.of(filename), StandardCharsets.UTF_8);
-    return makeCfaFromString(programText);
+    return makeCfaFromString(programText, options);
   }
 
-  public static ImmutableCFA makeCfaFromString(String program)
+  @SafeVarargs
+  public static ImmutableCFA makeCfaFromString(String program, Map.Entry<String, String>... options)
       throws ParserException, InterruptedException {
+
     try {
+      ConfigurationBuilder config =
+          TestUtils.configurationForTest().setOptions(Map.ofEntries(options));
+      // TODO: once #1706 is fixed hard-code parser.usePreprocessor=false here
+
       CFACreator creator =
           new CFACreator(
-              TestUtils.configurationForTest().build(),
-              LogManager.createTestLogManager(),
-              ShutdownNotifier.createDummy());
+              config.build(), LogManager.createTestLogManager(), ShutdownNotifier.createDummy());
 
       return creator.parseSourceAndCreateCFA(program);
     } catch (InvalidConfigurationException e) {
       throw new AssertionError("Default configuration is invalid?");
     }
+  }
+
+  /** Convert a given string to a {@link CFA}, assuming it is a body of a single function. */
+  @SafeVarargs
+  public static ImmutableCFA makeCfaFromFunctionBody(
+      String functionBody, Map.Entry<String, String>... options)
+      throws ParserException, InterruptedException {
+    return makeCfaFromString(getProgram(functionBody), options);
   }
 
   /**
@@ -129,17 +143,6 @@ public class TestCfaUtils {
     }
 
     return mapping.get(cfa.getMainFunction().getExitNode().orElseThrow());
-  }
-
-  /** Convert a given string to a {@link CFA}, assuming it is a body of a single function. */
-  public static ImmutableCFA toSingleFunctionCFA(CFACreator creator, String functionBody)
-      throws InvalidConfigurationException, ParserException, InterruptedException {
-    return creator.parseSourceAndCreateCFA(getProgram(functionBody));
-  }
-
-  public static ImmutableCFA toMultiFunctionCFA(CFACreator creator, String program)
-      throws InvalidConfigurationException, ParserException, InterruptedException {
-    return creator.parseSourceAndCreateCFA(program);
   }
 
   private static String getProgram(String functionBody) {

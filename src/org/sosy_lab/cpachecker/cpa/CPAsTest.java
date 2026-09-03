@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -39,7 +40,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -145,20 +145,19 @@ public class CPAsTest {
     config =
         Configuration.builder()
             .addConverter(FileOption.class, fileTypeConverter)
-            .setOption("cfa.findLiveVariables", "true")
             .setOption("cpa.conditions.path.condition", "PathLengthCondition")
             .setOption("cpa.automaton.inputFile", "test/config/automata/AssumptionAutomaton.spc")
             .setOption("differential.program", cProgram)
             .build();
 
     cfa =
-        TestCfaUtils.toSingleFunctionCFA(
-            new CFACreator(config, logManager, shutdownNotifier),
+        TestCfaUtils.makeCfaFromFunctionBody(
             """
             int a;
             a = 1;
             return a;
-            """);
+            """,
+            Map.entry("cfa.findLiveVariables", "true"));
     main = cfa.getMainFunction();
   }
 
