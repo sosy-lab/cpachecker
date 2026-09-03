@@ -23,11 +23,11 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class SpecificationTest {
@@ -75,9 +75,7 @@ public class SpecificationTest {
     LogManager logger = LogManager.createTestLogManager();
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
 
-    CFA cfa =
-        new CFACreator(config, logger, shutdownNotifier)
-            .parseFileAndCreateCFA(ImmutableList.of(program));
+    CFA cfa = TestCfaUtils.makeCfaFromFile(program);
 
     ImmutableList<Path> specFiles =
         ImmutableList.of(

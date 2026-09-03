@@ -19,13 +19,13 @@ import java.nio.file.Path;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /**
@@ -411,7 +411,7 @@ public class SequentializationParseTest {
     // (this does not imply that our algorithm is deterministic)
     testEqualOutput(programA, programB);
     // test if program A parses (which implies that program B parses too)
-    testParse(programA, logger, shutdownNotifier);
+    testParse(programA);
   }
 
   public static final String ANON_TYPE_KEYWORD = "__anon_type_";
@@ -441,15 +441,12 @@ public class SequentializationParseTest {
     }
   }
 
-  private void testParse(
-      String pSequentialization, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
-      throws InvalidConfigurationException, ParserException, InterruptedException {
+  private void testParse(String pSequentialization) throws ParserException, InterruptedException {
 
     assertThat(pSequentialization).isNotEmpty();
 
     // test that seq can be parsed and cfa created -> code compiles
-    CFACreator cfaCreator = MPORUtil.buildTestCfaCreator(pLogger, pShutdownNotifier);
-    CFA seqCfa = cfaCreator.parseSourceAndCreateCFA(pSequentialization);
+    CFA seqCfa = TestCfaUtils.makeCfaFromString(pSequentialization);
     assertThat(seqCfa).isNotNull();
 
     // "anti" test: just remove the last 100 chars from the seq, it probably won't compile
@@ -457,6 +454,6 @@ public class SequentializationParseTest {
     assertThat(faultySeq).isNotEmpty();
 
     // test that we get an exception while parsing the new "faulty" program
-    assertThrows(ParserException.class, () -> cfaCreator.parseSourceAndCreateCFA(faultySeq));
+    assertThrows(ParserException.class, () -> TestCfaUtils.makeCfaFromString(faultySeq));
   }
 }
