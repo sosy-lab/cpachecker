@@ -468,7 +468,7 @@ public class SMGTransferRelation
           SMGState currentState = readValueAndState.getState().dropStackFrame();
           // The memory on the left hand side might not exist because of CEGAR
           for (SMGState stateWithNewVar :
-              createVariableOnTheSpot(leftValue, currentState, functionReturnEdge)) {
+              createVariableOnTheSpot(leftValue, currentState, functionReturnEdge, evaluator)) {
             stateBuilder.addAll(
                 evaluator.writeValueToExpression(
                     summaryEdge, leftValue, readValueAndState.getValue(), stateWithNewVar));
@@ -493,7 +493,8 @@ public class SMGTransferRelation
 
     // Create variable on the stack below
     ImmutableList.Builder<SMGState> returnListBuilder = ImmutableList.builder();
-    for (SMGState stateWVar : createVariableOnTheSpot(leftHandSideExpr, tempState, pEdge)) {
+    for (SMGState stateWVar :
+        createVariableOnTheSpot(leftHandSideExpr, tempState, pEdge, evaluator)) {
       // Restore the stack
       PersistentStack<StackFrame> incompleteStack = stateWVar.getMemoryModel().getStackFrames();
       PersistentStack<StackFrame> newCompleteStack = incompleteStack.pushAndCopy(topStackframe);
@@ -514,8 +515,12 @@ public class SMGTransferRelation
    * @return a new SMGState with the variable added.
    * @throws CPATransferException for errors and unhandled cases
    */
-  private List<SMGState> createVariableOnTheSpot(
-      CExpression leftHandSideExpr, SMGState pState, CFAEdge pEdge) throws CPATransferException {
+  private static List<SMGState> createVariableOnTheSpot(
+      CExpression leftHandSideExpr,
+      SMGState pState,
+      CFAEdge pEdge,
+      SMGCPAExpressionEvaluator evaluator)
+      throws CPATransferException {
     return switch (leftHandSideExpr) {
       case CIdExpression leftCIdExpr -> {
         CSimpleDeclaration decl = leftCIdExpr.getDeclaration();
@@ -538,19 +543,20 @@ public class SMGTransferRelation
         yield ImmutableList.of(pState);
       }
       case CArraySubscriptExpression cArraySubscriptExpression ->
-          createVariableOnTheSpot(cArraySubscriptExpression.getArrayExpression(), pState, pEdge);
+          createVariableOnTheSpot(
+              cArraySubscriptExpression.getArrayExpression(), pState, pEdge, evaluator);
 
       case CFieldReference cFieldReference ->
-          createVariableOnTheSpot(cFieldReference.getFieldOwner(), pState, pEdge);
+          createVariableOnTheSpot(cFieldReference.getFieldOwner(), pState, pEdge, evaluator);
 
       case CPointerExpression cPointerExpression ->
-          createVariableOnTheSpot(cPointerExpression.getOperand(), pState, pEdge);
+          createVariableOnTheSpot(cPointerExpression.getOperand(), pState, pEdge, evaluator);
 
       case CUnaryExpression cUnaryExpression ->
-          createVariableOnTheSpot(cUnaryExpression.getOperand(), pState, pEdge);
+          createVariableOnTheSpot(cUnaryExpression.getOperand(), pState, pEdge, evaluator);
 
       case CCastExpression cCastExpression ->
-          createVariableOnTheSpot(cCastExpression.getOperand(), pState, pEdge);
+          createVariableOnTheSpot(cCastExpression.getOperand(), pState, pEdge, evaluator);
 
       case null /*TODO check if null is necessary*/, default -> ImmutableList.of(pState);
     };
@@ -986,7 +992,7 @@ public class SMGTransferRelation
       CExpression lValue = cAssignment.getLeftHandSide();
       CRightHandSide rValue = cAssignment.getRightHandSide();
       ImmutableList.Builder<SMGState> stateBuilder = ImmutableList.builder();
-      for (SMGState currentState : createVariableOnTheSpot(lValue, state, pCfaEdge)) {
+      for (SMGState currentState : createVariableOnTheSpot(lValue, state, pCfaEdge, evaluator)) {
         stateBuilder.addAll(handleAssignment(currentState, pCfaEdge, lValue, rValue));
       }
       return stateBuilder.build();
