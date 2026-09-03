@@ -25,6 +25,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexLock.MutexLockType;
 
 /**
@@ -69,6 +71,7 @@ public final class MutexFunctions {
   private static final ImmutableSet<String> DESTROY_FUNCTIONS =
       ImmutableSet.of("pthread_mutex_destroy", "mtx_destroy");
 
+  private static final String ATOMIC_PREFIX = "__VERIFIER_atomic";
   private static final String ATOMIC_BEGIN = "__VERIFIER_atomic_begin";
   private static final String ATOMIC_END = "__VERIFIER_atomic_end";
 
@@ -233,13 +236,17 @@ public final class MutexFunctions {
   /** Returns {@code true} if the CFA edge is a {@code __VERIFIER_atomic_begin} call. */
   public static boolean isAtomicBeginCall(CFAEdge edge) {
     String name = getFunctionCallName(edge);
-    return isAtomicBegin(name);
+    return isAtomicBegin(name)
+        || (edge.getPredecessor() instanceof FunctionEntryNode
+            && edge.getPredecessor().getFunctionName().startsWith(ATOMIC_PREFIX));
   }
 
   /** Returns {@code true} if the CFA edge is a {@code __VERIFIER_atomic_end} call. */
   public static boolean isAtomicEndCall(CFAEdge edge) {
     String name = getFunctionCallName(edge);
-    return isAtomicEnd(name);
+    return isAtomicEnd(name)
+        || (edge.getSuccessor() instanceof FunctionExitNode
+            && edge.getPredecessor().getFunctionName().startsWith(ATOMIC_PREFIX));
   }
 
   /**

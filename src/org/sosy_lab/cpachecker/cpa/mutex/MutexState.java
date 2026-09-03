@@ -223,7 +223,7 @@ public class MutexState implements AbstractState {
     return new MutexState(initializedMutexes, lockedMutexes, null);
   }
 
-  public MutexState update(CFAEdge edge, int pid) {
+  public MutexState update(CFAEdge edge, int pid, ImmutableSet<String> mutexCandidates) {
     // Handle __VERIFIER_atomic_begin / __VERIFIER_atomic_end (no parameters needed)
     if (MutexFunctions.isAtomicBeginCall(edge)) {
       if (isAtomicBlockedFor(pid)) {
@@ -239,6 +239,10 @@ public class MutexState implements AbstractState {
 
     MutexLock mutexToLock = MutexFunctions.getLockMutex(edge);
     if (mutexToLock != null) {
+      if (mutexCandidates != null && !mutexCandidates.contains(mutexToLock.handle())) {
+        throw new IllegalArgumentException(
+            "Reassigned mutex handle not supported: " + mutexToLock.handle());
+      }
       MutexState updatedState = withLock(mutexToLock, pid);
       if (updatedState == null) {
         // Blocked: another thread holds the mutex — bottom (no successor)
@@ -249,6 +253,10 @@ public class MutexState implements AbstractState {
 
     MutexLock mutexToUnlock = MutexFunctions.getUnlockMutex(edge);
     if (mutexToUnlock != null) {
+      if (mutexCandidates != null && !mutexCandidates.contains(mutexToUnlock.handle())) {
+        throw new IllegalArgumentException(
+            "Reassigned mutex handle not supported: " + mutexToUnlock.handle());
+      }
       return withUnlock(mutexToUnlock, pid);
     }
 

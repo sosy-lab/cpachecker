@@ -23,7 +23,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.Random;
-import java.util.function.Predicate;
+import java.util.function.BiPredicate;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cpa.mutex.MutexLock;
 import org.sosy_lab.cpachecker.cpa.mutex.MutexState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -655,13 +656,15 @@ public class PORState extends AbstractSingleWrapperState
       throws CPATransferException {
     // collect directly used vars by the cfa edge
     // plus continue to successor edges until the current thread obtains any mutexes
-    Predicate<CFAEdge> goFurther;
+    BiPredicate<CFAEdge, MutexState> goFurther;
     if (basicBlock != null && basicBlock.isValidMultiEdgeStart(edge.getPredecessor())) {
-      goFurther = pCFAEdge -> basicBlock.isValidMultiEdgeComponent(edge.getPredecessor(), pCFAEdge);
+      goFurther = (pCFAEdge, pMutexState) -> basicBlock.isValidMultiEdgeComponent(edge.getPredecessor(), pCFAEdge);
     } else {
-      goFurther = pCFAEdge -> false;
+      goFurther = (pCFAEdge, pMutexState) -> false;
     }
 
+    final MutexState initialMutexState;
+    final Integer pid;
     if (MutexFunctions.isLockCall(edge)) {
       MutexState currentMutexState =
           AbstractStates.extractStateByType(getWrappedState(), MutexState.class);
@@ -671,46 +674,47 @@ public class PORState extends AbstractSingleWrapperState
           currentInitialMutexState = currentInitialMutexState.withInit(initializedMutex);
         }
       }
-      final MutexState finalCurrentInitialMutexState = currentInitialMutexState;
-      final Integer pid = getEdgePid(edge);
-      final Predicate<CFAEdge> originalGoFurther = goFurther;
-      goFurther =
-          new Predicate<>() {
-
-            private MutexState mutexState = finalCurrentInitialMutexState;
-
-            @Override
-            public boolean test(CFAEdge pCFAEdge) {
-              mutexState = mutexState.update(pCFAEdge, pid);
-              return (mutexState != null
-                      && (!mutexState.getLockedMutexes().isEmpty()
-                          || mutexState.getAtomicHolder() != null))
-                  || originalGoFurther.test(pCFAEdge);
-            }
-          };
+      initialMutexState = currentInitialMutexState;
+      pid = getEdgePid(edge);
+      final BiPredicate<CFAEdge, MutexState> originalGoFurther = goFurther;
+      goFurther = (pCFAEdge, pMutexState) ->
+          (pMutexState != null && (!pMutexState.getLockedMutexes().isEmpty()
+              || pid.equals(pMutexState.getAtomicHolder())))
+              || originalGoFurther.test(pCFAEdge, pMutexState);
+    } else {
+      initialMutexState = null;
+      pid = null;
     }
 
-    return getVarsWithTraversal(edge, goFurther, false);
+    return getVarsWithTraversal(edge, goFurther, initialMutexState, pid, false);
   }
 
   private EdgeDefUseData getInfluencedGlobalVars(CFAEdge edge) throws CPATransferException {
-    return getVarsWithTraversal(edge, e -> true, true);
+    return getVarsWithTraversal(edge, (e, s) -> true, null, null, true);
   }
 
   private EdgeDefUseData getVarsWithTraversal(
-      CFAEdge startEdge, Predicate<CFAEdge> goFurther, boolean visitStartedThreadFunction)
-      throws CPATransferException {
+      CFAEdge startEdge,
+      BiPredicate<CFAEdge, MutexState> goFurther,
+      MutexState initialMutexState,
+      Integer pid,
+      boolean visitStartedThreadFunction) throws CPATransferException {
     var uses = EdgeDefUseData.empty();
     final var exploredEdges = new ArrayList<CFAEdge>();
-    final var edgesToExplore = new ArrayList<>(ImmutableList.of(startEdge));
-    while (!edgesToExplore.isEmpty()) {
-      final var edge = edgesToExplore.removeFirst();
+    final var toExplore = new ArrayList<>(List.of(Pair.of(startEdge, initialMutexState)));
+    while (!toExplore.isEmpty()) {
+      final var exploring = toExplore.removeFirst();
+      final var edge = exploring.getFirst();
+      var mutexState = exploring.getSecond();
       exploredEdges.add(edge);
       uses = uses.merge(getDirectlyUsedGlobalVars(edge));
-      if (goFurther.test(edge)) {
+      if (mutexState != null) {
+        mutexState = mutexState.update(edge, pid, null);
+      }
+      if (goFurther.test(edge, mutexState)) {
         for (final var successorEdge : getSuccessorEdges(edge, visitStartedThreadFunction)) {
           if (!exploredEdges.contains(successorEdge)) {
-            edgesToExplore.add(successorEdge);
+            toExplore.add(Pair.of(successorEdge, mutexState));
           }
         }
       }
@@ -775,9 +779,10 @@ public class PORState extends AbstractSingleWrapperState
       Iterable<MemoryLocation> access1, Iterable<MemoryLocation> access2, PORPrecision precision) {
     for (var o1 : access1) {
       for (var o2 : access2) {
-        if (o1.getExtendedQualifiedName().equals(o2.getExtendedQualifiedName())
-            && !precision.canIgnoreVariable(o1)) {
-          return true;
+        if (o1.getExtendedQualifiedName().equals(o2.getExtendedQualifiedName())) {
+          if (!precision.canIgnoreVariable(o1)) {
+            return true;
+          }
         }
       }
     }

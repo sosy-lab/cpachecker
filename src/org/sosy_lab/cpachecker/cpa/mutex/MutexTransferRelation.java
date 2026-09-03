@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.mutex;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -23,6 +24,12 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
  */
 class MutexTransferRelation extends SingleEdgeTransferRelation {
 
+  private final ImmutableSet<String> mutexHandleCandidates;
+
+  MutexTransferRelation(ImmutableSet<String> pMutexHandleCandidates) {
+    mutexHandleCandidates = pMutexHandleCandidates;
+  }
+
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
@@ -33,7 +40,7 @@ class MutexTransferRelation extends SingleEdgeTransferRelation {
       throw new CPATransferException("PID for edge not found in MutexState.");
     }
 
-    MutexState updated = state.update(pCfaEdge, pid);
+    MutexState updated = state.update(pCfaEdge, pid, mutexHandleCandidates);
     if (updated == null) {
       return ImmutableList.of();
     }

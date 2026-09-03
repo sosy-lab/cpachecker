@@ -12,7 +12,6 @@ import com.google.common.base.Equivalence;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -55,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
@@ -319,6 +319,25 @@ public final class EdgeDefUseData {
 
     @Override
     public Void visit(CFunctionCallExpression pIastFunctionCallExpression) {
+      var functionName = pIastFunctionCallExpression.getFunctionNameExpression();
+      if (functionName instanceof CIdExpression functionNameId) {
+        if ("scanf".equals(functionNameId.getName())) {
+          var parameters = pIastFunctionCallExpression.getParameterExpressions();
+          Mode prev = mode;
+          for (int i = 1; i < parameters.size(); i++) {
+            mode = Mode.DEF;
+            var parameter = parameters.get(i);
+            if (parameter instanceof CUnaryExpression cUnaryExpression
+                && cUnaryExpression.getOperator() == UnaryOperator.AMPER) {
+              cUnaryExpression.getOperand().accept(this);
+            } else {
+              parameters.get(i).accept(this);
+            }
+          }
+          mode = prev;
+          return null;
+        }
+      }
 
       pIastFunctionCallExpression.getFunctionNameExpression().accept(this);
 
@@ -394,12 +413,16 @@ public final class EdgeDefUseData {
 
       Mode prev = mode;
 
-      pIastArraySubscriptExpression.getArrayExpression().accept(this);
-
       mode = Mode.USE;
+      pIastArraySubscriptExpression.getArrayExpression().accept(this);
       pIastArraySubscriptExpression.getSubscriptExpression().accept(this);
 
       mode = prev;
+
+      if (considerPointees) {
+        Set<CExpression> pointeeSet = (mode == Mode.USE ? pointeeUses : pointeeDefs);
+        pointeeSet.add(pIastArraySubscriptExpression);
+      }
 
       if (mode == Mode.DEF) {
         partialDefs = true;
@@ -426,7 +449,18 @@ public final class EdgeDefUseData {
         }
 
       } else {
-        pIastFieldReference.getFieldOwner().accept(this);
+        var owner = pIastFieldReference.getFieldOwner();
+        owner.accept(this);
+        if (owner instanceof CIdExpression cIdExpression
+            && ((cIdExpression.getDeclaration() instanceof CVariableDeclaration cVariableDeclaration
+            && (!onlyGlobals || cVariableDeclaration.isGlobal()))
+            || (!onlyGlobals && cIdExpression.getDeclaration() instanceof CParameterDeclaration))) {
+          MemoryLocation memLoc = MemoryLocation.forIdentifier(
+              cIdExpression.getDeclaration().getQualifiedName() + "."
+                  + pIastFieldReference.getFieldName());
+          Set<MemoryLocation> set = (mode == Mode.USE ? uses : defs);
+          set.add(memLoc);
+        }
       }
 
       if (mode == Mode.DEF) {
@@ -578,20 +612,7 @@ public final class EdgeDefUseData {
 
     @Override
     public Void visit(CFunctionCallStatement pIastFunctionCallStatement) {
-
-      List<CExpression> paramExpressions =
-          pIastFunctionCallStatement.getFunctionCallExpression().getParameterExpressions();
-
-      for (CExpression expression : paramExpressions) {
-        expression.accept(this);
-      }
-
-      CFunctionDeclaration declaration =
-          pIastFunctionCallStatement.getFunctionCallExpression().getDeclaration();
-      if (declaration != null) {
-        declaration.accept(this);
-      }
-
+      pIastFunctionCallStatement.getFunctionCallExpression().accept(this);
       return null;
     }
 

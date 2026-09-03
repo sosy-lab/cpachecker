@@ -126,7 +126,7 @@ interface PrecisionVariableManager {
     private final FormulaManagerView formulaManager;
 
     private PredicatePrecision lastPrecision = null;
-    private ImmutableCollection<String> variables = null;
+    private ImmutableCollection<String> variables = ImmutableSet.of();
 
     public PredicatePrecisionVariableManager(FormulaManagerView pFormulaManager) {
       formulaManager = pFormulaManager;

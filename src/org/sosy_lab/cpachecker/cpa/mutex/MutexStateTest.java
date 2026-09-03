@@ -234,7 +234,7 @@ public class MutexStateTest {
 
     // MutexState#update must likewise treat it as a no-op (edge not recognized), not crash.
     MutexState state = MutexState.EMPTY;
-    assertThat(state.update(lockEdge, 1)).isEqualTo(state);
+    assertThat(state.update(lockEdge, 1, null)).isEqualTo(state);
   }
 
   @Test
