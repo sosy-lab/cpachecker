@@ -1239,7 +1239,6 @@ public class SMGTransferRelation
     CType leftHandSideType = SMGCPAExpressionEvaluator.getCanonicalType(lValue);
 
     ImmutableList.Builder<SMGState> returnStateBuilder = ImmutableList.builder();
-    SMGOptions options = pState.getOptions();
     SMGState currentState = pState;
     for (SMGStateAndOptionalSMGObjectAndOffset targetAndOffsetAndState :
         lValue.accept(new SMGCPAAddressVisitor(evaluator, currentState, cfaEdge, logger))) {
@@ -1311,7 +1310,8 @@ public class SMGTransferRelation
                 rightHandSideType,
                 rValue,
                 valueAndState.getState(),
-                cfaEdge));
+                cfaEdge,
+                evaluator));
       }
     }
 
@@ -1321,7 +1321,7 @@ public class SMGTransferRelation
   /*
    * Handles the concrete assignment of the value to its destination based on the types given.
    */
-  private List<SMGState> handleAssignmentOfValueTo(
+  private static List<SMGState> handleAssignmentOfValueTo(
       Value valueToWrite,
       CType leftHandSideType,
       CExpression lValueExpr,
@@ -1330,10 +1330,12 @@ public class SMGTransferRelation
       CType rightHandSideType,
       CRightHandSide rValueExpr,
       SMGState pCurrentState,
-      CFAEdge edge)
+      CFAEdge edge,
+      SMGCPAExpressionEvaluator evaluator)
       throws CPATransferException {
 
     SMGState currentState = pCurrentState;
+    SMGOptions options = currentState.getOptions();
 
     // Size of the left hand side as vv.evaluate() casts automatically to this type
     Value sizeInBits = evaluator.getBitSizeof(currentState, leftHandSideType, edge);
