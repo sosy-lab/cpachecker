@@ -151,10 +151,6 @@ public class CPAsTest {
             .setOption("differential.program", cProgram)
             .build();
 
-    // Create dummy files necessary for PolicyEnforcementCPA
-    tempFolder.newFile("betamap.conf");
-    tempFolder.newFile("immediatechecks.conf");
-
     cfa =
         TestCfaUtils.toSingleFunctionCFA(
             new CFACreator(config, logManager, shutdownNotifier),
