@@ -21,6 +21,8 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.EqualityCombinePreconditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.PrecisionCoverageOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.SingletonPrecisionCoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.NoPrecisionDeserializeOperator;
@@ -48,6 +50,7 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   private final SerializeOperator serialize;
   private final DeserializeOperator deserialize;
   private final CoverageOperator coverageOperator;
+  private final PrecisionCoverageOperator precisionCoverageOperator;
   private final ViolationConditionOperator verificationConditionOperator;
   private final CombinePreconditionsOperator combinePreconditionsOperator;
   private final SerializePrecisionOperator serializePrecisionOperator;
@@ -84,6 +87,7 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
     serializePrecisionOperator = new NoPrecisionSerializeOperator();
     deserializePrecisionOperator = new NoPrecisionDeserializeOperator();
     combinePrecisionOperator = new CombineSingletonPrecisionOperator();
+    precisionCoverageOperator = new SingletonPrecisionCoverageOperator();
     combineViolationConditionsOperator = new CallstackStateCombineViolationConditionOperator();
   }
 
@@ -178,6 +182,11 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   @Override
   public CoverageOperator getCoverageOperator() {
     return coverageOperator;
+  }
+
+  @Override
+  public PrecisionCoverageOperator getPrecisionCoverageOperator() {
+    return precisionCoverageOperator;
   }
 
   @Override

@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DistributedCallstackCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.PrecisionCoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
@@ -381,6 +382,10 @@ public final class DssBlockAnalysis {
    * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack
    * .CallstackStateCoverageOperator} rejects by design.
    *
+   * <p>A candidate only covers a state if its precision covers the state's precision as well (see
+   * {@link PrecisionCoverageOperator}). Otherwise the analysis of the candidate tracked less than
+   * what the state asks for, so its result is not the one that the state would have produced.
+   *
    * <p>This answers "does {@code pStates} need to be analyzed, given that {@code pCandidates} has
    * been?", not "did the state set change?". Coverage is not a decision procedure for the latter:
    * since every state only needs <em>some</em> partner, mutual coverage of two sets only says that
@@ -397,13 +402,23 @@ public final class DssBlockAnalysis {
     int covered = 0;
     for (StateAndPrecision state : pStates) {
       for (StateAndPrecision candidate : pCandidates) {
-        if (dcpa.getCoverageOperator().isSubsumed(state.state(), candidate.state())) {
+        if (isCovered(state, candidate)) {
           covered++;
           break;
         }
       }
     }
     return covered;
+  }
+
+  /**
+   * Whether both the state and the precision of {@code pState} are covered by {@code pCandidate}.
+   */
+  private boolean isCovered(StateAndPrecision pState, StateAndPrecision pCandidate)
+      throws CPAException, InterruptedException {
+    return dcpa.getPrecisionCoverageOperator()
+            .isSubsumed(pState.precision(), pCandidate.precision())
+        && dcpa.getCoverageOperator().isSubsumed(pState.state(), pCandidate.state());
   }
 
   /**

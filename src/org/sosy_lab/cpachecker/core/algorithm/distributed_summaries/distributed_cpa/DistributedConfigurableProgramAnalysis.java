@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.PrecisionCoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
@@ -84,6 +85,15 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
   ViolationConditionOperator getViolationConditionOperator();
 
   CoverageOperator getCoverageOperator();
+
+  /**
+   * Operator that decides whether a precision tracks everything another precision tracks. Needed
+   * next to the {@link CoverageOperator} because two equal states can still stem from analyses of
+   * different precision.
+   *
+   * @return Precision coverage operator for a distributed CPA.
+   */
+  PrecisionCoverageOperator getPrecisionCoverageOperator();
 
   CombinePreconditionsOperator getCombineOperator();
 

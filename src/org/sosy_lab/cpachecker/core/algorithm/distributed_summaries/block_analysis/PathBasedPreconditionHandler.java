@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -74,11 +73,9 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
   private final List<BlockGraphPath> pathsToAnalyze = new ArrayList<>();
 
   private final DssBlockAnalysis analysis;
-  private final boolean resetPrecisionsForEveryRun;
 
   PathBasedPreconditionHandler(DssBlockAnalysis pAnalysis) throws InterruptedException {
     analysis = pAnalysis;
-    resetPrecisionsForEveryRun = pAnalysis.getOptions().doResetPrecisionsForEveryRun();
 
     // Start from a top state, replaceable by any predecessor path. Its own path already contains
     // this block instead of being empty, so that a path which loops all the way back to this block
@@ -358,7 +355,7 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
       String renderedPath = DssDebugUtils.render(statesByPath.path());
       for (StateAndPrecision stateAndPrecision : statesByPath.states()) {
         preconditionRows.add(
-            ImmutableList.of(renderedPath, DssDebugUtils.oneLine(stateAndPrecision.state())));
+            ImmutableList.of(renderedPath, DssDebugUtils.describe(stateAndPrecision)));
         renderedPath = "";
       }
     }
@@ -427,18 +424,12 @@ final class PathBasedPreconditionHandler implements DssPreconditionHandler {
     ImmutableSet.Builder<ArgPathAndCondition> violations = ImmutableSet.builder();
 
     for (BlockGraphPath path : pathsToAnalyze) {
-      Precision currentPrecision = analysis.combinePrecisions(preconditions.get(path).states);
       for (StateAndPrecision precondition : ImmutableList.copyOf(preconditions.get(path).states)) {
-        boolean isTrivial = analysis.getDcpa().isMostGeneralBlockEntryState(precondition.state());
-        Precision precision =
-            resetPrecisionsForEveryRun || isTrivial
-                ? analysis.makeStartPrecision()
-                : currentPrecision;
 
         DssBlockAnalysisResult result =
             analysis.runBlockAnalysis(
                 analysis.getDcpa().reset(precondition.state()),
-                precision,
+                precondition.precision(),
                 analysis.getViolationConditionHandler().statesOf(pSender));
 
         summaries.addAll(analysis.summariesOf(result));

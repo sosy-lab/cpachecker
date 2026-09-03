@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.PrecisionCoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
@@ -55,6 +56,7 @@ public class DistributedCompositeCPA
   private final SerializeCompositePrecisionOperator serializePrecisionOperator;
   private final ViolationConditionOperator verificationConditionOperator;
   private final CoverageOperator coverageOperator;
+  private final PrecisionCoverageOperator precisionCoverageOperator;
   private final CombinePreconditionsOperator combinePreconditionsOperator;
   private final CombineViolationConditionsOperator combineViolationConditionOperator;
   private final CombinePrecisionOperator combinePrecisionOperator;
@@ -88,6 +90,7 @@ public class DistributedCompositeCPA
     deserializePrecisionOperator = new DeserializeCompositePrecisionOperator(wrappedCpas, pNode);
     verificationConditionOperator = new CompositeViolationConditionOperator(wrappedCpas);
     coverageOperator = new CompositeStateCoverageOperator(wrappedCpas);
+    precisionCoverageOperator = new CompositePrecisionCoverageOperator(wrappedCpas);
     combinePreconditionsOperator =
         new CombineCompositeStatePreconditionsOperator(wrappedCpas, pNode.getInitialLocation());
     combineViolationConditionOperator =
@@ -158,6 +161,11 @@ public class DistributedCompositeCPA
   @Override
   public CoverageOperator getCoverageOperator() {
     return coverageOperator;
+  }
+
+  @Override
+  public PrecisionCoverageOperator getPrecisionCoverageOperator() {
+    return precisionCoverageOperator;
   }
 
   @Override

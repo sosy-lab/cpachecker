@@ -18,7 +18,7 @@ public class BlockStateCoverageOperator implements CoverageOperator {
   public boolean isSubsumed(AbstractState state1, AbstractState state2) {
     BlockState blockState1 = (BlockState) state1;
     BlockState blockState2 = (BlockState) state2;
-    return blockState1.isEqualTo(blockState2);
+    return blockState1.isCovered(blockState2);
   }
 
   @Override

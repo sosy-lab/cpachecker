@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.PrecisionCoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
@@ -57,6 +58,7 @@ public class DistributedPredicateCPA
   private final ProceedOperator proceedOperator;
   private final ViolationConditionOperator verificationConditionOperator;
   private final CoverageOperator stateCoverageOperator;
+  private final PrecisionCoverageOperator precisionCoverageOperator;
   private final CombinePreconditionsOperator combinePreconditionsOperator;
   private final CombinePrecisionOperator combinePrecisionOperator;
   private final PredicateStateCombineViolationConditionOperator combineViolationConditionsOperator;
@@ -90,6 +92,7 @@ public class DistributedPredicateCPA
       proceedOperator = ProceedOperator.always();
     }
     stateCoverageOperator = new PredicateStateCoverageOperator(predicateCPA.getSolver());
+    precisionCoverageOperator = new PredicatePrecisionCoverageOperator();
     verificationConditionOperator =
         new PredicateViolationConditionOperator(
             new PathFormulaManagerImpl(
@@ -190,6 +193,11 @@ public class DistributedPredicateCPA
   @Override
   public CoverageOperator getCoverageOperator() {
     return stateCoverageOperator;
+  }
+
+  @Override
+  public PrecisionCoverageOperator getPrecisionCoverageOperator() {
+    return precisionCoverageOperator;
   }
 
   @Override

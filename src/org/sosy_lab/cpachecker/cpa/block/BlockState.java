@@ -237,7 +237,8 @@ public class BlockState
   }
 
   /**
-   * Whether this state and the given state describe the same point of the same block.
+   * Whether this state is covered by the given state, i.e., whether a block that has been analyzed
+   * from {@code that} no longer has to be analyzed from this state.
    *
    * <p>This comparison deliberately ignores everything that only records where a state came from:
    * {@link #id}, {@link #predecessor}, {@link #hinderedByCallstack} and, most importantly, {@link
@@ -245,24 +246,36 @@ public class BlockState
    * same abstraction have to subsume each other even if they arrived along different paths through
    * the block graph, otherwise a block collects one precondition per block-graph path.
    *
-   * <p>Ignoring {@link #history} is also safe for {@link BlockCPA}, which uses this method for
-   * coverage: {@link org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis
-   * .PathBasedPreconditionHandler} groups the start states by their block-graph path and explores
-   * one path at a time, so the history is constant within a reached set. The same holds for {@link
-   * #witness}, which {@link BlockTransferRelation} propagates unchanged, and for {@link
-   * #violationConditions}, which {@link #getPartitionKey()} already separates.
-   *
-   * <p>The equals method is deliberately not implemented like this, because {@link
-   * #violationConditions} and {@link #history} are mutable and a matching hashCode would therefore
-   * be unstable in a {@link org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet}.
+   * <p>It also ignores {@link #violationConditions}, unlike {@link #equals}: coverage compares a
+   * precondition that has just been deserialized from a message, which never carries a violation
+   * condition, against a stored precondition that {@link
+   * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis
+   * #runBlockAnalysis} has since set the block's current violation conditions on. Comparing the two
+   * would therefore always fail, and a block would collect one precondition per arriving message
+   * instead of covering the repetitions.
    */
-  public boolean isEqualTo(BlockState that) {
+  public boolean isCovered(BlockState that) {
     return this == that
         || (Objects.equals(node, that.node)
             && Objects.equals(witnessCheckPathState, that.witnessCheckPathState)
             && type == that.type
+            && blockNode == that.getBlockNode());
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    return this == other
+        || (other instanceof BlockState that
+            && Objects.equals(node, that.node)
+            && Objects.equals(witnessCheckPathState, that.witnessCheckPathState)
+            && type == that.type
             && blockNode == that.getBlockNode()
             && violationConditions == that.violationConditions);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(node, witnessCheckPathState, type, blockNode, violationConditions);
   }
 
   @Override

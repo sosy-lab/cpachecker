@@ -17,6 +17,8 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.EqualityCombinePreconditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.PrecisionCoverageOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.SingletonPrecisionCoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.NoPrecisionDeserializeOperator;
@@ -40,6 +42,7 @@ public class DistributedFunctionPointerCPA
   private final DeserializePrecisionOperator deserializePrecisionOperator;
   private final ViolationConditionOperator verificationConditionOperator;
   private final CoverageOperator coverageOperator;
+  private final PrecisionCoverageOperator precisionCoverageOperator;
   private final CombinePreconditionsOperator combinePreconditionsOperator;
   private final CombinePrecisionOperator combinePrecisionOperator;
   private final CombineViolationConditionsOperator combineViolationConditionsOperator;
@@ -59,6 +62,7 @@ public class DistributedFunctionPointerCPA
     combinePreconditionsOperator =
         new EqualityCombinePreconditionsOperator(coverageOperator, getAbstractStateClass());
     combinePrecisionOperator = new CombineSingletonPrecisionOperator();
+    precisionCoverageOperator = new SingletonPrecisionCoverageOperator();
     combineViolationConditionsOperator =
         states -> {
           FunctionPointerState prev = null;
@@ -135,6 +139,11 @@ public class DistributedFunctionPointerCPA
   @Override
   public CoverageOperator getCoverageOperator() {
     return coverageOperator;
+  }
+
+  @Override
+  public PrecisionCoverageOperator getPrecisionCoverageOperator() {
+    return precisionCoverageOperator;
   }
 
   @Override

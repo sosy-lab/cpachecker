@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -34,29 +35,9 @@ public class BlockCPA extends AbstractCPA {
   private final TransferRelation transferRelation;
 
   public BlockCPA(Configuration pConfiguration) throws InvalidConfigurationException {
-    super("sep", "sep", new BlockDomain(), null);
+    super("sep", "sep", new FlatLatticeDomain(), null);
     idGenerator = new UniqueIdGenerator();
     transferRelation = new BlockTransferRelation(pConfiguration, idGenerator);
-  }
-
-  /**
-   * Domain of {@link BlockCPA}, which compares block states structurally.
-   *
-   * <p>{@link BlockTransferRelation} creates a fresh block state for every CFA edge, so the
-   * identity-based equality that {@link BlockState} inherits from {@link Object} would make every
-   * coverage check fail.
-   */
-  private static final class BlockDomain implements AbstractDomain {
-
-    @Override
-    public AbstractState join(AbstractState pState1, AbstractState pState2) {
-      throw new UnsupportedOperationException("Block states are never joined, BlockCPA uses 'sep'");
-    }
-
-    @Override
-    public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2) {
-      return ((BlockState) pState1).isEqualTo((BlockState) pState2);
-    }
   }
 
   public void init(BlockNode pBlockNode) {
