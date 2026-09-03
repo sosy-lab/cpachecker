@@ -31,6 +31,5 @@ SPDX-License-Identifier: Apache-2.0
   <tasks name="SV-LIB.Simple">
     <include>../programs/sv-lib/*.yml</include>
     <propertyfile>../config/properties/correct-annotations.prp</propertyfile>
-    <exclude>../programs/sv-lib/loop-add.yml</exclude> <!-- ':requires' is not supported yet -->
   </tasks>
 </benchmark>
