@@ -21,7 +21,6 @@ import java.util.HashMap;
 import java.util.Map;
 import org.junit.rules.TemporaryFolder;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
@@ -65,19 +64,16 @@ public class TestCfaUtils {
   public static ImmutableCFA makeCfaFromString(String program)
       throws ParserException, InterruptedException {
     try {
-      return makeCfaFromString(TestUtils.configurationForTest().build(), program);
+      CFACreator creator =
+          new CFACreator(
+              TestUtils.configurationForTest().build(),
+              LogManager.createTestLogManager(),
+              ShutdownNotifier.createDummy());
+
+      return creator.parseSourceAndCreateCFA(program);
     } catch (InvalidConfigurationException e) {
       throw new AssertionError("Default configuration is invalid?");
     }
-  }
-
-  public static ImmutableCFA makeCfaFromString(Configuration config, String program)
-      throws InvalidConfigurationException, ParserException, InterruptedException {
-
-    CFACreator creator =
-        new CFACreator(config, LogManager.createTestLogManager(), ShutdownNotifier.createDummy());
-
-    return creator.parseSourceAndCreateCFA(program);
   }
 
   /**
