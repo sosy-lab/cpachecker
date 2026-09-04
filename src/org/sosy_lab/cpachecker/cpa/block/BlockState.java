@@ -198,15 +198,46 @@ public class BlockState
     throw new UnsupportedOperationException();
   }
 
-  // error condition intentionally left out as it is mutable
-  // the equals method is deliberately not implemented like this
-  public boolean isEqualTo(BlockState that) {
+  /**
+   * Whether this state is covered by the given state, i.e., whether a block that has been analyzed
+   * from {@code that} no longer has to be analyzed from this state.
+   *
+   * <p>This comparison deliberately ignores everything that only records where a state came from:
+   * {@link #predecessor}, {@link #hinderedByCallstack} and, most importantly, {@link #history}. Two
+   * preconditions that reach the same block entry with the same callstack and the same abstraction
+   * have to subsume each other even if they arrived along different paths through the block graph,
+   * otherwise a block collects one precondition per block-graph path.
+   *
+   * <p>It also ignores {@link #violationConditions}, unlike {@link #equals}: coverage compares a
+   * precondition that has just been deserialized from a message, which never carries a violation
+   * condition, against a stored precondition that {@link
+   * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis
+   * #runBlockAnalysis} has since set the block's current violation conditions on. Comparing the two
+   * would therefore always fail, and a block would collect one precondition per arriving message
+   * instead of covering the repetitions.
+   */
+  public boolean isCovered(BlockState that) {
     return this == that
         || (Objects.equals(node, that.node)
             && Objects.equals(witnessCheckPathState, that.witnessCheckPathState)
             && type == that.type
+            && blockNode == that.getBlockNode());
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    return this == other
+        || (other instanceof BlockState that
+            && Objects.equals(node, that.node)
+            && Objects.equals(witnessCheckPathState, that.witnessCheckPathState)
+            && type == that.type
             && blockNode == that.getBlockNode()
             && violationConditions == that.violationConditions);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(node, witnessCheckPathState, type, blockNode, violationConditions);
   }
 
   @Override

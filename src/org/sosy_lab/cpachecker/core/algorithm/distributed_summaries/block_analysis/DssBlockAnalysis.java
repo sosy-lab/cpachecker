@@ -458,6 +458,42 @@ public final class DssBlockAnalysis {
   }
 
   /**
+   * Whether {@code pStates1} and {@code pStates2} contain the same set of states, i.e., every state
+   * on either side has an equal state (per {@link CoverageOperator#areStatesEqual}) on the other
+   * side.
+   *
+   * <p>This matters wherever the state set drives further exploration -- see {@link
+   * AlwaysReplacePreconditionHandler}, which has to detect that a set gained or lost a state, not
+   * only that its states are still covered.
+   */
+  boolean statesEqual(
+      Collection<@NonNull StateAndPrecision> pStates1,
+      Collection<@NonNull StateAndPrecision> pStates2)
+      throws CPAException, InterruptedException {
+    CoverageOperator coverage = dcpa.getCoverageOperator();
+    ImmutableList<StateAndPrecision> states2 = ImmutableList.copyOf(pStates2);
+    boolean[] matchedInStates2 = new boolean[states2.size()];
+    for (StateAndPrecision state1 : pStates1) {
+      boolean matched = false;
+      for (int i = 0; i < states2.size(); i++) {
+        if (coverage.areStatesEqual(state1.state(), states2.get(i).state())) {
+          matched = true;
+          matchedInStates2[i] = true;
+        }
+      }
+      if (!matched) {
+        return false;
+      }
+    }
+    for (boolean matched : matchedInStates2) {
+      if (!matched) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
    * Explores the block once from the given precondition, without any violation condition attached.
    *
    * <p>This run is intentionally not counted in the block-analysis statistics, which only track the
@@ -545,18 +581,20 @@ public final class DssBlockAnalysis {
           dcpa.getViolationConditionOperator()
               .computeViolationCondition(
                   pathAndCondition.path(), Optional.ofNullable(pathAndCondition.condition()));
-      Preconditions.checkState(
-          violationCondition.isPresent(),
-          "The analysis found a feasible counterexample "
-              + "which could not be reestablished with the violation-condition operator.");
-      statePerProgramCounterBuilder.put(
-          new ViolationConditionProgramPoint(
-              Optional.ofNullable(pathAndCondition.condition()),
-              dcpa.computeProgramPointId(violationCondition.orElseThrow())),
-          violationCondition.orElseThrow());
+      if (violationCondition.isPresent()) {
+        statePerProgramCounterBuilder.put(
+            new ViolationConditionProgramPoint(
+                Optional.ofNullable(pathAndCondition.condition()),
+                dcpa.computeProgramPointId(violationCondition.orElseThrow())),
+            violationCondition.orElseThrow());
+      }
     }
     ImmutableListMultimap<ViolationConditionProgramPoint, AbstractState> statePerProgramCounter =
         statePerProgramCounterBuilder.build();
+    Preconditions.checkState(
+        !statePerProgramCounter.isEmpty(),
+        "The analysis found a feasible counterexample "
+            + "which could not be reestablished with the violation-condition operator.");
     ImmutableList.Builder<StateAndPrecision> vcs = ImmutableList.builder();
     if (options.combineViolationConditionsByHash()) {
       for (ViolationConditionProgramPoint programPoint : statePerProgramCounter.keySet()) {
