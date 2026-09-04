@@ -255,13 +255,13 @@ public abstract class DssMessage {
    *     separation of old and new messages after the analysis, especially.
    * @return JSON representation of the message.
    */
-  public final ImmutableMap<String, ImmutableMap<String, String>> asLegacyJsonWithIdentifier(
+  public final ImmutableMap<String, ImmutableMap<String, String>> asDebugFlatMapWithIdentifier(
       int pIdentifier) {
-    return asJsonPayloadWithIdentifier(pIdentifier).asLegacyMap();
+    return asJsonPayloadWithIdentifier(pIdentifier).asDebugFlatMap();
   }
 
-  public final ImmutableMap<String, ImmutableMap<String, String>> asLegacyJson() {
-    return asLegacyJsonWithIdentifier(0);
+  public final ImmutableMap<String, ImmutableMap<String, String>> asDebugFlatMap() {
+    return asDebugFlatMapWithIdentifier(0);
   }
 
   public static DssMessage fromJson(Path pJson) throws IOException {

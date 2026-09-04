@@ -93,12 +93,12 @@ public record DssMessagePayload(
     return new DssMessagePayload(header.withoutTimestamp(), status, states, content);
   }
 
-  public ImmutableMap<String, ImmutableMap<String, String>> asLegacyMap() {
+  public ImmutableMap<String, ImmutableMap<String, String>> asDebugFlatMap() {
     return ImmutableMap.of(
         DssMessageKeys.HEADER, header.asLegacyHeader(), DssMessageKeys.CONTENT, legacyContent());
   }
 
-  public ImmutableMap<String, String> legacyContent() {
+  private ImmutableMap<String, String> legacyContent() {
     ImmutableMap.Builder<String, String> legacyContent = ImmutableMap.builder();
     if (status != null) {
       legacyContent.putAll(status.asLegacyContent());
