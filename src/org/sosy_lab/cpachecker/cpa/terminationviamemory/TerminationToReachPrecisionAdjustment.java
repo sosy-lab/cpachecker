@@ -144,7 +144,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         PartitionedRelationFormula candidateTransInv =
             new PartitionedRelationFormula(bfmgr.makeFalse(), fmgr);
         while (true) {
-          // First check for a lasso in the current unrolling
+          // Check for a lasso in the current unrolling
           try {
             if (isNonterminatingLoop(
                 sameStateFormulas,
@@ -181,35 +181,19 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
             return Optional.of(result.withAbstractState(terminationState));
           }
 
-          BooleanFormula interpolant;
           candidateTransInv = candidateTransInv.withPrevVarsSuffixed(PREV_KEYWORD);
           candidateTransInv = candidateTransInv.withCurrVarsSuffixed(CURR_KEYWORD);
-          try {
-            // If BMC check is UNSAT, try to overapproximate the transition invariant
-            BooleanFormula firstStep =
-                isOverapproximating
-                    ? candidateTransInv.getFormula()
-                    : prefixPathFormula.getFormula();
-            interpolant =
-                itpMgr
-                    .interpolate(
-                        ImmutableList.of(
-                            bfmgr.and(firstStep, iterationFormula.getFormula()),
-                            latestSameStateFormula))
-                    .orElseThrow()
-                    .getFirst();
-          } catch (CPAException e) {
-            break;
-          }
 
-          // Instantiate the new interpolant to T(x__PREV, x__CURR)
           PartitionedRelationFormula newInterpolant =
-              new PartitionedRelationFormula(interpolant, fmgr);
-          newInterpolant = newInterpolant.withPrevVarsSuffixed(PREV_KEYWORD);
-          newInterpolant = newInterpolant.withCurrVarsSuffixed(CURR_KEYWORD);
+              computeNewRelationalInterpolant(
+                  isOverapproximating,
+                  candidateTransInv,
+                  iterationFormula,
+                  prefixPathFormula,
+                  latestSameStateFormula,
+                  callstackState);
           try {
-            if (containsOnlyIrrelevantVariables(interpolant, callstackState)
-                || solver.implies(newInterpolant.getFormula(), candidateTransInv.getFormula())) {
+            if (solver.implies(newInterpolant.getFormula(), candidateTransInv.getFormula())) {
               break;
             }
           } catch (SolverException | InterruptedException e) {
@@ -307,6 +291,38 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       latestSameStateFormula = sameStateFormulaRelation.getFormula();
     }
     return latestSameStateFormula;
+  }
+
+  /**
+   * This method computes a new relational interpolant overapproximating paths with one more step of
+   * the concrete transition system.
+   */
+  private PartitionedRelationFormula computeNewRelationalInterpolant(
+      boolean isOverapproximating,
+      PartitionedRelationFormula candidateTransInv,
+      PartitionedRelationFormula iterationFormula,
+      PathFormula prefixPathFormula,
+      BooleanFormula latestSameStateFormula,
+      CallstackState callstackState)
+      throws CPAException, InterruptedException {
+    BooleanFormula firstStep =
+        isOverapproximating ? candidateTransInv.getFormula() : prefixPathFormula.getFormula();
+    BooleanFormula interpolant =
+        itpMgr
+            .interpolate(
+                ImmutableList.of(
+                    bfmgr.and(firstStep, iterationFormula.getFormula()), latestSameStateFormula))
+            .orElseThrow()
+            .getFirst();
+    if (containsOnlyIrrelevantVariables(interpolant, callstackState)) {
+      return new PartitionedRelationFormula(bfmgr.makeFalse(), fmgr);
+    }
+
+    // Instantiate the new interpolant to T(x__PREV, x__CURR)
+    PartitionedRelationFormula newInterpolant = new PartitionedRelationFormula(interpolant, fmgr);
+    newInterpolant = newInterpolant.withPrevVarsSuffixed(PREV_KEYWORD);
+    newInterpolant = newInterpolant.withCurrVarsSuffixed(CURR_KEYWORD);
+    return newInterpolant;
   }
 
   private boolean isSound(Formula pFormula) {
