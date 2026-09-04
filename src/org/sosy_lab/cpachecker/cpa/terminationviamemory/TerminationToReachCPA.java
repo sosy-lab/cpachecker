@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
@@ -97,14 +96,15 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
     return AutomaticCPAFactory.forType(TerminationToReachCPA.class);
   }
 
-  public void setSolver(PredicateCPA pCPA) throws InvalidConfigurationException {
-    solver = pCPA.getSolver();
+  public void setSolverAndManagers(Solver pSolver, PathFormulaManager pPfmgr)
+      throws InvalidConfigurationException {
+    solver = pSolver;
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
-    pfmgr = pCPA.getPathFormulaManager();
+    pfmgr = pPfmgr;
     itpMgr =
         new InterpolationManager(
-            pCPA.getPathFormulaManager(),
+            pfmgr,
             solver,
             Optional.empty(),
             Optional.empty(),
