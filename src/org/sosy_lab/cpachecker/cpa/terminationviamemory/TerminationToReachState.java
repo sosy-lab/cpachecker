@@ -41,8 +41,8 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
   private final ImmutableSet<Loop> allLoops;
 
   /**
-   * The parameter tracks whether all the possible branches from the loop were already covered
-   * by a transition invariant.
+   * The parameter tracks whether all the possible branches from the loop were already covered by a
+   * transition invariant.
    */
   private Set<CFANode> visitedNodes;
 

@@ -125,7 +125,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         && !terminationState.isLoopTerminating(location)
         && terminationState.getStoredValues().containsKey(keyPair)) {
       if (terminationState.getNumberOfIterationsAtLoopHead(keyPair) > 1) {
-        boolean isTargetStateReachable;
         boolean isOverapproximating = false;
         PathFormula prefixPathFormula = terminationState.getPathFormulasForPrefix().orElseThrow();
         SSAMap largestIndices =
@@ -145,63 +144,29 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         PartitionedRelationFormula candidateTransInv =
             new PartitionedRelationFormula(bfmgr.makeFalse(), fmgr);
         while (true) {
-          // First, check that the BMC check is UNSATs
-          BooleanFormula latestSameStateFormula = bfmgr.makeTrue();
-          for (BooleanFormula sameStateFormula : sameStateFormulas) {
-            try {
-              // Construct formula:
-              // T(x__PREV, x__CURR) and Tr(x__CURR, x__CURR2) and x__PREV = x_CURR2
-              if (isOverapproximating) {
-                // Construct formula instantiated to x__PREV = x__CURR2
-                PartitionedRelationFormula sameStateFormulaRelation =
-                    new PartitionedRelationFormula(sameStateFormula, fmgr);
-                sameStateFormulaRelation =
-                    sameStateFormulaRelation.withPrevVarsSuffixed(PREV_KEYWORD);
-                sameStateFormulaRelation =
-                    sameStateFormulaRelation.withCurrVarsSuffixed(CURR2_KEYWORD);
-                latestSameStateFormula = sameStateFormulaRelation.getFormula();
-
-                // Set the prev vars in T to match x__PREV and the curr cars to match x__CURR
-                candidateTransInv = candidateTransInv.withPrevVarsSuffixed(PREV_KEYWORD);
-                candidateTransInv = candidateTransInv.withCurrVarsSuffixed(CURR_KEYWORD);
-
-                // Set the prev vars in Tr to match x__CURR and the curr cars to match x__CURR2
-                iterationFormula = iterationFormula.withPrevVarsSuffixed(CURR_KEYWORD);
-                iterationFormula = iterationFormula.withCurrVarsSuffixed(CURR2_KEYWORD);
-
-                isTargetStateReachable =
-                    !solver.isUnsat(
-                        bfmgr.and(
-                            candidateTransInv.getFormula(),
-                            iterationFormula.getFormula(),
-                            latestSameStateFormula));
-              } else {
-                isTargetStateReachable =
-                    !solver.isUnsat(
-                        bfmgr.and(
-                            prefixPathFormula.getFormula(),
-                            iterationFormula.getFormula(),
-                            sameStateFormula));
-              }
-            } catch (SolverException e) {
-              logger.logDebugException(e);
+          // First check for a lasso in the current unrolling
+          try {
+            if (isNonterminatingLoop(
+                sameStateFormulas,
+                isOverapproximating,
+                isOverapproximating ? Optional.of(candidateTransInv) : Optional.empty(),
+                iterationFormula,
+                prefixPathFormula)) {
+              terminationState.makeTarget();
+              result = result.withAbstractState(terminationState);
+              statistics.setNonterminatingLoop(
+                  cfa.getLoopStructure().orElseThrow().getLoopsForLoopHead(location));
+              result = result.withAction(Action.BREAK);
               return Optional.of(result);
             }
-            if (isTargetStateReachable) {
-              if (!isOverapproximating && isSound(iterationFormula.getFormula())) {
-                terminationState.makeTarget();
-                result = result.withAbstractState(terminationState);
-                statistics.setNonterminatingLoop(
-                    cfa.getLoopStructure().orElseThrow().getLoopsForLoopHead(location));
-                result = result.withAction(Action.BREAK);
-              }
-              return Optional.of(result);
-            }
-            latestSameStateFormula = sameStateFormula;
-            if (isOverapproximating) {
-              break;
-            }
+          } catch (SolverException e) {
+            logger.logDebugException(e);
+            return Optional.of(result);
           }
+
+          // Get the latest formula checking for the same states
+          BooleanFormula latestSameStateFormula =
+              getTheLatestSameStateFormula(sameStateFormulas, isOverapproximating);
 
           // If the user sets the algorithm to perform only BMC, then it does not try to reach the
           // fix-point
@@ -261,6 +226,87 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       }
     }
     return Optional.of(result);
+  }
+
+  /**
+   * This function goes over all the saved states at the current loop head in the previous
+   * iterations. It checks whether with the current path formula, the program can reach the same
+   * state twice.
+   *
+   * @return false if there is no lasso in the current unrollings of the loops, true if the program
+   *     is nonterminating and the algorithm found a lasso
+   */
+  private boolean isNonterminatingLoop(
+      ImmutableList<BooleanFormula> sameStateFormulas,
+      // tells us whether we are already computing a fix-point with abstraction
+      boolean isOverapproximating,
+      Optional<PartitionedRelationFormula> pCandidateTransInv,
+      PartitionedRelationFormula iterationFormula,
+      PathFormula prefixPathFormula)
+      throws InterruptedException, SolverException {
+    boolean isTargetStateReachable;
+    for (BooleanFormula sameStateFormula : sameStateFormulas) {
+      // Construct formula:
+      // T(x__PREV, x__CURR) and Tr(x__CURR, x__CURR2) and x__PREV = x_CURR2
+      if (isOverapproximating) {
+        PartitionedRelationFormula candidateTransInv = pCandidateTransInv.orElseThrow();
+
+        // Construct formula instantiated to x__PREV = x__CURR2
+        PartitionedRelationFormula sameStateFormulaRelation =
+            new PartitionedRelationFormula(sameStateFormula, fmgr);
+        sameStateFormulaRelation = sameStateFormulaRelation.withPrevVarsSuffixed(PREV_KEYWORD);
+        sameStateFormulaRelation = sameStateFormulaRelation.withCurrVarsSuffixed(CURR2_KEYWORD);
+
+        // Set the prev vars in T to match x__PREV and the curr cars to match x__CURR
+        candidateTransInv = candidateTransInv.withPrevVarsSuffixed(PREV_KEYWORD);
+        candidateTransInv = candidateTransInv.withCurrVarsSuffixed(CURR_KEYWORD);
+
+        // Set the prev vars in Tr to match x__CURR and the curr cars to match x__CURR2
+        iterationFormula = iterationFormula.withPrevVarsSuffixed(CURR_KEYWORD);
+        iterationFormula = iterationFormula.withCurrVarsSuffixed(CURR2_KEYWORD);
+
+        isTargetStateReachable =
+            !solver.isUnsat(
+                bfmgr.and(
+                    candidateTransInv.getFormula(),
+                    iterationFormula.getFormula(),
+                    sameStateFormulaRelation.getFormula()));
+      } else {
+        isTargetStateReachable =
+            !solver.isUnsat(
+                bfmgr.and(
+                    prefixPathFormula.getFormula(),
+                    iterationFormula.getFormula(),
+                    sameStateFormula));
+      }
+      if (isTargetStateReachable) {
+        if (!isOverapproximating && isSound(iterationFormula.getFormula())) {
+          return true;
+        }
+        if (isOverapproximating) {
+          return false;
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * This method gets the latest same state formula instantiated for the fix-point check if we are
+   * abstracting already.
+   */
+  private BooleanFormula getTheLatestSameStateFormula(
+      ImmutableList<BooleanFormula> sameStateFormulas, boolean isOverapproximating) {
+    BooleanFormula latestSameStateFormula = sameStateFormulas.getLast();
+    if (isOverapproximating) {
+      // Construct formula instantiated to x__PREV = x__CURR2
+      PartitionedRelationFormula sameStateFormulaRelation =
+          new PartitionedRelationFormula(latestSameStateFormula, fmgr);
+      sameStateFormulaRelation = sameStateFormulaRelation.withPrevVarsSuffixed(PREV_KEYWORD);
+      sameStateFormulaRelation = sameStateFormulaRelation.withCurrVarsSuffixed(CURR2_KEYWORD);
+      latestSameStateFormula = sameStateFormulaRelation.getFormula();
+    }
+    return latestSameStateFormula;
   }
 
   private boolean isSound(Formula pFormula) {
