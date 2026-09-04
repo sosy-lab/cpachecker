@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionSubstitution;
@@ -76,8 +77,10 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionStatementWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
 import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
+import org.sosy_lab.cpachecker.util.cwriter.export.CVariableDeclarationWrapper;
 
 public record SeqThreadStatementBuilder(
+    MPOROptions options,
     MPORThread thread,
     ImmutableList<MPORThread> allThreads,
     ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges,
@@ -268,9 +271,15 @@ public record SeqThreadStatementBuilder(
         variableDeclaration, pFirstSuccessorEdge, pSecondSuccessorEdge);
 
     ImmutableList.Builder<CCompoundStatementElement> exportStatements = ImmutableList.builder();
-    CExpressionAssignmentStatement assignmentStatement =
-        buildExpressionAssignmentStatementFromVariableDeclaration(variableDeclaration);
-    exportStatements.add(new CStatementWrapper(assignmentStatement));
+
+    if (options.declareConstAuxiliaryVariablesGlobally()) {
+      CExpressionAssignmentStatement assignmentStatement =
+          buildExpressionAssignmentStatementFromVariableDeclaration(variableDeclaration);
+      exportStatements.add(new CStatementWrapper(assignmentStatement));
+    } else {
+      exportStatements.add(new CVariableDeclarationWrapper(variableDeclaration));
+    }
+
     exportStatements.add(
         new CStatementWrapper(((CStatementEdge) pFirstSuccessorEdge.cfaEdge).getStatement()));
 
