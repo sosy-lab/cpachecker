@@ -59,8 +59,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private final String PREV_KEYWORD = "__TransInv@1";
   private final String CURR_KEYWORD = "__TransInv@2";
   private final String CURR2_KEYWORD = "__TransInv@3";
-  private static final long MAX_INT = 4294967295L;
-  private static final long MIN_INT = -4294967295L;
 
   @Option(
       secure = true,
@@ -281,18 +279,26 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       for (AbstractSimpleDeclaration varDecl :
           cfa.getAstCfaRelation().getVariablesAndParametersInScope(pLocation).orElseThrow()) {
         if (varDecl.getName().equals(pureVarName)
-            && (varDecl.getType() instanceof CSimpleType
+            && (varDecl.getType() instanceof CSimpleType pType
                 && !cfa.getMachineModel().isSigned(((CSimpleType) varDecl.getType())))) {
           pFormula =
               bfmgr.and(
                   pFormula,
                   fmgr.makeGreaterOrEqual(
-                      fmgr.makeNumber(FormulaType.IntegerType, MAX_INT), variable, true));
+                      fmgr.makeNumber(
+                          FormulaType.IntegerType,
+                          cfa.getMachineModel().getMaximalIntegerValue(pType)),
+                      variable,
+                      true));
           pFormula =
               bfmgr.and(
                   pFormula,
                   fmgr.makeLessOrEqual(
-                      fmgr.makeNumber(FormulaType.IntegerType, MIN_INT), variable, true));
+                      fmgr.makeNumber(
+                          FormulaType.IntegerType,
+                          cfa.getMachineModel().getMinimalIntegerValue(pType)),
+                      variable,
+                      true));
         }
       }
     }
