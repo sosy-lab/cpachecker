@@ -24,6 +24,8 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/cpalien/cpalien.set</includesfile>
     <option name="--smgSymbolicExecution"/>
     <option name="--preprocess" />
+    <!-- These programs assume that malloc does not fail. -->
+    <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 
