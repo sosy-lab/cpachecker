@@ -92,6 +92,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFunctionPointerResol
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ExpandFunctionPointerArrayAssignments;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.NullPointerChecks;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ThreadCreateTransformer;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.TrivialLoopRemover;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -310,6 +311,16 @@ public class CFACreator {
               + " option will otherwise create c code which is not the same as the original"
               + " one")
   private boolean moveDeclarationsToFunctionStart = false;
+
+  @Option(
+      secure = true,
+      name = "cfa.removeTrivialLoops",
+      description =
+          "Remove all trivial loops (with only blank edges) in the CFA "
+              + "and replace them with program termination. "
+              + "This is not valid for properties like termination and valid-memcleanup, "
+              + "but more efficient for standard reachability properties. Cf. #1713.")
+  private boolean removeTrivialLoops = false;
 
   @Option(
       secure = true,
@@ -843,6 +854,10 @@ public class CFACreator {
     if (moveDeclarationsToFunctionStart) {
       CFADeclarationMover declarationMover = new CFADeclarationMover(logger);
       declarationMover.moveDeclarationsToFunctionStart(cfa);
+    }
+
+    if (removeTrivialLoops) {
+      TrivialLoopRemover.removeTrivialLoops(cfa);
     }
 
     if (checkNullPointers) {
