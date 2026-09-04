@@ -62,9 +62,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private static final long MAX_INT = 4294967295L;
   private static final long MIN_INT = -4294967295L;
 
-  private final ImmutableSet<String> UFs =
-      ImmutableSet.of("Integer_/_", "_%_", "_>>_", "_<<_", "_&_", "_!!_", "_~_", "_^_");
-
   @Option(
       secure = true,
       description =
@@ -269,16 +266,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   }
 
   private boolean isSound(Formula pFormula) {
-    if (!checkUFsInIntegerEncoding) {
-      return true;
-    }
-
-    for (String function : fmgr.extractFunctionNames(pFormula)) {
-      if (UFs.contains(function)) {
-        return false;
-      }
-    }
-    return true;
+    return !checkUFsInIntegerEncoding || !fmgr.hasUninstantiatedFunction(pFormula);
   }
 
   private BooleanFormula restrictFormulaVariablesWithIntRange(

@@ -1257,6 +1257,24 @@ public class FormulaManagerView {
         myFreeVariableNodeTransformer(unwrap(pFormula), new HashMap<>(), pRenameFunction));
   }
 
+  public <F extends Formula> boolean hasUninstantiatedFunction(final F pFormula) {
+    AtomicBoolean hasUF = new AtomicBoolean(false);
+    this.visitRecursively(pFormula, new DefaultFormulaVisitor<TraversalProcess>() {
+      @Override protected TraversalProcess visitDefault(Formula f) {
+        return TraversalProcess.CONTINUE;
+      }
+      @Override public TraversalProcess visitFunction(
+          Formula f, List<Formula> args, FunctionDeclaration<?> decl) {
+        if (decl.getKind() == FunctionDeclarationKind.UF) {
+          hasUF.set(true);
+          return TraversalProcess.ABORT;
+        }
+        return TraversalProcess.CONTINUE;
+      }
+    });
+    return hasUF.get();
+  }
+
   private <T extends Formula> T myFreeVariableNodeTransformer(
       final T pFormula,
       final Map<Formula, Formula> pCache,
