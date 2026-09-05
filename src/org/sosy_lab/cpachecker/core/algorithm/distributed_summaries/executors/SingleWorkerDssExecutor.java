@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssAllWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssDefaultQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageCodec;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -111,12 +111,12 @@ public class SingleWorkerDssExecutor implements DssExecutor {
 
   private void writeAllMessages(List<DssMessage> response) throws IOException {
     int messageCount = 0;
-    for (DssMessage dssMessage : response) {
+    for (DssMessage message : response) {
       Files.createDirectories(outputMessages);
-      final String outputFileNamePrefix = dssMessage.getType().name();
+      final String outputFileNamePrefix = message.getType().name();
       final String outputFileName = outputFileNamePrefix + messageCount + ".json";
       Path outputPath = outputMessages.resolve(outputFileName);
-      dssMessage.asJsonPayload().writeJson(outputPath);
+      message.asJsonPayload().writeJson(outputPath);
       messageCount++;
     }
   }
@@ -127,7 +127,7 @@ public class SingleWorkerDssExecutor implements DssExecutor {
     List<DssMessage> toBeConsideredNew = new ArrayList<>();
     // known conditions always stay 'old' and never become 'true'
     for (Path knownMessageFile : pKnownConditions) {
-      DssMessage message = DssMessage.fromJson(knownMessageFile);
+      DssMessage message = DssMessageCodec.fromJson(knownMessageFile);
       toBeConsideredOld.add(message);
     }
 
@@ -140,8 +140,8 @@ public class SingleWorkerDssExecutor implements DssExecutor {
     // others as 'old'.
     boolean isFirstPostcondition = true;
     for (Path newMessageFile : pNewConditions) {
-      DssMessage message = DssMessage.fromJson(newMessageFile);
-      if (message.getType() == DssMessageType.POST_CONDITION) {
+      DssMessage message = DssMessageCodec.fromJson(newMessageFile);
+      if (message.getType() == DssMessage.DssMessageType.POST_CONDITION) {
         if (isFirstPostcondition) {
           // Do postconditions first, so that information is known before error conditions are
           // checked

@@ -20,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
 
 public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
 
@@ -31,8 +32,7 @@ public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
 
   /**
    * Mimics a blocking queue but changes the blocking method <code>take</code> to prioritize
-   * messages according to the enum {@link
-   * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType}
+   * messages according to the enum {@link DssMessageType}
    */
   public DssDefaultQueue() {
     this(ConcurrentHashMap.newKeySet());

@@ -37,8 +37,8 @@ public class DssPrioritizeViolationConditionQueue extends ForwardingBlockingQueu
     queue = pQueue;
     highestPriority = new ArrayDeque<>();
     next = new LinkedHashMap<>();
-    next.put(DssMessageType.VIOLATION_CONDITION, new ArrayDeque<>());
-    next.put(DssMessageType.POST_CONDITION, new ArrayDeque<>());
+    next.put(DssMessage.DssMessageType.VIOLATION_CONDITION, new ArrayDeque<>());
+    next.put(DssMessage.DssMessageType.POST_CONDITION, new ArrayDeque<>());
   }
 
   public DssPrioritizeViolationConditionQueue() {
@@ -71,8 +71,8 @@ public class DssPrioritizeViolationConditionQueue extends ForwardingBlockingQueu
     if (!highestPriority.isEmpty()) {
       return highestPriority.removeFirst();
     }
-    Deque<DssMessage> violationConditions = next.get(DssMessageType.VIOLATION_CONDITION);
-    Deque<DssMessage> postConditions = next.get(DssMessageType.POST_CONDITION);
+    Deque<DssMessage> violationConditions = next.get(DssMessage.DssMessageType.VIOLATION_CONDITION);
+    Deque<DssMessage> postConditions = next.get(DssMessage.DssMessageType.POST_CONDITION);
     if (!violationConditions.isEmpty()) {
       if (current >= TAKE_VIOLATION_CONDITION && !postConditions.isEmpty()) {
         current = 0;

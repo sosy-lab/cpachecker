@@ -64,7 +64,7 @@ public record DssMessagePayload(
   }
 
   public static DssMessagePayload fromJson(Path pJson) throws IOException {
-    return OBJECT_MAPPER.convertValue(pJson, DssMessagePayload.class);
+    return OBJECT_MAPPER.readValue(pJson.toFile(), DssMessagePayload.class);
   }
 
   public DssMessagePayload withoutTimestamp() {

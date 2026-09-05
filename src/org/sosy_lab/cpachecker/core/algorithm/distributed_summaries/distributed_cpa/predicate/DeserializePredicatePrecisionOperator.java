@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentReader;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
@@ -117,7 +117,7 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
   }
 
   @Override
-  public Precision deserializePrecision(DssMessage pMessage, int pStateIndex) {
+  public Precision deserializePrecision(DssMessageWithStates pMessage, int pStateIndex) {
     ContentReader contentReader =
         pMessage.getPrecisionContent(PredicatePrecision.class, pStateIndex);
     return new PredicatePrecision(

@@ -8,63 +8,24 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-
 /**
  * Message sent by analysis workers carrying witness information: either the ARG states of all
  * preconditions after a TRUE result ({@link WitnessType#CORRECTNESS}), or the violation path after
  * a FALSE result ({@link WitnessType#VIOLATION}), differentiated by the field {@link
  * DssMessageKeys#WITNESS_TYPE}
  */
-public class DssWitnessMessage extends DssMessage {
+public sealed interface DssWitnessMessage extends DssMessage
+    permits DssCorrectnessWitnessMessage, DssViolationWitnessMessage {
 
-  public enum WitnessType {
+  enum WitnessType {
     CORRECTNESS,
     VIOLATION
   }
 
-  DssWitnessMessage(String pSenderId, ImmutableList<ImmutableMap<String, String>> pStates) {
-    super(pSenderId, DssMessageType.WITNESS, Optional.empty(), pStates, ImmutableMap.of());
-  }
-
-  DssWitnessMessage(
-      String pSenderId,
-      ImmutableList<ImmutableMap<String, String>> pStates,
-      ImmutableMap<String, String> pContent) {
-    super(pSenderId, DssMessageType.WITNESS, Optional.empty(), pStates, pContent);
-  }
-
   @Override
-  void validateParameters(
-      Optional<AlgorithmStatus> pStatus,
-      List<? extends Map<String, String>> pStates,
-      Map<String, String> pContent) {
-    checkArgument(pStatus.isEmpty(), "Witness message must not contain status");
-
-    String witnessType = pContent.get(DssMessageKeys.WITNESS_TYPE);
-    checkArgument(witnessType != null, "Witness message requires witnessType");
-    WitnessType type;
-    try {
-      type = WitnessType.valueOf(witnessType);
-    } catch (IllegalArgumentException e) {
-      throw new IllegalArgumentException("Unknown witness type: " + witnessType, e);
-    }
-    switch (type) {
-      case CORRECTNESS -> {
-        // since the multiple states field was removed, correctness witness messages can exist w/
-        // only the witness type, which was already checked
-      }
-      case VIOLATION ->
-          checkArgument(
-              pContent.containsKey(DssMessageKeys.VIOLATION_PATH),
-              "Violation witness requires violationPath");
-    }
+  default DssMessageType getType() {
+    return DssMessageType.WITNESS;
   }
+
+  WitnessType getWitnessType();
 }

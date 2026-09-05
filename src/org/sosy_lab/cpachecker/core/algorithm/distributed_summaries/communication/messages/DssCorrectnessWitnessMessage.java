@@ -2,7 +2,7 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -12,26 +12,22 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
-public final class DssResultMessage implements DssMessage {
+public final class DssCorrectnessWitnessMessage implements DssWitnessMessage, DssMessageWithStates {
   private final String senderId;
   private final Instant timestamp;
-  private final Result result;
+  private final ImmutableList<ImmutableMap<String, String>> states;
 
-  public DssResultMessage(String pSenderId, Result pResult) {
-    this(pSenderId, Instant.now(), pResult);
+  public DssCorrectnessWitnessMessage(
+      String pSenderId, ImmutableList<ImmutableMap<String, String>> pStates) {
+    this(pSenderId, Instant.now(), pStates);
   }
 
-  DssResultMessage(String pSenderId, Instant pTimestamp, Result pResult) {
+  DssCorrectnessWitnessMessage(
+      String pSenderId, Instant pTimestamp, ImmutableList<ImmutableMap<String, String>> pStates) {
     senderId = Preconditions.checkNotNull(pSenderId);
     timestamp = Preconditions.checkNotNull(pTimestamp);
-    result = Preconditions.checkNotNull(pResult);
-  }
-
-  @Override
-  public DssMessageType getType() {
-    return DssMessageType.RESULT;
+    states = ImmutableList.copyOf(Preconditions.checkNotNull(pStates));
   }
 
   @Override
@@ -44,8 +40,14 @@ public final class DssResultMessage implements DssMessage {
     return timestamp;
   }
 
-  public Result getResult() {
-    return result;
+  @Override
+  public ImmutableList<ImmutableMap<String, String>> getStates() {
+    return states;
+  }
+
+  @Override
+  public WitnessType getWitnessType() {
+    return WitnessType.CORRECTNESS;
   }
 
   @Override
@@ -53,7 +55,7 @@ public final class DssResultMessage implements DssMessage {
     return new DssMessagePayload(
         DssHeaderPayload.forMessage(senderId, getType(), timestamp, pIdentifier),
         null,
-        ImmutableList.of(),
-        ImmutableMap.of(DssMessageKeys.RESULT, result.name()));
+        states,
+        ImmutableMap.of(DssMessageKeys.WITNESS_TYPE, getWitnessType().name()));
   }
 }

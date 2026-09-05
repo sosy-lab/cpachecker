@@ -12,7 +12,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -33,7 +33,7 @@ public class DeserializeFunctionPointerStateOperator implements DeserializeOpera
   }
 
   @Override
-  public AbstractState deserialize(DssMessage pMessage, int pStateIndex) {
+  public AbstractState deserialize(DssMessageWithStates pMessage, int pStateIndex) {
     String serialized =
         pMessage.getAbstractStateContent(FunctionPointerState.class, pStateIndex).get(STATE_KEY);
     Preconditions.checkNotNull(serialized, "If entry is contained, it cannot be null");

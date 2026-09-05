@@ -12,16 +12,21 @@ import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssCorrectnessWitnessMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssExceptionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssResultMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationWitnessMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssWitnessMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssWitnessMessage.WitnessType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.DssExecutor.StatusAndResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssWitnessArgStateCollector;
@@ -72,28 +77,33 @@ public class DssObserverWorker extends DssWorker {
 
   @Override
   public Collection<DssMessage> processMessage(DssMessage pMessage) throws InterruptedException {
-    switch (pMessage.getType()) {
-      case RESULT -> {
-        finalResult = Optional.of(pMessage.getResult());
+    switch (pMessage) {
+      case DssResultMessage resultMessage -> {
+        finalResult = Optional.of(resultMessage.getResult());
         logger.log(
-            Level.INFO, "Received result", pMessage.getResult(), ", waiting for witness messages");
-        statusObserver.updateStatus(pMessage);
+            Level.INFO,
+            "Received result",
+            resultMessage.getResult(),
+            ", waiting for witness messages");
+        statusObserver.updateStatus(resultMessage);
         shutdown = allPostAnalysisMessagesReceived();
       }
-      case VIOLATION_CONDITION, POST_CONDITION -> statusObserver.updateStatus(pMessage);
-      case EXCEPTION -> {
-        errorMessage = Optional.of(pMessage.getExceptionMessage());
+      case DssConditionMessage conditionMessage -> statusObserver.updateStatus(conditionMessage);
+      case DssExceptionMessage exceptionMessage -> {
+        errorMessage = Optional.of(exceptionMessage.getExceptionMessage());
         shutdown = true;
       }
-      case WITNESS -> {
-        if (pMessage.getWitnessType() == WitnessType.VIOLATION) {
-          violationWitness = Optional.of(pMessage.getViolationPath());
-        } else {
-          stateCollector.collectFromMessage((DssWitnessMessage) pMessage);
+      case DssWitnessMessage witnessMessage -> {
+        switch (witnessMessage) {
+          case DssViolationWitnessMessage violationWitnessMessage ->
+              violationWitness = Optional.of(violationWitnessMessage.getViolationPath());
+          case DssCorrectnessWitnessMessage correctnessWitnessMessage ->
+              stateCollector.collectFromMessage(witnessMessage);
         }
         witnessMessagesReceived++;
         shutdown = allPostAnalysisMessagesReceived();
       }
+      default -> {}
     }
     return ImmutableList.of();
   }
@@ -154,10 +164,8 @@ public class DssObserverWorker extends DssWorker {
     }
 
     private void updateStatus(DssMessage pMessage) {
-      switch (pMessage.getType()) {
-        case VIOLATION_CONDITION, POST_CONDITION ->
-            statusMap.put(pMessage.getSenderId(), pMessage.getAlgorithmStatus());
-        case RESULT, EXCEPTION, WITNESS -> {}
+      if (Objects.requireNonNull(pMessage) instanceof DssConditionMessage conditionMessage) {
+        statusMap.put(conditionMessage.getSenderId(), conditionMessage.getAlgorithmStatus());
       }
     }
 

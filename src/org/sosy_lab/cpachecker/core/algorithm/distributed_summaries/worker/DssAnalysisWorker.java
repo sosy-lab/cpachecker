@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPostConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssResultMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
@@ -184,8 +185,9 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
         yield ImmutableSet.of();
       }
       case RESULT -> {
+        DssResultMessage resultMessage = (DssResultMessage) message;
         shutdown = true;
-        if (message.getResult() == Result.TRUE) {
+        if (resultMessage.getResult() == Result.TRUE) {
           yield ImmutableSet.of(
               messageFactory.createDssCorrectnessWitnessMessage(
                   getBlockId(), analysis.getDssBlockAnalysis().serializedPreconditions()));
@@ -224,14 +226,14 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
   public void broadcast(Collection<DssMessage> pMessages) throws InterruptedException {
     DssMessageBroadcaster broadcaster = getConnection().getBroadcaster();
     for (DssMessage message : pMessages) {
-      switch (message.getType()) {
-        case POST_CONDITION -> {
-          broadcaster.broadcastToObserver(message);
-          broadcaster.broadcastToIds(message, block.getSuccessorIds());
+      switch (message) {
+        case DssPostConditionMessage postConditionMessage -> {
+          broadcaster.broadcastToObserver(postConditionMessage);
+          broadcaster.broadcastToIds(postConditionMessage, block.getSuccessorIds());
         }
-        case VIOLATION_CONDITION -> {
+        case DssViolationConditionMessage violationConditionMessage -> {
           if (block.getPredecessorIds().isEmpty()) {
-            String violationPathString = message.extractBlockStateWitnessString();
+            String violationPathString = violationConditionMessage.extractBlockStateWitnessString();
             SegmentedPaths violationPath =
                 DeserializeBlockStateOperator.parseWitness(violationPathString).witness();
             broadcaster.broadcastToAll(
@@ -239,11 +241,11 @@ public class DssAnalysisWorker extends DssWorker implements AutoCloseable {
             broadcaster.broadcastToAll(
                 messageFactory.createDssViolationWitnessMessage(getId(), violationPath));
           } else {
-            broadcaster.broadcastToObserver(message);
-            broadcaster.broadcastToIds(message, block.getPredecessorIds());
+            broadcaster.broadcastToObserver(violationConditionMessage);
+            broadcaster.broadcastToIds(violationConditionMessage, block.getPredecessorIds());
           }
         }
-        case EXCEPTION, RESULT, WITNESS -> {
+        default -> {
           // the worker will also broadcast to itself and react
           // appropriately in processMessage
           broadcaster.broadcastToAll(message);

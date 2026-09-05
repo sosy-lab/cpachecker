@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
@@ -32,7 +32,7 @@ public class DeserializeCompositePrecisionOperator implements DeserializePrecisi
   }
 
   @Override
-  public Precision deserializePrecision(DssMessage pMessage, int pStateIndex) {
+  public Precision deserializePrecision(DssMessageWithStates pMessage, int pStateIndex) {
     ImmutableList.Builder<Precision> precisions = ImmutableList.builder();
     for (ConfigurableProgramAnalysis cpa : wrapped) {
       if (cpa instanceof DistributedConfigurableProgramAnalysis dcpa) {

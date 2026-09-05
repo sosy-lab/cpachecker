@@ -13,6 +13,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.google.common.collect.ImmutableMap;
+import java.time.Instant;
+import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
 
@@ -29,11 +31,33 @@ public record DssHeaderPayload(
     @JsonProperty(DssMessageKeys.TIMESTAMP) @Nullable String timestamp,
     @JsonProperty(DssMessageKeys.IDENTIFIER) int identifier) {
 
+  private static final long nanoConversionFactor = 1_000_000_000L;
+
   @JsonCreator
   public DssHeaderPayload {}
 
   public DssHeaderPayload withoutTimestamp() {
     return new DssHeaderPayload(senderId, messageType, null, identifier);
+  }
+
+  public static DssHeaderPayload forMessage(
+      String pSenderId, DssMessageType pMessageType, Instant pTimestamp, int pIdentifier) {
+    return new DssHeaderPayload(
+        pSenderId,
+        pMessageType,
+        Long.toString(pTimestamp.getEpochSecond() * nanoConversionFactor + pTimestamp.getNano()),
+        pIdentifier);
+  }
+
+  public Optional<Instant> timestampAsInstant() {
+    if (timestamp == null) {
+      return Optional.empty();
+    }
+    long epochNanos = Long.parseLong(timestamp);
+    long epochSeconds = Math.floorDiv(epochNanos, nanoConversionFactor);
+    int nanosAdjustment = (int) Math.floorMod(epochNanos, nanoConversionFactor);
+
+    return Optional.of(Instant.ofEpochSecond(epochSeconds, nanosAdjustment));
   }
 
   public ImmutableMap<String, String> asLegacyHeader() {

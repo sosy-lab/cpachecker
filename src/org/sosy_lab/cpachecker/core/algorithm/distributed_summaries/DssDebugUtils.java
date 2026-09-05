@@ -41,8 +41,8 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageKeys;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.LegacyDssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath.PathCase;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
@@ -82,8 +82,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  *   <li>Paths through the block graph: {@link #render(BlockGraphPath)}, {@link
  *       #explainPathCase(BlockGraphPath, BlockGraphPath)}, {@link #pathCaseMatrix(Iterable,
  *       Iterable)}.
- *   <li>Messages: {@link #summarize(DssMessage)}, {@link #describe(DssMessage)}, {@link
- *       #messageTable(Iterable)}, {@link #diff(DssMessage, DssMessage)}.
+ *   <li>Messages: {@link #summarize(LegacyDssMessage)}, {@link #describe(LegacyDssMessage)}, {@link
+ *       #messageTable(Iterable)}, {@link #diff(LegacyDssMessage, LegacyDssMessage)}.
  *   <li>Reached sets and ARGs: {@link #describeReachedSet(UnmodifiableReachedSet)}, {@link
  *       #describe(ARGPath)}, {@link #argToDot(UnmodifiableReachedSet)}.
  *   <li>Pre-/violation conditions of a block: {@link #prettyPrintBlock(String, Multimap,
@@ -597,7 +597,7 @@ public final class DssDebugUtils {
   // ===================================================================================
 
   /** One-line summary of a message: type, sender, number of states, status, timestamp. */
-  public static String summarize(DssMessage pMessage) {
+  public static String summarize(LegacyDssMessage pMessage) {
     StringBuilder result =
         new StringBuilder(pMessage.getType().name())
             .append(" from ")
@@ -627,7 +627,7 @@ public final class DssDebugUtils {
    * is regrouped per contained state and per CPA, opaque blobs are elided, and the serialized
    * {@link BlockState} is expanded into block, history and witness.
    */
-  public static String describe(DssMessage pMessage) {
+  public static String describe(LegacyDssMessage pMessage) {
     ImmutableMap<String, ImmutableMap<String, String>> json = pMessage.asDebugFlatMap();
     ImmutableMap<String, String> content =
         Objects.requireNonNullElse(json.get(DssMessageKeys.CONTENT), ImmutableMap.of());
@@ -710,10 +710,10 @@ public final class DssDebugUtils {
   }
 
   /** Renders one summary row per message, in the given order. */
-  public static String messageTable(Iterable<DssMessage> pMessages) {
+  public static String messageTable(Iterable<LegacyDssMessage> pMessages) {
     List<List<String>> rows = new ArrayList<>();
     int index = 0;
-    for (DssMessage message : pMessages) {
+    for (LegacyDssMessage message : pMessages) {
       rows.add(
           ImmutableList.of(
               Integer.toString(index++),
@@ -734,7 +734,7 @@ public final class DssDebugUtils {
    * <p>Two consecutive postconditions of the same block that ought to be equal but are not is the
    * classic reason for a non-terminating fixpoint. This shows exactly which key differs.
    */
-  public static String diff(DssMessage pLeft, DssMessage pRight) {
+  public static String diff(LegacyDssMessage pLeft, LegacyDssMessage pRight) {
     ImmutableMap<String, String> left = contentOf(pLeft);
     ImmutableMap<String, String> right = contentOf(pRight);
 
@@ -779,7 +779,7 @@ public final class DssDebugUtils {
     return abbreviate(singleLine(pValue), DEFAULT_MAX_VALUE_LENGTH / 2);
   }
 
-  private static ImmutableMap<String, String> contentOf(DssMessage pMessage) {
+  private static ImmutableMap<String, String> contentOf(LegacyDssMessage pMessage) {
     return Objects.requireNonNullElse(
         pMessage.asDebugFlatMap().get(DssMessageKeys.CONTENT), ImmutableMap.of());
   }

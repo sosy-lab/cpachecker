@@ -20,7 +20,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 
@@ -71,12 +70,14 @@ public class DssVisualizationWorker extends DssWorker {
       throws InterruptedException, IOException {
     log(pMessage);
     boolean stop =
-        pMessage.getType() == DssMessageType.RESULT
-            || pMessage.getType() == DssMessageType.EXCEPTION;
+        pMessage.getType() == DssMessage.DssMessageType.RESULT
+            || pMessage.getType() == DssMessage.DssMessageType.EXCEPTION;
     while (connection.hasPendingMessages()) {
       DssMessage m = connection.read();
       log(m);
-      stop |= m.getType() == DssMessageType.RESULT || m.getType() == DssMessageType.EXCEPTION;
+      stop |=
+          m.getType() == DssMessage.DssMessageType.RESULT
+              || m.getType() == DssMessage.DssMessageType.EXCEPTION;
     }
     if (stop) {
       shutdown = true;

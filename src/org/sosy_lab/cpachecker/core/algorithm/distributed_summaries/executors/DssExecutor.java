@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssAllWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssWitnessArgStateCollector;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.ResultWithWitnessInformation;
@@ -70,11 +71,8 @@ public interface DssExecutor {
     }
 
     public void updateStatus(DssMessage pMessage) {
-      switch (pMessage.getType()) {
-        case VIOLATION_CONDITION, POST_CONDITION ->
-            statusMap.put(pMessage.getSenderId(), pMessage.getAlgorithmStatus());
-        case RESULT, EXCEPTION, WITNESS -> {}
-      }
+      if (pMessage instanceof DssMessageWithStatus pMessageWithStatus)
+        statusMap.put(pMessageWithStatus.getSenderId(), pMessageWithStatus.getAlgorithmStatus());
     }
 
     public AlgorithmStatus finish() {

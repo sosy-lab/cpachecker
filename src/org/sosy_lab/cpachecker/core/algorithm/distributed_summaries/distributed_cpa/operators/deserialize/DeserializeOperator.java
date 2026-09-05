@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize;
 
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -18,15 +20,11 @@ public interface DeserializeOperator {
 
   String STATE_KEY = SerializeOperator.STATE_KEY;
 
-  static CFANode startLocationFromMessageType(DssMessage pMessage, BlockNode blockNode) {
-    return switch (pMessage.getType()) {
-      case VIOLATION_CONDITION -> blockNode.getFinalLocation();
-      case POST_CONDITION, WITNESS -> blockNode.getInitialLocation();
-      case EXCEPTION, RESULT ->
-          throw new IllegalArgumentException(
-              "Cannot deserialize BlockState from message of type: "
-                  + pMessage.getClass().getName());
-    };
+  static CFANode startLocationFromMessageType(DssMessageWithStates pMessage, BlockNode blockNode) {
+    if (Objects.requireNonNull(pMessage) instanceof DssViolationConditionMessage) {
+      return blockNode.getFinalLocation();
+    }
+    return blockNode.getInitialLocation();
   }
 
   /**
@@ -38,5 +36,6 @@ public interface DeserializeOperator {
    * @return An abstract state described by {@code pMessage, pStateContent}
    * @throws InterruptedException thrown if program is interrupted from the outside.
    */
-  AbstractState deserialize(DssMessage pMessage, int pStateIndex) throws InterruptedException;
+  AbstractState deserialize(DssMessageWithStates pMessage, int pStateIndex)
+      throws InterruptedException;
 }

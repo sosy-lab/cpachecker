@@ -2,7 +2,7 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -12,26 +12,21 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 
-public final class DssResultMessage implements DssMessage {
+public final class DssViolationWitnessMessage implements DssWitnessMessage {
   private final String senderId;
   private final Instant timestamp;
-  private final Result result;
+  private final SegmentedPaths violationPath;
 
-  public DssResultMessage(String pSenderId, Result pResult) {
-    this(pSenderId, Instant.now(), pResult);
+  public DssViolationWitnessMessage(String pSenderId, SegmentedPaths pViolationPath) {
+    this(pSenderId, Instant.now(), pViolationPath);
   }
 
-  DssResultMessage(String pSenderId, Instant pTimestamp, Result pResult) {
+  DssViolationWitnessMessage(String pSenderId, Instant pTimestamp, SegmentedPaths pViolationPath) {
     senderId = Preconditions.checkNotNull(pSenderId);
     timestamp = Preconditions.checkNotNull(pTimestamp);
-    result = Preconditions.checkNotNull(pResult);
-  }
-
-  @Override
-  public DssMessageType getType() {
-    return DssMessageType.RESULT;
+    violationPath = Preconditions.checkNotNull(pViolationPath);
   }
 
   @Override
@@ -44,8 +39,13 @@ public final class DssResultMessage implements DssMessage {
     return timestamp;
   }
 
-  public Result getResult() {
-    return result;
+  public SegmentedPaths getViolationPath() {
+    return violationPath;
+  }
+
+  @Override
+  public WitnessType getWitnessType() {
+    return WitnessType.VIOLATION;
   }
 
   @Override
@@ -54,6 +54,10 @@ public final class DssResultMessage implements DssMessage {
         DssHeaderPayload.forMessage(senderId, getType(), timestamp, pIdentifier),
         null,
         ImmutableList.of(),
-        ImmutableMap.of(DssMessageKeys.RESULT, result.name()));
+        ImmutableMap.of(
+            DssMessageKeys.WITNESS_TYPE,
+            getWitnessType().name(),
+            DssMessageKeys.VIOLATION_PATH,
+            violationPath.serialize()));
   }
 }

@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Level;
@@ -43,8 +42,8 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPostConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -675,20 +674,19 @@ public final class DssBlockAnalysis {
    */
   public ImmutableList<@NonNull StateAndPrecision> deserialize(final DssMessage pMessage)
       throws InterruptedException {
-    OptionalInt optionalNumberOfStates = pMessage.getNumberOfContainedStates();
-    if (optionalNumberOfStates.isEmpty()) {
+    if (!(pMessage instanceof DssMessageWithStates messageWithStates)) {
       return ImmutableList.of();
     }
-    int numStates = optionalNumberOfStates.orElseThrow();
+    int numStates = messageWithStates.getNumberOfContainedStates();
     ImmutableList.Builder<StateAndPrecision> statesAndPrecisions =
         ImmutableList.builderWithExpectedSize(numStates);
     for (int i = 0; i < numStates; i++) {
-      AbstractState state = dcpa.getDeserializeOperator().deserialize(pMessage, i);
-      if (pMessage.getType() == DssMessageType.POST_CONDITION) {
+      AbstractState state = dcpa.getDeserializeOperator().deserialize(messageWithStates, i);
+      if (messageWithStates.getType() == DssMessage.DssMessageType.POST_CONDITION) {
         state = dcpa.reset(state);
       }
       Precision precision =
-          dcpa.getDeserializePrecisionOperator().deserializePrecision(pMessage, i);
+          dcpa.getDeserializePrecisionOperator().deserializePrecision(messageWithStates, i);
       statesAndPrecisions.add(new StateAndPrecision(state, precision));
     }
     return statesAndPrecisions.build();

@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssSerializeObjectUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentReader;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -86,7 +86,7 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
   }
 
   @Override
-  public AbstractState deserialize(DssMessage pMessage, int pStateIndex)
+  public AbstractState deserialize(DssMessageWithStates pMessage, int pStateIndex)
       throws InterruptedException {
     SerializationInfoStorage.storeSerializationInformation(predicateCPA, cfa);
     ContentReader predicateContent =
@@ -127,7 +127,7 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
           PredicateOperatorUtil.getPathFormula(
               serializedState, pathFormulaManager, formulaManagerView, pts, ssaMapBuilder.build());
 
-      if (pMessage.getType() == DssMessageType.VIOLATION_CONDITION) {
+      if (pMessage.getType() == DssMessage.DssMessageType.VIOLATION_CONDITION) {
         return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
             abstraction,
             (PredicateAbstractState)

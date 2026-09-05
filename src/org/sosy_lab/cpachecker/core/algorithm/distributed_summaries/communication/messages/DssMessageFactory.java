@@ -33,7 +33,7 @@ public class DssMessageFactory {
       String pSenderId,
       AlgorithmStatus pStatus,
       ImmutableList<ImmutableMap<String, String>> pStates) {
-    return new DssPostConditionMessage(pSenderId, pStatus, pStates, ImmutableMap.of());
+    return new DssPostConditionMessage(pSenderId, pStatus, pStates);
   }
 
   /**
@@ -48,46 +48,29 @@ public class DssMessageFactory {
    */
   public DssPostConditionMessage createDssUnreachableBlockEndMessage(
       String pSenderId, AlgorithmStatus pStatus) {
-    return new DssPostConditionMessage(
-        pSenderId,
-        pStatus,
-        ImmutableList.of(),
-        ImmutableMap.<String, String>builder()
-            .put(DssMessageKeys.UNREACHABLE_BLOCK_END, "true")
-            .buildOrThrow());
+    return DssPostConditionMessage.unreachableBlockEndMessage(pSenderId, pStatus);
   }
 
   public DssViolationConditionMessage createViolationConditionMessage(
       String pSenderId,
       AlgorithmStatus pStatus,
       ImmutableList<ImmutableMap<String, String>> pStates) {
-    return new DssViolationConditionMessage(pSenderId, pStatus, pStates, ImmutableMap.of());
+    return new DssViolationConditionMessage(pSenderId, pStatus, pStates);
   }
 
   public DssWitnessMessage createDssCorrectnessWitnessMessage(
       String pSenderId,
       ImmutableList<ImmutableMap<String, String>> pSerializedRelevantPreconditions) {
-    return new DssWitnessMessage(
-        pSenderId,
-        pSerializedRelevantPreconditions,
-        ImmutableMap.<String, String>builder()
-            .putAll(witnessType(WitnessType.CORRECTNESS))
-            .buildOrThrow());
+    return new DssCorrectnessWitnessMessage(pSenderId, pSerializedRelevantPreconditions);
   }
 
   public DssWitnessMessage createDssViolationWitnessMessage(
       String pSenderId, SegmentedPaths violationWitness) {
-    return new DssWitnessMessage(
-        pSenderId,
-        ImmutableList.of(),
-        ImmutableMap.<String, String>builder()
-            .putAll(witnessType(WitnessType.VIOLATION))
-            .put(DssMessageKeys.VIOLATION_PATH, violationWitness.serialize())
-            .buildOrThrow());
+    return new DssViolationWitnessMessage(pSenderId, violationWitness);
   }
 
   public DssResultMessage createDssResultMessage(String pSenderId, Result pResult) {
-    return new DssResultMessage(pSenderId, pResult.name());
+    return new DssResultMessage(pSenderId, pResult);
   }
 
   public DssExceptionMessage createDssExceptionMessage(String pSenderId, Throwable pThrowable) {

@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssSchedulerConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssResultMessage;
 
 public class DssThreadMonitorTest {
 
@@ -81,8 +82,10 @@ public class DssThreadMonitorTest {
       assertThat(observerQueue.poll(1, SECONDS)).isNull();
 
       activeWorkers.remove(workerId);
-      DssMessage resultMessage = observerQueue.poll(1, SECONDS);
-      assertThat(resultMessage).isNotNull();
+      DssMessage message = observerQueue.poll(1, SECONDS);
+      assertThat(message).isNotNull();
+      assertThat(message).isInstanceOf(DssResultMessage.class);
+      DssResultMessage resultMessage = (DssResultMessage) message;
       assertThat(resultMessage.getResult()).isEqualTo(Result.TRUE);
     } finally {
       releaseWorker.countDown();

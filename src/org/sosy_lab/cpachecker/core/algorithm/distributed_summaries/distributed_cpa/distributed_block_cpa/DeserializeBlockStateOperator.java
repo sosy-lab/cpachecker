@@ -12,7 +12,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
@@ -35,8 +35,9 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
   }
 
   @Override
-  public AbstractState deserialize(DssMessage pMessage, int pStateIndex)
+  public AbstractState deserialize(DssMessageWithStates pMessage, int pStateIndex)
       throws InterruptedException {
+
     String content = pMessage.getAbstractStateContent(BlockState.class, pStateIndex).get(STATE_KEY);
 
     ParseResult parsed = parseWitness(content);

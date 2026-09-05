@@ -23,7 +23,6 @@ import org.junit.rules.TemporaryFolder;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 
 public class DssMessagePayloadTest {
@@ -55,7 +54,7 @@ public class DssMessagePayloadTest {
             DssMessageKeys.SENDER_ID,
             "B1",
             DssMessageKeys.MESSAGE_TYPE,
-            DssMessageType.RESULT.name(),
+            DssMessage.DssMessageType.RESULT.name(),
             DssMessageKeys.TIMESTAMP,
             "123",
             DssMessageKeys.IDENTIFIER,
@@ -67,7 +66,7 @@ public class DssMessagePayloadTest {
 
     DssMessagePayload payload = DssMessagePayload.fromJson(file);
 
-    assertThat(payload.header().messageType()).isEqualTo(DssMessageType.RESULT);
+    assertThat(payload.header().messageType()).isEqualTo(DssMessage.DssMessageType.RESULT);
     assertThat(payload.content()).containsEntry(DssMessageKeys.RESULT, "true");
   }
 
@@ -98,7 +97,7 @@ public class DssMessagePayloadTest {
             DssMessageKeys.SENDER_ID,
             "B1",
             DssMessageKeys.MESSAGE_TYPE,
-            DssMessageType.RESULT.name(),
+            DssMessage.DssMessageType.RESULT.name(),
             DssMessageKeys.TIMESTAMP,
             "123",
             DssMessageKeys.IDENTIFIER,
@@ -117,7 +116,7 @@ public class DssMessagePayloadTest {
 
     DssMessagePayload payload = DssMessagePayload.fromJson(file);
 
-    assertThat(payload.header().messageType()).isEqualTo(DssMessageType.RESULT);
+    assertThat(payload.header().messageType()).isEqualTo(DssMessage.DssMessageType.RESULT);
     assertThat(payload.status().toAlgorithmStatus()).isEqualTo(AlgorithmStatus.SOUND_AND_PRECISE);
     assertThat(payload.content()).containsEntry(DssMessageKeys.RESULT, "true");
   }
@@ -146,13 +145,16 @@ public class DssMessagePayloadTest {
   public void fromPayloadUsesTopLevelStatus() {
     DssMessagePayload payload =
         new DssMessagePayload(
-            new DssHeaderPayload("B1", DssMessageType.POST_CONDITION, "123", 0),
+            new DssHeaderPayload("B1", DssMessage.DssMessageType.POST_CONDITION, "123", 0),
             new DssStatusPayload(true, false, true),
             ImmutableList.of(ImmutableMap.of("dummy", "state")),
             ImmutableMap.of(DssMessageKeys.UNREACHABLE_BLOCK_END, "true"));
-    DssMessage message = DssMessage.fromPayload(payload);
+    DssMessage message = DssMessageCodec.fromPayload(payload);
 
-    assertThat(message.getAlgorithmStatus()).isEqualTo(AlgorithmStatus.SOUND_AND_IMPRECISE);
+    assertThat(message.getClass()).isEqualTo(DssPostConditionMessage.class);
+    DssPostConditionMessage postConditionMessage = (DssPostConditionMessage) message;
+    assertThat(postConditionMessage.getAlgorithmStatus())
+        .isEqualTo(AlgorithmStatus.SOUND_AND_IMPRECISE);
   }
 
   @Test
@@ -172,7 +174,7 @@ public class DssMessagePayloadTest {
   public void writeJsonCreatesJsonFile() throws IOException {
     DssMessagePayload payload =
         new DssMessagePayload(
-            new DssHeaderPayload("B1", DssMessageType.RESULT, "123", 0),
+            new DssHeaderPayload("B1", DssMessage.DssMessageType.RESULT, "123", 0),
             null,
             ImmutableList.<ImmutableMap<String, String>>of(),
             ImmutableMap.of(DssMessageKeys.RESULT, "true"));
@@ -187,41 +189,43 @@ public class DssMessagePayloadTest {
   @Test
   public void roundTripPreservesStatusAndContent()
       throws InvalidConfigurationException, IOException {
-    DssMessage original =
+    DssPostConditionMessage original =
         defaultFactory()
             .createDssUnreachableBlockEndMessage("B1", AlgorithmStatus.SOUND_AND_PRECISE);
     Path file = tempFolder.newFile("message.json").toPath();
 
     original.asJsonPayload().writeJson(file);
-    DssMessage parsed = DssMessage.fromJson(file);
+    DssMessage parsed = DssMessageCodec.fromJson(file);
 
     assertThat(parsed.getType()).isEqualTo(original.getType());
-    assertThat(parsed.getAlgorithmStatus()).isEqualTo(original.getAlgorithmStatus());
+    assertThat(parsed.getClass()).isEqualTo(original.getClass());
+    DssPostConditionMessage parsedPost = (DssPostConditionMessage) parsed;
+    assertThat(parsedPost.getAlgorithmStatus()).isEqualTo(original.getAlgorithmStatus());
     assertThat(parsed.getSenderId()).isEqualTo(original.getSenderId());
-    assertThat(parsed.indicatesUnreachableBlockEnd()).isTrue();
+    assertThat(parsedPost.indicatesUnreachableBlockEnd()).isTrue();
   }
 
   @Test
   public void fromPayloadRejectsPostConditionWithoutStatus() {
     DssMessagePayload payload =
         new DssMessagePayload(
-            new DssHeaderPayload("B1", DssMessageType.POST_CONDITION, "123", 0),
+            new DssHeaderPayload("B1", DssMessage.DssMessageType.POST_CONDITION, "123", 0),
             null,
             ImmutableList.<ImmutableMap<String, String>>of(),
             ImmutableMap.of(DssMessageKeys.UNREACHABLE_BLOCK_END, "true"));
 
-    assertThrows(IllegalArgumentException.class, () -> DssMessage.fromPayload(payload));
+    assertThrows(IllegalArgumentException.class, () -> DssMessageCodec.fromPayload(payload));
   }
 
   @Test
   public void fromPayloadRejectsResultWithStatus() {
     DssMessagePayload payload =
         new DssMessagePayload(
-            new DssHeaderPayload("B1", DssMessageType.RESULT, "123", 0),
+            new DssHeaderPayload("B1", DssMessage.DssMessageType.RESULT, "123", 0),
             new DssStatusPayload(true, true, true),
             ImmutableList.<ImmutableMap<String, String>>of(),
             ImmutableMap.of(DssMessageKeys.RESULT, "true"));
 
-    assertThrows(IllegalArgumentException.class, () -> DssMessage.fromPayload(payload));
+    assertThrows(IllegalArgumentException.class, () -> DssMessageCodec.fromPayload(payload));
   }
 }
