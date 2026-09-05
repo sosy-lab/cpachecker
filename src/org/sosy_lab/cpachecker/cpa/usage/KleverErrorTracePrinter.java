@@ -112,8 +112,8 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     config.inject(this, KleverErrorTracePrinter.class);
   }
 
-  int idCounter = 0;
-  ThreadIterator threadIterator;
+  private int idCounter = 0;
+  private ThreadIterator threadIterator;
 
   private String getCurrentId() {
     return "A" + idCounter;

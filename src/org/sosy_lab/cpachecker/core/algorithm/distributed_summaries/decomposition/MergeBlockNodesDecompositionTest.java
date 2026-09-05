@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 @RunWith(Parameterized.class)
@@ -60,13 +61,14 @@ public class MergeBlockNodesDecompositionTest {
         2,
         -1,
         Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
-        false);
+        false,
+        true);
   }
 
   @Test
   public void testMergeNodeDecomposition() throws Exception {
 
-    CFA cfa = TestUtil.buildTestCFA(path);
+    CFA cfa = TestCfaUtils.makeCfaFromFile(path);
 
     DssBlockDecomposition decomposition = createDecomposition(cfa);
 

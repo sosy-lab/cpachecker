@@ -8,8 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -58,6 +59,8 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
 
   CombinePrecisionOperator getCombinePrecisionOperator();
 
+  CombineViolationConditionsOperator getCombineViolationConditionsOperator();
+
   /**
    * Operator that decides whether to proceed with an analysis based on the given message.
    *
@@ -69,7 +72,7 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
 
   CoverageOperator getCoverageOperator();
 
-  CombineOperator getCombineOperator();
+  CombinePreconditionsOperator getCombineOperator();
 
   /**
    * The abstract state this distributed analysis works n.
@@ -100,6 +103,22 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    * @return {@code true} if the given abstract state is the most general block entry state,
    */
   boolean isMostGeneralBlockEntryState(AbstractState pAbstractState);
+
+  /**
+   * Return a hash that represents the location-part of the given abstract state, for this CPA's
+   * domain. Examples for CPAs tracking location information are the {@link
+   * org.sosy_lab.cpachecker.cpa.location.LocationCPA}, the {@link
+   * org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA}, and the {@link
+   * org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA}.
+   *
+   * <p>Different program locations should provide different hashes, and equal program locations
+   * must provide the same hash. If a CPA does not track any location information, this method must
+   * always return the same value.
+   *
+   * @param pAbstractState Any abstract state.
+   * @return an identifier for unique program points.
+   */
+  int computeProgramPointHash(AbstractState pAbstractState);
 
   /**
    * Reset the given abstract state to the initial value iff the abstract state is mutable.

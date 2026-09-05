@@ -444,38 +444,38 @@ public class SMGState
 
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    switch (pProperty) {
+    return switch (pProperty) {
       case HAS_LEAKS -> {
         if (hasMemoryLeak()) {
           // TODO: Give more information
           issueMemoryError("Memory leak found", false);
-          return true;
+          yield true;
         }
-        return false;
+        yield false;
       }
       case HAS_INVALID_WRITES -> {
         if (hasInvalidWrite()) {
           // TODO: Give more information
           issueMemoryError("Invalid write found", true);
-          return true;
+          yield true;
         }
-        return false;
+        yield false;
       }
       case HAS_INVALID_READS -> {
         if (hasInvalidRead()) {
           // TODO: Give more information
           issueMemoryError("Invalid read found", true);
-          return true;
+          yield true;
         }
-        return false;
+        yield false;
       }
       case HAS_INVALID_FREES -> {
         if (hasInvalidFree()) {
           // TODO: Give more information
           issueMemoryError("Invalid free found", true);
-          return true;
+          yield true;
         }
-        return false;
+        yield false;
       }
       case HAS_HEAP_OBJECTS -> {
         // Having heap objects is not an error on its own.
@@ -491,10 +491,10 @@ public class SMGState
             heapObs = heapObs.removeAndCopy(object);
           }
         }
-        return !heapObs.isEmpty();
+        yield !heapObs.isEmpty();
       }
       default -> throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
-    }
+    };
   }
 
   private void issueMemoryError(String pMessage, boolean pUndefinedBehavior) {
@@ -4487,7 +4487,6 @@ public class SMGState
       // Perform free by invalidating the object behind the address and delete all its edges.
       SymbolicProgramConfiguration newSPC = currentMemModel.invalidateSMGObject(regionToFree, true);
       // state in our implementation.
-      // performConsistencyCheck(SMGRuntimeCheck.HALF);
       returnBuilder.add(currentState.copyAndReplaceMemoryModel(newSPC));
     }
     return returnBuilder.build();
@@ -5034,7 +5033,7 @@ public class SMGState
       // The offset is not necessarily concrete now! We assign a concrete value in one state and
       //   block it in the symbolic value for another state.
       List<SMGStateAndOptionalSMGObjectAndOffset> assignedAndEvaldStates =
-          expr.accept(new SMGCPAAddressVisitor(evaluator, assignedState, edge, logger, options));
+          expr.accept(new SMGCPAAddressVisitor(evaluator, assignedState, edge, logger));
       if (options.isMemoryErrorTarget()) {
         for (SMGStateAndOptionalSMGObjectAndOffset assignedAndEvaldState : assignedAndEvaldStates) {
           if (assignedAndEvaldState.getSMGState().hasMemoryErrors()) {
@@ -5056,8 +5055,7 @@ public class SMGState
     List<SMGStateAndOptionalSMGObjectAndOffset> targetsAndOffsetsAndStates;
     try {
       targetsAndOffsetsAndStates =
-          lValueExpr.accept(
-              new SMGCPAAddressVisitor(evaluator, assignedState, edge, logger, options));
+          lValueExpr.accept(new SMGCPAAddressVisitor(evaluator, assignedState, edge, logger));
     } catch (CPATransferException e) {
       if (e instanceof SMGException smgException) {
         throw smgException;
@@ -5089,8 +5087,7 @@ public class SMGState
     List<ValueAndSMGState> valuesAndStates;
     try {
       valuesAndStates =
-          exprReading.accept(
-              new SMGCPAValueVisitor(evaluator, assignedState, edge, logger, options));
+          exprReading.accept(new SMGCPAValueVisitor(evaluator, assignedState, edge, logger));
     } catch (CPATransferException e) {
       if (e instanceof SMGException sMGException) {
         throw sMGException;
@@ -5107,8 +5104,7 @@ public class SMGState
   private ValueAndSMGState reEvaluateValueToWriteAfterConcreteAssignment(
       CRightHandSide rValueExpr, CFAEdge edge, SMGState currentAssignedState)
       throws SMGException, SMGSolverException {
-    SMGCPAValueVisitor vv =
-        new SMGCPAValueVisitor(evaluator, currentAssignedState, edge, logger, options);
+    SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, currentAssignedState, edge, logger);
     List<ValueAndSMGState> possibleValues;
     try {
       possibleValues = rValueExpr.accept(vv);
@@ -8268,6 +8264,10 @@ public class SMGState
 
   public boolean isPointer(Value value) {
     return memoryModel.isPointer(value);
+  }
+
+  public SMGOptions getOptions() {
+    return options;
   }
 
   // TODO: To be replaced with a better structure, i.e. union-find

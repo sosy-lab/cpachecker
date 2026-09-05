@@ -1536,38 +1536,38 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    switch (pProperty) {
+    return switch (pProperty) {
       case HAS_LEAKS -> {
         if (errorInfo.hasMemoryLeak()) {
           // TODO: Give more information
           issueMemoryError("Memory leak found", false);
-          return true;
+          yield true;
         }
-        return false;
+        yield false;
       }
       case HAS_INVALID_WRITES -> {
         if (errorInfo.isInvalidWrite()) {
           // TODO: Give more information
           issueMemoryError("Invalid write found", true);
-          return true;
+          yield true;
         }
-        return false;
+        yield false;
       }
       case HAS_INVALID_READS -> {
         if (errorInfo.isInvalidRead()) {
           // TODO: Give more information
           issueMemoryError("Invalid read found", true);
-          return true;
+          yield true;
         }
-        return false;
+        yield false;
       }
       case HAS_INVALID_FREES -> {
         if (errorInfo.isInvalidFree()) {
           // TODO: Give more information
           issueMemoryError("Invalid free found", true);
-          return true;
+          yield true;
         }
-        return false;
+        yield false;
       }
       case HAS_HEAP_OBJECTS -> {
         // Having heap objects is not an error on its own.
@@ -1581,10 +1581,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
             heapObs = heapObs.removeAndCopy(object);
           }
         }
-        return !heapObs.isEmpty();
+        yield !heapObs.isEmpty();
       }
       default -> throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
-    }
+    };
   }
 
   public void addGlobalObject(SMGRegion newObject) {

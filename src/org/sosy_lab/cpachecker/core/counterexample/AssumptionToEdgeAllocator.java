@@ -1427,14 +1427,14 @@ public class AssumptionToEdgeAllocator {
       }
       if (pValue instanceof Number pNumber) {
         NumericValue numericValue = new NumericValue(pNumber);
-        switch (basicType) {
+        return switch (basicType) {
           case BOOL, CHAR, INT, INT128 -> {
             Preconditions.checkArgument(
                 numericValue.hasIntegerType(),
                 "Expecting an integer value, but `%s` has type `%s`.",
                 pNumber,
                 pNumber.getClass().getSimpleName());
-            return handleIntegerNumbers(pNumber, pSimpleType);
+            yield handleIntegerNumbers(pNumber, pSimpleType);
           }
           case FLOAT, DOUBLE, FLOAT128 -> {
             // The value may have any type that implements the Number interface. We accept integers,
@@ -1452,11 +1452,11 @@ public class AssumptionToEdgeAllocator {
             if (numericValue.hasIntegerType()) {
               pNumber = convertToFloat(pNumber, pSimpleType);
             }
-            return handleFloatingPointNumbers(pNumber, pSimpleType);
+            yield handleFloatingPointNumbers(pNumber, pSimpleType);
           }
           default ->
               throw new AssertionError(String.format("Value has unknown type `%s`", basicType));
-        }
+        };
       }
       throw new AssertionError("Values must implement the Number interface.");
     }

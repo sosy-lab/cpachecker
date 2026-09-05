@@ -15,7 +15,6 @@ import static org.sosy_lab.common.collect.Collections3.listAndElement;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -74,8 +73,8 @@ import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathPosition;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.GraphUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.graph.GraphUtils;
 
 /** Helper class with collection of ARG related utility methods. */
 public class ARGUtils {
@@ -522,15 +521,11 @@ public class ARGUtils {
           ARGState trueChild = null;
           ARGState falseChild = null;
 
-          Iterable<CFANode> locs = AbstractStates.extractLocations(currentElement);
-          checkArgument(
-              !Iterables.any(
-                  locs,
-                  loc -> !loc.getLeavingEdges().allMatch(Predicates.instanceOf(AssumeEdge.class))),
-              "ARG branches where there is no AssumeEdge!");
-
           for (ARGState currentChild : childrenInArg) {
             CFAEdge currentEdge = currentElement.getEdgeToChild(currentChild);
+            checkArgument(
+                currentEdge instanceof AssumeEdge,
+                "ARG branches with edge that is not an AssumeEdge!");
             if (((AssumeEdge) currentEdge).getTruthAssumption()) {
               trueEdge = (AssumeEdge) currentEdge;
               trueChild = currentChild;
@@ -658,68 +653,6 @@ public class ARGUtils {
     }
 
     return true;
-  }
-
-  /**
-   * Produce an automaton in the format for the AutomatonCPA from a given connected list of paths.
-   * The automaton matches exactly the edges along the path. If there is a target state, it is
-   * signaled as an error state in the automaton.
-   *
-   * @param sb Where to write the automaton to
-   * @param pPaths The states along the path
-   * @param pCounterExample Given to try to write exact variable assignment values into the
-   *     automaton, may be null
-   */
-  public static void producePathAutomaton(
-      Appendable sb,
-      List<ARGPath> pPaths,
-      String name,
-      @Nullable CounterexampleInfo pCounterExample)
-      throws IOException {
-
-    ARGState rootState = pPaths.getFirst().getFirstState();
-
-    Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableListMultimap.of();
-
-    if (pCounterExample != null && pCounterExample.isPreciseCounterExample()) {
-      valueMap = pCounterExample.getExactVariableValues();
-    }
-
-    int index = 0;
-
-    Function<ARGState, String> getLocationName =
-        s -> Joiner.on("_OR_").join(AbstractStates.extractLocations(s));
-    Function<Integer, Function<ARGState, String>> getStateNameFunction =
-        i -> s -> "S" + i + "at" + getLocationName.apply(s);
-
-    sb.append("CONTROL AUTOMATON " + name + "\n\n");
-    String stateName = getStateNameFunction.apply(index).apply(rootState);
-    sb.append("INITIAL STATE " + stateName + ";\n\n");
-
-    for (ARGPath path : pPaths) {
-      PathIterator pathIterator = path.fullPathIterator();
-      while (pathIterator.advanceIfPossible()) {
-        stateName =
-            getStateNameFunction.apply(index).apply(pathIterator.getPreviousAbstractState());
-        ++index;
-        sb.append("STATE USEFIRST " + stateName + " :\n");
-        ARGState child = pathIterator.getAbstractState();
-        CFAEdge edge = pathIterator.getIncomingEdge();
-
-        handleMatchCase(sb, edge);
-
-        if (child.isTarget()) {
-          sb.append("ERROR");
-        } else {
-          addAssumption(valueMap, pathIterator.getPreviousAbstractState(), edge, sb);
-          stateName = getStateNameFunction.apply(index).apply(child);
-          sb.append("GOTO " + stateName);
-        }
-        sb.append(";\n");
-        sb.append("    TRUE -> STOP;\n\n");
-      }
-    }
-    sb.append("END AUTOMATON\n");
   }
 
   /**
@@ -1331,7 +1264,7 @@ public class ARGUtils {
    * @param states the set of target states to collect path to
    * @return A collection of all possible ARG paths from the root(s) of the ARG to the targets.
    */
-  public static Collection<ARGPath> collectAllArgPaths(Set<@NonNull ARGState> states) {
+  public static Collection<ARGPath> collectAllArgPaths(Iterable<@NonNull ARGState> states) {
     ImmutableList.Builder<ARGPath> builder = ImmutableList.builder();
     for (ARGState state : states) {
       builder.addAll(allArgPathsFromState(state));

@@ -27,7 +27,6 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
@@ -220,8 +219,7 @@ final class PredicateStaticRefiner extends StaticRefiner
     satCheckTime.start();
     try {
       counterexample =
-          itpManager.buildCounterexampleTraceWithoutInterpolation(
-              formulas, Optional.of(allStatesTrace));
+          itpManager.buildCounterexampleTraceWithoutInterpolation(formulas, allStatesTrace);
     } finally {
       satCheckTime.stop();
     }

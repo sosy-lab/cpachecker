@@ -13,26 +13,44 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssAllWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssDefaultQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssWitnessArgStateCollector;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActors;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusAndResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssThreadMonitor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssWorkerBuilder;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+/**
+ * The native DSS spawns multiple workers through {@link DssWorkerBuilder}:
+ *
+ * <p>For each block, an {@link DssWorkerBuilder#addAnalysisWorker(BlockNode, DssAnalysisOptions)
+ * analysis worker} is created. The worker operating on a block without predecessor is responsible
+ * to claim a specification violation if a violation condition is about to be propagated. If {@link
+ * DssAnalysisOptions#isDebugModeEnabled() debug mode} is enabled, a {@link
+ * DssWorkerBuilder#addVisualizationWorker(BlockGraph, DssAnalysisOptions) visualization worker} is
+ * used to provide a visualization of the message exchange between analysis workers.
+ *
+ * <p>Proofs are found if all workers are waiting for new messages. The {@link DssThreadMonitor
+ * thread monitor} broadcasts the verdict TRUE if all workers are done.
+ *
+ * <p>The analysis is started by calling {@link
+ * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisWorker#runInitialAnalysis()}
+ * on all workers. The monitoring of the messages is done by {@link DssObserverWorker}, which blocks
+ * until it can determine a final verification verdict (SAFE, UNSAFE, or timeout)
+ */
 public class MultithreadingDssExecutor implements DssExecutor {
 
   private static final String OBSERVER_WORKER_ID = "__observer__";
@@ -40,36 +58,50 @@ public class MultithreadingDssExecutor implements DssExecutor {
   private final DssMessageFactory messageFactory;
   private final DssAnalysisOptions options;
   private final Specification specification;
-  private final List<Statistics> stats;
+  private final ShutdownManager shutdownManager;
 
-  public MultithreadingDssExecutor(Configuration pConfiguration, Specification pSpecification)
+  public MultithreadingDssExecutor(
+      Configuration pConfiguration, Specification pSpecification, ShutdownManager pShutdownManager)
       throws InvalidConfigurationException {
     specification = pSpecification;
     options = new DssAnalysisOptions(pConfiguration);
     messageFactory = new DssMessageFactory(options);
-    stats = new ArrayList<>();
+    shutdownManager = pShutdownManager;
   }
 
-  private DssActors createDssActors(CFA cfa, BlockGraph blockGraph)
+  private DssActors createDssActors(
+      CFA cfa,
+      BlockGraph blockGraph,
+      DssWitnessArgStateCollector stateCollector,
+      DssAllWorkerStatistics allWorkerStatistics)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     ImmutableSet<BlockNode> blocks = blockGraph.getNodes();
     DssWorkerBuilder builder =
-        new DssWorkerBuilder(cfa, specification, () -> new DssDefaultQueue(), messageFactory);
+        new DssWorkerBuilder(
+            cfa,
+            specification,
+            () -> new DssDefaultQueue(),
+            messageFactory,
+            allWorkerStatistics,
+            shutdownManager);
     for (BlockNode distinctNode : blocks) {
       builder = builder.addAnalysisWorker(distinctNode, options);
     }
     if (options.isDebugModeEnabled()) {
       builder = builder.addVisualizationWorker(blockGraph, options);
     }
-    builder.addObserverWorker(OBSERVER_WORKER_ID, blockGraph.getNodes().size(), options);
+    builder.addObserverWorker(OBSERVER_WORKER_ID, blockGraph, options, stateCollector);
     return builder.build();
   }
 
   @Override
-  public StatusAndResult execute(CFA cfa, BlockGraph blockGraph)
+  public StatusAndResult execute(
+      CFA cfa,
+      BlockGraph blockGraph,
+      DssWitnessArgStateCollector stateCollector,
+      DssAllWorkerStatistics allWorkerStatistics)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
-    try (DssActors actors = createDssActors(cfa, blockGraph)) {
-      stats.addAll(actors.getWorkersWithStats());
+    try (DssActors actors = createDssActors(cfa, blockGraph, stateCollector, allWorkerStatistics)) {
       DssObserverWorker observer = Iterables.getOnlyElement(actors.getObservers());
       Preconditions.checkState(
           observer.getId().equals(OBSERVER_WORKER_ID),
@@ -78,7 +110,8 @@ public class MultithreadingDssExecutor implements DssExecutor {
           observer.getId());
       // run workers
       List<Thread> threads = new ArrayList<>(actors.getActors().size());
-      for (DssActor worker : actors.getAnalysisWorkers()) {
+      for (DssActor worker :
+          Iterables.concat(actors.getAnalysisWorkers(), actors.getRemainingActors())) {
         Thread thread = new Thread(worker, worker.getId());
         threads.add(thread);
         thread.setDaemon(true);
@@ -91,13 +124,17 @@ public class MultithreadingDssExecutor implements DssExecutor {
           new DssThreadMonitor(threads, messageFactory, observer.getConnection());
       monitor.setDaemon(true);
       monitor.start();
-      // blocks the thread until the result message is received
-      return observer.observe();
-    }
-  }
 
-  @Override
-  public void collectStatistics(Collection<Statistics> statsCollection) {
-    statsCollection.addAll(stats);
+      StatusAndResult result = null;
+      try {
+        // Blocks until all WITNESS(es) or EXCEPTION arrives
+        result = observer.observe();
+      } finally {
+        for (Thread t : threads) {
+          t.join();
+        }
+      }
+      return result;
+    }
   }
 }

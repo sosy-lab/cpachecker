@@ -56,7 +56,7 @@ variables:
   # When updating, check if REFASTER_SOURCE_DIR in build/gitlab-ci.local.yml is still up-to-date.
   REFASTER_REPO_REVISION: a66af582fcf15e2f5081cba4b653ac403bb8dc5d
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
-  REFASTER_VERSION: 2.49.0
+  REFASTER_VERSION: 2.50.0
   ANT_PROPS_CHECKS: "-Divy.disable=true -DskipBuild=true"
 
 

@@ -24,15 +24,13 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /**
  * Integration tests for CPAchecker. Most integration tests are written as BenchExec tests for the
@@ -52,7 +50,11 @@ public class CPAcheckerIntegrationTest {
   private static final String SPECIFICATION_C = "config/specification/default.spc";
   // This is a dummy specification for SV-LIB programs, since the actual specification is inside
   // the program itself, as annotations.
-  private static final String SPECIFICATION_SvLib = "config/specification/correct-tags.spc";
+  private static final String SPECIFICATION_SvLib = "config/specification/correct-annotations.spc";
+  private static final String PROPERTY_SvLib = "config/properties/correct-annotations.prp";
+  private static final String DEPRECATED_PROPERTY_SvLib =
+      "test/config/properties/correct-annotations.prp";
+
   // labels are removed in LLVM IR and assert_fail is renamed, so we need a different specification
   private static final String SPECIFICATION_LLVM = "config/specification/sv-comp-reachability.spc";
   private static final String SPECIFICATION_JAVA = "config/specification/JavaAssertion.spc";
@@ -181,6 +183,29 @@ public class CPAcheckerIntegrationTest {
   }
 
   @Test
+  public void testRunDeprecatedSpecificationForUnsafeSvLibProgram() throws Exception {
+    Configuration config =
+        getConfigWithOutputFiles(
+            CONFIGURATION_FILE_SvLib, Language.SVLIB, DEPRECATED_PROPERTY_SvLib);
+    IntegrationTestResult result = IntegrationTestRunner.run(config, UNSAFE_PROGRAM_SvLib);
+    result.cpaCheckerResult().printStatistics(statisticsStream);
+    result.cpaCheckerResult().writeOutputFiles();
+
+    result.assertIsUnsafe();
+  }
+
+  @Test
+  public void testRunPropertyFileForUnsafeSvLibProgram() throws Exception {
+    Configuration config =
+        getConfigWithOutputFiles(CONFIGURATION_FILE_SvLib, Language.SVLIB, PROPERTY_SvLib);
+    IntegrationTestResult result = IntegrationTestRunner.run(config, UNSAFE_PROGRAM_SvLib);
+    result.cpaCheckerResult().printStatistics(statisticsStream);
+    result.cpaCheckerResult().writeOutputFiles();
+
+    result.assertIsUnsafe();
+  }
+
+  @Test
   public void testWitnessExportForUnsafeSvLibProgram() throws Exception {
     Path witnessOutputPath = Path.of(tempFolder.getRoot().getAbsolutePath(), "witness.svlib");
     Configuration config = svLibConfigWithWitnessOutput(witnessOutputPath);
@@ -274,36 +299,16 @@ public class CPAcheckerIntegrationTest {
     result.assertIsUnsafe();
   }
 
-  protected Configuration getConfigWithOutputFiles(
+  private Configuration getConfigWithOutputFiles(
       String configurationFile, Language inputLanguage, String specificationFile)
       throws InvalidConfigurationException, IOException {
 
-    // Do not use TestDataTools.configurationForTest() because we want output files
-    Configuration configForFiles =
-        Configuration.builder()
-            .setOption("output.path", tempFolder.getRoot().getAbsolutePath())
-            .build();
-    return setUpConfiguration(
-        configurationFile, inputLanguage, specificationFile, configForFiles, MachineModel.LINUX32);
-  }
-
-  public static Configuration setUpConfiguration(
-      String configurationFile,
-      Language inputLanguage,
-      String specificationFile,
-      Configuration pConfigForFiles,
-      MachineModel machineModel)
-      throws InvalidConfigurationException, IOException {
-    FileTypeConverter fileTypeConverter = FileTypeConverter.create(pConfigForFiles);
-    Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
-    ConfigurationBuilder configBuilder = Configuration.builder();
-    configBuilder
+    return TestUtils.configurationForTestWithOutput(tempFolder)
         .loadFromFile(configurationFile)
-        .setOption("analysis.machineModel", machineModel.toString())
+        .setOption("analysis.machineModel", MachineModel.LINUX32.toString())
         .setOption("language", inputLanguage.name())
         .setOption("specification", specificationFile)
         .setOption("java.classpath", JAVA_CLASSPATH)
-        .addConverter(FileOption.class, fileTypeConverter);
-    return configBuilder.build();
+        .build();
   }
 }

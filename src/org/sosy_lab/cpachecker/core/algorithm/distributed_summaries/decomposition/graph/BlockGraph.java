@@ -19,12 +19,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.SequencedSet;
 import java.util.Set;
@@ -35,7 +34,6 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.StronglyConnectedComponents;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class BlockGraph {
@@ -58,6 +56,10 @@ public class BlockGraph {
 
   public ImmutableSet<@NonNull BlockNode> getNodes() {
     return nodes;
+  }
+
+  public FluentIterable<@NonNull BlockNode> getSuccessorsOf(BlockNode node) {
+    return FluentIterable.from(nodes).filter(n -> node.getSuccessorIds().contains(n.getId()));
   }
 
   public void checkConsistency(ShutdownNotifier pShutdownNotifier) throws InterruptedException {
@@ -85,13 +87,10 @@ public class BlockGraph {
       if (!blockNode.getSuccessorIds().isEmpty()) {
         Preconditions.checkState(
             isBlockNodeValid(blockNode.getInitialLocation(), blockNode.getEdges()),
-            "BlockNodes require to have exactly one exit node (%s).",
-            blockNode);
+            "BlockNodes require to have exactly one exit node %s (%s).",
+            blockNode.getFinalLocation(),
+            blockNode.getEdges());
       }
-      Preconditions.checkState(
-          blockNode.getPredecessorIds().containsAll(blockNode.getLoopPredecessorIds()),
-          "Found loop predecessors that are not in the set of predecessors (%s).",
-          blockNode);
     }
   }
 
@@ -99,7 +98,7 @@ public class BlockGraph {
     ArrayDeque<CFANode> waiting = new ArrayDeque<>();
     waiting.push(pStartNode);
     SequencedSet<CFANode> covered = new LinkedHashSet<>();
-    int count = 0;
+    Set<CFANode> withoutSuccessor = new HashSet<>();
     while (!waiting.isEmpty()) {
       CFANode curr = waiting.pop();
       boolean hasSuccessor = false;
@@ -112,11 +111,11 @@ public class BlockGraph {
         }
       }
       if (!hasSuccessor) {
-        count++;
+        withoutSuccessor.add(curr);
       }
       covered.add(curr);
     }
-    return count <= 1;
+    return withoutSuccessor.size() <= 1;
   }
 
   public static BlockGraph fromBlockNodesWithoutGraphInformation(
@@ -129,14 +128,8 @@ public class BlockGraph {
       startNodes.put(blockNode.getInitialLocation(), blockNode);
       endNodes.put(blockNode.getFinalLocation(), blockNode);
     }
-    BlockNodeWithoutGraphInformation root =
-        Iterables.getOnlyElement(
-            FluentIterable.from(pNodes)
-                .filter(n -> endNodes.get(n.getInitialLocation()).isEmpty()));
-    Multimap<@NonNull BlockNodeWithoutGraphInformation, @NonNull BlockNodeWithoutGraphInformation>
-        loopPredecessors = findLoopPredecessors(root, pNodes);
 
-    ImmutableSet<BlockNode> blockNodes =
+    ImmutableSet<@NonNull BlockNode> blockNodes =
         transformedImmutableSetCopy(
             pNodes,
             b ->
@@ -149,16 +142,10 @@ public class BlockGraph {
                     transformedImmutableSetCopy(
                         endNodes.get(b.getInitialLocation()),
                         BlockNodeWithoutGraphInformation::getId),
-                    Sets.intersection(
-                            transformedImmutableSetCopy(
-                                endNodes.get(b.getInitialLocation()),
-                                BlockNodeWithoutGraphInformation::getId),
-                            transformedImmutableSetCopy(
-                                loopPredecessors.get(b), BlockNodeWithoutGraphInformation::getId))
-                        .immutableCopy(),
                     transformedImmutableSetCopy(
                         startNodes.get(b.getFinalLocation()),
-                        BlockNodeWithoutGraphInformation::getId)));
+                        BlockNodeWithoutGraphInformation::getId),
+                    b.getFinalLocation()));
     return new BlockGraph(blockNodes);
   }
 
@@ -177,31 +164,10 @@ public class BlockGraph {
               blockNode.getNodes(),
               blockNode.getEdges(),
               ImmutableSet.copyOf(importedBlock.predecessors()),
-              ImmutableSet.copyOf(importedBlock.loopPredecessors()),
               ImmutableSet.copyOf(importedBlock.successors()),
               pIdToNodeMap.get(importedBlock.abstractionLocation())));
     }
     return new BlockGraph(nodes.build());
-  }
-
-  private static Multimap<BlockNodeWithoutGraphInformation, BlockNodeWithoutGraphInformation>
-      findLoopPredecessors(
-          BlockNodeWithoutGraphInformation pRoot,
-          Collection<? extends BlockNodeWithoutGraphInformation> pNodes) {
-    Multimap<BlockNodeWithoutGraphInformation, BlockNodeWithoutGraphInformation> predecessors =
-        ArrayListMultimap.create();
-    Multimap<CFANode, BlockNodeWithoutGraphInformation> startNodeToBlockNodes =
-        ArrayListMultimap.create();
-    pNodes.forEach(p -> startNodeToBlockNodes.put(p.getInitialLocation(), p));
-    ImmutableList<List<BlockNodeWithoutGraphInformation>> stronglyConnected =
-        StronglyConnectedComponents.performTarjanAlgorithm(
-            pRoot, n -> startNodeToBlockNodes.get(n.getFinalLocation()));
-    for (List<BlockNodeWithoutGraphInformation> connections : stronglyConnected) {
-      for (BlockNodeWithoutGraphInformation connection : connections) {
-        predecessors.putAll(connection, connections);
-      }
-    }
-    return predecessors;
   }
 
   public Map<String, Map<String, Object>> getExportData(CFA cfa) {
@@ -231,7 +197,6 @@ public class BlockGraph {
               attributes.put(
                   "endNode",
                   shiftedNodeNumber(n.getFinalLocation().getNodeNumber(), minCfaNodeNumber));
-              attributes.put("loopPredecessors", n.getLoopPredecessorIds());
               attributes.put(
                   "abstractionLocation",
                   shiftedNodeNumber(

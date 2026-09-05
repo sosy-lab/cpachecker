@@ -14,44 +14,31 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class BlockNode extends BlockNodeWithoutGraphInformation {
   private final ImmutableSet<String> predecessorIds;
-  private final ImmutableSet<String> loopPredecessorIds;
   private final ImmutableSet<String> successorIds;
   private final CFANode violationConditionLocation;
 
-  BlockNode(
+  public BlockNode(
       String pId,
       CFANode pFirst,
       CFANode pLast,
       ImmutableSet<CFANode> pNodes,
       ImmutableSet<CFAEdge> pEdges,
       ImmutableSet<String> pPredecessorIds,
-      ImmutableSet<String> pLoopPredecessorIds,
       ImmutableSet<String> pSuccessorIds) {
-    this(
-        pId,
-        pFirst,
-        pLast,
-        pNodes,
-        pEdges,
-        pPredecessorIds,
-        pLoopPredecessorIds,
-        pSuccessorIds,
-        pLast);
+    this(pId, pFirst, pLast, pNodes, pEdges, pPredecessorIds, pSuccessorIds, pLast);
   }
 
-  BlockNode(
+  public BlockNode(
       String pId,
       CFANode pFirst,
       CFANode pLast,
       ImmutableSet<CFANode> pNodes,
       ImmutableSet<CFAEdge> pEdges,
       ImmutableSet<String> pPredecessorIds,
-      ImmutableSet<String> pLoopPredecessorIds,
       ImmutableSet<String> pSuccessorIds,
       CFANode pViolationConditionLocation) {
     super(pId, pFirst, pLast, pNodes, pEdges);
     predecessorIds = pPredecessorIds;
-    loopPredecessorIds = pLoopPredecessorIds;
     successorIds = pSuccessorIds;
     violationConditionLocation = pViolationConditionLocation;
   }
@@ -92,8 +79,6 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
         + predecessorIds
         + ", succ="
         + successorIds
-        + ", loopPred="
-        + loopPredecessorIds
         + ", code="
         + getCode()
         + ", nodes="
@@ -107,10 +92,6 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
 
   public ImmutableSet<String> getPredecessorIds() {
     return predecessorIds;
-  }
-
-  public ImmutableSet<String> getLoopPredecessorIds() {
-    return loopPredecessorIds;
   }
 
   public ImmutableSet<String> getSuccessorIds() {

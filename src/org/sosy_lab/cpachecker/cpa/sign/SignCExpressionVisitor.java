@@ -175,7 +175,7 @@ public class SignCExpressionVisitor
 
   @Override
   public Sign visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCodeException {
-    switch (pIastUnaryExpression.getOperator()) {
+    return switch (pIastUnaryExpression.getOperator()) {
       case MINUS -> {
         Sign result = Sign.EMPTY;
         Sign operandSign = pIastUnaryExpression.getOperand().accept(this);
@@ -184,11 +184,11 @@ public class SignCExpressionVisitor
               result.combineWith(
                   evaluateUnaryExpression(pIastUnaryExpression.getOperator(), atomSign));
         }
-        return result;
+        yield result;
       }
       default ->
           throw new UnsupportedCodeException("Not supported", edgeOfExpr, pIastUnaryExpression);
-    }
+    };
   }
 
   private static Sign evaluateUnaryExpression(UnaryOperator operator, Sign operand) {

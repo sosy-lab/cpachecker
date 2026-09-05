@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.PartialARGsCombiner;
 import org.sosy_lab.cpachecker.core.defaults.MultiStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
@@ -315,9 +314,6 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
         }
         reached.setDelegate(currentReached);
 
-        if (currentAlgorithm instanceof StatisticsProvider) {
-          ((StatisticsProvider) currentAlgorithm).collectStatistics(stats.getSubStatistics());
-        }
         shutdownNotifier.shutdownIfNecessary();
 
         stats.noOfAlgorithmsUsed++;
@@ -371,9 +367,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
               configFilesIterator,
               LastAnalysisResult.FAILED,
               e.getMessage().contains("recursion"),
-              e.getMessage().contains("pthread_create")
-                  || e.getMessage()
-                      .contains("Concurrency analysis not supported in this configuration"));
+              e.getMessage().contains("pthread_create"));
 
           if (e instanceof CounterexampleAnalysisFailed
               || e instanceof RefinementFailedException
@@ -529,9 +523,6 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (currentAlgorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) currentAlgorithm).collectStatistics(pStatsCollection);
-    }
     pStatsCollection.add(stats);
   }
 

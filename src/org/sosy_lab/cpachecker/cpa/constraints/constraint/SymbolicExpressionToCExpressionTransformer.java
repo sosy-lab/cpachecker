@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressOfExpression;
@@ -155,6 +156,9 @@ public class SymbolicExpressionToCExpressionTransformer
 
   private CType getCType(Type pType) {
     if (pType instanceof CType cType) {
+      while (cType instanceof CTypedefType pTypedefType) {
+        cType = pTypedefType.getRealType();
+      }
       return cType;
 
     } else {

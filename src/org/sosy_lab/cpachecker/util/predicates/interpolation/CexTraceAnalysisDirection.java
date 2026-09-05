@@ -48,7 +48,7 @@ enum CexTraceAnalysisDirection {
     @Override
     public ImmutableIntArray orderFormulas(
         List<BooleanFormula> traceFormulas,
-        List<AbstractState> abstractionStates,
+        List<? extends AbstractState> abstractionStates,
         VariableClassification pVariableClassification,
         LoopStructure pLoopStructure,
         FormulaManagerView pFmgr) {
@@ -61,7 +61,7 @@ enum CexTraceAnalysisDirection {
     @Override
     public ImmutableIntArray orderFormulas(
         List<BooleanFormula> traceFormulas,
-        List<AbstractState> abstractionStates,
+        List<? extends AbstractState> abstractionStates,
         VariableClassification pVariableClassification,
         LoopStructure pLoopStructure,
         FormulaManagerView pFmgr) {
@@ -78,7 +78,7 @@ enum CexTraceAnalysisDirection {
     @Override
     public ImmutableIntArray orderFormulas(
         List<BooleanFormula> traceFormulas,
-        List<AbstractState> abstractionStates,
+        List<? extends AbstractState> abstractionStates,
         VariableClassification pVariableClassification,
         LoopStructure pLoopStructure,
         FormulaManagerView pFmgr) {
@@ -104,7 +104,7 @@ enum CexTraceAnalysisDirection {
     @Override
     public ImmutableIntArray orderFormulas(
         List<BooleanFormula> traceFormulas,
-        List<AbstractState> abstractionStates,
+        List<? extends AbstractState> abstractionStates,
         VariableClassification pVariableClassification,
         LoopStructure pLoopStructure,
         FormulaManagerView pFmgr) {
@@ -125,7 +125,7 @@ enum CexTraceAnalysisDirection {
     @Override
     public ImmutableIntArray orderFormulas(
         List<BooleanFormula> traceFormulas,
-        List<AbstractState> abstractionStates,
+        List<? extends AbstractState> abstractionStates,
         VariableClassification pVariableClassification,
         LoopStructure pLoopStructure,
         FormulaManagerView pFmgr) {
@@ -153,7 +153,7 @@ enum CexTraceAnalysisDirection {
     @Override
     public ImmutableIntArray orderFormulas(
         List<BooleanFormula> traceFormulas,
-        List<AbstractState> abstractionStates,
+        List<? extends AbstractState> abstractionStates,
         VariableClassification pVariableClassification,
         LoopStructure pLoopStructure,
         FormulaManagerView pFmgr) {
@@ -173,7 +173,7 @@ enum CexTraceAnalysisDirection {
     @Override
     public ImmutableIntArray orderFormulas(
         List<BooleanFormula> traceFormulas,
-        List<AbstractState> abstractionStates,
+        List<? extends AbstractState> abstractionStates,
         VariableClassification pVariableClassification,
         LoopStructure pLoopStructure,
         FormulaManagerView pFmgr) {
@@ -194,7 +194,7 @@ enum CexTraceAnalysisDirection {
     @Override
     public ImmutableIntArray orderFormulas(
         List<BooleanFormula> traceFormulas,
-        List<AbstractState> abstractionStates,
+        List<? extends AbstractState> abstractionStates,
         VariableClassification pVariableClassification,
         LoopStructure pLoopStructure,
         FormulaManagerView pFmgr) {
@@ -218,7 +218,7 @@ enum CexTraceAnalysisDirection {
    */
   public abstract ImmutableIntArray orderFormulas(
       List<BooleanFormula> traceFormulas,
-      List<AbstractState> abstractionStates,
+      List<? extends AbstractState> abstractionStates,
       VariableClassification variableClassification,
       LoopStructure loopStructure,
       FormulaManagerView fmgr);
@@ -297,7 +297,7 @@ enum CexTraceAnalysisDirection {
   }
 
   private static void createLoopDrivenStateOrdering(
-      final List<AbstractState> pAbstractionStates,
+      final List<? extends AbstractState> pAbstractionStates,
       final Multimap<Integer, Integer> loopLevelsToIndexMap,
       Deque<CFANode> actLevelStack,
       LoopStructure loopStructure) {
@@ -333,7 +333,7 @@ enum CexTraceAnalysisDirection {
   }
 
   private static void createLoopDrivenStateOrdering0(
-      final List<AbstractState> pAbstractionStates,
+      final List<? extends AbstractState> pAbstractionStates,
       final Multimap<Integer, Integer> loopLevelsToIndexMap,
       Deque<CFANode> actLevelStack,
       LoopStructure loopStructure) {

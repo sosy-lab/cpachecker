@@ -39,7 +39,7 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -138,7 +138,7 @@ public class SMGCPAValueVisitor
   /** This edge is only to be used for debugging/logging! */
   private final CFAEdge cfaEdge;
 
-  private final LogManagerWithoutDuplicates logger;
+  private final LogManager logger;
 
   private final SMGOptions options;
 
@@ -146,14 +146,13 @@ public class SMGCPAValueVisitor
       SMGCPAExpressionEvaluator pEvaluator,
       SMGState currentState,
       CFAEdge edge,
-      LogManagerWithoutDuplicates pLogger,
-      SMGOptions pOptions) {
+      LogManager pLogger) {
     evaluator = pEvaluator;
     machineModel = evaluator.getMachineModel();
     state = currentState;
     cfaEdge = edge;
     logger = pLogger;
-    options = pOptions;
+    options = currentState.getOptions();
   }
 
   /**
@@ -200,7 +199,7 @@ public class SMGCPAValueVisitor
     if (pExp instanceof CFieldReference fieldRef
         && fieldRef.getFieldOwner() instanceof CIdExpression ptrExpr) {
       for (ValueAndSMGState pointerValuesAndState :
-          ptrExpr.accept(new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger, options))) {
+          ptrExpr.accept(new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger))) {
         SMGState currentState = pointerValuesAndState.getState();
         Value pointerValue = pointerValuesAndState.getValue();
         Value ptrTargetOffset = new NumericValue(BigInteger.ZERO);
@@ -326,8 +325,7 @@ public class SMGCPAValueVisitor
       // Evaluate the subscript as far as possible
       CExpression subscriptExpr = e.getSubscriptExpression();
       List<ValueAndSMGState> subscriptValueAndStates =
-          subscriptExpr.accept(
-              new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger, options));
+          subscriptExpr.accept(new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger));
 
       for (ValueAndSMGState subscriptValueAndState : subscriptValueAndStates) {
         Value subscriptValue = subscriptValueAndState.getValue();
@@ -537,7 +535,7 @@ public class SMGCPAValueVisitor
 
       for (ValueAndSMGState rightValueAndState :
           rVarInBinaryExp.accept(
-              new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger, options))) {
+              new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger))) {
 
         currentState = rightValueAndState.getState();
         Value rightValue = rightValueAndState.getValue();
@@ -1848,8 +1846,7 @@ public class SMGCPAValueVisitor
         SMGState currentState = state;
         for (CExpression currParamExp : parameterExpressions) {
           // Here we expect only 1 result value
-          SMGCPAValueVisitor vv =
-              new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger, options);
+          SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger);
           List<ValueAndSMGState> newValuesAndStates =
               vv.evaluate(currParamExp, SMGCPAExpressionEvaluator.getCanonicalType(currParamExp));
           checkArgument(newValuesAndStates.size() == 1);
@@ -2182,9 +2179,10 @@ public class SMGCPAValueVisitor
         }
       }
       // This checks and uses builtins and also unknown functions based on the options
-      SMGCPABuiltins smgBuiltins = evaluator.getBuiltinFunctionHandler();
-      return smgBuiltins.handleFunctionCallWithoutBody(
-          pIastFunctionCallExpression, calledFunctionName, state, cfaEdge);
+      return evaluator
+          .getBuiltinFunctionHandler()
+          .handleFunctionCallWithoutBody(
+              pIastFunctionCallExpression, calledFunctionName, state, cfaEdge);
     }
     return ImmutableList.of(
         ValueAndSMGState.ofUnknownValue(
@@ -3812,52 +3810,37 @@ public class SMGCPAValueVisitor
       }
     }
 
-    switch (op) {
-      case PLUS -> {
-        return left + right;
-      }
-      case MINUS -> {
-        return left - right;
-      }
+    return switch (op) {
+      case PLUS -> left + right;
+      case MINUS -> left - right;
       case DIVIDE -> {
         checkArgument(right != 0);
-        return left / right;
+        yield left / right;
       }
       case REMAINDER -> {
         checkArgument(right != 0);
-        return left % right;
+        yield left % right;
       }
-      case MULTIPLY -> {
-        return left * right;
-      }
-      case SHIFT_LEFT -> {
-        /* There is a difference in the SHIFT-operation in Java and C.
-         * In C a SHIFT is a normal SHIFT, in Java the rVal is used as (r%64).
-         *
-         * http://docs.oracle.com/javase/specs/jls/se7/html/jls-15.html#jls-15.19
-         *
-         * If the promoted type of the left-hand operand is long, then only the
-         * six lowest-order bits of the right-hand operand are used as the
-         * shift distance. It is as if the right-hand operand were subjected to
-         * a bitwise logical AND operator & (§15.22.1) with the mask value 0x3f.
-         * The shift distance actually used is therefore always in the range 0 to 63.
-         */
-        return (right >= SIZE_OF_JAVA_LONG) ? 0 : left << right;
-      }
-      case SHIFT_RIGHT -> {
-        return left >> right;
-      }
-      case BITWISE_AND -> {
-        return left & right;
-      }
-      case BITWISE_OR -> {
-        return left | right;
-      }
-      case BITWISE_XOR -> {
-        return left ^ right;
-      }
+      case MULTIPLY -> left * right;
+      case SHIFT_LEFT ->
+          /* There is a difference in the SHIFT-operation in Java and C.
+           * In C a SHIFT is a normal SHIFT, in Java the rVal is used as (r%64).
+           *
+           * http://docs.oracle.com/javase/specs/jls/se7/html/jls-15.html#jls-15.19
+           *
+           * If the promoted type of the left-hand operand is long, then only the
+           * six lowest-order bits of the right-hand operand are used as the
+           * shift distance. It is as if the right-hand operand were subjected to
+           * a bitwise logical AND operator & (§15.22.1) with the mask value 0x3f.
+           * The shift distance actually used is therefore always in the range 0 to 63.
+           */
+          (right >= SIZE_OF_JAVA_LONG) ? 0 : left << right;
+      case SHIFT_RIGHT -> left >> right;
+      case BITWISE_AND -> left & right;
+      case BITWISE_OR -> left | right;
+      case BITWISE_XOR -> left ^ right;
       default -> throw new AssertionError("unknown binary operation: " + op);
-    }
+    };
   }
 
   /**
@@ -4478,9 +4461,9 @@ public class SMGCPAValueVisitor
   /**
    * Only accessible for subclasses.
    *
-   * @return the {@link LogManagerWithoutDuplicates} given to this visitor when it was created.
+   * @return the {@link LogManager} given to this visitor when it was created.
    */
-  protected LogManagerWithoutDuplicates getInitialVisitorLogger() {
+  protected LogManager getInitialVisitorLogger() {
     return logger;
   }
 

@@ -186,14 +186,14 @@ public class SequentialInterpolation extends ITPStrategy {
     Preconditions.checkNotNull(forward);
     Preconditions.checkNotNull(backward);
 
-    switch (sequentialStrategy) {
+    return switch (sequentialStrategy) {
       case CONJUNCTION -> {
         final ImmutableList.Builder<BooleanFormula> interpolants =
             ImmutableList.builderWithExpectedSize(forward.size());
         for (int i = 0; i < forward.size(); i++) {
           interpolants.add(bfmgr.and(forward.get(i), backward.get(i)));
         }
-        return interpolants.build();
+        yield interpolants.build();
       }
       case DISJUNCTION -> {
         final ImmutableList.Builder<BooleanFormula> interpolants =
@@ -201,18 +201,16 @@ public class SequentialInterpolation extends ITPStrategy {
         for (int i = 0; i < forward.size(); i++) {
           interpolants.add(bfmgr.or(forward.get(i), backward.get(i)));
         }
-        return interpolants.build();
+        yield interpolants.build();
       }
       case WEIGHTED -> {
         long weightFwd = getWeight(forward);
         long weightBwd = getWeight(backward);
-        return weightFwd <= weightBwd ? forward : backward;
+        yield weightFwd <= weightBwd ? forward : backward;
       }
-      case RANDOM -> {
-        return rnd.nextBoolean() ? forward : backward;
-      }
+      case RANDOM -> rnd.nextBoolean() ? forward : backward;
       default -> throw new AssertionError(UNEXPECTED_DIRECTION_MSG);
-    }
+    };
   }
 
   /**
