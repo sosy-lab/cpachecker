@@ -8,14 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.to_svlib;
 
-import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Map.Entry;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -57,7 +55,6 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibHavocStateme
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibSequenceStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -68,6 +65,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibFloatingPointType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
@@ -85,6 +83,7 @@ import org.sosy_lab.cpachecker.util.svlibwitnessexport.FormulaToSvLibVisitor;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
+import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
 class CToSvLibInitializer {
 
@@ -106,6 +105,9 @@ class CToSvLibInitializer {
   private final PathFormulaManager pathFormulaManager;
   private final CtoFormulaConverter converter;
 
+  /** The names of the global variables of the program, which a local variable must not have. */
+  private final ImmutableSet<String> namesOfGlobalVariables;
+
   CToSvLibInitializer(
       LogManager pLogger,
       CFA pCFA,
@@ -119,6 +121,42 @@ class CToSvLibInitializer {
     formulaManager = pFormulaManager;
     pathFormulaManager = pPathFormulaManager;
     converter = pConverter;
+    namesOfGlobalVariables = collectNamesOfGlobalVariables();
+  }
+
+  /**
+   * The names of the global variables of the program.
+   *
+   * <p>The generated program has no scopes, so a local variable of a procedure and a global
+   * variable cannot have the same name in it, and a local variable of the input program that
+   * shadows a global one has to be renamed.
+   */
+  private ImmutableSet<String> collectNamesOfGlobalVariables() {
+    ImmutableSet.Builder<String> names = ImmutableSet.builder();
+    for (CFAEdge edge : cfa.edges()) {
+      if (edge instanceof CDeclarationEdge declarationEdge
+          && declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration
+          && variableDeclaration.isGlobal()) {
+        names.add(variableDeclaration.getName());
+      }
+    }
+    return names.build();
+  }
+
+  /**
+   * Create the declaration of a local variable of a procedure, whose name in the generated program
+   * is the qualified name of the variable if a global variable has the same name.
+   */
+  private SvLibParsingParameterDeclaration createLocalVariable(
+      SvLibType pType, String pName, String pProcedureName) {
+    String qualifiedName = pProcedureName + "::" + pName;
+    String name = namesOfGlobalVariables.contains(pName) ? qualifiedName : pName;
+    return new SvLibParsingParameterDeclaration(
+        FileLocation.DUMMY,
+        pType,
+        CToSvLibTransformationConstants.asSymbol(name),
+        pProcedureName,
+        qualifiedName);
   }
 
   void initialize(ImmutableList.Builder<SvLibCommand> pCommandsCollector)
@@ -150,7 +188,11 @@ class CToSvLibInitializer {
           if (declaration instanceof CVariableDeclaration variableDeclaration) {
             SvLibSimpleParsingDeclaration parsingDeclaration =
                 initializeVariableDeclaration(
-                    edge, variableDeclaration, procedureName, typesOfHeapArraysToBuild);
+                    edge,
+                    variableDeclaration,
+                    procedureName,
+                    typesOfHeapArraysToBuild,
+                    pCommandsCollector);
 
             if (parsingDeclaration
                 instanceof SvLibParsingVariableDeclaration globalVariableDeclaration) {
@@ -284,60 +326,59 @@ class CToSvLibInitializer {
       CFAEdge pEdge,
       CVariableDeclaration pVariableDeclaration,
       String pProcedureName,
-      ImmutableSet.Builder<CType> pTypesOfHeapArraysToCreate)
+      ImmutableSet.Builder<CType> pTypesOfHeapArraysToCreate,
+      ImmutableList.Builder<SvLibCommand> pCommandsCollector)
       throws CPATransferException, InterruptedException {
 
     PointerTargetSet pointerTargetSetForEdge =
         pathFormulaManager
             .makeAnd(pathFormulaManager.makeEmptyPathFormula(), pEdge)
             .getPointerTargetSet();
-    if (!pointerTargetSetForEdge.equals(PointerTargetSet.emptyPointerTargetSet())) {
-      PersistentSortedMap<PointerBase, CType> bases = pointerTargetSetForEdge.getBases();
-      Verify.verify(bases.size() == 1, "PointerTargetSet contains more than one base entry");
-
-      Entry<PointerBase, CType> baseEntry = bases.entrySet().getFirst();
+    // One edge can make more than one variable part of the heap representation, for example the
+    // declaration "int *p = &a;", so the base of the declared variable is searched for instead of
+    // assuming that it is the only one.
+    for (Entry<PointerBase, CType> baseEntry : pointerTargetSetForEdge.getBases().entrySet()) {
       if (baseEntry.getKey().name().equals(pVariableDeclaration.getQualifiedName())) {
-        if (baseEntry.getValue() instanceof CArrayType arrayType) {
-          CType arrayElementType = arrayType.getType();
-          pTypesOfHeapArraysToCreate.add(arrayElementType);
-        } else if (baseEntry.getValue() instanceof CCompositeType compositeType) {
-          for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-            pTypesOfHeapArraysToCreate.add(memberDeclaration.getType());
-          }
-        } else {
-          pTypesOfHeapArraysToCreate.add(baseEntry.getValue());
+        addTypesOfHeapArraysFor(baseEntry.getValue(), pTypesOfHeapArraysToCreate);
+        if (pVariableDeclaration.isGlobal()) {
+          // A global variable is initialized before its address can be taken, so the formulas
+          // refer to the variable itself as well as to the memory that it is part of.
+          declareGlobalVariable(
+              pVariableDeclaration.getName(),
+              convertToSvLibSmtLibType(pVariableDeclaration.getType()),
+              pCommandsCollector);
         }
-        return createAddressOfVariable(
-            baseEntry.getKey(), baseEntry.getValue(), pVariableDeclaration, pProcedureName);
+        return createAddressOfVariable(baseEntry.getKey());
       }
     }
 
     return createVariable(pVariableDeclaration, pProcedureName);
   }
 
-  private SvLibSimpleParsingDeclaration createAddressOfVariable(
-      PointerBase pPointerBase,
-      CType pBaseType,
-      CVariableDeclaration pVariableDeclaration,
-      String pProcedureName) {
-    String addressNameEscaped = "|" + pPointerBase.formulaEncoding() + "|";
-    SvLibSmtLibType addressType = convertToSvLibSmtLibType(pBaseType);
-
-    if (pVariableDeclaration.isGlobal()) {
-      // global address variable declaration
-      return new SvLibParsingVariableDeclaration(
-          FileLocation.DUMMY,
-          true,
-          false,
-          addressType,
-          addressNameEscaped,
-          addressNameEscaped,
-          null);
-    } else {
-      // local address variable declaration
-      return new SvLibParsingParameterDeclaration(
-          FileLocation.DUMMY, addressType, addressNameEscaped, pProcedureName);
+  /** Declare a global variable of the generated program, unless it is already declared. */
+  private void declareGlobalVariable(
+      String pName, SvLibSmtLibType pType, ImmutableList.Builder<SvLibCommand> pCommandsCollector) {
+    if (scope.hasVariableForQualifiedName(pName)) {
+      return;
     }
+    String name = CToSvLibTransformationConstants.asSymbol(pName);
+    SvLibParsingVariableDeclaration declaration =
+        new SvLibParsingVariableDeclaration(
+            FileLocation.DUMMY, true, false, pType, name, name, null);
+    scope.addVariable(declaration);
+    pCommandsCollector.add(new SvLibVariableDeclarationCommand(declaration, FileLocation.DUMMY));
+  }
+
+  private SvLibSimpleParsingDeclaration createAddressOfVariable(PointerBase pPointerBase) {
+    String addressNameEscaped = "|" + pPointerBase.formulaEncoding() + "|";
+    SvLibSmtLibType addressType = getAddressType();
+
+    // The address of an object is the same wherever the program refers to it, and the formulas of
+    // every procedure are built with all objects of the program in their context, so the address of
+    // a local variable is a variable of the generated program as well: a procedure that only reads
+    // the memory of such an object needs it, too.
+    return new SvLibParsingVariableDeclaration(
+        FileLocation.DUMMY, true, false, addressType, addressNameEscaped, addressNameEscaped, null);
   }
 
   private SvLibSimpleParsingDeclaration createVariable(
@@ -348,13 +389,12 @@ class CToSvLibInitializer {
       return createGlobalVariableDeclaration(pVariableDeclaration, type);
     } else {
       // local variable declaration
-      return new SvLibParsingParameterDeclaration(
-          FileLocation.DUMMY, type, pVariableDeclaration.getName(), pProcedureName);
+      return createLocalVariable(type, pVariableDeclaration.getName(), pProcedureName);
     }
   }
 
   private SvLibParsingVariableDeclaration createArrayDeclarationForHeap(CType pElementType) {
-    SvLibSmtLibType indexType = getConvertedIntType();
+    SvLibSmtLibType indexType = getAddressType();
     SvLibSmtLibArrayType arrayType =
         new SvLibSmtLibArrayType(indexType, convertToSvLibSmtLibType(pElementType));
 
@@ -363,27 +403,37 @@ class CToSvLibInitializer {
         FileLocation.DUMMY, true, false, arrayType, heapTypeName, heapTypeName, null);
   }
 
+  /**
+   * The name of the array that models the memory holding values of the given type.
+   *
+   * <p>The name has to be the one that the formulas use for accesses to that memory, because the
+   * transformation looks the array up by the name of the free variable of such an access.
+   */
   private @NonNull String getHeapArrayName(CType pElementType) {
-    String heapTypeName = "";
-    if (pElementType instanceof CSimpleType simpleType) {
-      heapTypeName = simpleType.getType().toASTString();
-    } else if (pElementType instanceof CArrayType arrayType
-        && arrayType.getCanonicalType().getType() instanceof CSimpleType simpleType) {
-      heapTypeName = simpleType.getType().toASTString();
-    }
-    if (heapTypeName.isEmpty()) {
-      throw new UnsupportedOperationException(
-          "Failed to create array to model heap for CType " + pElementType);
-    }
-    heapTypeName = "*" + heapTypeName;
-    return heapTypeName;
+    String name = pathFormulaManager.getPointerAccessName(pElementType);
+    // The name of the memory of an array type contains the size of the array, as in "*(int)[2]",
+    // which is not a simple symbol in SMT-LIB and therefore has to be quoted.
+    return name.matches("[*]?[A-Za-z0-9_]+") ? name : "|" + name + "|";
   }
 
-  private SvLibSmtLibType getConvertedIntType() {
-    CSimpleType indexTypeC =
-        new CSimpleType(
-            CTypeQualifiers.NONE, CBasicType.INT, false, false, false, true, false, false, false);
-    return convertToSvLibSmtLibType(indexTypeC);
+  /**
+   * Does an object of the given type have values, i.e. is its size known and greater than zero?
+   *
+   * <p>A variable of a type without values, such as a structure without members or one that is only
+   * declared, is not declared in the generated program, because the formulas cannot contain a value
+   * of that type either. C forbids reading or writing such a variable, only its address can be
+   * taken.
+   */
+  private boolean hasValues(CType pType) {
+    return pType.hasKnownConstantSize() && cfa.getMachineModel().getSizeof(pType).signum() > 0;
+  }
+
+  /**
+   * The type of an address, which is the one that the formulas use for the value of a pointer and
+   * for an index into an array that models the memory of the heap.
+   */
+  private SvLibSmtLibType getAddressType() {
+    return convertToSvLibSmtLibType(CPointerType.POINTER_TO_VOID);
   }
 
   private SvLibParsingParameterDeclaration createDummyReturnParameter(
@@ -425,10 +475,56 @@ class CToSvLibInitializer {
     } else if (encodedFormulaType.isBitvectorType()) {
       BitvectorType bitvectorType = (BitvectorType) formulaType;
       return new SvLibSmtLibBitVectorType(bitvectorType.getSize());
+    } else if (encodedFormulaType.isFloatingPointType()) {
+      FloatingPointType floatingPointType = (FloatingPointType) formulaType;
+      return new SvLibSmtLibFloatingPointType(
+          floatingPointType.getExponentSize(), floatingPointType.getMantissaSizeWithHiddenBit());
     }
 
     throw new UnsupportedOperationException(
         "Transformation to a SvLibType failed for CType " + pCType);
+  }
+
+  /**
+   * Add the types of the arrays that model the memory of an object of the given type.
+   *
+   * <p>The elements of an array and the members of a structure are accessed under the name of their
+   * own type, and the object as a whole, for example when its address is taken or when it is
+   * assigned at once, under the name of its type.
+   */
+  private void addTypesOfHeapArraysFor(
+      CType pType, ImmutableSet.Builder<CType> pTypesOfHeapArraysToCreate) {
+    CType type = pType.getCanonicalType();
+    if (!hasValues(type)) {
+      // No value of that type can be read from or written to the memory, so no array is needed.
+      return;
+    }
+    if (type instanceof CArrayType arrayType) {
+      pTypesOfHeapArraysToCreate.add(arrayType);
+      addTypesOfHeapArraysFor(arrayType.getType(), pTypesOfHeapArraysToCreate);
+    } else if (type instanceof CCompositeType compositeType) {
+      pTypesOfHeapArraysToCreate.add(compositeType);
+      for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+        addTypesOfHeapArraysFor(memberDeclaration.getType(), pTypesOfHeapArraysToCreate);
+      }
+    } else if (!(type instanceof CVoidType)) {
+      pTypesOfHeapArraysToCreate.add(pType);
+    }
+  }
+
+  /**
+   * The type that a parameter or a returned value of the given C type has in the generated program.
+   *
+   * <p>The value of a pointer is its address, which is as wide as a pointer of the machine model
+   * and independent of the type it points to, so the type of the pointer itself is used. C passes
+   * an array as a pointer to its first element, so an array parameter is one as well.
+   */
+  private CType getTypeOfParameter(CType pType) {
+    CType type = pType.getCanonicalType();
+    if (type instanceof CArrayType arrayType) {
+      return new CPointerType(CTypeQualifiers.NONE, arrayType.getType());
+    }
+    return type;
   }
 
   private ImmutableList<SvLibParsingParameterDeclaration> collectInputParameters(
@@ -519,13 +615,15 @@ class CToSvLibInitializer {
 
   private SvLibParsingVariableDeclaration createGlobalVariableDeclaration(
       CVariableDeclaration pVariableDeclaration, SvLibType pType) {
+    // The declaration is printed with the original name, so that name has to be quoted as well.
+    String name = CToSvLibTransformationConstants.asSymbol(pVariableDeclaration.getName());
     return new SvLibParsingVariableDeclaration(
         FileLocation.DUMMY,
         pVariableDeclaration.isGlobal(),
         pVariableDeclaration.getType().isConst(),
         pType,
-        pVariableDeclaration.getName(),
-        pVariableDeclaration.getOrigName(),
+        name,
+        name,
         null);
   }
 
