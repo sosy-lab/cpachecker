@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibFloatingPointType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
@@ -739,24 +740,173 @@ public class SmtLibTheoryDeclarations {
   }
 
   public static SvLibFunctionDeclaration bitVectorZeroExtend(int pSourceSize, int pTargetSize) {
-    return new SvLibFunctionDeclaration(
-        FileLocation.DUMMY,
-        new SvLibFunctionType(
-            ImmutableList.of(new SvLibSmtLibBitVectorType(pSourceSize)),
-            new SvLibSmtLibBitVectorType(pTargetSize)),
-        "zero_extend",
-        "zero_extend",
-        ImmutableList.of());
+    return bitVectorExtend("zero_extend", pSourceSize, pTargetSize);
   }
 
   public static SvLibFunctionDeclaration bitVectorSignExtend(int pSourceSize, int pTargetSize) {
+    return bitVectorExtend("sign_extend", pSourceSize, pTargetSize);
+  }
+
+  /**
+   * The declaration of an extension of a bitvector.
+   *
+   * <p>The extensions are indexed identifiers in SMT-LIB, so the number of added bits has to be
+   * part of the name in order for the printed declaration to be parseable again.
+   */
+  private static SvLibFunctionDeclaration bitVectorExtend(
+      String pOperator, int pSourceSize, int pTargetSize) {
+    Verify.verify(pTargetSize >= pSourceSize);
+    String name = "(_ %s %d)".formatted(pOperator, pTargetSize - pSourceSize);
     return new SvLibFunctionDeclaration(
         FileLocation.DUMMY,
         new SvLibFunctionType(
             ImmutableList.of(new SvLibSmtLibBitVectorType(pSourceSize)),
             new SvLibSmtLibBitVectorType(pTargetSize)),
-        "sign_extend",
-        "sign_extend",
+        name,
+        name,
+        ImmutableList.of());
+  }
+
+  // ***** Floating point numbers *****
+
+  /**
+   * The declaration of an operation of the theory of floating point numbers that rounds, i.e. whose
+   * first argument is a rounding mode.
+   */
+  public static SvLibFunctionDeclaration floatingPointArithmetic(
+      String pOperator, int pArity, SvLibSmtLibFloatingPointType pType) {
+    ImmutableList.Builder<SvLibType> argumentTypes = ImmutableList.builder();
+    argumentTypes.add(SvLibSmtLibPredefinedType.ROUNDING_MODE);
+    for (int argument = 0; argument < pArity; argument++) {
+      argumentTypes.add(pType);
+    }
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(argumentTypes.build(), pType),
+        pOperator,
+        pOperator,
+        ImmutableList.of());
+  }
+
+  /**
+   * The declaration of an operation of the theory of floating point numbers that does not round,
+   * such as the negation or a comparison.
+   */
+  public static SvLibFunctionDeclaration floatingPointOperation(
+      String pOperator, int pArity, SvLibSmtLibFloatingPointType pType, SvLibType pReturnType) {
+    ImmutableList.Builder<SvLibType> argumentTypes = ImmutableList.builder();
+    for (int argument = 0; argument < pArity; argument++) {
+      argumentTypes.add(pType);
+    }
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(argumentTypes.build(), pReturnType),
+        pOperator,
+        pOperator,
+        ImmutableList.of());
+  }
+
+  /**
+   * The declaration of a conversion into a floating point number, which is an indexed identifier
+   * whose indices are the sizes of the target type and which rounds.
+   */
+  public static SvLibFunctionDeclaration toFloatingPoint(
+      boolean pFromUnsigned, SvLibType pSourceType, SvLibSmtLibFloatingPointType pTargetType) {
+    String name =
+        "(_ %s %d %d)"
+            .formatted(
+                pFromUnsigned ? "to_fp_unsigned" : "to_fp",
+                pTargetType.getExponentSize(),
+                pTargetType.getSignificandSize());
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(SvLibSmtLibPredefinedType.ROUNDING_MODE, pSourceType), pTargetType),
+        name,
+        name,
+        ImmutableList.of());
+  }
+
+  /**
+   * The declaration of a conversion of a bitvector into an integer, which interprets the bits as a
+   * number with or without a sign.
+   */
+  public static SvLibFunctionDeclaration bitVectorToInt(boolean pSigned, int pSize) {
+    String name = pSigned ? "sbv_to_int" : "ubv_to_int";
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(new SvLibSmtLibBitVectorType(pSize)), SvLibSmtLibPredefinedType.INT),
+        name,
+        name,
+        ImmutableList.of());
+  }
+
+  /**
+   * The declaration of a conversion of an integer into a bitvector, which is an indexed identifier
+   * whose index is the size of the bitvector.
+   */
+  public static SvLibFunctionDeclaration intToBitVector(int pSize) {
+    String name = "(_ int_to_bv %d)".formatted(pSize);
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(SvLibSmtLibPredefinedType.INT), new SvLibSmtLibBitVectorType(pSize)),
+        name,
+        name,
+        ImmutableList.of());
+  }
+
+  /**
+   * The declaration of the conversion of a floating point number into the bitvector of its bits in
+   * the representation of IEEE 754, which is the reverse of the one-argument {@code to_fp}.
+   */
+  public static SvLibFunctionDeclaration floatingPointAsBitVector(
+      SvLibSmtLibFloatingPointType pSourceType) {
+    String name = "fp.to_ieee_bv";
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(pSourceType),
+            new SvLibSmtLibBitVectorType(
+                pSourceType.getExponentSize() + pSourceType.getSignificandSize())),
+        name,
+        name,
+        ImmutableList.of());
+  }
+
+  /**
+   * The declaration of the conversion of the bits of the representation of IEEE 754 into the
+   * floating point number they denote, which does not round because it loses no information.
+   */
+  public static SvLibFunctionDeclaration floatingPointFromBitVector(
+      SvLibSmtLibBitVectorType pSourceType, SvLibSmtLibFloatingPointType pTargetType) {
+    String name =
+        "(_ to_fp %d %d)"
+            .formatted(pTargetType.getExponentSize(), pTargetType.getSignificandSize());
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(ImmutableList.of(pSourceType), pTargetType),
+        name,
+        name,
+        ImmutableList.of());
+  }
+
+  /**
+   * The declaration of a conversion of a floating point number into a bitvector, which is an
+   * indexed identifier whose index is the size of the bitvector and which rounds.
+   */
+  public static SvLibFunctionDeclaration floatingPointToBitVector(
+      boolean pSigned,
+      SvLibSmtLibFloatingPointType pSourceType,
+      SvLibSmtLibBitVectorType pTargetType) {
+    String name = "(_ %s %d)".formatted(pSigned ? "fp.to_sbv" : "fp.to_ubv", pTargetType.getSize());
+    return new SvLibFunctionDeclaration(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(SvLibSmtLibPredefinedType.ROUNDING_MODE, pSourceType), pTargetType),
+        name,
+        name,
         ImmutableList.of());
   }
 }

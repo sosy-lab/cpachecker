@@ -12,6 +12,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Verify;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
@@ -34,7 +35,14 @@ public abstract class SvLibGeneralSymbolApplicationTerm implements SvLibRelation
     terms = ImmutableList.copyOf(pTerms);
     fileLocation = pFileLocation;
     symbol = pSymbol;
-    Verify.verify(SvLibGeneralSymbolApplicationTerm.wellFormedTerms(symbol, terms));
+    Verify.verify(
+        SvLibGeneralSymbolApplicationTerm.wellFormedTerms(symbol, terms),
+        "The symbol %s of type %s cannot be applied to the terms of the types %s",
+        symbol.getDeclaration().getName(),
+        symbol.getExpressionType().toASTString(),
+        FluentIterable.from(terms)
+            .transform(term -> term.getExpressionType().toASTString())
+            .join(Joiner.on(", ")));
   }
 
   public SvLibIdTerm getSymbol() {
