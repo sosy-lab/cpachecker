@@ -11,13 +11,14 @@ package org.sosy_lab.cpachecker.core.algorithm.to_svlib;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
+import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -188,7 +189,8 @@ class CToSvLibInitializer {
         if (edge instanceof CDeclarationEdge declarationEdge) {
           CDeclaration declaration = declarationEdge.getDeclaration();
 
-          if (declaration instanceof CVariableDeclaration variableDeclaration) {
+          if (declaration instanceof CVariableDeclaration variableDeclaration
+              && hasValues(variableDeclaration.getType())) {
             SvLibSimpleParsingDeclaration parsingDeclaration =
                 initializeVariableDeclaration(
                     edge,
@@ -199,10 +201,15 @@ class CToSvLibInitializer {
 
             if (parsingDeclaration
                 instanceof SvLibParsingVariableDeclaration globalVariableDeclaration) {
-              scope.addVariable(globalVariableDeclaration);
-              pCommandsCollector.add(
-                  new SvLibVariableDeclarationCommand(
-                      globalVariableDeclaration, FileLocation.DUMMY));
+              // The declaration of a global variable can be part of the edges of more than one
+              // function, and the variable is only declared once in the generated program.
+              if (!scope.hasVariableForQualifiedName(
+                  globalVariableDeclaration.getQualifiedName())) {
+                scope.addVariable(globalVariableDeclaration);
+                pCommandsCollector.add(
+                    new SvLibVariableDeclarationCommand(
+                        globalVariableDeclaration, FileLocation.DUMMY));
+              }
             } else if (parsingDeclaration
                 instanceof SvLibParsingParameterDeclaration localVariableDeclaration) {
               localVariablesCollector.add(localVariableDeclaration);
@@ -210,8 +217,12 @@ class CToSvLibInitializer {
 
           } else if (declaration instanceof CFunctionDeclaration functionDeclaration) {
             // handle external functions
+            // The same external function may be declared in several functions of the program, but
+            // only one procedure is created for it.
             boolean isExtern = !cfa.getAllFunctionNames().contains(functionDeclaration.getName());
-            if (isExtern) {
+            if (isExtern
+                && !isEncodedInFormula(functionDeclaration.getName())
+                && !scope.hasProcedureDeclaration(functionDeclaration.getName())) {
               SvLibProcedureDefinitionCommand externProcedureDefinition =
                   createExternProcedureDefinition(functionDeclaration);
               scope.addProcedureDeclaration(externProcedureDefinition.getProcedureDeclaration());
@@ -222,9 +233,26 @@ class CToSvLibInitializer {
         } else if (edge instanceof CStatementEdge cStatementEdge
             && cStatementEdge.getStatement()
                 instanceof CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement
-            && cFunctionCallAssignmentStatement.getRightHandSide().getDeclaration() == null) {
+            && cFunctionCallAssignmentStatement.getRightHandSide().getDeclaration() == null
+            && !isEncodedInFormula(
+                cFunctionCallAssignmentStatement
+                    .getFunctionCallExpression()
+                    .getFunctionNameExpression()
+                    .toASTString())) {
           undeclaredFunctionsCollector.add(
               cFunctionCallAssignmentStatement.getFunctionCallExpression());
+
+        } else if (edge instanceof CStatementEdge statementEdgeOfCall
+            && statementEdgeOfCall.getStatement() instanceof CFunctionCallStatement callStatement
+            && callStatement.getFunctionCallExpression().getDeclaration() == null
+            && !isEncodedInFormula(
+                callStatement
+                    .getFunctionCallExpression()
+                    .getFunctionNameExpression()
+                    .toASTString())) {
+          // A function without a declaration can also be called without its result being used, for
+          // example through a pointer.
+          undeclaredFunctionsCollector.add(callStatement.getFunctionCallExpression());
 
         } else if (edge instanceof CFunctionSummaryEdge pCFunctionSummaryEdge
             && pCFunctionSummaryEdge.getExpression() instanceof CFunctionCallStatement functionCall
@@ -248,20 +276,16 @@ class CToSvLibInitializer {
             && pCFunctionSummaryEdge.getExpression()
                 instanceof CFunctionCallAssignmentStatement functionCallAssignmentStatement) {
 
-          SvLibType returnValueType;
-          if (functionCallAssignmentStatement.getLeftHandSide()
-              instanceof CArraySubscriptExpression arraySubscript) {
-            returnValueType = convertToSvLibSmtLibType(arraySubscript.getExpressionType());
-          } else {
-            returnValueType =
-                convertToSvLibSmtLibType(
-                    functionCallAssignmentStatement.getLeftHandSide().getExpressionType());
-          }
+          // The variable holds the value that the call returns, so it has the type of the return
+          // value of the called procedure and not the type of the assigned memory.
+          SvLibType returnValueType =
+              convertToSvLibSmtLibType(
+                  functionCallAssignmentStatement.getRightHandSide().getExpressionType());
           SvLibParsingParameterDeclaration tmpHeapAssignVariable =
               new SvLibParsingParameterDeclaration(
                   FileLocation.DUMMY,
                   returnValueType,
-                  CToSvLibTransformationConstants.TMP_VAR_ASSIGNMENT + returnValueType,
+                  CToSvLibTransformationConstants.tmpVariableNameForAssignment(returnValueType),
                   procedureName);
           localVariablesCollector.add(tmpHeapAssignVariable);
 
@@ -270,22 +294,48 @@ class CToSvLibInitializer {
                 instanceof CFunctionCallAssignmentStatement functionCallAssignmentStatement
             && functionCallAssignmentStatement.getRightHandSide().getDeclaration() != null) {
 
-          SvLibType returnValueType;
-          if (functionCallAssignmentStatement.getLeftHandSide()
-              instanceof CArraySubscriptExpression arraySubscript) {
-            returnValueType = convertToSvLibSmtLibType(arraySubscript.getExpressionType());
-          } else {
-            returnValueType =
-                convertToSvLibSmtLibType(
-                    functionCallAssignmentStatement.getLeftHandSide().getExpressionType());
-          }
+          // The variable holds the value that the call returns, so it has the type of the return
+          // value of the called procedure and not the type of the assigned memory.
+          SvLibType returnValueType =
+              convertToSvLibSmtLibType(
+                  functionCallAssignmentStatement.getRightHandSide().getExpressionType());
           SvLibParsingParameterDeclaration tmpHeapAssignVariable =
               new SvLibParsingParameterDeclaration(
                   FileLocation.DUMMY,
                   returnValueType,
-                  CToSvLibTransformationConstants.TMP_VAR_ASSIGNMENT + returnValueType,
+                  CToSvLibTransformationConstants.tmpVariableNameForAssignment(returnValueType),
                   procedureName);
           localVariablesCollector.add(tmpHeapAssignVariable);
+        }
+
+        // A call that allocates memory is encoded in the formula of its edge, which introduces a
+        // base for the allocated memory and a value that decides whether the allocation succeeded.
+        if (edge instanceof CStatementEdge callEdge
+            && callEdge.getStatement() instanceof CFunctionCall functionCall
+            && isEncodedInFormula(
+                functionCall
+                    .getFunctionCallExpression()
+                    .getFunctionNameExpression()
+                    .toASTString())) {
+          declareVariablesForCallInFormula(
+              functionCall, pCommandsCollector, typesOfHeapArraysToBuild);
+        }
+
+        // A function call whose return value is assigned to a variable of a different type, as in
+        // "int x = f();" where f returns an unsigned char, needs a dummy variable of the type of
+        // the return value, because the value has to be converted before it is assigned.
+        if (edge instanceof CStatementEdge statementEdge
+            && statementEdge.getStatement()
+                instanceof CFunctionCallAssignmentStatement callAssignment
+            && callAssignment.getLeftHandSide() instanceof CIdExpression
+            && !(callAssignment.getRightHandSide().getExpressionType() instanceof CVoidType)
+            && !convertToSvLibSmtLibType(callAssignment.getLeftHandSide().getExpressionType())
+                .equals(
+                    convertToSvLibSmtLibType(
+                        callAssignment.getRightHandSide().getExpressionType()))) {
+          localVariablesCollector.add(
+              createDummyReturnParameter(
+                  callAssignment.getRightHandSide().getExpressionType(), procedureName));
         }
       }
 
@@ -298,7 +348,7 @@ class CToSvLibInitializer {
       SvLibProcedureDeclaration procedureDeclaration =
           new SvLibProcedureDeclaration(
               FileLocation.DUMMY,
-              procedureName,
+              CToSvLibTransformationConstants.asSymbol(procedureName),
               inputParameters,
               returnParameter,
               localVariablesCollector.build().asList());
@@ -312,8 +362,11 @@ class CToSvLibInitializer {
       }
     }
 
+    // Several C types can share one array, for example a type and the same type with a qualifier,
+    // so the arrays are collected by their name.
+    Set<String> createdHeapArrays = new HashSet<>();
     for (CType heapArrayType : typesOfHeapArraysToBuild.build()) {
-      if (!(heapArrayType instanceof CArrayType)) {
+      if (createdHeapArrays.add(getHeapArrayName(heapArrayType))) {
         SvLibParsingVariableDeclaration heapArrayParsingVariableDeclaration =
             createArrayDeclarationForHeap(heapArrayType);
         SvLibVariableDeclarationCommand heapArrayVariableDeclarationCommand =
