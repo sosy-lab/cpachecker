@@ -8,14 +8,15 @@
 
 package org.sosy_lab.cpachecker.cfa.types.svlib;
 
-import com.google.common.base.Ascii;
 import org.sosy_lab.java_smt.api.FormulaType;
 
 public enum SvLibSmtLibPredefinedType implements SvLibSmtLibType {
   INT,
   BOOL,
   STRING,
-  REAL;
+  REAL,
+  /** The sort of the rounding modes of the theory of floating point numbers. */
+  ROUNDING_MODE;
 
   @Override
   public FormulaType<?> toFormulaType() {
@@ -24,12 +25,13 @@ public enum SvLibSmtLibPredefinedType implements SvLibSmtLibType {
       case BOOL -> FormulaType.BooleanType;
       case STRING -> FormulaType.StringType;
       case REAL -> FormulaType.RationalType;
+      case ROUNDING_MODE -> FormulaType.FloatingPointRoundingModeType;
     };
   }
 
   @Override
   public String toASTString(String declarator) {
-    return declarator + " : " + Ascii.toLowerCase(name());
+    return declarator + " : " + toASTString();
   }
 
   @Override
@@ -39,6 +41,7 @@ public enum SvLibSmtLibPredefinedType implements SvLibSmtLibType {
       case BOOL -> "Bool";
       case STRING -> "String";
       case REAL -> "Real";
+      case ROUNDING_MODE -> "RoundingMode";
     };
   }
 }

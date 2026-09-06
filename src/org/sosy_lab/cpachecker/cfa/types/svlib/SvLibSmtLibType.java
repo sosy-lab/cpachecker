@@ -15,6 +15,7 @@ public sealed interface SvLibSmtLibType extends SvLibType
         SvLibCustomType,
         SvLibSmtLibArrayType,
         SvLibSmtLibBitVectorType,
+        SvLibSmtLibFloatingPointType,
         SvLibSmtLibPredefinedType {
 
   FormulaType<?> toFormulaType();

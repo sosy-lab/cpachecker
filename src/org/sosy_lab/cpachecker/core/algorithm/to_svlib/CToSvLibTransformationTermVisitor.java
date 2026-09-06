@@ -11,9 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.to_svlib;
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBitVectorConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFloatingPointConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRealConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRoundingModeConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTermVisitor;
@@ -77,6 +79,18 @@ class CToSvLibTransformationTermVisitor implements SvLibTermVisitor<Void, NoExce
 
   @Override
   public Void accept(SvLibBitVectorConstantTerm pSvLibBitVectorConstantTerm) throws NoException {
+    return null;
+  }
+
+  @Override
+  public Void accept(SvLibFloatingPointConstantTerm pSvLibFloatingPointConstantTerm)
+      throws NoException {
+    return null;
+  }
+
+  @Override
+  public Void accept(SvLibRoundingModeConstantTerm pSvLibRoundingModeConstantTerm)
+      throws NoException {
     return null;
   }
 }

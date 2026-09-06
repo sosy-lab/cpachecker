@@ -17,8 +17,10 @@ import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 public sealed interface SvLibConstantTerm extends SvLibTerm
     permits SvLibBitVectorConstantTerm,
         SvLibBooleanConstantTerm,
+        SvLibFloatingPointConstantTerm,
         SvLibIntegerConstantTerm,
-        SvLibRealConstantTerm {
+        SvLibRealConstantTerm,
+        SvLibRoundingModeConstantTerm {
 
   Object getValue();
 
