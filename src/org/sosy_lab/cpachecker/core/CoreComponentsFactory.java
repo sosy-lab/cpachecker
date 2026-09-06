@@ -907,7 +907,8 @@ public class CoreComponentsFactory {
         || useParallelAlgorithm
         || asConditionalVerifier
         || useFaultLocalizationWithDistanceMetrics
-        || useArrayAbstraction) {
+        || useArrayAbstraction
+        || useTransformationToSvLib) {
       // this algorithm needs an indirection so that it can change
       // the actual reached set instance on the fly
       if (memorizeReachedAfterRestart) {

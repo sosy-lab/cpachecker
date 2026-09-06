@@ -8,7 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.to_svlib;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Serial;
@@ -33,17 +36,24 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibLogic;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibCurrentScope;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibScript;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSmtFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibDeclareFunCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibProceduresRecDefinitionCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetInfoCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetLogicCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibVariableDeclarationCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibVerifyCallCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibSequenceStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
@@ -55,9 +65,11 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
+import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -72,6 +84,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.FormulaToSvLibVisitor;
+import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 
 @Options(prefix = "analysis.algorithm.toSvLib")
 public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoCloseable {
@@ -112,6 +125,9 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
   @FileOption(Type.OUTPUT_FILE)
   private @Nullable Path scriptPath = Path.of("transformedScript.svlib");
 
+  /** The algorithm that analyses the transformed script, which its statistics are taken from. */
+  private @Nullable Algorithm algorithmOfAnalysisOfScript = null;
+
   private final CFA cfa;
 
   private final LogManager logger;
@@ -121,15 +137,35 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
   private final Solver solver;
   private final FormulaManagerView formulaManager;
   private final PathFormulaManager pathFormulaManager;
-  private final CtoFormulaConverter converter;
 
   /** The sizes of the types that the formulas of the analysis assume. */
   private final TypeHandlerWithPointerAliasing typeHandler;
+
+  private final CtoFormulaConverter converter;
 
   private final SvLibCurrentScope scope;
   private final FormulaToSvLibVisitor formulaToSvLibVisitor;
 
   private final TransformationStatistics transformationStatistics;
+
+  /** The configuration for the analysis of the transformed script, if that analysis is run. */
+  private final @Nullable Configuration svLibAnalysisConfig;
+
+  /**
+   * Reads the SMT solver that a configuration selects, in order to be able to compare the choices
+   * of two configurations.
+   */
+  @Options(prefix = "solver")
+  private static class SolverChoice {
+
+    // The default has to be the same as the one of the option of the same name in Solver.
+    @Option(secure = true, name = "solver", description = "Which SMT solver to use.")
+    private Solvers solver = Solvers.MATHSAT5;
+
+    SolverChoice(Configuration pConfiguration) throws InvalidConfigurationException {
+      pConfiguration.inject(this);
+    }
+  }
 
   /**
    * Transforms the CFA of a C program to a SvLibScript. At the moment in development and works
@@ -155,9 +191,20 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
           "If runAnalysis is enabled, then a configuration for the analysis of the transformed"
               + " script has to be provided.");
     }
+    if (pCfa.getAllFunctionNames().contains(ThreadingTransferRelation.THREAD_START)
+        || FluentIterable.from(pCfa.edges())
+            .anyMatch(edge -> callsFunction(edge, ThreadingTransferRelation.THREAD_START))) {
+      // The generated program has one execution and no threads, so proving it correct would say
+      // nothing about a program that creates threads.
+      throw new InvalidConfigurationException(
+          "Transformation of a program that creates threads with "
+              + ThreadingTransferRelation.THREAD_START
+              + " to SV-LIB is not supported, because the generated program has no threads.");
+    }
 
     config = pConfiguration;
     specification = pSpecification;
+    svLibAnalysisConfig = runAnalysis ? loadSvLibAnalysisConfiguration(pConfiguration) : null;
     logger = pLogManager;
     shutdownNotifier = pShutdownNotifier;
     cfa = pCfa;
@@ -192,6 +239,67 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
   }
 
   /**
+   * Load the configuration for the analysis of the transformed script and check that it is
+   * compatible with the configuration of the transformation.
+   *
+   * <p>Both run in the same JVM, and two different native SMT solver libraries interfere with each
+   * other there: Z3 and MathSAT5 for example both bundle GMP, so the library that is loaded second
+   * silently stops being able to create numerals (and MathSAT5 followed by Z3 even crashes the
+   * JVM). Both therefore have to use the same solver.
+   */
+  private Configuration loadSvLibAnalysisConfiguration(Configuration pConfiguration)
+      throws InvalidConfigurationException {
+    assert svLibAnalysisConfiguration != null;
+    Configuration analysisConfig;
+    try {
+      analysisConfig = Configuration.builder().loadFromFile(svLibAnalysisConfiguration).build();
+    } catch (IOException e) {
+      throw new InvalidConfigurationException(
+          "Failed to load the configuration "
+              + svLibAnalysisConfiguration
+              + " for the analysis of the transformed SV-LIB script.",
+          e);
+    }
+
+    Solvers transformationSolver = new SolverChoice(pConfiguration).solver;
+    Solvers analysisSolver = new SolverChoice(analysisConfig).solver;
+    if (transformationSolver != analysisSolver) {
+      throw new InvalidConfigurationException(
+          "The transformation to SV-LIB uses the SMT solver "
+              + transformationSolver
+              + ", but the configuration "
+              + svLibAnalysisConfiguration
+              + " for the analysis of the transformed script uses "
+              + analysisSolver
+              + ". Only a single native SMT solver library can be used per JVM, so both have to"
+              + " use the same solver.");
+    }
+    return analysisConfig;
+  }
+
+  /** Does the given edge call the function with the given name? */
+  private static boolean callsFunction(CFAEdge pEdge, String pFunctionName) {
+    return pEdge instanceof AStatementEdge statementEdge
+        && statementEdge.getStatement() instanceof AFunctionCall functionCall
+        && functionCall
+            .getFunctionCallExpression()
+            .getFunctionNameExpression()
+            .toASTString()
+            .equals(pFunctionName);
+  }
+
+  /**
+   * The name of the file of the transformed program, as the value of the attribute {@code :source}.
+   *
+   * <p>A name that is not a simple symbol of SMT-LIB, for example one that starts with a digit, has
+   * to be quoted so that the generated script can be parsed again.
+   */
+  private String getNameOfSourceFile() {
+    return CToSvLibTransformationConstants.asSymbol(
+        cfa.getFileNames().getFirst().getFileName().toString());
+  }
+
+  /**
    * Transforms the {@link CFA} of a C program to a {@link SvLibScript}.
    *
    * @return The SvLibScript generated from the CFA
@@ -201,8 +309,7 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     commandsCollector.add(
         new SvLibSetLogicCommand(SmtLibLogic.ALL, FileLocation.DUMMY),
         new SvLibSetInfoCommand(":format-version", "1.0", FileLocation.DUMMY),
-        new SvLibSetInfoCommand(
-            ":source", cfa.getFileNames().getFirst().getFileName().toString(), FileLocation.DUMMY),
+        new SvLibSetInfoCommand(":source", getNameOfSourceFile(), FileLocation.DUMMY),
         new SvLibSetInfoCommand(":producer", "CPAchecker", FileLocation.DUMMY));
 
     // 1. Step: Initialize CurrentScope with declarations of procedures and global variables,
@@ -278,6 +385,22 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
       transformationStatistics.transformationTime.stop();
     }
 
+    // The variables that the transformation and the transformed formulas introduced have to be
+    // declared before the procedures that use them.
+    for (SvLibParsingVariableDeclaration variableOfTransformation :
+        Iterables.concat(
+            transformation.getVariablesOfTransformation(),
+            formulaToSvLibVisitor.getVariablesOfFormulas())) {
+      commandsCollector.add(
+          new SvLibVariableDeclarationCommand(variableOfTransformation, FileLocation.DUMMY));
+    }
+
+    // The uninterpreted functions that the transformation of the procedures encountered have to be
+    // declared before the procedures that use them.
+    for (SvLibSmtFunctionDeclaration functionDeclaration : scope.getFunctionDeclarations()) {
+      commandsCollector.add(new SvLibDeclareFunCommand(functionDeclaration, FileLocation.DUMMY));
+    }
+
     SvLibProceduresRecDefinitionCommand proceduresRecDefinitionCommand =
         new SvLibProceduresRecDefinitionCommand(
             FileLocation.DUMMY,
@@ -288,6 +411,14 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     // 3. Step: encode property
     CToSvLibPropertyEncoder propertyEncoder = new CToSvLibPropertyEncoder(specification);
     propertyEncoder.encodeProperty(commandsCollector);
+    if (!propertyEncoder.hasEncodedProperty()) {
+      // Without an annotation nothing of the generated program can be violated, so the analysis of
+      // it would report that the program is correct whatever it does.
+      logger.log(
+          Level.WARNING,
+          "The generated program has no property to check, because the specification does not"
+              + " apply to any of its procedures. Its analysis cannot find a violation.");
+    }
 
     commandsCollector.add(
         new SvLibVerifyCallCommand(
@@ -315,23 +446,24 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
     }
     logger.log(Level.INFO, "Finished transformation of the input C program to SV-LIB.");
 
+    // The generated script is exported in both cases, because it is the artifact that is needed to
+    // understand the result of the analysis of it.
+    String generatedScript = transformationResultScript.toASTString();
+    handleExport(generatedScript);
     if (!runAnalysis) {
-      handleExport(transformationResultScript.toASTString());
       return AlgorithmStatus.NO_PROPERTY_CHECKED;
     }
 
     ImmutableCFA newSvLibCfa;
     final CoreComponentsFactory coreComponents;
     final ConfigurableProgramAnalysis cpa;
-    Algorithm innerAlgorithm;
     try {
-      // svLibAnalysisConfiguration != null is already check in the constructor
-      assert svLibAnalysisConfiguration != null;
-      Configuration innerConfig =
-          Configuration.builder().loadFromFile(svLibAnalysisConfiguration).build();
+      // The configuration is already loaded and checked in the constructor
+      assert svLibAnalysisConfiguration != null && svLibAnalysisConfig != null;
+      Configuration innerConfig = svLibAnalysisConfig;
 
       CFACreator cfaCreator = new CFACreator(innerConfig, logger, shutdownNotifier);
-      newSvLibCfa = cfaCreator.parseSourceAndCreateCFA(transformationResultScript.toASTString());
+      newSvLibCfa = cfaCreator.parseSourceAndCreateCFA(generatedScript);
 
       coreComponents =
           new CoreComponentsFactory(
@@ -351,29 +483,35 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
         statisticsProvider.collectStatistics(transformationStatistics.innerStatistics);
       }
 
-      innerAlgorithm = coreComponents.createAlgorithm(cpa, svLibSpecification);
-      if (innerAlgorithm instanceof StatisticsProvider statisticsProvider) {
+      algorithmOfAnalysisOfScript = coreComponents.createAlgorithm(cpa, svLibSpecification);
+      if (algorithmOfAnalysisOfScript instanceof StatisticsProvider statisticsProvider) {
         statisticsProvider.collectStatistics(transformationStatistics.innerStatistics);
       }
     } catch (InvalidConfigurationException e) {
       throw new UnsupportedTransformationException(
-          "Building the algorithm which should be run on the transformed SV-LIB script failed.", e);
+          "Building the algorithm which should be run on the transformed SV-LIB script failed: "
+              + e.getMessage(),
+          e);
     } catch (ParserException e) {
-      throw new UnsupportedOperationException(
+      throw new UnsupportedTransformationException(
           "Failed to create a CFA for the transformed SV-LIB script.", e);
-    } catch (IOException e) {
-      throw new UnsupportedOperationException(
-          "Failed to load configuration for analysis of transformed SV-LIB script.", e);
     }
 
-    // Prepare new reached set
-    pReachedSet.clear();
-    coreComponents.initializeReachedSet(pReachedSet, newSvLibCfa.getMainFunction(), cpa);
+    // The analysis of the transformed script gets its own reached set, because the one of this
+    // algorithm was created with this configuration, whose waitlist is not the one that the
+    // configuration for that analysis asks for. Exploring an SV-LIB program in the wrong order
+    // costs an order of magnitude, since the states of a merging analysis have to meet.
+    Preconditions.checkArgument(
+        pReachedSet instanceof ForwardingReachedSet,
+        "The analysis of the transformed SV-LIB script needs a ForwardingReachedSet");
+    ReachedSet reachedSetOfAnalysis = coreComponents.createReachedSet(cpa);
+    coreComponents.initializeReachedSet(reachedSetOfAnalysis, newSvLibCfa.getMainFunction(), cpa);
+    ((ForwardingReachedSet) pReachedSet).setDelegate(reachedSetOfAnalysis);
 
     AlgorithmStatus algorithmStatus;
     transformationStatistics.innerAnalysisTimer.start();
     try {
-      algorithmStatus = innerAlgorithm.run(pReachedSet);
+      algorithmStatus = algorithmOfAnalysisOfScript.run(reachedSetOfAnalysis);
     } finally {
       transformationStatistics.innerAnalysisTimer.stop();
     }
@@ -407,6 +545,9 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
 
   @Override
   public void close() {
+    // The analysis of the transformed script is not closed, although it has a solver of its own:
+    // both use the same native library, and closing one of the two contexts of it makes that
+    // library abort the process with std::bad_alloc while the other one is still in use.
     solver.close();
   }
 
