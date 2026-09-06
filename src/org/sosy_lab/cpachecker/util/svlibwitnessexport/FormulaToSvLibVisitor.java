@@ -25,10 +25,12 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibTheoryDeclarations;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBitVectorConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFloatingPointConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRealConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRoundingModeConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
@@ -47,12 +49,15 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FloatingPointNumber;
+import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.ArrayFormulaType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
 
@@ -791,10 +796,23 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
           "Obtained a bitvector formula which does not have the bitvector type");
       return new SvLibBitVectorConstantTerm(
           pInteger, ((FormulaType.BitvectorType) formulaType).getSize(), FileLocation.DUMMY);
+    } else if (pO instanceof FloatingPointNumber pFloatingPointNumber) {
+      return new SvLibFloatingPointConstantTerm(pFloatingPointNumber, FileLocation.DUMMY);
+    } else if (pO instanceof FloatingPointRoundingMode pRoundingMode) {
+      return new SvLibRoundingModeConstantTerm(pRoundingMode, FileLocation.DUMMY);
     } else if (pO instanceof Rational pRational) {
       return new SvLibRealConstantTerm(pRational, FileLocation.DUMMY);
+    } else if (pO instanceof BigInteger pInteger && pFormula instanceof RationalFormula) {
+      // The solvers report a rational constant whose value happens to be integral as a BigInteger
+      // and not as a Rational.
+      return new SvLibRealConstantTerm(Rational.ofBigInteger(pInteger), FileLocation.DUMMY);
     }
-    throw new UnsupportedOperationException("Unsupported constant type: " + pO);
+    throw new UnsupportedOperationException(
+        "Unsupported constant "
+            + pO
+            + " of type "
+            + fmgr.getFormulaType(pFormula)
+            + " when transforming a formula to SV-LIB.");
   }
 
   @Override
@@ -832,12 +850,45 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
                   ImmutableList.of(rightTerm, modulusTerm),
                   FileLocation.DUMMY)),
           FileLocation.DUMMY);
+    } else if (pFunctionDeclaration.getKind() == FunctionDeclarationKind.BV_MUL
+        && getFactorThatIsNegated(args).isPresent()) {
+      // A multiplication with -1, which is how the solvers build the negation of a bitvector, is
+      // written as a negation: the multiplication makes the solver that reads the program build a
+      // multiplier for it, which it can be much slower at solving.
+      SvLibTerm negatedFactor = getFactorThatIsNegated(args).orElseThrow();
+      return new SvLibSymbolApplicationTerm(
+          functionToIdTerm(
+              "bvneg",
+              FunctionDeclarationKind.BV_NEG,
+              formulaType,
+              ImmutableList.of((SvLibSmtLibType) negatedFactor.getExpressionType())),
+          ImmutableList.of(negatedFactor),
+          FileLocation.DUMMY);
     } else {
       SvLibIdTerm functionIdTerm =
           functionToIdTerm(functionName, pFunctionDeclaration.getKind(), formulaType, argTypes);
 
       return new SvLibSymbolApplicationTerm(functionIdTerm, args, FileLocation.DUMMY);
     }
+  }
+
+  /**
+   * The factor of the given multiplication that is negated by it, if the other factor is the
+   * bitvector in which every bit is set, which is the representation of -1.
+   */
+  private static Optional<SvLibTerm> getFactorThatIsNegated(List<SvLibTerm> pFactors) {
+    if (pFactors.size() != 2) {
+      return Optional.empty();
+    }
+    for (int index = 0; index < 2; index++) {
+      if (pFactors.get(index) instanceof SvLibBitVectorConstantTerm constant
+          && constant
+              .getValue()
+              .equals(BigInteger.TWO.pow(constant.getSize()).subtract(BigInteger.ONE))) {
+        return Optional.of(pFactors.get(1 - index));
+      }
+    }
+    return Optional.empty();
   }
 
   @Override
