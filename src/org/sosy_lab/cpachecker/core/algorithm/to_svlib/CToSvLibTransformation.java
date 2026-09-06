@@ -18,10 +18,12 @@ import com.google.common.collect.Iterables;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.NavigableSet;
+import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -30,10 +32,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibTheoryDeclarations;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
@@ -42,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
@@ -54,6 +59,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
@@ -73,6 +79,8 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibProcedureCal
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibReturnStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibSequenceStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
@@ -85,6 +93,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter.RightHandSideTerm;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerBase;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -362,19 +371,19 @@ class CToSvLibTransformation {
               transformCallToExternalFunction(statementEdge, pEdgeToPointerTargetSet);
           pCreatedStatements.put(pEdge.getPredecessor(), externCallStatement);
         } else {
-          SvLibTerm transformedTerm = transformEdgeToSvLibTerm(pEdge, pEdgeToPointerTargetSet);
-          pCreatedStatements.put(pEdge.getPredecessor(), handleAssignment(pEdge, transformedTerm));
+          pCreatedStatements.put(
+              pEdge.getPredecessor(), transformAssignmentEdge(pEdge, pEdgeToPointerTargetSet));
         }
         pCreatedStatements.put(pEdge.getPredecessor(), createGotoStatement(pEdge.getSuccessor()));
       }
       case DeclarationEdge -> {
-        SvLibTerm transformedTerm = transformEdgeToSvLibTerm(pEdge, pEdgeToPointerTargetSet);
-        pCreatedStatements.put(pEdge.getPredecessor(), handleAssignment(pEdge, transformedTerm));
+        pCreatedStatements.put(
+            pEdge.getPredecessor(), transformAssignmentEdge(pEdge, pEdgeToPointerTargetSet));
         pCreatedStatements.put(pEdge.getPredecessor(), createGotoStatement(pEdge.getSuccessor()));
       }
       case ReturnStatementEdge -> {
-        SvLibTerm transformedTerm = transformEdgeToSvLibTerm(pEdge, pEdgeToPointerTargetSet);
-        pCreatedStatements.put(pEdge.getPredecessor(), handleAssignment(pEdge, transformedTerm));
+        pCreatedStatements.put(
+            pEdge.getPredecessor(), transformAssignmentEdge(pEdge, pEdgeToPointerTargetSet));
         SvLibReturnStatement returnStatement =
             new SvLibReturnStatement(FileLocation.DUMMY, ImmutableList.of(), ImmutableList.of());
         pCreatedStatements.put(pEdge.getPredecessor(), returnStatement);
@@ -512,17 +521,131 @@ class CToSvLibTransformation {
     return statementsCollector.build();
   }
 
-  private SvLibAssignmentStatement createAssignmentStatement(
-      SvLibIdTerm pIdTerm, SvLibTerm pAssignedTerm, String pFunctionName) {
-    SvLibSimpleParsingDeclaration assignedToAsDeclaration =
-        new SvLibParsingParameterDeclaration(
-            FileLocation.DUMMY,
-            pIdTerm.getDeclaration().getType(),
-            pIdTerm.getDeclaration().getName(),
-            pFunctionName);
+  /**
+   * Transform an edge that assigns a value into the corresponding SV-LIB statement.
+   *
+   * <p>Whenever the assignment writes to a variable that is represented by a variable in the
+   * generated SV-LIB program, the two sides of the assignment are transformed separately. The
+   * alternative would be to transform the formula that the {@link PathFormulaManager} creates for
+   * the whole edge, which is an equality between the old and the new instance of the assigned
+   * variable. That equality cannot be taken apart reliably, because its shape depends on the
+   * simplifications that the used SMT solver applies: MathSAT5 for example normalizes the formula
+   * for {@code x = x + 1;} into {@code x@2 - x@1 = 1}. Since the SSA indices are dropped when
+   * translating back to SV-LIB, the old and the new instance of the variable are not
+   * distinguishable in such a formula any more.
+   *
+   * <p>For assignments to variables whose address is taken, and for assignments to array elements
+   * or fields, the assigned memory is represented by the array that models the heap, and the
+   * formula for the whole edge is used, since it already contains the necessary update of that
+   * array. The same holds for an allocation of memory, whose base address the formula of the edge
+   * introduces.
+   */
+  private SvLibStatement transformAssignmentEdge(
+      CFAEdge pEdge, ImmutableMap.Builder<CFAEdge, PointerTargetSet> pEdgeToPointerTargetSet)
+      throws CPATransferException, InterruptedException {
+    PointerTargetSet pointerTargetSetBeforeEdge = getPtsForEdge(pEdge, pEdgeToPointerTargetSet);
+    PathFormula contextBeforeEdge =
+        pathFormulaManager.makeEmptyPathFormulaWithContext(
+            SSAMap.emptySSAMap(), pointerTargetSetBeforeEdge);
+    // The formula for the whole edge is always created, because the pointer target set that it
+    // computes is the context of the edges that follow this one.
+    PathFormula edgeFormula = pathFormulaManager.makeAnd(contextBeforeEdge, pEdge);
+    if (cfa.edges().contains(pEdge)) {
+      pEdgeToPointerTargetSet.put(pEdge, edgeFormula.getPointerTargetSet());
+    }
 
-    return new SvLibAssignmentStatement(
-        ImmutableMap.of(assignedToAsDeclaration, pAssignedTerm),
+    Optional<CAssignment> assignment = getAssignmentOfEdge(pEdge);
+    if (assignment.isPresent()
+        && assignment.orElseThrow().getLeftHandSide() instanceof CIdExpression lhs
+        && isRepresentedByOwnVariable(lhs, pointerTargetSetBeforeEdge)) {
+      return createAssignmentStatement(
+          lhs, assignment.orElseThrow().getRightHandSide(), contextBeforeEdge, pEdge);
+    }
+
+    return handleAssignment(
+        pEdge, formulaManager.visit(edgeFormula.getFormula(), formulaToSvLibVisitor));
+  }
+
+  /** The assignment that the given edge performs, if it performs one. */
+  private Optional<CAssignment> getAssignmentOfEdge(CFAEdge pEdge) {
+    return switch (pEdge) {
+      case CStatementEdge statementEdge ->
+          statementEdge.getStatement() instanceof CAssignment assignment
+              ? Optional.of(assignment)
+              : Optional.empty();
+      case CDeclarationEdge declarationEdge ->
+          declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration
+                  && variableDeclaration.getInitializer()
+                      instanceof CInitializerExpression initializer
+              ? Optional.of(
+                  new CExpressionAssignmentStatement(
+                      variableDeclaration.getFileLocation(),
+                      new CIdExpression(variableDeclaration.getFileLocation(), variableDeclaration),
+                      initializer.getExpression()))
+              : Optional.empty();
+      case CReturnStatementEdge returnStatementEdge -> returnStatementEdge.asAssignment();
+      default -> Optional.empty();
+    };
+  }
+
+  /**
+   * Is the given variable represented by a variable of the generated SV-LIB program, and not by the
+   * array that models the heap?
+   */
+  private boolean isRepresentedByOwnVariable(
+      CIdExpression pVariable, PointerTargetSet pPointerTargetSet) {
+    CType type = pVariable.getExpressionType().getCanonicalType();
+    if (type instanceof CArrayType || type instanceof CCompositeType) {
+      return false;
+    }
+    String qualifiedName = pVariable.getDeclaration().getQualifiedName();
+    for (PointerBase base : pPointerTargetSet.getBases().keySet()) {
+      if (base.name().equals(qualifiedName)) {
+        // The address of the variable is taken, so it is part of the heap representation.
+        return false;
+      }
+    }
+    // The variable is only representable if it is actually declared in the generated program.
+    return scope.hasVariableForQualifiedName(qualifiedName);
+  }
+
+  /**
+   * Create the SV-LIB statement that assigns the given right-hand side to the given variable,
+   * transforming both sides separately.
+   */
+  private SvLibStatement createAssignmentStatement(
+      CIdExpression pLeftHandSide,
+      CRightHandSide pRightHandSide,
+      PathFormula pContext,
+      CFAEdge pEdge)
+      throws CPATransferException {
+    RightHandSideTerm rightHandSide =
+        pathFormulaManager.rightHandSideToFormula(
+            pContext, pRightHandSide, pLeftHandSide.getExpressionType(), pEdge);
+
+    SvLibSimpleDeclaration assignedVariable =
+        scope
+            .getVariableForQualifiedName(pLeftHandSide.getDeclaration().getQualifiedName())
+            .toSimpleDeclaration();
+    SvLibAssignmentStatement assignmentStatement =
+        createAssignmentStatement(
+            new SvLibIdTerm(assignedVariable, FileLocation.DUMMY),
+            formulaManager.visit(rightHandSide.term(), formulaToSvLibVisitor),
+            pEdge.getPredecessor().getFunctionName());
+
+    // Constraints such as the axioms for bitwise operations have to hold in addition to the
+    // assignment itself, so they are assumed directly after it.
+    if (formulaManager.getBooleanFormulaManager().isTrue(rightHandSide.constraints())) {
+      return assignmentStatement;
+    }
+    return new SvLibSequenceStatement(
+        ImmutableList.of(
+            assignmentStatement,
+            new SvLibAssumeStatement(
+                FileLocation.DUMMY,
+                formulaManager.visit(rightHandSide.constraints(), formulaToSvLibVisitor),
+                ImmutableList.of(),
+                ImmutableList.of())),
         FileLocation.DUMMY,
         ImmutableList.of(),
         ImmutableList.of());
@@ -1026,6 +1149,22 @@ class CToSvLibTransformation {
             + pParameterType
             + " expected by the declaration of the procedure "
             + pProcedureDeclaration.getProcedureName());
+  }
+
+  private SvLibAssignmentStatement createAssignmentStatement(
+      SvLibIdTerm pIdTerm, SvLibTerm pAssignedTerm, String pFunctionName) {
+    SvLibSimpleParsingDeclaration assignedToAsDeclaration =
+        new SvLibParsingParameterDeclaration(
+            FileLocation.DUMMY,
+            pIdTerm.getDeclaration().getType(),
+            pIdTerm.getDeclaration().getName(),
+            pFunctionName);
+
+    return new SvLibAssignmentStatement(
+        ImmutableMap.of(assignedToAsDeclaration, pAssignedTerm),
+        FileLocation.DUMMY,
+        ImmutableList.of(),
+        ImmutableList.of());
   }
 
   /** An assumption that never holds, which says that the given node cannot be left. */
