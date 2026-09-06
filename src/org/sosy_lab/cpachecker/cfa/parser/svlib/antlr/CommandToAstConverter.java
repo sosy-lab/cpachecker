@@ -196,10 +196,17 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
             functionName,
             null));
 
-    return new SmtLibDefineFunCommand(
-        functionDeclaration,
-        termConverter.visit(functionDefContext.term()),
-        fileLocationFromContext(ctx));
+    // The parameters of the function have to be in the scope while its body is converted, because
+    // the body refers to them.
+    scope.enterProcedure(functionDeclaration.getParameters());
+    SvLibTerm body;
+    try {
+      body = termConverter.visit(functionDefContext.term());
+    } finally {
+      scope.leaveProcedure();
+    }
+
+    return new SmtLibDefineFunCommand(functionDeclaration, body, fileLocationFromContext(ctx));
   }
 
   @Override
@@ -357,10 +364,12 @@ class CommandToAstConverter extends AbstractAntlrToAstConverter<SvLibCommand> {
     SvLibType returnType = allTypes.getLast();
     List<SvLibType> parameterTypes = allTypes.subList(0, allTypes.size() - 1);
 
-    return new SvLibDeclareFunCommand(
+    SvLibSmtFunctionDeclaration functionDeclaration =
         new SvLibSmtFunctionDeclaration(
-            fileLocationFromContext(functionDecContext), functionName, parameterTypes, returnType),
-        fileLocationFromContext(pContext));
+            fileLocationFromContext(functionDecContext), functionName, parameterTypes, returnType);
+    // The declaration has to be in the scope, so that applications of the function can be resolved.
+    scope.addFunctionDeclaration(functionDeclaration);
+    return new SvLibDeclareFunCommand(functionDeclaration, fileLocationFromContext(pContext));
   }
 
   @Override

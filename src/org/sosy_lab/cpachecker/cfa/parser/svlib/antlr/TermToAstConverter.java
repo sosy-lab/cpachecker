@@ -188,6 +188,12 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
         transformedImmutableListCopy(
             ctx.term(), termContext -> Objects.requireNonNull(termContext).accept(this));
 
+    // A literal of the theory of floating point numbers is written as an application of "fp" to its
+    // three parts, but it denotes a constant and not an application of an operator.
+    if (functionSymbolContext.GRW_As() == null && functionSymbolContext.getText().equals("fp")) {
+      return createFloatingPointConstant(arguments, fileLocationFromContext(ctx));
+    }
+
     SvLibFunctionDeclaration declaration;
     if (functionSymbolContext.GRW_As() == null
         && functionSymbolContext.identifier()
@@ -744,7 +750,7 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
   private SvLibFunctionDeclaration getVariableDeclarationForIndexedSymbol(
       IdentifierUnderscoreContext pCtx, List<SvLibTerm> pArguments) {
     String symbol = pCtx.symbol().getText();
-    switch (symbol) {
+    return switch (symbol) {
       case "extract" -> {
         Verify.verify(pCtx.index().size() == 2);
         Verify.verify(pArguments.size() == 1);
@@ -753,7 +759,7 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
         // TODO: This datastructure needs to be extended in order to contain the arguments of the
         //  symbol instead of only having them as string. Since this currently only affects
         //  `extract` I delegate this to later.
-        return SmtLibTheoryDeclarations.bitVectorExtract(
+        yield SmtLibTheoryDeclarations.bitVectorExtract(
             ((SvLibSmtLibBitVectorType) pArguments.getFirst().getExpressionType()).getSize(),
             Integer.parseInt(pCtx.index(0).getText()),
             Integer.parseInt(pCtx.index(1).getText()));
@@ -763,7 +769,7 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
         Verify.verify(pArguments.size() == 1);
         Verify.verify(
             pArguments.getFirst().getExpressionType() instanceof SvLibSmtLibBitVectorType);
-        return SmtLibTheoryDeclarations.bitVectorRepeat(
+        yield SmtLibTheoryDeclarations.bitVectorRepeat(
             ((SvLibSmtLibBitVectorType) pArguments.getFirst().getExpressionType()).getSize(),
             Integer.parseInt(pCtx.index(0).getText()));
       }
@@ -775,12 +781,50 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
         int sourceSize =
             ((SvLibSmtLibBitVectorType) pArguments.getFirst().getExpressionType()).getSize();
         int targetSize = sourceSize + Integer.parseInt(pCtx.index(0).getText());
-        return symbol.equals("zero_extend")
+        yield symbol.equals("zero_extend")
             ? SmtLibTheoryDeclarations.bitVectorZeroExtend(sourceSize, targetSize)
             : SmtLibTheoryDeclarations.bitVectorSignExtend(sourceSize, targetSize);
       }
+      case "int_to_bv" -> {
+        Verify.verify(pCtx.index().size() == 1);
+        Verify.verify(pArguments.size() == 1);
+        yield SmtLibTheoryDeclarations.intToBitVector(Integer.parseInt(pCtx.index(0).getText()));
+      }
+      case "to_fp", "to_fp_unsigned" -> {
+        Verify.verify(pCtx.index().size() == 2);
+        if (pArguments.size() == 1) {
+          // A conversion of the bits of the representation of IEEE 754 loses no information and
+          // therefore does not round.
+          Verify.verify(symbol.equals("to_fp"));
+          Verify.verify(
+              pArguments.getFirst().getExpressionType() instanceof SvLibSmtLibBitVectorType,
+              "to_fp without a rounding mode reads the bits of a bitvector");
+          yield SmtLibTheoryDeclarations.floatingPointFromBitVector(
+              (SvLibSmtLibBitVectorType) pArguments.getFirst().getExpressionType(),
+              new SvLibSmtLibFloatingPointType(
+                  Integer.parseInt(pCtx.index(0).getText()),
+                  Integer.parseInt(pCtx.index(1).getText())));
+        }
+        Verify.verify(pArguments.size() == 2, "A conversion into a floating point number rounds");
+        yield SmtLibTheoryDeclarations.toFloatingPoint(
+            symbol.equals("to_fp_unsigned"),
+            pArguments.get(1).getExpressionType(),
+            new SvLibSmtLibFloatingPointType(
+                Integer.parseInt(pCtx.index(0).getText()),
+                Integer.parseInt(pCtx.index(1).getText())));
+      }
+      case "fp.to_sbv", "fp.to_ubv" -> {
+        Verify.verify(pCtx.index().size() == 1);
+        Verify.verify(pArguments.size() == 2, "A conversion of a floating point number rounds");
+        Verify.verify(
+            pArguments.get(1).getExpressionType() instanceof SvLibSmtLibFloatingPointType);
+        yield SmtLibTheoryDeclarations.floatingPointToBitVector(
+            symbol.equals("fp.to_sbv"),
+            (SvLibSmtLibFloatingPointType) pArguments.get(1).getExpressionType(),
+            new SvLibSmtLibBitVectorType(Integer.parseInt(pCtx.index(0).getText())));
+      }
       default ->
           throw new IllegalArgumentException("Unsupported indexed symbol: (_ " + symbol + " ...)");
-    }
+    };
   }
 }
