@@ -10,12 +10,14 @@ package org.sosy_lab.cpachecker.core.algorithm.to_svlib;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multiset;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.Collections;
@@ -160,6 +162,9 @@ class CToSvLibTransformation {
   /** The set of pointer targets that the formulas of every procedure start with. */
   private @Nullable PointerTargetSet initialPointerTargetSet = null;
 
+  /** Whether a block that no other block jumps to becomes part of the block before it. */
+  private final boolean useLargeBlockEncoding;
+
   /** The sizes of the types that the formulas of the analysis assume. */
   private final TypeHandlerWithPointerAliasing typeHandler;
 
@@ -169,13 +174,15 @@ class CToSvLibTransformation {
       PathFormulaManager pPathFormulaManager,
       FormulaToSvLibVisitor pFormulaToSvLibVisitor,
       SvLibCurrentScope pCurrentScope,
-      TypeHandlerWithPointerAliasing pTypeHandler) {
+      TypeHandlerWithPointerAliasing pTypeHandler,
+      boolean pUseLargeBlockEncoding) {
     cfa = pCFA;
     formulaManager = pFormulaManager;
     pathFormulaManager = pPathFormulaManager;
     formulaToSvLibVisitor = pFormulaToSvLibVisitor;
     scope = pCurrentScope;
     typeHandler = pTypeHandler;
+    useLargeBlockEncoding = pUseLargeBlockEncoding;
   }
 
   SvLibSequenceStatement transformFunction(@NonNull CFunctionEntryNode pEntryNode)
@@ -286,7 +293,7 @@ class CToSvLibTransformation {
               .filter(base -> !isDeclaredGlobally(base))
               .toSet());
 
-      return createSequenceStatement(statementCollector.build(), procedureName);
+      return createSequenceStatement(statementCollector.build(), relevantEdges, procedureName);
 
     } finally {
       scope.leaveProcedure();
@@ -1912,12 +1919,251 @@ class CToSvLibTransformation {
         FileLocation.DUMMY, ImmutableList.of(), ImmutableList.of(), pGotoTarget.toString());
   }
 
-  private SvLibSequenceStatement createSequenceStatement(
-      ImmutableListMultimap<CFANode, SvLibStatement> pSequenceBody, String pProcedureName) {
-    ImmutableList.Builder<SvLibStatement> statementList = ImmutableList.builder();
-    for (CFANode key : pSequenceBody.keySet()) {
-      pSequenceBody.get(key).forEach(statementList::add);
+  /**
+   * The order in which the blocks of a procedure are written and the blocks that become part of the
+   * block before them.
+   *
+   * @param order the blocks in the order in which they are written
+   * @param mergedBlocks the blocks that follow the block they belong to without a label of their
+   *     own, so that the block before them ends by falling through into them
+   * @param blocksWithInvertedCondition the blocks whose conditional jump at the end is replaced by
+   *     one with the negated condition to the successor that does not follow them
+   */
+  private record BlockLayout(
+      ImmutableList<CFANode> order,
+      ImmutableSet<CFANode> mergedBlocks,
+      ImmutableSet<CFANode> blocksWithInvertedCondition) {}
+
+  /**
+   * The layout of the blocks of a procedure, which merges every block that only one jump reaches
+   * into the block that ends with that jump.
+   *
+   * <p>Merging such a block saves its label and that jump, which makes the control flow of the
+   * generated program simpler: the analysis of that program then finds fewer loop heads and can use
+   * larger blocks for its abstraction. A block is only merged if the jump to it is the last
+   * statement of the block it belongs to, because only then falling through leads to it.
+   */
+  private BlockLayout getBlockLayout(
+      ImmutableListMultimap<CFANode, SvLibStatement> pSequenceBody,
+      ImmutableList<CFAEdge> pRelevantEdges) {
+    ImmutableList<CFANode> blocks = ImmutableList.copyOf(pSequenceBody.keySet());
+    if (!useLargeBlockEncoding) {
+      return new BlockLayout(blocks, ImmutableSet.of(), ImmutableSet.of());
     }
+
+    // Every edge that is transformed into a jump results in exactly one jump to the block of its
+    // successor, whether that jump is conditional or not, so the edges tell how many jumps a block
+    // is the target of. Counting the jumps in the statements instead would miss the ones inside a
+    // condition.
+    Multiset<CFANode> jumpTargets = HashMultiset.create();
+    for (CFAEdge edge : pRelevantEdges) {
+      if (isTransformedToJump(edge)) {
+        jumpTargets.add(edge.getSuccessor());
+      }
+    }
+    Map<String, CFANode> blocksByLabel = new LinkedHashMap<>();
+    for (CFANode block : blocks) {
+      blocksByLabel.put(block.toString(), block);
+    }
+
+    // The block that follows a block in the new order, and the blocks whose label and whose jump
+    // are left out, because they follow the block that jumps to them.
+    Map<CFANode, CFANode> blockAfter = new LinkedHashMap<>();
+    Set<CFANode> mergeableBlocks = new LinkedHashSet<>();
+
+    // A block after which control continues into the block that follows it now has to keep that
+    // block after it, so neither of the two can become part of another block.
+    for (int index = 0; index < blocks.size() - 1; index++) {
+      if (!endsWithoutFallingThrough(pSequenceBody.get(blocks.get(index)))) {
+        blockAfter.put(blocks.get(index), blocks.get(index + 1));
+      }
+    }
+    ImmutableMap<CFANode, CFANode> blocksThatFallThrough = ImmutableMap.copyOf(blockAfter);
+    ImmutableSet<CFANode> blocksThatKeepTheirPlace = ImmutableSet.copyOf(blockAfter.values());
+
+    for (CFANode block : blocks) {
+      if (blockAfter.containsKey(block)
+          || !(Iterables.getLast(pSequenceBody.get(block)) instanceof SvLibGotoStatement jump)) {
+        continue;
+      }
+      CFANode target = blocksByLabel.get(jump.getLabel());
+      // The first block stays the first one, because the procedure begins with it.
+      if (target != null
+          && !target.equals(blocks.getFirst())
+          && !blocksThatKeepTheirPlace.contains(target)
+          && jumpTargets.count(target) == 1) {
+        blockAfter.put(block, target);
+        mergeableBlocks.add(target);
+      }
+    }
+
+    // A block that only a conditional jump reaches can still become part of the block that jumps
+    // to it, if that condition is negated and jumps to the other successor of that block instead.
+    ImmutableSet.Builder<CFANode> blocksWithInvertedCondition = ImmutableSet.builder();
+    for (CFANode block : blocks) {
+      ImmutableList<SvLibStatement> statements = pSequenceBody.get(block);
+      if (blockAfter.containsKey(block) || statements.size() < 2) {
+        continue;
+      }
+      CFANode target =
+          getTargetOfConditionalJumpAtEnd(statements).map(blocksByLabel::get).orElse(null);
+      if (target != null
+          && !target.equals(blocks.getFirst())
+          && !blocksThatKeepTheirPlace.contains(target)
+          && jumpTargets.count(target) == 1) {
+        blockAfter.put(block, target);
+        mergeableBlocks.add(target);
+        blocksWithInvertedCondition.add(block);
+      }
+    }
+
+    ImmutableList.Builder<CFANode> order = ImmutableList.builder();
+    ImmutableSet.Builder<CFANode> mergedBlocks = ImmutableSet.builder();
+    Set<CFANode> written = new LinkedHashSet<>();
+    ImmutableSet<CFANode> blocksAfterAnother = ImmutableSet.copyOf(blockAfter.values());
+    // The chains of blocks begin at the blocks that follow no other block. The second pass writes
+    // the blocks that only such chains lead to, which form a cycle among themselves.
+    for (int pass = 0; pass < 2; pass++) {
+      for (CFANode block : blocks) {
+        if (written.contains(block) || (pass == 0 && blocksAfterAnother.contains(block))) {
+          continue;
+        }
+        CFANode current = block;
+        while (true) {
+          written.add(current);
+          order.add(current);
+          CFANode next = blockAfter.get(current);
+          if (next == null || written.contains(next)) {
+            break;
+          }
+          if (mergeableBlocks.contains(next)) {
+            mergedBlocks.add(next);
+          }
+          current = next;
+        }
+      }
+    }
+    ImmutableList<CFANode> newOrder = order.build();
+    for (Map.Entry<CFANode, CFANode> fallingThrough : blocksThatFallThrough.entrySet()) {
+      // A block that control leaves by falling through has to keep the block that follows it. If
+      // the order does not do that, which the cycles among the merged blocks can prevent, the
+      // blocks are written as they are.
+      int index = newOrder.indexOf(fallingThrough.getKey());
+      if (index + 1 >= newOrder.size()
+          || !newOrder.get(index + 1).equals(fallingThrough.getValue())) {
+        return new BlockLayout(blocks, ImmutableSet.of(), ImmutableSet.of());
+      }
+    }
+    return new BlockLayout(newOrder, mergedBlocks.build(), blocksWithInvertedCondition.build());
+  }
+
+  /**
+   * The label that the conditional jump before the jump at the end of the given block goes to, if
+   * the block ends with such a pair of jumps.
+   *
+   * <p>The pair means "jump to the label of the condition if it holds and to the label of the jump
+   * at the end otherwise", so the two labels can be exchanged by negating the condition.
+   */
+  private static Optional<String> getTargetOfConditionalJumpAtEnd(
+      ImmutableList<SvLibStatement> pStatements) {
+    if (!(Iterables.getLast(pStatements) instanceof SvLibGotoStatement)) {
+      return Optional.empty();
+    }
+    if (pStatements.get(pStatements.size() - 2) instanceof SvLibIfStatement conditionalJump
+        && conditionalJump.getElseBranch().isEmpty()
+        && conditionalJump.getThenBranch() instanceof SvLibGotoStatement jump) {
+      return Optional.of(jump.getLabel());
+    }
+    return Optional.empty();
+  }
+
+  /**
+   * The given conditional jump with its condition negated and the given jump as its target, so that
+   * the target of the conditional jump becomes the block that follows it.
+   */
+  private static SvLibStatement invertConditionalJump(
+      SvLibStatement pConditionalJump, SvLibStatement pJump) {
+    SvLibTerm condition = ((SvLibIfStatement) pConditionalJump).getCondition();
+    return new SvLibIfStatement(
+        FileLocation.DUMMY,
+        ImmutableList.of(),
+        ImmutableList.of(),
+        new SvLibSymbolApplicationTerm(
+            new SvLibIdTerm(SmtLibTheoryDeclarations.BOOL_NEGATION, FileLocation.DUMMY),
+            ImmutableList.of(condition),
+            FileLocation.DUMMY),
+        pJump);
+  }
+
+  /** Is the given edge transformed into a jump to the block of its successor? */
+  private static boolean isTransformedToJump(CFAEdge pEdge) {
+    return switch (pEdge.getEdgeType()) {
+      case BlankEdge, AssumeEdge, StatementEdge, DeclarationEdge, CallToReturnEdge -> true;
+      // A return leaves the procedure and the two edges of a call are not transformed at all,
+      // because the call is transformed together with its summary edge.
+      case ReturnStatementEdge, FunctionCallEdge, FunctionReturnEdge -> false;
+    };
+  }
+
+  /** Does control never continue after the given block into the block that follows it? */
+  private static boolean endsWithoutFallingThrough(ImmutableList<SvLibStatement> pStatements) {
+    if (pStatements.isEmpty()) {
+      return false;
+    }
+    return switch (Iterables.getLast(pStatements)) {
+      case SvLibGotoStatement unused -> true;
+      case SvLibReturnStatement unused -> true;
+      // The only assumption at the end of a block is the "false" of a node that terminates.
+      case SvLibAssumeStatement unused -> true;
+      default -> false;
+    };
+  }
+
+  /** Is the given statement the label that marks the beginning of the given block? */
+  private static boolean isLabelOf(SvLibStatement pStatement, CFANode pBlock) {
+    return pStatement instanceof SvLibLabelStatement label
+        && label.getLabel().equals(pBlock.toString());
+  }
+
+  private SvLibSequenceStatement createSequenceStatement(
+      ImmutableListMultimap<CFANode, SvLibStatement> pSequenceBody,
+      ImmutableList<CFAEdge> pRelevantEdges,
+      String pProcedureName) {
+    ImmutableList.Builder<SvLibStatement> statementList = ImmutableList.builder();
+    BlockLayout layout = getBlockLayout(pSequenceBody, pRelevantEdges);
+    ImmutableSet<CFANode> mergedBlocks = layout.mergedBlocks();
+    ImmutableList<CFANode> blocks = layout.order();
+
+    for (int index = 0; index < blocks.size(); index++) {
+      CFANode block = blocks.get(index);
+      ImmutableList<SvLibStatement> statementsOfBlock = pSequenceBody.get(block);
+      int lastIndex = statementsOfBlock.size() - 1;
+      boolean nextBlockIsMerged =
+          index + 1 < blocks.size() && mergedBlocks.contains(blocks.get(index + 1));
+      boolean conditionIsInverted =
+          nextBlockIsMerged && layout.blocksWithInvertedCondition().contains(block);
+
+      for (int statementIndex = 0; statementIndex < statementsOfBlock.size(); statementIndex++) {
+        SvLibStatement statement = statementsOfBlock.get(statementIndex);
+        if (mergedBlocks.contains(block) && isLabelOf(statement, block)) {
+          // This block follows the block that jumps to it, so its label is not needed.
+          continue;
+        }
+        if (conditionIsInverted && statementIndex == lastIndex - 1) {
+          // The block that the condition jumps to follows this one, so the negated condition jumps
+          // to the target of the jump at the end of this block instead.
+          statementList.add(invertConditionalJump(statement, statementsOfBlock.get(lastIndex)));
+          continue;
+        }
+        if (nextBlockIsMerged && statementIndex == lastIndex) {
+          // The next block follows this one, so the jump to it is not needed. If the condition is
+          // inverted, that jump has become the target of the condition.
+          continue;
+        }
+        statementList.add(statement);
+      }
+    }
+
     return new SvLibSequenceStatement(
         statementList.build(),
         FileLocation.DUMMY,
