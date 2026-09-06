@@ -15,7 +15,10 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import java.math.BigInteger;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 import java.util.NavigableSet;
 import java.util.Optional;
@@ -50,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -93,11 +97,14 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter.RightHandSideTerm;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerBase;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.FormulaToSvLibVisitor;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.visitors.DefaultBooleanFormulaVisitor;
 
 class CToSvLibTransformation {
   private final CFA cfa;
@@ -411,116 +418,6 @@ class CToSvLibTransformation {
         && predecessor.getLeavingEdge(predecessor.getNumLeavingEdges() - 1) == pEdge;
   }
 
-  private SvLibStatement handleAssignment(CFAEdge pEdge, SvLibTerm pTransformedTerm) {
-    // For some edges without assignment, such as a declarationEdge for int x;, the
-    // pTransformedTerm is a SvLibBooleanConstantTerm with the value true, and no
-    // SvLibAssignmentStatement should be returned.
-    if (pTransformedTerm instanceof SvLibBooleanConstantTerm booleanConstant
-        && booleanConstant.getValue()) {
-      return SvLibSequenceStatement.emptySequence();
-
-    } else if (pTransformedTerm instanceof SvLibSymbolApplicationTerm symbolApplicationTerm
-        && symbolApplicationTerm.getSymbol().getName().equals("=")
-        && symbolApplicationTerm.getTerms().size() == 2) {
-
-      ImmutableList<SvLibTerm> termsList = ImmutableList.copyOf(symbolApplicationTerm.getTerms());
-      SvLibTerm assignedTo = termsList.getFirst();
-      SvLibTerm termToAssign = termsList.get(1);
-
-      if (assignedTo instanceof SvLibIdTerm idTerm
-          && (idTerm.getDeclaration() instanceof SvLibVariableDeclaration
-              || idTerm.getDeclaration() instanceof SvLibParameterDeclaration)) {
-        return createAssignmentStatement(
-            idTerm, termToAssign, pEdge.getPredecessor().getFunctionName());
-      }
-    } else if (pTransformedTerm instanceof SvLibSymbolApplicationTerm outerTerm
-        && outerTerm.getSymbol().getName().equals("and")
-        && outerTerm.getTerms().size() == 2
-        && outerTerm.getTerms().getFirst() instanceof SvLibSymbolApplicationTerm innerTerm
-        && innerTerm.getSymbol().getName().equals("=")
-        && innerTerm.getTerms().size() == 2) {
-
-      SvLibTerm assignedTo = innerTerm.getTerms().getFirst();
-      SvLibTerm assignedTerm = innerTerm.getTerms().get(1);
-      SvLibTerm assumeTerm = outerTerm.getTerms().get(1);
-
-      if (assignedTo instanceof SvLibIdTerm idTerm
-          && (idTerm.getDeclaration() instanceof SvLibVariableDeclaration
-              || idTerm.getDeclaration() instanceof SvLibParameterDeclaration)) {
-
-        SvLibAssignmentStatement assignmentStatement =
-            createAssignmentStatement(
-                idTerm, assignedTerm, pEdge.getPredecessor().getFunctionName());
-        SvLibAssumeStatement assumeStatement =
-            new SvLibAssumeStatement(
-                FileLocation.DUMMY, assumeTerm, ImmutableList.of(), ImmutableList.of());
-
-        return new SvLibSequenceStatement(
-            ImmutableList.of(assignmentStatement, assumeStatement),
-            FileLocation.DUMMY,
-            ImmutableList.of(),
-            ImmutableList.of());
-      }
-    } else if (pTransformedTerm instanceof SvLibSymbolApplicationTerm outerTerm
-        && outerTerm.getSymbol().getName().equals("and")
-        && outerTerm.getTerms().size() == 2
-        && outerTerm.getTerms().getFirst() instanceof SvLibSymbolApplicationTerm innerTerm
-        && innerTerm.getSymbol().getName().equals("and")
-        && innerTerm.getTerms().size() == 2) {
-
-      ImmutableList<SvLibStatement> statements =
-          handleAssignmentForNestedTerm(
-              outerTerm, innerTerm, pEdge.getPredecessor().getFunctionName());
-      return new SvLibSequenceStatement(
-          statements, FileLocation.DUMMY, ImmutableList.of(), ImmutableList.of());
-
-    } else if (pTransformedTerm instanceof SvLibSymbolApplicationTerm term
-        && term.getSymbol().getName().equals("and")
-        && (term.getTerms().size() == 3
-            || term.getTerms().size() == 4
-            || term.getTerms().size() == 5)) {
-      return new SvLibAssumeStatement(
-          FileLocation.DUMMY, term, ImmutableList.of(), ImmutableList.of());
-    }
-    throw new UnsupportedOperationException(
-        "Failed to handle assignment for edge "
-            + pEdge
-            + " and transformed term "
-            + pTransformedTerm.toASTString());
-  }
-
-  private ImmutableList<SvLibStatement> handleAssignmentForNestedTerm(
-      SvLibSymbolApplicationTerm pOuterTerm,
-      SvLibSymbolApplicationTerm pInnerTerm,
-      String pFunctionName) {
-    // extract all equality terms from the innerSymbolApplicationTerm
-    ImmutableList.Builder<SvLibSymbolApplicationTerm> assignmentTermsCollector =
-        ImmutableList.builder();
-    pInnerTerm.accept(new CToSvLibTransformationTermVisitor(assignmentTermsCollector));
-
-    // create assignment statements for each collected term
-    ImmutableList<SvLibSymbolApplicationTerm> assignmentTerms = assignmentTermsCollector.build();
-    ImmutableList.Builder<SvLibStatement> statementsCollector = ImmutableList.builder();
-    for (SvLibSymbolApplicationTerm symbolApplicationTerm : assignmentTerms) {
-      if (symbolApplicationTerm.getTerms().getFirst() instanceof SvLibIdTerm idTerm
-          && (idTerm.getDeclaration() instanceof SvLibVariableDeclaration
-              || idTerm.getDeclaration() instanceof SvLibParameterDeclaration)) {
-        statementsCollector.add(
-            createAssignmentStatement(
-                idTerm, symbolApplicationTerm.getTerms().get(1), pFunctionName));
-      }
-    }
-    // create an assumeStatement for the conditions in the outerTerm
-    statementsCollector.add(
-        new SvLibAssumeStatement(
-            FileLocation.DUMMY,
-            pOuterTerm.getTerms().get(1),
-            ImmutableList.of(),
-            ImmutableList.of()));
-
-    return statementsCollector.build();
-  }
-
   /**
    * Transform an edge that assigns a value into the corresponding SV-LIB statement.
    *
@@ -562,8 +459,7 @@ class CToSvLibTransformation {
           lhs, assignment.orElseThrow().getRightHandSide(), contextBeforeEdge, pEdge);
     }
 
-    return handleAssignment(
-        pEdge, formulaManager.visit(edgeFormula.getFormula(), formulaToSvLibVisitor));
+    return transformEdgeFormula(pEdge, contextBeforeEdge.getSsa(), edgeFormula);
   }
 
   /** The assignment that the given edge performs, if it performs one. */
@@ -1149,6 +1045,224 @@ class CToSvLibTransformation {
             + pParameterType
             + " expected by the declaration of the procedure "
             + pProcedureDeclaration.getProcedureName());
+  }
+
+  /**
+   * Transform the formula of an edge whose assignment target is not represented by a variable of
+   * the generated SV-LIB program, but by the array that models the heap.
+   *
+   * <p>{@link CtoFormulaConverter} builds such an assignment as a formula that relates the old and
+   * the new instance of that array, and not as a pair of a left-hand and a right-hand side (the
+   * update of the array is created deep inside the encoding of the heap), so the two sides have to
+   * be recovered from the formula here.
+   *
+   * <p>The formula is a conjunction of the equalities that define the new values of the assigned
+   * memory and of conditions that only have to hold, for example the constraints on the addresses
+   * of the variables. The conjunction is flattened, because how deeply it is nested depends on the
+   * SMT solver: Z3 creates one n-ary conjunction where MathSAT5 creates nested binary ones. Whether
+   * a conjunct is an assignment is not decided by its shape alone: it also has to define the value
+   * of a variable for which this edge created a new instance, which is read from the SSA indices.
+   * An equality between two variables that the edge does not assign is a condition and not an
+   * assignment.
+   */
+  private SvLibStatement transformEdgeFormula(
+      CFAEdge pEdge, SSAMap pSsaBeforeEdge, PathFormula pEdgeFormula) {
+    // The conjunction of the formula is flattened before its parts are transformed, because the
+    // transformation of a formula walks it recursively and the formula of an edge of a large
+    // function can be a chain of conjunctions that is deeper than the stack allows.
+    ImmutableList.Builder<SvLibTerm> transformedConjuncts = ImmutableList.builder();
+    for (BooleanFormula conjunct : flattenConjunctionOfFormula(pEdgeFormula.getFormula())) {
+      transformedConjuncts.add(formulaManager.visit(conjunct, formulaToSvLibVisitor));
+    }
+    ImmutableList<SvLibTerm> transformedTerms = transformedConjuncts.build();
+
+    // Edges without any effect, such as the declaration edge of "int x;", have no statement.
+    if (FluentIterable.from(transformedTerms)
+        .allMatch(
+            term ->
+                term instanceof SvLibBooleanConstantTerm booleanConstant
+                    && booleanConstant.getValue())) {
+      return SvLibSequenceStatement.emptySequence();
+    }
+
+    ImmutableSet<String> assignedVariables =
+        getAssignedVariables(pSsaBeforeEdge, pEdgeFormula.getSsa());
+    ImmutableList.Builder<SvLibStatement> statements = ImmutableList.builder();
+    ImmutableList.Builder<SvLibTerm> conditions = ImmutableList.builder();
+
+    for (SvLibTerm conjunct :
+        FluentIterable.from(transformedTerms).transformAndConcat(this::flattenConjunction)) {
+      Optional<SvLibIdTerm> assignedTo = getAssignedVariable(conjunct, assignedVariables);
+      if (assignedTo.isPresent()) {
+        statements.add(
+            createAssignmentStatement(
+                assignedTo.orElseThrow(),
+                getOtherSideOfEquality(
+                    (SvLibSymbolApplicationTerm) conjunct, assignedTo.orElseThrow()),
+                pEdge.getPredecessor().getFunctionName()));
+      } else {
+        conditions.add(conjunct);
+      }
+    }
+
+    ImmutableList<SvLibTerm> conditionTerms = conditions.build();
+    if (!conditionTerms.isEmpty()) {
+      // The conditions constrain the values that the assignments create, so they are assumed
+      // afterwards.
+      statements.add(
+          new SvLibAssumeStatement(
+              FileLocation.DUMMY, conjoin(conditionTerms), ImmutableList.of(), ImmutableList.of()));
+    }
+
+    ImmutableList<SvLibStatement> createdStatements = statements.build();
+    if (createdStatements.size() == 1) {
+      return createdStatements.getFirst();
+    }
+    return new SvLibSequenceStatement(
+        createdStatements, FileLocation.DUMMY, ImmutableList.of(), ImmutableList.of());
+  }
+
+  /**
+   * The variables that the edge between the two given SSA maps gave a new instance, i.e. those
+   * whose value the edge can change.
+   *
+   * <p>The formula of an edge is built with an empty map, so every variable that the edge mentions
+   * has a new instance afterwards, whether the edge writes it or only reads it: the index cannot
+   * tell the two apart, because the first instance of a variable that is written without being read
+   * has the same index as the instance that a read creates. Which variables an edge writes is
+   * therefore over-approximated here, and {@link #getAssignedVariable} looks for the shape of an
+   * assignment among the conjuncts of the formula to find the ones that really are assignments.
+   */
+  private ImmutableSet<String> getAssignedVariables(SSAMap pBeforeEdge, SSAMap pAfterEdge) {
+    ImmutableSet.Builder<String> assignedVariables = ImmutableSet.builder();
+    for (String variable : pAfterEdge.allVariables()) {
+      if (pAfterEdge.getIndex(variable) > pBeforeEdge.getIndex(variable)) {
+        assignedVariables.add(variable);
+      }
+    }
+    return assignedVariables.build();
+  }
+
+  /**
+   * If the given conjunct is an equality that defines the new value of one of the given assigned
+   * variables, the term for that variable.
+   */
+  private Optional<SvLibIdTerm> getAssignedVariable(
+      SvLibTerm pConjunct, ImmutableSet<String> pAssignedVariables) {
+    if (!(pConjunct instanceof SvLibSymbolApplicationTerm equality)
+        || !equality.getSymbol().getName().equals("=")
+        || equality.getTerms().size() != 2) {
+      return Optional.empty();
+    }
+    // Which side of the equality holds the assigned variable depends on the simplifications of the
+    // used SMT solver, which for example writes the assignment of the result of an allocation as
+    // "(= (ite (not (= malloc 0)) address 0) p)".
+    for (SvLibRelationalTerm side : equality.getTerms()) {
+      if (side instanceof SvLibIdTerm assignedTo
+          && (assignedTo.getDeclaration() instanceof SvLibVariableDeclaration
+              || assignedTo.getDeclaration() instanceof SvLibParameterDeclaration)
+          && pAssignedVariables.contains(
+              unescapeVariableName(assignedTo.getDeclaration().getQualifiedName()))) {
+        return Optional.of(assignedTo);
+      }
+    }
+    return Optional.empty();
+  }
+
+  /** The side of the given equality that is not the given one. */
+  private SvLibTerm getOtherSideOfEquality(
+      SvLibSymbolApplicationTerm pEquality, SvLibIdTerm pOneSide) {
+    for (SvLibRelationalTerm side : pEquality.getTerms()) {
+      if (side != pOneSide && side instanceof SvLibTerm term) {
+        return term;
+      }
+    }
+    throw new UnsupportedOperationException(
+        "The equality " + pEquality.toASTString() + " has only one side");
+  }
+
+  /**
+   * The name of a variable as it appears in an {@link SSAMap}. Variables whose name is not a valid
+   * SMT-LIB symbol are quoted with vertical bars in the generated script.
+   */
+  private String unescapeVariableName(String pName) {
+    if (pName.length() >= 2 && pName.startsWith("|") && pName.endsWith("|")) {
+      return pName.substring(1, pName.length() - 1);
+    }
+    return pName;
+  }
+
+  /**
+   * Split the given term into the conjuncts of its top-level conjunction, flattening nested
+   * conjunctions. Terms that are not conjunctions are returned unchanged as the only conjunct.
+   */
+  private ImmutableList<SvLibTerm> flattenConjunction(SvLibTerm pTerm) {
+    if (pTerm instanceof SvLibSymbolApplicationTerm applicationTerm
+        && applicationTerm.getSymbol().getName().equals("and")) {
+      ImmutableList.Builder<SvLibTerm> conjuncts = ImmutableList.builder();
+      for (SvLibTerm conjunct : applicationTerm.getTerms()) {
+        conjuncts.addAll(flattenConjunction(conjunct));
+      }
+      return conjuncts.build();
+    }
+    return ImmutableList.of(pTerm);
+  }
+
+  /**
+   * The conjuncts of the given formula, in the order in which they appear in it.
+   *
+   * <p>The conjunction is flattened without recursion, so that a formula that is a long chain of
+   * conjunctions can be taken apart before the parts are transformed.
+   */
+  private ImmutableList<BooleanFormula> flattenConjunctionOfFormula(BooleanFormula pFormula) {
+    ImmutableList.Builder<BooleanFormula> conjuncts = ImmutableList.builder();
+    Deque<BooleanFormula> waiting = new ArrayDeque<>();
+    waiting.push(pFormula);
+    while (!waiting.isEmpty()) {
+      BooleanFormula formula = waiting.pop();
+      Optional<List<BooleanFormula>> operands = getOperandsOfConjunction(formula);
+      if (operands.isPresent()) {
+        // The operands are pushed in reverse order, so that they are taken in their own order.
+        for (BooleanFormula operand : Lists.reverse(operands.orElseThrow())) {
+          waiting.push(operand);
+        }
+      } else {
+        conjuncts.add(formula);
+      }
+    }
+    return conjuncts.build();
+  }
+
+  /** The operands of the given formula, if it is a conjunction. */
+  private Optional<List<BooleanFormula>> getOperandsOfConjunction(BooleanFormula pFormula) {
+    return formulaManager
+        .getBooleanFormulaManager()
+        .visit(
+            pFormula,
+            new DefaultBooleanFormulaVisitor<Optional<List<BooleanFormula>>>() {
+              @Override
+              protected Optional<List<BooleanFormula>> visitDefault() {
+                return Optional.empty();
+              }
+
+              @Override
+              public Optional<List<BooleanFormula>> visitAnd(List<BooleanFormula> pOperands) {
+                return Optional.of(pOperands);
+              }
+            });
+  }
+
+  /** The conjunction of the given terms, or the single term if there is only one. */
+  private SvLibTerm conjoin(ImmutableList<SvLibTerm> pTerms) {
+    Verify.verify(!pTerms.isEmpty());
+    if (pTerms.size() == 1) {
+      return pTerms.getFirst();
+    }
+    return new SvLibSymbolApplicationTerm(
+        new SvLibIdTerm(
+            SmtLibTheoryDeclarations.boolConjunction(pTerms.size()), FileLocation.DUMMY),
+        pTerms,
+        FileLocation.DUMMY);
   }
 
   private SvLibAssignmentStatement createAssignmentStatement(
