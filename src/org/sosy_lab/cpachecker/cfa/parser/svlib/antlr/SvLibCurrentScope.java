@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.antlr;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -36,7 +38,7 @@ public class SvLibCurrentScope extends SvLibScope {
   private PersistentMap<String, SvLibProcedureDeclaration> procedureDeclarations;
 
   public SvLibCurrentScope() {
-    super(new ImmutableSet.Builder<>(), new ImmutableMap.Builder<>(), new ImmutableMap.Builder<>());
+    super(new ImmutableSet.Builder<>(), new ImmutableMap.Builder<>(), new LinkedHashMap<>());
     globalVariables = PathCopyingPersistentTreeMap.of();
     globalVariablesQualifiedNames = PathCopyingPersistentTreeMap.of();
     procedureDeclarationVariables = PathCopyingPersistentTreeMap.of();
@@ -53,7 +55,7 @@ public class SvLibCurrentScope extends SvLibScope {
       PersistentMap<String, SvLibProcedureDeclaration> pProcedureDeclarations,
       ImmutableSet.Builder<SmtLibLogic> pLogics,
       ImmutableMap.Builder<String, SvLibSortDeclaration> pSortDeclarations,
-      ImmutableMap.Builder<String, SvLibSmtFunctionDeclaration> pFunctionDeclarations) {
+      Map<String, SvLibSmtFunctionDeclaration> pFunctionDeclarations) {
     super(pLogics, pSortDeclarations, pFunctionDeclarations);
     globalVariables = pGlobalVariables;
     globalVariablesQualifiedNames = pGlobalVariablesQualifiedNames;
@@ -78,18 +80,17 @@ public class SvLibCurrentScope extends SvLibScope {
   @Override
   public void enterProcedure(List<SvLibParsingParameterDeclaration> pParameters) {
     for (SvLibParsingParameterDeclaration parameter : pParameters) {
-      if (globalVariables.containsKey(parameter.getName())
-          || procedureDeclarationVariables.containsKey(parameter.getName())) {
+      String key = keyOf(parameter.getName());
+      if (globalVariables.containsKey(key) || procedureDeclarationVariables.containsKey(key)) {
         throw new IllegalArgumentException(
             "Parameter with name "
                 + parameter.getQualifiedName()
                 + " already exists in the scope.");
       }
-      procedureDeclarationVariables =
-          procedureDeclarationVariables.putAndCopy(parameter.getName(), parameter);
+      procedureDeclarationVariables = procedureDeclarationVariables.putAndCopy(key, parameter);
       procedureDeclarationVariablesQualifiedNames =
           procedureDeclarationVariablesQualifiedNames.putAndCopy(
-              parameter.getQualifiedName(), parameter);
+              keyOf(parameter.getQualifiedName()), parameter);
     }
   }
 
@@ -99,12 +100,39 @@ public class SvLibCurrentScope extends SvLibScope {
     procedureDeclarationVariables = PathCopyingPersistentTreeMap.of();
   }
 
+  /**
+   * The key under which a variable of the given name is stored.
+   *
+   * <p>A name that is not a simple symbol of SMT-LIB, or that is a reserved word of SV-LIB, is
+   * quoted in the script, but the quotes are only a way of writing the name and not part of it, so
+   * both forms denote the same variable. Only the name itself is quoted, not the name of the
+   * procedure that a qualified name starts with.
+   */
+  private static String keyOf(String pName) {
+    // A qualified name can be quoted as a whole or only in the part after the name of the
+    // procedure.
+    String name = withoutQuotes(pName);
+    int endOfProcedureName = name.lastIndexOf("::");
+    if (endOfProcedureName >= 0) {
+      return name.substring(0, endOfProcedureName + 2)
+          + withoutQuotes(name.substring(endOfProcedureName + 2));
+    }
+    return name;
+  }
+
+  private static String withoutQuotes(String pName) {
+    return pName.length() > 1 && pName.startsWith("|") && pName.endsWith("|")
+        ? pName.substring(1, pName.length() - 1)
+        : pName;
+  }
+
   @Override
   public SvLibSimpleParsingDeclaration getVariable(String pText) {
-    if (globalVariables.containsKey(pText)) {
-      return globalVariables.get(pText);
-    } else if (procedureDeclarationVariables.containsKey(pText)) {
-      return procedureDeclarationVariables.get(pText);
+    String key = keyOf(pText);
+    if (globalVariables.containsKey(key)) {
+      return globalVariables.get(key);
+    } else if (procedureDeclarationVariables.containsKey(key)) {
+      return procedureDeclarationVariables.get(key);
     } else {
       throw new IllegalArgumentException(
           "Variable with name " + pText + " does not exist in the scope.");
@@ -113,10 +141,11 @@ public class SvLibCurrentScope extends SvLibScope {
 
   @Override
   public SvLibSimpleParsingDeclaration getVariableForQualifiedName(String pText) {
-    if (globalVariablesQualifiedNames.containsKey(pText)) {
-      return globalVariablesQualifiedNames.get(pText);
-    } else if (procedureDeclarationVariablesQualifiedNames.containsKey(pText)) {
-      return procedureDeclarationVariablesQualifiedNames.get(pText);
+    String key = keyOf(pText);
+    if (globalVariablesQualifiedNames.containsKey(key)) {
+      return globalVariablesQualifiedNames.get(key);
+    } else if (procedureDeclarationVariablesQualifiedNames.containsKey(key)) {
+      return procedureDeclarationVariablesQualifiedNames.get(key);
     } else {
       throw new IllegalArgumentException(
           "Variable with name " + pText + " does not exist in the scope.");
@@ -124,31 +153,52 @@ public class SvLibCurrentScope extends SvLibScope {
   }
 
   @Override
+  public boolean hasVariable(String pText) {
+    String key = keyOf(pText);
+    return globalVariables.containsKey(key) || procedureDeclarationVariables.containsKey(key);
+  }
+
+  @Override
+  public boolean hasVariableForQualifiedName(String pText) {
+    String key = keyOf(pText);
+    return globalVariablesQualifiedNames.containsKey(key)
+        || procedureDeclarationVariablesQualifiedNames.containsKey(key);
+  }
+
+  @Override
   public void addVariable(SvLibParsingVariableDeclaration pVariableDeclaration) {
-    if (globalVariables.containsKey(pVariableDeclaration.getName())
-        || procedureDeclarationVariables.containsKey(pVariableDeclaration.getName())) {
+    String key = keyOf(pVariableDeclaration.getName());
+    if (globalVariables.containsKey(key) || procedureDeclarationVariables.containsKey(key)) {
       throw new IllegalArgumentException(
           "Variable with name " + pVariableDeclaration.getName() + " already exists in the scope.");
     }
-    globalVariables =
-        globalVariables.putAndCopy(pVariableDeclaration.getName(), pVariableDeclaration);
+    globalVariables = globalVariables.putAndCopy(key, pVariableDeclaration);
     globalVariablesQualifiedNames =
         globalVariablesQualifiedNames.putAndCopy(
-            pVariableDeclaration.getQualifiedName(), pVariableDeclaration);
+            keyOf(pVariableDeclaration.getQualifiedName()), pVariableDeclaration);
   }
 
   @Override
   public void addProcedureDeclaration(SvLibProcedureDeclaration pProcedureDeclaration) {
-    String procedureName = pProcedureDeclaration.getName();
+    String procedureName = keyOf(pProcedureDeclaration.getName());
     if (procedureDeclarations.containsKey(procedureName)) {
       throw new IllegalArgumentException(
-          "Procedure with name " + procedureName + " already exists in the scope.");
+          "Procedure with name "
+              + pProcedureDeclaration.getName()
+              + " already exists in the scope.");
     }
     procedureDeclarations = procedureDeclarations.putAndCopy(procedureName, pProcedureDeclaration);
   }
 
   @Override
   public SvLibProcedureDeclaration getProcedureDeclaration(String pText) {
-    return Objects.requireNonNull(procedureDeclarations.get(pText));
+    return Objects.requireNonNull(
+        procedureDeclarations.get(keyOf(pText)),
+        () -> "Procedure with name " + pText + " does not exist in the scope.");
+  }
+
+  @Override
+  public boolean hasProcedureDeclaration(String pText) {
+    return procedureDeclarations.containsKey(keyOf(pText));
   }
 }

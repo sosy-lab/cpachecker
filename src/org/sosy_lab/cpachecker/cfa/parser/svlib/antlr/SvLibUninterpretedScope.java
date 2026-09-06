@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.antlr;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibLogic;
@@ -30,7 +32,7 @@ public class SvLibUninterpretedScope extends SvLibScope {
   private PersistentMap<String, SvLibProcedureDeclaration> procedureDeclarations;
 
   public SvLibUninterpretedScope() {
-    super(new ImmutableSet.Builder<>(), new ImmutableMap.Builder<>(), new ImmutableMap.Builder<>());
+    super(new ImmutableSet.Builder<>(), new ImmutableMap.Builder<>(), new LinkedHashMap<>());
     procedureDeclarations = PathCopyingPersistentTreeMap.of();
   }
 
@@ -38,7 +40,7 @@ public class SvLibUninterpretedScope extends SvLibScope {
       PersistentMap<String, SvLibProcedureDeclaration> pProcedureDeclarations,
       ImmutableSet.Builder<SmtLibLogic> pLogics,
       ImmutableMap.Builder<String, SvLibSortDeclaration> pSortDeclarations,
-      ImmutableMap.Builder<String, SvLibSmtFunctionDeclaration> pFunctionDeclarations) {
+      Map<String, SvLibSmtFunctionDeclaration> pFunctionDeclarations) {
     super(pLogics, pSortDeclarations, pFunctionDeclarations);
     procedureDeclarations = pProcedureDeclarations;
   }
@@ -66,6 +68,18 @@ public class SvLibUninterpretedScope extends SvLibScope {
   }
 
   @Override
+  public boolean hasVariable(String pText) {
+    // This scope creates a dummy declaration for every name.
+    return true;
+  }
+
+  @Override
+  public boolean hasVariableForQualifiedName(String pText) {
+    // This scope creates a dummy declaration for every name.
+    return true;
+  }
+
+  @Override
   public void addVariable(SvLibParsingVariableDeclaration pDeclaration) {}
 
   @Override
@@ -82,5 +96,10 @@ public class SvLibUninterpretedScope extends SvLibScope {
   @Override
   public SvLibProcedureDeclaration getProcedureDeclaration(String pName) {
     return procedureDeclarations.get(pName);
+  }
+
+  @Override
+  public boolean hasProcedureDeclaration(String pName) {
+    return procedureDeclarations.containsKey(pName);
   }
 }
