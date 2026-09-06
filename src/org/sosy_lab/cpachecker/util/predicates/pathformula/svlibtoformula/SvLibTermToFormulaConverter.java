@@ -16,6 +16,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBitVectorConstantTerm;
@@ -30,23 +31,26 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRealConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRoundingModeConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
-import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibAtTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibFloatingPointType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FloatingPointFormula;
+import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
@@ -154,6 +158,20 @@ public class SvLibTermToFormulaConverter {
       SSAMapBuilder ssa,
       FormulaManagerView fmgr,
       SvLibToFormulaConverter pConverter) {
+    // A declared function is uninterpreted, so nothing is known about it. This has to be checked
+    // before the theories, because such a function can have the same argument types as an operator
+    // of a theory.
+    if (pConverter.isUninterpretedFunction(
+        pSvLibGeneralSymbolApplicationTerm.getSymbol().getName())) {
+      return pConverter.makeUninterpretedFunctionApplication(
+          pSvLibGeneralSymbolApplicationTerm.getSymbol().getName(),
+          ((SvLibSmtLibType) pSvLibGeneralSymbolApplicationTerm.getExpressionType())
+              .toFormulaType(),
+          transformedImmutableListCopy(
+              pSvLibGeneralSymbolApplicationTerm.getTerms(),
+              term -> convertTerm(term, ssa, fmgr, pConverter)));
+    }
+
     if (pSvLibGeneralSymbolApplicationTerm instanceof SvLibSymbolApplicationTerm pTerm
         && isArrayAccess(pTerm)) {
       return convertArrayAccess(pTerm, ssa, fmgr, pConverter);
@@ -163,20 +181,21 @@ public class SvLibTermToFormulaConverter {
         && pTerm.getTerms().getFirst().getExpressionType() instanceof SvLibSmtLibArrayType) {
       Formula lhs = convertTerm(pTerm.getTerms().getFirst(), ssa, fmgr, pConverter);
       Formula rhs = convertTerm(pTerm.getTerms().get(1), ssa, fmgr, pConverter);
-      return fmgr.makeEqual(lhs, rhs);
+      return makeEqualOfCoreTheory(lhs, rhs, fmgr);
     } else if (pSvLibGeneralSymbolApplicationTerm instanceof SvLibSymbolApplicationTerm pTerm
         && pTerm.getSymbol().getName().equals("distinct")) {
       // distinct is the negation of equality and is generic over the argument type, so we handle it
       // here for all types (booleans, bitvectors, arrays, ...) at once. All arguments must be
       // pairwise different, which for the common binary case is simply the negation of equality.
-      List<SvLibTerm> terms = pTerm.getTerms();
+      List<? extends SvLibRelationalTerm> terms = pTerm.getTerms();
       Verify.verify(terms.size() >= 2);
       BooleanFormula allDistinct = fmgr.getBooleanFormulaManager().makeTrue();
       for (int i = 0; i < terms.size(); i++) {
         for (int j = i + 1; j < terms.size(); j++) {
           Formula lhs = convertTerm(terms.get(i), ssa, fmgr, pConverter);
           Formula rhs = convertTerm(terms.get(j), ssa, fmgr, pConverter);
-          allDistinct = fmgr.makeAnd(allDistinct, fmgr.makeNot(fmgr.makeEqual(lhs, rhs)));
+          allDistinct =
+              fmgr.makeAnd(allDistinct, fmgr.makeNot(makeEqualOfCoreTheory(lhs, rhs, fmgr)));
         }
       }
       return allDistinct;
@@ -187,10 +206,26 @@ public class SvLibTermToFormulaConverter {
       return makeConstArray(
           arrayType, convertTerm(pTerm.getTerms().getFirst(), ssa, fmgr, pConverter), fmgr);
     } else if (pSvLibGeneralSymbolApplicationTerm instanceof SvLibSymbolApplicationTerm pTerm
+        && pTerm.getSymbol().getName().equals("ite")
         && pTerm.getTerms().size() == 3
         // canBeCastTo instead of equals?
-        && pTerm.getTerms().getFirst().getExpressionType().equals(SvLibSmtLibPredefinedType.BOOL)) {
+        && pTerm.getTerms().getFirst().getExpressionType().equals(SvLibSmtLibPredefinedType.BOOL)
+        && pTerm
+            .getTerms()
+            .get(1)
+            .getExpressionType()
+            .equals(pTerm.getTerms().get(2).getExpressionType())) {
+      // The symbol has to be checked, because otherwise every application of a symbol to three
+      // arguments with a Boolean first argument would be treated as an if-then-else, in
+      // particular a conjunction or a disjunction of three Boolean terms.
       return convertIteApplication(pSvLibGeneralSymbolApplicationTerm, ssa, fmgr, pConverter);
+    } else if (isConversionBetweenTheories(pSvLibGeneralSymbolApplicationTerm)) {
+      // A conversion has to be handled before the theories, because its argument and its result
+      // belong to different ones.
+      return convertBetweenTheories(pSvLibGeneralSymbolApplicationTerm, ssa, fmgr, pConverter);
+    } else if (isFloatingPointConversion(pSvLibGeneralSymbolApplicationTerm)) {
+      return convertFloatingPointConversion(
+          pSvLibGeneralSymbolApplicationTerm, ssa, fmgr, pConverter);
     } else if (FluentIterable.from(pSvLibGeneralSymbolApplicationTerm.getTerms())
         .transform(SvLibRelationalTerm::getExpressionType)
         .allMatch(type -> SvLibType.canBeCastTo(type, SvLibSmtLibPredefinedType.INT))) {
@@ -203,11 +238,36 @@ public class SvLibTermToFormulaConverter {
         .transform(SvLibRelationalTerm::getExpressionType)
         .allMatch(type -> type instanceof SvLibSmtLibBitVectorType)) {
       return convertBitvectorApplication(pSvLibGeneralSymbolApplicationTerm, ssa, fmgr, pConverter);
+    } else if (pSvLibGeneralSymbolApplicationTerm.getSymbol().getName().equals("=")
+        && pSvLibGeneralSymbolApplicationTerm.getTerms().size() == 2
+        && pSvLibGeneralSymbolApplicationTerm.getTerms().getFirst().getExpressionType()
+            instanceof SvLibSmtLibFloatingPointType) {
+      // The equality of the core theory of SMT-LIB is generic over the type of its arguments.
+      List<? extends SvLibRelationalTerm> terms = pSvLibGeneralSymbolApplicationTerm.getTerms();
+      return makeEqualOfCoreTheory(
+          convertTerm(terms.getFirst(), ssa, fmgr, pConverter),
+          convertTerm(terms.get(1), ssa, fmgr, pConverter),
+          fmgr);
+    } else if (pSvLibGeneralSymbolApplicationTerm.getSymbol().getName().startsWith("fp.")) {
+      return convertFloatingPointApplication(
+          pSvLibGeneralSymbolApplicationTerm, ssa, fmgr, pConverter);
     }
 
     throw new UnsupportedOperationException(
         "Conversion of application term not supported: "
             + pSvLibGeneralSymbolApplicationTerm.toASTString());
+  }
+
+  /**
+   * The equality of the core theory of SMT-LIB, which holds if the two values are the same.
+   *
+   * <p>For floating point numbers this is not the equality of their theory: NaN is equal to itself
+   * and a positive zero is different from a negative one, while {@code fp.eq} says the opposite.
+   */
+  static BooleanFormula makeEqualOfCoreTheory(Formula pLhs, Formula pRhs, FormulaManagerView fmgr) {
+    // This is what an assignment means, i.e. that the two sides are the same value afterwards,
+    // which for floating point numbers is not what their equality says.
+    return fmgr.assignment(pLhs, pRhs);
   }
 
   private static @NonNull Formula convertIteApplication(
@@ -333,6 +393,229 @@ public class SvLibTermToFormulaConverter {
     };
   }
 
+  /** Pattern for the name of a conversion of an integer into a bitvector. */
+  private static final Pattern INT_TO_BITVECTOR_PATTERN =
+      Pattern.compile("^\\(_ int_to_bv ([0-9]+)\\)$");
+
+  /**
+   * Does the given application convert a value of one theory into a value of another one, i.e.
+   * between the theory of bitvectors and the one of integers or the bits of a floating point number
+   * into a bitvector?
+   */
+  private static boolean isConversionBetweenTheories(SvLibGeneralSymbolApplicationTerm pTerm) {
+    String name = pTerm.getSymbol().getName();
+    return name.equals("sbv_to_int")
+        || name.equals("ubv_to_int")
+        || name.equals("fp.to_ieee_bv")
+        || INT_TO_BITVECTOR_PATTERN.matcher(name).matches();
+  }
+
+  /** Convert an application that converts a value of one theory into a value of another one. */
+  private static @NonNull Formula convertBetweenTheories(
+      SvLibGeneralSymbolApplicationTerm pTerm,
+      SSAMapBuilder ssa,
+      FormulaManagerView fmgr,
+      SvLibToFormulaConverter pConverter) {
+    String name = pTerm.getSymbol().getName();
+    ImmutableList<? extends SvLibRelationalTerm> terms = ImmutableList.copyOf(pTerm.getTerms());
+    Verify.verify(terms.size() == 1, "A conversion between theories takes one argument");
+    Formula argument = convertTerm(terms.getFirst(), ssa, fmgr, pConverter);
+
+    if (name.equals("fp.to_ieee_bv")) {
+      return fmgr.getFloatingPointFormulaManager().toIeeeBitvector((FloatingPointFormula) argument);
+    }
+    Matcher intToBitVector = INT_TO_BITVECTOR_PATTERN.matcher(name);
+    if (intToBitVector.matches()) {
+      return fmgr.getBitvectorFormulaManager()
+          .makeBitvector(Integer.parseInt(intToBitVector.group(1)), (IntegerFormula) argument);
+    }
+    return fmgr.getBitvectorFormulaManager()
+        .toIntegerFormula((BitvectorFormula) argument, name.equals("sbv_to_int"));
+  }
+
+  /** Pattern for the name of a conversion into or out of a floating point number. */
+  private static final Pattern FLOATING_POINT_CONVERSION_PATTERN =
+      Pattern.compile("^\\(_ (to_fp|to_fp_unsigned|fp\\.to_sbv|fp\\.to_ubv) [0-9 ]+\\)$");
+
+  private static boolean isFloatingPointConversion(SvLibGeneralSymbolApplicationTerm pTerm) {
+    return FLOATING_POINT_CONVERSION_PATTERN.matcher(pTerm.getSymbol().getName()).matches();
+  }
+
+  /**
+   * Convert a conversion into or out of a floating point number. Its first argument is the rounding
+   * mode, and the type of the result is part of the name of the conversion.
+   */
+  private static @NonNull Formula convertFloatingPointConversion(
+      SvLibGeneralSymbolApplicationTerm pTerm,
+      SSAMapBuilder ssa,
+      FormulaManagerView fmgr,
+      SvLibToFormulaConverter pConverter) {
+    Matcher matcher = FLOATING_POINT_CONVERSION_PATTERN.matcher(pTerm.getSymbol().getName());
+    Verify.verify(matcher.matches());
+    String conversion = matcher.group(1);
+    ImmutableList<? extends SvLibRelationalTerm> terms = ImmutableList.copyOf(pTerm.getTerms());
+    FloatingPointFormulaManagerView fpmgr = fmgr.getFloatingPointFormulaManager();
+    if (terms.size() == 1) {
+      // A conversion of the bits of the representation of IEEE 754 loses no information and
+      // therefore takes no rounding mode.
+      Verify.verify(conversion.equals("to_fp"));
+      Verify.verify(pTerm.getExpressionType() instanceof SvLibSmtLibFloatingPointType);
+      return fpmgr.fromIeeeBitvector(
+          (BitvectorFormula) convertTerm(terms.getFirst(), ssa, fmgr, pConverter),
+          (FormulaType.FloatingPointType)
+              ((SvLibSmtLibType) pTerm.getExpressionType()).toFormulaType());
+    }
+    Verify.verify(
+        terms.size() == 2 && terms.getFirst() instanceof SvLibRoundingModeConstantTerm,
+        "A conversion of a floating point number takes a rounding mode and one argument");
+    FloatingPointRoundingMode roundingMode =
+        ((SvLibRoundingModeConstantTerm) terms.getFirst()).getValue();
+    Formula argument = convertTerm(terms.get(1), ssa, fmgr, pConverter);
+
+    if (conversion.startsWith("to_fp")) {
+      Verify.verify(pTerm.getExpressionType() instanceof SvLibSmtLibFloatingPointType);
+      return fpmgr.castFrom(
+          argument,
+          conversion.equals("to_fp"),
+          (FormulaType.FloatingPointType)
+              ((SvLibSmtLibType) pTerm.getExpressionType()).toFormulaType(),
+          roundingMode);
+    }
+    return fpmgr.castTo(
+        (FloatingPointFormula) argument,
+        conversion.equals("fp.to_sbv"),
+        ((SvLibSmtLibType) pTerm.getExpressionType()).toFormulaType(),
+        roundingMode);
+  }
+
+  /** Convert an application of an operator of the theory of floating point numbers. */
+  private static @NonNull Formula convertFloatingPointApplication(
+      SvLibGeneralSymbolApplicationTerm pTerm,
+      SSAMapBuilder ssa,
+      FormulaManagerView fmgr,
+      SvLibToFormulaConverter pConverter) {
+    String functionName = pTerm.getSymbol().getName();
+    FloatingPointFormulaManagerView fpmgr = fmgr.getFloatingPointFormulaManager();
+
+    // The operators that round take the rounding mode as their first argument.
+    List<? extends SvLibRelationalTerm> terms = ImmutableList.copyOf(pTerm.getTerms());
+    Optional<FloatingPointRoundingMode> roundingMode = Optional.empty();
+    if (!terms.isEmpty()
+        && terms.getFirst() instanceof SvLibRoundingModeConstantTerm roundingModeTerm) {
+      roundingMode = Optional.of(roundingModeTerm.getValue());
+      terms = terms.subList(1, terms.size());
+    }
+    List<FloatingPointFormula> args =
+        transformedImmutableListCopy(
+            terms, term -> (FloatingPointFormula) convertTerm(term, ssa, fmgr, pConverter));
+
+    return switch (functionName) {
+      case "fp.add" -> {
+        Verify.verify(args.size() == 2);
+        yield roundingMode.isPresent()
+            ? fpmgr.add(args.getFirst(), args.get(1), roundingMode.orElseThrow())
+            : fpmgr.add(args.getFirst(), args.get(1));
+      }
+      case "fp.sub" -> {
+        Verify.verify(args.size() == 2);
+        yield roundingMode.isPresent()
+            ? fpmgr.subtract(args.getFirst(), args.get(1), roundingMode.orElseThrow())
+            : fpmgr.subtract(args.getFirst(), args.get(1));
+      }
+      case "fp.mul" -> {
+        Verify.verify(args.size() == 2);
+        yield roundingMode.isPresent()
+            ? fpmgr.multiply(args.getFirst(), args.get(1), roundingMode.orElseThrow())
+            : fpmgr.multiply(args.getFirst(), args.get(1));
+      }
+      case "fp.div" -> {
+        Verify.verify(args.size() == 2);
+        yield roundingMode.isPresent()
+            ? fpmgr.divide(args.getFirst(), args.get(1), roundingMode.orElseThrow())
+            : fpmgr.divide(args.getFirst(), args.get(1));
+      }
+      case "fp.sqrt" -> {
+        Verify.verify(args.size() == 1);
+        yield roundingMode.isPresent()
+            ? fpmgr.sqrt(args.getFirst(), roundingMode.orElseThrow())
+            : fpmgr.sqrt(args.getFirst());
+      }
+      case "fp.roundToIntegral" -> {
+        Verify.verify(args.size() == 1);
+        yield fpmgr.round(args.getFirst(), roundingMode.orElseThrow());
+      }
+      case "fp.rem" -> {
+        Verify.verify(args.size() == 2);
+        yield fpmgr.remainder(args.getFirst(), args.get(1));
+      }
+      case "fp.max" -> {
+        Verify.verify(args.size() == 2);
+        yield fpmgr.max(args.getFirst(), args.get(1));
+      }
+      case "fp.min" -> {
+        Verify.verify(args.size() == 2);
+        yield fpmgr.min(args.getFirst(), args.get(1));
+      }
+      case "fp.neg" -> {
+        Verify.verify(args.size() == 1);
+        yield fpmgr.negate(args.getFirst());
+      }
+      case "fp.abs" -> {
+        Verify.verify(args.size() == 1);
+        yield fpmgr.abs(args.getFirst());
+      }
+      case "fp.lt" -> {
+        Verify.verify(args.size() == 2);
+        yield fpmgr.lessThan(args.getFirst(), args.get(1));
+      }
+      case "fp.leq" -> {
+        Verify.verify(args.size() == 2);
+        yield fpmgr.lessOrEquals(args.getFirst(), args.get(1));
+      }
+      case "fp.gt" -> {
+        Verify.verify(args.size() == 2);
+        yield fpmgr.greaterThan(args.getFirst(), args.get(1));
+      }
+      case "fp.geq" -> {
+        Verify.verify(args.size() == 2);
+        yield fpmgr.greaterOrEquals(args.getFirst(), args.get(1));
+      }
+      case "fp.eq" -> {
+        Verify.verify(args.size() == 2);
+        yield fpmgr.equalWithFPSemantics(args.getFirst(), args.get(1));
+      }
+      case "fp.isNaN" -> {
+        Verify.verify(args.size() == 1);
+        yield fpmgr.isNaN(args.getFirst());
+      }
+      case "fp.isInfinite" -> {
+        Verify.verify(args.size() == 1);
+        yield fpmgr.isInfinity(args.getFirst());
+      }
+      case "fp.isZero" -> {
+        Verify.verify(args.size() == 1);
+        yield fpmgr.isZero(args.getFirst());
+      }
+      case "fp.isNegative" -> {
+        Verify.verify(args.size() == 1);
+        yield fpmgr.isNegative(args.getFirst());
+      }
+      case "fp.isSubnormal" -> {
+        Verify.verify(args.size() == 1);
+        yield fpmgr.isSubnormal(args.getFirst());
+      }
+      case "fp.isNormal" -> {
+        Verify.verify(args.size() == 1);
+        yield fpmgr.isNormal(args.getFirst());
+      }
+      default ->
+          throw new IllegalStateException(
+              "Unexpected value: '"
+                  + functionName
+                  + "' when converting from a floating point term into a formula.");
+    };
+  }
+
   @SuppressWarnings("RefactorSwitch")
   private static @NonNull Formula convertBitvectorApplication(
       SvLibGeneralSymbolApplicationTerm pSvLibGeneralSymbolApplicationTerm,
@@ -342,6 +625,17 @@ public class SvLibTermToFormulaConverter {
     SvLibSimpleDeclaration symbolDeclaration =
         pSvLibGeneralSymbolApplicationTerm.getSymbol().getDeclaration();
     String functionName = cleanVariableNameForJavaSMT(symbolDeclaration.getQualifiedName());
+    // The extensions are indexed identifiers, so their name contains the number of added bits,
+    // e.g. "(_ zero_extend 8)". That number is derived from the type of the application below,
+    // so the name only has to be reduced to the operator here.
+    functionName =
+        functionName.replaceAll(
+            "^"
+                + Pattern.quote("(_ ")
+                + "(zero_extend|sign_extend) [0-9]+"
+                + Pattern.quote(")")
+                + "$",
+            "$1");
     List<BitvectorFormula> args =
         transformedImmutableListCopy(
             pSvLibGeneralSymbolApplicationTerm.getTerms(),

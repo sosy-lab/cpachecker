@@ -186,28 +186,19 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
         };
 
     edgeFormula = bfmgr.and(edgeFormula, constraints.get());
-    SSAMap newSsa = ssa.build();
 
-    // There are no pointers in SV-LIB, so the pointer target set remains unchanged, and can
-    // therefore
-    // be ignored.
-    if (bfmgr.isTrue(edgeFormula) && (newSsa == pOldFormula.getSsa())) {
-      // formula is just "true" and rest is equal
-      // i.e. no writes to SSAMap, no branching and length should stay the same
-      return pOldFormula;
-    }
-
-    BooleanFormula newFormula = bfmgr.and(pOldFormula.getFormula(), edgeFormula);
-    int newLength = pOldFormula.getLength() + 1;
-
-    // Now add all the smt-lib declarations into the formula
+    // Now add all the smt-lib declarations into the formula.
+    // They are part of the formula of the edge, so that the variable instances and the constraints
+    // that they create are part of the result of this method.
     // TODO: Add them once as assumptions to the pathformula. IIRC Philipp implemented something for
     //  this
+    Constraints commandConstraints = new Constraints(bfmgr);
+    BooleanFormula commandAxioms = bfmgr.makeTrue();
     for (SmtLibCommand smtLibCommand : smtLibCommands) {
-      newFormula =
+      commandAxioms =
           switch (smtLibCommand) {
             case SmtLibDefineFunCommand pSmtLibDefineFunCommand ->
-                bfmgr.and(newFormula, makeDefineFunAxiom(pSmtLibDefineFunCommand, ssa));
+                bfmgr.and(commandAxioms, makeDefineFunAxiom(pSmtLibDefineFunCommand, ssa));
             case SmtLibDefineFunRecCommand pSmtLibDefineFunRecCommand ->
                 throw new UnsupportedCodeException(
                     "Define fun rec commands are not yet supported", pEdge);
@@ -217,7 +208,7 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
             case SvLibAssertCommand pSvLibAssertCommand -> {
               SvLibTerm term = pSvLibAssertCommand.getTerm();
               yield bfmgr.and(
-                  newFormula,
+                  commandAxioms,
                   makePredicate(
                       new SvLibAssumeEdge(
                           term.toASTString(),
@@ -230,17 +221,30 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
                           false),
                       "",
                       ssa,
-                      constraints,
+                      commandConstraints,
                       pErrorConditions));
             }
-            case SvLibDeclareConstCommand pSvLibDeclareConstCommand -> newFormula;
-            case SvLibDeclareFunCommand pSvLibDeclareFunCommand -> newFormula;
-            case SvLibDeclareSortCommand pSvLibDeclareSortCommand -> newFormula;
-            case SvLibSetInfoCommand pSvLibSetInfoCommand -> newFormula;
-            case SvLibSetLogicCommand pSvLibSetLogicCommand -> newFormula;
-            case SvLibSetOptionCommand pSvLibSetOptionCommand -> newFormula;
+            case SvLibDeclareConstCommand pSvLibDeclareConstCommand -> commandAxioms;
+            case SvLibDeclareFunCommand pSvLibDeclareFunCommand -> commandAxioms;
+            case SvLibDeclareSortCommand pSvLibDeclareSortCommand -> commandAxioms;
+            case SvLibSetInfoCommand pSvLibSetInfoCommand -> commandAxioms;
+            case SvLibSetLogicCommand pSvLibSetLogicCommand -> commandAxioms;
+            case SvLibSetOptionCommand pSvLibSetOptionCommand -> commandAxioms;
           };
     }
+    edgeFormula = bfmgr.and(edgeFormula, commandAxioms, commandConstraints.get());
+
+    // There are no pointers in SV-LIB, so the pointer target set remains unchanged, and can
+    // therefore be ignored.
+    SSAMap newSsa = ssa.build();
+    if (bfmgr.isTrue(edgeFormula) && (newSsa == pOldFormula.getSsa())) {
+      // formula is just "true" and rest is equal
+      // i.e. no writes to SSAMap, no branching and length should stay the same
+      return pOldFormula;
+    }
+
+    BooleanFormula newFormula = bfmgr.and(pOldFormula.getFormula(), edgeFormula);
+    int newLength = pOldFormula.getLength() + 1;
 
     @SuppressWarnings("deprecation")
     // This is an intended use, SvLibToFormulaConverter just does not have access to the constructor
@@ -276,7 +280,7 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
           SvLibTermToFormulaConverter.getIndex(
               functionName, functionDefinition.getReturnType(), ssa, this);
       Formula constant = fmgr.makeVariable(returnFormulaType, functionName, useIndex);
-      return fmgr.makeEqual(constant, bodyFormula);
+      return SvLibTermToFormulaConverter.makeEqualOfCoreTheory(constant, bodyFormula, fmgr);
     }
 
     ImmutableList.Builder<Formula> parameterFormulas = ImmutableList.builder();
@@ -292,8 +296,38 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
 
     Formula functionApplication =
         ffmgr.declareAndCallUF(functionName, returnFormulaType, parameters);
-    BooleanFormula definition = fmgr.makeEqual(functionApplication, bodyFormula);
+    BooleanFormula definition =
+        SvLibTermToFormulaConverter.makeEqualOfCoreTheory(functionApplication, bodyFormula, fmgr);
     return fmgr.getQuantifiedFormulaManager().forall(parameters, definition);
+  }
+
+  /**
+   * Is a function with the given name declared but not defined in the script, i.e. is it an
+   * uninterpreted function?
+   */
+  boolean isUninterpretedFunction(String pName) {
+    return smtLibCommands.stream()
+        .anyMatch(
+            command ->
+                command instanceof SvLibDeclareFunCommand declareFunCommand
+                    && declareFunCommand.getFunctionDeclaration().getName().equals(pName));
+  }
+
+  /**
+   * Create an application of the uninterpreted function with the given name.
+   *
+   * <p>A name that is not a simple symbol of SMT-LIB is quoted in the script, and the quotes are
+   * only a way of writing it, so they are not part of the name of the function of the formula.
+   */
+  Formula makeUninterpretedFunctionApplication(
+      String pName, FormulaType<?> pReturnType, List<Formula> pArguments) {
+    return ffmgr.declareAndCallUF(withoutQuotes(pName), pReturnType, pArguments);
+  }
+
+  private static String withoutQuotes(String pName) {
+    return pName.length() > 1 && pName.startsWith("|") && pName.endsWith("|")
+        ? pName.substring(1, pName.length() - 1)
+        : pName;
   }
 
   protected BooleanFormula makePredicate(
