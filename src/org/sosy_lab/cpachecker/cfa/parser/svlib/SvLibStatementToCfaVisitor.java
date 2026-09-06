@@ -20,6 +20,7 @@ import java.util.Optional;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
@@ -33,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibBlankChoiceEdge;
@@ -110,6 +112,13 @@ public class SvLibStatementToCfaVisitor implements SvLibStatementVisitor<VisitRe
 
   private CFANode getNewNode() {
     CFANode newNode = new CFANode(procedure.toSimpleDeclaration());
+    allNodesCollector.add(newNode);
+    return newNode;
+  }
+
+  /** A new node that control flow cannot leave. */
+  private CFANode getNewTerminationNode() {
+    CFANode newNode = new CFATerminationNode(procedure.toSimpleDeclaration());
     allNodesCollector.add(newNode);
     return newNode;
   }
@@ -267,9 +276,15 @@ public class SvLibStatementToCfaVisitor implements SvLibStatementVisitor<VisitRe
   public VisitResult visit(SvLibAssumeStatement pSvLibAssumeStatement) throws NoException {
     trackTagPropertiesForStatementStartingWithNode(pSvLibAssumeStatement, currentStartingNode);
 
+    // An assumption that never holds cannot be left, so the statements after it are only reachable
+    // through a label. Continuing after it would give the program paths that it does not have.
+    boolean neverHolds =
+        pSvLibAssumeStatement.getTerm() instanceof SvLibBooleanConstantTerm constant
+            && !constant.getValue();
+
     // We do not need to split the assumption into multiple edges, since there is no
     // short-circuiting
-    CFANode newNode = getNewNode();
+    CFANode newNode = neverHolds ? getNewTerminationNode() : getNewNode();
     CFAEdge edge =
         new SvLibAssumeEdge(
             pSvLibAssumeStatement.toASTString(),
@@ -281,7 +296,9 @@ public class SvLibStatementToCfaVisitor implements SvLibStatementVisitor<VisitRe
             false,
             false);
     CFACreationUtils.addEdgeToCFA(edge, logger);
-    return new VisitResult(Optional.of(newNode), false);
+    return neverHolds
+        ? new VisitResult(Optional.empty(), true)
+        : new VisitResult(Optional.of(newNode), false);
   }
 
   @Override
