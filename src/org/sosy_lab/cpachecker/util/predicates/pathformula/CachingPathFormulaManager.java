@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -28,6 +29,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter.RightHandSideTerm;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
@@ -213,6 +215,13 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   public Formula expressionToFormula(PathFormula pFormula, CIdExpression expr, CFAEdge edge)
       throws UnrecognizedCodeException {
     return delegate.expressionToFormula(pFormula, expr, edge);
+  }
+
+  @Override
+  public RightHandSideTerm rightHandSideToFormula(
+      PathFormula pFormula, CRightHandSide pRhs, CType pLhsType, CFAEdge pEdge)
+      throws UnrecognizedCodeException {
+    return delegate.rightHandSideToFormula(pFormula, pRhs, pLhsType, pEdge);
   }
 
   @Override

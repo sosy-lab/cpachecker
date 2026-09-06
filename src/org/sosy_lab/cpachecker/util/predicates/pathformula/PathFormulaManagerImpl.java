@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Verify.verifyNotNull;
 
 import com.google.common.base.Predicate;
@@ -32,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -58,6 +60,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CFormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter.RightHandSideTerm;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoWpConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
@@ -567,6 +570,17 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   public Formula expressionToFormula(PathFormula pFormula, CIdExpression expr, CFAEdge edge)
       throws UnrecognizedCodeException {
     return converter.buildTermFromPathFormula(pFormula, expr, edge);
+  }
+
+  @Override
+  public RightHandSideTerm rightHandSideToFormula(
+      PathFormula pFormula, CRightHandSide pRhs, CType pLhsType, CFAEdge pEdge)
+      throws UnrecognizedCodeException {
+    checkState(
+        converter instanceof CtoFormulaConverter,
+        "Right-hand sides of assignments can only be converted for C programs.");
+    return ((CtoFormulaConverter) converter)
+        .buildRightHandSideTermFromPathFormula(pFormula, pRhs, pLhsType, pEdge);
   }
 
   @Override

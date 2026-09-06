@@ -1676,6 +1676,56 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
   }
 
   /**
+   * The term for the right-hand side of an assignment, together with the constraints (for example
+   * axioms for bitwise operations or for division) that were created while building it.
+   *
+   * @param term the term for the right-hand side, cast to the type of the left-hand side
+   * @param constraints the constraints that have to hold in addition to the assignment itself
+   */
+  public record RightHandSideTerm(Formula term, BooleanFormula constraints) {}
+
+  /**
+   * Convert the right-hand side of an assignment to a formula consistent with the current state of
+   * the given {@link PathFormula} and cast it to the type of the left-hand side.
+   *
+   * <p>This allows to encode an assignment without building an equality between the old and the new
+   * instance of the assigned variable, which is what {@link #makeAssignment} does. It is needed
+   * when a C program is translated into a language that has assignments itself, because the shape
+   * of the equality that {@link #makeAssignment} produces depends on the simplifications that the
+   * SMT solver applies and can therefore not be taken apart again reliably.
+   *
+   * <p>Note that this method only builds the right-hand side. It is therefore only usable for
+   * left-hand sides that denote a single variable directly, and not for left-hand sides that are
+   * encoded as an update of the heap representation.
+   *
+   * @param pFormula Current {@link PathFormula}, provides the instances of the read variables.
+   * @param pRhs The right-hand side to convert.
+   * @param pLhsType The type of the left-hand side, the right-hand side is cast to it.
+   * @param pEdge The edge containing the assignment.
+   */
+  public final RightHandSideTerm buildRightHandSideTermFromPathFormula(
+      PathFormula pFormula, CRightHandSide pRhs, CType pLhsType, CFAEdge pEdge)
+      throws UnrecognizedCodeException {
+    Constraints constraints = new Constraints(bfmgr);
+    CType lhsType = pLhsType.getCanonicalType();
+    CRightHandSide rhs = pRhs;
+    if (rhs instanceof CExpression rhsExpression) {
+      rhs = makeCastFromArrayToPointerIfNecessary(rhsExpression, lhsType);
+    }
+    Formula term =
+        buildTerm(
+            rhs,
+            pEdge,
+            pEdge.getPredecessor().getFunctionName(),
+            pFormula.getSsa().builder(),
+            createPointerTargetSetBuilder(pFormula.getPointerTargetSet()),
+            constraints,
+            ErrorConditions.dummyInstance(bfmgr));
+    term = makeCast(rhs.getExpressionType(), lhsType, term, constraints, pEdge);
+    return new RightHandSideTerm(term, constraints.get());
+  }
+
+  /**
    * Convert a simple C expression to a formula consistent with the current state of the {@code
    * pFormula}.
    *
