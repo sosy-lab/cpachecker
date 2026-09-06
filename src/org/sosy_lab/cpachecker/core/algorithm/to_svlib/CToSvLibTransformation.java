@@ -28,6 +28,7 @@ import java.util.NavigableSet;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -156,6 +157,9 @@ class CToSvLibTransformation {
   /** The objects of {@link #objectsWithAddress} that the current procedure uses. */
   private final Set<PointerBase> objectsOfCurrentProcedure = new LinkedHashSet<>();
 
+  /** The set of pointer targets that the formulas of every procedure start with. */
+  private @Nullable PointerTargetSet initialPointerTargetSet = null;
+
   /** The sizes of the types that the formulas of the analysis assume. */
   private final TypeHandlerWithPointerAliasing typeHandler;
 
@@ -183,6 +187,9 @@ class CToSvLibTransformation {
         ImmutableListMultimap.builder();
     ImmutableMap.Builder<CFAEdge, PointerTargetSet> edgeToPointerTargetSet = ImmutableMap.builder();
     objectsOfCurrentProcedure.clear();
+    if (initialPointerTargetSet == null) {
+      initialPointerTargetSet = computeInitialPointerTargetSet();
+    }
 
     scope.enterProcedure(
         FluentIterable.from(procedureDeclaration.getParameters())
@@ -1039,10 +1046,49 @@ class CToSvLibTransformation {
     return formulaManager.visit(edgeFormula.getFormula(), formulaToSvLibVisitor);
   }
 
+  /**
+   * The objects whose address the program takes anywhere, as a set of pointer targets.
+   *
+   * <p>Whether a variable of the input program is represented by a variable of the generated
+   * program or by the array that models the memory depends on whether its address is taken, and the
+   * formulas of every procedure are built on their own. Without this set as their context, a global
+   * variable would be represented by the array in the procedure that takes its address and by a
+   * variable of the generated program in the procedures that only read it, which read the wrong
+   * value then. The allocations are left out, because the transformation gives every one of them a
+   * base of its own while it transforms the procedure it belongs to.
+   */
+  private PointerTargetSet computeInitialPointerTargetSet()
+      throws CPATransferException, InterruptedException {
+    PathFormula formula =
+        pathFormulaManager.makeEmptyPathFormulaWithContext(
+            SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet());
+    for (FunctionEntryNode entryNode : cfa.entryNodes()) {
+      for (CFAEdge edge : getAllRelevantEdges(entryNode)) {
+        Optional<CAssignment> assignment = getAssignmentOfEdge(edge);
+        if (assignment.isPresent() && isMemoryAllocation(assignment.orElseThrow())) {
+          continue;
+        }
+        // Only the context of the formula is needed, so the formula itself is thrown away in order
+        // to keep the formulas of the whole program from being built into one.
+        PathFormula context =
+            pathFormulaManager.makeEmptyPathFormulaWithContext(
+                formula.getSsa(), formula.getPointerTargetSet());
+        formula = pathFormulaManager.makeAnd(context, edge);
+      }
+    }
+    return formula.getPointerTargetSet();
+  }
+
   private PointerTargetSet getPtsForEdge(
       CFAEdge pEdge, ImmutableMap.Builder<CFAEdge, PointerTargetSet> pEdgeToPointerTargetSet)
       throws InterruptedException {
-    PointerTargetSet pointerTargetSet = PointerTargetSet.emptyPointerTargetSet();
+    PointerTargetSet pointerTargetSet =
+        pathFormulaManager.mergePts(
+            PointerTargetSet.emptyPointerTargetSetAfterAllocations(numberOfAllocations),
+            initialPointerTargetSet == null
+                ? PointerTargetSet.emptyPointerTargetSet()
+                : initialPointerTargetSet,
+            SSAMap.emptySSAMap().builder());
     if (pEdge.getPredecessor().getNumEnteringEdges() >= 1) {
       ImmutableMap<CFAEdge, PointerTargetSet> edgeToPtsBuilt =
           pEdgeToPointerTargetSet.buildOrThrow();
