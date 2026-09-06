@@ -12,6 +12,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
@@ -26,9 +27,11 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibLogic;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibTheoryDeclarations;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBitVectorConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFloatingPointConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRoundingModeConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.ApplicationTermContext;
@@ -45,6 +48,8 @@ import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
+import org.sosy_lab.java_smt.api.FloatingPointNumber;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
 
@@ -78,6 +83,12 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
     // We handle the case that it is a pre-defined constant like true or false
     if (ImmutableSet.of("true", "false").contains(identifier)) {
       return new SvLibBooleanConstantTerm(identifier.equals("true"), fileLocation);
+    }
+
+    // The rounding modes of the theory of floating point numbers are constants as well
+    if (SvLibRoundingModeConstantTerm.isRoundingMode(identifier)) {
+      return new SvLibRoundingModeConstantTerm(
+          SvLibRoundingModeConstantTerm.fromName(identifier), fileLocation);
     }
 
     // We handle the special case that this is an underscore identifier sepparately
@@ -206,6 +217,40 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
         new SvLibIdTerm(declaration, fileLocationFromContext(functionSymbolContext)),
         arguments,
         fileLocationFromContext(ctx));
+  }
+
+  /**
+   * Create the literal of the theory of floating point numbers that consists of the given sign,
+   * exponent and significand, which are written as bitvector literals.
+   */
+  private SvLibTerm createFloatingPointConstant(
+      List<SvLibTerm> pArguments, FileLocation pFileLocation) {
+    Verify.verify(
+        pArguments.size() == 3,
+        "A floating point literal consists of a sign, an exponent and a significand, but %s parts"
+            + " were given",
+        pArguments.size());
+    ImmutableList.Builder<SvLibBitVectorConstantTerm> partsCollector = ImmutableList.builder();
+    for (SvLibTerm argument : pArguments) {
+      Verify.verify(
+          argument instanceof SvLibBitVectorConstantTerm,
+          "The parts of a floating point literal have to be bitvector literals, but one was: %s",
+          argument.toASTString());
+      partsCollector.add((SvLibBitVectorConstantTerm) argument);
+    }
+    ImmutableList<SvLibBitVectorConstantTerm> parts = partsCollector.build();
+    SvLibBitVectorConstantTerm sign = parts.get(0);
+    SvLibBitVectorConstantTerm exponent = parts.get(1);
+    SvLibBitVectorConstantTerm significand = parts.get(2);
+    Verify.verify(sign.getSize() == 1, "The sign of a floating point literal is a single bit");
+    return new SvLibFloatingPointConstantTerm(
+        FloatingPointNumber.of(
+            FloatingPointNumber.Sign.of(!sign.getValue().equals(BigInteger.ZERO)),
+            exponent.getValue(),
+            significand.getValue(),
+            FormulaType.getFloatingPointTypeFromSizesWithoutHiddenBit(
+                exponent.getSize(), significand.getSize())),
+        pFileLocation);
   }
 
   private SvLibFunctionDeclaration getVariableDeclarationForSymbol(
