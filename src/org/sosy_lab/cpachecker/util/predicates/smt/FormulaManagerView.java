@@ -1119,7 +1119,14 @@ public class FormulaManagerView {
 
   public <T extends Formula> FormulaType<Formula> getEncodedFormulaType(
       FormulaType<T> formulaType) {
-    Formula dummyFormula = unwrap(makeVariable(formulaType, "DUMMY_NAME"));
+    // The name of the dummy variable has to depend on its type, because some solvers (MathSAT5 for
+    // example) reject the declaration of two symbols that have the same name and different types.
+    Formula dummyFormula =
+        unwrap(
+            makeVariable(
+                formulaType,
+                "__DUMMY_FOR_ENCODED_TYPE_OF_"
+                    + formulaType.toString().replaceAll("[^A-Za-z0-9]", "_")));
     return getFormulaType(dummyFormula);
   }
 

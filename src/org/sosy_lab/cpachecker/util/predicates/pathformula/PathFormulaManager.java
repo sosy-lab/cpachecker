@@ -210,6 +210,12 @@ public interface PathFormulaManager {
       throws UnrecognizedCodeException;
 
   /**
+   * The name of the variable that represents the memory holding values of the given type, i.e. the
+   * name that the free variables for accesses to that memory have in the created formulas.
+   */
+  String getPointerAccessName(CType pType);
+
+  /**
    * Builds test for PCC that pF1 is covered by more abstract path formula pF2. Assumes that the SSA
    * indices of pF1 are smaller or equal than those of pF2. Since pF1 may be merged with other path
    * formulas resulting in pF2, needs to add assumptions about the connection between indexed

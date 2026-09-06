@@ -41,6 +41,26 @@ public final class PointerTargetSet implements Serializable {
     return EMPTY_INSTANCE;
   }
 
+  /**
+   * The empty set of pointer targets, except that the given number of allocations already happened.
+   *
+   * <p>The bases of the allocations that follow are named after the number of the allocation, so
+   * this is what a caller that builds the formulas of the same program more than once needs in
+   * order to get a different base for every allocation.
+   */
+  public static PointerTargetSet emptyPointerTargetSetAfterAllocations(int pAllocationCount) {
+    if (pAllocationCount == 0) {
+      return EMPTY_INSTANCE;
+    }
+    return new PointerTargetSet(
+        PathCopyingPersistentTreeMap.of(),
+        PathCopyingPersistentTreeMap.of(),
+        PersistentLinkedList.of(),
+        PathCopyingPersistentTreeMap.of(),
+        PersistentLinkedList.of(),
+        pAllocationCount);
+  }
+
   boolean isEmpty() {
     return bases.isEmpty()
         && fields.isEmpty()
@@ -139,7 +159,7 @@ public final class PointerTargetSet implements Serializable {
   }
 
   /** Get the number of allocations of memory on the heap. */
-  int getAllocationCount() {
+  public int getAllocationCount() {
     return allocationCount;
   }
 

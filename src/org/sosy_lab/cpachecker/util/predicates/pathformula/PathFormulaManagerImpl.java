@@ -573,6 +573,14 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
+  public String getPointerAccessName(CType pType) {
+    checkState(
+        converter instanceof CToFormulaConverterWithPointerAliasing,
+        "The memory is only represented by a variable if pointer aliasing is handled.");
+    return ((CToFormulaConverterWithPointerAliasing) converter).getPointerAccessNameForType(pType);
+  }
+
+  @Override
   public RightHandSideTerm rightHandSideToFormula(
       PathFormula pFormula, CRightHandSide pRhs, CType pLhsType, CFAEdge pEdge)
       throws UnrecognizedCodeException {
