@@ -124,6 +124,19 @@ class CToSvLibTransformation {
   private final Map<String, SvLibParsingVariableDeclaration> variablesOfTransformation =
       new LinkedHashMap<>();
 
+  /**
+   * An object that exists from the moment the procedure it belongs to is entered, i.e. a global
+   * variable or a local variable whose address is taken.
+   *
+   * @param address the variable of the generated program that holds the address of the object
+   * @param type the type of the object, which gives its size
+   * @param isGlobal whether the object exists from the beginning of the execution
+   */
+  private record ObjectWithAddress(SvLibSimpleDeclaration address, CType type, boolean isGlobal) {}
+
+  /** The objects whose address the program takes, by their base. */
+  private final Map<PointerBase, ObjectWithAddress> objectsWithAddress = new LinkedHashMap<>();
+
   CToSvLibTransformation(
       CFA pCFA,
       FormulaManagerView pFormulaManager,
@@ -521,13 +534,218 @@ class CToSvLibTransformation {
     Optional<CAssignment> assignment = getAssignmentOfEdge(pEdge);
     if (assignment.isPresent()
         && assignment.orElseThrow().getLeftHandSide() instanceof CIdExpression lhs
+        && !isMemoryAllocation(assignment.orElseThrow())
         && !hasSideEffectInFormula(assignment.orElseThrow())
         && isRepresentedByOwnVariable(lhs, pointerTargetSetBeforeEdge)) {
       return createAssignmentStatement(
           lhs, assignment.orElseThrow().getRightHandSide(), contextBeforeEdge, pEdge);
     }
 
-    return transformEdgeFormula(pEdge, contextBeforeEdge.getSsa(), edgeFormula);
+    SvLibStatement statementOfEdge =
+        transformEdgeFormula(pEdge, contextBeforeEdge.getSsa(), edgeFormula);
+    if (assignment.isPresent() && isMemoryAllocation(assignment.orElseThrow())) {
+      return withSeparationFromEarlierAllocations(
+          statementOfEdge,
+          (CFunctionCall) assignment.orElseThrow(),
+          edgeFormula.getPointerTargetSet(),
+          contextBeforeEdge,
+          pEdge);
+    }
+    return statementOfEdge;
+  }
+
+  /**
+   * Make every execution of the given statement allocate a new block of memory.
+   *
+   * <p>The formula of the edge contains the constraints that separate the new block from the
+   * objects that existed when the edge was transformed, but it is the same for every execution of
+   * the statement, so two iterations of a loop around an allocation would otherwise be allowed to
+   * return the same address. The address of the new block is therefore required to lie above all
+   * memory that has been allocated so far, and that limit is raised by the size of the block.
+   *
+   * <p>Whether an allocation succeeds is decided by a value that the formula of the edge names
+   * after the called function, and every call decides it anew, so that value is havoced as well.
+   */
+  private SvLibStatement withSeparationFromEarlierAllocations(
+      SvLibStatement pStatementOfEdge,
+      CFunctionCall pAllocation,
+      PointerTargetSet pAfterEdge,
+      PathFormula pContext,
+      CFAEdge pEdge)
+      throws CPATransferException, InterruptedException {
+    ImmutableList<SvLibParsingVariableDeclaration> addresses =
+        formulaToSvLibVisitor.pollAllocatedAddressesOfFormulas();
+    if (addresses.isEmpty()) {
+      return pStatementOfEdge;
+    }
+
+    ImmutableList.Builder<SvLibStatement> beforeEdge = ImmutableList.builder();
+    String nameOfAllocation =
+        pAllocation.getFunctionCallExpression().getFunctionNameExpression().toASTString();
+    if (scope.hasVariable(nameOfAllocation)) {
+      beforeEdge.add(
+          new SvLibHavocStatement(
+              FileLocation.DUMMY,
+              ImmutableList.of(),
+              ImmutableList.of(),
+              ImmutableList.of(scope.getVariable(nameOfAllocation))));
+    }
+    ImmutableList.Builder<SvLibStatement> afterEdge = ImmutableList.builder();
+    for (SvLibParsingVariableDeclaration address : addresses) {
+      SvLibParsingVariableDeclaration limit = getHighestAllocatedAddress(address.getType());
+      SvLibIdTerm addressTerm = new SvLibIdTerm(address.toSimpleDeclaration(), FileLocation.DUMMY);
+      SvLibIdTerm limitTerm = new SvLibIdTerm(limit.toSimpleDeclaration(), FileLocation.DUMMY);
+
+      beforeEdge.add(
+          new SvLibAssumeStatement(
+              FileLocation.DUMMY,
+              applyBinaryOperator(atLeastDeclaration(address.getType()), addressTerm, limitTerm),
+              ImmutableList.of(),
+              ImmutableList.of()));
+
+      Optional<SvLibTerm> size =
+          getSizeOfAllocatedMemory(address, pAfterEdge, pAllocation, pContext, pEdge);
+      if (size.isPresent()) {
+        afterEdge.add(
+            new SvLibAssignmentStatement(
+                ImmutableMap.<SvLibSimpleParsingDeclaration, SvLibTerm>of(
+                    limit,
+                    applyBinaryOperator(
+                        additionDeclaration(address.getType()), addressTerm, size.orElseThrow())),
+                FileLocation.DUMMY,
+                ImmutableList.of(),
+                ImmutableList.of()));
+      }
+    }
+
+    return new SvLibSequenceStatement(
+        ImmutableList.<SvLibStatement>builder()
+            .addAll(beforeEdge.build())
+            .add(pStatementOfEdge)
+            .addAll(afterEdge.build())
+            .build(),
+        FileLocation.DUMMY,
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  /**
+   * The size of the memory that the given allocation reserves, if it can be determined.
+   *
+   * <p>The size of the type of the allocated block is the one that the analysis of the C program
+   * uses. That type is only known later for an allocation whose size is not the one of a type, as
+   * in {@code malloc(n)}, and the argument of the call is used in that case.
+   */
+  private Optional<SvLibTerm> getSizeOfAllocatedMemory(
+      SvLibParsingVariableDeclaration pAddress,
+      PointerTargetSet pAfterEdge,
+      CFunctionCall pAllocation,
+      PathFormula pContext,
+      CFAEdge pEdge)
+      throws CPATransferException, InterruptedException {
+    Optional<PointerBase> base = PointerBase.fromFormulaEncoding(unquote(pAddress.getName()));
+    CType typeOfBase = base.isPresent() ? pAfterEdge.getBases().get(base.orElseThrow()) : null;
+    if (typeOfBase != null && typeOfBase.hasKnownConstantSize()) {
+      return Optional.of(
+          createNumericConstant(cfa.getMachineModel().getSizeof(typeOfBase), pAddress.getType()));
+    }
+
+    ImmutableList<CExpression> arguments =
+        pAllocation.getFunctionCallExpression().getParameterExpressions();
+    if (arguments.size() != 1) {
+      return Optional.empty();
+    }
+    RightHandSideTerm size =
+        pathFormulaManager.rightHandSideToFormula(
+            pContext, arguments.getFirst(), cfa.getMachineModel().getSizeType(), pEdge);
+    return Optional.of(formulaManager.visit(size.term(), formulaToSvLibVisitor));
+  }
+
+  /**
+   * The name of a variable of the generated program without the quotes around it, if it has any.
+   */
+  private String unquote(String pName) {
+    return pName.startsWith("|") && pName.endsWith("|")
+        ? pName.substring(1, pName.length() - 1)
+        : pName;
+  }
+
+  /** The variable that holds the address above all memory that has been allocated so far. */
+  private SvLibParsingVariableDeclaration getHighestAllocatedAddress(SvLibType pAddressType) {
+    return declareVariableOfTransformation(
+        CToSvLibTransformationConstants.HIGHEST_ALLOCATED_ADDRESS, pAddressType);
+  }
+
+  /**
+   * Declare a global variable that the transformation needs, unless it is already declared.
+   *
+   * <p>Such a variable holds a value that the transformation itself introduces, so it is not one of
+   * the program and every use of it assigns it before it is read.
+   */
+  private SvLibParsingVariableDeclaration declareVariableOfTransformation(
+      String pName, SvLibType pType) {
+    SvLibParsingVariableDeclaration declaration = variablesOfTransformation.get(pName);
+    if (declaration == null) {
+      declaration =
+          new SvLibParsingVariableDeclaration(
+              FileLocation.DUMMY, true, false, pType, pName, pName, null);
+      scope.addVariable(declaration);
+      variablesOfTransformation.put(pName, declaration);
+    }
+    return declaration;
+  }
+
+  /** The type of the addresses of the generated program, which every object with one has. */
+  private SvLibType getTypeOfAddresses() {
+    return objectsWithAddress.values().stream()
+        .findFirst()
+        .map(object -> object.address().getType())
+        .orElse(SvLibSmtLibPredefinedType.INT);
+  }
+
+  /** The variables that the transformation itself introduced and that have to be declared. */
+  ImmutableList<SvLibParsingVariableDeclaration> getVariablesOfTransformation() {
+    return ImmutableList.copyOf(variablesOfTransformation.values());
+  }
+
+  /**
+   * The operator that compares two addresses, which is a signed comparison because the analysis of
+   * the C program compares the addresses of the bases of the heap in the same way.
+   */
+  private SvLibFunctionDeclaration atLeastDeclaration(SvLibType pType) {
+    if (pType instanceof SvLibSmtLibBitVectorType bitVectorType) {
+      return SmtLibTheoryDeclarations.bitVectorSignedGreaterEqual(bitVectorType.getSize());
+    }
+    return SmtLibTheoryDeclarations.INT_GREATER_EQUAL_THAN;
+  }
+
+  private SvLibFunctionDeclaration equalityDeclaration(SvLibType pType) {
+    if (pType instanceof SvLibSmtLibBitVectorType bitVectorType) {
+      return SmtLibTheoryDeclarations.bitVectorEquality(bitVectorType.getSize());
+    }
+    return SmtLibTheoryDeclarations.INT_EQUALITY;
+  }
+
+  private SvLibFunctionDeclaration subtractionDeclaration(SvLibType pType) {
+    if (pType instanceof SvLibSmtLibBitVectorType bitVectorType) {
+      return SmtLibTheoryDeclarations.bitVectorSubstraction(bitVectorType.getSize());
+    }
+    return SmtLibTheoryDeclarations.intSubtraction(2);
+  }
+
+  private SvLibFunctionDeclaration additionDeclaration(SvLibType pType) {
+    if (pType instanceof SvLibSmtLibBitVectorType bitVectorType) {
+      return SmtLibTheoryDeclarations.bitVectorAddition(bitVectorType.getSize());
+    }
+    return SmtLibTheoryDeclarations.intAddition(2);
+  }
+
+  private SvLibTerm applyBinaryOperator(
+      SvLibFunctionDeclaration pOperator, SvLibTerm pLeft, SvLibTerm pRight) {
+    return new SvLibSymbolApplicationTerm(
+        new SvLibIdTerm(pOperator, FileLocation.DUMMY),
+        ImmutableList.of(pLeft, pRight),
+        FileLocation.DUMMY);
   }
 
   /** The assignment that the given edge performs, if it performs one. */
@@ -902,25 +1120,6 @@ class CToSvLibTransformation {
   private boolean isSigned(CType pType) {
     return pType.getCanonicalType() instanceof CSimpleType simpleType
         && cfa.getMachineModel().isSigned(simpleType);
-  }
-
-  /**
-   * Declare a global variable that the transformation needs, unless it is already declared.
-   *
-   * <p>Such a variable holds a value that the transformation itself introduces, so it is not one of
-   * the program and every use of it assigns it before it is read.
-   */
-  private SvLibParsingVariableDeclaration declareVariableOfTransformation(
-      String pName, SvLibType pType) {
-    SvLibParsingVariableDeclaration declaration = variablesOfTransformation.get(pName);
-    if (declaration == null) {
-      declaration =
-          new SvLibParsingVariableDeclaration(
-              FileLocation.DUMMY, true, false, pType, pName, pName, null);
-      scope.addVariable(declaration);
-      variablesOfTransformation.put(pName, declaration);
-    }
-    return declaration;
   }
 
   /**
