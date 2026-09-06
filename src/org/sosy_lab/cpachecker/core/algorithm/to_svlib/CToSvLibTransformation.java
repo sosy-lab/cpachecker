@@ -19,30 +19,30 @@ import com.google.common.collect.Lists;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibTheoryDeclarations;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBitVectorConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
@@ -62,7 +62,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
@@ -85,12 +84,16 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibSequenceStat
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -113,6 +116,13 @@ class CToSvLibTransformation {
   private final FormulaToSvLibVisitor formulaToSvLibVisitor;
 
   private final SvLibCurrentScope scope;
+
+  /**
+   * The variables that the transformation itself introduced, such as the one that holds the address
+   * above all memory that has been allocated so far, by their name.
+   */
+  private final Map<String, SvLibParsingVariableDeclaration> variablesOfTransformation =
+      new LinkedHashMap<>();
 
   CToSvLibTransformation(
       CFA pCFA,
@@ -373,7 +383,8 @@ class CToSvLibTransformation {
       }
       case StatementEdge -> {
         CStatementEdge statementEdge = (CStatementEdge) pEdge;
-        if (statementEdge.getStatement() instanceof CFunctionCall) {
+        if (statementEdge.getStatement() instanceof CFunctionCall functionCall
+            && !isEncodedInFormula(functionCall)) {
           SvLibStatement externCallStatement =
               transformCallToExternalFunction(statementEdge, pEdgeToPointerTargetSet);
           pCreatedStatements.put(pEdge.getPredecessor(), externCallStatement);
@@ -419,6 +430,62 @@ class CToSvLibTransformation {
   }
 
   /**
+   * Does {@link CtoFormulaConverter} encode the given call in the formula of its edge instead of
+   * treating it as a call of a function of the program?
+   *
+   * <p>This is the case for the functions that allocate memory, where it creates a base for the
+   * allocated memory together with the constraints that separate its address from the addresses of
+   * all other objects, and for the functions that the compiler and the standard library provide,
+   * such as {@code isinf}, whose semantics it knows. The transformation therefore uses that formula
+   * instead of creating a procedure call, because a procedure that only havocs its return value
+   * would know nothing about the result.
+   */
+  private boolean isEncodedInFormula(CFunctionCall pFunctionCall) {
+    String functionName =
+        pFunctionCall.getFunctionCallExpression().getFunctionNameExpression().toASTString();
+    return CToSvLibTransformationConstants.NAMES_OF_MEMORY_ALLOCATION_FUNCTIONS.contains(
+            functionName)
+        || BuiltinFunctions.isBuiltinFunction(functionName)
+        || hasSideEffectInFormula(pFunctionCall);
+  }
+
+  /**
+   * Does the formula of the given call contain the effect of that call on the memory of the
+   * program, as it does for {@code memset}?
+   *
+   * <p>Only the formula of the whole edge encodes such a call correctly, because a procedure of the
+   * generated program that only havocs the returned value does not write to the memory, and neither
+   * does the transformation of the two sides of an assignment on their own.
+   */
+  private boolean hasSideEffectInFormula(CFunctionCall pFunctionCall) {
+    return CtoFormulaConverter.isSideEffectFunction(
+        pFunctionCall.getFunctionCallExpression().getFunctionNameExpression().toASTString());
+  }
+
+  private boolean hasSideEffectInFormula(CAssignment pAssignment) {
+    return pAssignment instanceof CFunctionCall functionCall
+        && hasSideEffectInFormula(functionCall);
+  }
+
+  /** Does the given assignment assign the result of a call that its formula encodes? */
+  private boolean isEncodedInFormula(CAssignment pAssignment) {
+    return pAssignment instanceof CFunctionCall functionCall && isEncodedInFormula(functionCall);
+  }
+
+  /**
+   * Does the given assignment assign the result of a call that allocates memory?
+   *
+   * <p>Such a call is only encoded correctly in the formula of the whole edge, because that formula
+   * also contains the base address of the allocated memory and the update of the pointer target set
+   * that goes with it.
+   */
+  private boolean isMemoryAllocation(CAssignment pAssignment) {
+    return pAssignment instanceof CFunctionCall functionCall
+        && CToSvLibTransformationConstants.NAMES_OF_MEMORY_ALLOCATION_FUNCTIONS.contains(
+            functionCall.getFunctionCallExpression().getFunctionNameExpression().toASTString());
+  }
+
+  /**
    * Transform an edge that assigns a value into the corresponding SV-LIB statement.
    *
    * <p>Whenever the assignment writes to a variable that is represented by a variable in the
@@ -454,6 +521,7 @@ class CToSvLibTransformation {
     Optional<CAssignment> assignment = getAssignmentOfEdge(pEdge);
     if (assignment.isPresent()
         && assignment.orElseThrow().getLeftHandSide() instanceof CIdExpression lhs
+        && !hasSideEffectInFormula(assignment.orElseThrow())
         && isRepresentedByOwnVariable(lhs, pointerTargetSetBeforeEdge)) {
       return createAssignmentStatement(
           lhs, assignment.orElseThrow().getRightHandSide(), contextBeforeEdge, pEdge);
@@ -604,10 +672,11 @@ class CToSvLibTransformation {
       ImmutableMap.Builder<CFAEdge, PointerTargetSet> pEdgeToPointerTargetSet)
       throws CPATransferException, InterruptedException {
     storePtsForFunctionCall(pStatementEdge, pEdgeToPointerTargetSet);
-    if (pStatementEdge.getStatement() instanceof CFunctionCall functionCall
-        && functionCall instanceof CFunctionCallAssignmentStatement callAssignmentStatement
-        && (callAssignmentStatement.getLeftHandSide() instanceof CArraySubscriptExpression
-            || callAssignmentStatement.getLeftHandSide() instanceof CFieldReference)) {
+    // Everything that is not a variable of the program, such as an element of an array, a member
+    // of a structure or the target of a pointer, is memory that the arrays of the heap model.
+    if (pStatementEdge.getStatement()
+            instanceof CFunctionCallAssignmentStatement callAssignmentStatement
+        && !(callAssignmentStatement.getLeftHandSide() instanceof CIdExpression)) {
       return handleReturnValueAssignmentToHeap(
           pStatementEdge, callAssignmentStatement, pEdgeToPointerTargetSet);
     } else if (pStatementEdge.getStatement()
@@ -636,10 +705,11 @@ class CToSvLibTransformation {
 
       SvLibProcedureDeclaration calledProcedure =
           scope.getProcedureDeclaration(
-              functionCallStatement
-                  .getFunctionCallExpression()
-                  .getFunctionNameExpression()
-                  .toASTString());
+              CToSvLibTransformationConstants.asSymbol(
+                  functionCallStatement
+                      .getFunctionCallExpression()
+                      .getFunctionNameExpression()
+                      .toASTString()));
 
       // Handle calls to a set of external __assert functions that have a char* input parameter
       if (CToSvLibTransformationConstants.NAMES_OF_ASSERT_FUNCTIONS.contains(
@@ -676,8 +746,7 @@ class CToSvLibTransformation {
 
     CFunctionCall functionCall = pCallEdge.getExpression();
     if (pCallEdge.getExpression() instanceof CFunctionCallAssignmentStatement assignment
-        && (assignment.getLeftHandSide() instanceof CArraySubscriptExpression
-            || assignment.getLeftHandSide() instanceof CFieldReference)) {
+        && !(assignment.getLeftHandSide() instanceof CIdExpression)) {
       return handleReturnValueAssignmentToHeap(pCallEdge, assignment, pEdgeToPointerTargetSet);
 
     } else if (functionCall instanceof CFunctionCallAssignmentStatement functionCallAssignment) {
@@ -708,7 +777,7 @@ class CToSvLibTransformation {
     }
   }
 
-  private SvLibProcedureCallStatement createProcedureCallStatement(
+  private SvLibStatement createProcedureCallStatement(
       CFAEdge pCallEdge,
       CFunctionCallAssignmentStatement pFunctionCallAssignmentStatement,
       CIdExpression pLhsIdExpression,
@@ -716,27 +785,158 @@ class CToSvLibTransformation {
       throws CPATransferException, InterruptedException {
     SvLibProcedureDeclaration calledProcedure =
         scope.getProcedureDeclaration(
-            pFunctionCallAssignmentStatement
-                .getRightHandSide()
-                .getFunctionNameExpression()
-                .toASTString());
+            CToSvLibTransformationConstants.asSymbol(
+                pFunctionCallAssignmentStatement
+                    .getRightHandSide()
+                    .getFunctionNameExpression()
+                    .toASTString()));
 
-    return new SvLibProcedureCallStatement(
-        FileLocation.DUMMY,
-        ImmutableList.of(),
-        ImmutableList.of(),
-        calledProcedure,
+    InputParameters inputParameters =
         transformInputParameters(
-            pFunctionCallAssignmentStatement.getRightHandSide().getParameterExpressions(),
+            pFunctionCallAssignmentStatement.getRightHandSide(),
             pCallEdge,
             calledProcedure,
-            pEdgeToPointerTargetSet),
-        ImmutableList.of(
-            scope.getVariableForQualifiedName(
-                pLhsIdExpression.getDeclaration().getQualifiedName())));
+            pEdgeToPointerTargetSet);
+
+    SvLibSimpleParsingDeclaration assignedVariable =
+        scope.getVariableForQualifiedName(pLhsIdExpression.getDeclaration().getQualifiedName());
+    if (calledProcedure.getReturnValues().size() != 1) {
+      throw new UnsupportedOperationException(
+          "The result of the call "
+              + pFunctionCallAssignmentStatement.toASTString()
+              + " is assigned, but the procedure "
+              + calledProcedure.getProcedureName()
+              + " returns "
+              + calledProcedure.getReturnValues().size()
+              + " values");
+    }
+    SvLibType returnType = calledProcedure.getReturnValues().getFirst().getType();
+
+    if (assignedVariable.getType().equals(returnType)) {
+      return withAssumedConstraints(
+          new SvLibProcedureCallStatement(
+              FileLocation.DUMMY,
+              ImmutableList.of(),
+              ImmutableList.of(),
+              calledProcedure,
+              inputParameters.terms(),
+              ImmutableList.of(assignedVariable)),
+          inputParameters.constraints());
+    }
+
+    // The assigned variable has a different type than the return value of the procedure, which
+    // happens for an assignment like "int x = f();" where f returns an unsigned char. The return
+    // value is therefore stored in a dummy variable of the type of the procedure and converted to
+    // the type of the assigned variable afterwards, like the implicit conversion in C does.
+    SvLibSimpleParsingDeclaration returnDummyVariable = getReturnDummyVariable(returnType);
+    SvLibProcedureCallStatement callStatement =
+        new SvLibProcedureCallStatement(
+            FileLocation.DUMMY,
+            ImmutableList.of(),
+            ImmutableList.of(),
+            calledProcedure,
+            inputParameters.terms(),
+            ImmutableList.of(returnDummyVariable));
+    SvLibAssignmentStatement conversionStatement =
+        new SvLibAssignmentStatement(
+            ImmutableMap.of(
+                assignedVariable,
+                convertReturnValue(
+                    new SvLibIdTerm(returnDummyVariable.toSimpleDeclaration(), FileLocation.DUMMY),
+                    assignedVariable.getType(),
+                    pFunctionCallAssignmentStatement.getRightHandSide().getExpressionType())),
+            FileLocation.DUMMY,
+            ImmutableList.of(),
+            ImmutableList.of());
+    return withAssumedConstraints(
+        new SvLibSequenceStatement(
+            ImmutableList.of(callStatement, conversionStatement),
+            FileLocation.DUMMY,
+            ImmutableList.of(),
+            ImmutableList.of()),
+        inputParameters.constraints());
   }
 
-  private SvLibProcedureCallStatement createProcedureCallStatementWithDummyReturn(
+  /**
+   * Convert the value of the return variable of a procedure to the type of the variable that it is
+   * assigned to, in the same way as the implicit conversion of C does.
+   *
+   * @param pReturnValue the term for the return value of the procedure
+   * @param pTargetType the type of the variable that the return value is assigned to
+   * @param pSourceType the C type of the return value, needed to know whether it is signed
+   */
+  private SvLibTerm convertReturnValue(
+      SvLibTerm pReturnValue, SvLibType pTargetType, CType pSourceType) {
+    if (!(pTargetType instanceof SvLibSmtLibBitVectorType targetType)
+        || !(pReturnValue.getExpressionType() instanceof SvLibSmtLibBitVectorType sourceType)) {
+      throw new UnsupportedOperationException(
+          "Cannot convert the return value of a procedure from "
+              + pReturnValue.getExpressionType()
+              + " to "
+              + pTargetType);
+    }
+
+    SvLibFunctionDeclaration conversion;
+    if (targetType.getSize() > sourceType.getSize()) {
+      // A value of a signed type keeps its value by repeating its sign bit, an unsigned one by
+      // being filled up with zeros.
+      conversion =
+          isSigned(pSourceType)
+              ? SmtLibTheoryDeclarations.bitVectorSignExtend(
+                  sourceType.getSize(), targetType.getSize())
+              : SmtLibTheoryDeclarations.bitVectorZeroExtend(
+                  sourceType.getSize(), targetType.getSize());
+    } else {
+      // The conversion to a smaller type keeps the least significant bits.
+      conversion =
+          SmtLibTheoryDeclarations.bitVectorExtract(
+              sourceType.getSize(), targetType.getSize() - 1, 0);
+    }
+    return new SvLibSymbolApplicationTerm(
+        new SvLibIdTerm(conversion, FileLocation.DUMMY),
+        ImmutableList.of(pReturnValue),
+        FileLocation.DUMMY);
+  }
+
+  /** Is the given C type a signed integer type? */
+  private boolean isSigned(CType pType) {
+    return pType.getCanonicalType() instanceof CSimpleType simpleType
+        && cfa.getMachineModel().isSigned(simpleType);
+  }
+
+  /**
+   * Declare a global variable that the transformation needs, unless it is already declared.
+   *
+   * <p>Such a variable holds a value that the transformation itself introduces, so it is not one of
+   * the program and every use of it assigns it before it is read.
+   */
+  private SvLibParsingVariableDeclaration declareVariableOfTransformation(
+      String pName, SvLibType pType) {
+    SvLibParsingVariableDeclaration declaration = variablesOfTransformation.get(pName);
+    if (declaration == null) {
+      declaration =
+          new SvLibParsingVariableDeclaration(
+              FileLocation.DUMMY, true, false, pType, pName, pName, null);
+      scope.addVariable(declaration);
+      variablesOfTransformation.put(pName, declaration);
+    }
+    return declaration;
+  }
+
+  /**
+   * The variable that holds the value that a procedure returns before it is converted to the type
+   * of the variable that it is assigned to.
+   */
+  private SvLibSimpleParsingDeclaration getReturnDummyVariable(SvLibType pReturnType) {
+    String name = CToSvLibTransformationConstants.returnDummyVariableName(pReturnType);
+    if (scope.hasVariable(name)) {
+      return scope.getVariable(name);
+    }
+    return declareVariableOfTransformation(
+        CToSvLibTransformationConstants.globalReturnDummyVariableName(pReturnType), pReturnType);
+  }
+
+  private SvLibStatement createProcedureCallStatementWithDummyReturn(
       CFAEdge pCallEdge,
       CFunctionCallStatement pFunctionCallStatement,
       SvLibProcedureDeclaration pCalledProcedure,
@@ -747,28 +947,24 @@ class CToSvLibTransformation {
         ImmutableList.builder();
     for (SvLibParsingParameterDeclaration parsingParameterDeclaration :
         pCalledProcedure.getReturnValues()) {
-      SvLibType returnType = parsingParameterDeclaration.getType();
-      String returnDummyName =
-          (returnType instanceof SvLibSmtLibBitVectorType bitVectorType)
-              ? CToSvLibTransformationConstants.RETURN_VAR_DUMMY_PREFIX
-                  + "bv"
-                  + bitVectorType.getSize()
-              : CToSvLibTransformationConstants.RETURN_VAR_DUMMY_PREFIX + returnType;
-      SvLibSimpleParsingDeclaration returnDummyVariable = scope.getVariable(returnDummyName);
-      returnVariableDummies.add(returnDummyVariable);
+      returnVariableDummies.add(getReturnDummyVariable(parsingParameterDeclaration.getType()));
     }
 
-    return new SvLibProcedureCallStatement(
-        FileLocation.DUMMY,
-        ImmutableList.of(),
-        ImmutableList.of(),
-        pCalledProcedure,
+    InputParameters inputParameters =
         transformInputParameters(
-            pFunctionCallStatement.getFunctionCallExpression().getParameterExpressions(),
+            pFunctionCallStatement.getFunctionCallExpression(),
             pCallEdge,
             pCalledProcedure,
-            pEdgeToPointerTargetSet),
-        returnVariableDummies.build());
+            pEdgeToPointerTargetSet);
+    return withAssumedConstraints(
+        new SvLibProcedureCallStatement(
+            FileLocation.DUMMY,
+            ImmutableList.of(),
+            ImmutableList.of(),
+            pCalledProcedure,
+            inputParameters.terms(),
+            returnVariableDummies.build()),
+        inputParameters.constraints());
   }
 
   private SvLibSequenceStatement handleReturnValueAssignmentToHeap(
@@ -778,39 +974,41 @@ class CToSvLibTransformation {
       throws CPATransferException, InterruptedException {
 
     String calledFunctionName =
-        pAssignmentStatement.getRightHandSide().getFunctionNameExpression().toASTString();
+        CToSvLibTransformationConstants.asSymbol(
+            pAssignmentStatement.getRightHandSide().getFunctionNameExpression().toASTString());
     SvLibProcedureDeclaration calledProcedure = scope.getProcedureDeclaration(calledFunctionName);
 
     String tmpVariableQualifiedName = constructTmpVariableName(calledProcedure, pCallEdge);
     SvLibSimpleParsingDeclaration variable =
         scope.getVariableForQualifiedName(tmpVariableQualifiedName);
 
-    SvLibProcedureCallStatement callStatement =
-        new SvLibProcedureCallStatement(
-            FileLocation.DUMMY,
-            ImmutableList.of(),
-            ImmutableList.of(),
-            calledProcedure,
-            transformInputParameters(
-                pAssignmentStatement.getRightHandSide().getParameterExpressions(),
-                pCallEdge,
-                calledProcedure,
-                pEdgeToPointerTargetSet),
-            ImmutableList.of(variable));
-
-    SvLibSymbolApplicationTerm symbolApplicationTerm =
-        getTmpTerm(
-            tmpVariableQualifiedName,
-            pAssignmentStatement.getLeftHandSide(),
+    InputParameters inputParameters =
+        transformInputParameters(
+            pAssignmentStatement.getRightHandSide(),
             pCallEdge,
+            calledProcedure,
             pEdgeToPointerTargetSet);
-    String functionName = pCallEdge.getPredecessor().getFunctionName();
-    // TODO
-    SvLibAssignmentStatement assignmentStatement =
-        createAssignmentStatement(
-            (SvLibIdTerm) symbolApplicationTerm.getTerms().getFirst(),
-            symbolApplicationTerm.getTerms().get(1),
-            functionName);
+    SvLibStatement callStatement =
+        withAssumedConstraints(
+            new SvLibProcedureCallStatement(
+                FileLocation.DUMMY,
+                ImmutableList.of(),
+                ImmutableList.of(),
+                calledProcedure,
+                inputParameters.terms(),
+                ImmutableList.of(variable)),
+            inputParameters.constraints());
+
+    // The value that the procedure returns is stored in the memory by an assignment of the variable
+    // that holds it, which is transformed like every other assignment to the memory.
+    SvLibStatement assignmentStatement =
+        transformAssignmentEdge(
+            createAssignmentOfVariable(
+                tmpVariableQualifiedName,
+                pAssignmentStatement.getRightHandSide().getExpressionType(),
+                pAssignmentStatement.getLeftHandSide(),
+                pCallEdge),
+            pEdgeToPointerTargetSet);
 
     return new SvLibSequenceStatement(
         ImmutableList.of(callStatement, assignmentStatement),
@@ -830,208 +1028,160 @@ class CToSvLibTransformation {
     returnValueType = returnValues.getFirst().getType();
     return pCallEdge.getPredecessor().getFunctionName()
         + "::"
-        + CToSvLibTransformationConstants.TMP_VAR_ASSIGNMENT
-        + returnValueType;
+        + CToSvLibTransformationConstants.tmpVariableNameForAssignment(returnValueType);
   }
 
-  private SvLibSymbolApplicationTerm getTmpTerm(
-      String tmpVariableQualifiedName,
-      CLeftHandSide pCLeftHandSide,
-      CFAEdge pEdge,
-      ImmutableMap.Builder<CFAEdge, PointerTargetSet> pEdgeToPointerTargetSet)
-      throws CPATransferException, InterruptedException {
-
-    CVariableDeclaration tmpVariableDeclaration =
+  /**
+   * An edge that assigns the variable with the given name to the given left-hand side.
+   *
+   * <p>The edge is not part of the CFA and is only transformed in order to obtain the statements
+   * that store a value in the memory of the program.
+   *
+   * <p>The variable has the type of the value that it holds and not the one of the left-hand side,
+   * because the assignment converts the value to that type. Giving it the type of the left-hand
+   * side would make the formula refer to it with a different type than the one that it is declared
+   * with in the generated program.
+   */
+  private CStatementEdge createAssignmentOfVariable(
+      String pVariableName, CType pVariableType, CLeftHandSide pLeftHandSide, CFAEdge pEdge) {
+    CVariableDeclaration variableDeclaration =
         new CVariableDeclaration(
             FileLocation.DUMMY,
             false,
             CStorageClass.AUTO,
-            pCLeftHandSide.getExpressionType(),
-            tmpVariableQualifiedName,
-            tmpVariableQualifiedName,
-            tmpVariableQualifiedName,
+            pVariableType,
+            pVariableName,
+            pVariableName,
+            pVariableName,
             null);
-
-    CIdExpression variableExpression =
-        new CIdExpression(
+    CExpressionAssignmentStatement assignment =
+        new CExpressionAssignmentStatement(
             FileLocation.DUMMY,
-            pCLeftHandSide.getExpressionType(),
-            tmpVariableQualifiedName,
-            tmpVariableDeclaration);
-
-    CExpressionAssignmentStatement tmpCAssignment =
-        new CExpressionAssignmentStatement(FileLocation.DUMMY, pCLeftHandSide, variableExpression);
-
-    CStatementEdge transformationDummyEdge_tmpAssignmentStatement =
-        new CStatementEdge(
-            "", tmpCAssignment, FileLocation.DUMMY, pEdge.getPredecessor(), pEdge.getPredecessor());
-    SvLibTerm svLibTerm =
-        transformEdgeToSvLibTerm(
-            transformationDummyEdge_tmpAssignmentStatement, pEdgeToPointerTargetSet);
-    return (SvLibSymbolApplicationTerm) svLibTerm;
+            pLeftHandSide,
+            new CIdExpression(
+                FileLocation.DUMMY, pVariableType, pVariableName, variableDeclaration));
+    return new CStatementEdge(
+        "", assignment, FileLocation.DUMMY, pEdge.getPredecessor(), pEdge.getPredecessor());
   }
 
-  private ImmutableList<SvLibTerm> transformInputParameters(
-      ImmutableList<CExpression> pCParameters,
+  /**
+   * Transform the arguments of a procedure call into SV-LIB terms.
+   *
+   * <p>Every argument is transformed on its own, so that the shape of the formula that the SMT
+   * solver builds for it does not matter. Transforming the arguments through the formula of an
+   * artificial assume edge, which encodes {@code argument != 0}, and recovering the argument from
+   * that formula afterwards would depend on the simplifications of the used solver.
+   */
+  private InputParameters transformInputParameters(
+      CFunctionCallExpression pFunctionCall,
       CFAEdge pCallEdge,
       SvLibProcedureDeclaration pProcedureDeclaration,
       ImmutableMap.Builder<CFAEdge, PointerTargetSet> pEdgeToPointerTargetSet)
       throws CPATransferException, InterruptedException {
+    ImmutableList<CExpression> pCParameters = pFunctionCall.getParameterExpressions();
+    PathFormula context =
+        pathFormulaManager.makeEmptyPathFormulaWithContext(
+            SSAMap.emptySSAMap(), getPtsForEdge(pCallEdge, pEdgeToPointerTargetSet));
+
+    // A call can have more arguments than the called procedure has parameters, for a variadic
+    // function or for a function of the compiler such as __builtin_fpclassify, whose declaration
+    // has none. Only the arguments that the procedure declares are passed, the others cannot be
+    // referred to by its body.
+    ImmutableList<CExpression> arguments =
+        pCParameters.subList(
+            0, Math.min(pCParameters.size(), pProcedureDeclaration.getParameters().size()));
+
     ImmutableList.Builder<SvLibTerm> callInputParameterCollector = ImmutableList.builder();
-    for (int i = 0; i < pCParameters.size(); i++) {
-      CExpression inputParameter = pCParameters.get(i);
-      CAssumeEdge transformationDummyEdge =
-          new CAssumeEdge(
-              inputParameter.toASTString(),
-              FileLocation.DUMMY,
-              pCallEdge.getPredecessor(),
-              pCallEdge.getPredecessor(),
-              inputParameter,
-              true);
-      SvLibTerm term = transformEdgeToSvLibTerm(transformationDummyEdge, pEdgeToPointerTargetSet);
+    ImmutableList.Builder<SvLibTerm> constraintCollector = ImmutableList.builder();
+    for (int i = 0; i < arguments.size(); i++) {
+      CExpression inputParameter = arguments.get(i);
+      // The argument is converted to the type that the function declares for the parameter, like
+      // the implicit conversion of C does, for example for the call fmodf(x, 2) of a function that
+      // takes two floats.
+      RightHandSideTerm argument =
+          pathFormulaManager.rightHandSideToFormula(
+              context, inputParameter, getTypeOfArgument(pFunctionCall, i), pCallEdge);
+      SvLibTerm term = formulaManager.visit(argument.term(), formulaToSvLibVisitor);
 
-      if ((inputParameter instanceof CIdExpression || inputParameter instanceof CLiteralExpression)
-          && term instanceof SvLibSymbolApplicationTerm symbolApplicationTerm
-          && symbolApplicationTerm.getSymbol().getName().equals("not")
-          && symbolApplicationTerm.getTerms().size() == 1
-          && symbolApplicationTerm.getTerms().getFirst()
-              instanceof SvLibSymbolApplicationTerm innerTerm
-          && innerTerm.getSymbol().getName().equals("=")) {
-
-        term = innerTerm.getTerms().getFirst();
-
-      } else if (inputParameter instanceof CPointerExpression
-          && term instanceof SvLibSymbolApplicationTerm outerTerm
-          && outerTerm.getSymbol().getName().equals("not")
-          && outerTerm.getTerms().size() == 1
-          && outerTerm.getTerms().getFirst() instanceof SvLibSymbolApplicationTerm middleTerm
-          && middleTerm.getSymbol().getName().equals("=")
-          && middleTerm.getTerms().size() == 2
-          && middleTerm.getTerms().get(1) instanceof SvLibIntegerConstantTerm integerConstantTerm
-          && integerConstantTerm.getValue().equals(BigInteger.ZERO)
-          && middleTerm.getTerms().getFirst() instanceof SvLibSymbolApplicationTerm innerTerm
-          && innerTerm.getSymbol().getName().equals("select")
-          && innerTerm.getTerms().size() == 2) {
-
-        term = innerTerm.getTerms().get(1);
-
-      } else if (inputParameter instanceof CBinaryExpression
-          && term instanceof SvLibSymbolApplicationTerm symbolApplicationTerm
-          && symbolApplicationTerm.getSymbol().getName().equals("not")
-          && symbolApplicationTerm.getTerms().size() == 1
-          && symbolApplicationTerm.getTerms().getFirst()
-              instanceof SvLibSymbolApplicationTerm innerTerm
-          && innerTerm.getSymbol().getName().equals("=")
-          && innerTerm.getTerms().size() == 2
-          && innerTerm.getTerms().get(1) instanceof SvLibIntegerConstantTerm integerConstantTerm
-          && integerConstantTerm.getValue().equals(BigInteger.ZERO)
-          && innerTerm.getTerms().getFirst()
-              instanceof SvLibSymbolApplicationTerm actualSymbolApplicationTerm) {
-
-        term = actualSymbolApplicationTerm;
-
-      } else if (inputParameter instanceof CBinaryExpression inputBinaryExpression
-          && term instanceof SvLibSymbolApplicationTerm symbolApplicationTerm
-          && symbolApplicationTerm.getSymbol().getDeclaration()
-              instanceof SvLibFunctionDeclaration pSvLibFunctionDeclaration
-          && pSvLibFunctionDeclaration
-              .getType()
-              .getReturnType()
-              .equals(SvLibSmtLibPredefinedType.BOOL)) {
-
-        SvLibType parameterType = pProcedureDeclaration.getParameters().get(i).getType();
-        term =
-            castBooleanArgumentViaITE(
-                term,
-                parameterType,
-                inputBinaryExpression,
-                pCallEdge,
-                pProcedureDeclaration,
-                pEdgeToPointerTargetSet);
-
-      } else if (inputParameter instanceof CArraySubscriptExpression
-          && term instanceof SvLibSymbolApplicationTerm symbolApplicationTerm
-          && symbolApplicationTerm.getSymbol().getName().equals("not")
-          && symbolApplicationTerm.getTerms().size() == 1
-          && symbolApplicationTerm.getTerms().getFirst()
-              instanceof SvLibSymbolApplicationTerm middleTerm
-          && middleTerm.getSymbol().getName().equals("=")
-          && middleTerm.getTerms().size() == 2
-          && middleTerm.getTerms().get(1) instanceof SvLibIntegerConstantTerm integerConstantTerm
-          && integerConstantTerm.getValue().equals(BigInteger.ZERO)
-          && middleTerm.getTerms().getFirst() instanceof SvLibSymbolApplicationTerm innerTerm
-          && innerTerm.getSymbol().getName().equals("select")) {
-        term = innerTerm;
-
-      } else if (inputParameter instanceof CFieldReference
-          && term instanceof SvLibSymbolApplicationTerm outerTerm
-          && outerTerm.getSymbol().getName().equals("not")
-          && outerTerm.getTerms().size() == 1
-          && outerTerm.getTerms().getFirst() instanceof SvLibSymbolApplicationTerm middleTerm
-          && middleTerm.getSymbol().getName().equals("=")
-          && middleTerm.getTerms().size() == 2
-          && middleTerm.getTerms().get(1) instanceof SvLibIntegerConstantTerm integerConstantTerm
-          && integerConstantTerm.getValue().equals(BigInteger.ZERO)
-          && middleTerm.getTerms().getFirst() instanceof SvLibSymbolApplicationTerm innerTerm
-          && innerTerm.getSymbol().getName().equals("select")
-          && innerTerm.getTerms().size() == 2) {
-
-        term = innerTerm.getTerms().get(1);
-
-      } else {
-        throw new UnsupportedOperationException(
-            "Failed to transform input "
-                + inputParameter
-                + " for procedure "
-                + pProcedureDeclaration.getProcedureName());
+      SvLibType parameterType = pProcedureDeclaration.getParameters().get(i).getType();
+      if (!term.getExpressionType().equals(parameterType)) {
+        // A C expression that is used as a value always has a numeric type, but the formula for it
+        // can still be a Boolean one, for example for a comparison.
+        term = castBooleanArgumentViaITE(term, parameterType, pProcedureDeclaration);
       }
       callInputParameterCollector.add(term);
+
+      if (!formulaManager.getBooleanFormulaManager().isTrue(argument.constraints())) {
+        constraintCollector.add(
+            formulaManager.visit(argument.constraints(), formulaToSvLibVisitor));
+      }
     }
-    return callInputParameterCollector.build();
+    return new InputParameters(callInputParameterCollector.build(), constraintCollector.build());
   }
 
-  private SvLibSymbolApplicationTerm createIntegerTermsViaTransformationDummyEdge(
-      CFAEdge pEdge,
-      CType pCType,
-      ImmutableMap.Builder<CFAEdge, PointerTargetSet> pEdgeToPointerTargetSet)
-      throws CPATransferException, InterruptedException {
-    CAssumeEdge transformationDummyEdge =
-        new CAssumeEdge(
-            "1",
-            FileLocation.DUMMY,
-            pEdge.getPredecessor(),
-            pEdge.getPredecessor(),
-            new CIntegerLiteralExpression(FileLocation.DUMMY, pCType, BigInteger.ONE),
-            false);
-    SvLibTerm transformedTerm =
-        transformEdgeToSvLibTerm(transformationDummyEdge, pEdgeToPointerTargetSet);
-    if (transformedTerm instanceof SvLibSymbolApplicationTerm symbolApplicationTerm
-        && symbolApplicationTerm.getTerms().size() == 2) {
-      return symbolApplicationTerm;
+  /**
+   * The type that the called function declares for the argument at the given position, or the type
+   * of the argument itself if the function does not declare it, as for a variadic function.
+   */
+  private CType getTypeOfArgument(CFunctionCallExpression pFunctionCall, int pPosition) {
+    CFunctionDeclaration declaration = pFunctionCall.getDeclaration();
+    CType type =
+        declaration != null && pPosition < declaration.getParameters().size()
+            ? declaration.getParameters().get(pPosition).getType()
+            : pFunctionCall.getParameterExpressions().get(pPosition).getExpressionType();
+    if (type.getCanonicalType() instanceof CArrayType arrayType) {
+      // C passes an array as a pointer to its first element, and the procedure declares it as one.
+      return new CPointerType(CTypeQualifiers.NONE, arrayType.getType());
     }
-    throw new UnsupportedOperationException(
-        "Failed to generate integer constant terms via a dummy edge.");
+    return type;
+  }
+
+  /**
+   * The terms for the arguments of a procedure call, together with the constraints (for example
+   * axioms for bitwise operations) that were created while building them and that have to be
+   * assumed before the call.
+   */
+  private record InputParameters(
+      ImmutableList<SvLibTerm> terms, ImmutableList<SvLibTerm> constraints) {}
+
+  /**
+   * Prepend the assumption of the constraints of the arguments of a procedure call to the given
+   * statement, if there are any.
+   */
+  private SvLibStatement withAssumedConstraints(
+      SvLibStatement pStatement, ImmutableList<SvLibTerm> pConstraints) {
+    if (pConstraints.isEmpty()) {
+      return pStatement;
+    }
+    SvLibTerm constraint =
+        pConstraints.size() == 1
+            ? pConstraints.getFirst()
+            : new SvLibSymbolApplicationTerm(
+                new SvLibIdTerm(
+                    SmtLibTheoryDeclarations.boolConjunction(pConstraints.size()),
+                    FileLocation.DUMMY),
+                pConstraints,
+                FileLocation.DUMMY);
+    return new SvLibSequenceStatement(
+        ImmutableList.of(
+            new SvLibAssumeStatement(
+                FileLocation.DUMMY, constraint, ImmutableList.of(), ImmutableList.of()),
+            pStatement),
+        FileLocation.DUMMY,
+        ImmutableList.of(),
+        ImmutableList.of());
   }
 
   private SvLibTerm castBooleanArgumentViaITE(
-      SvLibTerm pTerm,
-      SvLibType pParameterType,
-      CBinaryExpression pInputParameter,
-      CFAEdge pCallEdge,
-      SvLibProcedureDeclaration pProcedureDeclaration,
-      ImmutableMap.Builder<CFAEdge, PointerTargetSet> pEdgeToPointerTargetSet)
-      throws CPATransferException, InterruptedException {
+      SvLibTerm pTerm, SvLibType pParameterType, SvLibProcedureDeclaration pProcedureDeclaration) {
     SvLibType argumentType = pTerm.getExpressionType();
     if (!argumentType.equals(pParameterType)
         && argumentType.equals(SvLibSmtLibPredefinedType.BOOL)
         && (pParameterType.equals(SvLibSmtLibPredefinedType.INT)
             || pParameterType instanceof SvLibSmtLibBitVectorType)) {
 
-      SvLibSymbolApplicationTerm transformedTerm =
-          createIntegerTermsViaTransformationDummyEdge(
-              pCallEdge, pInputParameter.getExpressionType(), pEdgeToPointerTargetSet);
-      SvLibTerm oneTerm = transformedTerm.getTerms().getFirst();
-      SvLibTerm zeroTerm = transformedTerm.getTerms().get(1);
+      SvLibTerm oneTerm = createNumericConstant(BigInteger.ONE, pParameterType);
+      SvLibTerm zeroTerm = createNumericConstant(BigInteger.ZERO, pParameterType);
 
       return new SvLibSymbolApplicationTerm(
           new SvLibIdTerm(SmtLibTheoryDeclarations.ite(pParameterType), FileLocation.DUMMY),
@@ -1045,6 +1195,23 @@ class CToSvLibTransformation {
             + pParameterType
             + " expected by the declaration of the procedure "
             + pProcedureDeclaration.getProcedureName());
+  }
+
+  /**
+   * Create the SV-LIB term for the given numeric constant in the given type.
+   *
+   * <p>The constant is built directly instead of being recovered from the formula of a dummy edge,
+   * because the shape of such a formula depends on the simplifications the SMT solver applies and
+   * is therefore not the same for every solver.
+   */
+  private SvLibTerm createNumericConstant(BigInteger pValue, SvLibType pType) {
+    if (pType.equals(SvLibSmtLibPredefinedType.INT)) {
+      return new SvLibIntegerConstantTerm(pValue, FileLocation.DUMMY);
+    } else if (pType instanceof SvLibSmtLibBitVectorType bitVectorType) {
+      return new SvLibBitVectorConstantTerm(pValue, bitVectorType.getSize(), FileLocation.DUMMY);
+    }
+    throw new UnsupportedOperationException(
+        "Cannot create the numeric constant " + pValue + " for the non-numeric type " + pType);
   }
 
   /**

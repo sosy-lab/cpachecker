@@ -74,8 +74,8 @@ final class CToSvLibTransformationConstants {
    */
   static final String FIRST_ALLOCATED_ADDRESS = "__transformationFirstAllocatedAddress";
 
-  static final String RETURN_VAR_DUMMY_PREFIX = "__transformationDummyReturn_";
-  static final String TMP_VAR_ASSIGNMENT = "__Transformation_TMP_VariableAssignment_";
+  private static final String RETURN_VAR_DUMMY_PREFIX = "__transformationDummyReturn_";
+  private static final String TMP_VAR_ASSIGNMENT = "__Transformation_TMP_VariableAssignment_";
 
   /**
    * The name of the variable that holds the value that a procedure of an external function returns.
