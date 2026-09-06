@@ -18,12 +18,15 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Optional;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -102,8 +105,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter.RightHandSideTerm;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.DynamicMemoryHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerBase;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.FormulaToSvLibVisitor;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -125,6 +130,14 @@ class CToSvLibTransformation {
       new LinkedHashMap<>();
 
   /**
+   * The number of allocations of memory for which the transformation has built a formula, which
+   * gives every allocation of the program a base of its own: the formulas of each procedure are
+   * built separately, so the counting would otherwise start again in every procedure and two
+   * allocations in different procedures would get the same address.
+   */
+  private int numberOfAllocations = 0;
+
+  /**
    * An object that exists from the moment the procedure it belongs to is entered, i.e. a global
    * variable or a local variable whose address is taken.
    *
@@ -137,17 +150,28 @@ class CToSvLibTransformation {
   /** The objects whose address the program takes, by their base. */
   private final Map<PointerBase, ObjectWithAddress> objectsWithAddress = new LinkedHashMap<>();
 
+  /** The objects that each procedure declares itself, by the name of the procedure. */
+  private final Map<String, Set<PointerBase>> objectsOfProcedures = new LinkedHashMap<>();
+
+  /** The objects of {@link #objectsWithAddress} that the current procedure uses. */
+  private final Set<PointerBase> objectsOfCurrentProcedure = new LinkedHashSet<>();
+
+  /** The sizes of the types that the formulas of the analysis assume. */
+  private final TypeHandlerWithPointerAliasing typeHandler;
+
   CToSvLibTransformation(
       CFA pCFA,
       FormulaManagerView pFormulaManager,
       PathFormulaManager pPathFormulaManager,
       FormulaToSvLibVisitor pFormulaToSvLibVisitor,
-      SvLibCurrentScope pCurrentScope) {
+      SvLibCurrentScope pCurrentScope,
+      TypeHandlerWithPointerAliasing pTypeHandler) {
     cfa = pCFA;
     formulaManager = pFormulaManager;
     pathFormulaManager = pPathFormulaManager;
     formulaToSvLibVisitor = pFormulaToSvLibVisitor;
     scope = pCurrentScope;
+    typeHandler = pTypeHandler;
   }
 
   SvLibSequenceStatement transformFunction(@NonNull CFunctionEntryNode pEntryNode)
@@ -158,6 +182,7 @@ class CToSvLibTransformation {
     ImmutableListMultimap.Builder<CFANode, SvLibStatement> statementCollector =
         ImmutableListMultimap.builder();
     ImmutableMap.Builder<CFAEdge, PointerTargetSet> edgeToPointerTargetSet = ImmutableMap.builder();
+    objectsOfCurrentProcedure.clear();
 
     scope.enterProcedure(
         FluentIterable.from(procedureDeclaration.getParameters())
@@ -244,6 +269,15 @@ class CToSvLibTransformation {
           statementCollector.put(node, createAssumptionThatNeverHolds(node));
         }
       }
+
+      // Which objects the procedure declares itself is only used once every procedure is
+      // transformed, because the variable that holds the limit of the allocations is declared by
+      // the first allocation, which may be in a procedure that follows this one.
+      objectsOfProcedures.put(
+          procedureName,
+          FluentIterable.from(objectsOfCurrentProcedure)
+              .filter(base -> !isDeclaredGlobally(base))
+              .toSet());
 
       return createSequenceStatement(statementCollector.build(), procedureName);
 
@@ -527,6 +561,7 @@ class CToSvLibTransformation {
     // The formula for the whole edge is always created, because the pointer target set that it
     // computes is the context of the edges that follow this one.
     PathFormula edgeFormula = pathFormulaManager.makeAnd(contextBeforeEdge, pEdge);
+    recordObjectsThatAlwaysExist(edgeFormula.getPointerTargetSet());
     if (cfa.edges().contains(pEdge)) {
       pEdgeToPointerTargetSet.put(pEdge, edgeFormula.getPointerTargetSet());
     }
@@ -695,12 +730,169 @@ class CToSvLibTransformation {
     return declaration;
   }
 
+  /** Remember the objects of the given set of pointer targets that exist from the beginning. */
+  private void recordObjectsThatAlwaysExist(PointerTargetSet pPointerTargetSet) {
+    numberOfAllocations = Math.max(numberOfAllocations, pPointerTargetSet.getAllocationCount());
+    for (Map.Entry<PointerBase, CType> base : pPointerTargetSet.getBases().entrySet()) {
+      String addressName = "|" + base.getKey().formulaEncoding() + "|";
+      if (DynamicMemoryHandler.isAllocBase(base.getKey()) || !scope.hasVariable(addressName)) {
+        continue;
+      }
+      SvLibSimpleParsingDeclaration address = scope.getVariable(addressName);
+      objectsWithAddress.putIfAbsent(
+          base.getKey(),
+          new ObjectWithAddress(
+              address.toSimpleDeclaration(),
+              base.getValue(),
+              address instanceof SvLibParsingVariableDeclaration variable && variable.isGlobal()));
+      objectsOfCurrentProcedure.add(base.getKey());
+    }
+  }
+
+  /**
+   * The assumption that the memory which the program allocates lies above every object that exists
+   * from the beginning of the execution.
+   *
+   * <p>The formula of an edge only separates a new block of memory from the objects that the
+   * transformation knows when it transforms that edge, and every procedure is transformed on its
+   * own, so an allocation inside a procedure is separated from neither the global variables nor the
+   * objects of the callers. Without this assumption the generated program is allowed to allocate
+   * memory at the address of a global variable, which makes it unsafe although the input program is
+   * not.
+   */
+  SvLibStatement getSeparationOfAllocationsFromObjectsOf(String pProcedureName, boolean pIsEntry) {
+    ImmutableList.Builder<PointerBase> objects = ImmutableList.builder();
+    objects.addAll(objectsOfProcedures.getOrDefault(pProcedureName, ImmutableSet.of()));
+    if (pIsEntry) {
+      // The global variables exist from the beginning of the execution, which begins here.
+      objects.addAll(
+          FluentIterable.from(objectsWithAddress.keySet()).filter(this::isDeclaredGlobally));
+    }
+    return getSeparationOfAllocationsFrom(objects.build(), pIsEntry);
+  }
+
+  /** Is the address of the object of the given base a variable of the whole program? */
+  private boolean isDeclaredGlobally(PointerBase pBase) {
+    ObjectWithAddress object = objectsWithAddress.get(pBase);
+    return object != null && object.isGlobal();
+  }
+
+  /** The assumptions for the given objects, see {@link #getSeparationOfAllocationsFrom}. */
+  private SvLibStatement getSeparationOfAllocationsFrom(
+      Iterable<PointerBase> pObjects, boolean pIsEntryProcedure) {
+    ImmutableMap<PointerBase, BigInteger> offsets = getOffsetsOfObjectsWithAddress();
+    ImmutableList.Builder<SvLibStatement> statements = ImmutableList.builder();
+
+    SvLibType addressType = getTypeOfAddresses();
+    if (pIsEntryProcedure && !offsets.isEmpty()) {
+      // The objects lie below the address at which the allocated memory begins, so that address
+      // has to be above all of them for the addresses not to wrap around.
+      statements.add(
+          new SvLibAssumeStatement(
+              FileLocation.DUMMY,
+              applyBinaryOperator(
+                  atLeastDeclaration(addressType),
+                  new SvLibIdTerm(
+                      getFirstAllocatedAddress(addressType).toSimpleDeclaration(),
+                      FileLocation.DUMMY),
+                  createNumericConstant(
+                      Collections.max(offsets.values()).add(BigInteger.ONE), addressType)),
+              ImmutableList.of(),
+              ImmutableList.of()));
+      // The memory that the program allocates begins above every object that has an address, and
+      // nothing has been allocated when the execution begins.
+      statements.add(
+          new SvLibAssignmentStatement(
+              ImmutableMap.of(
+                  getHighestAllocatedAddress(addressType),
+                  new SvLibIdTerm(
+                      getFirstAllocatedAddress(addressType).toSimpleDeclaration(),
+                      FileLocation.DUMMY)),
+              FileLocation.DUMMY,
+              ImmutableList.of(),
+              ImmutableList.of()));
+    }
+
+    for (PointerBase base : pObjects) {
+      BigInteger offset = offsets.get(base);
+      ObjectWithAddress object = objectsWithAddress.get(base);
+      if (offset == null || object == null) {
+        continue;
+      }
+      // The objects lie one after the other below the memory that the program allocates, which
+      // makes them pairwise separated and separated from every allocation. The formulas of the
+      // edges do not say this, because the transformation builds them for every procedure on its
+      // own with all objects already in the context.
+      statements.add(
+          new SvLibAssumeStatement(
+              FileLocation.DUMMY,
+              applyBinaryOperator(
+                  equalityDeclaration(addressType),
+                  new SvLibIdTerm(object.address(), FileLocation.DUMMY),
+                  applyBinaryOperator(
+                      subtractionDeclaration(addressType),
+                      new SvLibIdTerm(
+                          getFirstAllocatedAddress(addressType).toSimpleDeclaration(),
+                          FileLocation.DUMMY),
+                      createNumericConstant(offset, addressType))),
+              ImmutableList.of(),
+              ImmutableList.of()));
+    }
+
+    ImmutableList<SvLibStatement> createdStatements = statements.build();
+    if (createdStatements.isEmpty()) {
+      return SvLibSequenceStatement.emptySequence();
+    }
+    return new SvLibSequenceStatement(
+        createdStatements, FileLocation.DUMMY, ImmutableList.of(), ImmutableList.of());
+  }
+
   /** The type of the addresses of the generated program, which every object with one has. */
   private SvLibType getTypeOfAddresses() {
     return objectsWithAddress.values().stream()
         .findFirst()
         .map(object -> object.address().getType())
         .orElse(SvLibSmtLibPredefinedType.INT);
+  }
+
+  /**
+   * The distance of every object with an address from the address at which the memory that the
+   * program allocates begins, which lays the objects out one after the other below it.
+   *
+   * <p>The size of every object is rounded up to a multiple of the size of the largest type, so
+   * that every object is aligned as the analysis of the C program expects it to be.
+   */
+  private ImmutableMap<PointerBase, BigInteger> getOffsetsOfObjectsWithAddress() {
+    BigInteger alignment = BigInteger.valueOf(8);
+    ImmutableMap.Builder<PointerBase, BigInteger> offsets = ImmutableMap.builder();
+    BigInteger offset = BigInteger.ZERO;
+    for (Map.Entry<PointerBase, ObjectWithAddress> object : objectsWithAddress.entrySet()) {
+      BigInteger size = getSizeOfObject(object.getValue().type());
+      BigInteger sizeWithAlignment =
+          size.add(alignment).subtract(BigInteger.ONE).divide(alignment).multiply(alignment);
+      offset = offset.add(sizeWithAlignment.max(alignment));
+      offsets.put(object.getKey(), offset);
+    }
+    return offsets.buildOrThrow();
+  }
+
+  /**
+   * The size that the transformation assumes for an object of the given type, which is the size
+   * that the formulas assume for it and zero if they do not know it, because an object of unknown
+   * size still has to be separated from the other objects.
+   */
+  private BigInteger getSizeOfObject(CType pType) {
+    CType type = pType.getCanonicalType();
+    if (type.hasKnownConstantSize() || type instanceof CArrayType) {
+      return BigInteger.valueOf(typeHandler.getApproximatedSizeof(type));
+    }
+    return BigInteger.ZERO;
+  }
+
+  /** The variable that holds the address at which the allocated memory begins. */
+  private SvLibParsingVariableDeclaration getFirstAllocatedAddress(SvLibType pAddressType) {
+    return declareVariableOfTransformation(
+        CToSvLibTransformationConstants.FIRST_ALLOCATED_ADDRESS, pAddressType);
   }
 
   /** The variables that the transformation itself introduced and that have to be declared. */
@@ -843,6 +1035,7 @@ class CToSvLibTransformation {
     if (cfa.edges().contains(pEdge)) {
       pEdgeToPointerTargetSet.put(pEdge, edgeFormula.getPointerTargetSet());
     }
+    recordObjectsThatAlwaysExist(edgeFormula.getPointerTargetSet());
     return formulaManager.visit(edgeFormula.getFormula(), formulaToSvLibVisitor);
   }
 

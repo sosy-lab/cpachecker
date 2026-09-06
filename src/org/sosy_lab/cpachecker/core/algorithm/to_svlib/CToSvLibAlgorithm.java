@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibProceduresRecD
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetInfoCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetLogicCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibVerifyCallCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibSequenceStatement;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -65,6 +66,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CFormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -108,6 +111,9 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
   private final FormulaManagerView formulaManager;
   private final PathFormulaManager pathFormulaManager;
   private final CtoFormulaConverter converter;
+
+  /** The sizes of the types that the formulas of the analysis assume. */
+  private final TypeHandlerWithPointerAliasing typeHandler;
 
   private final SvLibCurrentScope scope;
   private final FormulaToSvLibVisitor formulaToSvLibVisitor;
@@ -165,6 +171,9 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
             shutdownNotifier,
             new CtoFormulaTypeHandler(logger, cfa.getMachineModel()),
             AnalysisDirection.FORWARD);
+    typeHandler =
+        new TypeHandlerWithPointerAliasing(
+            logger, cfa.getMachineModel(), new CFormulaEncodingWithPointerAliasingOptions(config));
 
     scope = new SvLibCurrentScope();
     formulaToSvLibVisitor = new FormulaToSvLibVisitor(solver.getFormulaManager(), scope);
@@ -205,17 +214,49 @@ public class CToSvLibAlgorithm implements Algorithm, StatisticsProvider, AutoClo
 
     CToSvLibTransformation transformation =
         new CToSvLibTransformation(
-            cfa, formulaManager, pathFormulaManager, formulaToSvLibVisitor, scope);
+            cfa, formulaManager, pathFormulaManager, formulaToSvLibVisitor, scope, typeHandler);
 
     try {
+      List<SvLibStatement> procedureBodies = new ArrayList<>();
+      List<FunctionEntryNode> transformedFunctions = new ArrayList<>();
       for (FunctionEntryNode functionEntryNode : cfa.entryNodes()) {
         SvLibStatement procedureBody =
             transformation.transformFunction((CFunctionEntryNode) functionEntryNode);
 
         procedureDeclarationCollector.add(
             scope.getProcedureDeclaration(functionEntryNode.getFunctionName()));
-        procedureBodiesCollector.add(procedureBody);
+        transformedFunctions.add(functionEntryNode);
+        procedureBodies.add(procedureBody);
       }
+
+      // Every procedure assumes what holds for the addresses of its own objects, and the procedure
+      // that the execution begins with also does so for the global ones. Which objects a procedure
+      // has is only used here, because the variable that the assumptions need is declared by the
+      // first allocation, which can be in any procedure.
+      for (int index = 0; index < procedureBodies.size(); index++) {
+        FunctionEntryNode function = transformedFunctions.get(index);
+        SvLibStatement assumptions =
+            transformation.getSeparationOfAllocationsFromObjectsOf(
+                scope.getProcedureDeclaration(function.getFunctionName()).getProcedureName(),
+                function.equals(cfa.getMainFunction()));
+        if (assumptions instanceof SvLibSequenceStatement sequence
+            && sequence.getStatements().isEmpty()) {
+          continue;
+        }
+        if (procedureBodies.get(index) instanceof SvLibSequenceStatement body) {
+          procedureBodies.set(
+              index,
+              new SvLibSequenceStatement(
+                  ImmutableList.<SvLibStatement>builder()
+                      .add(assumptions)
+                      .addAll(body.getStatements())
+                      .build(),
+                  body.getFileLocation(),
+                  body.getTagAttributes(),
+                  body.getTagReferences()));
+        }
+      }
+      procedureBodiesCollector.addAll(procedureBodies);
     } finally {
       transformationStatistics.transformationTime.stop();
     }
