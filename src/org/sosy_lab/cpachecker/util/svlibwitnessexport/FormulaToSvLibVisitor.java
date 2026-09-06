@@ -303,21 +303,120 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
   }
 
   private SvLibIdTerm functionToIdTerm(
-      String pName, SvLibType pReturnType, List<@NonNull SvLibSmtLibType> pArgTypes) {
+      String pName,
+      FunctionDeclarationKind pKind,
+      SvLibType pReturnType,
+      List<@NonNull SvLibSmtLibType> pArgTypes) {
 
     String actualName =
-        pName
-            // Remove type suffixes from overloaded operators, like '_int'
-            .replace("_int", "")
-            .replace("_rat", "")
-            .replaceAll("_T" + Pattern.quote("(") + "[0-9]+" + Pattern.quote(")"), "");
+        canonicalNameOfBitvectorOperator(pKind)
+            .orElseGet(
+                () ->
+                    pName
+                        // Remove type suffixes from overloaded operators, like '_int'
+                        .replace("_int", "")
+                        .replace("_rat", "")
+                        .replaceAll("_T" + Pattern.quote("(") + "[0-9]+" + Pattern.quote(")"), ""));
+
+    if (pKind == FunctionDeclarationKind.BV_SCASTTO_FP
+        || pKind == FunctionDeclarationKind.BV_UCASTTO_FP
+        || pKind == FunctionDeclarationKind.FP_CASTTO_FP) {
+      Verify.verify(pArgTypes.size() == 2, "A conversion into a floating point number rounds");
+      Verify.verify(pReturnType instanceof SvLibSmtLibFloatingPointType);
+      return new SvLibIdTerm(
+          SmtLibTheoryDeclarations.toFloatingPoint(
+              pKind == FunctionDeclarationKind.BV_UCASTTO_FP,
+              pArgTypes.get(1),
+              (SvLibSmtLibFloatingPointType) pReturnType),
+          FileLocation.DUMMY);
+    }
+
+    if (pKind == FunctionDeclarationKind.FP_CASTTO_SBV
+        || pKind == FunctionDeclarationKind.FP_CASTTO_UBV) {
+      Verify.verify(pArgTypes.size() == 2, "A conversion of a floating point number rounds");
+      Verify.verify(pArgTypes.get(1) instanceof SvLibSmtLibFloatingPointType);
+      Verify.verify(pReturnType instanceof SvLibSmtLibBitVectorType);
+      return new SvLibIdTerm(
+          SmtLibTheoryDeclarations.floatingPointToBitVector(
+              pKind == FunctionDeclarationKind.FP_CASTTO_SBV,
+              (SvLibSmtLibFloatingPointType) pArgTypes.get(1),
+              (SvLibSmtLibBitVectorType) pReturnType),
+          FileLocation.DUMMY);
+    }
+
+    if (pKind == FunctionDeclarationKind.SBV_TO_INT
+        || pKind == FunctionDeclarationKind.UBV_TO_INT) {
+      Verify.verify(pArgTypes.size() == 1);
+      Verify.verify(pArgTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
+      return new SvLibIdTerm(
+          SmtLibTheoryDeclarations.bitVectorToInt(
+              pKind == FunctionDeclarationKind.SBV_TO_INT,
+              ((SvLibSmtLibBitVectorType) pArgTypes.getFirst()).getSize()),
+          FileLocation.DUMMY);
+    }
+
+    if (pKind == FunctionDeclarationKind.INT_TO_BV) {
+      Verify.verify(pArgTypes.size() == 1);
+      Verify.verify(pReturnType instanceof SvLibSmtLibBitVectorType);
+      return new SvLibIdTerm(
+          SmtLibTheoryDeclarations.intToBitVector(
+              ((SvLibSmtLibBitVectorType) pReturnType).getSize()),
+          FileLocation.DUMMY);
+    }
+
+    if (pKind == FunctionDeclarationKind.FP_AS_IEEEBV) {
+      Verify.verify(pArgTypes.size() == 1);
+      Verify.verify(pArgTypes.getFirst() instanceof SvLibSmtLibFloatingPointType);
+      return new SvLibIdTerm(
+          SmtLibTheoryDeclarations.floatingPointAsBitVector(
+              (SvLibSmtLibFloatingPointType) pArgTypes.getFirst()),
+          FileLocation.DUMMY);
+    }
+
+    // Not every solver reports the conversion of the bits of the representation of IEEE 754 with
+    // the kind for it, so an application of one bitvector that has as many bits as the floating
+    // point number it returns is recognized as such a conversion as well.
+    if (pKind == FunctionDeclarationKind.FP_FROM_IEEEBV
+        || (pArgTypes.size() == 1
+            && pReturnType instanceof SvLibSmtLibFloatingPointType floatingPointType
+            && pArgTypes.getFirst() instanceof SvLibSmtLibBitVectorType bitVectorType
+            && bitVectorType.getSize()
+                == floatingPointType.getExponentSize() + floatingPointType.getSignificandSize())) {
+      Verify.verify(pArgTypes.size() == 1);
+      Verify.verify(pArgTypes.getFirst() instanceof SvLibSmtLibBitVectorType);
+      Verify.verify(pReturnType instanceof SvLibSmtLibFloatingPointType);
+      return new SvLibIdTerm(
+          SmtLibTheoryDeclarations.floatingPointFromBitVector(
+              (SvLibSmtLibBitVectorType) pArgTypes.getFirst(),
+              (SvLibSmtLibFloatingPointType) pReturnType),
+          FileLocation.DUMMY);
+    }
+
+    if (pKind == FunctionDeclarationKind.EQ
+        && pArgTypes.size() == 2
+        && pArgTypes.getFirst() instanceof SvLibSmtLibFloatingPointType floatingPointType) {
+      // The equality of the core theory of SMT-LIB is generic over the type of its arguments, and
+      // for floating point numbers it is not the same as fp.eq, which does not distinguish the two
+      // zeros and is false for NaN.
+      return new SvLibIdTerm(
+          SmtLibTheoryDeclarations.floatingPointOperation(
+              "=", 2, floatingPointType, SvLibSmtLibPredefinedType.BOOL),
+          FileLocation.DUMMY);
+    }
+
+    if (isFloatingPointOperator(pKind)) {
+      return new SvLibIdTerm(
+          floatingPointDeclaration(pKind, pName, pReturnType, pArgTypes), FileLocation.DUMMY);
+    }
 
     // To ensure that ITE is always detected, it must be processed before the other Boolean
-    // operators; otherwise, ITE with only Boolean parameters will cause an exception
+    // operators; otherwise, ITE with only Boolean parameters will cause an exception.
+    // The declaration kind is used instead of the name because every solver names this
+    // operator differently ("if" for Z3, "ite" for SMTInterpol, "ite_int" for MathSAT5).
     if (pArgTypes.size() == 3
         && pArgTypes.getFirst().equals(SvLibSmtLibPredefinedType.BOOL)
         && pArgTypes.get(1).equals(pArgTypes.get(2))
-        && actualName.equals("if")) {
+        && pKind == FunctionDeclarationKind.ITE) {
       return new SvLibIdTerm(SmtLibTheoryDeclarations.ite(pArgTypes.get(1)), FileLocation.DUMMY);
     } else if (pReturnType == SvLibSmtLibPredefinedType.BOOL
         && FluentIterable.from(pArgTypes)
@@ -330,7 +429,7 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
             new SvLibIdTerm(
                 SmtLibTheoryDeclarations.boolDisjunction(pArgTypes.size()), FileLocation.DUMMY);
         case "not" -> new SvLibIdTerm(SmtLibTheoryDeclarations.BOOL_NEGATION, FileLocation.DUMMY);
-        default -> throw new UnsupportedOperationException("Unknown formula type: " + pName);
+        default -> uninterpretedFunctionOrUnsupported(pName, pKind, pReturnType, pArgTypes);
       };
     } else if (pReturnType == SvLibSmtLibPredefinedType.BOOL
         && FluentIterable.from(pArgTypes)
@@ -343,7 +442,7 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
         case ">" -> new SvLibIdTerm(SmtLibTheoryDeclarations.INT_GREATER_THAN, FileLocation.DUMMY);
         case ">=" ->
             new SvLibIdTerm(SmtLibTheoryDeclarations.INT_GREATER_EQUAL_THAN, FileLocation.DUMMY);
-        default -> throw new UnsupportedOperationException("Unknown formula type: " + pName);
+        default -> uninterpretedFunctionOrUnsupported(pName, pKind, pReturnType, pArgTypes);
       };
     } else if (pReturnType == SvLibSmtLibPredefinedType.INT
         && FluentIterable.from(pArgTypes)
@@ -360,7 +459,7 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
         case "/", "Integer_/_", "div" ->
             new SvLibIdTerm(SmtLibTheoryDeclarations.INT_DIV, FileLocation.DUMMY);
         case "_%_" -> new SvLibIdTerm(SmtLibTheoryDeclarations.INT_MOD, FileLocation.DUMMY);
-        default -> throw new UnsupportedOperationException("Unknown formula type: " + pName);
+        default -> uninterpretedFunctionOrUnsupported(pName, pKind, pReturnType, pArgTypes);
       };
     } else if (pReturnType == SvLibSmtLibPredefinedType.REAL
         && FluentIterable.from(pArgTypes)
@@ -372,14 +471,14 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
         case "-" -> new SvLibIdTerm(SmtLibTheoryDeclarations.REAL_MINUS, FileLocation.DUMMY);
         case "*" ->
             new SvLibIdTerm(SmtLibTheoryDeclarations.REAL_MULTIPLICATION, FileLocation.DUMMY);
-        default -> throw new UnsupportedOperationException("Unknown formula type: " + pName);
+        default -> uninterpretedFunctionOrUnsupported(pName, pKind, pReturnType, pArgTypes);
       };
     } else if (pReturnType == SvLibSmtLibPredefinedType.INT
         && FluentIterable.from(pArgTypes)
             .allMatch(type -> type.equals(SvLibSmtLibPredefinedType.REAL))) {
       return switch (actualName) {
         case "floor" -> new SvLibIdTerm(SmtLibTheoryDeclarations.REAL_FLOOR, FileLocation.DUMMY);
-        default -> throw new UnsupportedOperationException("Unknown formula type: " + pName);
+        default -> uninterpretedFunctionOrUnsupported(pName, pKind, pReturnType, pArgTypes);
       };
     } else if (pArgTypes.size() == 2
         && pArgTypes.getFirst() instanceof SvLibSmtLibArrayType pArrayType
@@ -440,7 +539,7 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
         case "bvsgt" ->
             new SvLibIdTerm(
                 SmtLibTheoryDeclarations.bitVectorSignedGreaterThan(size), FileLocation.DUMMY);
-        default -> throw new UnsupportedOperationException("Unknown formula type: " + pName);
+        default -> uninterpretedFunctionOrUnsupported(pName, pKind, pReturnType, pArgTypes);
       };
     } else if (pReturnType instanceof SvLibSmtLibBitVectorType returnBitVectorType
         && pArgTypes.size() == 1
@@ -452,7 +551,7 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
       return switch (actualName) {
         case "extract" ->
             new SvLibIdTerm(
-                SmtLibTheoryDeclarations.bitVectorExtract(argTypeSize, returnTypeSize),
+                bitVectorExtractDeclaration(pName, argTypeSize, returnTypeSize),
                 FileLocation.DUMMY);
         case "bvneg" ->
             new SvLibIdTerm(
@@ -470,7 +569,7 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
             new SvLibIdTerm(
                 SmtLibTheoryDeclarations.bitVectorSignExtend(argTypeSize, returnTypeSize),
                 FileLocation.DUMMY);
-        default -> throw new UnsupportedOperationException("Unknown formula type: " + pName);
+        default -> uninterpretedFunctionOrUnsupported(pName, pKind, pReturnType, pArgTypes);
       };
     } else if (pReturnType instanceof SvLibSmtLibBitVectorType bitVector
         && pArgTypes.size() == 2
@@ -507,11 +606,20 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
         case "bvsub" ->
             new SvLibIdTerm(
                 SmtLibTheoryDeclarations.bitVectorSubstraction(size), FileLocation.DUMMY);
-        default -> throw new UnsupportedOperationException("Unknown formula type: " + pName);
+        case "bvashr" ->
+            new SvLibIdTerm(
+                SmtLibTheoryDeclarations.bitVectorArithmeticShiftRight(size), FileLocation.DUMMY);
+        case "bvxor" ->
+            new SvLibIdTerm(SmtLibTheoryDeclarations.bitVectorXor(size), FileLocation.DUMMY);
+        case "bvnand" ->
+            new SvLibIdTerm(SmtLibTheoryDeclarations.bitVectorNand(size), FileLocation.DUMMY);
+        case "bvxnor" ->
+            new SvLibIdTerm(SmtLibTheoryDeclarations.bitVectorXnor(size), FileLocation.DUMMY);
+        default -> uninterpretedFunctionOrUnsupported(pName, pKind, pReturnType, pArgTypes);
       };
     }
 
-    throw new UnsupportedOperationException("Unknown formula type: " + pName);
+    return uninterpretedFunctionOrUnsupported(pName, pKind, pReturnType, pArgTypes);
   }
 
   @Override
@@ -584,7 +692,8 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
                   FileLocation.DUMMY)),
           FileLocation.DUMMY);
     } else {
-      SvLibIdTerm functionIdTerm = functionToIdTerm(functionName, formulaType, argTypes);
+      SvLibIdTerm functionIdTerm =
+          functionToIdTerm(functionName, pFunctionDeclaration.getKind(), formulaType, argTypes);
 
       return new SvLibSymbolApplicationTerm(functionIdTerm, args, FileLocation.DUMMY);
     }
