@@ -42,9 +42,11 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.Qual
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.SpecConstantTermContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.Spec_constantContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.Var_bindingContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSmtFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibAnyType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibFloatingPointType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
@@ -253,8 +255,136 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
         pFileLocation);
   }
 
+  /**
+   * The operators of the theory of floating point numbers, mapped to whether their first argument
+   * is a rounding mode.
+   */
+  private static final ImmutableMap<String, Boolean> FLOATING_POINT_OPERATORS =
+      ImmutableMap.<String, Boolean>builder()
+          .put("fp.add", true)
+          .put("fp.sub", true)
+          .put("fp.mul", true)
+          .put("fp.div", true)
+          .put("fp.sqrt", true)
+          .put("fp.roundToIntegral", true)
+          .put("fp.rem", false)
+          .put("fp.neg", false)
+          .put("fp.abs", false)
+          .put("fp.max", false)
+          .put("fp.min", false)
+          .put("fp.lt", false)
+          .put("fp.leq", false)
+          .put("fp.gt", false)
+          .put("fp.geq", false)
+          .put("fp.eq", false)
+          .put("fp.isNaN", false)
+          .put("fp.isInfinite", false)
+          .put("fp.isZero", false)
+          .put("fp.isNegative", false)
+          .put("fp.isSubnormal", false)
+          .put("fp.isNormal", false)
+          .buildOrThrow();
+
+  /** The operators of the theory of floating point numbers whose result is a Boolean. */
+  private static final ImmutableSet<String> FLOATING_POINT_PREDICATES =
+      ImmutableSet.of(
+          "fp.lt",
+          "fp.leq",
+          "fp.gt",
+          "fp.geq",
+          "fp.eq",
+          "fp.isNaN",
+          "fp.isInfinite",
+          "fp.isZero",
+          "fp.isNegative",
+          "fp.isSubnormal",
+          "fp.isNormal");
+
+  private SvLibFunctionDeclaration getFloatingPointDeclarationForSymbol(
+      String pSymbol, List<SvLibTerm> pArguments) {
+    boolean rounds = FLOATING_POINT_OPERATORS.get(pSymbol);
+    SvLibSmtLibFloatingPointType floatingPointType =
+        pArguments.stream()
+            .map(SvLibTerm::getExpressionType)
+            .filter(SvLibSmtLibFloatingPointType.class::isInstance)
+            .map(SvLibSmtLibFloatingPointType.class::cast)
+            .findFirst()
+            .orElseThrow(
+                () ->
+                    new IllegalArgumentException(
+                        pSymbol + " is not applied to a floating point number"));
+    SvLibType returnType =
+        FLOATING_POINT_PREDICATES.contains(pSymbol)
+            ? SvLibSmtLibPredefinedType.BOOL
+            : floatingPointType;
+    if (rounds) {
+      return SmtLibTheoryDeclarations.floatingPointArithmetic(
+          pSymbol, pArguments.size() - 1, floatingPointType);
+    }
+    return SmtLibTheoryDeclarations.floatingPointOperation(
+        pSymbol, pArguments.size(), floatingPointType, returnType);
+  }
+
   private SvLibFunctionDeclaration getVariableDeclarationForSymbol(
       String pSymbol, Set<SmtLibLogic> pLogics, List<SvLibTerm> pArguments) {
+
+    // The theory of floating point numbers
+    if (FLOATING_POINT_OPERATORS.containsKey(pSymbol)) {
+      return getFloatingPointDeclarationForSymbol(pSymbol, pArguments);
+    }
+
+    // The equality of the core theory of SMT-LIB is generic over the type of its arguments, so it
+    // is resolved for floating point numbers here and for the other types in their theory below.
+    if (pSymbol.equals("=")
+        && pArguments.size() == 2
+        && pArguments.getFirst().getExpressionType()
+            instanceof SvLibSmtLibFloatingPointType floatingPointType) {
+      return SmtLibTheoryDeclarations.floatingPointOperation(
+          "=", 2, floatingPointType, SvLibSmtLibPredefinedType.BOOL);
+    }
+
+    // The conversions between the theory of bitvectors and the one of integers, and the one that
+    // reads the bits of a floating point number, are not indexed, because the size of the
+    // bitvector follows from the type of the argument.
+    switch (pSymbol) {
+      case "sbv_to_int", "ubv_to_int" -> {
+        Verify.verify(pArguments.size() == 1);
+        Verify.verify(
+            pArguments.getFirst().getExpressionType() instanceof SvLibSmtLibBitVectorType,
+            "%s is not applied to a bitvector",
+            pSymbol);
+        return SmtLibTheoryDeclarations.bitVectorToInt(
+            pSymbol.equals("sbv_to_int"),
+            ((SvLibSmtLibBitVectorType) pArguments.getFirst().getExpressionType()).getSize());
+      }
+      case "fp.to_ieee_bv" -> {
+        Verify.verify(pArguments.size() == 1);
+        Verify.verify(
+            pArguments.getFirst().getExpressionType() instanceof SvLibSmtLibFloatingPointType,
+            "fp.to_ieee_bv is not applied to a floating point number");
+        return SmtLibTheoryDeclarations.floatingPointAsBitVector(
+            (SvLibSmtLibFloatingPointType) pArguments.getFirst().getExpressionType());
+      }
+      default -> {}
+    }
+
+    // A declared function is uninterpreted, so it is not part of any theory and is resolved from
+    // the scope instead.
+    if (scope.hasFunctionDeclaration(pSymbol)) {
+      SvLibSmtFunctionDeclaration declaration = scope.getFunctionDeclaration(pSymbol);
+      Verify.verify(
+          declaration.getType().getParameters().size() == pArguments.size(),
+          "The function %s is applied to %s arguments instead of %s",
+          pSymbol,
+          pArguments.size(),
+          declaration.getType().getParameters().size());
+      return new SvLibFunctionDeclaration(
+          declaration.getFileLocation(),
+          declaration.getType(),
+          pSymbol,
+          pSymbol,
+          ImmutableList.of());
+    }
 
     // Match Integer Arithmetic logic
     if (FluentIterable.from(pLogics).anyMatch(SmtLibLogic::containsIntegerArithmetic)
