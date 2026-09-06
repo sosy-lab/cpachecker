@@ -14,6 +14,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -32,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibScope;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSmtFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
@@ -40,6 +42,8 @@ import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibFloatingPointType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.DynamicMemoryHandler;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerBase;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -60,6 +64,84 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
   public FormulaToSvLibVisitor(FormulaManagerView pFmgr, SvLibScope pScope) {
     fmgr = pFmgr;
     scope = pScope;
+  }
+
+  /**
+   * The character that separates the name of a nondeterministic value from the index that makes it
+   * unique, see {@code CtoFormulaConverter.makeNondet}.
+   */
+  private static final char NONDETERMINISTIC_VALUE_SEPARATOR = '!';
+
+  /**
+   * The character that separates the name of a structure from the one of its member, for a
+   * structure that is not part of the heap.
+   */
+  private static final char MEMBER_NAME_SEPARATOR = '$';
+
+  private final List<SvLibParsingVariableDeclaration> variablesOfFormulas = new ArrayList<>();
+
+  private final List<SvLibParsingVariableDeclaration> freshValuesOfFormulas = new ArrayList<>();
+
+  private final List<SvLibParsingVariableDeclaration> allocatedAddressesOfFormulas =
+      new ArrayList<>();
+
+  /**
+   * The variables that the transformed formulas introduced, for a nondeterministic value, for the
+   * address of memory that is allocated on the heap or for the memory of a type. They have to be
+   * declared in the generated program.
+   */
+  public ImmutableList<SvLibParsingVariableDeclaration> getVariablesOfFormulas() {
+    return ImmutableList.copyOf(variablesOfFormulas);
+  }
+
+  /**
+   * The variables that the formulas transformed since the last call of this method introduced and
+   * that take a new value every time the statements of the transformed edge are executed, such as
+   * the result of a call whose semantics the analysis does not know.
+   */
+  public ImmutableList<SvLibParsingVariableDeclaration> pollFreshValuesOfFormulas() {
+    ImmutableList<SvLibParsingVariableDeclaration> freshValues =
+        ImmutableList.copyOf(freshValuesOfFormulas);
+    freshValuesOfFormulas.clear();
+    return freshValues;
+  }
+
+  /**
+   * The variables for the addresses of the memory that the formulas transformed since the last call
+   * of this method allocate.
+   */
+  public ImmutableList<SvLibParsingVariableDeclaration> pollAllocatedAddressesOfFormulas() {
+    ImmutableList<SvLibParsingVariableDeclaration> addresses =
+        ImmutableList.copyOf(allocatedAddressesOfFormulas);
+    allocatedAddressesOfFormulas.clear();
+    return addresses;
+  }
+
+  /**
+   * Declare a global variable for a free variable of a formula whose name is only known while the
+   * formulas are built, and return its declaration.
+   *
+   * @param pIsFreshValue whether every execution of the statement of the transformed edge takes a
+   *     new value, which is the case for a nondeterministic value and for the address of a newly
+   *     allocated block of memory, but not for the memory of the program itself.
+   */
+  private SvLibParsingVariableDeclaration declareVariableOfFormula(
+      String pName, Formula pFormula, boolean pIsFreshValue) {
+    SvLibParsingVariableDeclaration declaration =
+        new SvLibParsingVariableDeclaration(
+            FileLocation.DUMMY,
+            true,
+            false,
+            formulaTypeToSvLibType(fmgr.getFormulaType(pFormula)),
+            pName,
+            pName,
+            null);
+    scope.addVariable(declaration);
+    variablesOfFormulas.add(declaration);
+    if (pIsFreshValue) {
+      freshValuesOfFormulas.add(declaration);
+    }
+    return declaration;
   }
 
   private SvLibSmtLibType formulaTypeToSvLibType(FormulaType<?> formulaType) {
@@ -626,15 +708,74 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
   public SvLibTerm visitFreeVariable(Formula pFormula, String pS) {
     String nameWithoutSSA = pS.replaceAll("@$", "").replaceAll("@[0-9]+", "");
 
-    if (nameWithoutSSA.startsWith("__ADDRESS_OF_")) {
+    Optional<PointerBase> base = PointerBase.fromFormulaEncoding(nameWithoutSSA);
+    if (base.isPresent()) {
+      String addressName = "|" + nameWithoutSSA + "|";
+      if (!scope.hasVariable(addressName)) {
+        // The name of the address of memory that is allocated on the heap contains the number of
+        // the allocation, and an object of the program can become part of the memory only while
+        // the formulas are built, so neither can be declared before that.
+        boolean isAllocation = DynamicMemoryHandler.isAllocBase(base.orElseThrow());
+        SvLibParsingVariableDeclaration address =
+            declareVariableOfFormula(addressName, pFormula, isAllocation);
+        if (isAllocation) {
+          allocatedAddressesOfFormulas.add(address);
+        }
+        return new SvLibIdTerm(address.toSimpleDeclaration(), FileLocation.DUMMY);
+      }
       SvLibSimpleDeclaration addressVariableDeclaration =
-          scope.getVariable("|" + nameWithoutSSA + "|").toSimpleDeclaration();
+          scope.getVariable(addressName).toSimpleDeclaration();
       return new SvLibIdTerm(addressVariableDeclaration, FileLocation.DUMMY);
     }
 
+    // A nondeterministic value that CtoFormulaConverter created for a function whose semantics it
+    // does not know is only a free variable of the formula, so the generated program needs a
+    // variable for it. Such a value is unconstrained in both, and its name contains the index that
+    // makes it unique, so it cannot be declared before the formulas are built.
+    if (nameWithoutSSA.indexOf(NONDETERMINISTIC_VALUE_SEPARATOR) >= 0
+        && !scope.hasVariable(nameWithoutSSA)) {
+      // The name contains the type of the value, which for a bit field contains a colon, so it is
+      // quoted like every other name that is not a simple symbol of SMT-LIB.
+      return new SvLibIdTerm(
+          declareVariableOfFormula("|" + nameWithoutSSA + "|", pFormula, true)
+              .toSimpleDeclaration(),
+          FileLocation.DUMMY);
+    }
+
+    // A name that is not a simple symbol of SMT-LIB is quoted in the generated script, and the
+    // scope resolves both forms of it.
+    String name = "|" + nameWithoutSSA + "|";
+
+    // An array models the memory of all objects of one type and is unconstrained at the start of
+    // the program, so it can be declared here if a formula refers to the memory of a type whose
+    // declarations the program does not contain, for example the memory of a structure without
+    // members. A variable of the program is not declared here, because using an unconstrained one
+    // instead of it would change the semantics of the program.
+    if (!isDeclared(name)
+        && (fmgr.getFormulaType(pFormula).isArrayType() || isMemberOfVariable(name))) {
+      return new SvLibIdTerm(
+          declareVariableOfFormula(name, pFormula, false).toSimpleDeclaration(),
+          FileLocation.DUMMY);
+    }
+
     SvLibSimpleDeclaration variableDeclaration =
-        scope.getVariableForQualifiedName(nameWithoutSSA).toSimpleDeclaration();
+        scope.getVariableForQualifiedName(name).toSimpleDeclaration();
     return new SvLibIdTerm(variableDeclaration, FileLocation.DUMMY);
+  }
+
+  private boolean isDeclared(String pName) {
+    return scope.hasVariable(pName) || scope.hasVariableForQualifiedName(pName);
+  }
+
+  /**
+   * Is the given name the one of a member of a structure that is not part of the heap, whose
+   * members are separate variables of the formulas?
+   *
+   * <p>The separator cannot occur in the name that the converter derives from an identifier of the
+   * C program, so a name that contains it always denotes such a member.
+   */
+  private boolean isMemberOfVariable(String pName) {
+    return pName.indexOf(MEMBER_NAME_SEPARATOR) >= 0;
   }
 
   @Override
