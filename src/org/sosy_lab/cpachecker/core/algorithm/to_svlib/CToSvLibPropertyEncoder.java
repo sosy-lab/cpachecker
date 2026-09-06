@@ -9,10 +9,13 @@
 package org.sosy_lab.cpachecker.core.algorithm.to_svlib;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
-import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
@@ -25,42 +28,35 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
 import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 
 class CToSvLibPropertyEncoder {
 
   private final Specification specification;
 
+  /**
+   * The tags that are already annotated. A specification file and the properties that are derived
+   * from it describe the same property, so both would otherwise annotate the same tag, and a tag
+   * that is annotated more than once cannot be reported as the violated property of a
+   * counterexample.
+   */
+  private final Set<String> annotatedTags = new HashSet<>();
+
   CToSvLibPropertyEncoder(Specification pSpecification) {
     specification = pSpecification;
   }
 
-  void encodeProperty(ImmutableList.Builder<SvLibCommand> pCommandsCollector) {
-    // Encode properties based on specification files, since currently specification.getProperties
-    // is always null
-    for (Path specificationFile : specification.getFiles()) {
-      if (specificationFile.toString().endsWith("ErrorLabel.spc")
-          || specificationFile.toString().endsWith("sv-comp-errorlabel.spc")) {
-        encodeReachabilityErrorLabel(pCommandsCollector);
-      } else if (specificationFile.toString().endsWith("sv-comp-reachability.spc")) {
-        encodeReachability_reach_error(pCommandsCollector);
-        encodeReachability_VERIFIER_error(pCommandsCollector);
-      } else if (specificationFile.toString().endsWith("Assertion.spc")) {
-        encodeReachability_assert_fail(pCommandsCollector);
-        encodeReachability_assert_func(pCommandsCollector);
-      } else if (specificationFile.toString().endsWith("default.spc")) {
-        encodeReachability_assert_fail(pCommandsCollector);
-        encodeReachability_assert_func(pCommandsCollector);
-        encodeReachabilityErrorLabel(pCommandsCollector);
-      } else if (specificationFile.toString().endsWith("unreach-call.prp")) {
-        encodeReachabilityOfProcedure("reach_error", pCommandsCollector);
-      } else {
-        throw new UnsupportedOperationException(
-            "Encoding of the specification file "
-                + specificationFile
-                + " is not supported for the transformation to SV-LIB.");
-      }
-    }
+  /** Whether the encoding of the property annotated any tag of the generated program. */
+  boolean hasEncodedProperty() {
+    return !annotatedTags.isEmpty();
+  }
 
+  void encodeProperty(ImmutableList.Builder<SvLibCommand> pCommandsCollector) {
+    // The specification is matched by what it was parsed into, and not by the names of the files it
+    // was read from, because the same property can be given in different files, and because a
+    // specification file can include others (specification/default.spc for example consists of the
+    // automata of specification/Assertion.spc, specification/ErrorLabel.spc and
+    // specification/TerminatingFunctions.spc).
     for (Property property : specification.getProperties()) {
       switch (property) {
         case CommonVerificationProperty.REACHABILITY_LABEL ->
@@ -69,11 +65,62 @@ class CToSvLibPropertyEncoder {
             encodeReachabilityOfProcedure("__VERIFIER_error", pCommandsCollector);
         case CommonVerificationProperty.REACHABILITY_ERROR ->
             encodeReachabilityOfProcedure("reach_error", pCommandsCollector);
+        case CommonVerificationProperty.CORRECT_ANNOTATIONS -> {
+          // The annotations of the generated script are created by this transformation, so there is
+          // nothing to encode for them.
+        }
         default ->
             throw new UnsupportedOperationException(
                 "Encoding for property "
                     + property
                     + " is not supported in the transformation to SV-LIB.");
+      }
+    }
+
+    // A property file also contributes the automaton that checks its property, so that automaton is
+    // already covered by the loop above and must not be encoded again below. This only matters for
+    // the automaton of the reachability properties, whose two variants cannot be distinguished from
+    // each other by their name.
+    boolean reachabilityIsCoveredByProperty =
+        !Sets.intersection(
+                specification.getProperties(),
+                ImmutableSet.of(
+                    CommonVerificationProperty.REACHABILITY_LABEL,
+                    CommonVerificationProperty.REACHABILITY,
+                    CommonVerificationProperty.REACHABILITY_ERROR))
+            .isEmpty();
+
+    for (Automaton automaton : specification.getSpecificationAutomata()) {
+      switch (automaton.getName()) {
+        case "AssertionAutomaton" -> {
+          encodeReachabilityOfProcedure("__assert_fail", pCommandsCollector);
+          encodeReachabilityOfProcedure("__assert_func", pCommandsCollector);
+        }
+        case "ErrorLabelAutomaton" -> encodeReachabilityErrorLabel(pCommandsCollector);
+        case "SVCOMP" -> {
+          // Used by both specification/sv-comp-reachability.spc and
+          // specification/sv-comp-errorlabel.spc, which have the same automaton name. If a
+          // reachability property was given, it already states which of the two is checked.
+          // Otherwise this automaton was given directly and the tags of both are annotated.
+          if (!reachabilityIsCoveredByProperty) {
+            encodeReachabilityOfProcedure("reach_error", pCommandsCollector);
+            encodeReachabilityOfProcedure("__VERIFIER_error", pCommandsCollector);
+            encodeReachabilityErrorLabel(pCommandsCollector);
+          }
+        }
+        case "TerminatingFunctions" -> {
+          // This automaton only stops the analysis at calls to abort() and exit(), which the
+          // transformation already encodes as a procedure that assumes false.
+        }
+        case "CorrectAnnotations" -> {
+          // The annotations of the generated script are created by this transformation, so there is
+          // nothing to encode for them.
+        }
+        default ->
+            throw new UnsupportedOperationException(
+                "Encoding of the specification automaton "
+                    + automaton.getName()
+                    + " is not supported for the transformation to SV-LIB.");
       }
     }
   }
@@ -105,30 +152,8 @@ class CToSvLibPropertyEncoder {
         errorLabelTagReferencesCollector.build();
 
     for (SvLibTagReference tagReference : errorLabelTagReferences) {
-      SvLibAnnotateTagCommand annotateTagCommand_ERROR =
-          createFalseAnnotateTagCommand(tagReference);
-      pCommandsCollector.add(annotateTagCommand_ERROR);
+      addFalseAnnotateTagCommand(tagReference, pCommandsCollector);
     }
-  }
-
-  private void encodeReachability_VERIFIER_error(
-      ImmutableList.Builder<SvLibCommand> pCommandsCollector) {
-    encodeReachabilityOfProcedure("__VERIFIER_error", pCommandsCollector);
-  }
-
-  private void encodeReachability_reach_error(
-      ImmutableList.Builder<SvLibCommand> pCommandsCollector) {
-    encodeReachabilityOfProcedure("reach_error", pCommandsCollector);
-  }
-
-  private void encodeReachability_assert_fail(
-      ImmutableList.Builder<SvLibCommand> pCommandsCollector) {
-    encodeReachabilityOfProcedure("__assert_fail", pCommandsCollector);
-  }
-
-  private void encodeReachability_assert_func(
-      ImmutableList.Builder<SvLibCommand> pCommandsCollector) {
-    encodeReachabilityOfProcedure("__assert_func", pCommandsCollector);
   }
 
   private void encodeReachabilityOfProcedure(
@@ -138,10 +163,9 @@ class CToSvLibPropertyEncoder {
         SvLibProcedureDeclaration procedureDeclaration =
             procedureDefinitionCommand.getProcedureDeclaration();
         if (procedureDeclaration.getProcedureName().equals(pProcedureName)) {
-          SvLibAnnotateTagCommand annotateTagCommandProcedureCall =
-              createFalseAnnotateTagCommand(
-                  procedureDefinitionCommand.getBody().getTagReferences().getFirst());
-          pCommandsCollector.add(annotateTagCommandProcedureCall);
+          addFalseAnnotateTagCommand(
+              procedureDefinitionCommand.getBody().getTagReferences().getFirst(),
+              pCommandsCollector);
           return;
         }
 
@@ -159,9 +183,8 @@ class CToSvLibPropertyEncoder {
           SvLibStatement procedureBody = procedureDefinition.body;
 
           if (procedureDeclaration.getProcedureName().equals(pProcedureName)) {
-            SvLibAnnotateTagCommand annotateTagCommandProcedureCall =
-                createFalseAnnotateTagCommand(procedureBody.getTagReferences().getFirst());
-            pCommandsCollector.add(annotateTagCommandProcedureCall);
+            addFalseAnnotateTagCommand(
+                procedureBody.getTagReferences().getFirst(), pCommandsCollector);
             return;
           }
         }
@@ -169,13 +192,17 @@ class CToSvLibPropertyEncoder {
     }
   }
 
-  private SvLibAnnotateTagCommand createFalseAnnotateTagCommand(
-      SvLibTagReference pSvLibTagReference) {
-
-    return new SvLibAnnotateTagCommand(
-        pSvLibTagReference.getTagName(),
-        ImmutableList.of(SvLibCheckTrueTag.checkFalse()),
-        FileLocation.DUMMY);
+  /** Annotate the given tag as unreachable, unless it is already annotated. */
+  private void addFalseAnnotateTagCommand(
+      SvLibTagReference pSvLibTagReference,
+      ImmutableList.Builder<SvLibCommand> pCommandsCollector) {
+    if (annotatedTags.add(pSvLibTagReference.getTagName())) {
+      pCommandsCollector.add(
+          new SvLibAnnotateTagCommand(
+              pSvLibTagReference.getTagName(),
+              ImmutableList.of(SvLibCheckTrueTag.checkFalse()),
+              FileLocation.DUMMY));
+    }
   }
 
   private record ProcedureDefinition(
