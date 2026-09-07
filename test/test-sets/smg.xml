@@ -5,7 +5,7 @@ This file is part of CPAchecker,
 a tool for configurable software verification:
 https://cpachecker.sosy-lab.org
 
-SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
+SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
 
 SPDX-License-Identifier: Apache-2.0
 -->
@@ -16,9 +16,6 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 -->
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" displayName="CPAchecker" timelimit="900s" hardtimelimit="1000s" memlimit="15GB" cpuCores="4">
-
-  <!-- Default for SV-COMP, override if necessary/desired, e.g. in command-line-->
-  <require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz" />
 
   <option name="--heap">10000M</option>
   <option name="--benchmark"/>
