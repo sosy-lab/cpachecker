@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -111,10 +112,6 @@ public class MutexState implements AbstractState {
     return false;
   }
 
-  public boolean isInitialized(String mutex) {
-    return initializedMutexes.contains(mutex);
-  }
-
   /** Returns a new state with the given mutex marked as initialized and unlocked. */
   public MutexState withInit(String mutex) {
     return new MutexState(
@@ -129,16 +126,16 @@ public class MutexState implements AbstractState {
    *
    * @throws IllegalStateException if the mutex is locked by a different thread
    */
-  public MutexState withLock(MutexLock mutex, int holderPid) {
+  public Optional<MutexState> withLock(MutexLock mutex, int holderPid) {
     if (isMutexBlockedFor(mutex, holderPid)) {
-      return null;
+      return Optional.empty();
     }
 
     ImmutableSet<Integer> currentHolders = lockedMutexes.get(mutex);
     ImmutableSet<Integer> updatedHolders;
     if (currentHolders != null) {
       if (currentHolders.contains(holderPid)) {
-        return this; // re-lock by same thread: no-op
+        return Optional.of(this); // re-lock by same thread: no-op
       }
       updatedHolders =
           ImmutableSet.<Integer>builder().addAll(currentHolders).add(holderPid).build();
@@ -146,13 +143,13 @@ public class MutexState implements AbstractState {
       updatedHolders = ImmutableSet.of(holderPid);
     }
 
-    return new MutexState(
+    return Optional.of(new MutexState(
         initializedMutexes,
         ImmutableMap.<MutexLock, ImmutableSet<Integer>>builder()
             .putAll(lockedMutexes)
             .put(mutex, updatedHolders)
             .buildKeepingLast(),
-        atomicHolder);
+        atomicHolder));
   }
 
   /** Returns a new state with the given mutex marked as unlocked. */
@@ -223,41 +220,31 @@ public class MutexState implements AbstractState {
     return new MutexState(initializedMutexes, lockedMutexes, null);
   }
 
-  public MutexState update(CFAEdge edge, int pid, ImmutableSet<String> mutexCandidates) {
+  /** Returns the updated mutex state or empty if the operation is blocked by a mutex. */
+  public Optional<MutexState> update(CFAEdge edge, int pid, ImmutableMap<String, String> mutexCandidates) {
     // Handle __VERIFIER_atomic_begin / __VERIFIER_atomic_end (no parameters needed)
     if (MutexFunctions.isAtomicBegin(edge)) {
       if (isAtomicBlockedFor(pid)) {
         // Another thread already holds the atomic block — should not happen (POR filters it)
-        return null;
+        return Optional.empty();
       }
-      return withAtomicBegin(pid);
+      return Optional.of(withAtomicBegin(pid));
     }
 
     if (MutexFunctions.isAtomicEnd(edge)) {
-      return withAtomicEnd();
+      return Optional.of(withAtomicEnd());
     }
 
-    MutexLock mutexToLock = MutexFunctions.getLockMutex(edge);
-    if (mutexToLock != null) {
-      if (mutexCandidates != null && !mutexCandidates.contains(mutexToLock.handle())) {
-        throw new IllegalArgumentException(
-            "Reassigned mutex handle not supported: " + mutexToLock.handle());
-      }
-      MutexState updatedState = withLock(mutexToLock, pid);
-      if (updatedState == null) {
-        // Blocked: another thread holds the mutex — bottom (no successor)
-        return null;
-      }
-      return updatedState;
+    Optional<MutexLock> mutexToLock = MutexFunctions.getLockMutex(edge);
+    if (mutexToLock.isPresent()) {
+      MutexLock aliasUpdated = updateAlias(mutexToLock.get(), mutexCandidates);
+      return withLock(aliasUpdated, pid);
     }
 
-    MutexLock mutexToUnlock = MutexFunctions.getUnlockMutex(edge);
-    if (mutexToUnlock != null) {
-      if (mutexCandidates != null && !mutexCandidates.contains(mutexToUnlock.handle())) {
-        throw new IllegalArgumentException(
-            "Reassigned mutex handle not supported: " + mutexToUnlock.handle());
-      }
-      return withUnlock(mutexToUnlock, pid);
+    Optional<MutexLock> mutexToUnlock = MutexFunctions.getUnlockMutex(edge);
+    if (mutexToUnlock.isPresent()) {
+      MutexLock aliasUpdated = updateAlias(mutexToUnlock.get(), mutexCandidates);
+      return Optional.of(withUnlock(aliasUpdated, pid));
     }
 
     if (edge instanceof AStatementEdge sEdge
@@ -268,21 +255,35 @@ public class MutexState implements AbstractState {
 
         var params = funcCall.getFunctionCallExpression().getParameterExpressions();
         if (!params.isEmpty()) {
-          String mutexName = MutexFunctions.extractMutexName(params.getFirst());
-          if (mutexName != null) {
+          Optional<String> mutexName = MutexFunctions.extractMutexName(params.getFirst());
+          if (mutexName.isPresent()) {
             if (MutexFunctions.isInitFunction(functionName)) {
-              return withInit(mutexName);
+              return Optional.of(withInit(mutexName.get()));
             }
 
             if (MutexFunctions.isDestroyFunction(functionName)) {
-              return withDestroy(mutexName);
+              return Optional.of(withDestroy(mutexName.get()));
             }
           }
         }
       }
     }
 
-    return this;
+    return Optional.of(this);
+  }
+
+  private MutexLock updateAlias(MutexLock lock, ImmutableMap<String, String> mutexCandidates) {
+    if (mutexCandidates == null) {
+      return lock;
+    }
+    if (!mutexCandidates.containsKey(lock.handle())) {
+      throw new IllegalArgumentException("Reassigned mutex handle not supported: " + lock.handle());
+    }
+    String aliased = mutexCandidates.get(lock.handle());
+    if (lock.handle().equals(aliased)) {
+      return lock;
+    }
+    return new MutexLock(aliased, lock.type());
   }
 
   @Override

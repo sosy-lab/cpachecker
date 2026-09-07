@@ -14,6 +14,7 @@ import static org.junit.Assert.assertThrows;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
+import java.util.Optional;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -139,10 +140,10 @@ public class MutexStateTest {
     MutexLock read = new MutexLock("rwlock", MutexLockType.READ);
 
     MutexState state = MutexState.EMPTY.withInit("rwlock");
-    state = state.withLock(read, 1);
+    state = state.withLock(read, 1).get();
     // A 2nd concurrent reader used to throw IllegalArgumentException("Multiple entries with
     // same key") because withLock's builder put()'d the already-putAll()'d key again.
-    state = state.withLock(read, 2);
+    state = state.withLock(read, 2).get();
 
     assertThat(state.getHolders(read)).containsExactly(1, 2);
   }
@@ -152,8 +153,8 @@ public class MutexStateTest {
     MutexLock read = new MutexLock("rwlock", MutexLockType.READ);
 
     MutexState state = MutexState.EMPTY.withInit("rwlock");
-    state = state.withLock(read, 1);
-    state = state.withLock(read, 2);
+    state = state.withLock(read, 1).get();
+    state = state.withLock(read, 2).get();
     state = state.withUnlock(read, 1);
 
     assertThat(state.getHolders(read)).containsExactly(2);
@@ -167,7 +168,7 @@ public class MutexStateTest {
     MutexLock read = new MutexLock("rwlock", MutexLockType.READ);
 
     MutexState state = MutexState.EMPTY.withInit("rwlock");
-    state = state.withLock(read, 1);
+    state = state.withLock(read, 1).get();
     state = state.withUnlock(read, 1);
 
     assertThat(state.isLocked(read)).isFalse();
@@ -182,20 +183,20 @@ public class MutexStateTest {
     // actually clears the lock the earlier lock call set.
     CVariableDeclaration cacheDecl = variable("cache", PROBLEM_TYPE);
 
-    String lockKey =
+    Optional<String> lockKey =
         MutexFunctions.extractMutexName(addressOfArrayFieldAccess(cacheDecl, 0, "refs_mutex"));
-    String unlockKey =
+    Optional<String> unlockKey =
         MutexFunctions.extractMutexName(addressOfArrayFieldAccess(cacheDecl, 0, "refs_mutex"));
 
-    assertThat(lockKey).isNotNull();
+    assertThat(lockKey).isPresent();
     assertThat(unlockKey).isEqualTo(lockKey);
 
-    MutexLock lock = new MutexLock(lockKey, MutexLockType.BOTH);
-    MutexLock unlock = new MutexLock(unlockKey, MutexLockType.BOTH);
+    MutexLock lock = new MutexLock(lockKey.get(), MutexLockType.BOTH);
+    MutexLock unlock = new MutexLock(unlockKey.get(), MutexLockType.BOTH);
     assertThat(unlock).isEqualTo(lock);
 
-    MutexState state = MutexState.EMPTY.withInit(lockKey);
-    state = state.withLock(lock, 1);
+    MutexState state = MutexState.EMPTY.withInit(lockKey.get());
+    state = state.withLock(lock, 1).get();
     assertThat(state.isLocked(lock)).isTrue();
 
     state = state.withUnlock(unlock, 1);
@@ -229,12 +230,12 @@ public class MutexStateTest {
 
     // The sound fallback: this edge is simply not recognized as a mutex operation at all, rather
     // than producing a MutexLock with a null handle.
-    assertThat(MutexFunctions.getLockMutex(lockEdge)).isNull();
+    assertThat(MutexFunctions.getLockMutex(lockEdge)).isEmpty();
     assertThat(MutexFunctions.isLockCall(lockEdge)).isFalse();
 
     // MutexState#update must likewise treat it as a no-op (edge not recognized), not crash.
     MutexState state = MutexState.EMPTY;
-    assertThat(state.update(lockEdge, 1, null)).isEqualTo(state);
+    assertThat(state.update(lockEdge, 1, null).get()).isEqualTo(state);
   }
 
   @Test

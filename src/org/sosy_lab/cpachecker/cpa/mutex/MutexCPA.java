@@ -8,11 +8,10 @@
 
 package org.sosy_lab.cpachecker.cpa.mutex;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -21,7 +20,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -51,9 +53,10 @@ public class MutexCPA extends AbstractCPA {
     super("sep", "sep", new MutexTransferRelation(collectMutexHandleCandidates(pCFA)));
   }
 
-  private static ImmutableSet<String> collectMutexHandleCandidates(CFA pCFA) {
+  private static ImmutableMap<String, String> collectMutexHandleCandidates(CFA pCFA) {
     Set<String> variableDeclarations = new HashSet<>();
     Map<String, Integer> assignmentCounts = new HashMap<>();
+    Map<String, String> aliases = new HashMap<>();
 
     for (CFAEdge edge : pCFA.edges()) {
       if (edge instanceof CDeclarationEdge declarationEdge) {
@@ -74,18 +77,28 @@ public class MutexCPA extends AbstractCPA {
         if (statement instanceof CAssignment assignment) {
           CLeftHandSide lhs = assignment.getLeftHandSide();
           if (lhs instanceof CIdExpression idExpression
-              && idExpression.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
-            assignmentCounts.merge(variableDeclaration.getQualifiedName(), 1, Integer::sum);
+              && idExpression.getDeclaration() instanceof CVariableDeclaration decl) {
+            CRightHandSide rhs = assignment.getRightHandSide();
+            if (rhs instanceof CUnaryExpression unaryRhs
+                && UnaryOperator.AMPER.equals(unaryRhs.getOperator())
+                && unaryRhs.getOperand() instanceof CIdExpression aliased) {
+              assignmentCounts.merge(decl.getQualifiedName(), 1, Integer::sum);
+              aliases.put(decl.getQualifiedName(), aliased.getDeclaration().getQualifiedName());
+            } else {
+              // unsupported candidate
+              assignmentCounts.put(decl.getQualifiedName(), 2);
+            }
           }
         }
       }
     }
 
-    ImmutableSet.Builder<String> candidates = ImmutableSet.builder();
+    ImmutableMap.Builder<String, String> candidates = ImmutableMap.builder();
     for (String name : variableDeclarations) {
       int count = assignmentCounts.getOrDefault(name, -1);
       if (0 <= count && count <= 1) {
-        candidates.add(name);
+        String original = aliases.getOrDefault(name, name);
+        candidates.put(name, original);
       }
     }
     return candidates.build();

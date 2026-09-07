@@ -9,8 +9,9 @@
 package org.sosy_lab.cpachecker.cpa.mutex;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -24,9 +25,9 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
  */
 class MutexTransferRelation extends SingleEdgeTransferRelation {
 
-  private final ImmutableSet<String> mutexHandleCandidates;
+  private final ImmutableMap<String, String> mutexHandleCandidates;
 
-  MutexTransferRelation(ImmutableSet<String> pMutexHandleCandidates) {
+  MutexTransferRelation(ImmutableMap<String, String> pMutexHandleCandidates) {
     mutexHandleCandidates = pMutexHandleCandidates;
   }
 
@@ -40,10 +41,10 @@ class MutexTransferRelation extends SingleEdgeTransferRelation {
       throw new CPATransferException("PID for edge not found in MutexState.");
     }
 
-    MutexState updated = state.update(pCfaEdge, pid, mutexHandleCandidates);
-    if (updated == null) {
+    Optional<MutexState> updated = state.update(pCfaEdge, pid, mutexHandleCandidates);
+    if (updated.isEmpty()) {
       return ImmutableList.of();
     }
-    return ImmutableList.of(updated);
+    return ImmutableList.of(updated.get());
   }
 }

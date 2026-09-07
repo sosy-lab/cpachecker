@@ -21,6 +21,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Random;
 import java.util.function.BiPredicate;
@@ -221,7 +222,7 @@ public class PORState extends AbstractSingleWrapperState
    */
   private boolean isJoinCurrentlyEnabled(AFunctionCall pJoinCall) {
     var params = pJoinCall.getFunctionCallExpression().getParameterExpressions();
-    if (!params.isEmpty() && params.get(0) instanceof CExpression handle) {
+    if (!params.isEmpty() && params.getFirst() instanceof CExpression handle) {
       String handleKey = ThreadFunctions.canonicalHandleLvalueKey(handle);
       if (handleKey != null) {
         Integer hint = handleHints.get(handleKey);
@@ -390,9 +391,7 @@ public class PORState extends AbstractSingleWrapperState
       }
 
       if (parentThreadState == null || childThreadState == null) {
-        if (threads.keySet().equals(child.threads().keySet())) {
-          return ImmutableList.of();
-        } else {
+        if (!threads.keySet().equals(child.threads().keySet())) {
           // Thread set changed (thread created/destroyed) but no location changed.
           // Find a thread that exists in parent whose location edges lead to the child.
           for (Entry<Integer, PORThreadState> entry : threads.entrySet()) {
@@ -406,8 +405,8 @@ public class PORState extends AbstractSingleWrapperState
               }
             }
           }
-          return ImmutableList.of();
         }
+        return ImmutableList.of();
       }
 
       return parentThreadState.pLocationState().getEdgesToChild(childThreadState.pLocationState());
@@ -468,8 +467,8 @@ public class PORState extends AbstractSingleWrapperState
         if (mutexState != null) {
           // Mutex lock filtering: if this edge is a lock call and the mutex is held by another
           // thread, this thread is blocked and cannot proceed along this edge.
-          MutexLock lockMutex = MutexFunctions.getLockMutex(cloned);
-          if (lockMutex != null && mutexState.isMutexBlockedFor(lockMutex, pid)) {
+          Optional<MutexLock> lockMutex = MutexFunctions.getLockMutex(cloned);
+          if (lockMutex.isPresent() && mutexState.isMutexBlockedFor(lockMutex.get(), pid)) {
             continue;
           }
         }
@@ -580,8 +579,8 @@ public class PORState extends AbstractSingleWrapperState
               && firstActions.stream()
                   .allMatch(
                       e -> {
-                        MutexLock lockMutex = MutexFunctions.getLockMutex(e);
-                        return lockMutex != null && mutexState.isMutexBlockedFor(lockMutex, pid);
+                        Optional<MutexLock> lockMutex = MutexFunctions.getLockMutex(e);
+                        return lockMutex.isPresent() && mutexState.isMutexBlockedFor(lockMutex.get(), pid);
                       });
       if (!allBlocked) {
         sourceSetFirstActions.add(ImmutableList.copyOf(firstActions));
@@ -699,17 +698,22 @@ public class PORState extends AbstractSingleWrapperState
       MutexState initialMutexState,
       Integer pid,
       boolean visitStartedThreadFunction) throws CPATransferException {
-    var uses = EdgeDefUseData.empty();
-    final var exploredEdges = new ArrayList<CFAEdge>();
-    final var toExplore = new ArrayList<>(List.of(Pair.of(startEdge, initialMutexState)));
+    EdgeDefUseData uses = EdgeDefUseData.empty();
+    final List<CFAEdge> exploredEdges = new ArrayList<>();
+    final List<Pair<CFAEdge, MutexState>> toExplore =
+        new ArrayList<>(List.of(Pair.of(startEdge, initialMutexState)));
     while (!toExplore.isEmpty()) {
-      final var exploring = toExplore.removeFirst();
-      final var edge = exploring.getFirst();
-      var mutexState = exploring.getSecond();
+      final Pair<CFAEdge, MutexState> exploring = toExplore.removeFirst();
+      final CFAEdge edge = exploring.getFirst();
+      MutexState mutexState = exploring.getSecond();
       exploredEdges.add(edge);
       uses = uses.merge(getDirectlyUsedGlobalVars(edge));
       if (mutexState != null) {
-        mutexState = mutexState.update(edge, pid, null);
+        Optional<MutexState> result = mutexState.update(edge, pid, null);
+        if (result.isEmpty()) {
+          continue;
+        }
+        mutexState = result.get();
       }
       if (goFurther.test(edge, mutexState)) {
         for (final var successorEdge : getSuccessorEdges(edge, visitStartedThreadFunction)) {
