@@ -66,6 +66,7 @@ public final class DssPostConditionMessage implements DssConditionMessage {
     return status;
   }
 
+  @Override
   public ImmutableList<ImmutableMap<String, String>> getStates() {
     return states;
   }
@@ -74,6 +75,7 @@ public final class DssPostConditionMessage implements DssConditionMessage {
     return unreachableBlockEnd;
   }
 
+  @Override
   public DssMessageType getType() {
     return DssMessageType.POST_CONDITION;
   }

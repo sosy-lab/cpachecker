@@ -35,14 +35,22 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssExceptionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssHeaderPayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageKeys;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.LegacyDssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessagePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssResultMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatusPayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssWitnessMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath.PathCase;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
@@ -82,8 +90,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  *   <li>Paths through the block graph: {@link #render(BlockGraphPath)}, {@link
  *       #explainPathCase(BlockGraphPath, BlockGraphPath)}, {@link #pathCaseMatrix(Iterable,
  *       Iterable)}.
- *   <li>Messages: {@link #summarize(LegacyDssMessage)}, {@link #describe(LegacyDssMessage)}, {@link
- *       #messageTable(Iterable)}, {@link #diff(LegacyDssMessage, LegacyDssMessage)}.
+ *   <li>Messages: {@link #summarize(DssMessage)}, {@link #describe(DssMessage)}, {@link
+ *       #messageTable(Iterable)}, {@link #diff(DssMessage, DssMessage)}.
  *   <li>Reached sets and ARGs: {@link #describeReachedSet(UnmodifiableReachedSet)}, {@link
  *       #describe(ARGPath)}, {@link #argToDot(UnmodifiableReachedSet)}.
  *   <li>Pre-/violation conditions of a block: {@link #prettyPrintBlock(String, Multimap,
@@ -597,20 +605,25 @@ public final class DssDebugUtils {
   // ===================================================================================
 
   /** One-line summary of a message: type, sender, number of states, status, timestamp. */
-  public static String summarize(LegacyDssMessage pMessage) {
+  public static String summarize(DssMessage pMessage) {
     StringBuilder result =
         new StringBuilder(pMessage.getType().name())
             .append(" from ")
             .append(pMessage.getSenderId());
-    switch (pMessage.getType()) {
-      case POST_CONDITION, VIOLATION_CONDITION -> {
-        result.append(" states=").append(pMessage.getNumberOfContainedStates().orElse(0));
-        result.append(" status=").append(renderStatus(pMessage.getAlgorithmStatus()));
+    switch (pMessage) {
+      case DssConditionMessage conditionMessage -> {
+        result.append(" states=").append(conditionMessage.getNumberOfContainedStates());
+        result.append(" status=").append(renderStatus(conditionMessage.getAlgorithmStatus()));
       }
-      case RESULT -> result.append(" result=").append(pMessage.getResult());
-      case WITNESS -> result.append(" witnessType=").append(pMessage.getWitnessType());
-      case EXCEPTION ->
-          result.append(" exception=").append(firstLine(pMessage.getExceptionMessage()));
+      case DssResultMessage resultMessage -> {
+        result.append(" result=").append(resultMessage.getResult());
+      }
+      case DssWitnessMessage witnessMessage -> {
+        result.append(" witnessType=").append(witnessMessage.getWitnessType());
+      }
+      case DssExceptionMessage exceptionMessage -> {
+        result.append(" exception=").append(firstLine(exceptionMessage.getExceptionMessage()));
+      }
     }
     return result.append(" at ").append(pMessage.getTimestamp()).toString();
   }
@@ -623,62 +636,88 @@ public final class DssDebugUtils {
   }
 
   /**
-   * Renders a message with its content decoded: the flat {@code state<i>.<CPA>.<field>} key space
+   * Renders a message with its content decoded: the state list with {@code <CPA>.<field>} key space
    * is regrouped per contained state and per CPA, opaque blobs are elided, and the serialized
    * {@link BlockState} is expanded into block, history and witness.
    */
-  public static String describe(LegacyDssMessage pMessage) {
-    ImmutableMap<String, ImmutableMap<String, String>> json = pMessage.asDebugFlatMap();
-    ImmutableMap<String, String> content =
-        Objects.requireNonNullElse(json.get(DssMessageKeys.CONTENT), ImmutableMap.of());
+  public static String describe(DssMessage pMessage) {
+    StringBuilder body = new StringBuilder();
+    body.append(renderMessageMetadata(pMessage));
+    if (pMessage instanceof DssMessageWithStates messageWithStates) {
+      body.append(renderMessageStates(messageWithStates));
+    }
+    return box(summarize(pMessage), body.toString());
+  }
 
-    // Entries that do not belong to a specific state (states, status, result, ...).
-    Map<String, String> meta = new LinkedHashMap<>();
-    // stateIndex -> component -> field -> value
-    Map<Integer, Map<String, Map<String, String>>> states = new LinkedHashMap<>();
+  private static String renderMessageMetadata(DssMessage pMessage) {
+    List<List<String>> rows = new ArrayList<>();
 
-    for (Entry<String, String> entry : content.entrySet()) {
-      StateKey key = StateKey.parse(entry.getKey());
+    rows.add(ImmutableList.of("senderId", pMessage.getSenderId()));
+    rows.add(ImmutableList.of("type", pMessage.getType().name()));
+    rows.add(ImmutableList.of("timestamp", String.valueOf(pMessage.getTimestamp())));
+
+    switch (pMessage) {
+      case DssConditionMessage conditionMessage -> {
+        rows.add(ImmutableList.of("status", renderStatus(conditionMessage.getAlgorithmStatus())));
+      }
+      case DssResultMessage resultMessage -> {
+        rows.add(ImmutableList.of("result", String.valueOf(resultMessage.getResult())));
+      }
+      case DssExceptionMessage exceptionMessage -> {
+        rows.add(ImmutableList.of("exception", exceptionMessage.getExceptionMessage()));
+      }
+      case DssWitnessMessage witnessMessage -> {
+        rows.add(ImmutableList.of("witnessType", witnessMessage.getWitnessType().name()));
+      }
+    }
+    return table(ImmutableList.of("key", "value"), rows);
+  }
+
+  private static String renderMessageStates(DssMessageWithStates pMessage) {
+    StringBuilder body = new StringBuilder();
+
+    for (int i = 0; i < pMessage.getNumberOfContainedStates(); i++) {
+      body.append("\n\nstate ").append(i).append(':');
+      body.append('\n').append(indent("  ", renderStateContent(pMessage.getStates().get(i))));
+    }
+    return body.toString();
+  }
+
+  private static String renderStateContent(ImmutableMap<String, String> pStateContent) {
+    Map<String, Map<String, String>> components = new LinkedHashMap<>();
+
+    for (Entry<String, String> entry : pStateContent.entrySet()) {
+      ComponentKey key = ComponentKey.parse(entry.getKey());
+
       if (key == null) {
-        meta.put(entry.getKey(), entry.getValue());
+        components
+            .computeIfAbsent("?", unused -> new LinkedHashMap<>())
+            .put(entry.getKey(), entry.getValue());
         continue;
       }
-      states
-          .computeIfAbsent(key.index(), i -> new LinkedHashMap<>())
-          .computeIfAbsent(key.component(), c -> new LinkedHashMap<>())
+
+      components
+          .computeIfAbsent(key.component(), unused -> new LinkedHashMap<>())
           .put(key.field(), entry.getValue());
     }
 
-    StringBuilder body = new StringBuilder();
-    List<List<String>> metaRows = new ArrayList<>();
-    metaRows.add(ImmutableList.of("timestamp", String.valueOf(pMessage.getTimestamp())));
-    for (Entry<String, String> entry : meta.entrySet()) {
-      metaRows.add(ImmutableList.of(entry.getKey(), shortValue(entry.getValue())));
-    }
-    body.append(table(ImmutableList.of("key", "value"), metaRows));
+    List<List<String>> rows = new ArrayList<>();
+    for (Entry<String, Map<String, String>> component : components.entrySet()) {
+      boolean hasReadable = component.getValue().containsKey("readable");
 
-    for (Entry<Integer, Map<String, Map<String, String>>> state : states.entrySet()) {
-      body.append("\n\nstate ").append(state.getKey()).append(':');
-      List<List<String>> rows = new ArrayList<>();
-      for (Entry<String, Map<String, String>> component : state.getValue().entrySet()) {
-        boolean hasReadable = component.getValue().containsKey("readable");
-        for (Entry<String, String> field : component.getValue().entrySet()) {
-          rows.add(
-              ImmutableList.of(
-                  component.getKey(),
-                  field.getKey(),
-                  renderContentValue(field.getKey(), field.getValue(), hasReadable)));
-        }
-        String blockStateValue = component.getValue().get("state");
-        if ("BlockState".equals(component.getKey()) && blockStateValue != null) {
-          rows.add(ImmutableList.of("", "-> decoded", decodeBlockState(blockStateValue)));
-        }
+      for (Entry<String, String> field : component.getValue().entrySet()) {
+        rows.add(
+            ImmutableList.of(
+                component.getKey(),
+                field.getKey(),
+                renderContentValue(field.getKey(), field.getValue(), hasReadable)));
       }
-      body.append('\n')
-          .append(indent("  ", table(ImmutableList.of("cpa", "field", "value"), rows)));
+      String blockStateValue = component.getValue().get("state");
+      if ("BlockState".equals(component.getKey()) && blockStateValue != null) {
+        rows.add(ImmutableList.of("", "-> decoded", decodeBlockState(blockStateValue)));
+      }
     }
-
-    return box(summarize(pMessage), body.toString());
+    return table(ImmutableList.of("cpa", "field", "value"), rows);
   }
 
   private static String renderContentValue(String pField, String pValue, boolean pHasReadable) {
@@ -710,17 +749,20 @@ public final class DssDebugUtils {
   }
 
   /** Renders one summary row per message, in the given order. */
-  public static String messageTable(Iterable<LegacyDssMessage> pMessages) {
+  public static String messageTable(Iterable<DssMessage> pMessages) {
     List<List<String>> rows = new ArrayList<>();
     int index = 0;
-    for (LegacyDssMessage message : pMessages) {
-      rows.add(
-          ImmutableList.of(
-              Integer.toString(index++),
-              message.getType().name(),
-              message.getSenderId(),
-              Integer.toString(message.getNumberOfContainedStates().orElse(0)),
-              String.valueOf(message.getTimestamp())));
+    for (DssMessage message : pMessages) {
+      ImmutableList.Builder<String> builder = ImmutableList.builder();
+      builder.add(Integer.toString(index++), message.getType().name(), message.getSenderId());
+      if (message instanceof DssMessageWithStates messageWithStates) {
+        builder.add(Integer.toString(messageWithStates.getNumberOfContainedStates()));
+      } else {
+        builder.add("0");
+      }
+
+      builder.add(String.valueOf(message.getTimestamp()));
+      rows.add(builder.build());
     }
     if (rows.isEmpty()) {
       return "<no messages>";
@@ -734,30 +776,16 @@ public final class DssDebugUtils {
    * <p>Two consecutive postconditions of the same block that ought to be equal but are not is the
    * classic reason for a non-terminating fixpoint. This shows exactly which key differs.
    */
-  public static String diff(LegacyDssMessage pLeft, LegacyDssMessage pRight) {
-    ImmutableMap<String, String> left = contentOf(pLeft);
-    ImmutableMap<String, String> right = contentOf(pRight);
-
-    Set<String> allKeys = new LinkedHashSet<>(left.keySet());
-    allKeys.addAll(right.keySet());
+  public static String diff(DssMessage pLeft, DssMessage pRight) {
+    DssMessagePayload left = pLeft.asJsonPayload();
+    DssMessagePayload right = pRight.asJsonPayload();
 
     List<List<String>> rows = new ArrayList<>();
-    for (String key : allKeys) {
-      String leftValue = left.get(key);
-      String rightValue = right.get(key);
-      if (Objects.equals(leftValue, rightValue)) {
-        continue;
-      }
-      StateKey parsed = StateKey.parse(key);
-      String field = parsed == null ? key : parsed.field();
-      rows.add(
-          ImmutableList.of(
-              parsed == null
-                  ? key
-                  : "state" + parsed.index() + "." + parsed.component() + "." + field,
-              diffValue(field, leftValue),
-              diffValue(field, rightValue)));
-    }
+    addHeaderDiff(rows, left.header(), right.header());
+    addStatusDiff(rows, left.status(), right.status());
+    addStatesDiff(rows, left.states(), right.states());
+    addContentDiff(rows, left.content(), right.content());
+
     String body =
         rows.isEmpty()
             ? "contents are equal"
@@ -765,57 +793,128 @@ public final class DssDebugUtils {
     return box("diff: " + summarize(pLeft) + "  vs  " + summarize(pRight), body);
   }
 
-  private static String diffValue(String pField, @Nullable String pValue) {
+  private static void addHeaderDiff(
+      List<List<String>> pRows, DssHeaderPayload pLeft, DssHeaderPayload pRight) {
+    addDiffRow(
+        pRows,
+        DssMessageKeys.HEADER + "." + DssMessageKeys.SENDER_ID,
+        pLeft.senderId(),
+        pRight.senderId());
+    addDiffRow(
+        pRows,
+        DssMessageKeys.HEADER + "." + DssMessageKeys.MESSAGE_TYPE,
+        pLeft.messageType(),
+        pRight.messageType());
+    addDiffRow(
+        pRows,
+        DssMessageKeys.HEADER + "." + DssMessageKeys.TIMESTAMP,
+        pLeft.timestamp(),
+        pRight.timestamp());
+    addDiffRow(
+        pRows,
+        DssMessageKeys.HEADER + "." + DssMessageKeys.IDENTIFIER,
+        pLeft.identifier(),
+        pRight.identifier());
+  }
+
+  private static void addStatusDiff(
+      List<List<String>> pRows,
+      @Nullable DssStatusPayload pLeft,
+      @Nullable DssStatusPayload pRight) {
+    if (pLeft == null || pRight == null) {
+      addDiffRow(pRows, DssMessageKeys.STATUS, pLeft, pRight);
+      return;
+    }
+
+    addDiffRow(
+        pRows, DssMessageKeys.STATUS + "." + DssMessageKeys.SOUND, pLeft.sound(), pRight.sound());
+    addDiffRow(
+        pRows,
+        DssMessageKeys.STATUS + "." + DssMessageKeys.PRECISE,
+        pLeft.precise(),
+        pRight.precise());
+    addDiffRow(
+        pRows,
+        DssMessageKeys.STATUS + "." + DssMessageKeys.PROPERTY,
+        pLeft.propertyChecked(),
+        pRight.propertyChecked());
+  }
+
+  private static void addStatesDiff(
+      List<List<String>> pRows,
+      ImmutableList<ImmutableMap<String, String>> pLeft,
+      ImmutableList<ImmutableMap<String, String>> pRight) {
+    int maxStates = Math.max(pLeft.size(), pRight.size());
+    for (int i = 0; i < maxStates; i++) {
+      if (i >= pLeft.size()) {
+        addDiffRow(pRows, DssMessageKeys.STATES + "[" + i + "]", null, "<present>");
+      } else if (i >= pRight.size()) {
+        addDiffRow(pRows, DssMessageKeys.STATES + "[" + i + "]", "<present>", null);
+      } else {
+        addMapDiff(pRows, DssMessageKeys.STATES + "[" + i + "]", pLeft.get(i), pRight.get(i));
+      }
+    }
+  }
+
+  private static void addContentDiff(
+      List<List<String>> pRows,
+      ImmutableMap<String, String> pLeft,
+      ImmutableMap<String, String> pRight) {
+    addMapDiff(pRows, DssMessageKeys.CONTENT, pLeft, pRight);
+  }
+
+  private static void addMapDiff(
+      List<List<String>> pRows,
+      String pPrefix,
+      ImmutableMap<String, String> pLeft,
+      ImmutableMap<String, String> pRight) {
+    Set<String> keys = new LinkedHashSet<>(pLeft.keySet());
+    keys.addAll(pRight.keySet());
+
+    for (String key : keys) {
+      addDiffRow(pRows, pPrefix + "." + key, pLeft.get(key), pRight.get(key));
+    }
+  }
+
+  private static void addDiffRow(
+      List<List<String>> pRows, String pField, @Nullable Object pLeft, @Nullable Object pRight) {
+    if (Objects.equals(pLeft, pRight)) {
+      return;
+    }
+
+    pRows.add(ImmutableList.of(pField, diffValue(pField, pLeft), diffValue(pField, pRight)));
+  }
+
+  private static String diffValue(String pField, @Nullable Object pValue) {
     if (pValue == null) {
       return "<absent>";
     }
-    if (OPAQUE_FIELDS.contains(pField)) {
-      return "<opaque blob, " + pValue.length() + " chars, elided>";
+    String value = String.valueOf(pValue);
+    String fieldName = pField.substring(pField.lastIndexOf('.') + 1);
+    if (OPAQUE_FIELDS.contains(fieldName)) {
+      return "<opaque blob, " + value.length() + " chars, elided>";
     }
-    if (pValue.isEmpty()) {
+    if (value.isEmpty()) {
       return "<empty>";
     }
     // Narrower than shortValue: a diff has two value columns side by side.
-    return abbreviate(singleLine(pValue), DEFAULT_MAX_VALUE_LENGTH / 2);
+    return abbreviate(singleLine(value), DEFAULT_MAX_VALUE_LENGTH / 2);
   }
 
-  private static ImmutableMap<String, String> contentOf(LegacyDssMessage pMessage) {
-    return Objects.requireNonNullElse(
-        pMessage.asDebugFlatMap().get(DssMessageKeys.CONTENT), ImmutableMap.of());
-  }
-
-  /**
-   * A parsed message-content key of the shape {@code state<index>.<package>.<Component>.<field>}.
-   */
-  private record StateKey(int index, String component, String field) {
-
+  /** A parsed message-content key of the shape {@code <package>.<Component>.<field>}. */
+  private record ComponentKey(String component, String field) {
     private static final Splitter DOT_SPLITTER = Splitter.on('.');
 
-    static @Nullable StateKey parse(String pKey) {
-      if (!pKey.startsWith("state")) {
-        return null;
-      }
-      int dot = pKey.indexOf('.');
-      if (dot < 0) {
-        return null;
-      }
-      String digits = pKey.substring("state".length(), dot);
-      if (digits.isEmpty() || !digits.chars().allMatch(Character::isDigit)) {
-        return null;
-      }
-      ImmutableList<String> segments =
-          ImmutableList.copyOf(DOT_SPLITTER.split(pKey.substring(dot + 1)));
-      // The component is the first segment starting with an upper-case letter: everything before it
-      // is the package, everything after it is the (possibly dotted) field name.
+    static @Nullable ComponentKey parse(String pKey) {
+      ImmutableList<String> segments = ImmutableList.copyOf(DOT_SPLITTER.split(pKey));
+
       for (int i = 0; i < segments.size() - 1; i++) {
-        if (Character.isUpperCase(segments.get(i).charAt(0))) {
-          return new StateKey(
-              Integer.parseInt(digits),
-              segments.get(i),
-              Joiner.on('.').join(segments.subList(i + 1, segments.size())));
+        if (!segments.get(i).isEmpty() && Character.isUpperCase(segments.get(i).charAt(0))) {
+          return new ComponentKey(
+              segments.get(i), Joiner.on('.').join(segments.subList(i + 1, segments.size())));
         }
       }
-      return new StateKey(Integer.parseInt(digits), "?", Joiner.on('.').join(segments));
+      return null;
     }
   }
 

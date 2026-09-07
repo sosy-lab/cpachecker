@@ -12,7 +12,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -58,16 +57,5 @@ public record DssHeaderPayload(
     int nanosAdjustment = (int) Math.floorMod(epochNanos, nanoConversionFactor);
 
     return Optional.of(Instant.ofEpochSecond(epochSeconds, nanosAdjustment));
-  }
-
-  public ImmutableMap<String, String> asLegacyHeader() {
-    ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
-    builder.put(DssMessageKeys.SENDER_ID, senderId);
-    builder.put(DssMessageKeys.MESSAGE_TYPE, messageType.name());
-    if (timestamp != null) {
-      builder.put(DssMessageKeys.TIMESTAMP, timestamp);
-    }
-    builder.put(DssMessageKeys.IDENTIFIER, identifier + "");
-    return builder.buildOrThrow();
   }
 }

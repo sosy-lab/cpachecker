@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 
 @JsonPropertyOrder({
@@ -46,14 +45,5 @@ public record DssStatusPayload(
       return AlgorithmStatus.UNSOUND_AND_PRECISE;
     }
     return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
-  }
-
-  ImmutableMap<String, String> asLegacyContent() {
-    return ContentBuilder.builder()
-        .pushLevel(DssMessageKeys.STATUS)
-        .put(DssMessageKeys.SOUND, Boolean.toString(sound))
-        .put(DssMessageKeys.PRECISE, Boolean.toString(precise))
-        .put(DssMessageKeys.PROPERTY, Boolean.toString(propertyChecked))
-        .build();
   }
 }

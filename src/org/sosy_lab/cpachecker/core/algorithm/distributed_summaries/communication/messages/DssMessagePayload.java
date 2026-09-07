@@ -21,7 +21,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -69,29 +68,6 @@ public record DssMessagePayload(
 
   public DssMessagePayload withoutTimestamp() {
     return new DssMessagePayload(header.withoutTimestamp(), status, states, content);
-  }
-
-  public ImmutableMap<String, ImmutableMap<String, String>> asDebugFlatMap() {
-    return ImmutableMap.of(
-        DssMessageKeys.HEADER, header.asLegacyHeader(), DssMessageKeys.CONTENT, legacyContent());
-  }
-
-  private ImmutableMap<String, String> legacyContent() {
-    ImmutableMap.Builder<String, String> legacyContent = ImmutableMap.builder();
-    if (status != null) {
-      legacyContent.putAll(status.asLegacyContent());
-    }
-    if (!states.isEmpty()) {
-      legacyContent.put(DssMessageKeys.MULTIPLE_STATES, Integer.toString(states.size()));
-      for (int i = 0; i < states.size(); i++) {
-        String statePrefix = DssMessageKeys.STATE + i;
-        for (Entry<String, String> entry : states.get(i).entrySet()) {
-          legacyContent.put(statePrefix + "." + entry.getKey(), entry.getValue());
-        }
-      }
-    }
-    legacyContent.putAll(content);
-    return legacyContent.buildKeepingLast();
   }
 
   public void writeJson(Path pPath) throws IOException {
