@@ -23,6 +23,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 /** Replace trivial loops in the CFA with an edge to a {@link CFATerminationNode}. Cf. #1713 */
 public class TrivialLoopRemover {
 
+  private TrivialLoopRemover() {}
+
   public static void removeTrivialLoops(MutableCFA cfa) {
     removeSelfLoops(cfa);
     removeLongerLoops(cfa);
@@ -67,7 +69,7 @@ public class TrivialLoopRemover {
   private static void removeLongerLoops(MutableCFA cfa) {
     List<CFANode> trivialLoopHeads = new ArrayList<>();
 
-    // Identify loops that have only chain of blank edges leading back to themselves.s
+    // Identify loops that have only chain of blank edges leading back to themselves.
     for (CFANode node : cfa.nodes()) {
       if (node.getNumEnteringEdges() > 1) { // This makes sure that we add only one node per loop.
         CFANode currentNode = node;
