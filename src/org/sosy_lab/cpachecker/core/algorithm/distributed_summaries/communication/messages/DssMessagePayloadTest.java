@@ -22,12 +22,20 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 
 public class DssMessagePayloadTest {
   private DssMessageFactory defaultFactory() throws InvalidConfigurationException {
     return new DssMessageFactory(new DssAnalysisOptions(Configuration.defaultConfiguration()));
+  }
+
+  private DssMessage roundTrip(DssMessage pMessage) throws IOException {
+    Path file = tempFolder.newFile("message.json").toPath();
+    pMessage.asJsonPayload().writeJson(file);
+    return DssMessageCodec.fromJson(file);
   }
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
@@ -71,57 +79,6 @@ public class DssMessagePayloadTest {
   }
 
   @Test
-  public void fromJsonReadsCurrentJsonShapeWithStatus() throws Exception {
-    Path file = tempFolder.newFile("message.json").toPath();
-    String jsonContent =
-        String.format(
-            """
-            {
-              "%s": {
-                "%s": "%s",
-                "%s": "%s",
-                "%s": "%s",
-                "%s": "%s"
-              },
-              "%s": {
-                "%s": "%s",
-                "%s": "%s",
-                "%s": "%s"
-              },
-              "%s": {
-                "%s": "%s"
-              }
-            }
-            """,
-            DssMessageKeys.HEADER,
-            DssMessageKeys.SENDER_ID,
-            "B1",
-            DssMessageKeys.MESSAGE_TYPE,
-            DssMessage.DssMessageType.RESULT.name(),
-            DssMessageKeys.TIMESTAMP,
-            "123",
-            DssMessageKeys.IDENTIFIER,
-            "0",
-            DssMessageKeys.STATUS,
-            DssMessageKeys.SOUND,
-            "true",
-            DssMessageKeys.PRECISE,
-            "true",
-            DssMessageKeys.PROPERTY,
-            "true",
-            DssMessageKeys.CONTENT,
-            DssMessageKeys.RESULT,
-            "true");
-    Files.writeString(file, jsonContent);
-
-    DssMessagePayload payload = DssMessagePayload.fromJson(file);
-
-    assertThat(payload.header().messageType()).isEqualTo(DssMessage.DssMessageType.RESULT);
-    assertThat(payload.status().toAlgorithmStatus()).isEqualTo(AlgorithmStatus.SOUND_AND_PRECISE);
-    assertThat(payload.content()).containsEntry(DssMessageKeys.RESULT, "true");
-  }
-
-  @Test
   public void fromJsonRejectsMissingHeader() throws Exception {
     Path file = tempFolder.newFile("message.json").toPath();
     String jsonContent =
@@ -142,7 +99,7 @@ public class DssMessagePayloadTest {
   }
 
   @Test
-  public void fromPayloadUsesTopLevelStatus() {
+  public void fromPayloadCreatesPostConditionMessageWithStatus() {
     DssMessagePayload payload =
         new DssMessagePayload(
             new DssHeaderPayload("B1", DssMessage.DssMessageType.POST_CONDITION, "123", 0),
@@ -151,23 +108,13 @@ public class DssMessagePayloadTest {
             ImmutableMap.of(DssMessageKeys.UNREACHABLE_BLOCK_END, "true"));
     DssMessage message = DssMessageCodec.fromPayload(payload);
 
-    assertThat(message.getClass()).isEqualTo(DssPostConditionMessage.class);
+    assertThat(message).isInstanceOf(DssPostConditionMessage.class);
+    assertThat(message).isInstanceOf(DssMessageWithStates.class);
+    assertThat(message).isInstanceOf(DssMessageWithStatus.class);
+    assertThat(message).isInstanceOf(DssConditionMessage.class);
     DssPostConditionMessage postConditionMessage = (DssPostConditionMessage) message;
     assertThat(postConditionMessage.getAlgorithmStatus())
         .isEqualTo(AlgorithmStatus.SOUND_AND_IMPRECISE);
-  }
-
-  @Test
-  public void asJsonPayloadMovesStatusOutOfContent() throws InvalidConfigurationException {
-    DssMessage message =
-        defaultFactory()
-            .createDssUnreachableBlockEndMessage("B1", AlgorithmStatus.UNSOUND_AND_PRECISE);
-    DssMessagePayload payload = message.asJsonPayload();
-
-    assertThat(payload.status().toAlgorithmStatus()).isEqualTo(AlgorithmStatus.UNSOUND_AND_PRECISE);
-    assertThat(payload.content())
-        .doesNotContainKey(DssMessageKeys.STATUS + "." + DssMessageKeys.SOUND);
-    assertThat(payload.content()).containsEntry(DssMessageKeys.UNREACHABLE_BLOCK_END, "true");
   }
 
   @Test
@@ -187,22 +134,84 @@ public class DssMessagePayloadTest {
   }
 
   @Test
-  public void roundTripPreservesStatusAndContent()
+  public void postConditionRoundTripPreservesData()
       throws InvalidConfigurationException, IOException {
     DssPostConditionMessage original =
         defaultFactory()
             .createDssUnreachableBlockEndMessage("B1", AlgorithmStatus.SOUND_AND_PRECISE);
-    Path file = tempFolder.newFile("message.json").toPath();
-
-    original.asJsonPayload().writeJson(file);
-    DssMessage parsed = DssMessageCodec.fromJson(file);
+    DssMessage parsed = roundTrip(original);
 
     assertThat(parsed.getType()).isEqualTo(original.getType());
     assertThat(parsed.getClass()).isEqualTo(original.getClass());
     DssPostConditionMessage parsedPost = (DssPostConditionMessage) parsed;
     assertThat(parsedPost.getAlgorithmStatus()).isEqualTo(original.getAlgorithmStatus());
+    assertThat(parsedPost.getStates()).isEqualTo(original.getStates());
     assertThat(parsed.getSenderId()).isEqualTo(original.getSenderId());
     assertThat(parsedPost.indicatesUnreachableBlockEnd()).isTrue();
+  }
+
+  @Test
+  public void resultMessageRoundTripPreservesResult()
+      throws InvalidConfigurationException, IOException {
+    DssResultMessage original = defaultFactory().createDssResultMessage("B1", Result.TRUE);
+    DssMessage parsed = roundTrip(original);
+
+    assertThat(parsed).isInstanceOf(DssResultMessage.class);
+    assertThat(((DssResultMessage) parsed).getResult()).isEqualTo(Result.TRUE);
+  }
+
+  @Test
+  public void exceptionMessageRoundTripPreservesExceptionMessage()
+      throws InvalidConfigurationException, IOException {
+    String message = "Exception Message";
+    DssExceptionMessage original =
+        defaultFactory().createDssExceptionMessage("B1", new Exception(message));
+    DssMessage parsed = roundTrip(original);
+
+    assertThat(parsed).isInstanceOf(DssExceptionMessage.class);
+    assertThat(((DssExceptionMessage) parsed).getExceptionMessage()).contains(message);
+  }
+
+  @Test
+  public void violationConditionMessageRoundTripPreservesData()
+      throws InvalidConfigurationException, IOException {
+    DssViolationConditionMessage original =
+        defaultFactory()
+            .createViolationConditionMessage(
+                "B1",
+                AlgorithmStatus.SOUND_AND_IMPRECISE,
+                ImmutableList.of(
+                    ImmutableMap.of(
+                        DssComponentKey.serializedNameFor(LocationState.class)
+                            + "."
+                            + DssMessageKeys.STATE,
+                        "42")));
+    DssMessage parsed = roundTrip(original);
+
+    assertThat(parsed).isInstanceOf(DssViolationConditionMessage.class);
+    DssViolationConditionMessage parsedViolation = (DssViolationConditionMessage) parsed;
+    assertThat(parsedViolation.getStates()).isEqualTo(original.getStates());
+    assertThat(parsedViolation.getAlgorithmStatus()).isEqualTo(original.getAlgorithmStatus());
+  }
+
+  @Test
+  public void correctnessWitnessRoundTripPreservesData()
+      throws InvalidConfigurationException, IOException {
+    DssCorrectnessWitnessMessage original =
+        defaultFactory()
+            .createDssCorrectnessWitnessMessage(
+                "B1",
+                ImmutableList.of(
+                    ImmutableMap.of(
+                        DssComponentKey.serializedNameFor(LocationState.class)
+                            + "."
+                            + DssMessageKeys.STATE,
+                        "42")));
+    DssMessage parsed = roundTrip(original);
+
+    assertThat(parsed).isInstanceOf(DssCorrectnessWitnessMessage.class);
+    DssCorrectnessWitnessMessage parsedWitness = (DssCorrectnessWitnessMessage) parsed;
+    assertThat(parsedWitness.getStates()).isEqualTo(original.getStates());
   }
 
   @Test

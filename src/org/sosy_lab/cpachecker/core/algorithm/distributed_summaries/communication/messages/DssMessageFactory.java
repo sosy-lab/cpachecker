@@ -58,13 +58,13 @@ public class DssMessageFactory {
     return new DssViolationConditionMessage(pSenderId, pStatus, pStates);
   }
 
-  public DssWitnessMessage createDssCorrectnessWitnessMessage(
+  public DssCorrectnessWitnessMessage createDssCorrectnessWitnessMessage(
       String pSenderId,
       ImmutableList<ImmutableMap<String, String>> pSerializedRelevantPreconditions) {
     return new DssCorrectnessWitnessMessage(pSenderId, pSerializedRelevantPreconditions);
   }
 
-  public DssWitnessMessage createDssViolationWitnessMessage(
+  public DssViolationWitnessMessage createDssViolationWitnessMessage(
       String pSenderId, SegmentedPaths violationWitness) {
     return new DssViolationWitnessMessage(pSenderId, violationWitness);
   }
