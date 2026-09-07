@@ -6,6 +6,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+*.yml
 arrayAsPointer/array*.yml
 atexit/memsafety*.yml
 atexit/reach*.yml
@@ -15,7 +16,6 @@ block_analysis/*.yml
 cast_to_union/*.yml
 pointer_aliasing/*.yml
 arrays/*.yml
-*.yml
 nested_operators/*.yml
 builtin_overflow_functions/*.yml
 multipleCFiles/*.yml
@@ -24,3 +24,4 @@ witness_output/*.yml
 type_tests/*.yml
 pointer_arithmetics/*.yml
 function_pointers/*.yml
+shift_operations/*.yml
