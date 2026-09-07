@@ -858,7 +858,7 @@ public class SMGCPABuiltins {
             calculationCast,
             BinaryOperator.NOT_EQUALS);
 
-    return OverflowFunctionReturnAndCastCalculationResult.of(overflowComparison, calculationCast);
+    return new OverflowFunctionReturnAndCastCalculationResult(overflowComparison, calculationCast);
   }
 
   /**
@@ -3998,14 +3998,11 @@ public class SMGCPABuiltins {
   public record OverflowFunctionReturnAndCastCalculationResult(
       CExpression functionReturn, CExpression castCalculationResult) {
 
-    public static OverflowFunctionReturnAndCastCalculationResult of(
-        CExpression functionReturn, CExpression castCalculationResult) {
+    public OverflowFunctionReturnAndCastCalculationResult {
       checkNotNull(functionReturn);
       checkNotNull(castCalculationResult);
       checkArgument(
           functionReturn.getExpressionType().getCanonicalType().equals(CNumericTypes.BOOL));
-      return new OverflowFunctionReturnAndCastCalculationResult(
-          functionReturn, castCalculationResult);
     }
 
     /**
