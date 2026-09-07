@@ -1520,7 +1520,7 @@ public class OrderingConsistencyTransferRelation implements TransferRelation {
     CExpression expression = stripCasts(pArg);
     return !(expression instanceof CUnaryExpression unary
         && unary.getOperator() == CUnaryExpression.UnaryOperator.AMPER
-        && MutexFunctions.extractMutexName(unary) != null);
+        && MutexFunctions.extractMutexName(unary).isPresent());
   }
 
   /** Binds the freshly written pointer of a {@code lhs = malloc(...)} to a distinct heap base. */
