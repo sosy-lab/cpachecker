@@ -179,20 +179,16 @@ public class CFormulaEncodingWithPointerAliasingOptions extends CFormulaEncoding
   }
 
   boolean isDynamicMemoryFunction(final String name) {
-    return isSuccessfulAllocFunctionName(name)
-        || isSuccessfulZallocFunctionName(name)
-        || isMemoryAllocationFunction(name)
-        || isMemoryAllocationFunctionWithZeroing(name)
+    return isMemoryAllocationFunction(name)
         || isMemoryReallocFunction(name)
         || isMemoryFreeFunction(name);
   }
 
-  boolean isSuccessfulAllocFunctionName(final String name) {
-    return successfulAllocFunctionName.equals(name);
-  }
-
-  boolean isSuccessfulZallocFunctionName(final String name) {
-    return successfulZallocFunctionName.equals(name);
+  @Override
+  public boolean isMemoryAllocationFunction(final String name) {
+    return super.isMemoryAllocationFunction(name)
+        || successfulAllocFunctionName.equals(name)
+        || successfulZallocFunctionName.equals(name);
   }
 
   String getSuccessfulAllocFunctionName() {
@@ -203,8 +199,18 @@ public class CFormulaEncodingWithPointerAliasingOptions extends CFormulaEncoding
     return successfulZallocFunctionName;
   }
 
-  boolean makeMemoryAllocationsAlwaysSucceed() {
-    return memoryAllocationsAlwaysSucceed;
+  @Override
+  public boolean isMemoryAllocationFunctionWithZeroing(final String functionName) {
+    return super.isMemoryAllocationFunctionWithZeroing(functionName)
+        || successfulZallocFunctionName.equals(functionName);
+  }
+
+  @Override
+  public boolean memoryAllocationFunctionSucceeds(String function) {
+    return memoryAllocationsAlwaysSucceed
+        || super.memoryAllocationFunctionSucceeds(function)
+        || function.equals(successfulAllocFunctionName)
+        || function.equals(successfulZallocFunctionName);
   }
 
   boolean revealAllocationTypeFromLHS() {

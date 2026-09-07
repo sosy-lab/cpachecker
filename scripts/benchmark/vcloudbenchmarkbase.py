@@ -100,9 +100,6 @@ class VcloudBenchmarkBase(benchexec.benchexec.BenchExec):
             help="Use the specified container image for the execution of the benchmark.",
         )
 
-    def get_param_name(self, pname):
-        return "--v" + pname
-
     def check_existing_results(self, benchmark):
         if not self.config.reprocessResults:
             super().check_existing_results(benchmark)

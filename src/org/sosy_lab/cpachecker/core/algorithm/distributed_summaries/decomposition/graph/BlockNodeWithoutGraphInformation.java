@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph;
 
 import com.google.common.collect.ImmutableSet;
-import java.util.Objects;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -103,7 +102,7 @@ public class BlockNodeWithoutGraphInformation {
 
   @Override
   public int hashCode() {
-    return Objects.hash(getClass(), id);
+    return id.hashCode();
   }
 
   @Override
