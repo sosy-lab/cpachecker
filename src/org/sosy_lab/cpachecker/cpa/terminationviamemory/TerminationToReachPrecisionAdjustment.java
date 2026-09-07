@@ -152,12 +152,17 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                 isOverapproximating ? Optional.of(candidateTransInv) : Optional.empty(),
                 iterationFormula,
                 prefixPathFormula)) {
-              terminationState.makeTarget();
-              result = result.withAbstractState(terminationState);
-              statistics.setNonterminatingLoop(
-                  cfa.getLoopStructure().orElseThrow().getLoopsForLoopHead(location));
-              result = result.withAction(Action.BREAK);
-              return Optional.of(result);
+              if (!isOverapproximating && isSound(iterationFormula.getFormula())) {
+                terminationState.makeTarget();
+                result = result.withAbstractState(terminationState);
+                statistics.setNonterminatingLoop(
+                    cfa.getLoopStructure().orElseThrow().getLoopsForLoopHead(location));
+                result = result.withAction(Action.BREAK);
+                return Optional.of(result);
+              }
+              if (isOverapproximating) {
+                return Optional.of(result);
+              }
             }
           } catch (SolverException e) {
             logger.logDebugException(e);
@@ -194,10 +199,10 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                   callstackState);
           try {
             if (solver.implies(newInterpolant.getFormula(), candidateTransInv.getFormula())) {
-              break;
+              return Optional.of(result);
             }
           } catch (SolverException | InterruptedException e) {
-            break;
+            return Optional.of(result);
           }
 
           // Trying to reach the fix-point
@@ -264,12 +269,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                     sameStateFormula));
       }
       if (isTargetStateReachable) {
-        if (!isOverapproximating && isSound(iterationFormula.getFormula())) {
-          return true;
-        }
-        if (isOverapproximating) {
-          return false;
-        }
+        return true;
       }
     }
     return false;
@@ -305,8 +305,17 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       BooleanFormula latestSameStateFormula,
       CallstackState callstackState)
       throws CPAException, InterruptedException {
-    BooleanFormula firstStep =
-        isOverapproximating ? candidateTransInv.getFormula() : prefixPathFormula.getFormula();
+
+    BooleanFormula firstStep = prefixPathFormula.getFormula();
+    if (isOverapproximating) {
+      // If this is more then first unrolling, we replace the prefix formula with
+      // the previously computed candidate transition invariant
+      firstStep = candidateTransInv.getFormula();
+      // Set the prev vars in Tr to match x__CURR and the curr cars to match x__CURR2
+      iterationFormula = iterationFormula.withPrevVarsSuffixed(CURR_KEYWORD);
+      iterationFormula = iterationFormula.withCurrVarsSuffixed(CURR2_KEYWORD);
+    }
+
     BooleanFormula interpolant =
         itpMgr
             .interpolate(
