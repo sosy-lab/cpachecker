@@ -161,7 +161,8 @@ public record SeqBitVectorDeclarationBuilder(
       ImmutableMap<SeqMemoryLocation, SeqSparseBitVector> pSparseBitVectors,
       ImmutableList<SeqThreadStatementClause> pClauses,
       SeqMemoryAccessType pAccessType,
-      SeqMemoryReachType pReachType) {
+      SeqMemoryReachType pReachType)
+      throws UnsupportedCodeException {
 
     checkArgument(SeqBitVectorUtil.isAccessReachPairNeeded(options, pAccessType, pReachType));
 

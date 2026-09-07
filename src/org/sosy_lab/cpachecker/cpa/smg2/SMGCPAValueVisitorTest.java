@@ -177,7 +177,7 @@ public class SMGCPAValueVisitorTest {
 
     currentState = SMGState.of(MACHINE_MODEL, logger, options, evaluator, new SMGCPAStatistics());
 
-    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger, options);
+    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger);
   }
 
   private ConstraintsSolver makeTestSolver() throws InvalidConfigurationException {
@@ -214,7 +214,7 @@ public class SMGCPAValueVisitorTest {
             evaluator,
             new SMGCPAStatistics());
 
-    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger, options);
+    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger);
   }
 
   /*
@@ -3348,7 +3348,7 @@ public class SMGCPAValueVisitorTest {
         currentState.copyAndAddLocalVariable(
             new NumericValue(BigInteger.valueOf(sizeInBits)), variableName, null);
 
-    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger, options);
+    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger);
   }
 
   /*
@@ -3379,7 +3379,7 @@ public class SMGCPAValueVisitorTest {
             BigInteger.valueOf(writeSizeInBits),
             smgValue);
 
-    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger, options);
+    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger);
   }
 
   /**
@@ -3413,7 +3413,7 @@ public class SMGCPAValueVisitorTest {
     // This state now has the stack variable that is the pointer to the struct and the struct with a
     // value in the second int, and none in the first
     currentState = currentState.copyAndReplaceMemoryModel(spc);
-    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger, options);
+    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger);
   }
 
   /**
@@ -3428,7 +3428,7 @@ public class SMGCPAValueVisitorTest {
         currentState.searchOrCreateAddress(pTarget, dummyType, BigInteger.valueOf(offset));
 
     currentState = addressAndState.getState();
-    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger, options);
+    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger);
     return addressAndState.getValue();
   }
 
@@ -3451,7 +3451,7 @@ public class SMGCPAValueVisitorTest {
 
     // This state now has the stack variable that is the pointer to the struct and the struct with a
     // value in the second int, and none in the first
-    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger, options);
+    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger);
     return newPointerValueAndState.getValue();
   }
 
@@ -3482,7 +3482,7 @@ public class SMGCPAValueVisitorTest {
             spc.getSMGValueFromValue(valueToWrite).orElseThrow());
 
     currentState = currentState.copyAndReplaceMemoryModel(spc);
-    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger, options);
+    visitor = new SMGCPAValueVisitor(evaluator, currentState, dummyCFAEdge, logger);
   }
 
   /**

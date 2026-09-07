@@ -142,13 +142,15 @@ public record SeqMemoryLocation(
   }
 
   private static CType unwrapPointerAndArrayType(CType pType) {
-    if (pType instanceof CPointerType pointerType) {
+    // canonical types are required so that typedefs of pointers and arrays are unwrapped too
+    CType canonicalType = pType.getCanonicalType();
+    if (canonicalType instanceof CPointerType pointerType) {
       return unwrapPointerAndArrayType(pointerType.getType());
     }
-    if (pType instanceof CArrayType arrayType) {
+    if (canonicalType instanceof CArrayType arrayType) {
       return unwrapPointerAndArrayType(arrayType.getType());
     }
-    return pType;
+    return canonicalType;
   }
 
   public SeqMemoryLocation getFieldOwnerMemoryLocation() {
