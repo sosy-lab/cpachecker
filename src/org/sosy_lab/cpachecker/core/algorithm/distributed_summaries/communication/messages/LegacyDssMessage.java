@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
  * ID, a type, a timestamp, a status, a list of states and content. The content is a flat map of
  * key-value pairs, where keys can be hierarchical using dot notation.
  */
-public abstract class LegacyDssMessage implements DssMessage {
+public abstract class LegacyDssMessage {
 
   private final String senderId;
   private final DssMessageType type;

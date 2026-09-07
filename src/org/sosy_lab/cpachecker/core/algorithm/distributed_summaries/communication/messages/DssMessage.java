@@ -10,7 +10,12 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 
 import java.time.Instant;
 
-public interface DssMessage {
+public sealed interface DssMessage
+    permits DssExceptionMessage,
+        DssMessageWithStates,
+        DssMessageWithStatus,
+        DssResultMessage,
+        DssWitnessMessage {
   DssMessageType getType();
 
   String getSenderId();

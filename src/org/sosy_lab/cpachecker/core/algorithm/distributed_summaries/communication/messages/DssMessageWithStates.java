@@ -17,7 +17,8 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
-public interface DssMessageWithStates extends DssMessage {
+public sealed interface DssMessageWithStates extends DssMessage
+    permits DssConditionMessage, DssCorrectnessWitnessMessage {
   ImmutableList<ImmutableMap<String, String>> getStates();
 
   default int getNumberOfContainedStates() {
