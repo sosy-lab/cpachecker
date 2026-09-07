@@ -17,6 +17,7 @@ import com.google.common.collect.Multimap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
@@ -61,7 +62,8 @@ public class SerializePredicatePrecisionOperator implements SerializePrecisionOp
               + ")");
     }
     ContentBuilder contentBuilder =
-        ContentBuilder.builder().pushLevel(PredicatePrecision.class.getName());
+        ContentBuilder.builder()
+            .pushLevel(DssComponentKey.serializedNameFor(PredicatePrecision.class));
 
     contentBuilder.pushLevel(DSS_MESSAGE_LOCATION_INSTANCES_KEY);
     Multimap<String, String> locationInstancePredicates = ArrayListMultimap.create();

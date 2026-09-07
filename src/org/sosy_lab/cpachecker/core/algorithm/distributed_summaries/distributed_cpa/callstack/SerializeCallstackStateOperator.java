@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
@@ -47,7 +48,7 @@ public class SerializeCallstackStateOperator implements SerializeOperator {
       result = Joiner.on(DistributedCallstackCPA.DELIMITER).join(states);
     }
     return ContentBuilder.builder()
-        .pushLevel(CallstackState.class.getName())
+        .pushLevel(DssComponentKey.serializedNameFor(CallstackState.class))
         .put(SerializeOperator.STATE_KEY, result)
         // the receiving block has to know whether the sending block knew its callstack
         .put(DistributedCallstackCPA.ALLOW_ALL_TRANSFERS_KEY, Boolean.toString(allowAllTransfers))

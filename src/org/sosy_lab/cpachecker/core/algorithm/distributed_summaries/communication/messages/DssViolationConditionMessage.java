@@ -84,7 +84,7 @@ public final class DssViolationConditionMessage implements DssConditionMessage {
     checkState(getNumberOfContainedStates() >= 1, "No state to extract witness from");
 
     return ContentReader.read(states.getFirst())
-        .pushLevel(BlockState.class.getName())
+        .pushLevel(DssComponentKey.serializedNameFor(BlockState.class))
         .get(SerializeOperator.STATE_KEY);
   }
 }

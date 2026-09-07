@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
@@ -59,7 +60,7 @@ public class SerializeBlockStateOperator implements SerializeOperator {
                 ? ""
                 : " H:" + Joiner.on(",").join(b.getHistory().path()));
     return ContentBuilder.builder()
-        .pushLevel(BlockState.class.getName())
+        .pushLevel(DssComponentKey.serializedNameFor(BlockState.class))
         .put(STATE_KEY, b.getBlockNode().getId() + suffix)
         .build();
   }

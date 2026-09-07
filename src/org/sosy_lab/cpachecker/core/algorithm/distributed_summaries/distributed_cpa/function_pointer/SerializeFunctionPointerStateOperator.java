@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState;
@@ -41,7 +42,7 @@ public class SerializeFunctionPointerStateOperator implements SerializeOperator 
       }
     }
     return ContentBuilder.builder()
-        .pushLevel(FunctionPointerState.class.getName())
+        .pushLevel(DssComponentKey.serializedNameFor(FunctionPointerState.class))
         .put(STATE_KEY, serialized.toString())
         .build();
   }

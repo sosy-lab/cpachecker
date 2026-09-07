@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssSerializeObjectUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -98,7 +99,7 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     final BooleanFormula booleanFormulaForLambda = booleanFormula;
 
     return ContentBuilder.builder()
-        .pushLevel(PredicateAbstractState.class.getName())
+        .pushLevel(DssComponentKey.serializedNameFor(PredicateAbstractState.class))
         .put(STATE_KEY, serializedFormula)
         .put(SSA_KEY, serializedSSAMap.toString())
         .put(PTS_KEY, pts)

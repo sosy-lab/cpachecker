@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -41,6 +42,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssExceptionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssHeaderPayload;
@@ -713,7 +715,8 @@ public final class DssDebugUtils {
                 renderContentValue(field.getKey(), field.getValue(), hasReadable)));
       }
       String blockStateValue = component.getValue().get("state");
-      if ("BlockState".equals(component.getKey()) && blockStateValue != null) {
+      if (DssComponentKey.serializedNameFor(BlockState.class).equals(component.getKey())
+          && blockStateValue != null) {
         rows.add(ImmutableList.of("", "-> decoded", decodeBlockState(blockStateValue)));
       }
     }
@@ -901,20 +904,20 @@ public final class DssDebugUtils {
     return abbreviate(singleLine(value), DEFAULT_MAX_VALUE_LENGTH / 2);
   }
 
-  /** A parsed message-content key of the shape {@code <package>.<Component>.<field>}. */
+  /** A parsed message-content key of the shape {@code <component>.<field>}. */
   private record ComponentKey(String component, String field) {
-    private static final Splitter DOT_SPLITTER = Splitter.on('.');
 
     static @Nullable ComponentKey parse(String pKey) {
-      ImmutableList<String> segments = ImmutableList.copyOf(DOT_SPLITTER.split(pKey));
-
-      for (int i = 0; i < segments.size() - 1; i++) {
-        if (!segments.get(i).isEmpty() && Character.isUpperCase(segments.get(i).charAt(0))) {
-          return new ComponentKey(
-              segments.get(i), Joiner.on('.').join(segments.subList(i + 1, segments.size())));
-        }
+      int dot = pKey.indexOf('.');
+      if (dot < 0) {
+        return null;
       }
-      return null;
+      String serializedName = pKey.substring(0, dot);
+      Optional<DssComponentKey> componentKey = DssComponentKey.tryForSerializedName(serializedName);
+      return componentKey.isPresent()
+          ? new ComponentKey(
+              componentKey.orElseThrow().getSerializedName(), pKey.substring(dot + 1))
+          : null;
     }
   }
 

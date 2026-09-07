@@ -27,12 +27,12 @@ public sealed interface DssMessageWithStates extends DssMessage
 
   default ContentReader getAbstractStateContent(
       Class<? extends AbstractState> pType, int pStateIndex) {
-    return getArbitraryContent(pType.getName(), pStateIndex);
+    return getArbitraryContent(DssComponentKey.serializedNameFor(pType), pStateIndex);
   }
 
   default ContentReader getPrecisionContent(
       Class<? extends Precision> pPrecision, int pStateIndex) {
-    return getArbitraryContent(pPrecision.getName(), pStateIndex);
+    return getArbitraryContent(DssComponentKey.serializedNameFor(pPrecision), pStateIndex);
   }
 
   private ContentReader getArbitraryContent(String pKey, int pStateIndex) {

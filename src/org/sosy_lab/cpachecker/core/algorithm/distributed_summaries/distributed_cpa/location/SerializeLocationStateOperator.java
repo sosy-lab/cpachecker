@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
@@ -27,7 +28,7 @@ public class SerializeLocationStateOperator implements SerializeOperator {
   public ImmutableMap<String, String> serialize(AbstractState pState) {
     LocationState locationState = (LocationState) pState;
     return ContentBuilder.builder()
-        .pushLevel(LocationState.class.getName())
+        .pushLevel(DssComponentKey.serializedNameFor(LocationState.class))
         .put(STATE_KEY, Integer.toString(nodeToId.get(locationState.getLocationNode())))
         .build();
   }

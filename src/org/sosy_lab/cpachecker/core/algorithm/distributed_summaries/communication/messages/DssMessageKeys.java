@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
+
 public final class DssMessageKeys {
 
   public static final String HEADER = "header";
@@ -25,7 +26,6 @@ public final class DssMessageKeys {
   public static final String SOUND = "sound";
   public static final String UNREACHABLE_BLOCK_END = "unreachableBlockEnd";
 
-  public static final String MULTIPLE_STATES = "states";
   public static final String STATE = "state";
 
   public static final String RESULT = "result";
