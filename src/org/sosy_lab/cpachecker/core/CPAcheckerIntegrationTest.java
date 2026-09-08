@@ -152,7 +152,7 @@ public class CPAcheckerIntegrationTest {
 
   @Test
   public void testWitnessExportForSafeSvLibProgram() throws Exception {
-    Path witnessOutputPath = tempFolder.getRoot().toPath().resolve(WITNESS_SvLib);
+    Path witnessOutputPath = tempFolder.getRoot().toPath().resolve("output").resolve(WITNESS_SvLib);
     Configuration config = svLibConfigWithWitnessOutput();
     IntegrationTestResult result = IntegrationTestRunner.run(config, SAFE_LOOP_PROGRAM_SvLib);
     result.cpaCheckerResult().printStatistics(statisticsStream);
@@ -210,7 +210,7 @@ public class CPAcheckerIntegrationTest {
 
   @Test
   public void testWitnessExportForUnsafeSvLibProgram() throws Exception {
-    Path witnessOutputPath = tempFolder.getRoot().toPath().resolve(WITNESS_SvLib);
+    Path witnessOutputPath = tempFolder.getRoot().toPath().resolve("output").resolve(WITNESS_SvLib);
     Configuration config = svLibConfigWithWitnessOutput();
     IntegrationTestResult result = IntegrationTestRunner.run(config, UNSAFE_LOOP_PROGRAM_SvLib);
     result.cpaCheckerResult().printStatistics(statisticsStream);
