@@ -175,7 +175,8 @@ public class CPAcheckerIntegrationTest {
   @Test
   public void testRunForUnsafeSvLibProgram() throws Exception {
     Configuration config =
-        getConfigWithOutputFiles(CONFIGURATION_FILE_SvLib, Language.SVLIB, SPECIFICATION_SvLib).build();
+        getConfigWithOutputFiles(CONFIGURATION_FILE_SvLib, Language.SVLIB, SPECIFICATION_SvLib)
+            .build();
     IntegrationTestResult result = IntegrationTestRunner.run(config, UNSAFE_PROGRAM_SvLib);
     result.cpaCheckerResult().printStatistics(statisticsStream);
     result.cpaCheckerResult().writeOutputFiles();
@@ -187,7 +188,8 @@ public class CPAcheckerIntegrationTest {
   public void testRunDeprecatedSpecificationForUnsafeSvLibProgram() throws Exception {
     Configuration config =
         getConfigWithOutputFiles(
-            CONFIGURATION_FILE_SvLib, Language.SVLIB, DEPRECATED_PROPERTY_SvLib).build();
+                CONFIGURATION_FILE_SvLib, Language.SVLIB, DEPRECATED_PROPERTY_SvLib)
+            .build();
     IntegrationTestResult result = IntegrationTestRunner.run(config, UNSAFE_PROGRAM_SvLib);
     result.cpaCheckerResult().printStatistics(statisticsStream);
     result.cpaCheckerResult().writeOutputFiles();
@@ -240,7 +242,8 @@ public class CPAcheckerIntegrationTest {
   @Test
   public void testRunForSafeJavaProgram() throws Exception {
     Configuration config =
-        getConfigWithOutputFiles(CONFIGURATION_FILE_JAVA, Language.JAVA, SPECIFICATION_JAVA).build();
+        getConfigWithOutputFiles(CONFIGURATION_FILE_JAVA, Language.JAVA, SPECIFICATION_JAVA)
+            .build();
 
     IntegrationTestResult result = IntegrationTestRunner.run(config, SAFE_PROGRAM_JAVA);
     result.cpaCheckerResult().printStatistics(statisticsStream);
@@ -252,7 +255,8 @@ public class CPAcheckerIntegrationTest {
   @Test
   public void testRunForUnsafeJavaProgram() throws Exception {
     Configuration config =
-        getConfigWithOutputFiles(CONFIGURATION_FILE_JAVA, Language.JAVA, SPECIFICATION_JAVA).build();
+        getConfigWithOutputFiles(CONFIGURATION_FILE_JAVA, Language.JAVA, SPECIFICATION_JAVA)
+            .build();
 
     IntegrationTestResult result = IntegrationTestRunner.run(config, UNSAFE_PROGRAM_JAVA);
     result.cpaCheckerResult().printStatistics(statisticsStream);
@@ -266,7 +270,8 @@ public class CPAcheckerIntegrationTest {
   @Ignore("cf. issue #1356")
   public void testRunForSafeLlvmProgram() throws Exception {
     Configuration config =
-        getConfigWithOutputFiles(CONFIGURATION_FILE_LLVM, Language.LLVM, SPECIFICATION_LLVM).build();
+        getConfigWithOutputFiles(CONFIGURATION_FILE_LLVM, Language.LLVM, SPECIFICATION_LLVM)
+            .build();
 
     IntegrationTestResult result;
     try {
@@ -285,7 +290,8 @@ public class CPAcheckerIntegrationTest {
   @Ignore("cf. issue #1356")
   public void testRunForUnsafeLlvmProgram() throws Exception {
     Configuration config =
-        getConfigWithOutputFiles(CONFIGURATION_FILE_LLVM, Language.LLVM, SPECIFICATION_LLVM).build();
+        getConfigWithOutputFiles(CONFIGURATION_FILE_LLVM, Language.LLVM, SPECIFICATION_LLVM)
+            .build();
 
     IntegrationTestResult result;
     try {
