@@ -12,394 +12,325 @@ int main(void) {
   // Constant test values are initialized directly and never modified.
   const char char_min = -128;
   const char char_max = 127;
-  const signed char signed_char_min = -128;
-  const signed char signed_char_max = 127;
-  const unsigned char unsigned_char_max = 255U;
+  const signed char schar_min = -128;
+  const signed char schar_max = 127;
+  const unsigned char uchar_max = 255U;
   const short int short_min = -32768;
   const short int short_max = 32767;
-  const unsigned short int unsigned_short_max = 65535U;
+  const unsigned short int ushort_max = 65535U;
   const int int_min = (-2147483647 - 1);
   const int int_max = 2147483647;
-  const unsigned int unsigned_int_max = 4294967295U;
-  const long long int long_long_min = (-9223372036854775807LL - 1LL);
-  const long long int long_long_max = 9223372036854775807LL;
-  const unsigned long long int unsigned_long_long_max = 18446744073709551615ULL;
-  const signed char signed_char_zero = 0;
-  const unsigned char unsigned_char_zero = 0U;
-  const short int short_zero = 0;
-  const unsigned short int unsigned_short_zero = 0U;
-  const int int_zero = 0;
-  const unsigned int unsigned_int_zero = 0U;
-  const long int long_zero = 0L;
-  const unsigned long int unsigned_long_zero = 0UL;
-  const long long int long_long_zero = 0LL;
-  const unsigned long long int unsigned_long_long_zero = 0ULL;
-  const char char_zero = 0;
-  const unsigned long int add_overflow_p_unsigned_long_max = ~0UL;
-  const long int add_overflow_p_long_max = (long int)((~0UL) >> 1);
-  const unsigned long int sub_overflow_p_unsigned_long_max = ~0UL;
-  const long int sub_overflow_p_long_max = (long int)((~0UL) >> 1);
-  const unsigned long int mul_overflow_p_unsigned_long_max = ~0UL;
-  const long int mul_overflow_p_long_max = (long int)((~0UL) >> 1);
+  const unsigned int uint_max = 4294967295U;
+  const long long int ll_min = (-9223372036854775807LL - 1LL);
+  const unsigned long long int ull_max = 18446744073709551615ULL;
+  const signed char schar_0 = 0;
+  const unsigned char uchar_0 = 0U;
+  const short int short_0 = 0;
+  const unsigned short int ushort_0 = 0U;
+  const int int_0 = 0;
+  const unsigned int uint_0 = 0U;
+  const long int long_0 = 0L;
+  const unsigned long int ulong_0 = 0UL;
+  const long long int ll_0 = 0LL;
+  const unsigned long long int ull_0 = 0ULL;
+  const char char_0 = 0;
+  const unsigned long int addp_ulong_max = ~0UL;
+  const long int addp_long_max = (long int)((~0UL) >> 1);
+  const unsigned long int subp_ulong_max = ~0UL;
+  const long int subp_long_max = (long int)((~0UL) >> 1);
+  const unsigned long int mulp_ulong_max = ~0UL;
+  const long int mulp_long_max = (long int)((~0UL) >> 1);
 
 
   // This program targets ILP32 and fails its expected verdict under LP64.
 
   // ILP32: 2147483647L + 1L does not fit in long, so the predicate returns 1.
-  int model_add_overflow_p = __builtin_add_overflow_p(2147483647L, 1L, (long int)0);
+  int model_addp = __builtin_add_overflow_p(2147483647L, 1L, (long int)0);
 
-  if (!(model_add_overflow_p == 1))
+  if (!(model_addp == 1))
     goto ERROR;
-
-  // Addition overflow predicate tests.
-
-
-  // ILP32: The calculated unsigned long must equal unsigned int maximum 4294967295U.
-  // LP64: The calculated unsigned long must equal unsigned long long maximum 18446744073709551615ULL.
-  if (!((sizeof(unsigned long int) == sizeof(unsigned int) &&
-          (unsigned int)add_overflow_p_unsigned_long_max == unsigned_int_max) ||
-         (sizeof(unsigned long int) == sizeof(unsigned long long int) &&
-          (unsigned long long int)add_overflow_p_unsigned_long_max ==
-            (unsigned long long int)(unsigned long int)unsigned_long_long_max)))
-    goto ERROR;
-
-
-  // ILP32: The calculated long maximum must equal int maximum 2147483647.
-  // LP64: The calculated long maximum must equal long long maximum 9223372036854775807LL.
-  if (!((sizeof(long int) == sizeof(int) && (int)add_overflow_p_long_max == int_max) ||
-         (sizeof(long int) == sizeof(long long int) &&
-          (long long int)add_overflow_p_long_max == (long long int)(long int)long_long_max)))
-    goto ERROR;
-
-
-  int add_overflow_p_signed_char_max_plus_zero_as_signed_char_overflow;
-  add_overflow_p_signed_char_max_plus_zero_as_signed_char_overflow = __builtin_add_overflow_p(signed_char_max, 0, signed_char_zero);
+  int addp_schar_max_0;
+  addp_schar_max_0 = __builtin_add_overflow_p(schar_max, 0, schar_0);
 
   // 127 + 0 = 127, which fits the destination range; overflow = 0.
-  if (!(add_overflow_p_signed_char_max_plus_zero_as_signed_char_overflow == 0))
+  if (!(addp_schar_max_0 == 0))
     goto ERROR;
 
 
-  int add_overflow_p_signed_char_max_plus_one_as_signed_char_overflow;
-  add_overflow_p_signed_char_max_plus_one_as_signed_char_overflow = __builtin_add_overflow_p(signed_char_max, 1, signed_char_zero);
+  int addp_schar_max_1;
+  addp_schar_max_1 = __builtin_add_overflow_p(schar_max, 1, schar_0);
 
   // 127 + 1 = 128, which is outside the destination range; overflow = 1.
-  if (!(add_overflow_p_signed_char_max_plus_one_as_signed_char_overflow == 1))
+  if (!(addp_schar_max_1 == 1))
     goto ERROR;
 
 
-  int add_overflow_p_unsigned_char_max_plus_one_as_unsigned_char_overflow;
-  add_overflow_p_unsigned_char_max_plus_one_as_unsigned_char_overflow = __builtin_add_overflow_p(unsigned_char_max, 1, unsigned_char_zero);
+  int addp_uchar_max_1;
+  addp_uchar_max_1 = __builtin_add_overflow_p(uchar_max, 1, uchar_0);
 
   // 255U + 1 = 256, which is outside the destination range; overflow = 1.
-  if (!(add_overflow_p_unsigned_char_max_plus_one_as_unsigned_char_overflow == 1))
+  if (!(addp_uchar_max_1 == 1))
     goto ERROR;
 
 
-  int add_overflow_p_short_min_plus_minus_one_as_short_overflow;
-  add_overflow_p_short_min_plus_minus_one_as_short_overflow = __builtin_add_overflow_p(short_min, -1, short_zero);
+  int addp_short_min_m1;
+  addp_short_min_m1 = __builtin_add_overflow_p(short_min, -1, short_0);
 
   // -32768 + -1 = -32769, which is outside the destination range; overflow = 1.
-  if (!(add_overflow_p_short_min_plus_minus_one_as_short_overflow == 1))
+  if (!(addp_short_min_m1 == 1))
     goto ERROR;
 
 
-  int add_overflow_p_minus_one_plus_one_as_unsigned_short_overflow;
-  add_overflow_p_minus_one_plus_one_as_unsigned_short_overflow = __builtin_add_overflow_p(-1, 1U, unsigned_short_zero);
+  int addp_ushort_m1_1;
+  addp_ushort_m1_1 = __builtin_add_overflow_p(-1, 1U, ushort_0);
 
   // -1 + 1U = 0, which fits the destination range; overflow = 0.
-  if (!(add_overflow_p_minus_one_plus_one_as_unsigned_short_overflow == 0))
+  if (!(addp_ushort_m1_1 == 0))
     goto ERROR;
 
 
-  int add_overflow_p_int_max_plus_one_as_int_overflow;
-  add_overflow_p_int_max_plus_one_as_int_overflow = __builtin_add_overflow_p(int_max, 1, int_zero);
+  int addp_int_max_1;
+  addp_int_max_1 = __builtin_add_overflow_p(int_max, 1, int_0);
 
   // 2147483647 + 1 = 2147483648, which is outside the destination range; overflow = 1.
-  if (!(add_overflow_p_int_max_plus_one_as_int_overflow == 1))
+  if (!(addp_int_max_1 == 1))
     goto ERROR;
 
 
-  int add_overflow_p_unsigned_int_max_plus_one_as_unsigned_int_overflow;
-  add_overflow_p_unsigned_int_max_plus_one_as_unsigned_int_overflow = __builtin_add_overflow_p(unsigned_int_max, 1U, unsigned_int_zero);
+  int addp_uint_max_1;
+  addp_uint_max_1 = __builtin_add_overflow_p(uint_max, 1U, uint_0);
 
   // 4294967295U + 1U = 4294967296, which is outside the destination range; overflow = 1.
-  if (!(add_overflow_p_unsigned_int_max_plus_one_as_unsigned_int_overflow == 1))
+  if (!(addp_uint_max_1 == 1))
     goto ERROR;
 
 
-  int add_overflow_p_add_overflow_p_long_max_plus_zero_as_long_overflow;
-  add_overflow_p_add_overflow_p_long_max_plus_zero_as_long_overflow = __builtin_add_overflow_p(add_overflow_p_long_max, 0L, long_zero);
+  int addp_long_max_0;
+  addp_long_max_0 = __builtin_add_overflow_p(addp_long_max, 0L, long_0);
 
   // 2147483647L + 0L = 2147483647, which fits the destination range; overflow = 0.
-  if (!(add_overflow_p_add_overflow_p_long_max_plus_zero_as_long_overflow == 0))
+  if (!(addp_long_max_0 == 0))
     goto ERROR;
 
 
-  int add_overflow_p_add_overflow_p_unsigned_long_max_plus_one_as_unsigned_long_overflow;
-  add_overflow_p_add_overflow_p_unsigned_long_max_plus_one_as_unsigned_long_overflow = __builtin_add_overflow_p(add_overflow_p_unsigned_long_max, 1UL, unsigned_long_zero);
+  int addp_ulong_max_1;
+  addp_ulong_max_1 = __builtin_add_overflow_p(addp_ulong_max, 1UL, ulong_0);
 
   // 4294967295UL + 1UL = 4294967296, which is outside the destination range; overflow = 1.
-  if (!(add_overflow_p_add_overflow_p_unsigned_long_max_plus_one_as_unsigned_long_overflow == 1))
+  if (!(addp_ulong_max_1 == 1))
     goto ERROR;
 
 
-  int add_overflow_p_long_long_min_plus_minus_one_as_long_long_overflow;
-  add_overflow_p_long_long_min_plus_minus_one_as_long_long_overflow = __builtin_add_overflow_p(long_long_min, -1LL, long_long_zero);
+  int addp_ll_min_m1;
+  addp_ll_min_m1 = __builtin_add_overflow_p(ll_min, -1LL, ll_0);
 
   // -9223372036854775808LL + -1LL = -9223372036854775809, which is outside the destination range; overflow = 1.
-  if (!(add_overflow_p_long_long_min_plus_minus_one_as_long_long_overflow == 1))
+  if (!(addp_ll_min_m1 == 1))
     goto ERROR;
 
 
-  int add_overflow_p_unsigned_long_long_max_plus_zero_as_unsigned_long_long_overflow;
-  add_overflow_p_unsigned_long_long_max_plus_zero_as_unsigned_long_long_overflow = __builtin_add_overflow_p(unsigned_long_long_max, 0ULL, unsigned_long_long_zero);
+  int addp_ull_max_0;
+  addp_ull_max_0 = __builtin_add_overflow_p(ull_max, 0ULL, ull_0);
 
   // 18446744073709551615ULL + 0ULL = 18446744073709551615, which fits the destination range; overflow = 0.
-  if (!(add_overflow_p_unsigned_long_long_max_plus_zero_as_unsigned_long_long_overflow == 0))
+  if (!(addp_ull_max_0 == 0))
     goto ERROR;
 
 
-  int add_overflow_p_char_max_plus_one_as_char_overflow;
-  add_overflow_p_char_max_plus_one_as_char_overflow = __builtin_add_overflow_p(char_max, 1, char_zero);
+  int addp_char_max_1;
+  addp_char_max_1 = __builtin_add_overflow_p(char_max, 1, char_0);
 
   // 127 + 1 = 128, which is outside the destination range; overflow = 1.
-  if (!(add_overflow_p_char_max_plus_one_as_char_overflow == 1))
+  if (!(addp_char_max_1 == 1))
     goto ERROR;
-
-
-  // Subtraction overflow predicate tests.
-
-
-  // ILP32: The calculated unsigned long must equal unsigned int maximum 4294967295U.
-  // LP64: The calculated unsigned long must equal unsigned long long maximum 18446744073709551615ULL.
-  if (!((sizeof(unsigned long int) == sizeof(unsigned int) &&
-          (unsigned int)sub_overflow_p_unsigned_long_max == unsigned_int_max) ||
-         (sizeof(unsigned long int) == sizeof(unsigned long long int) &&
-          (unsigned long long int)sub_overflow_p_unsigned_long_max ==
-            (unsigned long long int)(unsigned long int)unsigned_long_long_max)))
-    goto ERROR;
-
-
-  // ILP32: The calculated long maximum must equal int maximum 2147483647.
-  // LP64: The calculated long maximum must equal long long maximum 9223372036854775807LL.
-  if (!((sizeof(long int) == sizeof(int) && (int)sub_overflow_p_long_max == int_max) ||
-         (sizeof(long int) == sizeof(long long int) &&
-          (long long int)sub_overflow_p_long_max == (long long int)(long int)long_long_max)))
-    goto ERROR;
-
-
-  int sub_overflow_p_signed_char_min_minus_zero_as_signed_char_overflow;
-  sub_overflow_p_signed_char_min_minus_zero_as_signed_char_overflow = __builtin_sub_overflow_p(signed_char_min, 0, signed_char_zero);
+  int subp_schar_min_0;
+  subp_schar_min_0 = __builtin_sub_overflow_p(schar_min, 0, schar_0);
 
   // -128 - 0 = -128, which fits the destination range; overflow = 0.
-  if (!(sub_overflow_p_signed_char_min_minus_zero_as_signed_char_overflow == 0))
+  if (!(subp_schar_min_0 == 0))
     goto ERROR;
 
 
-  int sub_overflow_p_signed_char_min_minus_one_as_signed_char_overflow;
-  sub_overflow_p_signed_char_min_minus_one_as_signed_char_overflow = __builtin_sub_overflow_p(signed_char_min, 1, signed_char_zero);
+  int subp_schar_min_1;
+  subp_schar_min_1 = __builtin_sub_overflow_p(schar_min, 1, schar_0);
 
   // -128 - 1 = -129, which is outside the destination range; overflow = 1.
-  if (!(sub_overflow_p_signed_char_min_minus_one_as_signed_char_overflow == 1))
+  if (!(subp_schar_min_1 == 1))
     goto ERROR;
 
 
-  int sub_overflow_p_zero_minus_one_as_unsigned_char_overflow;
-  sub_overflow_p_zero_minus_one_as_unsigned_char_overflow = __builtin_sub_overflow_p(0, 1, unsigned_char_zero);
+  int subp_0_1;
+  subp_0_1 = __builtin_sub_overflow_p(0, 1, uchar_0);
 
   // 0 - 1 = -1, which is outside the destination range; overflow = 1.
-  if (!(sub_overflow_p_zero_minus_one_as_unsigned_char_overflow == 1))
+  if (!(subp_0_1 == 1))
     goto ERROR;
 
 
-  int sub_overflow_p_short_max_minus_minus_one_as_short_overflow;
-  sub_overflow_p_short_max_minus_minus_one_as_short_overflow = __builtin_sub_overflow_p(short_max, -1, short_zero);
+  int subp_short_max_m1;
+  subp_short_max_m1 = __builtin_sub_overflow_p(short_max, -1, short_0);
 
   // 32767 - -1 = 32768, which is outside the destination range; overflow = 1.
-  if (!(sub_overflow_p_short_max_minus_minus_one_as_short_overflow == 1))
+  if (!(subp_short_max_m1 == 1))
     goto ERROR;
 
 
-  int sub_overflow_p_unsigned_short_max_minus_unsigned_short_max_as_unsigned_short_overflow;
-  sub_overflow_p_unsigned_short_max_minus_unsigned_short_max_as_unsigned_short_overflow = __builtin_sub_overflow_p(unsigned_short_max, unsigned_short_max, unsigned_short_zero);
+  int subp_ushort_max_max;
+  subp_ushort_max_max = __builtin_sub_overflow_p(ushort_max, ushort_max, ushort_0);
 
   // 65535U - 65535U = 0, which fits the destination range; overflow = 0.
-  if (!(sub_overflow_p_unsigned_short_max_minus_unsigned_short_max_as_unsigned_short_overflow == 0))
+  if (!(subp_ushort_max_max == 0))
     goto ERROR;
 
 
-  int sub_overflow_p_int_min_minus_one_as_int_overflow;
-  sub_overflow_p_int_min_minus_one_as_int_overflow = __builtin_sub_overflow_p(int_min, 1, int_zero);
+  int subp_int_min_1;
+  subp_int_min_1 = __builtin_sub_overflow_p(int_min, 1, int_0);
 
   // -2147483648 - 1 = -2147483649, which is outside the destination range; overflow = 1.
-  if (!(sub_overflow_p_int_min_minus_one_as_int_overflow == 1))
+  if (!(subp_int_min_1 == 1))
     goto ERROR;
 
 
-  int sub_overflow_p_zero_minus_unsigned_int_max_as_unsigned_int_overflow;
-  sub_overflow_p_zero_minus_unsigned_int_max_as_unsigned_int_overflow = __builtin_sub_overflow_p(0U, unsigned_int_max, unsigned_int_zero);
+  int subp_uint_0_max;
+  subp_uint_0_max = __builtin_sub_overflow_p(0U, uint_max, uint_0);
 
   // 0U - 4294967295U = -4294967295, which is outside the destination range; overflow = 1.
-  if (!(sub_overflow_p_zero_minus_unsigned_int_max_as_unsigned_int_overflow == 1))
+  if (!(subp_uint_0_max == 1))
     goto ERROR;
 
 
-  int sub_overflow_p_sub_overflow_p_long_max_minus_minus_one_as_long_overflow;
-  sub_overflow_p_sub_overflow_p_long_max_minus_minus_one_as_long_overflow = __builtin_sub_overflow_p(sub_overflow_p_long_max, -1L, long_zero);
+  int subp_long_max_m1;
+  subp_long_max_m1 = __builtin_sub_overflow_p(subp_long_max, -1L, long_0);
 
   // 2147483647L - -1L = 2147483648, which is outside the destination range; overflow = 1.
-  if (!(sub_overflow_p_sub_overflow_p_long_max_minus_minus_one_as_long_overflow == 1))
+  if (!(subp_long_max_m1 == 1))
     goto ERROR;
 
 
-  int sub_overflow_p_sub_overflow_p_unsigned_long_max_minus_sub_overflow_p_unsigned_long_max_as_unsigned_long_overflow;
-  sub_overflow_p_sub_overflow_p_unsigned_long_max_minus_sub_overflow_p_unsigned_long_max_as_unsigned_long_overflow = __builtin_sub_overflow_p(sub_overflow_p_unsigned_long_max, sub_overflow_p_unsigned_long_max, unsigned_long_zero);
+  int subp_ulong_max_max;
+  subp_ulong_max_max = __builtin_sub_overflow_p(subp_ulong_max, subp_ulong_max, ulong_0);
 
   // 4294967295UL - 4294967295UL = 0, which fits the destination range; overflow = 0.
-  if (!(sub_overflow_p_sub_overflow_p_unsigned_long_max_minus_sub_overflow_p_unsigned_long_max_as_unsigned_long_overflow == 0))
+  if (!(subp_ulong_max_max == 0))
     goto ERROR;
 
 
-  int sub_overflow_p_zero_minus_long_long_min_as_long_long_overflow;
-  sub_overflow_p_zero_minus_long_long_min_as_long_long_overflow = __builtin_sub_overflow_p(0LL, long_long_min, long_long_zero);
+  int subp_ll_0_min;
+  subp_ll_0_min = __builtin_sub_overflow_p(0LL, ll_min, ll_0);
 
   // 0LL - -9223372036854775808LL = 9223372036854775808, which is outside the destination range; overflow = 1.
-  if (!(sub_overflow_p_zero_minus_long_long_min_as_long_long_overflow == 1))
+  if (!(subp_ll_0_min == 1))
     goto ERROR;
 
 
-  int sub_overflow_p_unsigned_long_long_max_minus_unsigned_long_long_max_as_unsigned_long_long_overflow;
-  sub_overflow_p_unsigned_long_long_max_minus_unsigned_long_long_max_as_unsigned_long_long_overflow = __builtin_sub_overflow_p(unsigned_long_long_max, unsigned_long_long_max, unsigned_long_long_zero);
+  int subp_ull_max_max;
+  subp_ull_max_max = __builtin_sub_overflow_p(ull_max, ull_max, ull_0);
 
   // 18446744073709551615ULL - 18446744073709551615ULL = 0, which fits the destination range; overflow = 0.
-  if (!(sub_overflow_p_unsigned_long_long_max_minus_unsigned_long_long_max_as_unsigned_long_long_overflow == 0))
+  if (!(subp_ull_max_max == 0))
     goto ERROR;
 
 
-  int sub_overflow_p_char_min_minus_one_as_char_overflow;
-  sub_overflow_p_char_min_minus_one_as_char_overflow = __builtin_sub_overflow_p(char_min, 1, char_zero);
+  int subp_char_min_1;
+  subp_char_min_1 = __builtin_sub_overflow_p(char_min, 1, char_0);
 
   // -128 - 1 = -129, which is outside the destination range; overflow = 1.
-  if (!(sub_overflow_p_char_min_minus_one_as_char_overflow == 1))
+  if (!(subp_char_min_1 == 1))
     goto ERROR;
-
-
-  // Multiplication overflow predicate tests.
-
-
-  // ILP32: The calculated unsigned long must equal unsigned int maximum 4294967295U.
-  // LP64: The calculated unsigned long must equal unsigned long long maximum 18446744073709551615ULL.
-  if (!((sizeof(unsigned long int) == sizeof(unsigned int) &&
-          (unsigned int)mul_overflow_p_unsigned_long_max == unsigned_int_max) ||
-         (sizeof(unsigned long int) == sizeof(unsigned long long int) &&
-          (unsigned long long int)mul_overflow_p_unsigned_long_max ==
-            (unsigned long long int)(unsigned long int)unsigned_long_long_max)))
-    goto ERROR;
-
-
-  // ILP32: The calculated long maximum must equal int maximum 2147483647.
-  // LP64: The calculated long maximum must equal long long maximum 9223372036854775807LL.
-  if (!((sizeof(long int) == sizeof(int) && (int)mul_overflow_p_long_max == int_max) ||
-         (sizeof(long int) == sizeof(long long int) &&
-          (long long int)mul_overflow_p_long_max == (long long int)(long int)long_long_max)))
-    goto ERROR;
-
-
-  int mul_overflow_p_signed_char_max_times_one_as_signed_char_overflow;
-  mul_overflow_p_signed_char_max_times_one_as_signed_char_overflow = __builtin_mul_overflow_p(signed_char_max, 1, signed_char_zero);
+  int mulp_schar_max_1;
+  mulp_schar_max_1 = __builtin_mul_overflow_p(schar_max, 1, schar_0);
 
   // 127 * 1 = 127, which fits the destination range; overflow = 0.
-  if (!(mul_overflow_p_signed_char_max_times_one_as_signed_char_overflow == 0))
+  if (!(mulp_schar_max_1 == 0))
     goto ERROR;
 
 
-  int mul_overflow_p_signed_char_min_times_minus_one_as_signed_char_overflow;
-  mul_overflow_p_signed_char_min_times_minus_one_as_signed_char_overflow = __builtin_mul_overflow_p(signed_char_min, -1, signed_char_zero);
+  int mulp_schar_min_m1;
+  mulp_schar_min_m1 = __builtin_mul_overflow_p(schar_min, -1, schar_0);
 
   // -128 * -1 = 128, which is outside the destination range; overflow = 1.
-  if (!(mul_overflow_p_signed_char_min_times_minus_one_as_signed_char_overflow == 1))
+  if (!(mulp_schar_min_m1 == 1))
     goto ERROR;
 
 
-  int mul_overflow_p_unsigned_char_max_times_unsigned_char_max_as_unsigned_char_overflow;
-  mul_overflow_p_unsigned_char_max_times_unsigned_char_max_as_unsigned_char_overflow = __builtin_mul_overflow_p(unsigned_char_max, unsigned_char_max, unsigned_char_zero);
+  int mulp_uchar_max_max;
+  mulp_uchar_max_max = __builtin_mul_overflow_p(uchar_max, uchar_max, uchar_0);
 
   // 255U * 255U = 65025, which is outside the destination range; overflow = 1.
-  if (!(mul_overflow_p_unsigned_char_max_times_unsigned_char_max_as_unsigned_char_overflow == 1))
+  if (!(mulp_uchar_max_max == 1))
     goto ERROR;
 
 
-  int mul_overflow_p_short_max_times_zero_as_short_overflow;
-  mul_overflow_p_short_max_times_zero_as_short_overflow = __builtin_mul_overflow_p(short_max, 0, short_zero);
+  int mulp_short_max_0;
+  mulp_short_max_0 = __builtin_mul_overflow_p(short_max, 0, short_0);
 
   // 32767 * 0 = 0, which fits the destination range; overflow = 0.
-  if (!(mul_overflow_p_short_max_times_zero_as_short_overflow == 0))
+  if (!(mulp_short_max_0 == 0))
     goto ERROR;
 
 
-  int mul_overflow_p_two_times_32768_as_unsigned_short_overflow;
-  mul_overflow_p_two_times_32768_as_unsigned_short_overflow = __builtin_mul_overflow_p(2U, 32768U, unsigned_short_zero);
+  int mulp_ushort_2_32768;
+  mulp_ushort_2_32768 = __builtin_mul_overflow_p(2U, 32768U, ushort_0);
 
   // 2U * 32768U = 65536, which is outside the destination range; overflow = 1.
-  if (!(mul_overflow_p_two_times_32768_as_unsigned_short_overflow == 1))
+  if (!(mulp_ushort_2_32768 == 1))
     goto ERROR;
 
 
-  int mul_overflow_p_int_min_times_minus_one_as_int_overflow;
-  mul_overflow_p_int_min_times_minus_one_as_int_overflow = __builtin_mul_overflow_p(int_min, -1, int_zero);
+  int mulp_int_min_m1;
+  mulp_int_min_m1 = __builtin_mul_overflow_p(int_min, -1, int_0);
 
   // -2147483648 * -1 = 2147483648, which is outside the destination range; overflow = 1.
-  if (!(mul_overflow_p_int_min_times_minus_one_as_int_overflow == 1))
+  if (!(mulp_int_min_m1 == 1))
     goto ERROR;
 
 
-  int mul_overflow_p_unsigned_int_max_times_unsigned_int_max_as_unsigned_int_overflow;
-  mul_overflow_p_unsigned_int_max_times_unsigned_int_max_as_unsigned_int_overflow = __builtin_mul_overflow_p(unsigned_int_max, unsigned_int_max, unsigned_int_zero);
+  int mulp_uint_max_max;
+  mulp_uint_max_max = __builtin_mul_overflow_p(uint_max, uint_max, uint_0);
 
   // 4294967295U * 4294967295U = 18446744065119617025, which is outside the destination range; overflow = 1.
-  if (!(mul_overflow_p_unsigned_int_max_times_unsigned_int_max_as_unsigned_int_overflow == 1))
+  if (!(mulp_uint_max_max == 1))
     goto ERROR;
 
 
-  int mul_overflow_p_mul_overflow_p_long_max_times_zero_as_long_overflow;
-  mul_overflow_p_mul_overflow_p_long_max_times_zero_as_long_overflow = __builtin_mul_overflow_p(mul_overflow_p_long_max, 0L, long_zero);
+  int mulp_long_max_0;
+  mulp_long_max_0 = __builtin_mul_overflow_p(mulp_long_max, 0L, long_0);
 
   // 2147483647L * 0L = 0, which fits the destination range; overflow = 0.
-  if (!(mul_overflow_p_mul_overflow_p_long_max_times_zero_as_long_overflow == 0))
+  if (!(mulp_long_max_0 == 0))
     goto ERROR;
 
 
-  int mul_overflow_p_mul_overflow_p_unsigned_long_max_times_two_as_unsigned_long_overflow;
-  mul_overflow_p_mul_overflow_p_unsigned_long_max_times_two_as_unsigned_long_overflow = __builtin_mul_overflow_p(mul_overflow_p_unsigned_long_max, 2UL, unsigned_long_zero);
+  int mulp_ulong_max_2;
+  mulp_ulong_max_2 = __builtin_mul_overflow_p(mulp_ulong_max, 2UL, ulong_0);
 
   // 4294967295UL * 2UL = 8589934590, which is outside the destination range; overflow = 1.
-  if (!(mul_overflow_p_mul_overflow_p_unsigned_long_max_times_two_as_unsigned_long_overflow == 1))
+  if (!(mulp_ulong_max_2 == 1))
     goto ERROR;
 
 
-  int mul_overflow_p_long_long_min_times_one_as_long_long_overflow;
-  mul_overflow_p_long_long_min_times_one_as_long_long_overflow = __builtin_mul_overflow_p(long_long_min, 1LL, long_long_zero);
+  int mulp_ll_min_1;
+  mulp_ll_min_1 = __builtin_mul_overflow_p(ll_min, 1LL, ll_0);
 
   // -9223372036854775808LL * 1LL = -9223372036854775808, which fits the destination range; overflow = 0.
-  if (!(mul_overflow_p_long_long_min_times_one_as_long_long_overflow == 0))
+  if (!(mulp_ll_min_1 == 0))
     goto ERROR;
 
 
-  int mul_overflow_p_unsigned_long_long_max_times_unsigned_long_long_max_as_unsigned_long_long_overflow;
-  mul_overflow_p_unsigned_long_long_max_times_unsigned_long_long_max_as_unsigned_long_long_overflow = __builtin_mul_overflow_p(unsigned_long_long_max, unsigned_long_long_max, unsigned_long_long_zero);
+  int mulp_ull_max_max;
+  mulp_ull_max_max = __builtin_mul_overflow_p(ull_max, ull_max, ull_0);
 
   // 18446744073709551615ULL * 18446744073709551615ULL = 340282366920938463426481119284349108225, which is outside the destination range;
   // overflow = 1.
-  if (!(mul_overflow_p_unsigned_long_long_max_times_unsigned_long_long_max_as_unsigned_long_long_overflow == 1))
+  if (!(mulp_ull_max_max == 1))
     goto ERROR;
 
 
-  int mul_overflow_p_char_max_times_two_as_char_overflow;
-  mul_overflow_p_char_max_times_two_as_char_overflow = __builtin_mul_overflow_p(char_max, 2, char_zero);
+  int mulp_char_max_2;
+  mulp_char_max_2 = __builtin_mul_overflow_p(char_max, 2, char_0);
 
   // 127 * 2 = 254, which is outside the destination range; overflow = 1.
-  if (!(mul_overflow_p_char_max_times_two_as_char_overflow == 1))
+  if (!(mulp_char_max_2 == 1))
     goto ERROR;
 
 

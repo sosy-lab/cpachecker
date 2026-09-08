@@ -11,866 +11,796 @@ int main(void) {
 
   // Constant test values are initialized directly and never modified.
   const char char_max = 127;
-  const signed char signed_char_min = -128;
-  const signed char signed_char_max = 127;
-  const unsigned char unsigned_char_max = 255U;
+  const signed char schar_min = -128;
+  const signed char schar_max = 127;
+  const unsigned char uchar_max = 255U;
   const short int short_max = 32767;
   const int int_min = (-2147483647 - 1);
   const int int_max = 2147483647;
-  const unsigned int unsigned_int_max = 4294967295U;
-  const long long int long_long_min = (-9223372036854775807LL - 1LL);
-  const long long int long_long_max = 9223372036854775807LL;
-  const unsigned long long int unsigned_long_long_max = 18446744073709551615ULL;
-  const char char_minus_two = -2;
-  const unsigned long int mul_overflow_unsigned_long_max = ~0UL;
-  const long int mul_overflow_long_max = (long int)((~0UL) >> 1);
-  const unsigned long int smull_overflow_unsigned_long_max = ~0UL;
-  const long int smull_overflow_long_max = (long int)((~0UL) >> 1);
-  const long int smull_overflow_long_min = (-((long int)((~0UL) >> 1)) - 1L);
-  const unsigned long int umull_overflow_unsigned_long_max = ~0UL;
+  const unsigned int uint_max = 4294967295U;
+  const long long int ll_min = (-9223372036854775807LL - 1LL);
+  const long long int ll_max = 9223372036854775807LL;
+  const unsigned long long int ull_max = 18446744073709551615ULL;
+  const char char_2 = -2;
+  const unsigned long int mul_ulong_max = ~0UL;
+  const long int mul_long_max = (long int)((~0UL) >> 1);
+  const long int smull_max = (long int)((~0UL) >> 1);
+  const long int smull_min = (-((long int)((~0UL) >> 1)) - 1L);
+  const unsigned long int umull_max = ~0UL;
 
 
   // This program targets LP64 and fails its expected verdict under ILP32.
 
   // LP64: 2147483647L * 2L fits in long, stores 4294967294L, and returns 0.
-  long int model_smull_result;
-  int model_smull_overflow;
-  model_smull_overflow = __builtin_smull_overflow(2147483647L, 2L, &model_smull_result);
+  long int model_smull_res;
+  int model_smull_ov;
+  model_smull_ov = __builtin_smull_overflow(2147483647L, 2L, &model_smull_res);
 
-  if (!(model_smull_result != 0L && model_smull_overflow == 0))
+  if (!(model_smull_res != 0L && model_smull_ov == 0))
     goto ERROR;
-
-  // Generic multiplication overflow tests.
-
-
-  // ILP32: The calculated unsigned long must equal unsigned int maximum 4294967295U.
-  // LP64: The calculated unsigned long must equal unsigned long long maximum 18446744073709551615ULL.
-  if (!((sizeof(unsigned long int) == sizeof(unsigned int) &&
-          (unsigned int)mul_overflow_unsigned_long_max == unsigned_int_max) ||
-         (sizeof(unsigned long int) == sizeof(unsigned long long int) &&
-          (unsigned long long int)mul_overflow_unsigned_long_max ==
-            (unsigned long long int)(unsigned long int)unsigned_long_long_max)))
-    goto ERROR;
-
-
-  // ILP32: The calculated long maximum must equal int maximum 2147483647.
-  // LP64: The calculated long maximum must equal long long maximum 9223372036854775807LL.
-  if (!((sizeof(long int) == sizeof(int) && (int)mul_overflow_long_max == int_max) ||
-         (sizeof(long int) == sizeof(long long int) &&
-          (long long int)mul_overflow_long_max == (long long int)(long int)long_long_max)))
-    goto ERROR;
-
-
-  signed char mul_overflow_signed_char_max_times_one_as_signed_char_result;
-  int mul_overflow_signed_char_max_times_one_as_signed_char_overflow;
-  mul_overflow_signed_char_max_times_one_as_signed_char_overflow = __builtin_mul_overflow(signed_char_max, 1, &mul_overflow_signed_char_max_times_one_as_signed_char_result);
+  signed char mul_schar_max_1_res;
+  int mul_schar_max_1_ov;
+  mul_schar_max_1_ov = __builtin_mul_overflow(schar_max, 1, &mul_schar_max_1_res);
 
   // 127 * 1 = 127, which fits the destination range; stored result = 127 and overflow = 0.
-  if (!(mul_overflow_signed_char_max_times_one_as_signed_char_result == signed_char_max))
+  if (!(mul_schar_max_1_res == schar_max))
     goto ERROR;
 
-  if (!(mul_overflow_signed_char_max_times_one_as_signed_char_overflow == 0))
+  if (!(mul_schar_max_1_ov == 0))
     goto ERROR;
 
 
-  signed char mul_overflow_signed_char_min_times_minus_one_as_signed_char_result;
-  int mul_overflow_signed_char_min_times_minus_one_as_signed_char_overflow;
-  mul_overflow_signed_char_min_times_minus_one_as_signed_char_overflow = __builtin_mul_overflow(signed_char_min, -1, &mul_overflow_signed_char_min_times_minus_one_as_signed_char_result);
+  signed char mul_schar_min_m1_res;
+  int mul_schar_min_m1_ov;
+  mul_schar_min_m1_ov = __builtin_mul_overflow(schar_min, -1, &mul_schar_min_m1_res);
 
   // -128 * -1 = 128, outside the destination range; stored result = -128 and overflow = 1.
-  if (!(mul_overflow_signed_char_min_times_minus_one_as_signed_char_result == signed_char_min))
+  if (!(mul_schar_min_m1_res == schar_min))
     goto ERROR;
 
-  if (!(mul_overflow_signed_char_min_times_minus_one_as_signed_char_overflow == 1))
+  if (!(mul_schar_min_m1_ov == 1))
     goto ERROR;
 
 
-  unsigned char mul_overflow_unsigned_char_max_times_unsigned_char_max_as_unsigned_char_result;
-  int mul_overflow_unsigned_char_max_times_unsigned_char_max_as_unsigned_char_overflow;
-  mul_overflow_unsigned_char_max_times_unsigned_char_max_as_unsigned_char_overflow = __builtin_mul_overflow(unsigned_char_max, unsigned_char_max, &mul_overflow_unsigned_char_max_times_unsigned_char_max_as_unsigned_char_result);
+  unsigned char mul_uchar_max_max_res;
+  int mul_uchar_max_max_ov;
+  mul_uchar_max_max_ov = __builtin_mul_overflow(uchar_max, uchar_max, &mul_uchar_max_max_res);
 
   // 255U * 255U = 65025, outside the destination range; stored result = 1U and overflow = 1.
-  if (!(mul_overflow_unsigned_char_max_times_unsigned_char_max_as_unsigned_char_result == 1U))
+  if (!(mul_uchar_max_max_res == 1U))
     goto ERROR;
 
-  if (!(mul_overflow_unsigned_char_max_times_unsigned_char_max_as_unsigned_char_overflow == 1))
+  if (!(mul_uchar_max_max_ov == 1))
     goto ERROR;
 
 
-  short int mul_overflow_short_max_times_two_as_short_int_result;
-  int mul_overflow_short_max_times_two_as_short_int_overflow;
-  mul_overflow_short_max_times_two_as_short_int_overflow = __builtin_mul_overflow(short_max, 2, &mul_overflow_short_max_times_two_as_short_int_result);
+  short int mul_short_max_2_res;
+  int mul_short_max_2_ov;
+  mul_short_max_2_ov = __builtin_mul_overflow(short_max, 2, &mul_short_max_2_res);
 
   // 32767 * 2 = 65534, outside the destination range; stored result = -2 and overflow = 1.
-  if (!(mul_overflow_short_max_times_two_as_short_int_result == -2))
+  if (!(mul_short_max_2_res == -2))
     goto ERROR;
 
-  if (!(mul_overflow_short_max_times_two_as_short_int_overflow == 1))
+  if (!(mul_short_max_2_ov == 1))
     goto ERROR;
 
 
-  unsigned short int mul_overflow_two_times_32767_as_unsigned_short_int_result;
-  int mul_overflow_two_times_32767_as_unsigned_short_int_overflow;
-  mul_overflow_two_times_32767_as_unsigned_short_int_overflow = __builtin_mul_overflow(2U, 32767U, &mul_overflow_two_times_32767_as_unsigned_short_int_result);
+  unsigned short int mul_ushort_2_32767_res;
+  int mul_ushort_2_32767_ov;
+  mul_ushort_2_32767_ov = __builtin_mul_overflow(2U, 32767U, &mul_ushort_2_32767_res);
 
   // 2U * 32767U = 65534, which fits the destination range; stored result = 65534U and overflow = 0.
-  if (!(mul_overflow_two_times_32767_as_unsigned_short_int_result == 65534U))
+  if (!(mul_ushort_2_32767_res == 65534U))
     goto ERROR;
 
-  if (!(mul_overflow_two_times_32767_as_unsigned_short_int_overflow == 0))
+  if (!(mul_ushort_2_32767_ov == 0))
     goto ERROR;
 
 
-  int mul_overflow_int_min_times_minus_one_as_int_result;
-  int mul_overflow_int_min_times_minus_one_as_int_overflow;
-  mul_overflow_int_min_times_minus_one_as_int_overflow = __builtin_mul_overflow(int_min, -1, &mul_overflow_int_min_times_minus_one_as_int_result);
+  int mul_int_min_m1_res;
+  int mul_int_min_m1_ov;
+  mul_int_min_m1_ov = __builtin_mul_overflow(int_min, -1, &mul_int_min_m1_res);
 
   // -2147483648 * -1 = 2147483648, outside the destination range; stored result = -2147483648 and overflow = 1.
-  if (!(mul_overflow_int_min_times_minus_one_as_int_result == int_min))
+  if (!(mul_int_min_m1_res == int_min))
     goto ERROR;
 
-  if (!(mul_overflow_int_min_times_minus_one_as_int_overflow == 1))
+  if (!(mul_int_min_m1_ov == 1))
     goto ERROR;
 
 
-  unsigned int mul_overflow_unsigned_int_max_times_unsigned_int_max_as_unsigned_int_result;
-  int mul_overflow_unsigned_int_max_times_unsigned_int_max_as_unsigned_int_overflow;
-  mul_overflow_unsigned_int_max_times_unsigned_int_max_as_unsigned_int_overflow = __builtin_mul_overflow(unsigned_int_max, unsigned_int_max, &mul_overflow_unsigned_int_max_times_unsigned_int_max_as_unsigned_int_result);
+  unsigned int mul_uint_max_max_res;
+  int mul_uint_max_max_ov;
+  mul_uint_max_max_ov = __builtin_mul_overflow(uint_max, uint_max, &mul_uint_max_max_res);
 
   // 4294967295U * 4294967295U = 18446744065119617025, outside the destination range; stored result = 1U and overflow = 1.
-  if (!(mul_overflow_unsigned_int_max_times_unsigned_int_max_as_unsigned_int_result == 1U))
+  if (!(mul_uint_max_max_res == 1U))
     goto ERROR;
 
-  if (!(mul_overflow_unsigned_int_max_times_unsigned_int_max_as_unsigned_int_overflow == 1))
+  if (!(mul_uint_max_max_ov == 1))
     goto ERROR;
 
 
-  long int mul_overflow_long_max_times_zero_as_long_int_result;
-  int mul_overflow_long_max_times_zero_as_long_int_overflow;
-  mul_overflow_long_max_times_zero_as_long_int_overflow = __builtin_mul_overflow(mul_overflow_long_max, 0L, &mul_overflow_long_max_times_zero_as_long_int_result);
+  long int mul_long_max_0_res;
+  int mul_long_max_0_ov;
+  mul_long_max_0_ov = __builtin_mul_overflow(mul_long_max, 0L, &mul_long_max_0_res);
 
   // 9223372036854775807L * 0L = 0, which fits the destination range; stored result = 0L and overflow = 0.
-  if (!(mul_overflow_long_max_times_zero_as_long_int_result == 0L))
+  if (!(mul_long_max_0_res == 0L))
     goto ERROR;
 
-  if (!(mul_overflow_long_max_times_zero_as_long_int_overflow == 0))
+  if (!(mul_long_max_0_ov == 0))
     goto ERROR;
 
 
-  unsigned long int mul_overflow_unsigned_long_max_times_two_as_unsigned_long_int_result;
-  int mul_overflow_unsigned_long_max_times_two_as_unsigned_long_int_overflow;
-  mul_overflow_unsigned_long_max_times_two_as_unsigned_long_int_overflow = __builtin_mul_overflow(mul_overflow_unsigned_long_max, 2UL, &mul_overflow_unsigned_long_max_times_two_as_unsigned_long_int_result);
+  unsigned long int mul_ulong_max_2_res;
+  int mul_ulong_max_2_ov;
+  mul_ulong_max_2_ov = __builtin_mul_overflow(mul_ulong_max, 2UL, &mul_ulong_max_2_res);
 
   // 18446744073709551615UL * 2UL = 36893488147419103230, outside the destination range; stored result = 18446744073709551614UL and overflow
   // = 1.
-  if (!(mul_overflow_unsigned_long_max_times_two_as_unsigned_long_int_result == (~0UL) - 1UL))
+  if (!(mul_ulong_max_2_res == (~0UL) - 1UL))
     goto ERROR;
 
-  if (!(mul_overflow_unsigned_long_max_times_two_as_unsigned_long_int_overflow == 1))
+  if (!(mul_ulong_max_2_ov == 1))
     goto ERROR;
 
 
-  long long int mul_overflow_long_long_min_times_zero_as_long_long_int_result;
-  int mul_overflow_long_long_min_times_zero_as_long_long_int_overflow;
-  mul_overflow_long_long_min_times_zero_as_long_long_int_overflow = __builtin_mul_overflow(long_long_min, 0LL, &mul_overflow_long_long_min_times_zero_as_long_long_int_result);
+  long long int mul_ll_min_0_res;
+  int mul_ll_min_0_ov;
+  mul_ll_min_0_ov = __builtin_mul_overflow(ll_min, 0LL, &mul_ll_min_0_res);
 
   // -9223372036854775808LL * 0LL = 0, which fits the destination range; stored result = 0LL and overflow = 0.
-  if (!(mul_overflow_long_long_min_times_zero_as_long_long_int_result == 0LL))
+  if (!(mul_ll_min_0_res == 0LL))
     goto ERROR;
 
-  if (!(mul_overflow_long_long_min_times_zero_as_long_long_int_overflow == 0))
+  if (!(mul_ll_min_0_ov == 0))
     goto ERROR;
 
 
-  unsigned long long int mul_overflow_unsigned_long_long_max_times_unsigned_long_long_max_as_unsigned_long_long_int_result;
-  int mul_overflow_unsigned_long_long_max_times_unsigned_long_long_max_as_unsigned_long_long_int_overflow;
-  mul_overflow_unsigned_long_long_max_times_unsigned_long_long_max_as_unsigned_long_long_int_overflow = __builtin_mul_overflow(unsigned_long_long_max, unsigned_long_long_max, &mul_overflow_unsigned_long_long_max_times_unsigned_long_long_max_as_unsigned_long_long_int_result);
+  unsigned long long int mul_ull_max_max_res;
+  int mul_ull_max_max_ov;
+  mul_ull_max_max_ov = __builtin_mul_overflow(ull_max, ull_max, &mul_ull_max_max_res);
 
   // 18446744073709551615ULL * 18446744073709551615ULL = 340282366920938463426481119284349108225, outside the destination range; stored
   // result = 1ULL and overflow = 1.
-  if (!(mul_overflow_unsigned_long_long_max_times_unsigned_long_long_max_as_unsigned_long_long_int_result == 1ULL))
+  if (!(mul_ull_max_max_res == 1ULL))
     goto ERROR;
 
-  if (!(mul_overflow_unsigned_long_long_max_times_unsigned_long_long_max_as_unsigned_long_long_int_overflow == 1))
+  if (!(mul_ull_max_max_ov == 1))
     goto ERROR;
 
 
-  char mul_overflow_char_max_times_two_as_char_result;
-  int mul_overflow_char_max_times_two_as_char_overflow;
-  mul_overflow_char_max_times_two_as_char_overflow = __builtin_mul_overflow(char_max, 2, &mul_overflow_char_max_times_two_as_char_result);
+  char mul_char_max_2_res;
+  int mul_char_max_2_ov;
+  mul_char_max_2_ov = __builtin_mul_overflow(char_max, 2, &mul_char_max_2_res);
 
   // (char)127 * 2 = 254, outside the destination range; stored result = (char)-2 and overflow = 1.
-  if (!(mul_overflow_char_max_times_two_as_char_result == char_minus_two))
+  if (!(mul_char_max_2_res == char_2))
     goto ERROR;
 
-  if (!(mul_overflow_char_max_times_two_as_char_overflow == 1))
+  if (!(mul_char_max_2_ov == 1))
     goto ERROR;
 
 
-  int mul_overflow_minus_one_times_one_as_int_result;
-  int mul_overflow_minus_one_times_one_as_int_overflow;
-  mul_overflow_minus_one_times_one_as_int_overflow = __builtin_mul_overflow(-1LL, 1ULL, &mul_overflow_minus_one_times_one_as_int_result);
+  int mul_int_1_1_res;
+  int mul_int_1_1_ov;
+  mul_int_1_1_ov = __builtin_mul_overflow(-1LL, 1ULL, &mul_int_1_1_res);
 
   // -1LL * 1ULL = -1, which fits the destination range; stored result = -1 and overflow = 0.
-  if (!(mul_overflow_minus_one_times_one_as_int_result == -1))
+  if (!(mul_int_1_1_res == -1))
     goto ERROR;
 
-  if (!(mul_overflow_minus_one_times_one_as_int_overflow == 0))
+  if (!(mul_int_1_1_ov == 0))
     goto ERROR;
 
 
-  unsigned int mul_overflow_minus_one_times_two_as_unsigned_int_result;
-  int mul_overflow_minus_one_times_two_as_unsigned_int_overflow;
-  mul_overflow_minus_one_times_two_as_unsigned_int_overflow = __builtin_mul_overflow(-1LL, 2ULL, &mul_overflow_minus_one_times_two_as_unsigned_int_result);
+  unsigned int mul_uint_1_2_res;
+  int mul_uint_1_2_ov;
+  mul_uint_1_2_ov = __builtin_mul_overflow(-1LL, 2ULL, &mul_uint_1_2_res);
 
   // -1LL * 2ULL = -2, outside the destination range; stored result = 4294967294U and overflow = 1.
-  if (!(mul_overflow_minus_one_times_two_as_unsigned_int_result == 4294967294U))
+  if (!(mul_uint_1_2_res == 4294967294U))
     goto ERROR;
 
-  if (!(mul_overflow_minus_one_times_two_as_unsigned_int_overflow == 1))
+  if (!(mul_uint_1_2_ov == 1))
     goto ERROR;
 
 
   // Signed int multiplication overflow tests.
 
-  int smul_overflow_zero_times_zero_result;
-  int smul_overflow_zero_times_zero_overflow;
-  smul_overflow_zero_times_zero_overflow = __builtin_smul_overflow(0, 0, &smul_overflow_zero_times_zero_result);
+  int smul_0_0_res;
+  int smul_0_0_ov;
+  smul_0_0_ov = __builtin_smul_overflow(0, 0, &smul_0_0_res);
 
   // 0 * 0 = 0, which fits the destination range; stored result = 0 and overflow = 0.
-  if (!(smul_overflow_zero_times_zero_result == 0))
+  if (!(smul_0_0_res == 0))
     goto ERROR;
 
-  if (!(smul_overflow_zero_times_zero_overflow == 0))
+  if (!(smul_0_0_ov == 0))
     goto ERROR;
 
 
-  int smul_overflow_int_max_times_zero_result;
-  int smul_overflow_int_max_times_zero_overflow;
-  smul_overflow_int_max_times_zero_overflow = __builtin_smul_overflow(int_max, 0, &smul_overflow_int_max_times_zero_result);
+  int smul_max_0_res;
+  int smul_max_0_ov;
+  smul_max_0_ov = __builtin_smul_overflow(int_max, 0, &smul_max_0_res);
 
   // 2147483647 * 0 = 0, which fits the destination range; stored result = 0 and overflow = 0.
-  if (!(smul_overflow_int_max_times_zero_result == 0))
+  if (!(smul_max_0_res == 0))
     goto ERROR;
 
-  if (!(smul_overflow_int_max_times_zero_overflow == 0))
+  if (!(smul_max_0_ov == 0))
     goto ERROR;
 
 
-  int smul_overflow_int_min_times_zero_result;
-  int smul_overflow_int_min_times_zero_overflow;
-  smul_overflow_int_min_times_zero_overflow = __builtin_smul_overflow(int_min, 0, &smul_overflow_int_min_times_zero_result);
+  int smul_min_0_res;
+  int smul_min_0_ov;
+  smul_min_0_ov = __builtin_smul_overflow(int_min, 0, &smul_min_0_res);
 
   // -2147483648 * 0 = 0, which fits the destination range; stored result = 0 and overflow = 0.
-  if (!(smul_overflow_int_min_times_zero_result == 0))
+  if (!(smul_min_0_res == 0))
     goto ERROR;
 
-  if (!(smul_overflow_int_min_times_zero_overflow == 0))
+  if (!(smul_min_0_ov == 0))
     goto ERROR;
 
 
-  int smul_overflow_int_max_times_one_result;
-  int smul_overflow_int_max_times_one_overflow;
-  smul_overflow_int_max_times_one_overflow = __builtin_smul_overflow(int_max, 1, &smul_overflow_int_max_times_one_result);
+  int smul_max_1_res;
+  int smul_max_1_ov;
+  smul_max_1_ov = __builtin_smul_overflow(int_max, 1, &smul_max_1_res);
 
   // 2147483647 * 1 = 2147483647, which fits the destination range; stored result = 2147483647 and overflow = 0.
-  if (!(smul_overflow_int_max_times_one_result == int_max))
+  if (!(smul_max_1_res == int_max))
     goto ERROR;
 
-  if (!(smul_overflow_int_max_times_one_overflow == 0))
+  if (!(smul_max_1_ov == 0))
     goto ERROR;
 
 
-  int smul_overflow_int_min_times_one_result;
-  int smul_overflow_int_min_times_one_overflow;
-  smul_overflow_int_min_times_one_overflow = __builtin_smul_overflow(int_min, 1, &smul_overflow_int_min_times_one_result);
+  int smul_min_1_res;
+  int smul_min_1_ov;
+  smul_min_1_ov = __builtin_smul_overflow(int_min, 1, &smul_min_1_res);
 
   // -2147483648 * 1 = -2147483648, which fits the destination range; stored result = -2147483648 and overflow = 0.
-  if (!(smul_overflow_int_min_times_one_result == int_min))
+  if (!(smul_min_1_res == int_min))
     goto ERROR;
 
-  if (!(smul_overflow_int_min_times_one_overflow == 0))
+  if (!(smul_min_1_ov == 0))
     goto ERROR;
 
 
-  int smul_overflow_int_max_times_minus_one_result;
-  int smul_overflow_int_max_times_minus_one_overflow;
-  smul_overflow_int_max_times_minus_one_overflow = __builtin_smul_overflow(int_max, -1, &smul_overflow_int_max_times_minus_one_result);
+  int smul_max_m1_res;
+  int smul_max_m1_ov;
+  smul_max_m1_ov = __builtin_smul_overflow(int_max, -1, &smul_max_m1_res);
 
   // 2147483647 * -1 = -2147483647, which fits the destination range; stored result = -2147483647 and overflow = 0.
-  if (!(smul_overflow_int_max_times_minus_one_result == -int_max))
+  if (!(smul_max_m1_res == -int_max))
     goto ERROR;
 
-  if (!(smul_overflow_int_max_times_minus_one_overflow == 0))
+  if (!(smul_max_m1_ov == 0))
     goto ERROR;
 
 
-  int smul_overflow_int_min_times_minus_one_result;
-  int smul_overflow_int_min_times_minus_one_overflow;
-  smul_overflow_int_min_times_minus_one_overflow = __builtin_smul_overflow(int_min, -1, &smul_overflow_int_min_times_minus_one_result);
+  int smul_min_m1_res;
+  int smul_min_m1_ov;
+  smul_min_m1_ov = __builtin_smul_overflow(int_min, -1, &smul_min_m1_res);
 
   // -2147483648 * -1 = 2147483648, outside the destination range; stored result = -2147483648 and overflow = 1.
-  if (!(smul_overflow_int_min_times_minus_one_result == int_min))
+  if (!(smul_min_m1_res == int_min))
     goto ERROR;
 
-  if (!(smul_overflow_int_min_times_minus_one_overflow == 1))
+  if (!(smul_min_m1_ov == 1))
     goto ERROR;
 
 
-  int smul_overflow_int_max_times_two_result;
-  int smul_overflow_int_max_times_two_overflow;
-  smul_overflow_int_max_times_two_overflow = __builtin_smul_overflow(int_max, 2, &smul_overflow_int_max_times_two_result);
+  int smul_max_2_res;
+  int smul_max_2_ov;
+  smul_max_2_ov = __builtin_smul_overflow(int_max, 2, &smul_max_2_res);
 
   // 2147483647 * 2 = 4294967294, outside the destination range; stored result = -2 and overflow = 1.
-  if (!(smul_overflow_int_max_times_two_result == -2))
+  if (!(smul_max_2_res == -2))
     goto ERROR;
 
-  if (!(smul_overflow_int_max_times_two_overflow == 1))
+  if (!(smul_max_2_ov == 1))
     goto ERROR;
 
 
-  int smul_overflow_int_min_times_two_result;
-  int smul_overflow_int_min_times_two_overflow;
-  smul_overflow_int_min_times_two_overflow = __builtin_smul_overflow(int_min, 2, &smul_overflow_int_min_times_two_result);
+  int smul_min_2_res;
+  int smul_min_2_ov;
+  smul_min_2_ov = __builtin_smul_overflow(int_min, 2, &smul_min_2_res);
 
   // -2147483648 * 2 = -4294967296, outside the destination range; stored result = 0 and overflow = 1.
-  if (!(smul_overflow_int_min_times_two_result == 0))
+  if (!(smul_min_2_res == 0))
     goto ERROR;
 
-  if (!(smul_overflow_int_min_times_two_overflow == 1))
+  if (!(smul_min_2_ov == 1))
     goto ERROR;
 
 
-  int smul_overflow_minus_one_times_minus_one_result;
-  int smul_overflow_minus_one_times_minus_one_overflow;
-  smul_overflow_minus_one_times_minus_one_overflow = __builtin_smul_overflow(-1, -1, &smul_overflow_minus_one_times_minus_one_result);
+  int smul_1_m1_res;
+  int smul_1_m1_ov;
+  smul_1_m1_ov = __builtin_smul_overflow(-1, -1, &smul_1_m1_res);
 
   // -1 * -1 = 1, which fits the destination range; stored result = 1 and overflow = 0.
-  if (!(smul_overflow_minus_one_times_minus_one_result == 1))
+  if (!(smul_1_m1_res == 1))
     goto ERROR;
 
-  if (!(smul_overflow_minus_one_times_minus_one_overflow == 0))
+  if (!(smul_1_m1_ov == 0))
     goto ERROR;
-
-
-  // Signed long int multiplication overflow tests.
-
-
-  // ILP32: The calculated unsigned long must equal unsigned int maximum 4294967295U.
-  // LP64: The calculated unsigned long must equal unsigned long long maximum 18446744073709551615ULL.
-  if (!((sizeof(unsigned long int) == sizeof(unsigned int) &&
-          (unsigned int)smull_overflow_unsigned_long_max == unsigned_int_max) ||
-         (sizeof(unsigned long int) == sizeof(unsigned long long int) &&
-          (unsigned long long int)smull_overflow_unsigned_long_max ==
-            (unsigned long long int)(unsigned long int)unsigned_long_long_max)))
-    goto ERROR;
-
-
-  // ILP32: The calculated long maximum must equal int maximum 2147483647.
-  // LP64: The calculated long maximum must equal long long maximum 9223372036854775807LL.
-  if (!((sizeof(long int) == sizeof(int) && (int)smull_overflow_long_max == int_max) ||
-         (sizeof(long int) == sizeof(long long int) &&
-          (long long int)smull_overflow_long_max == (long long int)(long int)long_long_max)))
-    goto ERROR;
-
-
-  // ILP32: The calculated long minimum must equal int minimum -2147483648.
-  // LP64: The calculated long minimum must equal long long minimum -9223372036854775808.
-  if (!((sizeof(long int) == sizeof(int) && (int)smull_overflow_long_min == int_min) ||
-         (sizeof(long int) == sizeof(long long int) &&
-          (long long int)smull_overflow_long_min ==
-            (long long int)(long int)long_long_min)))
-    goto ERROR;
-
-
-  long int smull_overflow_zero_times_zero_result;
-  int smull_overflow_zero_times_zero_overflow;
-  smull_overflow_zero_times_zero_overflow = __builtin_smull_overflow(0L, 0L, &smull_overflow_zero_times_zero_result);
+  long int smull_0_0_res;
+  int smull_0_0_ov;
+  smull_0_0_ov = __builtin_smull_overflow(0L, 0L, &smull_0_0_res);
 
   // 0L * 0L = 0, which fits the destination range; stored result = 0L and overflow = 0.
-  if (!(smull_overflow_zero_times_zero_result == 0L))
+  if (!(smull_0_0_res == 0L))
     goto ERROR;
 
-  if (!(smull_overflow_zero_times_zero_overflow == 0))
+  if (!(smull_0_0_ov == 0))
     goto ERROR;
 
 
-  long int smull_overflow_long_max_times_zero_result;
-  int smull_overflow_long_max_times_zero_overflow;
-  smull_overflow_long_max_times_zero_overflow = __builtin_smull_overflow(smull_overflow_long_max, 0L, &smull_overflow_long_max_times_zero_result);
+  long int smull_max_0_res;
+  int smull_max_0_ov;
+  smull_max_0_ov = __builtin_smull_overflow(smull_max, 0L, &smull_max_0_res);
 
   // 9223372036854775807L * 0L = 0, which fits the destination range; stored result = 0L and overflow = 0.
-  if (!(smull_overflow_long_max_times_zero_result == 0L))
+  if (!(smull_max_0_res == 0L))
     goto ERROR;
 
-  if (!(smull_overflow_long_max_times_zero_overflow == 0))
+  if (!(smull_max_0_ov == 0))
     goto ERROR;
 
 
-  long int smull_overflow_long_min_times_zero_result;
-  int smull_overflow_long_min_times_zero_overflow;
-  smull_overflow_long_min_times_zero_overflow = __builtin_smull_overflow(smull_overflow_long_min, 0L, &smull_overflow_long_min_times_zero_result);
+  long int smull_min_0_res;
+  int smull_min_0_ov;
+  smull_min_0_ov = __builtin_smull_overflow(smull_min, 0L, &smull_min_0_res);
 
   // -9223372036854775808L * 0L = 0, which fits the destination range; stored result = 0L and overflow = 0.
-  if (!(smull_overflow_long_min_times_zero_result == 0L))
+  if (!(smull_min_0_res == 0L))
     goto ERROR;
 
-  if (!(smull_overflow_long_min_times_zero_overflow == 0))
+  if (!(smull_min_0_ov == 0))
     goto ERROR;
 
 
-  long int smull_overflow_long_max_times_one_result;
-  int smull_overflow_long_max_times_one_overflow;
-  smull_overflow_long_max_times_one_overflow = __builtin_smull_overflow(smull_overflow_long_max, 1L, &smull_overflow_long_max_times_one_result);
+  long int smull_max_1_res;
+  int smull_max_1_ov;
+  smull_max_1_ov = __builtin_smull_overflow(smull_max, 1L, &smull_max_1_res);
 
   // 9223372036854775807L * 1L = 9223372036854775807, which fits the destination range; stored result = 9223372036854775807L and overflow =
   // 0.
-  if (!(smull_overflow_long_max_times_one_result == smull_overflow_long_max))
+  if (!(smull_max_1_res == smull_max))
     goto ERROR;
 
-  if (!(smull_overflow_long_max_times_one_overflow == 0))
+  if (!(smull_max_1_ov == 0))
     goto ERROR;
 
 
-  long int smull_overflow_long_min_times_one_result;
-  int smull_overflow_long_min_times_one_overflow;
-  smull_overflow_long_min_times_one_overflow = __builtin_smull_overflow(smull_overflow_long_min, 1L, &smull_overflow_long_min_times_one_result);
+  long int smull_min_1_res;
+  int smull_min_1_ov;
+  smull_min_1_ov = __builtin_smull_overflow(smull_min, 1L, &smull_min_1_res);
 
   // -9223372036854775808L * 1L = -9223372036854775808, which fits the destination range; stored result = -9223372036854775808L and overflow
   // = 0.
-  if (!(smull_overflow_long_min_times_one_result == smull_overflow_long_min))
+  if (!(smull_min_1_res == smull_min))
     goto ERROR;
 
-  if (!(smull_overflow_long_min_times_one_overflow == 0))
+  if (!(smull_min_1_ov == 0))
     goto ERROR;
 
 
-  long int smull_overflow_long_max_times_minus_one_result;
-  int smull_overflow_long_max_times_minus_one_overflow;
-  smull_overflow_long_max_times_minus_one_overflow = __builtin_smull_overflow(smull_overflow_long_max, -1L, &smull_overflow_long_max_times_minus_one_result);
+  long int smull_max_m1_res;
+  int smull_max_m1_ov;
+  smull_max_m1_ov = __builtin_smull_overflow(smull_max, -1L, &smull_max_m1_res);
 
   // 9223372036854775807L * -1L = -9223372036854775807, which fits the destination range; stored result = -9223372036854775807L and overflow
   // = 0.
-  if (!(smull_overflow_long_max_times_minus_one_result == - ((long int)((~0UL) >> 1))))
+  if (!(smull_max_m1_res == - ((long int)((~0UL) >> 1))))
     goto ERROR;
 
-  if (!(smull_overflow_long_max_times_minus_one_overflow == 0))
+  if (!(smull_max_m1_ov == 0))
     goto ERROR;
 
 
-  long int smull_overflow_long_min_times_minus_one_result;
-  int smull_overflow_long_min_times_minus_one_overflow;
-  smull_overflow_long_min_times_minus_one_overflow = __builtin_smull_overflow(smull_overflow_long_min, -1L, &smull_overflow_long_min_times_minus_one_result);
+  long int smull_min_m1_res;
+  int smull_min_m1_ov;
+  smull_min_m1_ov = __builtin_smull_overflow(smull_min, -1L, &smull_min_m1_res);
 
   // -9223372036854775808L * -1L = 9223372036854775808, outside the destination range; stored result = -9223372036854775808L and overflow =
   // 1.
-  if (!(smull_overflow_long_min_times_minus_one_result == smull_overflow_long_min))
+  if (!(smull_min_m1_res == smull_min))
     goto ERROR;
 
-  if (!(smull_overflow_long_min_times_minus_one_overflow == 1))
+  if (!(smull_min_m1_ov == 1))
     goto ERROR;
 
 
-  long int smull_overflow_long_max_times_two_result;
-  int smull_overflow_long_max_times_two_overflow;
-  smull_overflow_long_max_times_two_overflow = __builtin_smull_overflow(smull_overflow_long_max, 2L, &smull_overflow_long_max_times_two_result);
+  long int smull_max_2_res;
+  int smull_max_2_ov;
+  smull_max_2_ov = __builtin_smull_overflow(smull_max, 2L, &smull_max_2_res);
 
   // 9223372036854775807L * 2L = 18446744073709551614, outside the destination range; stored result = -2L and overflow = 1.
-  if (!(smull_overflow_long_max_times_two_result == -2L))
+  if (!(smull_max_2_res == -2L))
     goto ERROR;
 
-  if (!(smull_overflow_long_max_times_two_overflow == 1))
+  if (!(smull_max_2_ov == 1))
     goto ERROR;
 
 
-  long int smull_overflow_long_min_times_two_result;
-  int smull_overflow_long_min_times_two_overflow;
-  smull_overflow_long_min_times_two_overflow = __builtin_smull_overflow(smull_overflow_long_min, 2L, &smull_overflow_long_min_times_two_result);
+  long int smull_min_2_res;
+  int smull_min_2_ov;
+  smull_min_2_ov = __builtin_smull_overflow(smull_min, 2L, &smull_min_2_res);
 
   // -9223372036854775808L * 2L = -18446744073709551616, outside the destination range; stored result = 0L and overflow = 1.
-  if (!(smull_overflow_long_min_times_two_result == 0L))
+  if (!(smull_min_2_res == 0L))
     goto ERROR;
 
-  if (!(smull_overflow_long_min_times_two_overflow == 1))
+  if (!(smull_min_2_ov == 1))
     goto ERROR;
 
 
-  long int smull_overflow_minus_one_times_minus_one_result;
-  int smull_overflow_minus_one_times_minus_one_overflow;
-  smull_overflow_minus_one_times_minus_one_overflow = __builtin_smull_overflow(-1L, -1L, &smull_overflow_minus_one_times_minus_one_result);
+  long int smull_1_m1_res;
+  int smull_1_m1_ov;
+  smull_1_m1_ov = __builtin_smull_overflow(-1L, -1L, &smull_1_m1_res);
 
   // -1L * -1L = 1, which fits the destination range; stored result = 1L and overflow = 0.
-  if (!(smull_overflow_minus_one_times_minus_one_result == 1L))
+  if (!(smull_1_m1_res == 1L))
     goto ERROR;
 
-  if (!(smull_overflow_minus_one_times_minus_one_overflow == 0))
+  if (!(smull_1_m1_ov == 0))
     goto ERROR;
 
 
   // Signed long long int multiplication overflow tests.
 
-  long long int smulll_overflow_zero_times_zero_result;
-  int smulll_overflow_zero_times_zero_overflow;
-  smulll_overflow_zero_times_zero_overflow = __builtin_smulll_overflow(0LL, 0LL, &smulll_overflow_zero_times_zero_result);
+  long long int smulll_0_0_res;
+  int smulll_0_0_ov;
+  smulll_0_0_ov = __builtin_smulll_overflow(0LL, 0LL, &smulll_0_0_res);
 
   // 0LL * 0LL = 0, which fits the destination range; stored result = 0LL and overflow = 0.
-  if (!(smulll_overflow_zero_times_zero_result == 0LL))
+  if (!(smulll_0_0_res == 0LL))
     goto ERROR;
 
-  if (!(smulll_overflow_zero_times_zero_overflow == 0))
+  if (!(smulll_0_0_ov == 0))
     goto ERROR;
 
 
-  long long int smulll_overflow_long_long_max_times_zero_result;
-  int smulll_overflow_long_long_max_times_zero_overflow;
-  smulll_overflow_long_long_max_times_zero_overflow = __builtin_smulll_overflow(long_long_max, 0LL, &smulll_overflow_long_long_max_times_zero_result);
+  long long int smulll_max_0_res;
+  int smulll_max_0_ov;
+  smulll_max_0_ov = __builtin_smulll_overflow(ll_max, 0LL, &smulll_max_0_res);
 
   // 9223372036854775807LL * 0LL = 0, which fits the destination range; stored result = 0LL and overflow = 0.
-  if (!(smulll_overflow_long_long_max_times_zero_result == 0LL))
+  if (!(smulll_max_0_res == 0LL))
     goto ERROR;
 
-  if (!(smulll_overflow_long_long_max_times_zero_overflow == 0))
+  if (!(smulll_max_0_ov == 0))
     goto ERROR;
 
 
-  long long int smulll_overflow_long_long_min_times_zero_result;
-  int smulll_overflow_long_long_min_times_zero_overflow;
-  smulll_overflow_long_long_min_times_zero_overflow = __builtin_smulll_overflow(long_long_min, 0LL, &smulll_overflow_long_long_min_times_zero_result);
+  long long int smulll_min_0_res;
+  int smulll_min_0_ov;
+  smulll_min_0_ov = __builtin_smulll_overflow(ll_min, 0LL, &smulll_min_0_res);
 
   // -9223372036854775808LL * 0LL = 0, which fits the destination range; stored result = 0LL and overflow = 0.
-  if (!(smulll_overflow_long_long_min_times_zero_result == 0LL))
+  if (!(smulll_min_0_res == 0LL))
     goto ERROR;
 
-  if (!(smulll_overflow_long_long_min_times_zero_overflow == 0))
+  if (!(smulll_min_0_ov == 0))
     goto ERROR;
 
 
-  long long int smulll_overflow_long_long_max_times_one_result;
-  int smulll_overflow_long_long_max_times_one_overflow;
-  smulll_overflow_long_long_max_times_one_overflow = __builtin_smulll_overflow(long_long_max, 1LL, &smulll_overflow_long_long_max_times_one_result);
+  long long int smulll_max_1_res;
+  int smulll_max_1_ov;
+  smulll_max_1_ov = __builtin_smulll_overflow(ll_max, 1LL, &smulll_max_1_res);
 
   // 9223372036854775807LL * 1LL = 9223372036854775807, which fits the destination range; stored result = 9223372036854775807LL and overflow
   // = 0.
-  if (!(smulll_overflow_long_long_max_times_one_result == long_long_max))
+  if (!(smulll_max_1_res == ll_max))
     goto ERROR;
 
-  if (!(smulll_overflow_long_long_max_times_one_overflow == 0))
+  if (!(smulll_max_1_ov == 0))
     goto ERROR;
 
 
-  long long int smulll_overflow_long_long_min_times_one_result;
-  int smulll_overflow_long_long_min_times_one_overflow;
-  smulll_overflow_long_long_min_times_one_overflow = __builtin_smulll_overflow(long_long_min, 1LL, &smulll_overflow_long_long_min_times_one_result);
+  long long int smulll_min_1_res;
+  int smulll_min_1_ov;
+  smulll_min_1_ov = __builtin_smulll_overflow(ll_min, 1LL, &smulll_min_1_res);
 
   // -9223372036854775808LL * 1LL = -9223372036854775808, which fits the destination range; stored result = -9223372036854775808LL and
   // overflow = 0.
-  if (!(smulll_overflow_long_long_min_times_one_result == long_long_min))
+  if (!(smulll_min_1_res == ll_min))
     goto ERROR;
 
-  if (!(smulll_overflow_long_long_min_times_one_overflow == 0))
+  if (!(smulll_min_1_ov == 0))
     goto ERROR;
 
 
-  long long int smulll_overflow_long_long_max_times_minus_one_result;
-  int smulll_overflow_long_long_max_times_minus_one_overflow;
-  smulll_overflow_long_long_max_times_minus_one_overflow = __builtin_smulll_overflow(long_long_max, -1LL, &smulll_overflow_long_long_max_times_minus_one_result);
+  long long int smulll_max_m1_res;
+  int smulll_max_m1_ov;
+  smulll_max_m1_ov = __builtin_smulll_overflow(ll_max, -1LL, &smulll_max_m1_res);
 
   // 9223372036854775807LL * -1LL = -9223372036854775807, which fits the destination range; stored result = -9223372036854775807LL and
   // overflow = 0.
-  if (!(smulll_overflow_long_long_max_times_minus_one_result == -long_long_max))
+  if (!(smulll_max_m1_res == -ll_max))
     goto ERROR;
 
-  if (!(smulll_overflow_long_long_max_times_minus_one_overflow == 0))
+  if (!(smulll_max_m1_ov == 0))
     goto ERROR;
 
 
-  long long int smulll_overflow_long_long_min_times_minus_one_result;
-  int smulll_overflow_long_long_min_times_minus_one_overflow;
-  smulll_overflow_long_long_min_times_minus_one_overflow = __builtin_smulll_overflow(long_long_min, -1LL, &smulll_overflow_long_long_min_times_minus_one_result);
+  long long int smulll_min_m1_res;
+  int smulll_min_m1_ov;
+  smulll_min_m1_ov = __builtin_smulll_overflow(ll_min, -1LL, &smulll_min_m1_res);
 
   // -9223372036854775808LL * -1LL = 9223372036854775808, outside the destination range; stored result = -9223372036854775808LL and overflow
   // = 1.
-  if (!(smulll_overflow_long_long_min_times_minus_one_result == long_long_min))
+  if (!(smulll_min_m1_res == ll_min))
     goto ERROR;
 
-  if (!(smulll_overflow_long_long_min_times_minus_one_overflow == 1))
+  if (!(smulll_min_m1_ov == 1))
     goto ERROR;
 
 
-  long long int smulll_overflow_long_long_max_times_two_result;
-  int smulll_overflow_long_long_max_times_two_overflow;
-  smulll_overflow_long_long_max_times_two_overflow = __builtin_smulll_overflow(long_long_max, 2LL, &smulll_overflow_long_long_max_times_two_result);
+  long long int smulll_max_2_res;
+  int smulll_max_2_ov;
+  smulll_max_2_ov = __builtin_smulll_overflow(ll_max, 2LL, &smulll_max_2_res);
 
   // 9223372036854775807LL * 2LL = 18446744073709551614, outside the destination range; stored result = -2LL and overflow = 1.
-  if (!(smulll_overflow_long_long_max_times_two_result == -2LL))
+  if (!(smulll_max_2_res == -2LL))
     goto ERROR;
 
-  if (!(smulll_overflow_long_long_max_times_two_overflow == 1))
+  if (!(smulll_max_2_ov == 1))
     goto ERROR;
 
 
-  long long int smulll_overflow_long_long_min_times_two_result;
-  int smulll_overflow_long_long_min_times_two_overflow;
-  smulll_overflow_long_long_min_times_two_overflow = __builtin_smulll_overflow(long_long_min, 2LL, &smulll_overflow_long_long_min_times_two_result);
+  long long int smulll_min_2_res;
+  int smulll_min_2_ov;
+  smulll_min_2_ov = __builtin_smulll_overflow(ll_min, 2LL, &smulll_min_2_res);
 
   // -9223372036854775808LL * 2LL = -18446744073709551616, outside the destination range; stored result = 0LL and overflow = 1.
-  if (!(smulll_overflow_long_long_min_times_two_result == 0LL))
+  if (!(smulll_min_2_res == 0LL))
     goto ERROR;
 
-  if (!(smulll_overflow_long_long_min_times_two_overflow == 1))
+  if (!(smulll_min_2_ov == 1))
     goto ERROR;
 
 
-  long long int smulll_overflow_minus_one_times_minus_one_result;
-  int smulll_overflow_minus_one_times_minus_one_overflow;
-  smulll_overflow_minus_one_times_minus_one_overflow = __builtin_smulll_overflow(-1LL, -1LL, &smulll_overflow_minus_one_times_minus_one_result);
+  long long int smulll_1_m1_res;
+  int smulll_1_m1_ov;
+  smulll_1_m1_ov = __builtin_smulll_overflow(-1LL, -1LL, &smulll_1_m1_res);
 
   // -1LL * -1LL = 1, which fits the destination range; stored result = 1LL and overflow = 0.
-  if (!(smulll_overflow_minus_one_times_minus_one_result == 1LL))
+  if (!(smulll_1_m1_res == 1LL))
     goto ERROR;
 
-  if (!(smulll_overflow_minus_one_times_minus_one_overflow == 0))
+  if (!(smulll_1_m1_ov == 0))
     goto ERROR;
 
 
   // Unsigned int multiplication overflow tests.
 
-  unsigned int umul_overflow_zero_times_unsigned_int_max_result;
-  int umul_overflow_zero_times_unsigned_int_max_overflow;
-  umul_overflow_zero_times_unsigned_int_max_overflow = __builtin_umul_overflow(0U, unsigned_int_max, &umul_overflow_zero_times_unsigned_int_max_result);
+  unsigned int umul_0_uint_max_res;
+  int umul_0_uint_max_ov;
+  umul_0_uint_max_ov = __builtin_umul_overflow(0U, uint_max, &umul_0_uint_max_res);
 
   // 0U * 4294967295U = 0, which fits the destination range; stored result = 0U and overflow = 0.
-  if (!(umul_overflow_zero_times_unsigned_int_max_result == 0U))
+  if (!(umul_0_uint_max_res == 0U))
     goto ERROR;
 
-  if (!(umul_overflow_zero_times_unsigned_int_max_overflow == 0))
+  if (!(umul_0_uint_max_ov == 0))
     goto ERROR;
 
 
-  unsigned int umul_overflow_one_times_unsigned_int_max_result;
-  int umul_overflow_one_times_unsigned_int_max_overflow;
-  umul_overflow_one_times_unsigned_int_max_overflow = __builtin_umul_overflow(1U, unsigned_int_max, &umul_overflow_one_times_unsigned_int_max_result);
+  unsigned int umul_1_uint_max_res;
+  int umul_1_uint_max_ov;
+  umul_1_uint_max_ov = __builtin_umul_overflow(1U, uint_max, &umul_1_uint_max_res);
 
   // 1U * 4294967295U = 4294967295, which fits the destination range; stored result = 4294967295U and overflow = 0.
-  if (!(umul_overflow_one_times_unsigned_int_max_result == unsigned_int_max))
+  if (!(umul_1_uint_max_res == uint_max))
     goto ERROR;
 
-  if (!(umul_overflow_one_times_unsigned_int_max_overflow == 0))
+  if (!(umul_1_uint_max_ov == 0))
     goto ERROR;
 
 
-  unsigned int umul_overflow_two_times_2147483647u_result;
-  int umul_overflow_two_times_2147483647u_overflow;
-  umul_overflow_two_times_2147483647u_overflow = __builtin_umul_overflow(2U, 2147483647U, &umul_overflow_two_times_2147483647u_result);
+  unsigned int umul_2_2147483647u_res;
+  int umul_2_2147483647u_ov;
+  umul_2_2147483647u_ov = __builtin_umul_overflow(2U, 2147483647U, &umul_2_2147483647u_res);
 
   // 2U * 2147483647U = 4294967294, which fits the destination range; stored result = 4294967294U and overflow = 0.
-  if (!(umul_overflow_two_times_2147483647u_result == 4294967294U))
+  if (!(umul_2_2147483647u_res == 4294967294U))
     goto ERROR;
 
-  if (!(umul_overflow_two_times_2147483647u_overflow == 0))
+  if (!(umul_2_2147483647u_ov == 0))
     goto ERROR;
 
 
-  unsigned int umul_overflow_two_times_2147483648u_result;
-  int umul_overflow_two_times_2147483648u_overflow;
-  umul_overflow_two_times_2147483648u_overflow = __builtin_umul_overflow(2U, 2147483648U, &umul_overflow_two_times_2147483648u_result);
+  unsigned int umul_2_2147483648u_res;
+  int umul_2_2147483648u_ov;
+  umul_2_2147483648u_ov = __builtin_umul_overflow(2U, 2147483648U, &umul_2_2147483648u_res);
 
   // 2U * 2147483648U = 4294967296, outside the destination range; stored result = 0U and overflow = 1.
-  if (!(umul_overflow_two_times_2147483648u_result == 0U))
+  if (!(umul_2_2147483648u_res == 0U))
     goto ERROR;
 
-  if (!(umul_overflow_two_times_2147483648u_overflow == 1))
+  if (!(umul_2_2147483648u_ov == 1))
     goto ERROR;
 
 
-  unsigned int umul_overflow_unsigned_int_max_times_unsigned_int_max_result;
-  int umul_overflow_unsigned_int_max_times_unsigned_int_max_overflow;
-  umul_overflow_unsigned_int_max_times_unsigned_int_max_overflow = __builtin_umul_overflow(unsigned_int_max, unsigned_int_max, &umul_overflow_unsigned_int_max_times_unsigned_int_max_result);
+  unsigned int umul_max_max_res;
+  int umul_max_max_ov;
+  umul_max_max_ov = __builtin_umul_overflow(uint_max, uint_max, &umul_max_max_res);
 
   // 4294967295U * 4294967295U = 18446744065119617025, outside the destination range; stored result = 1U and overflow = 1.
-  if (!(umul_overflow_unsigned_int_max_times_unsigned_int_max_result == 1U))
+  if (!(umul_max_max_res == 1U))
     goto ERROR;
 
-  if (!(umul_overflow_unsigned_int_max_times_unsigned_int_max_overflow == 1))
+  if (!(umul_max_max_ov == 1))
     goto ERROR;
 
 
-  unsigned int umul_overflow_unsigned_int_max_times_two_result;
-  int umul_overflow_unsigned_int_max_times_two_overflow;
-  umul_overflow_unsigned_int_max_times_two_overflow = __builtin_umul_overflow(unsigned_int_max, 2U, &umul_overflow_unsigned_int_max_times_two_result);
+  unsigned int umul_max_2_res;
+  int umul_max_2_ov;
+  umul_max_2_ov = __builtin_umul_overflow(uint_max, 2U, &umul_max_2_res);
 
   // 4294967295U * 2U = 8589934590, outside the destination range; stored result = 4294967294U and overflow = 1.
-  if (!(umul_overflow_unsigned_int_max_times_two_result == 4294967294U))
+  if (!(umul_max_2_res == 4294967294U))
     goto ERROR;
 
-  if (!(umul_overflow_unsigned_int_max_times_two_overflow == 1))
+  if (!(umul_max_2_ov == 1))
     goto ERROR;
-
-
-  // Unsigned long int multiplication overflow tests.
-
-
-  // ILP32: The calculated unsigned long must equal unsigned int maximum 4294967295U.
-  // LP64: The calculated unsigned long must equal unsigned long long maximum 18446744073709551615ULL.
-  if (!((sizeof(unsigned long int) == sizeof(unsigned int) &&
-          (unsigned int)umull_overflow_unsigned_long_max == unsigned_int_max) ||
-         (sizeof(unsigned long int) == sizeof(unsigned long long int) &&
-          (unsigned long long int)umull_overflow_unsigned_long_max ==
-            (unsigned long long int)(unsigned long int)unsigned_long_long_max)))
-    goto ERROR;
-
-
-  unsigned long int umull_overflow_zero_times_unsigned_long_max_result;
-  int umull_overflow_zero_times_unsigned_long_max_overflow;
-  umull_overflow_zero_times_unsigned_long_max_overflow = __builtin_umull_overflow(0UL, umull_overflow_unsigned_long_max, &umull_overflow_zero_times_unsigned_long_max_result);
+  unsigned long int umull_0_ulong_max_res;
+  int umull_0_ulong_max_ov;
+  umull_0_ulong_max_ov = __builtin_umull_overflow(0UL, umull_max, &umull_0_ulong_max_res);
 
   // 0UL * 18446744073709551615UL = 0, which fits the destination range; stored result = 0UL and overflow = 0.
-  if (!(umull_overflow_zero_times_unsigned_long_max_result == 0UL))
+  if (!(umull_0_ulong_max_res == 0UL))
     goto ERROR;
 
-  if (!(umull_overflow_zero_times_unsigned_long_max_overflow == 0))
+  if (!(umull_0_ulong_max_ov == 0))
     goto ERROR;
 
 
-  unsigned long int umull_overflow_one_times_unsigned_long_max_result;
-  int umull_overflow_one_times_unsigned_long_max_overflow;
-  umull_overflow_one_times_unsigned_long_max_overflow = __builtin_umull_overflow(1UL, umull_overflow_unsigned_long_max, &umull_overflow_one_times_unsigned_long_max_result);
+  unsigned long int umull_1_ulong_max_res;
+  int umull_1_ulong_max_ov;
+  umull_1_ulong_max_ov = __builtin_umull_overflow(1UL, umull_max, &umull_1_ulong_max_res);
 
   // 1UL * 18446744073709551615UL = 18446744073709551615, which fits the destination range; stored result = 18446744073709551615UL and
   // overflow = 0.
-  if (!(umull_overflow_one_times_unsigned_long_max_result == umull_overflow_unsigned_long_max))
+  if (!(umull_1_ulong_max_res == umull_max))
     goto ERROR;
 
-  if (!(umull_overflow_one_times_unsigned_long_max_overflow == 0))
+  if (!(umull_1_ulong_max_ov == 0))
     goto ERROR;
 
 
-  unsigned long int umull_overflow_two_times_not_0ul_div_2ul_result;
-  int umull_overflow_two_times_not_0ul_div_2ul_overflow;
-  umull_overflow_two_times_not_0ul_div_2ul_overflow = __builtin_umull_overflow(2UL, (~0UL) / 2UL, &umull_overflow_two_times_not_0ul_div_2ul_result);
+  unsigned long int umull_2_halfmax_res;
+  int umull_2_halfmax_ov;
+  umull_2_halfmax_ov = __builtin_umull_overflow(2UL, (~0UL) / 2UL, &umull_2_halfmax_res);
 
   // 2UL * 9223372036854775807UL = 18446744073709551614, which fits the destination range; stored result = 18446744073709551614UL and
   // overflow = 0.
-  if (!(umull_overflow_two_times_not_0ul_div_2ul_result == (~0UL) - 1UL))
+  if (!(umull_2_halfmax_res == (~0UL) - 1UL))
     goto ERROR;
 
-  if (!(umull_overflow_two_times_not_0ul_div_2ul_overflow == 0))
+  if (!(umull_2_halfmax_ov == 0))
     goto ERROR;
 
 
-  unsigned long int umull_overflow_two_times_not_0ul_div_2ul_plus_1ul_result;
-  int umull_overflow_two_times_not_0ul_div_2ul_plus_1ul_overflow;
-  umull_overflow_two_times_not_0ul_div_2ul_plus_1ul_overflow = __builtin_umull_overflow(2UL, (~0UL) / 2UL + 1UL, &umull_overflow_two_times_not_0ul_div_2ul_plus_1ul_result);
+  unsigned long int umull_2_halfmax1_res;
+  int umull_2_halfmax1_ov;
+  umull_2_halfmax1_ov = __builtin_umull_overflow(2UL, (~0UL) / 2UL + 1UL, &umull_2_halfmax1_res);
 
   // 2UL * 9223372036854775808UL = 18446744073709551616, outside the destination range; stored result = 0UL and overflow = 1.
-  if (!(umull_overflow_two_times_not_0ul_div_2ul_plus_1ul_result == 0UL))
+  if (!(umull_2_halfmax1_res == 0UL))
     goto ERROR;
 
-  if (!(umull_overflow_two_times_not_0ul_div_2ul_plus_1ul_overflow == 1))
+  if (!(umull_2_halfmax1_ov == 1))
     goto ERROR;
 
 
-  unsigned long int umull_overflow_unsigned_long_max_times_unsigned_long_max_result;
-  int umull_overflow_unsigned_long_max_times_unsigned_long_max_overflow;
-  umull_overflow_unsigned_long_max_times_unsigned_long_max_overflow = __builtin_umull_overflow(umull_overflow_unsigned_long_max, umull_overflow_unsigned_long_max, &umull_overflow_unsigned_long_max_times_unsigned_long_max_result);
+  unsigned long int umull_max_max_res;
+  int umull_max_max_ov;
+  umull_max_max_ov = __builtin_umull_overflow(umull_max, umull_max, &umull_max_max_res);
 
   // 18446744073709551615UL * 18446744073709551615UL = 340282366920938463426481119284349108225, outside the destination range; stored result
   // = 1UL and overflow = 1.
-  if (!(umull_overflow_unsigned_long_max_times_unsigned_long_max_result == 1UL))
+  if (!(umull_max_max_res == 1UL))
     goto ERROR;
 
-  if (!(umull_overflow_unsigned_long_max_times_unsigned_long_max_overflow == 1))
+  if (!(umull_max_max_ov == 1))
     goto ERROR;
 
 
-  unsigned long int umull_overflow_unsigned_long_max_times_two_result;
-  int umull_overflow_unsigned_long_max_times_two_overflow;
-  umull_overflow_unsigned_long_max_times_two_overflow = __builtin_umull_overflow(umull_overflow_unsigned_long_max, 2UL, &umull_overflow_unsigned_long_max_times_two_result);
+  unsigned long int umull_max_2_res;
+  int umull_max_2_ov;
+  umull_max_2_ov = __builtin_umull_overflow(umull_max, 2UL, &umull_max_2_res);
 
   // 18446744073709551615UL * 2UL = 36893488147419103230, outside the destination range; stored result = 18446744073709551614UL and overflow
   // = 1.
-  if (!(umull_overflow_unsigned_long_max_times_two_result == (~0UL) - 1UL))
+  if (!(umull_max_2_res == (~0UL) - 1UL))
     goto ERROR;
 
-  if (!(umull_overflow_unsigned_long_max_times_two_overflow == 1))
+  if (!(umull_max_2_ov == 1))
     goto ERROR;
 
 
   // Unsigned long long int multiplication overflow tests.
 
-  unsigned long long int umulll_overflow_zero_times_unsigned_long_long_max_result;
-  int umulll_overflow_zero_times_unsigned_long_long_max_overflow;
-  umulll_overflow_zero_times_unsigned_long_long_max_overflow = __builtin_umulll_overflow(0ULL, unsigned_long_long_max, &umulll_overflow_zero_times_unsigned_long_long_max_result);
+  unsigned long long int umulll_0_ull_max_res;
+  int umulll_0_ull_max_ov;
+  umulll_0_ull_max_ov = __builtin_umulll_overflow(0ULL, ull_max, &umulll_0_ull_max_res);
 
   // 0ULL * 18446744073709551615ULL = 0, which fits the destination range; stored result = 0ULL and overflow = 0.
-  if (!(umulll_overflow_zero_times_unsigned_long_long_max_result == 0ULL))
+  if (!(umulll_0_ull_max_res == 0ULL))
     goto ERROR;
 
-  if (!(umulll_overflow_zero_times_unsigned_long_long_max_overflow == 0))
+  if (!(umulll_0_ull_max_ov == 0))
     goto ERROR;
 
 
-  unsigned long long int umulll_overflow_one_times_unsigned_long_long_max_result;
-  int umulll_overflow_one_times_unsigned_long_long_max_overflow;
-  umulll_overflow_one_times_unsigned_long_long_max_overflow = __builtin_umulll_overflow(1ULL, unsigned_long_long_max, &umulll_overflow_one_times_unsigned_long_long_max_result);
+  unsigned long long int umulll_1_ull_max_res;
+  int umulll_1_ull_max_ov;
+  umulll_1_ull_max_ov = __builtin_umulll_overflow(1ULL, ull_max, &umulll_1_ull_max_res);
 
   // 1ULL * 18446744073709551615ULL = 18446744073709551615, which fits the destination range; stored result = 18446744073709551615ULL and
   // overflow = 0.
-  if (!(umulll_overflow_one_times_unsigned_long_long_max_result == unsigned_long_long_max))
+  if (!(umulll_1_ull_max_res == ull_max))
     goto ERROR;
 
-  if (!(umulll_overflow_one_times_unsigned_long_long_max_overflow == 0))
+  if (!(umulll_1_ull_max_ov == 0))
     goto ERROR;
 
 
-  unsigned long long int umulll_overflow_two_times_9223372036854775807ull_result;
-  int umulll_overflow_two_times_9223372036854775807ull_overflow;
-  umulll_overflow_two_times_9223372036854775807ull_overflow = __builtin_umulll_overflow(2ULL, 9223372036854775807ULL, &umulll_overflow_two_times_9223372036854775807ull_result);
+  unsigned long long int umulll_2_halfmax_res;
+  int umulll_2_halfmax_ov;
+  umulll_2_halfmax_ov = __builtin_umulll_overflow(2ULL, 9223372036854775807ULL, &umulll_2_halfmax_res);
 
   // 2ULL * 9223372036854775807ULL = 18446744073709551614, which fits the destination range; stored result = 18446744073709551614ULL and
   // overflow = 0.
-  if (!(umulll_overflow_two_times_9223372036854775807ull_result == 18446744073709551614ULL))
+  if (!(umulll_2_halfmax_res == 18446744073709551614ULL))
     goto ERROR;
 
-  if (!(umulll_overflow_two_times_9223372036854775807ull_overflow == 0))
+  if (!(umulll_2_halfmax_ov == 0))
     goto ERROR;
 
 
-  unsigned long long int umulll_overflow_two_times_9223372036854775808ull_result;
-  int umulll_overflow_two_times_9223372036854775808ull_overflow;
-  umulll_overflow_two_times_9223372036854775808ull_overflow = __builtin_umulll_overflow(2ULL, 9223372036854775808ULL, &umulll_overflow_two_times_9223372036854775808ull_result);
+  unsigned long long int umulll_2_halfmax1_res;
+  int umulll_2_halfmax1_ov;
+  umulll_2_halfmax1_ov = __builtin_umulll_overflow(2ULL, 9223372036854775808ULL, &umulll_2_halfmax1_res);
 
   // 2ULL * 9223372036854775808ULL = 18446744073709551616, outside the destination range; stored result = 0ULL and overflow = 1.
-  if (!(umulll_overflow_two_times_9223372036854775808ull_result == 0ULL))
+  if (!(umulll_2_halfmax1_res == 0ULL))
     goto ERROR;
 
-  if (!(umulll_overflow_two_times_9223372036854775808ull_overflow == 1))
+  if (!(umulll_2_halfmax1_ov == 1))
     goto ERROR;
 
 
-  unsigned long long int umulll_overflow_unsigned_long_long_max_times_unsigned_long_long_max_result;
-  int umulll_overflow_unsigned_long_long_max_times_unsigned_long_long_max_overflow;
-  umulll_overflow_unsigned_long_long_max_times_unsigned_long_long_max_overflow = __builtin_umulll_overflow(unsigned_long_long_max, unsigned_long_long_max, &umulll_overflow_unsigned_long_long_max_times_unsigned_long_long_max_result);
+  unsigned long long int umulll_max_max_res;
+  int umulll_max_max_ov;
+  umulll_max_max_ov = __builtin_umulll_overflow(ull_max, ull_max, &umulll_max_max_res);
 
   // 18446744073709551615ULL * 18446744073709551615ULL = 340282366920938463426481119284349108225, outside the destination range; stored
   // result = 1ULL and overflow = 1.
-  if (!(umulll_overflow_unsigned_long_long_max_times_unsigned_long_long_max_result == 1ULL))
+  if (!(umulll_max_max_res == 1ULL))
     goto ERROR;
 
-  if (!(umulll_overflow_unsigned_long_long_max_times_unsigned_long_long_max_overflow == 1))
+  if (!(umulll_max_max_ov == 1))
     goto ERROR;
 
 
-  unsigned long long int umulll_overflow_unsigned_long_long_max_times_two_result;
-  int umulll_overflow_unsigned_long_long_max_times_two_overflow;
-  umulll_overflow_unsigned_long_long_max_times_two_overflow = __builtin_umulll_overflow(unsigned_long_long_max, 2ULL, &umulll_overflow_unsigned_long_long_max_times_two_result);
+  unsigned long long int umulll_max_2_res;
+  int umulll_max_2_ov;
+  umulll_max_2_ov = __builtin_umulll_overflow(ull_max, 2ULL, &umulll_max_2_res);
 
   // 18446744073709551615ULL * 2ULL = 36893488147419103230, outside the destination range; stored result = 18446744073709551614ULL and
   // overflow = 1.
-  if (!(umulll_overflow_unsigned_long_long_max_times_two_result == 18446744073709551614ULL))
+  if (!(umulll_max_2_res == 18446744073709551614ULL))
     goto ERROR;
 
-  if (!(umulll_overflow_unsigned_long_long_max_times_two_overflow == 1))
+  if (!(umulll_max_2_ov == 1))
     goto ERROR;
 
 
