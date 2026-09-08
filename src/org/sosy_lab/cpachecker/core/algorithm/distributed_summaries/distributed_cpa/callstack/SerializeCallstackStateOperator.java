@@ -29,28 +29,23 @@ public class SerializeCallstackStateOperator implements SerializeOperator {
 
   @Override
   public ImmutableMap<String, String> serialize(AbstractState pCallstackState) {
-    boolean allowAllTransfers = DistributedCallstackCPA.allowsAllTransfers(pCallstackState);
-    String result;
-    if (allowAllTransfers) {
-      // the sending block did not know its callstack, so the stack carries no information:
-      // the receiving block starts with a fresh stack at its own initial location
-      result = "";
-    } else {
-      List<String> states = new ArrayList<>();
-      CallstackState callstackState = (CallstackState) pCallstackState;
-      while (callstackState != null) {
-        states.add(
-            nodeToId.get(callstackState.getCallNode()) + "." + callstackState.getCurrentFunction());
-        callstackState = callstackState.getPreviousState();
-      }
-      Collections.reverse(states);
-      result = Joiner.on(DistributedCallstackCPA.DELIMITER).join(states);
+    boolean canBeTopState = DistributedCallstackCPA.canBeTopState(pCallstackState);
+
+    List<String> states = new ArrayList<>();
+    CallstackState callstackState = (CallstackState) pCallstackState;
+    while (callstackState != null) {
+      states.add(
+          nodeToId.get(callstackState.getCallNode()) + "." + callstackState.getCurrentFunction());
+      callstackState = callstackState.getPreviousState();
     }
+    Collections.reverse(states);
+    String result = Joiner.on(DistributedCallstackCPA.DELIMITER).join(states);
+
     return ContentBuilder.builder()
         .pushLevel(CallstackState.class.getName())
         .put(SerializeOperator.STATE_KEY, result)
         // the receiving block has to know whether the sending block knew its callstack
-        .put(DistributedCallstackCPA.ALLOW_ALL_TRANSFERS_KEY, Boolean.toString(allowAllTransfers))
+        .put(DistributedCallstackCPA.CAN_BE_TOP_STATE_KEY, Boolean.toString(canBeTopState))
         .build();
   }
 }

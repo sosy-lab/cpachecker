@@ -34,9 +34,9 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  * Transfer relation for {@link DssCallstackState}.
  *
  * <p>The transfer relation records every traversed edge in the successor state. Depending on {@link
- * DssCallstackState#allowsAllTransfers()}, it either applies the standard callstack semantics of
- * {@link CallstackTransferRelation} or it applies every edge without inspecting the callstack. A
- * state that allows all transfers still tracks the functions that the block analysis enters itself,
+ * DssCallstackState#canBeTopState()}, it either applies the standard callstack semantics of {@link
+ * CallstackTransferRelation} or it applies every edge without inspecting the callstack. A state
+ * that allows all transfers still tracks the functions that the block analysis enters itself,
  * though: for those the call site is known, so the standard semantics may discard the return edges
  * of all other call sites (see {@link #changesCallstack(CFAEdge)} and {@link
  * #enteredFunctionItself(DssCallstackState)}).
@@ -65,7 +65,7 @@ public class DssCallstackTransferRelation extends CallstackTransferRelation {
       return super.getAbstractSuccessorsForEdge(pElement, pPrecision, pEdge);
     }
 
-    if (state.allowsAllTransfers()) {
+    if (state.isTopState()) {
       if (pEdge instanceof FunctionReturnEdge && !enteredFunctionItself(state)) {
         return ImmutableList.of(
             state.withWrappedStateAndTraversedEdge(

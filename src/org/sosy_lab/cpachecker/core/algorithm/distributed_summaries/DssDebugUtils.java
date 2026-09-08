@@ -376,7 +376,7 @@ public final class DssDebugUtils {
   }
 
   private static String renderCallstack(CallstackState pState) {
-    if (pState instanceof DssCallstackState dssState && dssState.allowsAllTransfers()) {
+    if (pState instanceof DssCallstackState dssState && dssState.canBeTopState()) {
       return "__ignore";
     }
     Deque<String> frames = new ArrayDeque<>();
