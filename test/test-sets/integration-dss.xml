@@ -40,7 +40,6 @@ SPDX-License-Identifier: Apache-2.0
   <tasks>
     <includesfile>../programs/benchmarks/Floats.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-    <!-- SV-Comp files assume that malloc always succeeds -->
     <exclude>../programs/benchmarks/neural-networks/*</exclude> <!-- only exceptions -->
     <exclude>../programs/benchmarks/float-newlib/double_req_bl_0*</exclude> <!-- just to reduce the test set -->
     <exclude>../programs/benchmarks/float-newlib/float_req_bl_0*</exclude> <!-- just to reduce the test set -->
