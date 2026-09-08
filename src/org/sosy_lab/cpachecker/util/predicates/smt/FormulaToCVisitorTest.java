@@ -1,0 +1,251 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.util.predicates.smt;
+
+import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.TruthJUnit.assume;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.util.CParserUtils;
+import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
+import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+
+/**
+ * Tests for {@link FormulaToCVisitor}. Every test is a round trip C -> SMT -> C: the formula of a C
+ * expression is converted back to a C expression, whose formula must be equivalent to the one we
+ * started with. Comparing the formulas instead of the C expressions keeps the tests independent of
+ * how the solvers restructure a formula. The C expressions are parsed the same way as the
+ * invariants of a witness, so a round trip mirrors exporting an invariant and validating it.
+ */
+@RunWith(Parameterized.class)
+@SuppressFBWarnings("NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
+public class FormulaToCVisitorTest extends SolverViewBasedTest0 {
+
+  /** The variables that the C expressions of the tests may use. */
+  private static final String DECLARATIONS = "int x; int y; unsigned int u; long long ll;";
+
+  @Parameters(name = "{0}")
+  public static Object[] getAllSolvers() {
+    return Solvers.values();
+  }
+
+  @Parameter(0)
+  public Solvers solverToUse;
+
+  @Override
+  protected Solvers solverToUse() {
+    return solverToUse;
+  }
+
+  /**
+   * Some solvers approximate bitvectors with integers, cf. {@link SolverViewBasedTest0}. They
+   * encode the operations that C defines only for one signedness with uninterpreted functions,
+   * which {@link FormulaToCVisitor} cannot write as a C expression.
+   */
+  private void requireBitvectorEncoding() {
+    assume()
+        .withMessage("Solver %s approximates bitvectors with integers", solverToUse())
+        .that(solverToUse())
+        .isNoneOf(Solvers.PRINCESS, Solvers.SMTINTERPOL, Solvers.OPENSMT);
+  }
+
+  /**
+   * Asserts for both machine models that converting the formula of the given C expression back to C
+   * preserves its meaning.
+   */
+  private void assertRoundTrip(String pExpression) throws Exception {
+    for (MachineModel machineModel : ImmutableList.of(MachineModel.LINUX32, MachineModel.LINUX64)) {
+      CFA cfa =
+          TestCfaUtils.makeCfaFromFunctionBody(
+              DECLARATIONS, Map.entry("analysis.machineModel", machineModel.name()));
+      BooleanFormula formula = toFormula(pExpression, cfa);
+      String roundTripped = toCExpression(formula);
+      assertThatFormula(toFormula(roundTripped, cfa)).isEquivalentTo(formula);
+    }
+  }
+
+  /**
+   * Returns the formula of the given C expression, which is parsed in the scope of the main
+   * function of the given CFA, in the same way as the invariant of a witness.
+   */
+  private BooleanFormula toFormula(String pExpression, CFA pCfa) throws Exception {
+    CParser parser =
+        CParser.Factory.getParser(
+            logger,
+            CParser.Factory.getOptions(config),
+            pCfa.getMachineModel(),
+            ShutdownNotifier.createDummy());
+    ExpressionTree<AExpression> expression =
+        CParserUtils.parseStatementsAsExpressionTree(
+            ImmutableSet.of(pExpression),
+            Optional.empty(),
+            parser,
+            new CProgramScope(pCfa, logger).withFunctionScope("main"),
+            ParserTools.create(ExpressionTrees.newFactory(), pCfa.getMachineModel(), logger));
+    CAssumeEdge assumption =
+        new CAssumeEdge(
+            pExpression,
+            FileLocation.DUMMY,
+            pCfa.getMainFunction(),
+            pCfa.getMainFunction(),
+            expression.accept(new ToCExpressionVisitor(pCfa.getMachineModel(), logger)),
+            true);
+
+    PathFormulaManagerImpl pfmgr =
+        new PathFormulaManagerImpl(
+            mgrv,
+            config,
+            logger,
+            ShutdownNotifier.createDummy(),
+            pCfa.getMachineModel(),
+            Optional.empty(),
+            AnalysisDirection.FORWARD,
+            Language.C);
+    return mgrv.uninstantiate(pfmgr.makeAnd(pfmgr.makeEmptyPathFormula(), assumption).getFormula());
+  }
+
+  /** Returns the C expression that {@link FormulaToCVisitor} creates for the given formula. */
+  private String toCExpression(BooleanFormula pFormula) {
+    FormulaToCVisitor visitor = new FormulaToCVisitor(mgrv, Function.identity());
+    assertThat(mgrv.visit(pFormula, visitor)).isTrue();
+    return visitor.getString();
+  }
+
+  /**
+   * A bitvector constant with its sign bit set must be written as a negative number. Written as the
+   * unsigned interpretation of its bit pattern, the literal would get a wider type in C, and the
+   * comparison would hold for every value of an {@code int} variable.
+   */
+  @Test
+  public void roundTripNegativeConstantInComparison() throws Exception {
+    assertRoundTrip("x < -268435455");
+  }
+
+  /** Equality does not tell us the signedness, but the C type of the operands is at least int. */
+  @Test
+  public void roundTripNegativeConstantInEquality() throws Exception {
+    assertRoundTrip("x == -100");
+  }
+
+  /** The signedness of the comparison also applies to the constants below it. */
+  @Test
+  public void roundTripNegativeConstantBelowArithmetic() throws Exception {
+    assertRoundTrip("x + -100 < y");
+  }
+
+  /**
+   * INT_MIN has no representation as a negated literal in C, because the literal is typed before
+   * the unary minus is applied.
+   */
+  @Test
+  public void roundTripIntMin() throws Exception {
+    assertRoundTrip("x < -2147483647 - 1");
+  }
+
+  /**
+   * An unsigned comparison of operands with a signed C type needs a cast. Without it, the
+   * comparison would hold for every value of an {@code int} variable instead of the non-negative
+   * ones.
+   */
+  @Test
+  public void roundTripUnsignedComparison() throws Exception {
+    assertRoundTrip("(unsigned int) x < 2147483648u");
+  }
+
+  /** An unsigned variable is compared as unsigned without any cast being necessary. */
+  @Test
+  public void roundTripUnsignedVariable() throws Exception {
+    assertRoundTrip("u > 42u");
+  }
+
+  /** The type of a constant depends on the bit-width of the operands. */
+  @Test
+  public void roundTripLongLongConstant() throws Exception {
+    assertRoundTrip("ll < -4294967296LL");
+  }
+
+  /** A constant on the left-hand side is reinterpreted as well. */
+  @Test
+  public void roundTripNegativeConstantOnLeftHandSide() throws Exception {
+    assertRoundTrip("-1073741824 < x");
+  }
+
+  /** The most frequent constant of the witnesses that were rejected: INT_MIN + 1. */
+  @Test
+  public void roundTripGreaterOrEqual() throws Exception {
+    assertRoundTrip("x >= -2147483647");
+  }
+
+  /**
+   * An unsigned comparison with the constant on the left-hand side needs the cast on both sides.
+   */
+  @Test
+  public void roundTripUnsignedComparisonWithConstantOnLeftHandSide() throws Exception {
+    assertRoundTrip("2147483646u < (unsigned int) x");
+  }
+
+  /** A shift is signedness-agnostic, so its operands keep the signedness of the comparison. */
+  @Test
+  public void roundTripShiftBelowComparison() throws Exception {
+    requireBitvectorEncoding();
+    assertRoundTrip("(x << 1) < -2147483647");
+  }
+
+  /** A negation of a comparison over a sum, as exported for the bitvector tasks. */
+  @Test
+  public void roundTripNegatedComparisonOverSum() throws Exception {
+    assertRoundTrip("!(2147483519 < x + -1)");
+  }
+
+  /** Signed division reads both of its operands as signed. */
+  @Test
+  public void roundTripSignedDivision() throws Exception {
+    requireBitvectorEncoding();
+    assertRoundTrip("x / -2 == 3");
+  }
+
+  /** Unsigned remainder, as exported for the tasks that use alloca. */
+  @Test
+  public void roundTripUnsignedRemainder() throws Exception {
+    requireBitvectorEncoding();
+    assertRoundTrip("(unsigned int) x % 16u == 0");
+  }
+
+  /** Expressions that need no reinterpretation must not be changed either. */
+  @Test
+  public void roundTripPositiveConstant() throws Exception {
+    assertRoundTrip("x < 100");
+  }
+}
