@@ -91,7 +91,7 @@ public class FormulaToCVisitorTest extends SolverViewBasedTest0 {
           TestCfaUtils.makeCfaFromFunctionBody(
               DECLARATIONS, Map.entry("analysis.machineModel", machineModel.name()));
       BooleanFormula formula = toFormula(pExpression, cfa);
-      String roundTripped = toCExpression(formula);
+      String roundTripped = toCExpression(formula, machineModel);
       assertThatFormula(toFormula(roundTripped, cfa)).isEquivalentTo(formula);
     }
   }
@@ -137,8 +137,8 @@ public class FormulaToCVisitorTest extends SolverViewBasedTest0 {
   }
 
   /** Returns the C expression that {@link FormulaToCVisitor} creates for the given formula. */
-  private String toCExpression(BooleanFormula pFormula) {
-    FormulaToCVisitor visitor = new FormulaToCVisitor(mgrv, Function.identity());
+  private String toCExpression(BooleanFormula pFormula, MachineModel pMachineModel) {
+    FormulaToCVisitor visitor = new FormulaToCVisitor(mgrv, Function.identity(), pMachineModel);
     assertThat(mgrv.visit(pFormula, visitor)).isTrue();
     return visitor.getString();
   }

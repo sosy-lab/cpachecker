@@ -13,6 +13,8 @@ import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.function.Function;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -33,13 +35,12 @@ import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
  */
 public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
 
-  private static final String LLONG_MIN_LITERAL = "9223372036854775808";
-
-  private static final String INT_MIN_LITERAL = "2147483648";
-
   private final StringBuilder builder = new StringBuilder();
 
   private final FormulaManagerView fmgr;
+
+  /** Bit-width of C's {@code int}, the smallest type that an operand is promoted to. */
+  private final int intWidthInBits;
 
   private boolean bvSigned = false;
 
@@ -67,9 +68,12 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
           FunctionDeclarationKind.FP_MUL);
 
   public FormulaToCVisitor(
-      FormulaManagerView fmgr, Function<String, String> pVariableNameConverter) {
+      FormulaManagerView fmgr,
+      Function<String, String> pVariableNameConverter,
+      MachineModel pMachineModel) {
     this.fmgr = fmgr;
     variableNameConverter = pVariableNameConverter;
+    intWidthInBits = pMachineModel.getSizeofInBits(CNumericTypes.INT);
   }
 
   @Override
@@ -90,21 +94,10 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
 
     if (type.isBitvectorType()) {
       final int size = ((FormulaType.BitvectorType) type).getSize();
-      switch (size) {
-        case 32 -> {
-          if (appendOverflowGuardForNegativeIntegralLiterals(INT_MIN_LITERAL, pValue)) {
-            return true;
-          }
-          builder.append(value);
-        }
-        case 64 -> {
-          if (appendOverflowGuardForNegativeIntegralLiterals(LLONG_MIN_LITERAL, pValue)) {
-            return true;
-          }
-          builder.append(value);
-        }
-        default -> builder.append(value);
+      if (size >= intWidthInBits && appendOverflowGuardForNegativeIntegralLiterals(size, pValue)) {
+        return true;
       }
+      builder.append(value);
     } else if (pValue instanceof Boolean) {
       builder.append(((boolean) pValue) ? "1" : "0");
     } else {
@@ -115,23 +108,23 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
   }
 
   /**
-   * The literals used for INT_MIN or LONG_MIN exceed the positive values of their corresponding
-   * data types and therefore an overflow would occur, if just written as '-[LITERAL]', since in C a
-   * literal is assigned its corresponding type before the unary '-' is applied.
+   * The magnitude of the smallest value of a signed type exceeds the positive values of that type
+   * and therefore an overflow would occur, if just written as '-[LITERAL]', since in C a literal is
+   * assigned its corresponding type before the unary '-' is applied. Narrower operands are promoted
+   * to {@code int} anyway, so this is only relevant for types that are at least as wide as that.
    *
-   * @param pGuardString the representation of a number that would be expected to overflow
+   * @param pSize the bit-width of the type of the literal
    * @param pValue the value of the observed expression
    * @return whether a guard was necessary or not
    */
-  private boolean appendOverflowGuardForNegativeIntegralLiterals(
-      String pGuardString, Object pValue) {
+  private boolean appendOverflowGuardForNegativeIntegralLiterals(int pSize, Object pValue) {
     if (pValue instanceof BigInteger bigInteger) {
-      String valueString = pValue.toString();
-      if (valueString.equals("-" + pGuardString)) {
+      BigInteger smallestValue = BigInteger.ONE.shiftLeft(pSize - 1);
+      if (bigInteger.negate().equals(smallestValue)) {
         builder.append("( ( ").append(bigInteger.add(BigInteger.ONE)).append(" ) - 1 )");
         return true;
       }
-      if (bvSigned && valueString.equals(pGuardString)) {
+      if (bvSigned && bigInteger.equals(smallestValue)) {
         builder.append("( ( -").append(bigInteger.subtract(BigInteger.ONE)).append(" ) - 1 )");
         return true;
       }
