@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.cpa.block;
 
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -51,6 +53,10 @@ public class BlockState
     WITNESS
   }
 
+  /** Separator between the ids of the states that a combined state was created from. */
+  private static final String ID_SEPARATOR = "+";
+
+  private final String id;
   private final BlockState predecessor;
   private final CFANode node;
   private final BlockStateType type;
@@ -64,6 +70,7 @@ public class BlockState
   private final transient Set<AbstractState> hinderedByCallstack;
 
   public BlockState(
+      String pId,
       BlockState pPredecessor,
       CFANode pNode,
       BlockNode pTargetNode,
@@ -75,6 +82,7 @@ public class BlockState
     Preconditions.checkArgument(
         pType == BlockStateType.WITNESS || pWitnessCheckPathState == null,
         "Added path state while not being in Witnes state");
+    id = pId;
     predecessor = pPredecessor;
     node = pNode;
     type = pType;
@@ -87,6 +95,7 @@ public class BlockState
   }
 
   public BlockState(
+      String pId,
       BlockState pPredecessor,
       CFANode pNode,
       BlockNode pTargetNode,
@@ -94,7 +103,36 @@ public class BlockState
       ImmutableList<? extends AbstractState> pViolationConditions,
       BlockGraphPath pHistory,
       SegmentedPaths pWitness) {
-    this(pPredecessor, pNode, pTargetNode, pType, pViolationConditions, pHistory, pWitness, null);
+    this(
+        pId,
+        pPredecessor,
+        pNode,
+        pTargetNode,
+        pType,
+        pViolationConditions,
+        pHistory,
+        pWitness,
+        null);
+  }
+
+  public String getUniqueId() {
+    return id;
+  }
+
+  /**
+   * Joins the ids of states that are combined into a single state, so that the parts remain
+   * recoverable with {@link #splitUniqueId(String)}.
+   */
+  public static String combineUniqueIds(Iterable<String> pIds) {
+    return Joiner.on(ID_SEPARATOR).join(pIds);
+  }
+
+  /**
+   * Splits an id created by {@link #combineUniqueIds(Iterable)} into the ids of the states it
+   * combines. An id that does not combine several states is returned as the only element.
+   */
+  public static ImmutableList<String> splitUniqueId(String pId) {
+    return ImmutableList.copyOf(Splitter.on(ID_SEPARATOR).split(pId));
   }
 
   public Set<AbstractState> getHinderedByCallstack() {
@@ -203,10 +241,10 @@ public class BlockState
    * from {@code that} no longer has to be analyzed from this state.
    *
    * <p>This comparison deliberately ignores everything that only records where a state came from:
-   * {@link #predecessor}, {@link #hinderedByCallstack} and, most importantly, {@link #history}. Two
-   * preconditions that reach the same block entry with the same callstack and the same abstraction
-   * have to subsume each other even if they arrived along different paths through the block graph,
-   * otherwise a block collects one precondition per block-graph path.
+   * {@link #id}, {@link #predecessor}, {@link #hinderedByCallstack} and, most importantly, {@link
+   * #history}. Two preconditions that reach the same block entry with the same callstack and the
+   * same abstraction have to subsume each other even if they arrived along different paths through
+   * the block graph, otherwise a block collects one precondition per block-graph path.
    *
    * <p>It also ignores {@link #violationConditions}, unlike {@link #equals}: coverage compares a
    * precondition that has just been deserialized from a message, which never carries a violation
