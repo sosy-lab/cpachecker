@@ -34,7 +34,7 @@ int main(void) {
 
   // This program targets ILP32 and fails its expected verdict under LP64.
 
-  // ILP32: 2147483647L + 1L overflows long, stores -2147483648L, and returns 1.
+  // ILP32: 2147483647L + 1L = 2147483648, outside long range; stored result = -2147483648L and overflow = 1.
   long int model_saddl_result;
   int model_saddl_overflow;
   model_saddl_overflow = __builtin_saddl_overflow(2147483647L, 1L, &model_saddl_result);
@@ -42,7 +42,7 @@ int main(void) {
   if (!(model_saddl_result != 0L && model_saddl_overflow == 1))
     goto ERROR;
 
-  // Tests for __builtin_add_overflow.
+  // Generic addition overflow tests.
 
 
   // ILP32: The calculated unsigned long must equal unsigned int maximum 4294967295U.
@@ -76,11 +76,10 @@ int main(void) {
   int add_overflow_signed_char_max_plus_zero_as_signed_char_overflow;
   add_overflow_signed_char_max_plus_zero_as_signed_char_overflow = __builtin_add_overflow(signed_char_max, 0, &add_overflow_signed_char_max_plus_zero_as_signed_char_result);
 
-  // __builtin_add_overflow(127, 0, &add_overflow_signed_char_max_plus_zero_as_signed_char_result) stores 127.
+  // 127 + 0 = 127, which fits the destination range; stored result = 127 and overflow = 0.
   if (!(add_overflow_signed_char_max_plus_zero_as_signed_char_result == signed_char_max))
     goto ERROR;
 
-  // __builtin_add_overflow(127, 0, &add_overflow_signed_char_max_plus_zero_as_signed_char_result) returns 0.
   if (!(add_overflow_signed_char_max_plus_zero_as_signed_char_overflow == 0))
     goto ERROR;
 
@@ -89,11 +88,10 @@ int main(void) {
   int add_overflow_signed_char_max_plus_one_as_signed_char_overflow;
   add_overflow_signed_char_max_plus_one_as_signed_char_overflow = __builtin_add_overflow(signed_char_max, 1, &add_overflow_signed_char_max_plus_one_as_signed_char_result);
 
-  // __builtin_add_overflow(127, 1, &add_overflow_signed_char_max_plus_one_as_signed_char_result) stores -128.
+  // 127 + 1 = 128, outside the destination range; stored result = -128 and overflow = 1.
   if (!(add_overflow_signed_char_max_plus_one_as_signed_char_result == signed_char_min))
     goto ERROR;
 
-  // __builtin_add_overflow(127, 1, &add_overflow_signed_char_max_plus_one_as_signed_char_result) returns 1.
   if (!(add_overflow_signed_char_max_plus_one_as_signed_char_overflow == 1))
     goto ERROR;
 
@@ -102,11 +100,10 @@ int main(void) {
   int add_overflow_unsigned_char_max_plus_one_as_unsigned_char_overflow;
   add_overflow_unsigned_char_max_plus_one_as_unsigned_char_overflow = __builtin_add_overflow(unsigned_char_max, 1, &add_overflow_unsigned_char_max_plus_one_as_unsigned_char_result);
 
-  // __builtin_add_overflow(255U, 1, &add_overflow_unsigned_char_max_plus_one_as_unsigned_char_result) stores 0.
+  // 255U + 1 = 256, outside the destination range; stored result = 0 and overflow = 1.
   if (!(add_overflow_unsigned_char_max_plus_one_as_unsigned_char_result == 0))
     goto ERROR;
 
-  // __builtin_add_overflow(255U, 1, &add_overflow_unsigned_char_max_plus_one_as_unsigned_char_result) returns 1.
   if (!(add_overflow_unsigned_char_max_plus_one_as_unsigned_char_overflow == 1))
     goto ERROR;
 
@@ -115,11 +112,10 @@ int main(void) {
   int add_overflow_short_min_plus_minus_one_as_short_int_overflow;
   add_overflow_short_min_plus_minus_one_as_short_int_overflow = __builtin_add_overflow(short_min, -1, &add_overflow_short_min_plus_minus_one_as_short_int_result);
 
-  // __builtin_add_overflow(-32768, -1, &add_overflow_short_min_plus_minus_one_as_short_int_result) stores 32767.
+  // -32768 + -1 = -32769, outside the destination range; stored result = 32767 and overflow = 1.
   if (!(add_overflow_short_min_plus_minus_one_as_short_int_result == short_max))
     goto ERROR;
 
-  // __builtin_add_overflow(-32768, -1, &add_overflow_short_min_plus_minus_one_as_short_int_result) returns 1.
   if (!(add_overflow_short_min_plus_minus_one_as_short_int_overflow == 1))
     goto ERROR;
 
@@ -128,11 +124,10 @@ int main(void) {
   int add_overflow_minus_one_plus_one_as_unsigned_short_int_overflow;
   add_overflow_minus_one_plus_one_as_unsigned_short_int_overflow = __builtin_add_overflow(-1, 1U, &add_overflow_minus_one_plus_one_as_unsigned_short_int_result);
 
-  // __builtin_add_overflow(-1, 1U, &add_overflow_minus_one_plus_one_as_unsigned_short_int_result) stores 0U.
+  // -1 + 1U = 0, which fits the destination range; stored result = 0U and overflow = 0.
   if (!(add_overflow_minus_one_plus_one_as_unsigned_short_int_result == 0U))
     goto ERROR;
 
-  // __builtin_add_overflow(-1, 1U, &add_overflow_minus_one_plus_one_as_unsigned_short_int_result) returns 0.
   if (!(add_overflow_minus_one_plus_one_as_unsigned_short_int_overflow == 0))
     goto ERROR;
 
@@ -141,11 +136,10 @@ int main(void) {
   int add_overflow_int_max_plus_one_as_int_overflow;
   add_overflow_int_max_plus_one_as_int_overflow = __builtin_add_overflow(int_max, 1, &add_overflow_int_max_plus_one_as_int_result);
 
-  // __builtin_add_overflow(2147483647, 1, &add_overflow_int_max_plus_one_as_int_result) stores (-2147483647 - 1).
+  // 2147483647 + 1 = 2147483648, outside the destination range; stored result = -2147483648 and overflow = 1.
   if (!(add_overflow_int_max_plus_one_as_int_result == int_min))
     goto ERROR;
 
-  // __builtin_add_overflow(2147483647, 1, &add_overflow_int_max_plus_one_as_int_result) returns 1.
   if (!(add_overflow_int_max_plus_one_as_int_overflow == 1))
     goto ERROR;
 
@@ -154,11 +148,10 @@ int main(void) {
   int add_overflow_unsigned_int_max_plus_one_as_unsigned_int_overflow;
   add_overflow_unsigned_int_max_plus_one_as_unsigned_int_overflow = __builtin_add_overflow(unsigned_int_max, 1U, &add_overflow_unsigned_int_max_plus_one_as_unsigned_int_result);
 
-  // __builtin_add_overflow(4294967295U, 1U, &add_overflow_unsigned_int_max_plus_one_as_unsigned_int_result) stores 0U.
+  // 4294967295U + 1U = 4294967296, outside the destination range; stored result = 0U and overflow = 1.
   if (!(add_overflow_unsigned_int_max_plus_one_as_unsigned_int_result == 0U))
     goto ERROR;
 
-  // __builtin_add_overflow(4294967295U, 1U, &add_overflow_unsigned_int_max_plus_one_as_unsigned_int_result) returns 1.
   if (!(add_overflow_unsigned_int_max_plus_one_as_unsigned_int_overflow == 1))
     goto ERROR;
 
@@ -167,14 +160,10 @@ int main(void) {
   int add_overflow_long_max_plus_one_as_long_int_overflow;
   add_overflow_long_max_plus_one_as_long_int_overflow = __builtin_add_overflow(add_overflow_long_max, 1L, &add_overflow_long_max_plus_one_as_long_int_result);
 
-  // ILP32: __builtin_add_overflow(2147483647L, 1L, &add_overflow_long_max_plus_one_as_long_int_result) stores -2147483648L.
-  // LP64: __builtin_add_overflow(9223372036854775807L, 1L, &add_overflow_long_max_plus_one_as_long_int_result) stores
-  // -9223372036854775808L.
+  // 2147483647L + 1L = 2147483648, outside the destination range; stored result = -2147483648L and overflow = 1.
   if (!(add_overflow_long_max_plus_one_as_long_int_result == add_overflow_long_min))
     goto ERROR;
 
-  // ILP32: __builtin_add_overflow(2147483647L, 1L, &add_overflow_long_max_plus_one_as_long_int_result) returns 1.
-  // LP64: __builtin_add_overflow(9223372036854775807L, 1L, &add_overflow_long_max_plus_one_as_long_int_result) returns 1.
   if (!(add_overflow_long_max_plus_one_as_long_int_overflow == 1))
     goto ERROR;
 
@@ -183,15 +172,10 @@ int main(void) {
   int add_overflow_unsigned_long_max_plus_one_as_unsigned_long_int_overflow;
   add_overflow_unsigned_long_max_plus_one_as_unsigned_long_int_overflow = __builtin_add_overflow(add_overflow_unsigned_long_max, 1UL, &add_overflow_unsigned_long_max_plus_one_as_unsigned_long_int_result);
 
-  // ILP32: __builtin_add_overflow(4294967295UL, 1UL, &add_overflow_unsigned_long_max_plus_one_as_unsigned_long_int_result) stores 0UL.
-  // LP64: __builtin_add_overflow(18446744073709551615UL, 1UL, &add_overflow_unsigned_long_max_plus_one_as_unsigned_long_int_result) stores
-  // 0UL.
+  // 4294967295UL + 1UL = 4294967296, outside the destination range; stored result = 0UL and overflow = 1.
   if (!(add_overflow_unsigned_long_max_plus_one_as_unsigned_long_int_result == 0UL))
     goto ERROR;
 
-  // ILP32: __builtin_add_overflow(4294967295UL, 1UL, &add_overflow_unsigned_long_max_plus_one_as_unsigned_long_int_result) returns 1.
-  // LP64: __builtin_add_overflow(18446744073709551615UL, 1UL, &add_overflow_unsigned_long_max_plus_one_as_unsigned_long_int_result) returns
-  // 1.
   if (!(add_overflow_unsigned_long_max_plus_one_as_unsigned_long_int_overflow == 1))
     goto ERROR;
 
@@ -200,12 +184,11 @@ int main(void) {
   int add_overflow_long_long_min_plus_minus_one_as_long_long_int_overflow;
   add_overflow_long_long_min_plus_minus_one_as_long_long_int_overflow = __builtin_add_overflow(long_long_min, -1LL, &add_overflow_long_long_min_plus_minus_one_as_long_long_int_result);
 
-  // __builtin_add_overflow(-9223372036854775808LL, -1LL, &add_overflow_long_long_min_plus_minus_one_as_long_long_int_result) stores
-  // 9223372036854775807LL.
+  // -9223372036854775808LL + -1LL = -9223372036854775809, outside the destination range; stored result = 9223372036854775807LL and overflow
+  // = 1.
   if (!(add_overflow_long_long_min_plus_minus_one_as_long_long_int_result == long_long_max))
     goto ERROR;
 
-  // __builtin_add_overflow(-9223372036854775808LL, -1LL, &add_overflow_long_long_min_plus_minus_one_as_long_long_int_result) returns 1.
   if (!(add_overflow_long_long_min_plus_minus_one_as_long_long_int_overflow == 1))
     goto ERROR;
 
@@ -214,13 +197,10 @@ int main(void) {
   int add_overflow_unsigned_long_long_max_plus_one_as_unsigned_long_long_int_overflow;
   add_overflow_unsigned_long_long_max_plus_one_as_unsigned_long_long_int_overflow = __builtin_add_overflow(unsigned_long_long_max, 1ULL, &add_overflow_unsigned_long_long_max_plus_one_as_unsigned_long_long_int_result);
 
-  // __builtin_add_overflow(18446744073709551615ULL, 1ULL, &add_overflow_unsigned_long_long_max_plus_one_as_unsigned_long_long_int_result)
-  // stores 0ULL.
+  // 18446744073709551615ULL + 1ULL = 18446744073709551616, outside the destination range; stored result = 0ULL and overflow = 1.
   if (!(add_overflow_unsigned_long_long_max_plus_one_as_unsigned_long_long_int_result == 0ULL))
     goto ERROR;
 
-  // __builtin_add_overflow(18446744073709551615ULL, 1ULL, &add_overflow_unsigned_long_long_max_plus_one_as_unsigned_long_long_int_result)
-  // returns 1.
   if (!(add_overflow_unsigned_long_long_max_plus_one_as_unsigned_long_long_int_overflow == 1))
     goto ERROR;
 
@@ -229,11 +209,10 @@ int main(void) {
   int add_overflow_char_max_plus_one_as_char_overflow;
   add_overflow_char_max_plus_one_as_char_overflow = __builtin_add_overflow(char_max, 1, &add_overflow_char_max_plus_one_as_char_result);
 
-  // __builtin_add_overflow((char)127, 1, &add_overflow_char_max_plus_one_as_char_result) stores (char)-128.
+  // (char)127 + 1 = 128, outside the destination range; stored result = (char)-128 and overflow = 1.
   if (!(add_overflow_char_max_plus_one_as_char_result == char_min))
     goto ERROR;
 
-  // __builtin_add_overflow((char)127, 1, &add_overflow_char_max_plus_one_as_char_result) returns 1.
   if (!(add_overflow_char_max_plus_one_as_char_overflow == 1))
     goto ERROR;
 
@@ -242,11 +221,10 @@ int main(void) {
   int add_overflow_minus_one_plus_one_as_int_overflow;
   add_overflow_minus_one_plus_one_as_int_overflow = __builtin_add_overflow(-1LL, 1ULL, &add_overflow_minus_one_plus_one_as_int_result);
 
-  // __builtin_add_overflow(-1LL, 1ULL, &add_overflow_minus_one_plus_one_as_int_result) stores 0.
+  // -1LL + 1ULL = 0, which fits the destination range; stored result = 0 and overflow = 0.
   if (!(add_overflow_minus_one_plus_one_as_int_result == 0))
     goto ERROR;
 
-  // __builtin_add_overflow(-1LL, 1ULL, &add_overflow_minus_one_plus_one_as_int_result) returns 0.
   if (!(add_overflow_minus_one_plus_one_as_int_overflow == 0))
     goto ERROR;
 
@@ -255,27 +233,25 @@ int main(void) {
   int add_overflow_unsigned_long_long_max_plus_zero_as_int_overflow;
   add_overflow_unsigned_long_long_max_plus_zero_as_int_overflow = __builtin_add_overflow(unsigned_long_long_max, 0, &add_overflow_unsigned_long_long_max_plus_zero_as_int_result);
 
-  // __builtin_add_overflow(18446744073709551615ULL, 0, &add_overflow_unsigned_long_long_max_plus_zero_as_int_result) stores
-  // (int)18446744073709551615ULL.
+  // 18446744073709551615ULL + 0 = 18446744073709551615, outside the destination range; stored result = (int)18446744073709551615ULL and
+  // overflow = 1.
   if (!(add_overflow_unsigned_long_long_max_plus_zero_as_int_result == (int)unsigned_long_long_max))
     goto ERROR;
 
-  // __builtin_add_overflow(18446744073709551615ULL, 0, &add_overflow_unsigned_long_long_max_plus_zero_as_int_result) returns 1.
   if (!(add_overflow_unsigned_long_long_max_plus_zero_as_int_overflow == 1))
     goto ERROR;
 
 
-  // Tests for __builtin_sadd_overflow.
+  // Signed int addition overflow tests.
 
   int sadd_overflow_zero_plus_zero_result;
   int sadd_overflow_zero_plus_zero_overflow;
   sadd_overflow_zero_plus_zero_overflow = __builtin_sadd_overflow(0, 0, &sadd_overflow_zero_plus_zero_result);
 
-  // __builtin_sadd_overflow(0, 0, &sadd_overflow_zero_plus_zero_result) stores 0.
+  // 0 + 0 = 0, which fits the destination range; stored result = 0 and overflow = 0.
   if (!(sadd_overflow_zero_plus_zero_result == 0))
     goto ERROR;
 
-  // __builtin_sadd_overflow(0, 0, &sadd_overflow_zero_plus_zero_result) returns 0.
   if (!(sadd_overflow_zero_plus_zero_overflow == 0))
     goto ERROR;
 
@@ -284,11 +260,10 @@ int main(void) {
   int sadd_overflow_int_max_plus_zero_overflow;
   sadd_overflow_int_max_plus_zero_overflow = __builtin_sadd_overflow(int_max, 0, &sadd_overflow_int_max_plus_zero_result);
 
-  // __builtin_sadd_overflow(2147483647, 0, &sadd_overflow_int_max_plus_zero_result) stores 2147483647.
+  // 2147483647 + 0 = 2147483647, which fits the destination range; stored result = 2147483647 and overflow = 0.
   if (!(sadd_overflow_int_max_plus_zero_result == int_max))
     goto ERROR;
 
-  // __builtin_sadd_overflow(2147483647, 0, &sadd_overflow_int_max_plus_zero_result) returns 0.
   if (!(sadd_overflow_int_max_plus_zero_overflow == 0))
     goto ERROR;
 
@@ -297,11 +272,10 @@ int main(void) {
   int sadd_overflow_int_min_plus_zero_overflow;
   sadd_overflow_int_min_plus_zero_overflow = __builtin_sadd_overflow(int_min, 0, &sadd_overflow_int_min_plus_zero_result);
 
-  // __builtin_sadd_overflow((-2147483647 - 1), 0, &sadd_overflow_int_min_plus_zero_result) stores (-2147483647 - 1).
+  // -2147483648 + 0 = -2147483648, which fits the destination range; stored result = -2147483648 and overflow = 0.
   if (!(sadd_overflow_int_min_plus_zero_result == int_min))
     goto ERROR;
 
-  // __builtin_sadd_overflow((-2147483647 - 1), 0, &sadd_overflow_int_min_plus_zero_result) returns 0.
   if (!(sadd_overflow_int_min_plus_zero_overflow == 0))
     goto ERROR;
 
@@ -310,11 +284,10 @@ int main(void) {
   int sadd_overflow_int_max_plus_minus_one_overflow;
   sadd_overflow_int_max_plus_minus_one_overflow = __builtin_sadd_overflow(int_max, -1, &sadd_overflow_int_max_plus_minus_one_result);
 
-  // __builtin_sadd_overflow(2147483647, -1, &sadd_overflow_int_max_plus_minus_one_result) stores 2147483647 - 1.
+  // 2147483647 + -1 = 2147483646, which fits the destination range; stored result = 2147483646 and overflow = 0.
   if (!(sadd_overflow_int_max_plus_minus_one_result == 2147483646))
     goto ERROR;
 
-  // __builtin_sadd_overflow(2147483647, -1, &sadd_overflow_int_max_plus_minus_one_result) returns 0.
   if (!(sadd_overflow_int_max_plus_minus_one_overflow == 0))
     goto ERROR;
 
@@ -323,11 +296,10 @@ int main(void) {
   int sadd_overflow_int_min_plus_one_overflow;
   sadd_overflow_int_min_plus_one_overflow = __builtin_sadd_overflow(int_min, 1, &sadd_overflow_int_min_plus_one_result);
 
-  // __builtin_sadd_overflow((-2147483647 - 1), 1, &sadd_overflow_int_min_plus_one_result) stores (-2147483647 - 1) + 1.
+  // -2147483648 + 1 = -2147483647, which fits the destination range; stored result = -2147483647 and overflow = 0.
   if (!(sadd_overflow_int_min_plus_one_result == -int_max))
     goto ERROR;
 
-  // __builtin_sadd_overflow((-2147483647 - 1), 1, &sadd_overflow_int_min_plus_one_result) returns 0.
   if (!(sadd_overflow_int_min_plus_one_overflow == 0))
     goto ERROR;
 
@@ -336,11 +308,10 @@ int main(void) {
   int sadd_overflow_int_max_plus_one_overflow;
   sadd_overflow_int_max_plus_one_overflow = __builtin_sadd_overflow(int_max, 1, &sadd_overflow_int_max_plus_one_result);
 
-  // __builtin_sadd_overflow(2147483647, 1, &sadd_overflow_int_max_plus_one_result) stores (-2147483647 - 1).
+  // 2147483647 + 1 = 2147483648, outside the destination range; stored result = -2147483648 and overflow = 1.
   if (!(sadd_overflow_int_max_plus_one_result == int_min))
     goto ERROR;
 
-  // __builtin_sadd_overflow(2147483647, 1, &sadd_overflow_int_max_plus_one_result) returns 1.
   if (!(sadd_overflow_int_max_plus_one_overflow == 1))
     goto ERROR;
 
@@ -349,16 +320,15 @@ int main(void) {
   int sadd_overflow_int_min_plus_minus_one_overflow;
   sadd_overflow_int_min_plus_minus_one_overflow = __builtin_sadd_overflow(int_min, -1, &sadd_overflow_int_min_plus_minus_one_result);
 
-  // __builtin_sadd_overflow((-2147483647 - 1), -1, &sadd_overflow_int_min_plus_minus_one_result) stores 2147483647.
+  // -2147483648 + -1 = -2147483649, outside the destination range; stored result = 2147483647 and overflow = 1.
   if (!(sadd_overflow_int_min_plus_minus_one_result == int_max))
     goto ERROR;
 
-  // __builtin_sadd_overflow((-2147483647 - 1), -1, &sadd_overflow_int_min_plus_minus_one_result) returns 1.
   if (!(sadd_overflow_int_min_plus_minus_one_overflow == 1))
     goto ERROR;
 
 
-  // Tests for __builtin_saddl_overflow.
+  // Signed long int addition overflow tests.
 
 
   // ILP32: The calculated unsigned long must equal unsigned int maximum 4294967295U.
@@ -392,11 +362,10 @@ int main(void) {
   int saddl_overflow_zero_plus_zero_overflow;
   saddl_overflow_zero_plus_zero_overflow = __builtin_saddl_overflow(0L, 0L, &saddl_overflow_zero_plus_zero_result);
 
-  // __builtin_saddl_overflow(0L, 0L, &saddl_overflow_zero_plus_zero_result) stores 0L.
+  // 0L + 0L = 0, which fits the destination range; stored result = 0L and overflow = 0.
   if (!(saddl_overflow_zero_plus_zero_result == 0L))
     goto ERROR;
 
-  // __builtin_saddl_overflow(0L, 0L, &saddl_overflow_zero_plus_zero_result) returns 0.
   if (!(saddl_overflow_zero_plus_zero_overflow == 0))
     goto ERROR;
 
@@ -405,13 +374,10 @@ int main(void) {
   int saddl_overflow_long_max_plus_zero_overflow;
   saddl_overflow_long_max_plus_zero_overflow = __builtin_saddl_overflow(saddl_overflow_long_max, 0L, &saddl_overflow_long_max_plus_zero_result);
 
-  // ILP32: __builtin_saddl_overflow(2147483647L, 0L, &saddl_overflow_long_max_plus_zero_result) stores 2147483647L.
-  // LP64: __builtin_saddl_overflow(9223372036854775807L, 0L, &saddl_overflow_long_max_plus_zero_result) stores 9223372036854775807L.
+  // 2147483647L + 0L = 2147483647, which fits the destination range; stored result = 2147483647L and overflow = 0.
   if (!(saddl_overflow_long_max_plus_zero_result == saddl_overflow_long_max))
     goto ERROR;
 
-  // ILP32: __builtin_saddl_overflow(2147483647L, 0L, &saddl_overflow_long_max_plus_zero_result) returns 0.
-  // LP64: __builtin_saddl_overflow(9223372036854775807L, 0L, &saddl_overflow_long_max_plus_zero_result) returns 0.
   if (!(saddl_overflow_long_max_plus_zero_overflow == 0))
     goto ERROR;
 
@@ -420,13 +386,10 @@ int main(void) {
   int saddl_overflow_long_min_plus_zero_overflow;
   saddl_overflow_long_min_plus_zero_overflow = __builtin_saddl_overflow(saddl_overflow_long_min, 0L, &saddl_overflow_long_min_plus_zero_result);
 
-  // ILP32: __builtin_saddl_overflow(-2147483648L, 0L, &saddl_overflow_long_min_plus_zero_result) stores -2147483648L.
-  // LP64: __builtin_saddl_overflow(-9223372036854775808L, 0L, &saddl_overflow_long_min_plus_zero_result) stores -9223372036854775808L.
+  // -2147483648L + 0L = -2147483648, which fits the destination range; stored result = -2147483648L and overflow = 0.
   if (!(saddl_overflow_long_min_plus_zero_result == saddl_overflow_long_min))
     goto ERROR;
 
-  // ILP32: __builtin_saddl_overflow(-2147483648L, 0L, &saddl_overflow_long_min_plus_zero_result) returns 0.
-  // LP64: __builtin_saddl_overflow(-9223372036854775808L, 0L, &saddl_overflow_long_min_plus_zero_result) returns 0.
   if (!(saddl_overflow_long_min_plus_zero_overflow == 0))
     goto ERROR;
 
@@ -435,14 +398,10 @@ int main(void) {
   int saddl_overflow_long_max_plus_minus_one_overflow;
   saddl_overflow_long_max_plus_minus_one_overflow = __builtin_saddl_overflow(saddl_overflow_long_max, -1L, &saddl_overflow_long_max_plus_minus_one_result);
 
-  // ILP32: __builtin_saddl_overflow(2147483647L, -1L, &saddl_overflow_long_max_plus_minus_one_result) stores 2147483647L - 1L.
-  // LP64: __builtin_saddl_overflow(9223372036854775807L, -1L, &saddl_overflow_long_max_plus_minus_one_result) stores 9223372036854775807L -
-  // 1L.
+  // 2147483647L + -1L = 2147483646, which fits the destination range; stored result = 2147483646L and overflow = 0.
   if (!(saddl_overflow_long_max_plus_minus_one_result == ((long int)((~0UL) >> 1)) - 1L))
     goto ERROR;
 
-  // ILP32: __builtin_saddl_overflow(2147483647L, -1L, &saddl_overflow_long_max_plus_minus_one_result) returns 0.
-  // LP64: __builtin_saddl_overflow(9223372036854775807L, -1L, &saddl_overflow_long_max_plus_minus_one_result) returns 0.
   if (!(saddl_overflow_long_max_plus_minus_one_overflow == 0))
     goto ERROR;
 
@@ -451,13 +410,11 @@ int main(void) {
   int saddl_overflow_long_min_plus_one_overflow;
   saddl_overflow_long_min_plus_one_overflow = __builtin_saddl_overflow(saddl_overflow_long_min, 1L, &saddl_overflow_long_min_plus_one_result);
 
-  // ILP32: __builtin_saddl_overflow(-2147483648L, 1L, &saddl_overflow_long_min_plus_one_result) stores -2147483648L + 1L.
-  // LP64: __builtin_saddl_overflow(-9223372036854775808L, 1L, &saddl_overflow_long_min_plus_one_result) stores -9223372036854775808L + 1L.
+  // saddl_overflow_long_min + 1L = saddl_overflow_long_min + 1L, which fits the destination range; stored result = -2147483647L and
+  // overflow = 0.
   if (!(saddl_overflow_long_min_plus_one_result == ((-((long int)((~0UL) >> 1)) - 1L)) + 1L))
     goto ERROR;
 
-  // ILP32: __builtin_saddl_overflow(-2147483648L, 1L, &saddl_overflow_long_min_plus_one_result) returns 0.
-  // LP64: __builtin_saddl_overflow(-9223372036854775808L, 1L, &saddl_overflow_long_min_plus_one_result) returns 0.
   if (!(saddl_overflow_long_min_plus_one_overflow == 0))
     goto ERROR;
 
@@ -466,13 +423,10 @@ int main(void) {
   int saddl_overflow_long_max_plus_one_overflow;
   saddl_overflow_long_max_plus_one_overflow = __builtin_saddl_overflow(saddl_overflow_long_max, 1L, &saddl_overflow_long_max_plus_one_result);
 
-  // ILP32: __builtin_saddl_overflow(2147483647L, 1L, &saddl_overflow_long_max_plus_one_result) stores -2147483648L.
-  // LP64: __builtin_saddl_overflow(9223372036854775807L, 1L, &saddl_overflow_long_max_plus_one_result) stores -9223372036854775808L.
+  // 2147483647L + 1L = 2147483648, outside the destination range; stored result = -2147483648L and overflow = 1.
   if (!(saddl_overflow_long_max_plus_one_result == saddl_overflow_long_min))
     goto ERROR;
 
-  // ILP32: __builtin_saddl_overflow(2147483647L, 1L, &saddl_overflow_long_max_plus_one_result) returns 1.
-  // LP64: __builtin_saddl_overflow(9223372036854775807L, 1L, &saddl_overflow_long_max_plus_one_result) returns 1.
   if (!(saddl_overflow_long_max_plus_one_overflow == 1))
     goto ERROR;
 
@@ -481,28 +435,24 @@ int main(void) {
   int saddl_overflow_long_min_plus_minus_one_overflow;
   saddl_overflow_long_min_plus_minus_one_overflow = __builtin_saddl_overflow(saddl_overflow_long_min, -1L, &saddl_overflow_long_min_plus_minus_one_result);
 
-  // ILP32: __builtin_saddl_overflow(-2147483648L, -1L, &saddl_overflow_long_min_plus_minus_one_result) stores 2147483647L.
-  // LP64: __builtin_saddl_overflow(-9223372036854775808L, -1L, &saddl_overflow_long_min_plus_minus_one_result) stores 9223372036854775807L.
+  // -2147483648L + -1L = -2147483649, outside the destination range; stored result = 2147483647L and overflow = 1.
   if (!(saddl_overflow_long_min_plus_minus_one_result == saddl_overflow_long_max))
     goto ERROR;
 
-  // ILP32: __builtin_saddl_overflow(-2147483648L, -1L, &saddl_overflow_long_min_plus_minus_one_result) returns 1.
-  // LP64: __builtin_saddl_overflow(-9223372036854775808L, -1L, &saddl_overflow_long_min_plus_minus_one_result) returns 1.
   if (!(saddl_overflow_long_min_plus_minus_one_overflow == 1))
     goto ERROR;
 
 
-  // Tests for __builtin_saddll_overflow.
+  // Signed long long int addition overflow tests.
 
   long long int saddll_overflow_zero_plus_zero_result;
   int saddll_overflow_zero_plus_zero_overflow;
   saddll_overflow_zero_plus_zero_overflow = __builtin_saddll_overflow(0LL, 0LL, &saddll_overflow_zero_plus_zero_result);
 
-  // __builtin_saddll_overflow(0LL, 0LL, &saddll_overflow_zero_plus_zero_result) stores 0LL.
+  // 0LL + 0LL = 0, which fits the destination range; stored result = 0LL and overflow = 0.
   if (!(saddll_overflow_zero_plus_zero_result == 0LL))
     goto ERROR;
 
-  // __builtin_saddll_overflow(0LL, 0LL, &saddll_overflow_zero_plus_zero_result) returns 0.
   if (!(saddll_overflow_zero_plus_zero_overflow == 0))
     goto ERROR;
 
@@ -511,11 +461,11 @@ int main(void) {
   int saddll_overflow_long_long_max_plus_zero_overflow;
   saddll_overflow_long_long_max_plus_zero_overflow = __builtin_saddll_overflow(long_long_max, 0LL, &saddll_overflow_long_long_max_plus_zero_result);
 
-  // __builtin_saddll_overflow(9223372036854775807LL, 0LL, &saddll_overflow_long_long_max_plus_zero_result) stores 9223372036854775807LL.
+  // 9223372036854775807LL + 0LL = 9223372036854775807, which fits the destination range; stored result = 9223372036854775807LL and overflow
+  // = 0.
   if (!(saddll_overflow_long_long_max_plus_zero_result == long_long_max))
     goto ERROR;
 
-  // __builtin_saddll_overflow(9223372036854775807LL, 0LL, &saddll_overflow_long_long_max_plus_zero_result) returns 0.
   if (!(saddll_overflow_long_long_max_plus_zero_overflow == 0))
     goto ERROR;
 
@@ -524,11 +474,11 @@ int main(void) {
   int saddll_overflow_long_long_min_plus_zero_overflow;
   saddll_overflow_long_long_min_plus_zero_overflow = __builtin_saddll_overflow(long_long_min, 0LL, &saddll_overflow_long_long_min_plus_zero_result);
 
-  // __builtin_saddll_overflow(-9223372036854775808LL, 0LL, &saddll_overflow_long_long_min_plus_zero_result) stores -9223372036854775808LL.
+  // -9223372036854775808LL + 0LL = -9223372036854775808, which fits the destination range; stored result = -9223372036854775808LL and
+  // overflow = 0.
   if (!(saddll_overflow_long_long_min_plus_zero_result == long_long_min))
     goto ERROR;
 
-  // __builtin_saddll_overflow(-9223372036854775808LL, 0LL, &saddll_overflow_long_long_min_plus_zero_result) returns 0.
   if (!(saddll_overflow_long_long_min_plus_zero_overflow == 0))
     goto ERROR;
 
@@ -537,12 +487,11 @@ int main(void) {
   int saddll_overflow_long_long_max_plus_minus_one_overflow;
   saddll_overflow_long_long_max_plus_minus_one_overflow = __builtin_saddll_overflow(long_long_max, -1LL, &saddll_overflow_long_long_max_plus_minus_one_result);
 
-  // __builtin_saddll_overflow(9223372036854775807LL, -1LL, &saddll_overflow_long_long_max_plus_minus_one_result) stores
-  // 9223372036854775807LL - 1LL.
+  // 9223372036854775807LL + -1LL = 9223372036854775806, which fits the destination range; stored result = 9223372036854775806LL and
+  // overflow = 0.
   if (!(saddll_overflow_long_long_max_plus_minus_one_result == 9223372036854775806LL))
     goto ERROR;
 
-  // __builtin_saddll_overflow(9223372036854775807LL, -1LL, &saddll_overflow_long_long_max_plus_minus_one_result) returns 0.
   if (!(saddll_overflow_long_long_max_plus_minus_one_overflow == 0))
     goto ERROR;
 
@@ -551,12 +500,11 @@ int main(void) {
   int saddll_overflow_long_long_min_plus_one_overflow;
   saddll_overflow_long_long_min_plus_one_overflow = __builtin_saddll_overflow(long_long_min, 1LL, &saddll_overflow_long_long_min_plus_one_result);
 
-  // __builtin_saddll_overflow(-9223372036854775808LL, 1LL, &saddll_overflow_long_long_min_plus_one_result) stores -9223372036854775808LL +
-  // 1LL.
+  // -9223372036854775808LL + 1LL = -9223372036854775807, which fits the destination range; stored result = -9223372036854775807LL and
+  // overflow = 0.
   if (!(saddll_overflow_long_long_min_plus_one_result == -long_long_max))
     goto ERROR;
 
-  // __builtin_saddll_overflow(-9223372036854775808LL, 1LL, &saddll_overflow_long_long_min_plus_one_result) returns 0.
   if (!(saddll_overflow_long_long_min_plus_one_overflow == 0))
     goto ERROR;
 
@@ -565,11 +513,11 @@ int main(void) {
   int saddll_overflow_long_long_max_plus_one_overflow;
   saddll_overflow_long_long_max_plus_one_overflow = __builtin_saddll_overflow(long_long_max, 1LL, &saddll_overflow_long_long_max_plus_one_result);
 
-  // __builtin_saddll_overflow(9223372036854775807LL, 1LL, &saddll_overflow_long_long_max_plus_one_result) stores -9223372036854775808LL.
+  // 9223372036854775807LL + 1LL = 9223372036854775808, outside the destination range; stored result = -9223372036854775808LL and overflow =
+  // 1.
   if (!(saddll_overflow_long_long_max_plus_one_result == long_long_min))
     goto ERROR;
 
-  // __builtin_saddll_overflow(9223372036854775807LL, 1LL, &saddll_overflow_long_long_max_plus_one_result) returns 1.
   if (!(saddll_overflow_long_long_max_plus_one_overflow == 1))
     goto ERROR;
 
@@ -578,27 +526,25 @@ int main(void) {
   int saddll_overflow_long_long_min_plus_minus_one_overflow;
   saddll_overflow_long_long_min_plus_minus_one_overflow = __builtin_saddll_overflow(long_long_min, -1LL, &saddll_overflow_long_long_min_plus_minus_one_result);
 
-  // __builtin_saddll_overflow(-9223372036854775808LL, -1LL, &saddll_overflow_long_long_min_plus_minus_one_result) stores
-  // 9223372036854775807LL.
+  // -9223372036854775808LL + -1LL = -9223372036854775809, outside the destination range; stored result = 9223372036854775807LL and overflow
+  // = 1.
   if (!(saddll_overflow_long_long_min_plus_minus_one_result == long_long_max))
     goto ERROR;
 
-  // __builtin_saddll_overflow(-9223372036854775808LL, -1LL, &saddll_overflow_long_long_min_plus_minus_one_result) returns 1.
   if (!(saddll_overflow_long_long_min_plus_minus_one_overflow == 1))
     goto ERROR;
 
 
-  // Tests for __builtin_uadd_overflow.
+  // Unsigned int addition overflow tests.
 
   unsigned int uadd_overflow_zero_plus_zero_result;
   int uadd_overflow_zero_plus_zero_overflow;
   uadd_overflow_zero_plus_zero_overflow = __builtin_uadd_overflow(0U, 0U, &uadd_overflow_zero_plus_zero_result);
 
-  // __builtin_uadd_overflow(0U, 0U, &uadd_overflow_zero_plus_zero_result) stores 0U.
+  // 0U + 0U = 0, which fits the destination range; stored result = 0U and overflow = 0.
   if (!(uadd_overflow_zero_plus_zero_result == 0U))
     goto ERROR;
 
-  // __builtin_uadd_overflow(0U, 0U, &uadd_overflow_zero_plus_zero_result) returns 0.
   if (!(uadd_overflow_zero_plus_zero_overflow == 0))
     goto ERROR;
 
@@ -607,11 +553,10 @@ int main(void) {
   int uadd_overflow_unsigned_int_max_plus_zero_overflow;
   uadd_overflow_unsigned_int_max_plus_zero_overflow = __builtin_uadd_overflow(unsigned_int_max, 0U, &uadd_overflow_unsigned_int_max_plus_zero_result);
 
-  // __builtin_uadd_overflow(4294967295U, 0U, &uadd_overflow_unsigned_int_max_plus_zero_result) stores 4294967295U.
+  // 4294967295U + 0U = 4294967295, which fits the destination range; stored result = 4294967295U and overflow = 0.
   if (!(uadd_overflow_unsigned_int_max_plus_zero_result == unsigned_int_max))
     goto ERROR;
 
-  // __builtin_uadd_overflow(4294967295U, 0U, &uadd_overflow_unsigned_int_max_plus_zero_result) returns 0.
   if (!(uadd_overflow_unsigned_int_max_plus_zero_overflow == 0))
     goto ERROR;
 
@@ -620,11 +565,10 @@ int main(void) {
   int uadd_overflow_unsigned_int_max_minus_one_plus_one_overflow;
   uadd_overflow_unsigned_int_max_minus_one_plus_one_overflow = __builtin_uadd_overflow(4294967294U, 1U, &uadd_overflow_unsigned_int_max_minus_one_plus_one_result);
 
-  // __builtin_uadd_overflow(4294967295U - 1U, 1U, &uadd_overflow_unsigned_int_max_minus_one_plus_one_result) stores 4294967295U.
+  // 4294967294U + 1U = 4294967295, which fits the destination range; stored result = 4294967295U and overflow = 0.
   if (!(uadd_overflow_unsigned_int_max_minus_one_plus_one_result == unsigned_int_max))
     goto ERROR;
 
-  // __builtin_uadd_overflow(4294967295U - 1U, 1U, &uadd_overflow_unsigned_int_max_minus_one_plus_one_result) returns 0.
   if (!(uadd_overflow_unsigned_int_max_minus_one_plus_one_overflow == 0))
     goto ERROR;
 
@@ -633,11 +577,10 @@ int main(void) {
   int uadd_overflow_unsigned_int_max_plus_one_overflow;
   uadd_overflow_unsigned_int_max_plus_one_overflow = __builtin_uadd_overflow(unsigned_int_max, 1U, &uadd_overflow_unsigned_int_max_plus_one_result);
 
-  // __builtin_uadd_overflow(4294967295U, 1U, &uadd_overflow_unsigned_int_max_plus_one_result) stores 0U.
+  // 4294967295U + 1U = 4294967296, outside the destination range; stored result = 0U and overflow = 1.
   if (!(uadd_overflow_unsigned_int_max_plus_one_result == 0U))
     goto ERROR;
 
-  // __builtin_uadd_overflow(4294967295U, 1U, &uadd_overflow_unsigned_int_max_plus_one_result) returns 1.
   if (!(uadd_overflow_unsigned_int_max_plus_one_overflow == 1))
     goto ERROR;
 
@@ -646,11 +589,10 @@ int main(void) {
   int uadd_overflow_unsigned_int_max_plus_two_overflow;
   uadd_overflow_unsigned_int_max_plus_two_overflow = __builtin_uadd_overflow(unsigned_int_max, 2U, &uadd_overflow_unsigned_int_max_plus_two_result);
 
-  // __builtin_uadd_overflow(4294967295U, 2U, &uadd_overflow_unsigned_int_max_plus_two_result) stores 1U.
+  // 4294967295U + 2U = 4294967297, outside the destination range; stored result = 1U and overflow = 1.
   if (!(uadd_overflow_unsigned_int_max_plus_two_result == 1U))
     goto ERROR;
 
-  // __builtin_uadd_overflow(4294967295U, 2U, &uadd_overflow_unsigned_int_max_plus_two_result) returns 1.
   if (!(uadd_overflow_unsigned_int_max_plus_two_overflow == 1))
     goto ERROR;
 
@@ -659,17 +601,15 @@ int main(void) {
   int uadd_overflow_unsigned_int_max_plus_unsigned_int_max_overflow;
   uadd_overflow_unsigned_int_max_plus_unsigned_int_max_overflow = __builtin_uadd_overflow(unsigned_int_max, unsigned_int_max, &uadd_overflow_unsigned_int_max_plus_unsigned_int_max_result);
 
-  // __builtin_uadd_overflow(4294967295U, 4294967295U, &uadd_overflow_unsigned_int_max_plus_unsigned_int_max_result) stores 4294967295U -
-  // 1U.
+  // 4294967295U + 4294967295U = 8589934590, outside the destination range; stored result = 4294967294U and overflow = 1.
   if (!(uadd_overflow_unsigned_int_max_plus_unsigned_int_max_result == 4294967294U))
     goto ERROR;
 
-  // __builtin_uadd_overflow(4294967295U, 4294967295U, &uadd_overflow_unsigned_int_max_plus_unsigned_int_max_result) returns 1.
   if (!(uadd_overflow_unsigned_int_max_plus_unsigned_int_max_overflow == 1))
     goto ERROR;
 
 
-  // Tests for __builtin_uaddl_overflow.
+  // Unsigned long int addition overflow tests.
 
 
   // ILP32: The calculated unsigned long must equal unsigned int maximum 4294967295U.
@@ -686,11 +626,10 @@ int main(void) {
   int uaddl_overflow_zero_plus_zero_overflow;
   uaddl_overflow_zero_plus_zero_overflow = __builtin_uaddl_overflow(0UL, 0UL, &uaddl_overflow_zero_plus_zero_result);
 
-  // __builtin_uaddl_overflow(0UL, 0UL, &uaddl_overflow_zero_plus_zero_result) stores 0UL.
+  // 0UL + 0UL = 0, which fits the destination range; stored result = 0UL and overflow = 0.
   if (!(uaddl_overflow_zero_plus_zero_result == 0UL))
     goto ERROR;
 
-  // __builtin_uaddl_overflow(0UL, 0UL, &uaddl_overflow_zero_plus_zero_result) returns 0.
   if (!(uaddl_overflow_zero_plus_zero_overflow == 0))
     goto ERROR;
 
@@ -699,14 +638,10 @@ int main(void) {
   int uaddl_overflow_unsigned_long_max_plus_zero_overflow;
   uaddl_overflow_unsigned_long_max_plus_zero_overflow = __builtin_uaddl_overflow(uaddl_overflow_unsigned_long_max, 0UL, &uaddl_overflow_unsigned_long_max_plus_zero_result);
 
-  // ILP32: __builtin_uaddl_overflow(4294967295UL, 0UL, &uaddl_overflow_unsigned_long_max_plus_zero_result) stores 4294967295UL.
-  // LP64: __builtin_uaddl_overflow(18446744073709551615UL, 0UL, &uaddl_overflow_unsigned_long_max_plus_zero_result) stores
-  // 18446744073709551615UL.
+  // 4294967295UL + 0UL = 4294967295, which fits the destination range; stored result = 4294967295UL and overflow = 0.
   if (!(uaddl_overflow_unsigned_long_max_plus_zero_result == uaddl_overflow_unsigned_long_max))
     goto ERROR;
 
-  // ILP32: __builtin_uaddl_overflow(4294967295UL, 0UL, &uaddl_overflow_unsigned_long_max_plus_zero_result) returns 0.
-  // LP64: __builtin_uaddl_overflow(18446744073709551615UL, 0UL, &uaddl_overflow_unsigned_long_max_plus_zero_result) returns 0.
   if (!(uaddl_overflow_unsigned_long_max_plus_zero_overflow == 0))
     goto ERROR;
 
@@ -715,14 +650,10 @@ int main(void) {
   int uaddl_overflow_unsigned_long_max_minus_one_plus_one_overflow;
   uaddl_overflow_unsigned_long_max_minus_one_plus_one_overflow = __builtin_uaddl_overflow((~0UL) - 1UL, 1UL, &uaddl_overflow_unsigned_long_max_minus_one_plus_one_result);
 
-  // ILP32: __builtin_uaddl_overflow(4294967294UL, 1UL, &uaddl_overflow_unsigned_long_max_minus_one_plus_one_result) stores 4294967295UL.
-  // LP64: __builtin_uaddl_overflow(18446744073709551614UL, 1UL, &uaddl_overflow_unsigned_long_max_minus_one_plus_one_result) stores
-  // 18446744073709551615UL.
+  // 4294967294UL + 1UL = 4294967295, which fits the destination range; stored result = 4294967295UL and overflow = 0.
   if (!(uaddl_overflow_unsigned_long_max_minus_one_plus_one_result == uaddl_overflow_unsigned_long_max))
     goto ERROR;
 
-  // ILP32: __builtin_uaddl_overflow(4294967294UL, 1UL, &uaddl_overflow_unsigned_long_max_minus_one_plus_one_result) returns 0.
-  // LP64: __builtin_uaddl_overflow(18446744073709551614UL, 1UL, &uaddl_overflow_unsigned_long_max_minus_one_plus_one_result) returns 0.
   if (!(uaddl_overflow_unsigned_long_max_minus_one_plus_one_overflow == 0))
     goto ERROR;
 
@@ -731,13 +662,10 @@ int main(void) {
   int uaddl_overflow_unsigned_long_max_plus_one_overflow;
   uaddl_overflow_unsigned_long_max_plus_one_overflow = __builtin_uaddl_overflow(uaddl_overflow_unsigned_long_max, 1UL, &uaddl_overflow_unsigned_long_max_plus_one_result);
 
-  // ILP32: __builtin_uaddl_overflow(4294967295UL, 1UL, &uaddl_overflow_unsigned_long_max_plus_one_result) stores 0UL.
-  // LP64: __builtin_uaddl_overflow(18446744073709551615UL, 1UL, &uaddl_overflow_unsigned_long_max_plus_one_result) stores 0UL.
+  // 4294967295UL + 1UL = 4294967296, outside the destination range; stored result = 0UL and overflow = 1.
   if (!(uaddl_overflow_unsigned_long_max_plus_one_result == 0UL))
     goto ERROR;
 
-  // ILP32: __builtin_uaddl_overflow(4294967295UL, 1UL, &uaddl_overflow_unsigned_long_max_plus_one_result) returns 1.
-  // LP64: __builtin_uaddl_overflow(18446744073709551615UL, 1UL, &uaddl_overflow_unsigned_long_max_plus_one_result) returns 1.
   if (!(uaddl_overflow_unsigned_long_max_plus_one_overflow == 1))
     goto ERROR;
 
@@ -746,13 +674,10 @@ int main(void) {
   int uaddl_overflow_unsigned_long_max_plus_two_overflow;
   uaddl_overflow_unsigned_long_max_plus_two_overflow = __builtin_uaddl_overflow(uaddl_overflow_unsigned_long_max, 2UL, &uaddl_overflow_unsigned_long_max_plus_two_result);
 
-  // ILP32: __builtin_uaddl_overflow(4294967295UL, 2UL, &uaddl_overflow_unsigned_long_max_plus_two_result) stores 1UL.
-  // LP64: __builtin_uaddl_overflow(18446744073709551615UL, 2UL, &uaddl_overflow_unsigned_long_max_plus_two_result) stores 1UL.
+  // 4294967295UL + 2UL = 4294967297, outside the destination range; stored result = 1UL and overflow = 1.
   if (!(uaddl_overflow_unsigned_long_max_plus_two_result == 1UL))
     goto ERROR;
 
-  // ILP32: __builtin_uaddl_overflow(4294967295UL, 2UL, &uaddl_overflow_unsigned_long_max_plus_two_result) returns 1.
-  // LP64: __builtin_uaddl_overflow(18446744073709551615UL, 2UL, &uaddl_overflow_unsigned_long_max_plus_two_result) returns 1.
   if (!(uaddl_overflow_unsigned_long_max_plus_two_overflow == 1))
     goto ERROR;
 
@@ -761,31 +686,24 @@ int main(void) {
   int uaddl_overflow_unsigned_long_max_plus_unsigned_long_max_overflow;
   uaddl_overflow_unsigned_long_max_plus_unsigned_long_max_overflow = __builtin_uaddl_overflow(uaddl_overflow_unsigned_long_max, uaddl_overflow_unsigned_long_max, &uaddl_overflow_unsigned_long_max_plus_unsigned_long_max_result);
 
-  // ILP32: __builtin_uaddl_overflow(4294967295UL, 4294967295UL, &uaddl_overflow_unsigned_long_max_plus_unsigned_long_max_result) stores
-  // 4294967294UL.
-  // LP64: __builtin_uaddl_overflow(18446744073709551615UL, 18446744073709551615UL,
-  // &uaddl_overflow_unsigned_long_max_plus_unsigned_long_max_result) stores 18446744073709551614UL.
+  // 4294967295UL + 4294967295UL = 8589934590, outside the destination range; stored result = 4294967294UL and overflow = 1.
   if (!(uaddl_overflow_unsigned_long_max_plus_unsigned_long_max_result == (~0UL) - 1UL))
     goto ERROR;
 
-  // ILP32: __builtin_uaddl_overflow(4294967295UL, 4294967295UL, &uaddl_overflow_unsigned_long_max_plus_unsigned_long_max_result) returns 1.
-  // LP64: __builtin_uaddl_overflow(18446744073709551615UL, 18446744073709551615UL,
-  // &uaddl_overflow_unsigned_long_max_plus_unsigned_long_max_result) returns 1.
   if (!(uaddl_overflow_unsigned_long_max_plus_unsigned_long_max_overflow == 1))
     goto ERROR;
 
 
-  // Tests for __builtin_uaddll_overflow.
+  // Unsigned long long int addition overflow tests.
 
   unsigned long long int uaddll_overflow_zero_plus_zero_result;
   int uaddll_overflow_zero_plus_zero_overflow;
   uaddll_overflow_zero_plus_zero_overflow = __builtin_uaddll_overflow(0ULL, 0ULL, &uaddll_overflow_zero_plus_zero_result);
 
-  // __builtin_uaddll_overflow(0ULL, 0ULL, &uaddll_overflow_zero_plus_zero_result) stores 0ULL.
+  // 0ULL + 0ULL = 0, which fits the destination range; stored result = 0ULL and overflow = 0.
   if (!(uaddll_overflow_zero_plus_zero_result == 0ULL))
     goto ERROR;
 
-  // __builtin_uaddll_overflow(0ULL, 0ULL, &uaddll_overflow_zero_plus_zero_result) returns 0.
   if (!(uaddll_overflow_zero_plus_zero_overflow == 0))
     goto ERROR;
 
@@ -794,12 +712,11 @@ int main(void) {
   int uaddll_overflow_unsigned_long_long_max_plus_zero_overflow;
   uaddll_overflow_unsigned_long_long_max_plus_zero_overflow = __builtin_uaddll_overflow(unsigned_long_long_max, 0ULL, &uaddll_overflow_unsigned_long_long_max_plus_zero_result);
 
-  // __builtin_uaddll_overflow(18446744073709551615ULL, 0ULL, &uaddll_overflow_unsigned_long_long_max_plus_zero_result) stores
-  // 18446744073709551615ULL.
+  // 18446744073709551615ULL + 0ULL = 18446744073709551615, which fits the destination range; stored result = 18446744073709551615ULL and
+  // overflow = 0.
   if (!(uaddll_overflow_unsigned_long_long_max_plus_zero_result == unsigned_long_long_max))
     goto ERROR;
 
-  // __builtin_uaddll_overflow(18446744073709551615ULL, 0ULL, &uaddll_overflow_unsigned_long_long_max_plus_zero_result) returns 0.
   if (!(uaddll_overflow_unsigned_long_long_max_plus_zero_overflow == 0))
     goto ERROR;
 
@@ -808,12 +725,11 @@ int main(void) {
   int uaddll_overflow_unsigned_long_long_max_minus_one_plus_one_overflow;
   uaddll_overflow_unsigned_long_long_max_minus_one_plus_one_overflow = __builtin_uaddll_overflow(18446744073709551614ULL, 1ULL, &uaddll_overflow_unsigned_long_long_max_minus_one_plus_one_result);
 
-  // __builtin_uaddll_overflow(18446744073709551614ULL, 1ULL, &uaddll_overflow_unsigned_long_long_max_minus_one_plus_one_result) stores
-  // 18446744073709551615ULL.
+  // 18446744073709551614ULL + 1ULL = 18446744073709551615, which fits the destination range; stored result = 18446744073709551615ULL and
+  // overflow = 0.
   if (!(uaddll_overflow_unsigned_long_long_max_minus_one_plus_one_result == unsigned_long_long_max))
     goto ERROR;
 
-  // __builtin_uaddll_overflow(18446744073709551614ULL, 1ULL, &uaddll_overflow_unsigned_long_long_max_minus_one_plus_one_result) returns 0.
   if (!(uaddll_overflow_unsigned_long_long_max_minus_one_plus_one_overflow == 0))
     goto ERROR;
 
@@ -822,11 +738,10 @@ int main(void) {
   int uaddll_overflow_unsigned_long_long_max_plus_one_overflow;
   uaddll_overflow_unsigned_long_long_max_plus_one_overflow = __builtin_uaddll_overflow(unsigned_long_long_max, 1ULL, &uaddll_overflow_unsigned_long_long_max_plus_one_result);
 
-  // __builtin_uaddll_overflow(18446744073709551615ULL, 1ULL, &uaddll_overflow_unsigned_long_long_max_plus_one_result) stores 0ULL.
+  // 18446744073709551615ULL + 1ULL = 18446744073709551616, outside the destination range; stored result = 0ULL and overflow = 1.
   if (!(uaddll_overflow_unsigned_long_long_max_plus_one_result == 0ULL))
     goto ERROR;
 
-  // __builtin_uaddll_overflow(18446744073709551615ULL, 1ULL, &uaddll_overflow_unsigned_long_long_max_plus_one_result) returns 1.
   if (!(uaddll_overflow_unsigned_long_long_max_plus_one_overflow == 1))
     goto ERROR;
 
@@ -835,11 +750,10 @@ int main(void) {
   int uaddll_overflow_unsigned_long_long_max_plus_two_overflow;
   uaddll_overflow_unsigned_long_long_max_plus_two_overflow = __builtin_uaddll_overflow(unsigned_long_long_max, 2ULL, &uaddll_overflow_unsigned_long_long_max_plus_two_result);
 
-  // __builtin_uaddll_overflow(18446744073709551615ULL, 2ULL, &uaddll_overflow_unsigned_long_long_max_plus_two_result) stores 1ULL.
+  // 18446744073709551615ULL + 2ULL = 18446744073709551617, outside the destination range; stored result = 1ULL and overflow = 1.
   if (!(uaddll_overflow_unsigned_long_long_max_plus_two_result == 1ULL))
     goto ERROR;
 
-  // __builtin_uaddll_overflow(18446744073709551615ULL, 2ULL, &uaddll_overflow_unsigned_long_long_max_plus_two_result) returns 1.
   if (!(uaddll_overflow_unsigned_long_long_max_plus_two_overflow == 1))
     goto ERROR;
 
@@ -848,13 +762,11 @@ int main(void) {
   int uaddll_overflow_unsigned_long_long_max_plus_unsigned_long_long_max_overflow;
   uaddll_overflow_unsigned_long_long_max_plus_unsigned_long_long_max_overflow = __builtin_uaddll_overflow(unsigned_long_long_max, unsigned_long_long_max, &uaddll_overflow_unsigned_long_long_max_plus_unsigned_long_long_max_result);
 
-  // __builtin_uaddll_overflow(18446744073709551615ULL, 18446744073709551615ULL,
-  // &uaddll_overflow_unsigned_long_long_max_plus_unsigned_long_long_max_result) stores 18446744073709551614ULL.
+  // 18446744073709551615ULL + 18446744073709551615ULL = 36893488147419103230, outside the destination range; stored result =
+  // 18446744073709551614ULL and overflow = 1.
   if (!(uaddll_overflow_unsigned_long_long_max_plus_unsigned_long_long_max_result == 18446744073709551614ULL))
     goto ERROR;
 
-  // __builtin_uaddll_overflow(18446744073709551615ULL, 18446744073709551615ULL,
-  // &uaddll_overflow_unsigned_long_long_max_plus_unsigned_long_long_max_result) returns 1.
   if (!(uaddll_overflow_unsigned_long_long_max_plus_unsigned_long_long_max_overflow == 1))
     goto ERROR;
 
