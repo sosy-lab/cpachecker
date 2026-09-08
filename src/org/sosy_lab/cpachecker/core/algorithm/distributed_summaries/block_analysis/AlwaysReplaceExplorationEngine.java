@@ -113,7 +113,7 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
     }
 
     Precision precisionOfAnalysis =
-        analysis.getOptions().doResetPrecisionsForEveryRun() || preconditions.isEmpty()
+        preconditions.isEmpty()
             ? analysis.makeStartPrecision()
             : analysis.combinePrecisions(preconditions.getStatesAndPrecisions());
 
