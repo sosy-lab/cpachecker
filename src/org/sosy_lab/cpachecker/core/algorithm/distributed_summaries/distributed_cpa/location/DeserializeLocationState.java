@@ -13,7 +13,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
 
 public class DeserializeLocationState implements DeserializeOperator {
@@ -30,9 +29,11 @@ public class DeserializeLocationState implements DeserializeOperator {
   @Override
   public AbstractState deserialize(DssMessageWithStates pMessage, int pStateIndex)
       throws InterruptedException {
-    int nodeNumber =
-        Integer.parseInt(
-            pMessage.getAbstractStateContent(LocationState.class, pStateIndex).get(STATE_KEY));
-    return locationStateFactory.getState(availableNodes.get(nodeNumber));
+    return deserializePayload(
+        DssLocationStatePayload.fromContentMap(pMessage.getStates().get(pStateIndex)));
+  }
+
+  private AbstractState deserializePayload(DssLocationStatePayload pPayload) {
+    return locationStateFactory.getState(availableNodes.get(pPayload.nodeId()));
   }
 }
