@@ -8,13 +8,16 @@
 
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.function.Function;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -35,9 +38,20 @@ import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
  */
 public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
 
+  /** The unsigned C types that we can use for casting a bitvector, cf. {@link #unsignedTypeOf}. */
+  private static final ImmutableList<CSimpleType> UNSIGNED_TYPES =
+      ImmutableList.of(
+          CNumericTypes.UNSIGNED_CHAR,
+          CNumericTypes.UNSIGNED_SHORT_INT,
+          CNumericTypes.UNSIGNED_INT,
+          CNumericTypes.UNSIGNED_LONG_INT,
+          CNumericTypes.UNSIGNED_LONG_LONG_INT);
+
   private final StringBuilder builder = new StringBuilder();
 
   private final FormulaManagerView fmgr;
+
+  private final MachineModel machineModel;
 
   private final int intWidthInBits;
 
@@ -94,6 +108,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
       MachineModel pMachineModel) {
     this.fmgr = fmgr;
     variableNameConverter = pVariableNameConverter;
+    machineModel = pMachineModel;
     intWidthInBits = pMachineModel.getSizeofInBits(CNumericTypes.INT);
   }
 
@@ -157,6 +172,23 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
     }
   }
 
+  /**
+   * Returns the unsigned C type with the same bit-width as the given operand, or {@code null} if
+   * there is no such type.
+   */
+  private @Nullable CSimpleType unsignedTypeOf(Formula pOperand) {
+    FormulaType<?> type = fmgr.getFormulaType(pOperand);
+    if (type.isBitvectorType()) {
+      int size = ((FormulaType.BitvectorType) type).getSize();
+      for (CSimpleType unsignedType : UNSIGNED_TYPES) {
+        if (machineModel.getSizeofInBits(unsignedType) == size) {
+          return unsignedType;
+        }
+      }
+    }
+    return null;
+  }
+
   @Override
   public Boolean visitFunction(
       Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
@@ -204,6 +236,18 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
     // so their operands keep the signedness of the surrounding context
     bvSigned = SIGNED_OPS.contains(kind) || (signedCarryThrough && !UNSIGNED_OPS.contains(kind));
 
+    // The variables of the C program usually have a signed type, so operations that read their
+    // operands as unsigned numbers need an explicit cast.
+    String cast = "";
+    if (UNSIGNED_OPS.contains(kind)) {
+      CSimpleType unsignedType = unsignedTypeOf(pArgs.getFirst());
+      if (unsignedType == null) {
+        // there is no C type with the bit-width of the operands
+        return false;
+      }
+      cast = "( " + unsignedType + " ) ";
+    }
+
     builder.append("( ");
     if (pArgs.size() == 3 && pFunctionDeclaration.getKind() == FunctionDeclarationKind.ITE) {
       if (!fmgr.visit(pArgs.getFirst(), this)) {
@@ -232,10 +276,11 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
         }
       }
     } else if (pArgs.size() == 2) {
+      builder.append(cast);
       if (!fmgr.visit(pArgs.getFirst(), this)) {
         return false;
       }
-      builder.append(" ").append(op).append(" ");
+      builder.append(" ").append(op).append(" ").append(cast);
       if (!fmgr.visit(pArgs.get(1), this)) {
         return false;
       }
