@@ -10,19 +10,21 @@ extern void __assert_fail(const char *, const char *, unsigned int,
                           const char *) __attribute__((__nothrow__, __leaf__))
 __attribute__((__noreturn__));
 
+void reach_error() { __assert_fail("0", "many-ifs.c", 12, "reach_error"); }
+
 int main() {
 
   int x = 0;
   if (x >= 0) {
     if (x == 1) {
-      __assert_fail("0", "Problem01_label00.c", 4, "reac1h_error");
+      reach_error();
     }
     if (x == 1) {
-      __assert_fail("1", "Problem01_label001.c", 4, "r1each_error");
+      reach_error();
     }
     x++;
     x++;
-    __assert_fail("1", "Problem01_label001.c", 4, "r1each_error");
+    reach_error();
   } else {
     if (x == 1) {
       x--;

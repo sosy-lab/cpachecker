@@ -55,12 +55,10 @@ import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
-import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.ConsoleLogFormatter;
 import org.sosy_lab.common.log.LogManager;
@@ -69,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /** Test that the bundled configuration files are all valid. */
 @RunWith(Parameterized.class)
@@ -251,7 +250,7 @@ public class ConfigurationFileChecks {
   @SuppressWarnings("CheckReturnValue")
   public void parse() throws URISyntaxException {
     try {
-      parse(configFile).build();
+      Configuration.builder().loadFromFile(configFileAsPath()).build();
     } catch (InvalidConfigurationException | IOException e) {
       assertWithMessage(
               "Error during parsing of configuration file %s : %s", configFile, e.getMessage())
@@ -259,17 +258,14 @@ public class ConfigurationFileChecks {
     }
   }
 
-  private static ConfigurationBuilder parse(Object pConfigFile)
-      throws IOException, InvalidConfigurationException, URISyntaxException {
-    Path configFile;
-    if (pConfigFile instanceof Path path) {
-      configFile = path;
-    } else if (pConfigFile instanceof URL uRL) {
-      configFile = Path.of(uRL.toURI());
+  private Path configFileAsPath() throws URISyntaxException {
+    if (configFile instanceof Path path) {
+      return path;
+    } else if (configFile instanceof URL uRL) {
+      return Path.of(uRL.toURI());
     } else {
-      throw new AssertionError("Unexpected config file " + pConfigFile);
+      throw new AssertionError("Unexpected config file " + configFile);
     }
-    return Configuration.builder().loadFromFile(configFile);
   }
 
   @Rule public final Expect expect = Expect.create();
@@ -278,7 +274,7 @@ public class ConfigurationFileChecks {
   public void checkUndesiredOptions() {
     Configuration config;
     try {
-      config = parse(configFile).build();
+      config = Configuration.builder().loadFromFile(configFileAsPath()).build();
     } catch (InvalidConfigurationException | IOException | URISyntaxException e) {
       assumeNoException(e);
       throw new AssertionError(e);
@@ -610,15 +606,8 @@ public class ConfigurationFileChecks {
 
   private Configuration createConfigurationForTestInstantiation() {
     try {
-      FileTypeConverter fileTypeConverter =
-          FileTypeConverter.create(
-              Configuration.builder()
-                  .setOption("rootDirectory", tempFolder.getRoot().toString())
-                  .build());
-      Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
-
-      return parse(configFile)
-          .addConverter(FileOption.class, fileTypeConverter)
+      return TestUtils.configurationForTestWithOutput(tempFolder)
+          .loadFromFile(configFileAsPath())
           .setOption("java.sourcepath", tempFolder.getRoot().toString())
           .setOption("differential.program", createEmptyProgram(Language.C))
           .setOption("statistics.memory", "false")

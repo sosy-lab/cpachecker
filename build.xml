@@ -115,7 +115,7 @@ SPDX-License-Identifier: Apache-2.0
                 classpath="${ivy.lib.dir}/build/forbiddenapis.jar"/>
         <forbiddenapis
                 classpathref="classpath" dir="${class.dir}"
-                targetVersion="11"
+                targetVersion="${source.release}"
                 suppressAnnotation="org.sosy_lab.common.annotations.SuppressForbidden">
             <!-- explanation of bundled signatures:
                  https://github.com/policeman-tools/forbidden-apis/wiki/BundledSignatures -->

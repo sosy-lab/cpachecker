@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -24,8 +25,11 @@ import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 
 /**
  * Abstract base class for messages used in distributed summary synthesis. Each message has a sender
@@ -38,7 +42,8 @@ public abstract class DssMessage {
     POST_CONDITION,
     VIOLATION_CONDITION,
     EXCEPTION,
-    RESULT
+    RESULT,
+    WITNESS
   }
 
   private static class DssMessageProxy {
@@ -114,13 +119,14 @@ public abstract class DssMessage {
 
   private ContentReader getArbitraryContent(String pKey) {
     checkArgument(
-        type == DssMessageType.POST_CONDITION || type == DssMessageType.VIOLATION_CONDITION,
+        type == DssMessageType.POST_CONDITION
+            || type == DssMessageType.VIOLATION_CONDITION
+            || type == DssMessageType.WITNESS,
         "Cannot get content for type: %s",
         type);
     Map<String, String> stateContent = ContentReader.read(content).pushLevel(pKey).getContent();
-    Preconditions.checkState(
-        !stateContent.isEmpty(), "State content cannot be empty for key %s.", pKey);
-    Preconditions.checkState(
+    checkState(!stateContent.isEmpty(), "State content cannot be empty for key %s.", pKey);
+    checkState(
         stateContent.values().stream().noneMatch(Objects::isNull),
         "Null values are not allowed in content.");
     return ContentReader.read(stateContent);
@@ -163,9 +169,44 @@ public abstract class DssMessage {
 
   public final Result getResult() {
     checkArgument(type == DssMessageType.RESULT, "Cannot get content for type: " + "%s", type);
-    String resultString = content.get(DssResultMessage.DSS_MESSAGE_RESULT_KEY);
-    Preconditions.checkNotNull(resultString, "Result content is missing in message: %s", this);
-    return Result.valueOf(resultString);
+    return Result.valueOf(
+        Preconditions.checkNotNull(
+            content.get(DssResultMessage.DSS_MESSAGE_RESULT_KEY),
+            "Result content is missing in message: %s",
+            this));
+  }
+
+  public final DssWitnessMessage.WitnessType getWitnessType() {
+    checkArgument(type == DssMessageType.WITNESS, "Cannot get content for type: %s", type);
+    return DssWitnessMessage.WitnessType.valueOf(
+        Preconditions.checkNotNull(
+            content.get(DssWitnessMessage.DSS_MESSAGE_WITNESS_TYPE_KEY),
+            "Witness type is missing in message: %s",
+            this));
+  }
+
+  public final SegmentedPaths getViolationPath() {
+    checkArgument(
+        getWitnessType() == DssWitnessMessage.WitnessType.VIOLATION,
+        "Cannot get violation path for witness type: %s",
+        type);
+    return SegmentedPaths.deserialize(
+        Preconditions.checkNotNull(
+            content.get(DssWitnessMessage.DSS_MESSAGE_VIOLATION_PATH_KEY),
+            "No violation path present in witness message: %s",
+            this));
+  }
+
+  public final String extractBlockStateWitnessString() {
+    checkArgument(
+        type == DssMessageType.VIOLATION_CONDITION, "Cannot get content for type: " + "%s", type);
+
+    checkState(getNumberOfContainedStates().orElse(-1) >= 1, "No state to extract witness from");
+
+    return ContentReader.read(content)
+        .pushLevel(BlockState.class.getName())
+        .pushLevel(SerializeOperator.STATE_KEY + 0)
+        .get(SerializeOperator.STATE_KEY);
   }
 
   public final AlgorithmStatus getAlgorithmStatus() {
@@ -197,10 +238,10 @@ public abstract class DssMessage {
 
   public final String getExceptionMessage() {
     checkArgument(type == DssMessageType.EXCEPTION, "Cannot get content for type: " + "%s", type);
-    String exceptionMessage = content.get(DssExceptionMessage.DSS_MESSAGE_EXCEPTION_KEY);
-    Preconditions.checkNotNull(
-        exceptionMessage, "Exception message is missing in message: %s", this);
-    return exceptionMessage;
+    return Preconditions.checkNotNull(
+        content.get(DssExceptionMessage.DSS_MESSAGE_EXCEPTION_KEY),
+        "Exception message is missing in message: %s",
+        this);
   }
 
   /**
@@ -259,6 +300,7 @@ public abstract class DssMessage {
       case VIOLATION_CONDITION -> new DssViolationConditionMessage(senderId, content);
       case EXCEPTION -> new DssExceptionMessage(senderId, content);
       case RESULT -> new DssResultMessage(senderId, content);
+      case WITNESS -> new DssWitnessMessage(senderId, content);
     };
   }
 }

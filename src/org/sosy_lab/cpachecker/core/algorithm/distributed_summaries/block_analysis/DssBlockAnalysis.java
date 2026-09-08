@@ -70,7 +70,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
-import org.sosy_lab.cpachecker.cpa.block.ViolationWitness;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -382,7 +382,7 @@ public class DssBlockAnalysis {
    * @return A list of StateAndPrecision objects restored from the message.
    * @throws InterruptedException If the deserialization is interrupted.
    */
-  private ImmutableList<@NonNull StateAndPrecision> deserialize(final DssMessage pMessage)
+  public ImmutableList<@NonNull StateAndPrecision> deserialize(final DssMessage pMessage)
       throws InterruptedException {
     OptionalInt optionalNumberOfStates = pMessage.getNumberOfContainedStates();
     if (optionalNumberOfStates.isEmpty()) {
@@ -399,6 +399,10 @@ public class DssBlockAnalysis {
       statesAndPrecisions.add(new StateAndPrecision(state, precision));
     }
     return statesAndPrecisions.build();
+  }
+
+  public ImmutableMap<String, String> serializedPreconditions() {
+    return serialize(ImmutableList.copyOf(preconditions.values()));
   }
 
   private Collection<ARGPath> collectPaths(Iterable<@NonNull ARGState> states) {
@@ -611,7 +615,7 @@ public class DssBlockAnalysis {
     }
   }
 
-  private ViolationWitness extractWitnessFromState(AbstractState state) {
+  private SegmentedPaths extractWitnessFromState(AbstractState state) {
     return Objects.requireNonNull(AbstractStates.extractStateByType(state, BlockState.class))
         .getWitness();
   }
@@ -627,13 +631,12 @@ public class DssBlockAnalysis {
   public DssMessageProcessing storeViolationCondition(
       DssViolationConditionMessage pNewViolationCondition)
       throws InterruptedException, SolverException {
-    ImmutableList<StateAndPrecision> deserializedStates = ImmutableList.of();
+    logger.log(Level.INFO, "Running forward analysis with respect to error condition");
+    // merge all states into the reached set
+    ImmutableList<StateAndPrecision> deserializedStates = deserialize(pNewViolationCondition);
     workerStats.getStoreViolationConditionStatesTimer().start();
     try {
-      logger.log(Level.INFO, "Running forward analysis with respect to error condition");
-      // merge all states into the reached set
-      deserializedStates = deserialize(pNewViolationCondition);
-      Set<ViolationWitness> oldVcs =
+      Set<SegmentedPaths> oldVcs =
           transformedImmutableSetCopy(
               violationConditions.removeAll(pNewViolationCondition.getSenderId()),
               sap -> extractWitnessFromState(sap.state()));

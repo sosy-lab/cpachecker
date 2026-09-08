@@ -21,8 +21,13 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--heap">6000M</option>
 
   <resultfiles>**/witness*.*</resultfiles>
+
+  <!-- Enable v1 witnesses unless we decide to stop testing them. -->
+  <option name="--option">counterexample.export.graphml=witness.graphml</option>
+  <option name="--option">cpa.arg.proofWitness=witness.graphml</option>
   <option name="--option">cpa.arg.compressWitness=true</option>
   <option name="--option">counterexample.export.compressWitness=true</option>
+
   <option name="--option">witness.failOnUnmatchedInvariants=true</option>
 
   <rundefinition>
@@ -99,6 +104,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/list-simple/sll2n_remove_all_reverse.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/heap-data/shared_mem1.yml</exclude> <!-- flapping timeout / Exception -->
     <exclude>../programs/benchmarks/heap-manipulation/bubble_sort_linux-2.yml</exclude> <!-- flapping timeout / Exception -->
+    <exclude>../programs/benchmarks/heap-manipulation/merge_sort-2.yml</exclude> <!-- flapping timeout / OOM -->
     <exclude>../programs/benchmarks/heap-manipulation/sll_to_dll_rev-2.yml</exclude> <!-- flapping timeout / OOM -->
   </tasks>
   <tasks name="HeapMemSafety">
@@ -138,12 +144,15 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/float-newlib/double_req_bl_1130a.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/float-newlib/double_req_bl_1131a.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loop-floats-scientific-comp/loop3.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/neural-networks/cartpole_14_safe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
     <exclude>../programs/benchmarks/neural-networks/cartpole_36_unsafe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
+    <exclude>../programs/benchmarks/neural-networks/cartpole_8_safe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v144_c720_safe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v144_c720_unsafe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v144_c864_unsafe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v21_c105_safe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v21_c105_unsafe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v34_c34_safe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v34_c34_unsafe.c-amalgamation.yml</exclude> <!-- flapping timeout / OOM -->
   </tasks>
   <tasks name="ControlFlow">

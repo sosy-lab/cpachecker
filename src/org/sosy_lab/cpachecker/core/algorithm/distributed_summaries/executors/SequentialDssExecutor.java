@@ -18,7 +18,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssAllWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssDefaultQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssExceptionMessage;
@@ -27,11 +26,11 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssResultMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssWitnessArgStateCollector;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActors;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisWorker;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusAndResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssWorkerBuilder;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -81,11 +80,16 @@ public class SequentialDssExecutor implements DssExecutor {
 
   @Override
   public StatusAndResult execute(
-      CFA cfa, BlockGraph blockGraph, DssAllWorkerStatistics workerStatistics)
+      CFA cfa,
+      BlockGraph blockGraph,
+      DssWitnessArgStateCollector stateCollector,
+      DssAllWorkerStatistics workerStatistics)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     DssActors actors = createDssActors(cfa, blockGraph, workerStatistics);
 
     Set<String> finished = new LinkedHashSet<>();
+
+    StatusObserver statusObserver = new StatusObserver();
 
     try {
       for (DssAnalysisWorker actor : actors.getAnalysisWorkers()) {
@@ -98,13 +102,21 @@ public class SequentialDssExecutor implements DssExecutor {
             finished.remove(actor.getId());
             DssMessage next = actor.nextMessage();
             if (next instanceof DssResultMessage resultMessage) {
-              return new StatusAndResult(
-                  AlgorithmStatus.SOUND_AND_PRECISE, resultMessage.getResult());
+
+              // The violation/correctness witness is sent in a separate WITNESS message that
+              // follows this RESULT message; this executor does not wait for it and reports the
+              // result without witness information.
+              return new StatusAndResult(statusObserver.finish(), resultMessage.getResult());
             }
             if (next instanceof DssExceptionMessage exceptionMessage) {
               throw new CPAException(exceptionMessage.getExceptionMessage());
             }
             Collection<DssMessage> results = actor.processMessage(next);
+
+            for (DssMessage message : results) {
+              statusObserver.updateStatus(message);
+            }
+
             actor.broadcast(results);
           } else {
             finished.add(actor.getId());
@@ -115,6 +127,6 @@ public class SequentialDssExecutor implements DssExecutor {
       throw new CPAException("Solver exception", e);
     }
 
-    return new StatusAndResult(AlgorithmStatus.SOUND_AND_PRECISE, Result.TRUE);
+    return new StatusAndResult(statusObserver.finish(), Result.TRUE);
   }
 }
