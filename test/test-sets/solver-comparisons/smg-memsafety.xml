@@ -22,7 +22,6 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
   <option name="--heap">10000M</option>
   <option name="--benchmark"/>
 
-  <!-- Equal to SMG-Portfolio without malloc failure -->
   <option name="--svcomp27" />
 
 
