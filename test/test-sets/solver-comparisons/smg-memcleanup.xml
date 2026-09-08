@@ -63,7 +63,7 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
 
   <!-- MemCleanup categories synced to SV-COMP27 -->
   <!-- #################### MemSafety-MemCleanup #################### -->
-  <tasks name="C.valid-memcleanup.Main">
+  <tasks name="C.valid-memcleanup.MemCleanup">
     <includesfile>../../programs/benchmarks/Heap.set</includesfile>
     <includesfile>../../programs/benchmarks/Juliet.set</includesfile>
     <includesfile>../../programs/benchmarks/LinkedLists.set</includesfile>
