@@ -12,7 +12,7 @@ SPDX-License-Identifier: Apache-2.0
 
 <!-- 
 This run-collection defines run-definitions for all important CPAchecker SMG based configurations
-on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memcleanup and/or no-overflow. 
+on SV-COMP 2027 tasks defining verdicts for valid-memsafety and/or valid-memcleanup and/or no-overflow.
 -->
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" displayName="CPAchecker" timelimit="900s" hardtimelimit="1000s" memlimit="15GB" cpuCores="4">
@@ -33,7 +33,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="MemSafety_SVCOMP27">
     <option name="--svcomp27" />
-    <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
+    <!-- MemSafety category synced to SV-COMP27 without MemCleanup -->
     <tasks name="C.valid-memsafety.Arrays">
       <includesfile>../programs/benchmarks/Arrays.set</includesfile>
       <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
@@ -64,7 +64,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="MemSafety_SMG-Portfolio">
     <option name="--smg" />
-    <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
+    <!-- MemSafety category synced to SV-COMP27 without MemCleanup -->
     <tasks name="C.valid-memsafety.Arrays">
       <includesfile>../programs/benchmarks/Arrays.set</includesfile>
       <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
@@ -95,7 +95,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="MemSafety_SMG-SymEx">
     <option name="--smgSymbolicExecution" />
-    <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
+    <!-- MemSafety category synced to SV-COMP27 without MemCleanup -->
     <tasks name="C.valid-memsafety.Arrays">
       <includesfile>../programs/benchmarks/Arrays.set</includesfile>
       <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
@@ -126,7 +126,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="MemSafety_SMG-Value">
     <option name="--smgValueAnalysis"></option>
-    <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
+    <!-- MemSafety category synced to SV-COMP27 without MemCleanup -->
     <tasks name="C.valid-memsafety.Arrays">
       <includesfile>../programs/benchmarks/Arrays.set</includesfile>
       <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
@@ -157,7 +157,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="MemSafety_SMG-SymEx-NoStop-NoAbstr">
     <option name="--config">config/smg/smgSymbolicExecution-noAbstraction-noStop.properties</option>
-    <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
+    <!-- MemSafety category synced to SV-COMP27 without MemCleanup -->
     <tasks name="C.valid-memsafety.Arrays">
       <includesfile>../programs/benchmarks/Arrays.set</includesfile>
       <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
@@ -188,7 +188,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="MemSafety_SMG-Value-NoStop-noAbstr">
     <option name="--config">config/smg/smgValueAnalysis-noAbstraction-noStop.properties</option>
-    <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
+    <!-- MemSafety category synced to SV-COMP27 without MemCleanup -->
     <tasks name="C.valid-memsafety.Arrays">
       <includesfile>../programs/benchmarks/Arrays.set</includesfile>
       <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
@@ -219,7 +219,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="MemSafety_SMG-SymEx-overapproximateMemoryAccess">
     <option name="--config">config/smg/smgSymbolicExecution-overapproximateMemoryAccess.properties</option>
-    <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
+    <!-- MemSafety category synced to SV-COMP27 without MemCleanup -->
     <tasks name="C.valid-memsafety.Arrays">
       <includesfile>../programs/benchmarks/Arrays.set</includesfile>
       <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
@@ -250,7 +250,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="MemSafety_SMG-SymEx-concreteMemoryAccess">
     <option name="--config">config/smg/smgSymbolicExecution-concreteMemoryAccess.properties</option>
-    <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
+    <!-- MemSafety category synced to SV-COMP27 without MemCleanup -->
     <tasks name="C.valid-memsafety.Arrays">
       <includesfile>../programs/benchmarks/Arrays.set</includesfile>
       <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
@@ -281,7 +281,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="MemSafety_SMG-Value-overapproximateConcreteValues">
     <option name="--config">config/smg/smgValueAnalysis-overapproximateConcreteValues.properties</option>
-    <!-- MemSafety category synced to SV-COMP25 without MemCleanup -->
+    <!-- MemSafety category synced to SV-COMP27 without MemCleanup -->
     <tasks name="C.valid-memsafety.Arrays">
       <includesfile>../programs/benchmarks/Arrays.set</includesfile>
       <includesfile>../programs/benchmarks/Heap-Termination.set</includesfile>
@@ -316,7 +316,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="SoftwareSystems-MemSafety_SVCOMP27">
     <option name="--svcomp27" />
-    <!-- SoftwareSystems-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+    <!-- SoftwareSystems-MemSafety subcategory synced to SV-COMP27 without MemCleanup -->
         <tasks name="C.valid-memsafety.SoftwareSystems-coreutils">
       <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
@@ -338,7 +338,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="SoftwareSystems-MemSafety_SMG-Portfolio">
     <option name="--smg" />
-    <!-- SoftwareSystems-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+    <!-- SoftwareSystems-MemSafety subcategory synced to SV-COMP27 without MemCleanup -->
         <tasks name="C.valid-memsafety.SoftwareSystems-coreutils">
       <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
@@ -360,7 +360,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="SoftwareSystems-MemSafety_SMG-SymEx">
     <option name="--smgSymbolicExecution" />
-    <!-- SoftwareSystems-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+    <!-- SoftwareSystems-MemSafety subcategory synced to SV-COMP27 without MemCleanup -->
         <tasks name="C.valid-memsafety.SoftwareSystems-coreutils">
       <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
@@ -382,7 +382,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="SoftwareSystems-MemSafety_SMG-Value">
     <option name="--smgValueAnalysis"></option>
-    <!-- SoftwareSystems-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+    <!-- SoftwareSystems-MemSafety subcategory synced to SV-COMP27 without MemCleanup -->
         <tasks name="C.valid-memsafety.SoftwareSystems-coreutils">
       <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
@@ -404,7 +404,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="SoftwareSystems-MemSafety_SMG-SymEx-NoStop-NoAbstr">
     <option name="--config">config/smg/smgSymbolicExecution-noAbstraction-noStop.properties</option>
-    <!-- SoftwareSystems-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+    <!-- SoftwareSystems-MemSafety subcategory synced to SV-COMP27 without MemCleanup -->
         <tasks name="C.valid-memsafety.SoftwareSystems-coreutils">
       <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
@@ -426,7 +426,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="SoftwareSystems-MemSafety_SMG-Value-NoStop-noAbstr">
     <option name="--config">config/smg/smgValueAnalysis-noAbstraction-noStop.properties</option>
-    <!-- SoftwareSystems-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+    <!-- SoftwareSystems-MemSafety subcategory synced to SV-COMP27 without MemCleanup -->
         <tasks name="C.valid-memsafety.SoftwareSystems-coreutils">
       <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
@@ -448,7 +448,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="SoftwareSystems-MemSafety_SMG-SymEx-overapproximateMemoryAccess">
     <option name="--config">config/smg/smgSymbolicExecution-overapproximateMemoryAccess.properties</option>
-    <!-- SoftwareSystems-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+    <!-- SoftwareSystems-MemSafety subcategory synced to SV-COMP27 without MemCleanup -->
         <tasks name="C.valid-memsafety.SoftwareSystems-coreutils">
       <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
@@ -470,7 +470,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="SoftwareSystems-MemSafety_SMG-SymEx-concreteMemoryAccess">
     <option name="--config">config/smg/smgSymbolicExecution-concreteMemoryAccess.properties</option>
-    <!-- SoftwareSystems-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+    <!-- SoftwareSystems-MemSafety subcategory synced to SV-COMP27 without MemCleanup -->
         <tasks name="C.valid-memsafety.SoftwareSystems-coreutils">
       <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
@@ -492,7 +492,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="SoftwareSystems-MemSafety_SMG-Value-overapproximateConcreteValues">
     <option name="--config">config/smg/smgValueAnalysis-overapproximateConcreteValues.properties</option>
-    <!-- SoftwareSystems-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+    <!-- SoftwareSystems-MemSafety subcategory synced to SV-COMP27 without MemCleanup -->
         <tasks name="C.valid-memsafety.SoftwareSystems-coreutils">
       <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
@@ -518,7 +518,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="Concurrency-MemSafety_SVCOMP27">
     <option name="--svcomp27" />
-    <!-- Concurrency-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+    <!-- Concurrency-MemSafety subcategory synced to SV-COMP27 without MemCleanup -->
     <tasks name="C.valid-memsafety.Concurrency">
       <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
@@ -527,7 +527,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="Concurrency-MemSafety_SMG-Portfolio">
     <option name="--smg" />
-    <!-- Concurrency-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+    <!-- Concurrency-MemSafety subcategory synced to SV-COMP27 without MemCleanup -->
     <tasks name="C.valid-memsafety.Concurrency">
       <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
@@ -536,7 +536,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="Concurrency-MemSafety_SMG-SymEx">
     <option name="--smgSymbolicExecution" />
-    <!-- Concurrency-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+    <!-- Concurrency-MemSafety subcategory synced to SV-COMP27 without MemCleanup -->
     <tasks name="C.valid-memsafety.Concurrency">
       <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
@@ -545,7 +545,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="Concurrency-MemSafety_SMG-Value">
     <option name="--smgValueAnalysis"></option>
-    <!-- Concurrency-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+    <!-- Concurrency-MemSafety subcategory synced to SV-COMP27 without MemCleanup -->
     <tasks name="C.valid-memsafety.Concurrency">
       <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
@@ -554,7 +554,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="Concurrency-MemSafety_SMG-SymEx-NoStop-NoAbstr">
     <option name="--config">config/smg/smgSymbolicExecution-noAbstraction-noStop.properties</option>
-    <!-- Concurrency-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+    <!-- Concurrency-MemSafety subcategory synced to SV-COMP27 without MemCleanup -->
     <tasks name="C.valid-memsafety.Concurrency">
       <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
@@ -563,7 +563,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="Concurrency-MemSafety_SMG-Value-NoStop-noAbstr">
     <option name="--config">config/smg/smgValueAnalysis-noAbstraction-noStop.properties</option>
-    <!-- Concurrency-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+    <!-- Concurrency-MemSafety subcategory synced to SV-COMP27 without MemCleanup -->
     <tasks name="C.valid-memsafety.Concurrency">
       <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
@@ -572,7 +572,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="Concurrency-MemSafety_SMG-SymEx-overapproximateMemoryAccess">
     <option name="--config">config/smg/smgSymbolicExecution-overapproximateMemoryAccess.properties</option>
-    <!-- Concurrency-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+    <!-- Concurrency-MemSafety subcategory synced to SV-COMP27 without MemCleanup -->
     <tasks name="C.valid-memsafety.Concurrency">
       <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
@@ -581,7 +581,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="Concurrency-MemSafety_SMG-SymEx-concreteMemoryAccess">
     <option name="--config">config/smg/smgSymbolicExecution-concreteMemoryAccess.properties</option>
-    <!-- Concurrency-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+    <!-- Concurrency-MemSafety subcategory synced to SV-COMP27 without MemCleanup -->
     <tasks name="C.valid-memsafety.Concurrency">
       <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
@@ -590,7 +590,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="Concurrency-MemSafety_SMG-Value-overapproximateConcreteValues">
     <option name="--config">config/smg/smgValueAnalysis-overapproximateConcreteValues.properties</option>
-    <!-- Concurrency-MemSafety subcategory synced to SV-COMP25 without MemCleanup -->
+    <!-- Concurrency-MemSafety subcategory synced to SV-COMP27 without MemCleanup -->
     <tasks name="C.valid-memsafety.Concurrency">
       <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
@@ -602,7 +602,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="MemSafety-MemCleanup_SVCOMP27">
     <option name="--svcomp27" />
-    <!-- MemCleanup category synced to SV-COMP25 -->
+    <!-- MemCleanup category synced to SV-COMP27 -->
     <tasks name="C.valid-memcleanup.Main">
       <includesfile>../programs/benchmarks/Heap.set</includesfile>
       <includesfile>../programs/benchmarks/Juliet.set</includesfile>
@@ -615,7 +615,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="MemSafety-MemCleanup_SMG-SymEx">
     <option name="--smgSymbolicExecution" />
-    <!-- MemCleanup category synced to SV-COMP25 -->
+    <!-- MemCleanup category synced to SV-COMP27 -->
     <tasks name="C.valid-memcleanup.Main">
       <includesfile>../programs/benchmarks/Heap.set</includesfile>
       <includesfile>../programs/benchmarks/Juliet.set</includesfile>
@@ -628,7 +628,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="MemSafety-MemCleanup_SMG-Value">
     <option name="--smgValueAnalysis" />
-    <!-- MemCleanup category synced to SV-COMP25 -->
+    <!-- MemCleanup category synced to SV-COMP27 -->
     <tasks name="C.valid-memcleanup.Main">
       <includesfile>../programs/benchmarks/Heap.set</includesfile>
       <includesfile>../programs/benchmarks/Juliet.set</includesfile>
@@ -641,7 +641,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="MemSafety-MemCleanup_SMG-Value-overapproximateConcreteValues">
     <option name="--config">config/smg/smgValueAnalysis-overapproximateConcreteValues.properties</option>
-    <!-- MemCleanup category synced to SV-COMP25 -->
+    <!-- MemCleanup category synced to SV-COMP27 -->
     <tasks name="C.valid-memcleanup.Main">
       <includesfile>../programs/benchmarks/Heap.set</includesfile>
       <includesfile>../programs/benchmarks/Juliet.set</includesfile>
@@ -654,7 +654,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="MemSafety-MemCleanup_SMG-SymEx-concreteMemoryAccess">
     <option name="--config">config/smg/smgSymbolicExecution-concreteMemoryAccess.properties</option>
-    <!-- MemCleanup category synced to SV-COMP25 -->
+    <!-- MemCleanup category synced to SV-COMP27 -->
     <tasks name="C.valid-memcleanup.Main">
       <includesfile>../programs/benchmarks/Heap.set</includesfile>
       <includesfile>../programs/benchmarks/Juliet.set</includesfile>
@@ -667,7 +667,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="MemSafety-MemCleanup_SMG-SymEx-overapproximateMemoryAccess">
     <option name="--config">config/smg/smgSymbolicExecution-overapproximateMemoryAccess.properties</option>
-    <!-- MemCleanup category synced to SV-COMP25 -->
+    <!-- MemCleanup category synced to SV-COMP27 -->
     <tasks name="C.valid-memcleanup.Main">
       <includesfile>../programs/benchmarks/Heap.set</includesfile>
       <includesfile>../programs/benchmarks/Juliet.set</includesfile>
@@ -680,7 +680,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="MemSafety-MemCleanup_SMG-Value-noStop-noAbstr">
     <option name="--config">config/smg/smgValueAnalysis-noAbstraction-noStop.properties</option>
-    <!-- MemCleanup category synced to SV-COMP25 -->
+    <!-- MemCleanup category synced to SV-COMP27 -->
     <tasks name="C.valid-memcleanup.Main">
       <includesfile>../programs/benchmarks/Heap.set</includesfile>
       <includesfile>../programs/benchmarks/Juliet.set</includesfile>
@@ -693,7 +693,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="MemSafety-MemCleanup_SMG-SymEx-noStop-noAbstr">
     <option name="--config">config/smg/smgSymbolicExecution-noAbstraction-noStop.properties</option>
-    <!-- MemCleanup category synced to SV-COMP25 -->
+    <!-- MemCleanup category synced to SV-COMP27 -->
     <tasks name="C.valid-memcleanup.Main">
       <includesfile>../programs/benchmarks/Heap.set</includesfile>
       <includesfile>../programs/benchmarks/Juliet.set</includesfile>
@@ -709,7 +709,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="SoftwareSystems-MemCleanup_SVCOMP27">
     <option name="--svcomp27" />
-    <!-- MemCleanup category synced to SV-COMP25 -->
+    <!-- MemCleanup category synced to SV-COMP27 -->
     <tasks name="C.valid-memcleanup.SoftwareSystems-uthash">
       <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
@@ -718,7 +718,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="SoftwareSystems-MemCleanup_SMG-SymEx">
     <option name="--smgSymbolicExecution" />
-    <!-- MemCleanup category synced to SV-COMP25 -->
+    <!-- MemCleanup category synced to SV-COMP27 -->
     <tasks name="C.valid-memcleanup.SoftwareSystems-uthash">
       <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
@@ -727,7 +727,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="SoftwareSystems-MemCleanup_SMG-Value">
     <option name="--smgValueAnalysis" />
-    <!-- MemCleanup category synced to SV-COMP25 -->
+    <!-- MemCleanup category synced to SV-COMP27 -->
     <tasks name="C.valid-memcleanup.SoftwareSystems-uthash">
       <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
@@ -736,7 +736,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="SoftwareSystems-MemCleanup_SMG-Value-overapproximateConcreteValues">
     <option name="--config">config/smg/smgValueAnalysis-overapproximateConcreteValues.properties</option>
-    <!-- MemCleanup category synced to SV-COMP25 -->
+    <!-- MemCleanup category synced to SV-COMP27 -->
     <tasks name="C.valid-memcleanup.SoftwareSystems-uthash">
       <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
@@ -745,7 +745,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="SoftwareSystems-MemCleanup_SMG-SymEx-concreteMemoryAccess">
     <option name="--config">config/smg/smgSymbolicExecution-concreteMemoryAccess.properties</option>
-    <!-- MemCleanup category synced to SV-COMP25 -->
+    <!-- MemCleanup category synced to SV-COMP27 -->
     <tasks name="C.valid-memcleanup.SoftwareSystems-uthash">
       <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
@@ -754,7 +754,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="SoftwareSystems-MemCleanup_SMG-SymEx-overapproximateMemoryAccess">
     <option name="--config">config/smg/smgSymbolicExecution-overapproximateMemoryAccess.properties</option>
-    <!-- MemCleanup category synced to SV-COMP25 -->
+    <!-- MemCleanup category synced to SV-COMP27 -->
     <tasks name="C.valid-memcleanup.SoftwareSystems-uthash">
       <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
@@ -763,7 +763,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="SoftwareSystems-MemCleanup_SMG-Value-noStop-noAbstr">
     <option name="--config">config/smg/smgValueAnalysis-noAbstraction-noStop.properties</option>
-    <!-- MemCleanup category synced to SV-COMP25 -->
+    <!-- MemCleanup category synced to SV-COMP27 -->
     <tasks name="C.valid-memcleanup.SoftwareSystems-uthash">
       <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
@@ -772,7 +772,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <rundefinition name="SoftwareSystems-MemCleanup_SMG-SymEx-noStop-noAbstr">
     <option name="--config">config/smg/smgSymbolicExecution-noAbstraction-noStop.properties</option>
-    <!-- MemCleanup category synced to SV-COMP25 -->
+    <!-- MemCleanup category synced to SV-COMP27 -->
     <tasks name="C.valid-memcleanup.SoftwareSystems-uthash">
       <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
@@ -782,7 +782,7 @@ on SV-COMP 2025 tasks defining verdicts for valid-memsafety and/or valid-memclea
 
   <!-- #################### No-Overflow #################### -->
 
-  <rundefinition name="SV-COMP26_no-overflow_SMG-SymEx">
+  <rundefinition name="SV-COMP27_no-overflow_SMG-SymEx">
     <option name="--smgSymbolicExecution" />
     <tasks name="C.no-overflow.Main">
       <includesfile>../programs/benchmarks/Arrays.set</includesfile>

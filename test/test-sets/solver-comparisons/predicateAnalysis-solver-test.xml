@@ -240,7 +240,7 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
   </rundefinition>
 
 
-  <!-- SV-COMP26 unreach-call benchmark-set -->
+  <!-- SV-COMP27 unreach-call benchmark-set -->
   <tasks name="C.unreach-call.Arrays">
     <includesfile>../../programs/benchmarks/Arrays.set</includesfile>
     <propertyfile>../../programs/benchmarks/properties/unreach-call.prp</propertyfile>

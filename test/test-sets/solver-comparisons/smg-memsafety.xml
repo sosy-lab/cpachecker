@@ -61,7 +61,7 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
   </rundefinition>
 
 
-  <!-- MemSafety categories synced to SV-COMP26 -->
+  <!-- MemSafety categories synced to SV-COMP27 -->
   <!-- #################### MemSafety-MemSafety #################### -->
   <tasks name="C.valid-memsafety.Arrays">
     <includesfile>../../programs/benchmarks/Arrays.set</includesfile>
