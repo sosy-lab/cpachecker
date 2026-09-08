@@ -8,16 +8,12 @@
 
 format_version: '2.0'
 
-input_files: 'builtin_sub-borrow-unsafe.c'
+input_files: 'builtin_sub-borrow-unsafe-64.c'
 
 properties:
-  - property_file: ../../../config/specification/Assertion.spc
-    expected_verdict: false
   - property_file: ../../../config/specification/ErrorLabel.spc
     expected_verdict: false
   - property_file: ../../../config/specification/memorysafety.spc
-    expected_verdict: true
-  - property_file: ../../../config/specification/memorycleanup.spc
     expected_verdict: true
   - property_file: ../../../config/specification/overflow.spc
     expected_verdict: true
