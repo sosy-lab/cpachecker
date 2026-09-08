@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.block;
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -49,8 +48,7 @@ public class BlockState
     INITIAL,
     MID,
     FINAL,
-    ABSTRACTION,
-    WITNESS
+    ABSTRACTION
   }
 
   /** Separator between the ids of the states that a combined state was created from. */
@@ -79,9 +77,6 @@ public class BlockState
       BlockGraphPath pHistory,
       SegmentedPaths pWitness,
       SegmentedPaths pWitnessCheckPathState) {
-    Preconditions.checkArgument(
-        pType == BlockStateType.WITNESS || pWitnessCheckPathState == null,
-        "Added path state while not being in Witnes state");
     id = pId;
     predecessor = pPredecessor;
     node = pNode;
@@ -187,12 +182,7 @@ public class BlockState
 
   @Override
   public String toString() {
-    return "BlockState{ type="
-        + type
-        + (type == BlockStateType.WITNESS
-            ? (", pathState=" + witnessCheckPathState.orElseThrow())
-            : (", node=" + node))
-        + '}';
+    return "BlockState{ type=" + type + ", node=" + node + '}';
   }
 
   @Override
