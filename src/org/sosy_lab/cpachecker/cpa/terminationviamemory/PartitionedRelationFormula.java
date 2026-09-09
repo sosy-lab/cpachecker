@@ -194,7 +194,7 @@ public class PartitionedRelationFormula {
     if (this == pOther) {
       return true;
     }
-    return pOther instanceof PartitionedRelationFormula
-        && this.formula.equals(((PartitionedRelationFormula) pOther).getFormula());
+    return pOther instanceof PartitionedRelationFormula other
+        && this.formula.equals(other.getFormula());
   }
 }
