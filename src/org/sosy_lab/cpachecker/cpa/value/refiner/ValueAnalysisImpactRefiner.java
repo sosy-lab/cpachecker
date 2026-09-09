@@ -109,14 +109,12 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner
   @Override
   public void forceRestart(ReachedSet pReached) throws InterruptedException {
     restartCounter++;
-    ARGState firstChild =
-        Iterables.getOnlyElement(((ARGState) pReached.getFirstState()).getChildren());
+    ARGState root = (ARGState) pReached.getFirstState();
 
     ARGReachedSet reached = new ARGReachedSet(pReached);
 
-    reached.removeSubtree(
-        firstChild,
-        mergeValuePrecisionsForSubgraph(firstChild, reached),
+    reached.restartFromRootWithPrecision(
+        mergeValuePrecisionsForSubgraph(root, reached),
         VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
   }
 

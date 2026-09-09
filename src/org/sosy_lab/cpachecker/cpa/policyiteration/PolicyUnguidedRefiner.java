@@ -9,7 +9,6 @@
 
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import com.google.common.collect.Iterables;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -20,7 +19,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -89,9 +87,6 @@ public class PolicyUnguidedRefiner implements Refiner {
   }
 
   private void forceRestart(ReachedSet reached) throws InterruptedException {
-    ARGState firstChild =
-        Iterables.getOnlyElement(((ARGState) reached.getFirstState()).getChildren());
-
-    new ARGReachedSet(reached).removeSubtree(firstChild);
+    new ARGReachedSet(reached).restartFromRoot();
   }
 }

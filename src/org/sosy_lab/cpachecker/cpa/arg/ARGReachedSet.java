@@ -170,6 +170,16 @@ public class ARGReachedSet {
 
   /**
    * Remove all states from the ARG and the reached set except for the root (the first state), and
+   * re-add the root to the waitlist. The precision of the root is not changed.
+   *
+   * @throws InterruptedException can be thrown in subclass
+   */
+  public void restartFromRoot() throws InterruptedException {
+    restartFromRootWithPrecision(ImmutableList.of(), ImmutableList.of());
+  }
+
+  /**
+   * Remove all states from the ARG and the reached set except for the root (the first state), and
    * re-add the root to the waitlist with a precision that is adapted with respect to the supplied
    * precision
    *
