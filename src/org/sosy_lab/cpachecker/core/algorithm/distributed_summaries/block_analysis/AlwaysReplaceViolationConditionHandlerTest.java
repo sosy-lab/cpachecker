@@ -35,6 +35,15 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 public class AlwaysReplaceViolationConditionHandlerTest {
 
+  /** Whether every state of {@code pStates} also occurs in {@code pCandidates}. */
+  private static boolean containsAllStatesOf(
+      Collection<StateAndPrecision> pStates, Collection<StateAndPrecision> pCandidates) {
+    return pStates.stream()
+        .allMatch(
+            state ->
+                pCandidates.stream().anyMatch(candidate -> candidate.state() == state.state()));
+  }
+
   /** An update from one successor must not erase a violation condition owned by another. */
   @Test
   public void sameConditionFromTwoSuccessorsIsNotLost() throws Exception {
@@ -71,16 +80,12 @@ public class AlwaysReplaceViolationConditionHandlerTest {
     when(analysis.deserialize(messageAX)).thenReturn(ImmutableList.of(conditionXAndPrecision));
     when(analysis.deserialize(messageBX)).thenReturn(ImmutableList.of(conditionXAndPrecision));
     when(analysis.deserialize(messageAY)).thenReturn(ImmutableList.of(conditionYAndPrecision));
-    when(analysis.allCovered(any(), any()))
+    when(analysis.statesEqual(any(), any()))
         .thenAnswer(
             invocation -> {
-              Collection<StateAndPrecision> states = invocation.getArgument(0);
-              Collection<StateAndPrecision> candidates = invocation.getArgument(1);
-              return states.stream()
-                  .allMatch(
-                      state ->
-                          candidates.stream()
-                              .anyMatch(candidate -> candidate.state() == state.state()));
+              Collection<StateAndPrecision> states1 = invocation.getArgument(0);
+              Collection<StateAndPrecision> states2 = invocation.getArgument(1);
+              return containsAllStatesOf(states1, states2) && containsAllStatesOf(states2, states1);
             });
     when(analysis.deduplicateStatesAndPrecisions(any()))
         .thenAnswer(

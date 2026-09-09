@@ -492,8 +492,12 @@ public final class DssBlockAnalysis {
    * side.
    *
    * <p>This matters wherever the state set drives further exploration -- see {@link
-   * AlwaysReplacePreconditionHandler}, which has to detect that a set gained or lost a state, not
-   * only that its states are still covered.
+   * AlwaysReplacePreconditionHandler} and {@link AlwaysReplaceViolationConditionHandler}, which
+   * have to detect that a set gained or lost a state, not only that its states are still covered.
+   *
+   * <p>{@link CoverageOperator#areStatesEqual} is symmetric, so one pass over the pairs decides
+   * both directions. Asking {@link #allCovered} once per direction instead evaluates every pair
+   * twice, and a pair can cost a solver query.
    */
   boolean statesEqual(
       Collection<@NonNull StateAndPrecision> pStates1,
@@ -505,6 +509,11 @@ public final class DssBlockAnalysis {
     for (StateAndPrecision state1 : pStates1) {
       boolean matched = false;
       for (int i = 0; i < states2.size(); i++) {
+        if (matched && matchedInStates2[i]) {
+          // comparing them tells us nothing new: this state is already matched, and so is the
+          // candidate. The comparison itself can cost a solver query, so skip it.
+          continue;
+        }
         if (coverage.areStatesEqual(state1.state(), states2.get(i).state())) {
           matched = true;
           matchedInStates2[i] = true;
