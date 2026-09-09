@@ -406,7 +406,13 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
       precisionTypes.add(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
     }
 
-    pReached.removeSubtree(pRefinementRoot, precisions, precisionTypes);
+    if (pRefinementRoot.getParents().isEmpty()) {
+      // the refinement root is the root of the ARG, which cannot be removed,
+      // so we restart the exploration from it
+      pReached.restartFromRootWithPrecision(precisions, precisionTypes);
+    } else {
+      pReached.removeSubtree(pRefinementRoot, precisions, precisionTypes);
+    }
 
     assert (refinementCount > 0) || reached.size() == 1;
 
@@ -486,10 +492,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     // check whether we should restart
     refinementCount++;
     if (restartAfterRefinements > 0 && refinementCount >= restartAfterRefinements) {
-      ARGState root = (ARGState) reached.getFirstState();
-      // we have to use the child as the refinementRoot
-      assert root.getChildren().size() == 1 : "ARG root should have exactly one child";
-      refinementRoot = root.getChildren().getLast();
+      refinementRoot = (ARGState) reached.getFirstState();
 
       logger.log(
           Level.FINEST,

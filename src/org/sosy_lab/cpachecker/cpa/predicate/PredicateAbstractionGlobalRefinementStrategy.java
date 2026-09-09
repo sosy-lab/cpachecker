@@ -175,7 +175,13 @@ final class PredicateAbstractionGlobalRefinementStrategy extends GlobalRefinemen
       precisionTypes.add(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
     }
 
-    reached.removeSubtree(pRefinementRoot, precisions, precisionTypes);
+    if (pRefinementRoot.getParents().isEmpty()) {
+      // the refinement root is the root of the ARG, which cannot be removed,
+      // so we restart the exploration from it (this is the case if restartAfterRefinement is set)
+      reached.restartFromRootWithPrecision(precisions, precisionTypes);
+    } else {
+      reached.removeSubtree(pRefinementRoot, precisions, precisionTypes);
+    }
 
     if (sharePredicates) {
       reached.updatePrecisionGlobally(
