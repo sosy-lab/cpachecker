@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -135,7 +134,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
 
   @Override
   public int hashCode() {
-    return Objects.hash(storedValues, numberOfIterations, isTarget);
+    return Objects.hash(transitionInvariants, isTarget);
   }
 
   @Override
@@ -151,7 +150,10 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
 
   @Override
   public String toString() {
-    return "TerminationState{storedValues=[" + getReadableStoredValues() + "]" + '}';
+    return "TerminationState{transitionPredicates=["
+        + getReadableTransitionInvariants()
+        + "]"
+        + '}';
   }
 
   @Override
@@ -160,23 +162,21 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
       return true;
     }
     return pOther instanceof TerminationToReachState other
-        && storedValues.equals(other.getStoredValues())
-        && numberOfIterations.equals(other.getNumberOfIterations())
+        && transitionInvariants.equals(other.getTransitionInvariants())
         && isTarget == other.isTarget();
   }
 
-  private String getReadableStoredValues() {
+  private String getReadableTransitionInvariants() {
     StringBuilder sb = new StringBuilder();
-    for (Entry<Pair<LocationState, CallstackState>, ImmutableMap<Integer, ImmutableSet<Formula>>>
-        entry : getStoredValues().entrySet()) {
-      sb.append(entry);
+    for (PartitionedRelationFormula transInv : transitionInvariants) {
+      sb.append(transInv.getFormula());
     }
     return sb.toString();
   }
 
   @Override
   public String toDOTLabel() {
-    return "Stored Values:\n" + getReadableStoredValues().replace(", ", "\n");
+    return "Transition Predicates:\n" + getReadableTransitionInvariants().replace(", ", "\n");
   }
 
   @Override

@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -181,5 +182,19 @@ public class PartitionedRelationFormula {
 
   public BooleanFormula getFormula() {
     return formula;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(formula);
+  }
+
+  @Override
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    return pOther instanceof PartitionedRelationFormula
+        && this.formula.equals(((PartitionedRelationFormula) pOther).getFormula());
   }
 }
