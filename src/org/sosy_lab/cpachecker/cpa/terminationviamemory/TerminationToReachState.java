@@ -66,6 +66,14 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
    */
   private Optional<PathFormula> pathFormulaForPrefix;
 
+  /**
+   * We collect transition invariants that hold for previous iteration formulas at this abstract
+   * state. If the transition invariant does not hold in another branch, we weaken it with another
+   * candidate transition invariant. This set represents a disjunction of all possible transition
+   * invariants at this location.
+   */
+  private ImmutableSet<PartitionedRelationFormula> transitionInvariants;
+
   private Optional<PathFormula> pathFormulaFull;
 
   public TerminationToReachState(
@@ -75,7 +83,8 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
       ImmutableMap<Pair<LocationState, CallstackState>, Integer> pNumberOfIterations,
       ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaForIteration,
       Optional<PathFormula> pPathFormulaForPrefix,
-      Optional<PathFormula> pPathFormulaFull) {
+      Optional<PathFormula> pPathFormulaFull,
+      ImmutableSet<PartitionedRelationFormula> pTransitionInvariants) {
 
     storedValues = pStoredValues;
     numberOfIterations = pNumberOfIterations;
@@ -83,6 +92,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     pathFormulaForPrefix = pPathFormulaForPrefix;
     pathFormulaFull = pPathFormulaFull;
     isTarget = false;
+    transitionInvariants = pTransitionInvariants;
   }
 
   public int getNumberOfIterationsAtLoopHead(Pair<LocationState, CallstackState> pKeyPair) {
@@ -117,6 +127,10 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
 
   public void makeTarget() {
     isTarget = true;
+  }
+
+  public ImmutableSet<PartitionedRelationFormula> getTransitionInvariants() {
+    return transitionInvariants;
   }
 
   @Override

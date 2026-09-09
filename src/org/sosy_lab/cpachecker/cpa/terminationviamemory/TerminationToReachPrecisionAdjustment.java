@@ -185,7 +185,20 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           // Check the fix-point, i.e. check whether the new interpolant is a transition invariant
           if (isOverapproximating
               && isTransitionInvariant(candidateTransInv, iterationFormula, location)) {
-            return Optional.of(result.withAbstractState(terminationState));
+            // Set the computed candidateTransInv to the terminationState
+            ImmutableSet.Builder<PartitionedRelationFormula> builder = ImmutableSet.builder();
+            builder.addAll(terminationState.getTransitionInvariants());
+            builder.add(candidateTransInv);
+
+            TerminationToReachState newTerminationState =
+                new TerminationToReachState(
+                    terminationState.getStoredValues(),
+                    terminationState.getNumberOfIterations(),
+                    terminationState.getPathFormulasForIteration(),
+                    terminationState.getPathFormulasForPrefix(),
+                    terminationState.getPathFormulaFull(),
+                    builder.build());
+            return Optional.of(result.withAbstractState(newTerminationState));
           }
 
           candidateTransInv = candidateTransInv.withPrevVarsSuffixed(PREV_KEYWORD);

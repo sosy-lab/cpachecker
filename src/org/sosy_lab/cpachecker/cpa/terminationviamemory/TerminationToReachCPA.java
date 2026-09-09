@@ -137,7 +137,8 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
         ImmutableMap.of(),
         ImmutableMap.of(),
         Optional.empty(),
-        Optional.empty());
+        Optional.empty(),
+        ImmutableSet.of());
   }
 
   @Override
