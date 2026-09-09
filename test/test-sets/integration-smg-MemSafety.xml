@@ -24,6 +24,7 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/cpalien/cpalien.set</includesfile>
     <option name="--smgSymbolicExecution"/>
     <option name="--preprocess" />
+    <!-- These programs assume that malloc does not fail. -->
     <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
   </tasks>
@@ -31,7 +32,6 @@ SPDX-License-Identifier: Apache-2.0
   <tasks name="HeapMemSafety">
     <includesfile>../programs/benchmarks/Heap.set</includesfile>
     <option name="--smgSymbolicExecution"/>
-    <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
     <exclude>../programs/benchmarks/memsafety-ext2/split_list_test05-1.yml</exclude> <!-- flapping timeout -->
   </tasks>
@@ -43,21 +43,18 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
     <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
     <option name="--smgSymbolicExecution"/>
-    <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 
   <tasks name="ExtAllocMemSafety">
     <includesfile>../programs/smg_External_Allocation_Test/ExtAlloc.set</includesfile>
     <option name="--smgSymbolicExecution"/>
-    <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 
   <tasks name="MemSafety-LinkedLists">
     <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
     <option name="--smgSymbolicExecution"/>
-    <option name="--option">cpa.smg2.enableMallocFail=false</option>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 

@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.alwaystop.AlwaysTopCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class PackageSanityTest extends AbstractPackageSanityTests {
 
@@ -25,7 +26,7 @@ public class PackageSanityTest extends AbstractPackageSanityTests {
     try {
       setDefault(
           Configuration.class,
-          Configuration.builder().setOption("analysis.reachedSet", "normal").build());
+          TestUtils.configurationForTest().setOption("analysis.reachedSet", "normal").build());
     } catch (InvalidConfigurationException e) {
       throw new AssertionError(e);
     }

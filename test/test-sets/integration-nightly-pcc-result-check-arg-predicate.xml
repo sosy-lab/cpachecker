@@ -23,8 +23,6 @@ SPDX-License-Identifier: Apache-2.0
   <tasks>
     <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
     <propertyfile  expectedverdict="true">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-    <!-- SV-Comp files assume that malloc always succeeds -->
-    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <!-- exclude timeout, unknown tasks since PCC proof checking likely not started-->
     <exclude>../programs/benchmarks/openssl/*</exclude>
   </tasks>
@@ -33,8 +31,6 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/Heap.set</includesfile>
     <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
     <propertyfile  expectedverdict="true">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-    <!-- SV-Comp files assume that malloc always succeeds -->
-    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <!-- exclude timeout, error tasks since PCC proof checking likely not started-->
     <exclude>../programs/benchmarks/heap-manipulation/*</exclude>
     <exclude>../programs/benchmarks/forester-heap/*</exclude>
@@ -44,8 +40,6 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/Loops.set</includesfile>
     <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
     <propertyfile  expectedverdict="true">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-    <!-- SV-Comp files assume that malloc always succeeds -->
-    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <!-- exclude timeout, error tasks since PCC proof checking likely not started-->
     <exclude>../programs/benchmarks/loop-new/*</exclude>
     <exclude>../programs/benchmarks/loop-industry-pattern/*</exclude>
@@ -53,8 +47,6 @@ SPDX-License-Identifier: Apache-2.0
   <tasks>
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
     <propertyfile  expectedverdict="true">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-    <!-- SV-Comp files assume that malloc always succeeds -->
-    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <exclude>../programs/benchmarks/seq-mthreaded/*</exclude> <!-- only timeouts -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/*</exclude> <!-- only timeouts -->
     <exclude>../programs/benchmarks/seq-pthread/*</exclude> <!-- only timeouts -->
@@ -64,8 +56,6 @@ SPDX-License-Identifier: Apache-2.0
     <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
     <propertyfile  expectedverdict="true">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="--skip-recursion"/>
-    <!-- SV-Comp files assume that malloc always succeeds -->
-    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
 
   <columns>

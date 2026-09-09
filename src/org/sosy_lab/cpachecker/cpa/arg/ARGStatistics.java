@@ -47,6 +47,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata.ProgramTransformation;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAnnotateTagCommand;
@@ -58,8 +59,10 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ReportingMethodNotImplementedException;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.core.waitlist.Waitlist.TraversalMethod;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExportOptions;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessExporter;
@@ -465,7 +468,20 @@ public class ARGStatistics implements Statistics {
         if (exportYamlCorrectnessWitness && argToWitnessWriter != null) {
           if (cfa.getMetadata().getInputLanguage() == Language.C) {
             try {
-              argToWitnessWriter.export(rootState, pReached, yamlWitnessOutputFileTemplate);
+              if (cfa.getMetadata().getTransformationMetadata() != null
+                  && cfa.getMetadata().getTransformationMetadata().transformation()
+                      == ProgramTransformation.SEQUENTIALIZATION_ATTEMPTED) {
+                logger.log(
+                    Level.WARNING,
+                    "Cannot export correctness witness in YAML format for sequentialized "
+                        + "C programs yet. Exporting trivial witness for it.");
+                argToWitnessWriter.export(
+                    new ARGState(rootState.getWrappedState(), null),
+                    new PartitionedReachedSet(cpa, TraversalMethod.BFS),
+                    yamlWitnessOutputFileTemplate);
+              } else {
+                argToWitnessWriter.export(rootState, pReached, yamlWitnessOutputFileTemplate);
+              }
             } catch (IOException | ReportingMethodNotImplementedException e) {
               logger.logUserException(
                   Level.WARNING,
