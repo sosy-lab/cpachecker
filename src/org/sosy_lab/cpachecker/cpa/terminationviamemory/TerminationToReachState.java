@@ -163,6 +163,8 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     }
     return pOther instanceof TerminationToReachState other
         && transitionInvariants.equals(other.getTransitionInvariants())
+        && !transitionInvariants.isEmpty()
+        && !other.getTransitionInvariants().isEmpty()
         && isTarget == other.isTarget();
   }
 
