@@ -73,6 +73,9 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
    */
   private ImmutableSet<PartitionedRelationFormula> transitionInvariants;
 
+  /** Available transition predicates to use. */
+  private ImmutableSet<PartitionedRelationFormula> transitionPredicates;
+
   private Optional<PathFormula> pathFormulaFull;
 
   public TerminationToReachState(
@@ -83,7 +86,8 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
       ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaForIteration,
       Optional<PathFormula> pPathFormulaForPrefix,
       Optional<PathFormula> pPathFormulaFull,
-      ImmutableSet<PartitionedRelationFormula> pTransitionInvariants) {
+      ImmutableSet<PartitionedRelationFormula> pTransitionInvariants,
+      ImmutableSet<PartitionedRelationFormula> pAvailableTransitionPredicates) {
 
     storedValues = pStoredValues;
     numberOfIterations = pNumberOfIterations;
@@ -92,6 +96,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     pathFormulaFull = pPathFormulaFull;
     isTarget = false;
     transitionInvariants = pTransitionInvariants;
+    transitionPredicates = pAvailableTransitionPredicates;
   }
 
   public int getNumberOfIterationsAtLoopHead(Pair<LocationState, CallstackState> pKeyPair) {
@@ -130,6 +135,10 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
 
   public ImmutableSet<PartitionedRelationFormula> getTransitionInvariants() {
     return transitionInvariants;
+  }
+
+  public ImmutableSet<PartitionedRelationFormula> getTransitionPredicates() {
+    return transitionPredicates;
   }
 
   @Override

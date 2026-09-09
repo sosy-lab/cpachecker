@@ -145,10 +145,12 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         // Compute all the transition predicates that hold for the current state
         ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionPredicates =
             ImmutableSet.builder();
+        ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionInvariants =
+            ImmutableSet.builder();
         for (PartitionedRelationFormula transitionPredicate :
-            terminationState.getTransitionInvariants()) {
+            terminationState.getTransitionPredicates()) {
           if (isTransitionInvariant(transitionPredicate, iterationFormula, location)) {
-            builderTransitionPredicates.add(transitionPredicate);
+            builderTransitionInvariants.add(transitionPredicate);
           }
         }
 
@@ -197,6 +199,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
               && isTransitionInvariant(candidateTransInv, iterationFormula, location)) {
             // Set the computed candidateTransInv to the terminationState
             builderTransitionPredicates.add(candidateTransInv);
+            builderTransitionPredicates.addAll(terminationState.getTransitionPredicates());
+            builderTransitionInvariants.add(candidateTransInv);
 
             TerminationToReachState newTerminationState =
                 new TerminationToReachState(
@@ -205,6 +209,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                     terminationState.getPathFormulasForIteration(),
                     terminationState.getPathFormulasForPrefix(),
                     terminationState.getPathFormulaFull(),
+                    builderTransitionInvariants.build(),
                     builderTransitionPredicates.build());
             return Optional.of(result.withAbstractState(newTerminationState));
           }
