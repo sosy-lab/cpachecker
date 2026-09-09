@@ -19,7 +19,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm.CEGARAlgorithmFactory;
@@ -65,9 +64,8 @@ public class ProgressBasedRefinementSelectionStopRefinerTest {
                 "cpa.predicate.progressBasedRefinementSelectionHeuristics.RunRefinerNTimes.numberRuns",
                 "2")
             .build();
-    cfa =
-        TestCfaUtils.toSingleFunctionCFA(
-            new CFACreator(config, logger, shutdownNotifier), "  int x; x = 0;return x;");
+    cfa = TestCfaUtils.makeCfaFromFunctionBody("  int x; x = 0;return x;");
+
     PredicateCPA predicateCPA =
         new PredicateCPA(
             config,
@@ -77,6 +75,7 @@ public class ProgressBasedRefinementSelectionStopRefinerTest {
             shutdownNotifier,
             Specification.alwaysSatisfied(),
             AggregatedReachedSets.empty());
+
     argCpa =
         (ARGCPA)
             ARGCPA
@@ -87,6 +86,7 @@ public class ProgressBasedRefinementSelectionStopRefinerTest {
                 .set(Specification.alwaysSatisfied(), Specification.class)
                 .set(cfa, CFA.class)
                 .createInstance();
+
     reachedSet = new ReachedSetFactory(config, logger).create(argCpa);
   }
 

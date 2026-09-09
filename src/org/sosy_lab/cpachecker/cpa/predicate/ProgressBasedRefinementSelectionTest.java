@@ -20,7 +20,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
@@ -69,9 +68,9 @@ public class ProgressBasedRefinementSelectionTest {
   // configurations
   private PredicateCPARefinerFactory setUpRefinerFactory(Configuration pConfig) throws Exception {
     config = pConfig;
-    cfa =
-        TestCfaUtils.toSingleFunctionCFA(
-            new CFACreator(config, logger, shutdownNotifier), "  int x; x = 0;return x;");
+
+    cfa = TestCfaUtils.makeCfaFromFunctionBody("  int x; x = 0;return x;");
+
     PredicateCPA predicateCPA =
         new PredicateCPA(config, logger, blk, cfa, shutdownNotifier, spec, reachedSet);
     ARGCPA argCpa =
