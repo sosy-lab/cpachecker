@@ -13,8 +13,10 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.cwriter.FormulaToCExpressionConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -86,6 +88,10 @@ public class TransitionInvariantUtils {
       String pVariable, ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars) {
     return pMapPrevToCurrVars.keySet().stream()
         .anyMatch(d -> d.getName().equals(removeFunctionFromVarsName(pVariable)));
+  }
+
+  public static boolean isLoopHead(CFANode pCFANode, ImmutableSet<Loop> pLoops) {
+    return pLoops.stream().anyMatch(loop -> loop.getLoopHeads().contains(pCFANode));
   }
 
   public static CSimpleDeclaration getPrevDeclaration(

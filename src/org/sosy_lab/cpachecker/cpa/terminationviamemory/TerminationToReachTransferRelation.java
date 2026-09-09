@@ -16,6 +16,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -24,6 +25,7 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -34,23 +36,21 @@ import org.sosy_lab.java_smt.api.Formula;
 public class TerminationToReachTransferRelation extends SingleEdgeTransferRelation {
   private final FormulaManagerView fmgr;
   private final PathFormulaManager pfmgr;
+  private final ImmutableSet<Loop> allLoops;
 
   public TerminationToReachTransferRelation(
-      FormulaManagerView pFormulaManagerView, PathFormulaManager pPathFormulaManager) {
+      FormulaManagerView pFormulaManagerView,
+      PathFormulaManager pPathFormulaManager,
+      ImmutableSet<Loop> pAllLoops) {
     fmgr = pFormulaManagerView;
     pfmgr = pPathFormulaManager;
+    allLoops = pAllLoops;
   }
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
-    TerminationToReachState terminationState = (TerminationToReachState) state;
-
-    // We have proved that all the loops on the path are terminating and there was at least one
-    if (terminationState.isTerminating() && !terminationState.getStoredValues().isEmpty()) {
-      return ImmutableList.of();
-    }
     return ImmutableList.of(state);
   }
 
@@ -70,9 +70,8 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
     if (location == null) {
       throw new UnsupportedOperationException("TransferRelation requires location information.");
     }
-    terminationState.visitNode(location);
 
-    if (terminationState.isLoopHead(location)) {
+    if (TransitionInvariantUtils.isLoopHead(location, allLoops)) {
       Pair<LocationState, CallstackState> pairKey = Pair.of(locationState, callstackState);
 
       ImmutableMap.Builder<
@@ -135,11 +134,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
               newNumberOfIterations.buildOrThrow(),
               newPathFormulaForIteration.buildOrThrow(),
               newPrefixFormula,
-              newFullFormula,
-              terminationState.getPossiblyNonterminatingLoopHeads(),
-              terminationState.getAllLoops(),
-              terminationState.visitedNodes());
-      newState.visitNode(location);
+              newFullFormula);
       return ImmutableList.of(newState);
     }
     return ImmutableList.of(pState);

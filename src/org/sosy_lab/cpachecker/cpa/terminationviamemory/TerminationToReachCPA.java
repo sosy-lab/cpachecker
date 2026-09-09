@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -114,12 +113,20 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
             false);
     precisionAdjustment =
         new TerminationToReachPrecisionAdjustment(
-            solver, statistics, logger, cfa, bfmgr, fmgr, itpMgr, configuration);
+            solver,
+            statistics,
+            logger,
+            cfa,
+            bfmgr,
+            fmgr,
+            itpMgr,
+            configuration,
+            possiblyNonTerminatingLoops);
   }
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new TerminationToReachTransferRelation(fmgr, pfmgr);
+    return new TerminationToReachTransferRelation(fmgr, pfmgr, possiblyNonTerminatingLoops);
   }
 
   @Override
@@ -130,10 +137,7 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
         ImmutableMap.of(),
         ImmutableMap.of(),
         Optional.empty(),
-        Optional.empty(),
-        possiblyNonTerminatingLoops,
-        possiblyNonTerminatingLoops,
-        new HashSet<>());
+        Optional.empty());
   }
 
   @Override

@@ -16,14 +16,12 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.java_smt.api.Formula;
@@ -37,14 +35,6 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
       SimpleTargetInformation.singleton("termination");
 
   private boolean isTarget;
-  private ImmutableSet<Loop> possiblyNonterminatingLoops;
-  private final ImmutableSet<Loop> allLoops;
-
-  /**
-   * The parameter tracks whether all the possible branches from the loop were already covered by a
-   * transition invariant.
-   */
-  private Set<CFANode> visitedNodes;
 
   /**
    * The following map keeps track of all the variables as type of @Formula, so that they can be
@@ -85,20 +75,14 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
       ImmutableMap<Pair<LocationState, CallstackState>, Integer> pNumberOfIterations,
       ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaForIteration,
       Optional<PathFormula> pPathFormulaForPrefix,
-      Optional<PathFormula> pPathFormulaFull,
-      ImmutableSet<Loop> pPossiblyNonterminatingLoopHeads,
-      ImmutableSet<Loop> pAllLoops,
-      Set<CFANode> alreadyVisitedNodes) {
+      Optional<PathFormula> pPathFormulaFull) {
 
     storedValues = pStoredValues;
     numberOfIterations = pNumberOfIterations;
     pathFormulaForIteration = pPathFormulaForIteration;
     pathFormulaForPrefix = pPathFormulaForPrefix;
     pathFormulaFull = pPathFormulaFull;
-    possiblyNonterminatingLoops = pPossiblyNonterminatingLoopHeads;
-    allLoops = pAllLoops;
     isTarget = false;
-    visitedNodes = alreadyVisitedNodes;
   }
 
   public int getNumberOfIterationsAtLoopHead(Pair<LocationState, CallstackState> pKeyPair) {
@@ -135,52 +119,9 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     isTarget = true;
   }
 
-  public void visitNode(CFANode pNode) {
-    visitedNodes.add(pNode);
-  }
-
-  public Set<CFANode> visitedNodes() {
-    return visitedNodes;
-  }
-
-  public void setTerminatingIfAllNodesVisited(CFANode loopHead) {
-    possiblyNonterminatingLoops =
-        possiblyNonterminatingLoops.stream()
-            // Keep the loops that do not contain the loopHead
-            .filter(
-                loop ->
-                    !loop.getLoopHeads().contains(loopHead)
-                        // Keep the loops that still have some unvisited CFANodes
-                        || loop.getLoopNodes().stream()
-                            .anyMatch(node -> !visitedNodes.contains(node)))
-            .collect(ImmutableSet.toImmutableSet());
-  }
-
-  public boolean isTerminating() {
-    return possiblyNonterminatingLoops.isEmpty();
-  }
-
-  public boolean isLoopTerminating(CFANode pLoopHead) {
-    return possiblyNonterminatingLoops.stream()
-        .noneMatch(loop -> loop.getLoopHeads().contains(pLoopHead));
-  }
-
-  public boolean isLoopHead(CFANode pLoopHead) {
-    return allLoops.stream().anyMatch(loop -> loop.getLoopHeads().contains(pLoopHead));
-  }
-
-  public ImmutableSet<Loop> getAllLoops() {
-    return allLoops;
-  }
-
-  public ImmutableSet<Loop> getPossiblyNonterminatingLoopHeads() {
-    return possiblyNonterminatingLoops;
-  }
-
   @Override
   public int hashCode() {
-    return Objects.hash(
-        storedValues, numberOfIterations, isTarget, possiblyNonterminatingLoops, visitedNodes);
+    return Objects.hash(storedValues, numberOfIterations, isTarget);
   }
 
   @Override
@@ -207,8 +148,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     return pOther instanceof TerminationToReachState other
         && storedValues.equals(other.getStoredValues())
         && numberOfIterations.equals(other.getNumberOfIterations())
-        && isTarget == other.isTarget()
-        && visitedNodes == other.visitedNodes();
+        && isTarget == other.isTarget();
   }
 
   private String getReadableStoredValues() {

@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -55,6 +56,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private final TerminationToReachStatistics statistics;
   private final CFA cfa;
   private final LogManager logger;
+  private final ImmutableSet<Loop> allLoops;
 
   private final String PREV_KEYWORD = "__TransInv@1";
   private final String CURR_KEYWORD = "__TransInv@2";
@@ -91,7 +93,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       BooleanFormulaManagerView pBfmgr,
       FormulaManagerView pFmgr,
       InterpolationManager pItpMgr,
-      Configuration pConfiguration)
+      Configuration pConfiguration,
+      ImmutableSet<Loop> pAllLoops)
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
     solver = pSolver;
@@ -101,6 +104,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     fmgr = pFmgr;
     logger = plogger;
     itpMgr = pItpMgr;
+    allLoops = pAllLoops;
   }
 
   @Override
@@ -121,8 +125,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         new PrecisionAdjustmentResult(state, precision, Action.CONTINUE);
     Pair<LocationState, CallstackState> keyPair = Pair.of(locationState, callstackState);
 
-    if (terminationState.isLoopHead(location)
-        && !terminationState.isLoopTerminating(location)
+    if (TransitionInvariantUtils.isLoopHead(location, allLoops)
         && terminationState.getStoredValues().containsKey(keyPair)) {
       if (terminationState.getNumberOfIterationsAtLoopHead(keyPair) > 1) {
         boolean isOverapproximating = false;
@@ -182,7 +185,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           // Check the fix-point, i.e. check whether the new interpolant is a transition invariant
           if (isOverapproximating
               && isTransitionInvariant(candidateTransInv, iterationFormula, location)) {
-            terminationState.setTerminatingIfAllNodesVisited(locationState.getLocationNode());
             return Optional.of(result.withAbstractState(terminationState));
           }
 
