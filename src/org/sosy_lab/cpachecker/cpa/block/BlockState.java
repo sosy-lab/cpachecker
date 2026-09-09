@@ -252,21 +252,11 @@ public class BlockState
             && blockNode == that.getBlockNode());
   }
 
-  @Override
-  public boolean equals(Object other) {
-    return this == other
-        || (other instanceof BlockState that
-            && Objects.equals(node, that.node)
-            && Objects.equals(witnessCheckPathState, that.witnessCheckPathState)
-            && type == that.type
-            && blockNode == that.getBlockNode()
-            && violationConditions == that.violationConditions);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(node, witnessCheckPathState, type, blockNode, violationConditions);
-  }
+  // equals() and hashCode() are deliberately not implemented: BlockState carries bookkeeping that
+  // the algorithm reads back from individual states of the reached set (the predecessor
+  // back-pointer, the block-graph history, and the states that a callstack hindered), and none of
+  // it would take part in a value-based comparison. Coverage is expressed by isCovered(BlockState)
+  // instead, and the lattice of BlockCPA compares states by identity.
 
   @Override
   public boolean isTarget() {
