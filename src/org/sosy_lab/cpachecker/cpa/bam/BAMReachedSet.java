@@ -91,6 +91,23 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     removeSubtree(state, ImmutableList.of(), ImmutableList.of());
   }
 
+  /**
+   * We must not simply clear the reached set here, because the BAM caches would keep the removed
+   * states of the sub-reached-sets. Thus we remove the subtrees below the root one by one.
+   * TODO modify the cache directly?
+   */
+  @Override
+  public void restartFromRootWithPrecision(
+      List<Precision> pPrecisions, List<Predicate<? super Precision>> pPrecTypes)
+      throws InterruptedException {
+    ARGState root = path.getFirstState();
+    while (!root.getChildren().isEmpty()) {
+      ARGState child = root.getChildren().getFirst();
+      removeSubtree(child, pPrecisions, pPrecTypes);
+      assert child.isDestroyed() : "Removing the subtree of " + child + " did not remove the state";
+    }
+  }
+
   @Override
   public String toString() {
     return "BAMReachedSet {{" + asReachedSet().asCollection() + "}}";

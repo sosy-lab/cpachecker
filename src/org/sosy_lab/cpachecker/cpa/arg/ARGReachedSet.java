@@ -169,6 +169,78 @@ public class ARGReachedSet {
   }
 
   /**
+   * Remove all states from the ARG and the reached set except for the root (the first state), and
+   * re-add the root to the waitlist with a precision that is adapted with respect to the supplied
+   * precision
+   *
+   * @param pPrecision the new precision to apply at the root
+   * @param pPrecisionType the type of the precision
+   * @throws InterruptedException can be thrown in subclass
+   */
+  public void restartFromRootWithPrecision(
+      Precision pPrecision, Predicate<? super Precision> pPrecisionType)
+      throws InterruptedException {
+    restartFromRootWithPrecision(ImmutableList.of(pPrecision), ImmutableList.of(pPrecisionType));
+  }
+
+  /**
+   * Like {@link #restartFromRootWithPrecision(Precision, Predicate)}, but if multiple precisions
+   * are given, adapt all matching sub-precisions of a WrappedPrecision.
+   *
+   * @param pPrecisions the new precisions
+   * @param pPrecTypes the types of the precisions
+   * @throws InterruptedException can be thrown in subclass
+   */
+  public void restartFromRootWithPrecision(
+      List<Precision> pPrecisions, List<Predicate<? super Precision>> pPrecTypes)
+      throws InterruptedException {
+
+    Preconditions.checkNotNull(pPrecisions);
+    Preconditions.checkNotNull(pPrecTypes);
+
+    Preconditions.checkArgument(pPrecisions.size() == pPrecTypes.size());
+
+    ARGState root = (ARGState) mReached.getFirstState();
+    // TODO this flags changed behavior, either it is possible and we need to handle it, or it is
+    // impossible and we can remove this assertion
+    assert from(mReached)
+            .transform(s -> (ARGState) s)
+            .allMatch(s -> s.equals(root) || !s.getParents().isEmpty())
+        : "Restarting from a single root would silently drop the other root states of the ARG.";
+
+    Precision newPrecision = adaptPrecision(root, pPrecisions, pPrecTypes);
+
+    dumpSubgraph(root);
+
+    // Destroy all states except the root, such that a later usage of one of them fails fast.
+    // This detaches the root from the rest of the ARG as a side effect.
+    for (AbstractState state : mReached) {
+      ARGState argState = (ARGState) state;
+      if (argState.isDestroyed()) {
+        // was covered by a state that we already destroyed
+        continue;
+      }
+      // states that are covered are not necessarily part of the reached set,
+      // so we destroy them together with the state that covers them
+      for (ARGState covered : ImmutableList.copyOf(argState.getCoveredByThis())) {
+        covered.removeFromARG();
+      }
+      if (!argState.equals(root)) {
+        argState.removeFromARG();
+      }
+    }
+
+    // The root might have children that were never added to the reached set,
+    // e.g., siblings of a target state that the analysis stopped at (cf. ARGUtils#checkARG).
+    for (ARGState child : ImmutableList.copyOf(root.getChildren())) {
+      child.removeFromARG();
+    }
+
+    mReached.clear();
+    mReached.add(root, newPrecision);
+  }
+
+  /**
    * Like {@link #removeSubtree(ARGState)}, but when re-adding elements to the waitlist adapts
    * precisions with respect to the supplied precision p (see {@link #adaptPrecision(Precision,
    * Precision, Predicate)}). If multiple precisions are given, adapt all matching sub-precisions of
@@ -192,21 +264,7 @@ public class ARGReachedSet {
     Set<ARGState> toWaitlist = removeSubtree0(pState);
 
     for (ARGState waitingState : toWaitlist) {
-      Precision waitingStatePrec = mReached.getPrecision(waitingState);
-      Preconditions.checkState(waitingStatePrec != null);
-
-      for (int i = 0; i < pPrecisions.size(); i++) {
-        Precision adaptedPrec =
-            adaptPrecision(waitingStatePrec, pPrecisions.get(i), pPrecTypes.get(i));
-
-        // adaptedPrec == null, if the precision component was not changed
-        if (adaptedPrec != null) {
-          waitingStatePrec = adaptedPrec;
-        }
-        Preconditions.checkState(waitingStatePrec != null);
-      }
-
-      mReached.updatePrecision(waitingState, waitingStatePrec);
+      mReached.updatePrecision(waitingState, adaptPrecision(waitingState, pPrecisions, pPrecTypes));
       mReached.reAddToWaitlist(waitingState);
     }
   }
@@ -309,6 +367,32 @@ public class ARGReachedSet {
       Precision pNewPrecision,
       Predicate<? super Precision> pPrecisionType) {
     return Precisions.replaceByType(pOldPrecision, pNewPrecision, pPrecisionType);
+  }
+
+  /**
+   * Adapts the precision of the given state with each of the given precisions (see {@link
+   * #adaptPrecision(Precision, Precision, Predicate)}), i.e., adapts all matching sub-precisions of
+   * a WrappedPrecision. Precision components that are not present in the precision of the state are
+   * ignored.
+   *
+   * @param pState A state of the reached set.
+   * @param pPrecisions The new precisions.
+   * @param pPrecTypes The types of the precisions, needs to have the same size as pPrecisions.
+   * @return The adapted precision.
+   */
+  private Precision adaptPrecision(
+      ARGState pState, List<Precision> pPrecisions, List<Predicate<? super Precision>> pPrecTypes) {
+    Precision statePrecision = mReached.getPrecision(pState);
+    Preconditions.checkState(statePrecision != null);
+
+    for (int i = 0; i < pPrecisions.size(); i++) {
+      Precision adaptedPrec = adaptPrecision(statePrecision, pPrecisions.get(i), pPrecTypes.get(i));
+
+      if (adaptedPrec != null) {
+        statePrecision = adaptedPrec;
+      }
+    }
+    return statePrecision;
   }
 
   private Set<ARGState> removeSubtree0(ARGState e) {

@@ -43,6 +43,22 @@ class SSCReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     removeSubtree(state, ImmutableList.of(), ImmutableList.of());
   }
 
+  /**
+   * We must not simply clear the reached set here, because it contains the original states and not
+   * the states of the path. Thus we remove the subtrees below the root one by one.
+   */
+  @Override
+  public void restartFromRootWithPrecision(
+      List<Precision> pPrecisions, List<Predicate<? super Precision>> pPrecTypes)
+      throws InterruptedException {
+    ARGState root = path.getFirstState();
+    while (!root.getChildren().isEmpty()) {
+      ARGState child = root.getChildren().getFirst();
+      removeSubtree(child, pPrecisions, pPrecTypes);
+      assert child.isDestroyed() : "Removing the subtree of " + child + " did not remove the state";
+    }
+  }
+
   @Override
   public void removeSubtree(
       ARGState element, Precision newPrecision, Predicate<? super Precision> pPrecisionType)
