@@ -142,6 +142,16 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                 largestIndices,
                 terminationState.getNumberOfIterationsAtLoopHead(keyPair) - 1);
 
+        // Compute all the transition predicates that hold for the current state
+        ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionPredicates =
+            ImmutableSet.builder();
+        for (PartitionedRelationFormula transitionPredicate :
+            terminationState.getTransitionInvariants()) {
+          if (isTransitionInvariant(transitionPredicate, iterationFormula, location)) {
+            builderTransitionPredicates.add(transitionPredicate);
+          }
+        }
+
         // If the BMC queries are UNSAT, we try to compute transition invariant
         // We strengthen the transition invariant with the prefix formula
         PartitionedRelationFormula candidateTransInv =
@@ -186,9 +196,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           if (isOverapproximating
               && isTransitionInvariant(candidateTransInv, iterationFormula, location)) {
             // Set the computed candidateTransInv to the terminationState
-            ImmutableSet.Builder<PartitionedRelationFormula> builder = ImmutableSet.builder();
-            builder.addAll(terminationState.getTransitionInvariants());
-            builder.add(candidateTransInv);
+            builderTransitionPredicates.add(candidateTransInv);
 
             TerminationToReachState newTerminationState =
                 new TerminationToReachState(
@@ -197,7 +205,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                     terminationState.getPathFormulasForIteration(),
                     terminationState.getPathFormulasForPrefix(),
                     terminationState.getPathFormulaFull(),
-                    builder.build());
+                    builderTransitionPredicates.build());
             return Optional.of(result.withAbstractState(newTerminationState));
           }
 

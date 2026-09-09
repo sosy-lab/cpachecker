@@ -68,7 +68,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
   /**
    * We collect transition invariants that hold for previous iteration formulas at this abstract
    * state. If the transition invariant does not hold in another branch, we weaken it with another
-   * candidate transition invariant. This set represents a disjunction of all possible transition
+   * candidate transition invariant. This set represents a conjunction of all possible transition
    * invariants at this location.
    */
   private ImmutableSet<PartitionedRelationFormula> transitionInvariants;
