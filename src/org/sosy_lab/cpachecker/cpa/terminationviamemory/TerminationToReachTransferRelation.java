@@ -93,13 +93,11 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
           newPathFormulaForIteration = ImmutableMap.builder();
 
       // Set prefix path formula first
-      Optional<PathFormula> newPrefixFormula;
+      Optional<PathFormula> newPrefixFormula = terminationState.getPathFormulaFull();
       Optional<PathFormula> newFullFormula;
       if (terminationState.getPathFormulaFull().isEmpty()) {
         newFullFormula = Optional.of(predicateState.getPathFormula());
-        newPrefixFormula = Optional.empty();
       } else {
-        newPrefixFormula = terminationState.getPathFormulaFull();
         newFullFormula =
             Optional.of(
                 pfmgr.makeConjunction(
