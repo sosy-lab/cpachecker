@@ -251,9 +251,10 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       }
     }
 
-    return Optional.of(
-        Iterables.getOnlyElement(
-            Sets.difference(threadingState.getThreadIds(), previousThreadingState.getThreadIds())));
+    Set<String> currentThreadIds = new HashSet<>(threadingState.getThreadIds());
+    currentThreadIds.removeAll(previousThreadingState.getThreadIds());
+
+    return Optional.of(Iterables.getOnlyElement(currentThreadIds));
   }
 
   private static Optional<String> getCurrentThreadNameIfExists(ARGState pState, CFAEdge pEdge) {
@@ -477,7 +478,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     // We need to process the file location to avoid exporting FileLocation.Dummy contents which are
     // generated when the edge contains internal variables of CPAchecker, for example when verifying
     // `sv-benchmarks/c/pthread-atomic/read_write_lock-2b.i` against data-races.
-    FileLocation location = pEdge.getFileLocation();
+    if (location.isRealLocation()) {
     if (location.equals(FileLocation.DUMMY)) {
       if (pEdge instanceof CStatementEdge pStatementEdge) {
         // For the default target waypoint we want to point to the statement which contains this
