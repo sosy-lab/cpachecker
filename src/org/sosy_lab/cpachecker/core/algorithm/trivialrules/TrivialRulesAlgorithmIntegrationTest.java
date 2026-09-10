@@ -113,6 +113,48 @@ public class TrivialRulesAlgorithmIntegrationTest {
         .assertIs(Result.UNKNOWN);
   }
 
+  // ------------------------------------------------------------------------------------------
+  // termination
+  // ------------------------------------------------------------------------------------------
+
+  private static final String TERMINATION_CONFIG = "config/trivialRules--termination.properties";
+
+  @Test
+  public void loopFreeProgramTerminates() throws Exception {
+    runWithProperty(TERMINATION_CONFIG, "termination.prp", "loop-free-true.c").assertIsSafe();
+  }
+
+  @Test
+  public void loopInDeadCodeDoesNotPreventTermination() throws Exception {
+    // The loop is behind a condition that is never true, so no execution reaches it.
+    runWithProperty(TERMINATION_CONFIG, "termination.prp", "loop-in-dead-code-true.c")
+        .assertIsSafe();
+  }
+
+  @Test
+  public void endlessLoopOnEveryExecutionIsRefuted() throws Exception {
+    runWithProperty(TERMINATION_CONFIG, "termination.prp", "endless-loop-false.c").assertIsUnsafe();
+  }
+
+  @Test
+  public void loopThatDependsOnInputIsUndecided() throws Exception {
+    runWithProperty(TERMINATION_CONFIG, "termination.prp", "input-loop-unknown.c")
+        .assertIs(Result.UNKNOWN);
+  }
+
+  @Test
+  public void countedLoopIsUndecided() throws Exception {
+    // No rule argues about how often a loop runs.
+    runWithProperty(TERMINATION_CONFIG, "termination.prp", "counted-loop-unknown.c")
+        .assertIs(Result.UNKNOWN);
+  }
+
+  @Test
+  public void recursionIsUndecided() throws Exception {
+    runWithProperty(TERMINATION_CONFIG, "termination.prp", "recursion-unknown.c")
+        .assertIs(Result.UNKNOWN);
+  }
+
   @Test
   public void specificationWithoutPropertyFileIsNotDecided() throws Exception {
     // The rules need to know which propositions to settle, which the property file states.

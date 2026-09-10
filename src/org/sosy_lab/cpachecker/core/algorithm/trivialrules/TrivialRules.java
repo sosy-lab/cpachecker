@@ -19,7 +19,10 @@ final class TrivialRules {
 
   /** All rules, in the order in which they are checked. */
   static ImmutableList<TrivialRule> all() {
-    return ImmutableList.<TrivialRule>builder().addAll(ReachabilityRules.rules()).build();
+    return ImmutableList.<TrivialRule>builder()
+        .addAll(ReachabilityRules.rules())
+        .addAll(TerminationRules.rules())
+        .build();
   }
 
   /** The name that SV-COMP uses for the given proposition. */
