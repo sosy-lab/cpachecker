@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -375,9 +376,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       String pureVarName =
           TransitionInvariantUtils.removeTransInvKeyWord(
               TransitionInvariantUtils.removeFunctionFromVarsName(
-                  fmgr.extractVariableNames(fmgr.uninstantiate(variable)).stream()
-                      .findAny()
-                      .orElseThrow()));
+                  Iterables.getOnlyElement(
+                      fmgr.extractVariableNames(fmgr.uninstantiate(variable)))));
       for (AbstractSimpleDeclaration varDecl :
           cfa.getAstCfaRelation().getVariablesAndParametersInScope(pLocation).orElseThrow()) {
         if (varDecl.getName().equals(pureVarName)
@@ -412,7 +412,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private boolean isTransitionInvariant(
       PartitionedRelationFormula candidateTransitionInvariant,
       PartitionedRelationFormula iterationFormula,
-      CFANode pLocation) throws InterruptedException {
+      CFANode pLocation)
+      throws InterruptedException {
     // The goal is to construct formula of the following form:
     // T(x__PREV, x__CURR) and Tr(x__CURR, x__CURR2) => T(x__PREV, x__CURR2)
 
