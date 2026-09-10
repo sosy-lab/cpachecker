@@ -22,6 +22,7 @@ final class TrivialRules {
     return ImmutableList.<TrivialRule>builder()
         .addAll(ReachabilityRules.rules())
         .addAll(TerminationRules.rules())
+        .addAll(OverflowRules.rules())
         .build();
   }
 
@@ -44,5 +45,4 @@ final class TrivialRules {
     }
     return pProperty.toString();
   }
-
 }

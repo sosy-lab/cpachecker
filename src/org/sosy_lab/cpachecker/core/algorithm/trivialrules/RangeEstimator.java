@@ -158,7 +158,8 @@ final class RangeEstimator {
       case SHIFT_LEFT -> shiftLeft(operand1, operand2, calculationType);
       case SHIFT_RIGHT -> shiftRight(operand1, operand2, calculationType);
       case BITWISE_AND -> bitwiseAnd(operand1, operand2);
-      case BITWISE_OR, BITWISE_XOR -> bitwiseOrXor(operand1, operand2);
+      case BITWISE_OR -> bitwiseOr(operand1, operand2);
+      case BITWISE_XOR -> bitwiseXor(operand1, operand2);
       case EQUALS, NOT_EQUALS, LESS_THAN, LESS_EQUAL, GREATER_THAN, GREATER_EQUAL ->
           compare(pExpression.getOperator(), operand1, operand2);
     };
@@ -301,15 +302,29 @@ final class RangeEstimator {
     return null;
   }
 
-  private static @Nullable IntegerRange bitwiseOrXor(
-      IntegerRange pOperand1, IntegerRange pOperand2) {
+  private static @Nullable IntegerRange bitwiseOr(IntegerRange pOperand1, IntegerRange pOperand2) {
     if (!pOperand1.isNonNegative() || !pOperand2.isNonNegative()) {
       return null;
     }
-    // The result needs at most as many bits as the larger operand.
-    int bits = Math.max(pOperand1.high().bitLength(), pOperand2.high().bitLength());
+    // For non-negative operands the result is at least as large as each of them. This is what
+    // decides an assumption of the form "(a <= 0) | (b <= c)": if one of the two comparisons
+    // holds, the disjunction holds.
     return new IntegerRange(
-        BigInteger.ZERO, BigInteger.ONE.shiftLeft(bits).subtract(BigInteger.ONE));
+        pOperand1.low().max(pOperand2.low()), highestValueWithSameBits(pOperand1, pOperand2));
+  }
+
+  private static @Nullable IntegerRange bitwiseXor(IntegerRange pOperand1, IntegerRange pOperand2) {
+    if (!pOperand1.isNonNegative() || !pOperand2.isNonNegative()) {
+      return null;
+    }
+    return new IntegerRange(BigInteger.ZERO, highestValueWithSameBits(pOperand1, pOperand2));
+  }
+
+  /** The largest value with as many bits as the larger of the two given non-negative ranges. */
+  private static BigInteger highestValueWithSameBits(
+      IntegerRange pOperand1, IntegerRange pOperand2) {
+    int bits = Math.max(pOperand1.high().bitLength(), pOperand2.high().bitLength());
+    return BigInteger.ONE.shiftLeft(bits).subtract(BigInteger.ONE);
   }
 
   private static IntegerRange compare(

@@ -71,8 +71,7 @@ public class TrivialRulesAlgorithmIntegrationTest {
 
   @Test
   public void programWithoutErrorCallIsProven() throws Exception {
-    runWithProperty(REACHABILITY_CONFIG, "unreach-call.prp", "no-error-call-true.c")
-        .assertIsSafe();
+    runWithProperty(REACHABILITY_CONFIG, "unreach-call.prp", "no-error-call-true.c").assertIsSafe();
   }
 
   @Test
@@ -152,6 +151,60 @@ public class TrivialRulesAlgorithmIntegrationTest {
   @Test
   public void recursionIsUndecided() throws Exception {
     runWithProperty(TERMINATION_CONFIG, "termination.prp", "recursion-unknown.c")
+        .assertIs(Result.UNKNOWN);
+  }
+
+  // ------------------------------------------------------------------------------------------
+  // no-overflow
+  // ------------------------------------------------------------------------------------------
+
+  private static final String OVERFLOW_CONFIG = "config/trivialRules--overflow.properties";
+
+  @Test
+  public void programWithoutArithmeticHasNoOverflow() throws Exception {
+    runWithProperty(OVERFLOW_CONFIG, "no-overflow.prp", "no-arithmetic-true.c").assertIsSafe();
+  }
+
+  @Test
+  public void boundedArithmeticHasNoOverflow() throws Exception {
+    // The operands are narrow enough for every result to fit into an int, and the unsigned
+    // arithmetic may wrap around.
+    runWithProperty(OVERFLOW_CONFIG, "no-overflow.prp", "bounded-arithmetic-true.c").assertIsSafe();
+  }
+
+  @Test
+  public void constantOverflowIsRefuted() throws Exception {
+    runWithProperty(OVERFLOW_CONFIG, "no-overflow.prp", "constant-overflow-false.c")
+        .assertIsUnsafe();
+  }
+
+  @Test
+  public void divisionOverflowIsRefuted() throws Exception {
+    // INT_MIN / -1 leaves the range of int, just like an addition that is too large.
+    runWithProperty(OVERFLOW_CONFIG, "no-overflow.prp", "division-overflow-false.c")
+        .assertIsUnsafe();
+  }
+
+  @Test
+  public void shiftOverflowIsRefuted() throws Exception {
+    runWithProperty(OVERFLOW_CONFIG, "no-overflow.prp", "shift-overflow-false.c").assertIsUnsafe();
+  }
+
+  @Test
+  public void overflowThatDependsOnInputIsUndecided() throws Exception {
+    runWithProperty(OVERFLOW_CONFIG, "no-overflow.prp", "input-overflow-unknown.c")
+        .assertIs(Result.UNKNOWN);
+  }
+
+  @Test
+  public void constantOverflowIsNotFoundIfConstantsAreFolded() throws Exception {
+    // The parser evaluates the constant expression and puts the value it wrapped around to into
+    // the CFA, so the rule that proves the absence of an overflow has to abstain.
+    Configuration configuration =
+        configWithProperty(OVERFLOW_CONFIG, "no-overflow.prp")
+            .setOption("cfa.simplifyConstExpressions", "true")
+            .build();
+    IntegrationTestRunner.run(configuration, PROGRAM_DIR + "constant-overflow-false.c")
         .assertIs(Result.UNKNOWN);
   }
 

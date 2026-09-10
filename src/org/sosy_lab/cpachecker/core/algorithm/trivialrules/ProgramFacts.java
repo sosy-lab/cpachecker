@@ -32,9 +32,9 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
@@ -57,8 +57,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.ArithmeticOverflowAssumptionBuilder;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -171,8 +169,6 @@ final class ProgramFacts {
   private final Supplier<ImmutableSet<CFANode>> recursionNodes =
       Suppliers.memoize(this::computeRecursionNodes);
 
-  private @Nullable ArithmeticOverflowAssumptionBuilder overflowAssumptions = null;
-
   ProgramFacts(
       CFA pCfa,
       Specification pSpecification,
@@ -274,39 +270,6 @@ final class ProgramFacts {
   }
 
   /**
-   * The assumptions that describe the absence of an overflow. We create the builder with our own
-   * configuration, because the rules need all overflows that the property talks about, no matter
-   * which of them the analysis of the current configuration would check.
-   */
-  ArithmeticOverflowAssumptionBuilder overflowAssumptions() throws CPAException {
-    if (overflowAssumptions == null) {
-      try {
-        Configuration overflowConfig =
-            Configuration.builder()
-                // We have no liveness information, and an expression whose variables are all dead
-                // can still overflow (it may consist of literals only).
-                .setOption("overflow.useLiveness", "false")
-                // A simplified assumption may contain a value that wrapped around already.
-                .setOption("overflow.simplifyExpressions", "false")
-                // The property allows the wrap-around of unsigned arithmetic.
-                .setOption("overflow.checkUnsigned", "false")
-                // Every kind of overflow has to be reported to us, whatever the analysis checks.
-                .setOption("overflow.trackAdditiveOperations", "true")
-                .setOption("overflow.trackMultiplications", "true")
-                .setOption("overflow.trackDivisions", "true")
-                .setOption("overflow.trackLeftShifts", "true")
-                .build();
-        overflowAssumptions =
-            new ArithmeticOverflowAssumptionBuilder(
-                machineModel(), Optional.empty(), logger, overflowConfig);
-      } catch (InvalidConfigurationException e) {
-        throw new CPAException("Cannot create the assumptions about overflows", e);
-      }
-    }
-    return overflowAssumptions;
-  }
-
-  /**
    * Whether the given option of the CFA construction is explicitly set to the given value.
    *
    * <p>A rule whose argument depends on such an option must not rely on the default value: the CFA
@@ -336,6 +299,14 @@ final class ProgramFacts {
       }
     }
     return false;
+  }
+
+  /**
+   * Whether the program is a C program. A rule that reads the AST of the program has to abstain
+   * otherwise, because it only knows the AST of C.
+   */
+  boolean isCProgram() {
+    return cfa.getLanguage() == Language.C;
   }
 
   boolean isDefinedFunction(String pName) {
