@@ -46,7 +46,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jspecify.annotations.NonNull;
@@ -493,7 +493,7 @@ public class ARGUtils {
   public static ARGPath getPathFromBranchingInformation(
       ARGState root,
       Predicate<? super ARGState> stateFilter,
-      BiFunction<ARGState, ARGState, Boolean> branchingInformation)
+      BiPredicate<ARGState, ARGState> branchingInformation)
       throws IllegalArgumentException {
 
     checkArgument(stateFilter.test(root));
@@ -522,8 +522,7 @@ public class ARGUtils {
                 FluentIterable.from(childrenInArg)
                     .filter(
                         currentChild ->
-                            Boolean.TRUE.equals(
-                                branchingInformation.apply(finalCurrentElement, currentChild))),
+                            branchingInformation.test(finalCurrentElement, currentChild)),
                 null);
         checkArgument(child != null, "ARG branches without direction information!");
         builder.add(currentElement, currentElement.getEdgeToChild(child));
