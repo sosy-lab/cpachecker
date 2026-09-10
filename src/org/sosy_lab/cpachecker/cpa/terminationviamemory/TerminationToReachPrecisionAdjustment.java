@@ -262,8 +262,9 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       PartitionedRelationFormula iterationFormula,
       PathFormula prefixPathFormula)
       throws InterruptedException, SolverException {
-    boolean isTargetStateReachable;
+
     for (BooleanFormula sameStateFormula : sameStateFormulas) {
+      boolean isTargetStateReachable;
       // Construct formula:
       // T(x__PREV, x__CURR) and Tr(x__CURR, x__CURR2) and x__PREV = x_CURR2
       if (isOverapproximating) {
@@ -412,8 +413,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       PartitionedRelationFormula candidateTransitionInvariant,
       PartitionedRelationFormula iterationFormula,
       CFANode pLocation) throws InterruptedException {
-    boolean isTransitionInvariant;
-
     // The goal is to construct formula of the following form:
     // T(x__PREV, x__CURR) and Tr(x__CURR, x__CURR2) => T(x__PREV, x__CURR2)
 
@@ -435,6 +434,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     iterationFormula = iterationFormula.withPrevVarsSuffixed(CURR_KEYWORD);
     iterationFormula = iterationFormula.withCurrVarsSuffixed(CURR2_KEYWORD);
 
+    boolean isTransitionInvariant;
     try {
       isTransitionInvariant =
           solver.implies(
@@ -452,10 +452,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       logger.logDebugException(e);
       return false;
     }
-    if (isTransitionInvariant) {
-      return true;
-    }
-    return false;
+    return isTransitionInvariant;
   }
 
   private ImmutableList<BooleanFormula> buildCycleFormula(
