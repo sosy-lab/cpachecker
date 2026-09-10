@@ -162,10 +162,9 @@ public class CachingPathFormulaManager implements PathFormulaManager {
       String pVarName,
       CType pType,
       PointerTargetSet pContextPTS,
-      boolean pForcePointerDereference,
-      String pFunctionName) {
+      boolean pForcePointerDereference) {
     return delegate.makeFormulaForUninstantiatedVariable(
-        pVarName, pType, pContextPTS, pForcePointerDereference, pFunctionName);
+        pVarName, pType, pContextPTS, pForcePointerDereference);
   }
 
   @Override

@@ -129,11 +129,7 @@ public interface PathFormulaManager {
    * @return the created formula, which is always <b>instantiated</b>
    */
   Formula makeFormulaForUninstantiatedVariable(
-      String pVarName,
-      CType pType,
-      PointerTargetSet pContextPTS,
-      boolean forcePointerDereference,
-      String pFunctionName);
+      String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference);
 
   /**
    * Extract a single path from the ARG that is feasible for the values in a given {@link Model}.

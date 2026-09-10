@@ -93,18 +93,13 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
   private static class AddPointerInformationVisitor extends FormulaTransformationVisitor {
 
     private final PathFormula context;
-    private final String functionName;
     private final PathFormulaManager pfgmr;
 
     AddPointerInformationVisitor(
-        FormulaManagerView pFmgr,
-        PathFormula pContext,
-        PathFormulaManager pPfmgr,
-        String pFunctionName) {
+        FormulaManagerView pFmgr, PathFormula pContext, PathFormulaManager pPfmgr) {
       super(pFmgr);
       pfgmr = pPfmgr;
       context = pContext;
-      functionName = pFunctionName;
     }
 
     @Override
@@ -116,7 +111,7 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
       PointerBase base = PointerBase.forVariable(varName, pointerTargetSet.getCallStackDepth());
       if (pointerTargetSet.isActualBase(base)) {
         return pfgmr.makeFormulaForUninstantiatedVariable(
-            varName, pointerTargetSet.getBases().get(base), pointerTargetSet, false, functionName);
+            varName, pointerTargetSet.getBases().get(base), pointerTargetSet, false);
       } else {
         SSAMap ssa = context.getTopmostStackSsa();
 
@@ -131,7 +126,7 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
             CType type = ((CPointerType) ssa.getType(unwrappedVarName)).getType();
             atom =
                 pfgmr.makeFormulaForUninstantiatedVariable(
-                    unwrappedVarName, type, pointerTargetSet, true, functionName);
+                    unwrappedVarName, type, pointerTargetSet, true);
             return atom;
           }
           // Variable needs to be eliminated later
@@ -206,9 +201,7 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
           // Handle pointer aliasing
           BooleanFormula inv =
               pFmgr.transformRecursively(
-                  invariant,
-                  new AddPointerInformationVisitor(
-                      pFmgr, pContext, pPfmgr, pNode.getFunctionName()));
+                  invariant, new AddPointerInformationVisitor(pFmgr, pContext, pPfmgr));
           // Drop information about unknown variables
           if (!variables.containsAll(pFmgr.extractVariableNames(inv))) {
             inv =

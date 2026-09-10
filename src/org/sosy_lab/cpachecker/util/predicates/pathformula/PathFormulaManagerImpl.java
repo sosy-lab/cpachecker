@@ -485,11 +485,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Override
   @SuppressWarnings("unchecked")
   public Formula makeFormulaForUninstantiatedVariable(
-      String pVarName,
-      CType pType,
-      PointerTargetSet pContextPTS,
-      boolean forcePointerDereference,
-      String pFunctionName) {
+      String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference) {
     // TODO: This needs to be properly cleaned up to be polymorphic. The problem
     //    is that the type is only known at runtime
     // TODO: Think if we should move this method to the LanguageToSmtConverter and
