@@ -22,15 +22,12 @@ import java.util.Collection;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibScope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.ViolationConditionReportingState;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.PredicateOperatorUtil;
@@ -200,7 +197,6 @@ public abstract sealed class PredicateAbstractState
                   && pAstCfaRelation
                       .getVariablesAndParametersInScope(pLocation)
                       .orElseThrow()
-                      .filter(AbstractionState::hasExportableValue)
                       .anyMatch(
                           var ->
                               // For local variables
@@ -211,16 +207,6 @@ public abstract sealed class PredicateAbstractState
                   && !name.contains("__CPAchecker_"),
           name -> useOldKeywordForVariables ? "\\old(" + name + ")" : name,
           pMachineModel);
-    }
-
-    /**
-     * Returns whether the value of the given variable can be written as a C expression. Pointers
-     * and arrays cannot: the analysis uses their numeric address, so arithmetic over them counts
-     * bytes, while the same arithmetic in C is scaled by the size of the pointee. Their values also
-     * depend on the memory model of the analysis and are of little use for other tools.
-     */
-    private static boolean hasExportableValue(AbstractSimpleDeclaration pVariable) {
-      return pVariable.getType() instanceof CType type && CTypes.isArithmeticType(type);
     }
 
     @Override
