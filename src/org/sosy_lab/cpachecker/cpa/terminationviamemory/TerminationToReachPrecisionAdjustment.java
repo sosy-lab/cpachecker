@@ -437,9 +437,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
 
     boolean isTransitionInvariant;
     try {
-      System.out.println(firstStepInTransInv);
-      System.out.println(iterationFormula.getFormula());
-      System.out.println(secondStepInTransInv);
       isTransitionInvariant =
           solver.implies(
               bfmgr.and(firstStepInTransInv, iterationFormula.getFormula()), secondStepInTransInv);
