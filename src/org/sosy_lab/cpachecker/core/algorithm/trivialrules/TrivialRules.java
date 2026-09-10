@@ -23,6 +23,7 @@ final class TrivialRules {
         .addAll(ReachabilityRules.rules())
         .addAll(TerminationRules.rules())
         .addAll(OverflowRules.rules())
+        .addAll(MemorySafetyRules.rules())
         .build();
   }
 

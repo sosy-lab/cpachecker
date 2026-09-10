@@ -208,6 +208,65 @@ public class TrivialRulesAlgorithmIntegrationTest {
         .assertIs(Result.UNKNOWN);
   }
 
+  // ------------------------------------------------------------------------------------------
+  // memory safety
+  // ------------------------------------------------------------------------------------------
+
+  private static final String MEMORY_SAFETY_CONFIG = "config/trivialRules--memorysafety.properties";
+
+  private static final String MEMORY_CLEANUP_CONFIG =
+      "config/trivialRules--memorycleanup.properties";
+
+  @Test
+  public void programWithoutMemoryOperationIsSafe() throws Exception {
+    runWithProperty(MEMORY_SAFETY_CONFIG, "valid-memsafety.prp", "no-memory-operation-true.c")
+        .assertIsSafe();
+    runWithProperty(MEMORY_CLEANUP_CONFIG, "valid-memcleanup.prp", "no-memory-operation-true.c")
+        .assertIsSafe();
+  }
+
+  @Test
+  public void programWithoutAllocationLeaksNothing() throws Exception {
+    // The program dereferences a pointer, so valid-deref is not proven, but without an allocation
+    // there is no block that could be leaked.
+    runWithProperty(MEMORY_CLEANUP_CONFIG, "valid-memcleanup.prp", "pointer-to-local-true.c")
+        .assertIsSafe();
+    runWithProperty(MEMORY_SAFETY_CONFIG, "valid-memsafety.prp", "pointer-to-local-true.c")
+        .assertIs(Result.UNKNOWN);
+  }
+
+  @Test
+  public void arrayAccessInsideBoundsIsSafe() throws Exception {
+    // The type of the index allows only values that are inside the array.
+    runWithProperty(MEMORY_SAFETY_CONFIG, "valid-memsafety.prp", "array-in-bounds-true.c")
+        .assertIsSafe();
+  }
+
+  @Test
+  public void arrayAccessOutsideBoundsIsRefuted() throws Exception {
+    runWithProperty(MEMORY_SAFETY_CONFIG, "valid-memsafety.prp", "array-out-of-bounds-false.c")
+        .assertIsUnsafe();
+  }
+
+  @Test
+  public void arrayAccessThatDependsOnInputIsUndecided() throws Exception {
+    runWithProperty(MEMORY_SAFETY_CONFIG, "valid-memsafety.prp", "array-index-unknown.c")
+        .assertIs(Result.UNKNOWN);
+  }
+
+  @Test
+  public void freeOfNonHeapObjectIsRefuted() throws Exception {
+    runWithProperty(MEMORY_SAFETY_CONFIG, "valid-memsafety.prp", "free-of-local-false.c")
+        .assertIsUnsafe();
+  }
+
+  @Test
+  public void allocationIsUndecided() throws Exception {
+    // A program that calls free() is not decided by any rule, not even for memcleanup.
+    runWithProperty(MEMORY_CLEANUP_CONFIG, "valid-memcleanup.prp", "free-of-local-false.c")
+        .assertIs(Result.UNKNOWN);
+  }
+
   @Test
   public void specificationWithoutPropertyFileIsNotDecided() throws Exception {
     // The rules need to know which propositions to settle, which the property file states.
