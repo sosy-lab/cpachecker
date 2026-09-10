@@ -11,6 +11,6 @@ SPDX-License-Identifier: Apache-2.0
 # Anonymous Local Allocation Tests
 
 These programs test `__builtin_alloca` with the memory-safety specification,
-including automatic cleanup, lifetime, bounds, and invalid frees. Safe programs
-also use `ErrorLabel.spc` assertions to check value preservation. Allocations
-are assumed to succeed and never return `0`.
+including automatic cleanup, lifetime, bounds, invalid frees, and integer type
+limits. Safe programs also use `ErrorLabel.spc` assertions to check value
+preservation. Allocations are assumed to succeed and never return `0`.
