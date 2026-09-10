@@ -915,11 +915,11 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
   /** Whether any waypoint of the witness names the thread it belongs to. */
   private static boolean referencesThreads(List<PartitionedWaypoints> pSegments) {
     for (PartitionedWaypoints segment : pSegments) {
-      ImmutableList.Builder<WaypointRecord> waypoints = ImmutableList.builder();
-      segment.follow().ifPresent(waypoints::addAll);
-      segment.cycle().ifPresent(waypoints::add);
-      waypoints.addAll(segment.avoids());
-      if (FluentIterable.from(waypoints.build()).anyMatch(w -> w.getThread().isPresent())) {
+      if (FluentIterable.concat(
+              segment.follow().orElse(ImmutableList.of()),
+              Optionals.asSet(segment.cycle()),
+              segment.avoids())
+          .anyMatch(w -> w.getThread().isPresent())) {
         return true;
       }
     }
