@@ -267,6 +267,33 @@ public class TrivialRulesAlgorithmIntegrationTest {
         .assertIs(Result.UNKNOWN);
   }
 
+  // ------------------------------------------------------------------------------------------
+  // no-data-race and programs that do nothing
+  // ------------------------------------------------------------------------------------------
+
+  private static final String DATA_RACE_CONFIG = "config/trivialRules--datarace.properties";
+
+  @Test
+  public void singleThreadedProgramHasNoDataRace() throws Exception {
+    runWithProperty(DATA_RACE_CONFIG, "no-data-race.prp", "single-threaded-true.c").assertIsSafe();
+  }
+
+  @Test
+  public void programThatCreatesThreadIsUndecided() throws Exception {
+    runWithProperty(DATA_RACE_CONFIG, "no-data-race.prp", "thread-creation-unknown.c")
+        .assertIs(Result.UNKNOWN);
+  }
+
+  @Test
+  public void programThatDoesNothingSatisfiesEverySpecification() throws Exception {
+    runWithProperty(REACHABILITY_CONFIG, "unreach-call.prp", "empty-main-true.c").assertIsSafe();
+    runWithProperty(TERMINATION_CONFIG, "termination.prp", "empty-main-true.c").assertIsSafe();
+    runWithProperty(OVERFLOW_CONFIG, "no-overflow.prp", "empty-main-true.c").assertIsSafe();
+    runWithProperty(MEMORY_SAFETY_CONFIG, "valid-memsafety.prp", "empty-main-true.c")
+        .assertIsSafe();
+    runWithProperty(DATA_RACE_CONFIG, "no-data-race.prp", "empty-main-true.c").assertIsSafe();
+  }
+
   @Test
   public void specificationWithoutPropertyFileIsNotDecided() throws Exception {
     // The rules need to know which propositions to settle, which the property file states.

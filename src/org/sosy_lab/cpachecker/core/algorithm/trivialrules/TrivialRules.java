@@ -24,6 +24,8 @@ final class TrivialRules {
         .addAll(TerminationRules.rules())
         .addAll(OverflowRules.rules())
         .addAll(MemorySafetyRules.rules())
+        .addAll(ConcurrencyRules.rules())
+        .addAll(DoesNothingRule.rules())
         .build();
   }
 
