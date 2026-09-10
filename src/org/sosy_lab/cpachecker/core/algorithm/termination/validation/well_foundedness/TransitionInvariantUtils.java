@@ -58,6 +58,7 @@ public class TransitionInvariantUtils {
   public static final String TRANS_INV_KEYWORD = "__TransInv";
 
   public static String removeTransInvKeyWord(String pFormula) {
+    assert(pFormula.endsWith(TRANS_INV_KEYWORD));
     return pFormula.replace(TRANS_INV_KEYWORD, "");
   }
 
