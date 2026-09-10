@@ -745,13 +745,7 @@ public class ARGUtils {
           // last edge connecting it with the real successor
           edge = allEdges.get(i);
           sb.append(
-              "STATE USEFIRST ARG"
-                  + child.getStateId()
-                  + "_"
-                  + i
-                  + "_"
-                  + multiEdgeCount
-                  + " :\n");
+              "STATE USEFIRST ARG" + child.getStateId() + "_" + i + "_" + multiEdgeCount + " :\n");
         }
 
         handleMatchCase(sb, edge);

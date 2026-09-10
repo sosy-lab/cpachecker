@@ -154,7 +154,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
 
   private final Function<ARGState, Optional<CounterexampleInfo>> getCounterexampleInfo;
 
-  private CounterexampleToWitness yamlWitnessExporter;
+  private @Nullable CounterexampleToWitness yamlWitnessExporter;
 
   public CounterexampleCPAchecker(
       Configuration config,
@@ -171,7 +171,18 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
     shutdownNotifier = pShutdownNotifier;
     cfa = pCfa;
     getCounterexampleInfo = Objects.requireNonNull(pGetCounterexampleInfo);
-    yamlWitnessExporter = new CounterexampleToWitness(config, cfa, specification, logger);
+  }
+
+  private CounterexampleToWitness getYamlWitnessExporter() throws CPAException {
+    if (yamlWitnessExporter == null) {
+      try {
+        yamlWitnessExporter = new CounterexampleToWitness(config, cfa, specification, logger);
+      } catch (InvalidConfigurationException e) {
+        throw new CounterexampleAnalysisFailed(
+            "Could not create witness version 2 exporter: " + e.getMessage(), e);
+      }
+    }
+    return yamlWitnessExporter;
   }
 
   @Override
@@ -341,7 +352,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
             "Could not determine counterexample information for error state, "
                 + "which is required to export the counterexample in witness version 2.0 format.");
       }
-      yamlWitnessExporter.export(cexInfo.orElseThrow(), automatonFile);
+      getYamlWitnessExporter().export(cexInfo.orElseThrow(), automatonFile);
     }
   }
 
