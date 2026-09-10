@@ -12,6 +12,7 @@ import static com.google.common.base.Verify.verifyNotNull;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
+import com.google.common.base.Verify;
 import com.google.common.collect.Lists;
 import java.io.PrintStream;
 import java.io.Serial;
@@ -55,7 +56,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedOperationByDesignException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
@@ -504,42 +504,59 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           root,
           stateFilter,
           (pathElement, successor) -> {
-            if (!(pathElement.getEdgeToChild(successor) instanceof AssumeEdge successorEdge)) {
-              // A CPA can create several successors for the same edge, which are then only
-              // distinguished by the assumptions that they carry.
-              try {
-                return evaluateAssumptions(model, successor);
-              } catch (CPATransferException | InterruptedException e) {
-                throw new WrappingException(e);
+            List<CFAEdge> edgesBetweenElements = pathElement.getEdgesToChild(successor);
+
+            // create formula by edge, be sure to use the correct SSA indices!
+            // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractState,
+            // it is used without PredicateCPA as well.
+            PredicateAbstractState pe =
+                AbstractStates.extractStateByType(pathElement, PredicateAbstractState.class);
+            verifyNotNull(pe, "Cannot find precise error path information without PredicateCPA.");
+            PathFormula pathFormula = makeEmptyPathFormulaWithContextFrom(pe.getPathFormula());
+
+            // Now create the pathformula with all assumptions from the egdes
+            boolean overridePathFormula = false;
+            for (CFAEdge edge : edgesBetweenElements) {
+              if (edge instanceof AssumeEdge pAssumeEdge) {
+                // Only consider assume edges, since we only want to evaluate whether this branching
+                // is possible in the model
+                final Pair<ARGState, CFAEdge> key = Pair.of(pathElement, pAssumeEdge);
+                PathFormula edgePathFormula = branchingFormulasOverride.get(key);
+                if (edgePathFormula != null) {
+                  // If we have a pathformula for the edge already, then use it
+                  Verify.verify(!overridePathFormula);
+                  pathFormula = edgePathFormula;
+                  overridePathFormula = true;
+                } else {
+                  // Otherwise convert the edge directly and add it to the existing pathformula
+                  try {
+                    pathFormula = this.makeAnd(pathFormula, pAssumeEdge);
+                  } catch (CPATransferException | InterruptedException e) {
+                    throw new WrappingException(e);
+                  }
+                }
               }
             }
-            final AssumeEdge positiveEdge =
-                successorEdge.getTruthAssumption()
-                    ? successorEdge
-                    : CFAUtils.getComplimentaryAssumeEdge(successorEdge);
-            final Pair<ARGState, CFAEdge> key = Pair.of(pathElement, positiveEdge);
-            PathFormula pf = branchingFormulasOverride.get(key);
 
-            if (pf == null) {
-              // create formula by edge, be sure to use the correct SSA indices!
-              // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractState,
-              // it is used without PredicateCPA as well.
-              PredicateAbstractState pe =
-                  AbstractStates.extractStateByType(pathElement, PredicateAbstractState.class);
-              verifyNotNull(pe, "Cannot find precise error path information without PredicateCPA.");
-              try {
-                pf =
-                    this.makeAnd(
-                        makeEmptyPathFormulaWithContextFrom(pe.getPathFormula()), positiveEdge);
-              } catch (CPATransferException | InterruptedException e) {
-                throw new WrappingException(e);
-              }
+            // Now add the assumptions from the successor state to know if it is reachable.
+            // They were conjoined to the path formula of the successor, i.e., after the edges,
+            // so they need the SSA indices of the successor and not those of this state.
+            PredicateAbstractState successorPe =
+                AbstractStates.extractStateByType(successor, PredicateAbstractState.class);
+            verifyNotNull(
+                successorPe, "Cannot find precise error path information without PredicateCPA.");
+            BooleanFormula assumptions;
+            try {
+              assumptions =
+                  addAssumptions(
+                          makeEmptyPathFormulaWithContextFrom(successorPe.getPathFormula()),
+                          successor)
+                      .getFormula();
+            } catch (CPATransferException | InterruptedException e) {
+              throw new WrappingException(e);
             }
 
-            Boolean positiveEdgeTaken = model.evaluate(pf.getFormula());
-            return positiveEdgeTaken == null
-                ? null
-                : positiveEdgeTaken == successorEdge.getTruthAssumption();
+            return model.evaluate(bfmgr.and(pathFormula.getFormula(), assumptions));
           });
     } catch (WrappingException e) {
       Throwables.throwIfInstanceOf(e.getCause(), CPATransferException.class);
@@ -550,37 +567,30 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   /**
-   * Evaluate the assumptions of an ARG state in a model. This is the branching information for
-   * successors that are not distinguished by an assume edge, because they were created by a CPA
-   * that returns several successors for the same edge (e.g., {@link
+   * Add the assumptions of an ARG state in a model, because they were created by a CPA that returns
+   * several successors for the same edge (e.g., {@link
    * org.sosy_lab.cpachecker.cpa.overflow.OverflowCPA}).
    *
-   * @return the value of the assumptions, or null if the state has none.
+   * @return the new path formula which includes the assumptions
    */
-  private @Nullable Boolean evaluateAssumptions(Model pModel, ARGState pState)
+  private PathFormula addAssumptions(PathFormula pPathFormula, ARGState pState)
       throws CPATransferException, InterruptedException {
     // The assumptions of a state were added to its path formula after its entering edge,
     // so the context of that path formula has the SSA indices that we need here.
-    PredicateAbstractState pe =
-        AbstractStates.extractStateByType(pState, PredicateAbstractState.class);
-    verifyNotNull(pe, "Cannot find precise error path information without PredicateCPA.");
-    PathFormula pf = makeEmptyPathFormulaWithContextFrom(pe.getPathFormula());
-    boolean hasAssumptions = false;
     for (AbstractStateWithAssumptions state :
         AbstractStates.asIterable(pState).filter(AbstractStateWithAssumptions.class)) {
       for (AExpression assumption : state.getAssumptions()) {
-        pf =
+        pPathFormula =
             switch (assumption) {
-              case CExpression cAssumption -> makeAnd(pf, cAssumption);
-              case SvLibRelationalTerm svLibAssumption -> makeAnd(pf, svLibAssumption);
+              case CExpression cAssumption -> makeAnd(pPathFormula, cAssumption);
+              case SvLibRelationalTerm svLibAssumption -> makeAnd(pPathFormula, svLibAssumption);
               default ->
                   throw new CPATransferException(
                       "Unsupported assumption " + assumption.getClass().getSimpleName());
             };
-        hasAssumptions = true;
       }
     }
-    return hasAssumptions ? pModel.evaluate(pf.getFormula()) : null;
+    return pPathFormula;
   }
 
   @Override
