@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -125,17 +126,14 @@ class PartitionedRelationFormula {
     return FormulaManagerView.parseName(pFormula).getSecond();
   }
 
-  private ImmutableMap<Formula, Formula> getSubMap(ImmutableSet<Formula> variables, String suffix) {
-    return variables.stream()
-        .collect(
-            ImmutableMap.toImmutableMap(
-                variable -> variable,
-                variable ->
-                    fmgr.makeVariable(
-                        fmgr.getFormulaType(variable),
-                        TransitionInvariantUtils.removeTransInvKeyWord(
-                                fmgr.uninstantiate(variable).toString())
-                            + suffix)));
+  private ImmutableMap<Formula, Formula> getSubstitutionMap(ImmutableSet<Formula> variables, String suffix) {
+    return Maps.uniqueIndex(variables,
+        variable ->
+            fmgr.makeVariable(
+                fmgr.getFormulaType(variable),
+                TransitionInvariantUtils.removeTransInvKeyWord(
+                    fmgr.uninstantiate(variable).toString())
+                    + suffix));
   }
 
   /**
@@ -143,7 +141,7 @@ class PartitionedRelationFormula {
    * to carry the given suffix. Does not mutate {@code this}.
    */
   public PartitionedRelationFormula withPrevVarsSuffixed(String suffix) {
-    BooleanFormula substituted = fmgr.substitute(formula, getSubMap(prevVariables, suffix));
+    BooleanFormula substituted = fmgr.substitute(formula, getSubstitutionMap(prevVariables, suffix));
     Map<String, Formula> varNamesToFormulas = fmgr.extractVariables(substituted);
     boolean containsTransInv = usesTransInvKeyWord(varNamesToFormulas);
 
@@ -161,7 +159,7 @@ class PartitionedRelationFormula {
    * to carry the given suffix. Does not mutate {@code this}.
    */
   public PartitionedRelationFormula withCurrVarsSuffixed(String suffix) {
-    BooleanFormula substituted = fmgr.substitute(formula, getSubMap(currVariables, suffix));
+    BooleanFormula substituted = fmgr.substitute(formula, getSubstitutionMap(currVariables, suffix));
     Map<String, Formula> varNamesToFormulas = fmgr.extractVariables(substituted);
     boolean containsTransInv = usesTransInvKeyWord(varNamesToFormulas);
 
