@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -40,12 +39,12 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "cpa.terminationviamemory")
@@ -346,18 +345,14 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     }
     BooleanFormula interpolant;
 
-    try {
-      interpolant =
-          itpMgr
-              .interpolate(
-                  ImmutableList.of(
-                      bfmgr.and(firstStep, iterationFormula.getFormula()), latestSameStateFormula))
-              .orElseThrow()
-              .getFirst();
-      if (containsOnlyIrrelevantVariables(interpolant, callstackState)) {
-        return new PartitionedRelationFormula(bfmgr.makeFalse(), fmgr);
-      }
-    } catch (NoSuchElementException e) {
+    interpolant =
+        itpMgr
+            .interpolate(
+                ImmutableList.of(
+                    bfmgr.and(firstStep, iterationFormula.getFormula()), latestSameStateFormula))
+            .orElseThrow()
+            .getFirst();
+    if (containsOnlyIrrelevantVariables(interpolant, callstackState)) {
       return new PartitionedRelationFormula(bfmgr.makeFalse(), fmgr);
     }
 
@@ -389,21 +384,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           pFormula =
               bfmgr.and(
                   pFormula,
-                  fmgr.makeGreaterOrEqual(
-                      fmgr.makeNumber(
-                          FormulaType.IntegerType,
-                          cfa.getMachineModel().getMaximalIntegerValue(pType)),
-                      variable,
-                      true));
-          pFormula =
-              bfmgr.and(
-                  pFormula,
-                  fmgr.makeLessOrEqual(
-                      fmgr.makeNumber(
-                          FormulaType.IntegerType,
-                          cfa.getMachineModel().getMinimalIntegerValue(pType)),
-                      variable,
-                      true));
+                  CtoFormulaTypeUtils.makeRangeConstraint(
+                      fmgr, variable, pType, cfa.getMachineModel()));
         }
       }
     }
