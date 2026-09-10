@@ -512,16 +512,20 @@ public class ARGUtils {
         builder.add(currentElement, currentElement.getEdgeToChild(child));
         currentElement = child;
       } else {
-        // Filter out the unique successor which should be taken. Taking multiple ones does not make
-        // sense to me conceptually, since we are characterizing a single path.
-        // Checked through an assertion to catch bugs where this is incorrect
+        // Take the first successor which can be reached. There may be several of them, because the
+        // successors of a branching need not be mutually exclusive: OverflowCPA for example
+        // creates one successor per possible overflow of an edge, and a single edge can have
+        // several operations that overflow for the same values.
         final ARGState finalCurrentElement = currentElement;
         final ARGState child =
-            Iterables.getOnlyElement(
+            Iterables.getFirst(
                 FluentIterable.from(childrenInArg)
                     .filter(
                         currentChild ->
-                            branchingInformation.apply(finalCurrentElement, currentChild)));
+                            Boolean.TRUE.equals(
+                                branchingInformation.apply(finalCurrentElement, currentChild))),
+                null);
+        checkArgument(child != null, "ARG branches without direction information!");
         builder.add(currentElement, currentElement.getEdgeToChild(child));
         currentElement = child;
       }
