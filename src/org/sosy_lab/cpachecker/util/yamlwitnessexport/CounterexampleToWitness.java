@@ -251,10 +251,9 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       }
     }
 
-    Set<String> currentThreadIds = new HashSet<>(threadingState.getThreadIds());
-    currentThreadIds.removeAll(previousThreadingState.getThreadIds());
-
-    return Optional.of(Iterables.getOnlyElement(currentThreadIds));
+    return Optional.of(
+        Iterables.getOnlyElement(
+            Sets.difference(threadingState.getThreadIds(), previousThreadingState.getThreadIds())));
   }
 
   private static Optional<String> getCurrentThreadNameIfExists(ARGState pState, CFAEdge pEdge) {
