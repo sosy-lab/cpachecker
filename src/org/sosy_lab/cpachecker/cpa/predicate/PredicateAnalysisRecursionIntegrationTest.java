@@ -132,4 +132,19 @@ public class PredicateAnalysisRecursionIntegrationTest {
             getConfiguration(), getProgramPath("mutually-recursive-correct.c"));
     results.assertIsSafe();
   }
+
+  @Test(timeout = 3000)
+  public void param_address_wrong() throws Exception {
+    IntegrationTestResult results =
+        IntegrationTestRunner.run(getConfiguration(), getProgramPath("param_address_wrong.c"));
+    results.assertIsUnsafe();
+  }
+
+  @Test(timeout = 3000)
+  public void param_address_deepest_frame_correct() throws Exception {
+    IntegrationTestResult results =
+        IntegrationTestRunner.run(
+            getConfiguration(), getProgramPath("param_address_deepest_frame_correct.c"));
+    results.assertIsSafe();
+  }
 }
