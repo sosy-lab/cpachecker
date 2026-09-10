@@ -5,7 +5,7 @@ This file is part of CPAchecker,
 a tool for configurable software verification:
 https://cpachecker.sosy-lab.org
 
-SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
 
 SPDX-License-Identifier: Apache-2.0
 -->
@@ -26,7 +26,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--preprocess" />
     <!-- These programs assume that malloc does not fail. -->
     <option name="--option">cpa.smg2.enableMallocFail=false</option>
-    <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
+    <propertyfile>../../config/specification/memorysafety.spc</propertyfile>
   </tasks>
 
   <tasks name="HeapMemSafety">
@@ -50,6 +50,12 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/smg_External_Allocation_Test/ExtAlloc.set</includesfile>
     <option name="--smgSymbolicExecution"/>
     <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+
+  <tasks name="AnonymousLocalAllocationMemSafety">
+    <include>../programs/smg2_tests/anonymousLocalAllocation/*.yml</include>
+    <option name="--smgSymbolicExecution"/>
+    <propertyfile>../../config/specification/memorysafety.spc</propertyfile>
   </tasks>
 
   <tasks name="MemSafety-LinkedLists">
