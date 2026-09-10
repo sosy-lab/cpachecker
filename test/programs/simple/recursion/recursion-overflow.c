@@ -6,6 +6,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+// A recursive program without overflows. Checking the overflow property
+// computes no state at the exit node of main, cf. #1539.
+
 extern unsigned int __VERIFIER_nondet_uint();
 
 unsigned int id(unsigned int x) {

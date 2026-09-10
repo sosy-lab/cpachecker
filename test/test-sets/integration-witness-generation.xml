@@ -165,8 +165,6 @@ SPDX-License-Identifier: Apache-2.0
   <tasks name="Recursive">
     <includesfile>../programs/benchmarks/Recursive.set</includesfile>
     <includesfile>../programs/benchmarks/VerifyThis-Recursive.set</includesfile>
-    <!-- main's block never reaches main's exit node here, cf. #1539 -->
-    <include>../programs/bam/recursion-no-main-exit.yml</include>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <exclude>../programs/benchmarks/recursive/recHanoi03-2.yml</exclude> <!-- flapping timeout/memout -->
     <exclude>../programs/benchmarks/recursive-simple/fibo_2calls_25-1.yml</exclude> <!-- flapping timeout/OOM -->
@@ -175,10 +173,14 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/verifythis/elimination_max_rec_onepoint.yml</exclude> <!-- flapping timeout/recursion -->
     <option name="--option">cpa.callstack.skipVoidRecursion=false</option>
   </tasks>
-  <!-- For the overflow property the main reached set of BAM never has an exit state,
-       because the overflow analysis creates no state at main's exit node, cf. #1539. -->
-  <tasks name="RecursiveOverflows">
-    <include>../programs/bam/recursion-overflow.yml</include>
-    <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+  <!-- Recursive programs for which no state at the exit node of main is computed, cf. #1539.
+       These use our own property files, so they need their own tasks. -->
+  <tasks name="RecursiveWithoutMainExit">
+    <include>../programs/simple/recursion/*.yml</include>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="RecursiveWithoutMainExitOverflows">
+    <include>../programs/simple/recursion/*.yml</include>
+    <propertyfile>../config/properties/no-overflow.prp</propertyfile>
   </tasks>
 </benchmark>
