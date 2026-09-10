@@ -202,6 +202,7 @@ public final class PathFormula implements Serializable {
     private final int length;
     private final PointerTargetSet pts;
 
+    // Do not make public, cf. createManually()
     SerializationProxy(PathFormula pPathFormula) {
       FormulaManagerView mgr =
           SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();
