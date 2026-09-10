@@ -1092,9 +1092,38 @@ bmc.kinduction.reuse.pred.strategy = GLOBAL
 # Propagates the interrupts of the invariant generator.
 bmc.propagateInvGenInterrupts = false
 
+# Restrict the state-space exploration of the induction step case to the
+# states from which the loop-unrolling bound can still be reached, i.e., drop
+# states that cannot visit any loop head anymore and whose loop-iteration
+# counter is below the bound.
+# Such states cannot contribute to the induction step, which asserts the
+# candidate invariant at the loop-head states up to the bound and checks it
+# at the states exactly at the bound. This is sound for the plain safety
+# property, but not for candidate invariants that are attached to specific
+# program locations, so it is disabled by default.
+bmc.restrictStepCaseToRemainingIterations = false
+
 # Try to simplify the structure of formulas for the sat check of BMC. The
 # improvement depends on the underlying SMT solver.
 bmc.simplifyBooleanFormula = false
+
+# Check satisfiability during the state-space exploration of the induction
+# step case as soon as the path formula of a state has reached this length (0
+# disables the checks).
+# This is only useful together with bmc.strengthenStepCaseWithInvariants,
+# because without invariants the loop-head states of the step case are
+# unconstrained and hence hardly any path is infeasible.
+bmc.stepCaseSatCheckBlockSize = 0
+
+# Constrain the initial states of the induction step case with the invariants
+# that are currently available for the respective loop head, instead of only
+# asserting those invariants in the SMT query.
+# This puts the invariants into the path formula of every state of the step
+# case, such that a satisfiability check during the state-space exploration
+# (cf. bmc.stepCaseSatCheckBlockSize) can prune paths that are infeasible
+# under the known invariants instead of unrolling them. Without an invariant
+# generator that actually supplies invariants this option has no effect.
+bmc.strengthenStepCaseWithInvariants = true
 
 # Use generalized counterexamples to induction as candidate invariants.
 bmc.usePropertyDirection = false
@@ -2398,6 +2427,20 @@ cpa.loopbound.checkOnlyAtBounds = []
 # regarding the modulus of this number. Values smaller or equal to zero will
 # deactivate this feature.
 cpa.loopbound.cyclicStopModulus = -1
+
+# Drop states that can never reach the bound for the number of loop
+# unrollings, i.e., states whose loop-iteration counter is still below the
+# bound but from whose location no loop head can be reached anymore.
+# Such states are useless for analyses that inspect only states at the bound,
+# most notably the induction step case of k-induction: it assumes the
+# candidate invariant at the loop-head states up to the bound and checks it
+# at the states exactly at the bound, so a state that can never reach the
+# bound contributes nothing.
+# Enabling this makes the reached set an incomplete unrolling of the program.
+# Do NOT enable it for analyses that inspect states below the bound at
+# arbitrary locations, such as plain BMC or k-induction with candidate
+# invariants for specific program locations.
+cpa.loopbound.dropStatesThatCannotReachBound = false
 
 # Number of loop iterations before the loop counter is abstracted. Zero is
 # equivalent to no limit.

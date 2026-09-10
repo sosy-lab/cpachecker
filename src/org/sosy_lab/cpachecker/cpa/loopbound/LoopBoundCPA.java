@@ -71,7 +71,7 @@ public class LoopBoundCPA extends AbstractCPA
     super("sep", "sep", new LoopBoundTransferRelation(pConfig, pCFA));
     pConfig.inject(this);
     loopStructure = pCFA.getLoopStructure().orElseThrow();
-    precisionAdjustment = new LoopBoundPrecisionAdjustment(pConfig, pLogger);
+    precisionAdjustment = new LoopBoundPrecisionAdjustment(pConfig, pCFA, pLogger);
   }
 
   @Override

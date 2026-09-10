@@ -10,13 +10,22 @@ package org.sosy_lab.cpachecker.cpa.loopbound;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -24,6 +33,8 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 @Options(prefix = "cpa.loopbound")
 public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
@@ -63,9 +74,36 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
               + " abstracted. Zero is equivalent to no limit.")
   private int loopIterationsBeforeAbstraction = 0;
 
+  @Option(
+      secure = true,
+      description =
+          "Drop states that can never reach the bound for the number of loop unrollings,"
+              + " i.e., states whose loop-iteration counter is still below the bound but from"
+              + " whose location no loop head can be reached anymore.\n"
+              + "Such states are useless for analyses that inspect only states at the bound,"
+              + " most notably the induction step case of k-induction: it assumes the candidate"
+              + " invariant at the loop-head states up to the bound and checks it at the states"
+              + " exactly at the bound, so a state that can never reach the bound contributes"
+              + " nothing.\n"
+              + "Enabling this makes the reached set an incomplete unrolling of the program. Do"
+              + " NOT enable it for analyses that inspect states below the bound at arbitrary"
+              + " locations, such as plain BMC or k-induction with candidate invariants for"
+              + " specific program locations.")
+  private boolean dropStatesThatCannotReachBound = false;
+
   private final LogManager logger;
 
-  public LoopBoundPrecisionAdjustment(Configuration pConfig, LogManager pLogger)
+  /**
+   * All nodes from which some loop head is reachable in the CFA, or {@code null} if {@link
+   * #dropStatesThatCannotReachBound} is disabled and this information is thus not needed.
+   *
+   * <p>This is a context-insensitive over-approximation of reachability (it ignores from which call
+   * site a function was entered), i.e., the set may be too large but never too small. Because we
+   * only ever drop states whose location is <em>not</em> in this set, being too large is safe.
+   */
+  private final @Nullable ImmutableSet<CFANode> nodesThatCanReachALoopHead;
+
+  public LoopBoundPrecisionAdjustment(Configuration pConfig, CFA pCFA, LogManager pLogger)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     if (maxLoopIterations < 0) {
@@ -74,6 +112,31 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
               + maxLoopIterations);
     }
     logger = pLogger;
+    nodesThatCanReachALoopHead =
+        dropStatesThatCannotReachBound ? computeNodesThatCanReachALoopHead(pCFA) : null;
+  }
+
+  /** Collects all CFA nodes from which some loop head can be reached, by backwards traversal. */
+  private static ImmutableSet<CFANode> computeNodesThatCanReachALoopHead(CFA pCFA) {
+    Set<CFANode> result = new HashSet<>();
+    Deque<CFANode> waitlist = new ArrayDeque<>();
+    for (Loop loop : pCFA.getLoopStructure().orElseThrow().getAllLoops()) {
+      for (CFANode loopHead : loop.getLoopHeads()) {
+        if (result.add(loopHead)) {
+          waitlist.push(loopHead);
+        }
+      }
+    }
+    while (!waitlist.isEmpty()) {
+      // Use all entering edges (including summary edges) so that no predecessor is missed.
+      for (CFAEdge enteringEdge : waitlist.pop().getAllEnteringEdges()) {
+        CFANode predecessor = enteringEdge.getPredecessor();
+        if (result.add(predecessor)) {
+          waitlist.push(predecessor);
+        }
+      }
+    }
+    return ImmutableSet.copyOf(result);
   }
 
   int getMaxLoopIterations() {
@@ -129,10 +192,26 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
             .setStop(maxLoopIterations > 0 && state.getDeepestIteration() > maxLoopIterations)
             .enforceAbstraction(getLoopIterationsBeforeAbstraction());
 
+    if (dropStatesThatCannotReachBound
+        && maxLoopIterations > 0
+        && adjustedState.getDeepestIteration() < maxLoopIterations
+        && !canStillReachALoopHead(pFullState)) {
+      // The loop-iteration counter only ever grows when a loop head is visited. Since no loop head
+      // can be reached from here anymore, neither this state nor any of its successors can ever
+      // reach the bound, so the whole subtree can be dropped.
+      return Optional.empty();
+    }
+
     PrecisionAdjustmentResult result =
         new PrecisionAdjustmentResult(adjustedState, adjustedPrecision, Action.CONTINUE);
 
     return Optional.of(result);
+  }
+
+  private boolean canStillReachALoopHead(AbstractState pFullState) {
+    CFANode location = AbstractStates.extractLocation(pFullState);
+    // Without unique location information we cannot decide this, so keep the state.
+    return location == null || nodesThatCanReachALoopHead.contains(location);
   }
 
   private interface MaxLoopIterationAdjuster {
