@@ -40,7 +40,7 @@ public class SerializeFunctionPointerStateOperator implements SerializeOperator 
       } else {
         NamedFunctionTarget namedTarget = (NamedFunctionTarget) builder.getTarget(value);
         entries.add(
-            new DssFunctionPointerEntry(value, TargetKind.INVALID, namedTarget.getFunctionName()));
+            new DssFunctionPointerEntry(value, TargetKind.NAMED, namedTarget.getFunctionName()));
       }
     }
 
