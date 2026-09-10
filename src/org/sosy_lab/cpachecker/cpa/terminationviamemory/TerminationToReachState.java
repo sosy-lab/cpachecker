@@ -43,7 +43,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
    * call-stack states of loop-heads to a map with information about which variables were seen after
    * which unrolling of the loop.
    */
-  private ImmutableMap<
+  private final ImmutableMap<
           Pair<LocationState, CallstackState>, ImmutableMap<Integer, ImmutableSet<Formula>>>
       storedValues;
 
@@ -51,19 +51,19 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
    * For every loop-head (given by location and call-stack), we track how many times have we passed
    * it in the abstract graph until reaching this state.
    */
-  private ImmutableMap<Pair<LocationState, CallstackState>, Integer> numberOfIterations;
+  private final ImmutableMap<Pair<LocationState, CallstackState>, Integer> numberOfIterations;
 
   /**
    * For every loop-head (given by location and call-stack), we track the path formula until
    * reaching this abstract state. This is the part inside the loop, i.e. the loop iterations.
    */
-  private ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pathFormulaForIteration;
+  private final ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pathFormulaForIteration;
 
   /**
    * For every loop-head (given by location and call-stack), we track the path formula until
    * reaching this abstract state. This is the part before reaching the loop.
    */
-  private Optional<PathFormula> pathFormulaForPrefix;
+  private final Optional<PathFormula> pathFormulaForPrefix;
 
   /**
    * We collect transition invariants that hold for previous iteration formulas at this abstract
@@ -71,12 +71,12 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
    * candidate transition invariant. This set represents a conjunction of all possible transition
    * invariants at this location.
    */
-  private ImmutableSet<PartitionedRelationFormula> transitionInvariants;
+  private final ImmutableSet<PartitionedRelationFormula> transitionInvariants;
 
   /** Available transition predicates to use. */
-  private ImmutableSet<PartitionedRelationFormula> transitionPredicates;
+  private final ImmutableSet<PartitionedRelationFormula> transitionPredicates;
 
-  private Optional<PathFormula> pathFormulaFull;
+  private final Optional<PathFormula> pathFormulaFull;
 
   public TerminationToReachState(
       ImmutableMap<
