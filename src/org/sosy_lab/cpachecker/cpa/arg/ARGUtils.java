@@ -522,6 +522,9 @@ public class ARGUtils {
                 .filter(
                     currentChild -> branchingInformation.test(finalCurrentElement, currentChild))
                 .first()
+                // This throws an exception when there is no successor which can be taken by the
+                // successor. This indicates that we could not uniquely determine the path from the
+                // branching information and stopped at some point.
                 .get();
         builder.add(currentElement, currentElement.getEdgeToChild(child));
         currentElement = child;
