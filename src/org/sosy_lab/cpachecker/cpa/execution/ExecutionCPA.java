@@ -92,6 +92,7 @@ public class ExecutionCPA extends AbstractSingleWrapperCPA {
   private final ShutdownNotifier shutdownNotifier;
   private final ExecutionStatistics stats = new ExecutionStatistics();
   private final ExecutionWitnessExporter witnessExporter;
+  private final ExecutionSampler sampler;
 
   private ExecutionCPA(
       ConfigurableProgramAnalysis pCpa,
@@ -111,6 +112,7 @@ public class ExecutionCPA extends AbstractSingleWrapperCPA {
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     witnessExporter = new ExecutionWitnessExporter(pConfig, pCfa, pSpecification, pLogger);
+    sampler = new ExecutionSampler(pConfig, pCfa, pLogger, stats);
   }
 
   @Override
@@ -127,6 +129,7 @@ public class ExecutionCPA extends AbstractSingleWrapperCPA {
         logger,
         stats,
         witnessExporter,
+        sampler,
         stepsPerTransfer,
         restoreCallerValuesOnRecursion);
   }

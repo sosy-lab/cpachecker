@@ -2264,6 +2264,13 @@ cpa.defuse.merge = "sep"
 # proportional to the length of the execution).
 cpa.execution.maxAssignmentsPerLocation = 100
 
+# Maximum number of assignments that are sampled during one execution.
+# Sampling is intended for programs whose inputs are read outside of any
+# loop, where the number of inputs is bounded by the program. This limit
+# protects against the unbounded number of solver calls that a program with
+# inputs in a loop would need. Use -1 for no limit.
+cpa.execution.maxSamples = 1000
+
 # Restore the values of the local variables of a caller when a recursive
 # function call returns. A value analysis identifies local variables by the
 # name of their function, so all invocations of a function share the same
@@ -2272,6 +2279,14 @@ cpa.execution.maxAssignmentsPerLocation = 100
 # such that recursive programs can be executed precisely. The value analysis
 # itself is not changed by this.
 cpa.execution.restoreCallerValuesOnRecursion = true
+
+# Execute programs with inputs by asking the SMT solver for one assignment of
+# the inputs instead of aborting on the first nondeterministic choice. This
+# needs symbolic values (cpa.value.unknownValueHandling=INTRODUCE_SYMBOLIC)
+# and the ConstraintsCPA in the CPA configuration. Only one of the possible
+# executions is explored, so the analysis can then only report FALSE, never
+# TRUE.
+cpa.execution.sampleNondeterministicValues = false
 
 # Number of program steps that are executed within a single call of the
 # transfer relation. Intermediate states are not added to the reached set, so

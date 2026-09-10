@@ -56,6 +56,7 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
   private final LogManagerWithoutDuplicates logger;
   private final ExecutionStatistics stats;
   private final ExecutionWitnessExporter witnessExporter;
+  private final ExecutionSampler sampler;
   private final boolean collectInvariants;
   private final int stepsPerTransfer;
   private final boolean restoreCallerValues;
@@ -66,6 +67,7 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
       LogManager pLogger,
       ExecutionStatistics pStats,
       ExecutionWitnessExporter pWitnessExporter,
+      ExecutionSampler pSampler,
       int pStepsPerTransfer,
       boolean pRestoreCallerValues) {
     super(pWrapped);
@@ -73,6 +75,7 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
     logger = new LogManagerWithoutDuplicates(pLogger);
     stats = pStats;
     witnessExporter = pWitnessExporter;
+    sampler = pSampler;
     collectInvariants = pWitnessExporter.collectsInvariants();
     stepsPerTransfer = pStepsPerTransfer;
     restoreCallerValues = pRestoreCallerValues;
@@ -91,6 +94,16 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
       if (next == null) {
         // The program ends here (or the specification excludes this path),
         // so this execution has no successor at all.
+        if (sampler.hasSampled()) {
+          // We chose the values of the inputs ourselves, so this is only one of the executions of
+          // the program and the others may still violate the specification.
+          throw new CPATransferException(
+              "The execution ended without violating the specification, but "
+                  + sampler.getSampleCount()
+                  + " assignment(s) of the inputs of the program were sampled, so only one of its"
+                  + " executions was explored. ExecutionCPA cannot prove that the program is"
+                  + " safe.");
+        }
         return ImmutableList.of();
       }
       current = next;
@@ -128,41 +141,95 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
       }
     }
 
+    AbstractState state = wrappedState;
+    List<ExecutionStep> steps =
+        computeSteps(
+            state,
+            pState.getCallStack(),
+            locationState,
+            pPrecision,
+            /* pAllowSeveralSuccessors= */ sampler.isEnabled());
+
+    if (steps.size() > 1) {
+      // The execution depends on an input of the program. Choose values for the inputs and
+      // continue with the successor that these values determine.
+      AbstractState sampledState = sampler.sample(state, steps);
+      if (sampledState == null) {
+        throw nondeterminismException(steps.get(0).edge(), steps.get(1).edge());
+      }
+      state = sampledState;
+      steps =
+          computeSteps(
+              state,
+              pState.getCallStack(),
+              locationState,
+              pPrecision,
+              /* pAllowSeveralSuccessors= */ false);
+    }
+
+    if (steps.isEmpty()) {
+      return null;
+    }
+    ExecutionStep step = steps.getFirst();
+    if (AbstractStates.isTargetState(step.successor())) {
+      // Remember where the specification was violated for the violation witness.
+      witnessExporter.reportViolation(step.edge());
+    }
+    stats.executedSteps.inc();
+    return new ExecutionState(step.successor(), updateCallStack(pState, step.edge(), state));
+  }
+
+  /**
+   * Compute the successors of the given state by evaluating each of the edges that leave its
+   * location.
+   *
+   * @param pAllowSeveralSuccessors whether to return all successors instead of aborting as soon as
+   *     a second one is found
+   * @throws UnsupportedCodeException if there is more than one successor and {@code
+   *     pAllowSeveralSuccessors} is false
+   */
+  private List<ExecutionStep> computeSteps(
+      AbstractState pState,
+      @Nullable StackFrame pCallStack,
+      AbstractStateWithLocations pLocationState,
+      Precision pPrecision,
+      boolean pAllowSeveralSuccessors)
+      throws CPATransferException, InterruptedException {
+
     // The state whose function-scoped values were restored, computed on demand
     // because this is necessary only when returning from a recursive function call.
     AbstractState restoredState = null;
 
-    AbstractState successor = null;
-    CFAEdge successorEdge = null;
-    for (CFAEdge edge : locationState.getOutgoingEdges()) {
-      AbstractState predecessor = wrappedState;
-      if (edge instanceof FunctionReturnEdge returnEdge && pState.getCallStack() != null) {
+    List<ExecutionStep> steps = new ArrayList<>(1);
+    for (CFAEdge edge : pLocationState.getOutgoingEdges()) {
+      AbstractState predecessor = pState;
+      if (edge instanceof FunctionReturnEdge returnEdge && pCallStack != null) {
         if (restoredState == null) {
-          restoredState = restoreCallerValues(wrappedState, returnEdge, pState.getCallStack());
+          restoredState = restoreCallerValues(pState, returnEdge, pCallStack);
         }
         predecessor = restoredState;
       }
 
       for (AbstractState newState :
           transferRelation.getAbstractSuccessorsForEdge(predecessor, pPrecision, edge)) {
-        if (successor == null) {
-          successor = newState;
-          successorEdge = edge;
-        } else if (!isSameState(successor, newState)) {
-          throw nondeterminismException(successorEdge, edge);
+        if (isNewSuccessor(steps, newState)) {
+          if (!steps.isEmpty() && !pAllowSeveralSuccessors) {
+            throw nondeterminismException(steps.getFirst().edge(), edge);
+          }
+          steps.add(new ExecutionStep(edge, newState));
         }
       }
     }
+    return steps;
+  }
 
-    if (successor == null) {
-      return null;
+  private static boolean isNewSuccessor(List<ExecutionStep> pSteps, AbstractState pState) {
+    for (ExecutionStep step : pSteps) {
+      if (isSameState(step.successor(), pState)) {
+        return false;
+      }
     }
-    if (AbstractStates.isTargetState(successor)) {
-      // Remember where the specification was violated for the violation witness.
-      witnessExporter.reportViolation(successorEdge);
-    }
-    stats.executedSteps.inc();
-    return new ExecutionState(successor, updateCallStack(pState, successorEdge, wrappedState));
+    return true;
   }
 
   /**

@@ -185,6 +185,37 @@ public class ExecutionCPAIntegrationTest {
   }
 
   @Test
+  public void samplingFindsAViolationThatDependsOnAnInput() throws Exception {
+    // Without sampling these programs are rejected, because their execution depends on an input.
+    runWithProperty(
+            "config/execution-sampling.properties", "unreach-call.prp", "nondeterministic-input.c")
+        .assertIsUnsafe();
+    runWithProperty(
+            "config/execution-sampling.properties",
+            "unreach-call.prp",
+            "input-error-in-second-branch-false.c")
+        .assertIsUnsafe();
+  }
+
+  @Test
+  public void samplingNeverProvesSafety() throws Exception {
+    // Only one of the executions of the program was explored, so TRUE must not be reported even
+    // though this execution did not violate the specification.
+    runWithProperty(
+            "config/execution-sampling.properties", "unreach-call.prp", "input-safe-unknown.c")
+        .assertIs(Result.UNKNOWN);
+  }
+
+  @Test
+  public void samplingDoesNotAffectDeterministicPrograms() throws Exception {
+    runWithProperty(
+            "config/execution-sampling.properties",
+            "unreach-call.prp",
+            "recursive-factorial-true.c")
+        .assertIsSafe();
+  }
+
+  @Test
   public void validMemcleanupProperty() throws Exception {
     runWithProperty(
             "config/execution--memorycleanup.properties",

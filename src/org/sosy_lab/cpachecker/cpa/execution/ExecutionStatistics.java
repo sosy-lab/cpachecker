@@ -23,13 +23,16 @@ class ExecutionStatistics implements Statistics {
   final StatInt maxCallStackDepth =
       new StatInt(StatKind.MAX, "Maximum depth of the function-call stack");
   final StatCounter recursiveCalls = new StatCounter("Number of recursive function calls");
+  final StatCounter sampledAssignments =
+      new StatCounter("Number of sampled assignments of the inputs");
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
     StatisticsWriter.writingStatisticsTo(pOut)
         .put(executedSteps)
         .put(maxCallStackDepth)
-        .put(recursiveCalls);
+        .put(recursiveCalls)
+        .putIf(sampledAssignments.getUpdateCount() > 0, sampledAssignments);
   }
 
   @Override
