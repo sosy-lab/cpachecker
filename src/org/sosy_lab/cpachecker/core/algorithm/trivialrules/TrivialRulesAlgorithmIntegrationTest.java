@@ -1,0 +1,126 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.trivialrules;
+
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
+
+/**
+ * Tests for the trivial rules. A rule has to abstain whenever its argument does not hold, so a
+ * large part of these tests expects the result UNKNOWN.
+ */
+public class TrivialRulesAlgorithmIntegrationTest {
+
+  private static final String PROGRAM_DIR = "test/programs/trivialrules/";
+
+  private static final String PROPERTY_DIR = "test/programs/benchmarks/properties/";
+
+  @BeforeClass
+  public static void skipUnlessExtendedTestsEnabled() {
+    IntegrationTestRunner.skipUnlessExtendedTestsEnabled();
+  }
+
+  private static ConfigurationBuilder config(String pConfigFile) throws Exception {
+    return TestUtils.configurationForTest().loadFromFile(pConfigFile);
+  }
+
+  /**
+   * Create the configuration that CPAchecker uses after it has detected an SV-COMP property on the
+   * command line and switched to the configuration named by the corresponding {@code *.config}
+   * option: the given configuration file with the property file as specification. The entry
+   * function is taken from the property file by CPAchecker itself, so we have to set it here.
+   */
+  private static ConfigurationBuilder configWithProperty(String pConfigFile, String pProperty)
+      throws Exception {
+    return config(pConfigFile)
+        .setOption("specification", PROPERTY_DIR + pProperty)
+        .setOption("analysis.entryFunction", "main");
+  }
+
+  private static IntegrationTestResult runWithProperty(
+      String pConfigFile, String pProperty, String pProgram) throws Exception {
+    return IntegrationTestRunner.run(
+        configWithProperty(pConfigFile, pProperty).build(), PROGRAM_DIR + pProgram);
+  }
+
+  /** Run with only the given rules, in order to test that the other rules abstain. */
+  private static IntegrationTestResult runWithRules(
+      String pConfigFile, String pProperty, String pRules, String pProgram) throws Exception {
+    Configuration configuration =
+        configWithProperty(pConfigFile, pProperty).setOption("trivialrules.rules", pRules).build();
+    return IntegrationTestRunner.run(configuration, PROGRAM_DIR + pProgram);
+  }
+
+  // ------------------------------------------------------------------------------------------
+  // unreach-call
+  // ------------------------------------------------------------------------------------------
+
+  private static final String REACHABILITY_CONFIG = "config/trivialRules.properties";
+
+  @Test
+  public void programWithoutErrorCallIsProven() throws Exception {
+    runWithProperty(REACHABILITY_CONFIG, "unreach-call.prp", "no-error-call-true.c")
+        .assertIsSafe();
+  }
+
+  @Test
+  public void errorCallInDeadCodeIsProven() throws Exception {
+    runWithProperty(REACHABILITY_CONFIG, "unreach-call.prp", "error-in-dead-function-true.c")
+        .assertIsSafe();
+  }
+
+  @Test
+  public void errorCallBehindConstantConditionIsProven() throws Exception {
+    // Needs the values of the variables that are constant in every execution.
+    runWithProperty(
+            REACHABILITY_CONFIG, "unreach-call.prp", "error-behind-constant-condition-true.c")
+        .assertIsSafe();
+  }
+
+  @Test
+  public void errorCallOnEveryExecutionIsRefuted() throws Exception {
+    runWithProperty(REACHABILITY_CONFIG, "unreach-call.prp", "error-called-unconditionally-false.c")
+        .assertIsUnsafe();
+  }
+
+  @Test
+  public void errorCallOnEveryExecutionIsNotProven() throws Exception {
+    // The rule that proves unreach-call has to abstain here: a target location is reachable.
+    runWithRules(
+            REACHABILITY_CONFIG,
+            "unreach-call.prp",
+            "no-reachable-target-location",
+            "error-called-unconditionally-false.c")
+        .assertIs(Result.UNKNOWN);
+  }
+
+  @Test
+  public void errorCallBehindInputIsUndecided() throws Exception {
+    // Whether the error is reached depends on the input, so every rule has to abstain.
+    runWithProperty(REACHABILITY_CONFIG, "unreach-call.prp", "error-behind-input-unknown.c")
+        .assertIs(Result.UNKNOWN);
+  }
+
+  @Test
+  public void specificationWithoutPropertyFileIsNotDecided() throws Exception {
+    // The rules need to know which propositions to settle, which the property file states.
+    Configuration configuration =
+        config(REACHABILITY_CONFIG)
+            .setOption("specification", "config/specification/sv-comp-reachability.spc")
+            .build();
+    IntegrationTestRunner.run(configuration, PROGRAM_DIR + "error-called-unconditionally-false.c")
+        .assertIs(Result.DONE);
+  }
+}

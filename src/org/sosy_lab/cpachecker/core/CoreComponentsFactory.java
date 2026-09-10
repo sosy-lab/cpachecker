@@ -77,6 +77,7 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlg
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.TerminationWitnessValidator;
+import org.sosy_lab.cpachecker.core.algorithm.trivialrules.TrivialRulesAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -355,6 +356,14 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
+      name = "algorithm.trivialRules",
+      description =
+          "decide the specification with trivial rules, i.e., with arguments that need no reasoning"
+              + " about what the program computes")
+  private boolean useTrivialRules = false;
+
+  @Option(
+      secure = true,
       name = "extractRequirements.customInstruction",
       description =
           "do analysis and then extract pre- and post conditions for custom instruction from"
@@ -578,6 +587,9 @@ public class CoreComponentsFactory {
     if (useUndefinedFunctionCollector) {
       logger.log(Level.INFO, "Using undefined function collector");
       algorithm = new UndefinedFunctionCollectorAlgorithm(config, logger, shutdownNotifier, cfa);
+    } else if (useTrivialRules) {
+      logger.log(Level.INFO, "Using trivial rules");
+      algorithm = new TrivialRulesAlgorithm(config, logger, shutdownNotifier, cfa, specification);
     } else if (analysisSequentializesCfa()) {
       // Wrap the inner algorithm into one which pre-processes the CFA with MPOR sequentialization.
       // Only in case the CFA is not already sequentialized, since in that case we are somewhere
@@ -964,6 +976,7 @@ public class CoreComponentsFactory {
         || asConditionalVerifier
         || useNonTerminationWitnessValidation
         || useUndefinedFunctionCollector
+        || useTrivialRules
         || constructProgramSlice
         || useFaultLocalizationWithDistanceMetrics
         || useArrayAbstraction

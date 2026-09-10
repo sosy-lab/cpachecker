@@ -555,6 +555,10 @@ analysis.algorithm.terminationToSafety = false
 # termination
 analysis.algorithm.terminationWitnessCheck = false
 
+# decide the specification with trivial rules, i.e., with arguments that need
+# no reasoning about what the program computes
+analysis.algorithm.trivialRules = false
+
 # collect undefined functions
 analysis.algorithm.undefinedFunctionCollector = false
 
@@ -5962,6 +5966,11 @@ traceformula.makeFlowSensitive = false
 # selector for equal statements (on the same line), set this option to true.
 # Note that enabling this option  also decreases the quality of results.
 traceformula.reduceSelectors = false
+
+# Use only the trivial rules with these names, e.g. to measure a single rule.
+# Leave empty to use all rules that can decide a proposition of the
+# specification. The names of the rules are printed in the statistics.
+trivialrules.rules = {}
 
 # Ignore functions that are defined by C11
 undefinedFunctionsCollector.allowC11Functions = true
