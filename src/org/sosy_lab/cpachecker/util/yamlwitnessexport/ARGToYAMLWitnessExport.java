@@ -115,7 +115,11 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
               yield argToWitnessV2d1.exportWitness(pRootState, outputFile);
             }
             case V2d2 -> {
-              logger.log(Level.INFO, "Exporting the same as a witness in version 2.1");
+              logger.log(
+                  Level.INFO,
+                  "Exported correctness witness has version 2.1 "
+                      + "instead of version 2.2 as requested because there "
+                      + "is no difference between these versions.");
               yield argToWitnessV2d1.exportWitness(pRootState, outputFile);
             }
           };
