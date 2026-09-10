@@ -309,7 +309,8 @@ class MemoryManipulationFunctionHandler {
     final Optional<SliceExpression> setValueAsSliceExpression;
     if (setValue.isPresent()) {
       CExpression setValueAsUnsignedChar =
-          new CCastExpression(FileLocation.DUMMY, CNumericTypes.UNSIGNED_CHAR, setValue.get());
+          new CCastExpression(
+              FileLocation.DUMMY, CNumericTypes.UNSIGNED_CHAR, setValue.orElseThrow());
       setValueAsSliceExpression = Optional.of(new SliceExpression(setValueAsUnsignedChar));
     } else {
       setValueAsSliceExpression = Optional.empty();
