@@ -18,6 +18,7 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /**
@@ -28,6 +29,8 @@ class TrivialRulesStatistics implements Statistics {
 
   private final Timer totalTime = new Timer();
   private final Map<String, String> outcomes = new LinkedHashMap<>();
+  private final Map<String, String> propositions = new LinkedHashMap<>();
+  private final Map<String, String> arguments = new LinkedHashMap<>();
 
   private @Nullable TrivialRule decidingRule = null;
   private @Nullable RuleVerdict verdict = null;
@@ -52,6 +55,14 @@ class TrivialRulesStatistics implements Statistics {
       decidingRule = pRule;
       verdict = pVerdict;
     }
+  }
+
+  /** Report which rule settled the given proposition, and how. */
+  void settled(Property pProposition, TrivialRule pRule, RuleVerdict pVerdict) {
+    propositions.put(
+        TrivialRules.nameOf(pProposition),
+        (pVerdict.isViolation() ? "violated according to " : "proven by ") + pRule.name());
+    arguments.put(pRule.name(), pRule.argument());
   }
 
   /** The rule that decided the task, if there is one. */
@@ -84,18 +95,19 @@ class TrivialRulesStatistics implements Statistics {
     }
 
     writer = writer.put("Rules checked", outcomes.size());
-    StatisticsWriter details = writer.beginLevel();
-    for (Map.Entry<String, String> outcome : outcomes.entrySet()) {
-      details.put(outcome.getKey(), outcome.getValue());
-    }
+    putAll(writer.beginLevel(), outcomes);
 
-    if (decidingRule != null && verdict != null) {
-      writer
-          .spacer()
-          .put("Deciding rule", decidingRule.name())
-          .beginLevel()
-          .put("argument", decidingRule.argument())
-          .put("reason", verdict.reason());
+    if (!propositions.isEmpty()) {
+      writer = writer.put("Propositions settled", propositions.size());
+      putAll(writer.beginLevel(), propositions);
+      writer = writer.put("Arguments of the rules that settled them", arguments.size());
+      putAll(writer.beginLevel(), arguments);
+    }
+  }
+
+  private static void putAll(StatisticsWriter pWriter, Map<String, String> pValues) {
+    for (Map.Entry<String, String> value : pValues.entrySet()) {
+      pWriter.put(value.getKey(), value.getValue());
     }
   }
 

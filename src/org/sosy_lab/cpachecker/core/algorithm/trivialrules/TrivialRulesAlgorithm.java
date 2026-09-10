@@ -122,11 +122,16 @@ public class TrivialRulesAlgorithm implements Algorithm, StatisticsProvider {
         if (verdict.orElseThrow().isViolation()) {
           violatedBy = rule;
           violation = verdict.orElseThrow();
+          for (Property proposition : Sets.intersection(rule.decides(), propositions)) {
+            stats.settled(proposition, rule, verdict.orElseThrow());
+          }
           // One violated proposition violates the specification, so the task is decided.
           break;
         }
         for (Property proposition : Sets.intersection(rule.decides(), propositions)) {
-          proven.putIfAbsent(proposition, rule);
+          if (proven.putIfAbsent(proposition, rule) == null) {
+            stats.settled(proposition, rule, verdict.orElseThrow());
+          }
         }
       }
     } finally {
