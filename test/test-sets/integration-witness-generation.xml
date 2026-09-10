@@ -37,6 +37,7 @@ SPDX-License-Identifier: Apache-2.0
   <tasks name="simple">
     <includesfile>../programs/simple/simple.set</includesfile>
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+    <exclude>../programs/simple/recursion/*.yml</exclude> <!-- in tasks "Recursive-simple" -->
   </tasks>
 
   <tasks name="ConcurrencySafety-Main">
@@ -171,6 +172,13 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/recursive-simple/fibo_25-1.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/recursive-simple/id_o1000.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/verifythis/elimination_max_rec_onepoint.yml</exclude> <!-- flapping timeout/recursion -->
+    <option name="--option">cpa.callstack.skipVoidRecursion=false</option>
+  </tasks>
+  <!-- Separate from tasks "Recursive" because the task definitions
+       reference a different property file. -->
+  <tasks name="Recursive-simple">
+    <include>../programs/simple/recursion/*.yml</include>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
     <option name="--option">cpa.callstack.skipVoidRecursion=false</option>
   </tasks>
 </benchmark>
