@@ -94,21 +94,37 @@ class AssignmentHandler {
    *
    * <p>The quantified variables in LHS and RHS slice expressions must be unresolved. They will be
    * resolved later by {@link AssignmentQuantifierHandler}.
+   *
+   * <p>If {@code lhsSpan} is empty, the assignment covers the full left-hand-side type. Otherwise,
+   * it covers only the given bit span of it, with the rest of the left-hand-side object retaining
+   * its previous value.
    */
   record SliceAssignment(
-      SliceExpression lhs, Optional<CLeftHandSide> relevancyLhs, Optional<SliceExpression> rhs) {
+      SliceExpression lhs,
+      Optional<CLeftHandSide> relevancyLhs,
+      Optional<SliceExpression> rhs,
+      Optional<PartialSpan> lhsSpan) {
     SliceAssignment {
       checkNotNull(lhs);
       checkNotNull(relevancyLhs);
       checkNotNull(rhs);
+      checkNotNull(lhsSpan);
       checkArgument(!lhs.containsResolvedModifiers());
       checkArgument(rhs.isEmpty() || !rhs.orElseThrow().containsResolvedModifiers());
+    }
+
+    SliceAssignment(
+        SliceExpression lhs, Optional<CLeftHandSide> relevancyLhs, Optional<SliceExpression> rhs) {
+      this(lhs, relevancyLhs, rhs, Optional.empty());
     }
 
     private SliceAssignment constructCanonical() {
       // make the slice expressions canonical
       return new SliceAssignment(
-          lhs.constructCanonical(), relevancyLhs, rhs().map(SliceExpression::constructCanonical));
+          lhs.constructCanonical(),
+          relevancyLhs,
+          rhs().map(SliceExpression::constructCanonical),
+          lhsSpan);
     }
 
     private boolean isRelevant(CToFormulaConverterWithPointerAliasing pConv) {
@@ -256,8 +272,15 @@ class AssignmentHandler {
         // e.g., zero-width bit field, ignore
         continue;
       }
-      final PartialAssignmentRhs partialRhs =
-          new PartialAssignmentRhs(new PartialSpan(0, 0, targetBitSize), assignment.rhs);
+      final PartialSpan span = assignment.lhsSpan().orElse(new PartialSpan(0, 0, targetBitSize));
+      if (span.lhsBitOffset() + span.bitSize() > targetBitSize) {
+        throw new UnrecognizedCodeException(
+            String.format(
+                "Assignment span %s exceeds target type %s of bit size %s",
+                span, targetType, targetBitSize),
+            assignment.lhs().getDummyResolvedExpression());
+      }
+      final PartialAssignmentRhs partialRhs = new PartialAssignmentRhs(span, assignment.rhs());
       final SingleRhsPartialAssignment partialAssignment =
           new SingleRhsPartialAssignment(partialLhs, partialRhs);
 
@@ -352,8 +375,9 @@ class AssignmentHandler {
       // relevant
       return assignment;
     }
-    // havoc by making rhs nondeterministic
-    return new SliceAssignment(assignment.lhs, assignment.relevancyLhs, Optional.empty());
+    // havoc by making rhs nondeterministic (but keeping the original lhs span, if any)
+    return new SliceAssignment(
+        assignment.lhs(), assignment.relevancyLhs(), Optional.empty(), assignment.lhsSpan());
   }
 
   /**

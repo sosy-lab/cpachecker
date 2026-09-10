@@ -16,6 +16,7 @@ import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -37,6 +38,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.PartialSpan;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.SliceAssignment;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentOptions.ConversionType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceVariable;
@@ -130,8 +132,7 @@ class MemoryManipulationFunctionHandler {
     // Handover to function-specific code
     try {
       if (functionName.equals("memset")) {
-        Optional<CExpression> value = Optional.of(secondArgument);
-        handleMemsetFunction(destination, value, sizeInBytes);
+        handleMemsetFunction(destination, secondArgument, sizeInBytes);
       } else if (functionName.equals("memcpy") || functionName.equals("memmove")) {
         // memcpy and memmove only differ in that memcpy is not well-defined if destination and
         // source overlap; we do not model this
@@ -181,8 +182,197 @@ class MemoryManipulationFunctionHandler {
     CExpression objectPointer = params.get(0);
     CExpression regionSize = params.get(1);
 
-    Optional<CExpression> nondetValue = Optional.empty();
-    handleMemsetFunction(objectPointer, nondetValue, regionSize);
+    handleNondetMemoryAssignment(objectPointer, regionSize);
+  }
+
+  /**
+   * Handles the {@code __VERIFIER_nondet_memory} function, which fills the given number of bytes at
+   * the destination with independent nondeterministic bytes.
+   *
+   * <p>Unlike {@link #handleMemsetFunction}, a byte count that does not divide the destination
+   * element size evenly is not rounded up to a whole element: the region is split into a
+   * full-elements nondet assignment up to the number of elements that fit into the byte count.
+   * Then, if there is a remainder of bytes that does not cover a full element, an additional nondet
+   * assignment is attempted that covers only these remaining bytes of the following element. The
+   * bytes of that element that are outside of the intended byte-range are left at their previous
+   * value.
+   *
+   * <p>If the above byte-precise nondet assignment is not possible (for technical reasons), this
+   * method may still fall back to a single nondet assignment that covers the whole region.
+   *
+   * @param destination destination to fill with nondeterministic bytes.
+   * @param sizeInBytes size in bytes.
+   * @throws UnrecognizedCodeException if the provided C expressions could not be handled
+   *     successfully.
+   * @throws InterruptedException if a shutdown is requested while processing.
+   */
+  private void handleNondetMemoryAssignment(
+      final CExpression destination, final CExpression sizeInBytes)
+      throws UnrecognizedCodeException, InterruptedException {
+
+    // process destination the same way as for memset/memcpy/memmove
+    final CExpression processedDestination = processPointerLikeArgument(destination, true);
+
+    final CType destinationType = processedDestination.getExpressionType().getCanonicalType();
+    final CPointerType adjustedDestinationType =
+        (CPointerType) CTypes.adjustFunctionOrArrayType(destinationType);
+    final CType destinationElementType =
+        typeHandler.simplifyType(adjustedDestinationType.getType());
+
+    if (destinationElementType instanceof CVoidType) {
+      // Must be fixed later.
+      throw new UnrecognizedCodeException("Unsupported assignment to void", edge);
+    }
+
+    // for relevancy checking, we need a CLeftHandSide expression; we construct a dummy
+    // dereference, which, for relevancy checking purposes, describes assignment to the first
+    // element of destination
+    final Optional<CLeftHandSide> lhsForRelevancyChecking =
+        Optional.of(
+            new CPointerExpression(
+                FileLocation.DUMMY, destinationElementType, processedDestination));
+
+    final ImmutableList<SliceAssignment> assignments =
+        computeNondetMemoryAssignments(
+            processedDestination,
+            destinationType,
+            destinationElementType,
+            sizeInBytes,
+            lhsForRelevancyChecking);
+
+    // reinterpret instead of casting: there is no right-hand side to convert because
+    // we want to set a non-deterministic value.
+    // This means taht the conversion type does not matter for the assignment itself;
+    // but the conversion type 'REINTERPRET' preserves the exact bit content
+    // and performs no unexpected implicit type conversion
+    AssignmentOptions assignmentOptions =
+        new AssignmentOptions.Builder(ConversionType.REINTERPRET).build();
+    AssignmentHandler assignmentHandler =
+        new AssignmentHandler(
+            conv,
+            edge,
+            function,
+            ssa,
+            pts,
+            constraints,
+            errorConditions,
+            regionMgr,
+            assignmentOptions);
+
+    // assign and add as a constraint
+    BooleanFormula assignmentFormula = assignmentHandler.assign(assignments);
+    constraints.addConstraint(assignmentFormula);
+  }
+
+  /**
+   * Computes the slice assignments needed to havoc {@code sizeInBytes} bytes at {@code
+   * processedDestination}, splitting off a trailing partial-element assignment when the size does
+   * not divide the element size evenly.
+   *
+   * <p>If the element type to be set to nondet is an array, this method does not produce
+   * byte-precise slice assignments; instead, it sets the whole array to nondet values. This is
+   * because {@link AssignmentHandler#assign(List)} silently drops an incomplete-span assignment
+   * against an array-typed left-hand side instead of applying it. This would leave those bytes
+   * untouched instead of set to nondet, which would be unsound. Because we do not want this, this
+   * method sets any array that is supposed to be partially assigned to nondet values completely to
+   * nondet values instead. This is overapproximating, but sound.
+   *
+   * @param processedDestination starting destination for the havoc. Expected to be resolved to a
+   *     pointer already.
+   * @param destinationType canonical type of {@code processedDestination}.
+   * @param destinationElementType simplified element type pointed to by {@code destinationType}.
+   * @param sizeInBytes number of bytes to havoc, represented as a C expression.
+   * @param lhsForRelevancyChecking dummy left-hand side, used for relevancy checking.
+   * @return the slice assignments needed to havoc the region.
+   * @throws UnrecognizedCodeException if one of the given C expressions is unrecognizable.
+   * @see #convertSizeInBytesToSizeInElements(CExpression, CType)
+   */
+  private ImmutableList<SliceAssignment> computeNondetMemoryAssignments(
+      final CExpression processedDestination,
+      final CType destinationType,
+      final CType destinationElementType,
+      final CExpression sizeInBytes,
+      final Optional<CLeftHandSide> lhsForRelevancyChecking)
+      throws UnrecognizedCodeException {
+
+    if (sizeInBytes instanceof CIntegerLiteralExpression literalSizeInBytes) {
+      final long elementSizeInBytes = typeHandler.getExactSizeof(destinationElementType);
+      final long sizeInBytesAsLong = literalSizeInBytes.asLong();
+      final long fullElements = sizeInBytesAsLong / elementSizeInBytes;
+      final long remainderBytes = sizeInBytesAsLong % elementSizeInBytes;
+
+      // AssignmentHandler.generatePartialAssignmentsForArrayType silently drops an
+      // incomplete-span assignment against an array-typed left-hand side instead of applying it,
+      // which would leave those bytes untouched instead of nondet. This would be unsound.
+      // So if the element type contains an array, prevent this: Fall back to the conservative
+      // ceiling-rounding behaviour that sets the whole array to nondet values instead of being
+      // byte-precise.
+      boolean canSplitRemainder =
+          remainderBytes == 0
+              || !CTypeUtils.containsArrayOutsideFunctionParameter(destinationElementType);
+
+      if (canSplitRemainder) {
+        ImmutableList.Builder<SliceAssignment> assignments = ImmutableList.builder();
+        if (fullElements > 0) {
+          final CExpression fullElementsLiteral =
+              CIntegerLiteralExpression.createDummyLiteral(fullElements, pointerSizedIntType);
+          assignments.add(
+              makeFullElementsNondetAssignment(
+                  processedDestination, lhsForRelevancyChecking, fullElementsLiteral));
+        }
+        if (remainderBytes > 0) {
+          assignments.add(
+              makeTailPartialElementNondetAssignment(
+                  processedDestination, destinationElementType, fullElements, remainderBytes));
+        }
+        return assignments.build();
+      }
+    }
+
+    // non-literal size, or a literal size with a remainder falling back to the array-guard above:
+    // keep today's ceiling-rounding behaviour and its warning, covering the whole trailing element
+    final CExpression sizeInElements =
+        convertSizeInBytesToSizeInElements(sizeInBytes, destinationType);
+    return ImmutableList.of(
+        makeFullElementsNondetAssignment(
+            processedDestination, lhsForRelevancyChecking, sizeInElements));
+  }
+
+  /** Constructs a nondet slice assignment to the first {@code sizeInElements} elements. */
+  private SliceAssignment makeFullElementsNondetAssignment(
+      final CExpression processedDestination,
+      final Optional<CLeftHandSide> lhsForRelevancyChecking,
+      final CExpression sizeInElements) {
+
+    SliceVariable sliceIndex = new SliceVariable(sizeInElements);
+    SliceExpression lhs = new SliceExpression(processedDestination).withIndex(sliceIndex);
+
+    return new SliceAssignment(lhs, lhsForRelevancyChecking, Optional.empty());
+  }
+
+  /**
+   * Constructs a nondet slice assignment to only the first {@code remainderBytes} bytes of the
+   * element at index {@code fullElements}, retaining the rest of that element.
+   */
+  private SliceAssignment makeTailPartialElementNondetAssignment(
+      final CExpression processedDestination,
+      final CType destinationElementType,
+      final long fullElements,
+      final long remainderBytes) {
+
+    final CExpression fullElementsLiteral =
+        CIntegerLiteralExpression.createDummyLiteral(fullElements, pointerSizedIntType);
+    final CLeftHandSide tailElement =
+        new CArraySubscriptExpression(
+            FileLocation.DUMMY, destinationElementType, processedDestination, fullElementsLiteral);
+    final PartialSpan tailSpan =
+        new PartialSpan(0, 0, remainderBytes * conv.machineModel.getSizeofCharInBits());
+
+    return new SliceAssignment(
+        new SliceExpression(tailElement),
+        Optional.of(tailElement),
+        Optional.empty(),
+        Optional.of(tailSpan));
   }
 
   /**
@@ -279,16 +469,13 @@ class MemoryManipulationFunctionHandler {
    * Handles the {@code memset} function.
    *
    * @param destination Destination argument.
-   * @param setValue Value to set. If Optional.empty(), the value is assumed to be
-   *     non-deterministic.
+   * @param setValue Value to set.
    * @param sizeInBytes Size argument, given in bytes.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If a shutdown was requested during handling.
    */
   private void handleMemsetFunction(
-      final CExpression destination,
-      final Optional<CExpression> setValue,
-      final CExpression sizeInBytes)
+      final CExpression destination, final CExpression setValue, final CExpression sizeInBytes)
       throws UnrecognizedCodeException, InterruptedException {
 
     // process destination
@@ -305,17 +492,11 @@ class MemoryManipulationFunctionHandler {
     SliceVariable sliceIndex = new SliceVariable(sizeInElements);
     SliceExpression lhs = new SliceExpression(processedDestination).withIndex(sliceIndex);
 
-    // if the 'setValue' is present (not non-deterministic),
     // cast the value to be set to unsigned char so that byte repeat cast can be used
-    final Optional<SliceExpression> setValueAsSliceExpression;
-    if (setValue.isPresent()) {
-      CExpression setValueAsUnsignedChar =
-          new CCastExpression(
-              FileLocation.DUMMY, CNumericTypes.UNSIGNED_CHAR, setValue.orElseThrow());
-      setValueAsSliceExpression = Optional.of(new SliceExpression(setValueAsUnsignedChar));
-    } else {
-      setValueAsSliceExpression = Optional.empty();
-    }
+    CExpression setValueAsUnsignedChar =
+        new CCastExpression(FileLocation.DUMMY, CNumericTypes.UNSIGNED_CHAR, setValue);
+    final Optional<SliceExpression> setValueAsSliceExpression =
+        Optional.of(new SliceExpression(setValueAsUnsignedChar));
 
     // for relevancy checking, we need a CLeftHandSide expression; we construct a dummy dereference,
     // which, for relevancy checking purposes, describes assignment to the first element of
