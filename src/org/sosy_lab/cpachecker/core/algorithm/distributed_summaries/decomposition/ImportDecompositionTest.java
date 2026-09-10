@@ -14,9 +14,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Map;
 import org.junit.Test;
 import org.sosy_lab.common.JSON;
@@ -65,11 +62,9 @@ public class ImportDecompositionTest {
    */
   @Test
   public void testCanDecomposeCfaWithNodeIdThatStartsAtNonZero() throws Exception {
-    String programText = Files.readString(Path.of(PROGRAM), StandardCharsets.UTF_8);
-
     // read the same CFA twice (with different ids)
-    CFA originalCFA = TestCfaUtils.makeCFA(programText);
-    CFA shiftedCFA = TestCfaUtils.makeCFA(programText);
+    CFA originalCFA = TestCfaUtils.makeCfaFromFile(PROGRAM);
+    CFA shiftedCFA = TestCfaUtils.makeCfaFromFile(PROGRAM);
 
     // If the CFAs have the same nodes, then they were not shifted and this test is not valid
     assertThat(originalCFA.nodes()).isNotEmpty();
@@ -85,8 +80,7 @@ public class ImportDecompositionTest {
 
   @Test
   public void testValidImportDecomposition() throws Exception {
-    String programText = Files.readString(Path.of(PROGRAM), StandardCharsets.UTF_8);
-    CFA originalCFA = TestCfaUtils.makeCFA(programText);
+    CFA originalCFA = TestCfaUtils.makeCfaFromFile(PROGRAM);
 
     ImportDecomposition decomposition = new ImportDecomposition(getExportDataFrom(originalCFA));
     BlockGraph graph = decomposition.decompose(originalCFA);

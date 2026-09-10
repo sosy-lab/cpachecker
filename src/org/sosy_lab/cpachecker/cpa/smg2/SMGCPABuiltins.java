@@ -78,7 +78,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
-import org.sosy_lab.cpachecker.util.StandardFunctions;
 import org.sosy_lab.cpachecker.util.smg.SMGProveNequality;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
@@ -134,22 +133,6 @@ public class SMGCPABuiltins {
    */
   protected static String getAllocaCommonIdentifier() {
     return ALLOCA_ALLOCATION_COMMON_IDENTIFIER;
-  }
-
-  /**
-   * Returns true if the functionName equals a known C builtin function (either defined by the C
-   * standard or extensions like GNU (GCC)) OR our internal handling for atexit
-   * (__CPACHECKER_atexit_next).
-   */
-  boolean isABuiltIn(String functionName) {
-    // __CPACHECKER_atexit_next is not a constant function, but returns a different function
-    // pointer from the atexit stack every time it is being called. We model this by returning a
-    // fresh variable that may point to any function in the program. The function pointer CPA,
-    // which will be run in parallel, tracks the actual target of the pointer and makes sure
-    // that the right function is always called.
-    return BuiltinFunctions.isBuiltinFunction(functionName)
-        || functionName.equals("__CPACHECKER_atexit_next")
-        || StandardFunctions.C11_ALL_FUNCTIONS.contains(functionName);
   }
 
   /**
@@ -564,8 +547,7 @@ public class SMGCPABuiltins {
     Value address = pointerAndState.getValue();
 
     List<SMGStateAndOptionalSMGObjectAndOffset> targets =
-        firstArg.accept(
-            new SMGCPAAddressVisitor(evaluator, currentState, cfaEdge, logger, options));
+        firstArg.accept(new SMGCPAAddressVisitor(evaluator, currentState, cfaEdge, logger));
     checkArgument(targets.size() == 1);
     for (SMGStateAndOptionalSMGObjectAndOffset target : targets) {
       // We assume that there is only 1 valid returned target
@@ -613,8 +595,7 @@ public class SMGCPABuiltins {
     CExpression fpExpr = argsExpr.getFirst();
 
     // Evaluate the expression
-    SMGCPAValueVisitor valueVisitor =
-        new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger, options);
+    SMGCPAValueVisitor valueVisitor = new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger);
     List<ValueAndSMGState> evalStates = fpExpr.accept(valueVisitor);
     checkArgument(evalStates.size() == 1);
 
@@ -703,7 +684,7 @@ public class SMGCPABuiltins {
     boolean isPrint = functionName.equals("printf");
     for (CExpression param : cFCExpression.getParameterExpressions()) {
       SMGCPAValueVisitor valueVisitor =
-          new SMGCPAValueVisitor(evaluator, currentState, pCfaEdge, logger, options);
+          new SMGCPAValueVisitor(evaluator, currentState, pCfaEdge, logger);
       if (param instanceof CPointerExpression
           || param instanceof CFieldReference
           || param instanceof CArraySubscriptExpression) {
@@ -816,7 +797,7 @@ public class SMGCPABuiltins {
         if (functionParameterType instanceof CSimpleType simpleType
             && simpleType.getType().equals(CBasicType.INT)) {
           List<ValueAndSMGState> sizeArgAndState =
-              new SMGCPAValueVisitor(evaluator, currentState, pCfaEdge, logger, options)
+              new SMGCPAValueVisitor(evaluator, currentState, pCfaEdge, logger)
                   .evaluate(argument, argumentType);
 
           checkState(sizeArgAndState.size() == 1);
@@ -862,7 +843,7 @@ public class SMGCPABuiltins {
           && functionParameterType.equals(CPointerType.POINTER_TO_CHAR)) {
         // String Buffers
         List<ValueAndSMGState> overflowBufferAndState =
-            new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger, options)
+            new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger)
                 .evaluate(argument, argumentType);
 
         checkState(overflowBufferAndState.size() == 1);
@@ -950,7 +931,7 @@ public class SMGCPABuiltins {
       } else if (BuiltinFunctions.isFilePointer(argumentType)) {
         // STREAM. If 0, return 0.
         List<ValueAndSMGState> streamPtrAndState =
-            new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger, options)
+            new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger)
                 .evaluate(argument, argumentType);
 
         checkState(streamPtrAndState.size() == 1);
@@ -993,7 +974,7 @@ public class SMGCPABuiltins {
           checkArgument(arg == 0);
 
           List<ValueAndSMGState> inputStringBufferAndState =
-              new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger, options)
+              new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger)
                   .evaluate(argument, argumentType);
 
           checkState(inputStringBufferAndState.size() == 1);
@@ -1057,7 +1038,7 @@ public class SMGCPABuiltins {
         // Other buffers. Just empty them, except for char * and a previous %s specifier, those
         // can overflow if smaller than input allows, but also need to be emptied
         List<ValueAndSMGState> bufferAndState =
-            new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger, options)
+            new SMGCPAValueVisitor(evaluator, finalState, pCfaEdge, logger)
                 .evaluate(argument, argumentType);
 
         checkState(bufferAndState.size() == 1);
@@ -1401,7 +1382,7 @@ public class SMGCPABuiltins {
           functionName + " argument #" + pParameterNumber + " not found.", cfaEdge, functionCall);
     }
 
-    SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger, options);
+    SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger);
     return vv.evaluate(
         paramExpr, SMGCPAExpressionEvaluator.getCanonicalType(checkNotNull(parameterTypeInFun)));
   }
@@ -2183,7 +2164,7 @@ public class SMGCPABuiltins {
           functionCall
               .getParameterExpressions()
               .get(MEMCPY_TARGET_PARAMETER)
-              .accept(new SMGCPAAddressVisitor(evaluator, pState, cfaEdge, logger, options))) {
+              .accept(new SMGCPAAddressVisitor(evaluator, pState, cfaEdge, logger))) {
 
         SMGState currentState = destAndState.getSMGState();
 
@@ -2326,8 +2307,7 @@ public class SMGCPABuiltins {
           functionCall
               .getParameterExpressions()
               .get(MEMCPY_SOURCE_PARAMETER)
-              .accept(
-                  new SMGCPAAddressVisitor(evaluator, pCurrentState, pCFAEdge, logger, options))) {
+              .accept(new SMGCPAAddressVisitor(evaluator, pCurrentState, pCFAEdge, logger))) {
 
         SMGState currentState = sourceAndState.getSMGState();
         if (!sourceAndState.hasSMGObjectAndOffset()) {
@@ -2512,7 +2492,7 @@ public class SMGCPABuiltins {
           functionCall
               .getParameterExpressions()
               .get(MEMCMP_CMP_TARGET1_PARAMETER)
-              .accept(new SMGCPAAddressVisitor(evaluator, pState, cfaEdge, logger, options))) {
+              .accept(new SMGCPAAddressVisitor(evaluator, pState, cfaEdge, logger))) {
 
         SMGState currentState = destAndState.getSMGState();
 
@@ -2635,8 +2615,7 @@ public class SMGCPABuiltins {
           functionCall
               .getParameterExpressions()
               .get(MEMCMP_CMP_TARGET2_PARAMETER)
-              .accept(
-                  new SMGCPAAddressVisitor(evaluator, pCurrentState, pCFAEdge, logger, options))) {
+              .accept(new SMGCPAAddressVisitor(evaluator, pCurrentState, pCFAEdge, logger))) {
 
         SMGState currentState = sourceAndState.getSMGState();
         if (!sourceAndState.hasSMGObjectAndOffset()) {
@@ -3114,8 +3093,7 @@ public class SMGCPABuiltins {
 
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
 
-    SMGCPAValueVisitor valueVisitor =
-        new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger, options);
+    SMGCPAValueVisitor valueVisitor = new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger);
 
     for (ValueAndSMGState argumentOneAndState :
         functionCall.getParameterExpressions().getFirst().accept(valueVisitor)) {

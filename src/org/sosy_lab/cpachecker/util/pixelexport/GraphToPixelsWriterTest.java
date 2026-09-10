@@ -15,8 +15,8 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.SequencedSet;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 class DummyNode {
   private SequencedSet<DummyNode> children = new LinkedHashSet<>();
@@ -33,7 +33,7 @@ class DummyNode {
 public class GraphToPixelsWriterTest extends GraphToPixelsWriter<DummyNode> {
 
   public GraphToPixelsWriterTest() throws InvalidConfigurationException {
-    super(new PixelsWriterOptions(Configuration.defaultConfiguration()));
+    super(new PixelsWriterOptions(TestUtils.configurationForTest().build()));
   }
 
   @Override

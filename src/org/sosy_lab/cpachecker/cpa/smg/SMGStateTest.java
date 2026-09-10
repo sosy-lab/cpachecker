@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentBiMap;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class SMGStateTest {
   private static final LogManager logger = LogManager.createTestLogManager();
@@ -156,7 +157,7 @@ public class SMGStateTest {
     SMGState smg1State =
         new SMGState(
             logger,
-            new SMGOptions(Configuration.defaultConfiguration()),
+            new SMGOptions(TestUtils.configurationForTest().build()),
             smg1,
             0,
             PersistentBiMap.of());
@@ -272,7 +273,7 @@ public class SMGStateTest {
     SMGState smg1State =
         new SMGState(
             logger,
-            new SMGOptions(Configuration.defaultConfiguration()),
+            new SMGOptions(TestUtils.configurationForTest().build()),
             heap,
             0,
             PersistentBiMap.of());
@@ -336,7 +337,7 @@ public class SMGStateTest {
     SMGEdgeHasValue nextField = new SMGEdgeHasValue(sizeInBits, nfo, dll, SMGZeroValue.INSTANCE);
     heap.addHasValueEdge(nextField);
 
-    SMGOptions options = new SMGOptions(Configuration.defaultConfiguration());
+    SMGOptions options = new SMGOptions(TestUtils.configurationForTest().build());
     SMGState smg1State = new SMGState(logger, options, heap, 0, PersistentBiMap.of());
 
     smg1State.addStackFrame(CLangSMGTest.DUMMY_FUNCTION);
@@ -411,7 +412,7 @@ public class SMGStateTest {
         new SMGEdgeHasValue(sizeInBits, hfo, sll, SMGZeroValue.INSTANCE);
     heap.addHasValueEdge(initialDataField);
 
-    SMGOptions options = new SMGOptions(Configuration.defaultConfiguration());
+    SMGOptions options = new SMGOptions(TestUtils.configurationForTest().build());
     SMGState smg1State = new SMGState(logger, options, heap, 0, PersistentBiMap.of());
 
     smg1State.addStackFrame(CLangSMGTest.DUMMY_FUNCTION);
@@ -469,7 +470,7 @@ public class SMGStateTest {
   @Before
   public void setUp() throws SMGInconsistentException, InvalidConfigurationException {
 
-    ConfigurationBuilder builder = Configuration.builder();
+    ConfigurationBuilder builder = TestUtils.configurationForTest();
     builder.setOption("cpa.smg.runtimeCheck", "HALF");
     Configuration config = builder.build();
 
@@ -540,7 +541,7 @@ public class SMGStateTest {
   public void PredecessorsTest() throws InvalidConfigurationException {
     UnmodifiableSMGState original =
         new SMGState(
-            logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
+            logger, MachineModel.LINUX64, new SMGOptions(TestUtils.configurationForTest().build()));
     UnmodifiableSMGState second = original.copyOf();
     assertThat(second.getId()).isNotEqualTo(original.getId());
 
@@ -558,7 +559,7 @@ public class SMGStateTest {
     // Empty state
     SMGState state =
         new SMGState(
-            logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
+            logger, MachineModel.LINUX64, new SMGOptions(TestUtils.configurationForTest().build()));
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     // Add a 16b object and write a 16b value into it
@@ -625,7 +626,7 @@ public class SMGStateTest {
     // Empty state
     SMGState state =
         new SMGState(
-            logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
+            logger, MachineModel.LINUX64, new SMGOptions(TestUtils.configurationForTest().build()));
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     // Add a 16b object and write a 16b zero value into it
@@ -670,7 +671,7 @@ public class SMGStateTest {
     // Empty state
     SMGState state =
         new SMGState(
-            logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
+            logger, MachineModel.LINUX64, new SMGOptions(TestUtils.configurationForTest().build()));
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     SMGEdgePointsTo pt = state.addNewHeapAllocation(16, "OBJECT");
@@ -685,7 +686,7 @@ public class SMGStateTest {
       throws SMGInconsistentException, InvalidConfigurationException {
     SMGState state =
         new SMGState(
-            logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
+            logger, MachineModel.LINUX64, new SMGOptions(TestUtils.configurationForTest().build()));
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     SMGEdgePointsTo pt = state.addNewHeapAllocation(16, "OBJECT");
@@ -699,7 +700,7 @@ public class SMGStateTest {
   public void SMGStateMemoryLeaksTest() throws InvalidConfigurationException {
     SMGState state =
         new SMGState(
-            logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
+            logger, MachineModel.LINUX64, new SMGOptions(TestUtils.configurationForTest().build()));
 
     assertThat(state.hasMemoryLeaks()).isFalse();
     state.setMemLeak("", ImmutableList.of());
