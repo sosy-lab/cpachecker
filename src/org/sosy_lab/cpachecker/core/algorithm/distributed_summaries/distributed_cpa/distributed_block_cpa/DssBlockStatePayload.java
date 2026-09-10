@@ -36,11 +36,16 @@ public record DssBlockStatePayload(String blockId, String witness, ImmutableList
   }
 
   public static DssBlockStatePayload fromContentMap(Map<String, String> pContent) {
-    return fromContentString(
-        pContent.get(
+    String contentString =
+        pContent.getOrDefault(
             DssComponentKey.forClass(BlockState.class).getSerializedName()
                 + "."
-                + DssMessageKeys.STATE));
+                + DssMessageKeys.STATE,
+            "missingKey");
+    if (contentString.equals("missingKey"))
+      throw new IllegalArgumentException("Block state key is missing");
+
+    return fromContentString(contentString);
   }
 
   public static DssBlockStatePayload fromContentString(String pContent) {
