@@ -826,10 +826,14 @@ public interface PointerTargetSetBuilder {
     }
 
     @Override
-    public void enterFunction() {}
+    public void enterFunction() {
+      throw new UnsupportedOperationException();
+    }
 
     @Override
-    public void leaveFunction() {}
+    public void leaveFunction() {
+      throw new UnsupportedOperationException();
+    }
 
     @Override
     public void prepareBase(PointerBase pBase, CType pType) {
