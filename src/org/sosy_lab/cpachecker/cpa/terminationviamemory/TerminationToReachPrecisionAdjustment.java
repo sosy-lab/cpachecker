@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -343,15 +344,20 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       iterationFormula = iterationFormula.withPrevVarsSuffixed(CURR_KEYWORD);
       iterationFormula = iterationFormula.withCurrVarsSuffixed(CURR2_KEYWORD);
     }
+    BooleanFormula interpolant;
 
-    BooleanFormula interpolant =
-        itpMgr
-            .interpolate(
-                ImmutableList.of(
-                    bfmgr.and(firstStep, iterationFormula.getFormula()), latestSameStateFormula))
-            .orElseThrow()
-            .getFirst();
-    if (containsOnlyIrrelevantVariables(interpolant, callstackState)) {
+    try {
+      interpolant =
+          itpMgr
+              .interpolate(
+                  ImmutableList.of(
+                      bfmgr.and(firstStep, iterationFormula.getFormula()), latestSameStateFormula))
+              .orElseThrow()
+              .getFirst();
+      if (containsOnlyIrrelevantVariables(interpolant, callstackState)) {
+        return new PartitionedRelationFormula(bfmgr.makeFalse(), fmgr);
+      }
+    } catch (NoSuchElementException e) {
       return new PartitionedRelationFormula(bfmgr.makeFalse(), fmgr);
     }
 
