@@ -94,16 +94,15 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
 
       // Set prefix path formula first
       Optional<PathFormula> newPrefixFormula = terminationState.getPathFormulaFull();
-      Optional<PathFormula> newFullFormula;
+      PathFormula newFullFormula;
       if (terminationState.getPathFormulaFull().isEmpty()) {
-        newFullFormula = Optional.of(predicateState.getPathFormula());
+        newFullFormula = predicateState.getPathFormula();
       } else {
         newFullFormula =
-            Optional.of(
-                pfmgr.makeConjunction(
-                    ImmutableList.of(
-                        terminationState.getPathFormulaFull().orElseThrow(),
-                        predicateState.getPathFormula())));
+            pfmgr.makeConjunction(
+                ImmutableList.of(
+                    terminationState.getPathFormulaFull().orElseThrow(),
+                    predicateState.getPathFormula()));
       }
 
       // Copy the information for other loops
@@ -126,13 +125,13 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
         newValues.putAll(terminationState.getStoredValues().get(pairKey));
         newValues.put(
             terminationState.getNumberOfIterationsAtLoopHead(pairKey),
-            extractLoopHeadVariables(newFullFormula.orElseThrow()));
+            extractLoopHeadVariables(newFullFormula));
         newStoredValues.put(pairKey, newValues.buildOrThrow());
         newNumberOfIterations.put(
             pairKey, terminationState.getNumberOfIterationsAtLoopHead(pairKey) + 1);
         newPathFormulaForIteration.put(pairKey, predicateState.getPathFormula());
       } else {
-        newValues.put(0, extractLoopHeadVariables(newFullFormula.orElseThrow()));
+        newValues.put(0, extractLoopHeadVariables(newFullFormula));
         newStoredValues.put(pairKey, newValues.buildOrThrow());
         newNumberOfIterations.put(pairKey, 1);
       }
@@ -142,7 +141,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
               newNumberOfIterations.buildOrThrow(),
               newPathFormulaForIteration.buildOrThrow(),
               newPrefixFormula,
-              newFullFormula,
+              Optional.of(newFullFormula),
               ImmutableSet.of(),
               terminationState.getTransitionPredicates());
       return ImmutableList.of(newState);

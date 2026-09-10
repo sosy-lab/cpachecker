@@ -57,7 +57,8 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
    * For every loop-head (given by location and call-stack), we track the path formula until
    * reaching this abstract state. This is the part inside the loop, i.e. the loop iterations.
    */
-  private final ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pathFormulaForIteration;
+  private final ImmutableMap<Pair<LocationState, CallstackState>, PathFormula>
+      pathFormulaForIteration;
 
   /**
    * For every loop-head (given by location and call-stack), we track the path formula until
