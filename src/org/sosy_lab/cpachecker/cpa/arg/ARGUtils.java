@@ -506,26 +506,25 @@ public class ARGUtils {
 
       if (childrenInArg.isEmpty()) {
         return builder.build(currentElement);
-      }
-
-      ARGState child;
-      if (childrenInArg.size() == 1) {
+      } else if (childrenInArg.size() == 1) {
         // only one successor, easy
-        child = Iterables.getOnlyElement(childrenInArg);
+        final ARGState child = Iterables.getOnlyElement(childrenInArg);
+        builder.add(currentElement, currentElement.getEdgeToChild(child));
+        currentElement = child;
       } else {
-        child = null;
-        for (ARGState currentChild : childrenInArg) {
-          Boolean isOnPath = branchingInformation.apply(currentElement, currentChild);
-          if (isOnPath != null && isOnPath) {
-            child = currentChild;
-            break;
-          }
-        }
-        checkArgument(child != null, "ARG branches without direction information!");
+        // Filter out the unique successor which should be taken. Taking multiple ones does not make
+        // sense to me conceptually, since we are characterizing a single path.
+        // Checked through an assertion to catch bugs where this is incorrect
+        final ARGState finalCurrentElement = currentElement;
+        final ARGState child =
+            Iterables.getOnlyElement(
+                FluentIterable.from(childrenInArg)
+                    .filter(
+                        currentChild ->
+                            branchingInformation.apply(finalCurrentElement, currentChild)));
+        builder.add(currentElement, currentElement.getEdgeToChild(child));
+        currentElement = child;
       }
-
-      builder.add(currentElement, currentElement.getEdgeToChild(child));
-      currentElement = child;
     }
 
     return builder.build(currentElement);
