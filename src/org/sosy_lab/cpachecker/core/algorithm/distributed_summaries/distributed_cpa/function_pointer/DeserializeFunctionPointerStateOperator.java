@@ -8,9 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
-import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageWithStates;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -34,29 +31,28 @@ public class DeserializeFunctionPointerStateOperator implements DeserializeOpera
 
   @Override
   public AbstractState deserialize(DssMessageWithStates pMessage, int pStateIndex) {
-    String serialized =
-        pMessage.getAbstractStateContent(FunctionPointerState.class, pStateIndex).get(STATE_KEY);
-    Preconditions.checkNotNull(serialized, "If entry is contained, it cannot be null");
-    if (serialized.isBlank()) {
+    DssFunctionPointerStatePayload payload =
+        DssFunctionPointerStatePayload.fromContentMap(pMessage.getStates().get(pStateIndex));
+    if (payload.entries().isEmpty()) {
       CFANode location = DeserializeOperator.startLocationFromMessageType(pMessage, blockNode);
       return functionPointerCPA.getInitialState(
           location, StateSpacePartition.getDefaultPartition());
     }
     FunctionPointerState.Builder builder = FunctionPointerState.createEmptyState().createBuilder();
-    for (String s : Splitter.on(", ").splitToList(serialized)) {
-      if (s.isBlank()) {
-        continue;
-      }
-      List<String> parts = Splitter.on(":").limit(3).splitToList(s);
-      assert parts.size() >= 2;
-      switch (parts.getFirst()) {
-        case "I" ->
-            builder.setTarget(parts.get(1), FunctionPointerState.InvalidTarget.getInstance());
-        case "0" -> builder.setTarget(parts.get(1), FunctionPointerState.NullTarget.getInstance());
-        case "U" ->
-            builder.setTarget(parts.get(1), FunctionPointerState.UnknownTarget.getInstance());
-        case "N" -> builder.setTarget(parts.get(1), new NamedFunctionTarget(parts.get(2)));
-        default -> throw new AssertionError("Unknown FunctionPointerState");
+    for (DssFunctionPointerEntry entry : payload.entries()) {
+      switch (entry.kind()) {
+        case INVALID ->
+            builder.setTarget(
+                entry.pointerVariable(), FunctionPointerState.InvalidTarget.getInstance());
+        case NULL ->
+            builder.setTarget(
+                entry.pointerVariable(), FunctionPointerState.NullTarget.getInstance());
+        case UNKNOWN ->
+            builder.setTarget(
+                entry.pointerVariable(), FunctionPointerState.UnknownTarget.getInstance());
+        case NAMED ->
+            builder.setTarget(
+                entry.pointerVariable(), new NamedFunctionTarget(entry.functionName()));
       }
     }
     return builder.build();

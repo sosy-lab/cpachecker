@@ -112,9 +112,9 @@ public class BlockStateSerializationTest {
 
   @Test
   public void serializerRejectsWrongStateType() {
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> new SerializeBlockStateOperator().serialize(Mockito.mock(AbstractState.class)));
+    AbstractState state = Mockito.mock(AbstractState.class);
+    SerializeBlockStateOperator operator = new SerializeBlockStateOperator();
+    assertThrows(IllegalArgumentException.class, () -> operator.serialize(state));
   }
 
   @Test

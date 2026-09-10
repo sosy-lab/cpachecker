@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer.DssFunctionPointerEntry.TargetKind;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState;
@@ -20,30 +20,30 @@ public class SerializeFunctionPointerStateOperator implements SerializeOperator 
 
   @Override
   public ImmutableMap<String, String> serialize(AbstractState pState) {
+    return serializePayload(pState).asContentMap();
+  }
+
+  private DssFunctionPointerStatePayload serializePayload(AbstractState pState) {
     FunctionPointerState state = (FunctionPointerState) pState;
     FunctionPointerState.Builder builder = state.createBuilder();
-    StringBuilder serialized = new StringBuilder();
+    ImmutableList.Builder<DssFunctionPointerEntry> entries =
+        ImmutableList.builderWithExpectedSize(builder.getValues().size());
+
     for (String value : builder.getValues()) {
       if (FunctionPointerState.InvalidTarget.getInstance().equals(builder.getTarget(value))) {
-        serialized.append("I:").append(value).append(", ");
+        entries.add(new DssFunctionPointerEntry(value, TargetKind.INVALID, null));
       } else if (FunctionPointerState.NullTarget.getInstance().equals(builder.getTarget(value))) {
-        serialized.append("0:").append(value).append(", ");
+        entries.add(new DssFunctionPointerEntry(value, TargetKind.NULL, null));
       } else if (FunctionPointerState.UnknownTarget.getInstance()
           .equals(builder.getTarget(value))) {
-        serialized.append("U:").append(value).append(", ");
+        entries.add(new DssFunctionPointerEntry(value, TargetKind.UNKNOWN, null));
       } else {
         NamedFunctionTarget namedTarget = (NamedFunctionTarget) builder.getTarget(value);
-        serialized
-            .append("N:")
-            .append(value)
-            .append(":")
-            .append(namedTarget.getFunctionName())
-            .append(", ");
+        entries.add(
+            new DssFunctionPointerEntry(value, TargetKind.INVALID, namedTarget.getFunctionName()));
       }
     }
-    return ContentBuilder.builder()
-        .pushLevel(DssComponentKey.serializedNameFor(FunctionPointerState.class))
-        .put(STATE_KEY, serialized.toString())
-        .build();
+
+    return new DssFunctionPointerStatePayload(entries.build());
   }
 }
