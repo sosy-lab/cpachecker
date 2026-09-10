@@ -704,9 +704,8 @@ class CExpressionVisitorWithPointerAliasing
             || functionName.equals("strcmp")
             || functionName.equals("strncmp")) {
           return handleCmpFunction(functionName, e);
-        }
 
-        if (functionName.equals("memcpy")
+        } else if (functionName.equals("memcpy")
             || functionName.equals("memmove")
             || functionName.equals("memset")) {
           if (!conv.options.enableMemoryAssignmentFunctions()) {
