@@ -129,12 +129,12 @@ class PartitionedRelationFormula {
     return variables.stream()
         .collect(
             ImmutableMap.toImmutableMap(
-                var -> var,
-                var ->
+                variable -> variable,
+                variable ->
                     fmgr.makeVariable(
-                        fmgr.getFormulaType(var),
+                        fmgr.getFormulaType(variable),
                         TransitionInvariantUtils.removeTransInvKeyWord(
-                                fmgr.uninstantiate(var).toString())
+                                fmgr.uninstantiate(variable).toString())
                             + suffix)));
   }
 
