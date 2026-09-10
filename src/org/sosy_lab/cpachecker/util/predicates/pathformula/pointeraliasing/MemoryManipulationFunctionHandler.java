@@ -252,6 +252,7 @@ class MemoryManipulationFunctionHandler {
    * Handles the {@code memset} function.
    *
    * @param destination Destination argument.
+   * @param setValue Value to set.
    * @param sizeInBytes Size argument, given in bytes.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If a shutdown was requested during handling.
