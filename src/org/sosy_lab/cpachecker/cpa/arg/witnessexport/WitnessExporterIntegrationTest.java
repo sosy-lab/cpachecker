@@ -26,7 +26,6 @@ import java.util.Objects;
 import java.util.SequencedMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -67,6 +66,8 @@ public class WitnessExporterIntegrationTest {
   private static final String SPECIFICATION_OPTION = "specification";
 
   private static final String TEST_DIR_PATH = "test/programs/witnessValidation/";
+
+  private static final String RECURSION_DIR_PATH = "test/programs/simple/recursion/";
 
   @Test(timeout = 90000)
   public void multivar_true() throws Exception {
@@ -170,35 +171,31 @@ public class WitnessExporterIntegrationTest {
         .performTest();
   }
 
-  // Should probably be re-enabled after
-  // https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1659 is addressed
   @Test(timeout = 90000)
-  @Ignore // The witness cannot be confirmed even though it seems to be correct
   public void countup_recursive_false() throws Exception {
     new WitnessTester(
             "countup_recursive_false.c",
             ExpectedVerdict.FALSE,
             WitnessGenerationConfig.PREDICATE_ANALYSIS_PATH_EXPLORATION)
+        .inDirectory(RECURSION_DIR_PATH)
         .performTest();
   }
 
   private static void performTest(
-      String pFilename,
+      String pFilePath,
       String pSpecification,
       ExpectedVerdict pExpected,
       WitnessGenerationConfig pGenerationConfig,
       Map<String, String> pOverrideOptions)
       throws Exception {
-    String fullPath = Path.of(TEST_DIR_PATH, pFilename).toString();
-
     TempCompressedFilePath witnessPath = new TempCompressedFilePath("witness", ".graphml");
 
     WitnessType witnessType =
         generateWitness(
-            fullPath, pExpected, pGenerationConfig, pSpecification, pOverrideOptions, witnessPath);
+            pFilePath, pExpected, pGenerationConfig, pSpecification, pOverrideOptions, witnessPath);
 
     validateWitness(
-        fullPath, pSpecification, pExpected, pOverrideOptions, witnessPath, witnessType);
+        pFilePath, pSpecification, pExpected, pOverrideOptions, witnessPath, witnessType);
   }
 
   private static WitnessType generateWitness(
@@ -374,6 +371,8 @@ public class WitnessExporterIntegrationTest {
 
     private String specificationFile = "config/specification/default.spc";
 
+    private String programDirectory = TEST_DIR_PATH;
+
     private ImmutableMap.Builder<String, String> overrideOptionsBuilder = ImmutableMap.builder();
 
     private WitnessTester(
@@ -390,6 +389,12 @@ public class WitnessExporterIntegrationTest {
     }
 
     @CanIgnoreReturnValue
+    WitnessTester inDirectory(String pProgramDirectory) {
+      programDirectory = Objects.requireNonNull(pProgramDirectory);
+      return this;
+    }
+
+    @CanIgnoreReturnValue
     WitnessTester addOverrideOption(String pOptionName, String pOptionValue) {
       overrideOptionsBuilder.put(pOptionName, pOptionValue);
       return this;
@@ -397,7 +402,7 @@ public class WitnessExporterIntegrationTest {
 
     void performTest() throws Exception {
       WitnessExporterIntegrationTest.performTest(
-          programFile,
+          Path.of(programDirectory, programFile).toString(),
           specificationFile,
           expected,
           generationConfig,
