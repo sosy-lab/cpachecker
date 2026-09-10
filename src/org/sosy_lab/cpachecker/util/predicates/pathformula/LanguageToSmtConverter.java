@@ -134,7 +134,7 @@ public abstract class LanguageToSmtConverter<T extends Type> {
                 ? oldFormula.getSsaStack().popAndCopy()
                 : PersistentStack.<SSAMap>of().pushAndCopy(SSAMap.emptySSAMap());
         final SSAMap callerSsa = callerSsaStack.peek();
-        final SSAMap topmostStackSsaBeforeHandlingEdge = oldFormula.getTopmostStackSsa();
+        final SSAMap calleeSsaBeforeHandlingEdge = oldFormula.getTopmostStackSsa();
 
         final NavigableSet<String> knownVariables =
             ImmutableSortedSet.<String>naturalOrder()
@@ -154,7 +154,7 @@ public abstract class LanguageToSmtConverter<T extends Type> {
 
         for (String variable : variablesOfCaller) {
           if (pSsaMapAfterHandlingEdge.getIndex(variable)
-              != topmostStackSsaBeforeHandlingEdge.getIndex(variable)) {
+              != calleeSsaBeforeHandlingEdge.getIndex(variable)) {
             // The variable was written while handling the return, i.e., it was assigned the
             // return value in a statement like `a = f();`. Then it already holds the correct
             // value for the caller and must not be reset.
