@@ -152,16 +152,16 @@ public abstract class LanguageToSmtConverter<T extends Type> {
                     knownVariables, pEdge.getSuccessor().getFunctionName())
                 : ImmutableSortedSet.<String>of();
 
-        for (String variable : variablesOfCaller) {
-          if (pSsaMapAfterHandlingEdge.getIndex(variable)
-              != calleeSsaBeforeHandlingEdge.getIndex(variable)) {
+        for (String variableOfCaller : variablesOfCaller) {
+          if (pSsaMapAfterHandlingEdge.getIndex(variableOfCaller)
+              != calleeSsaBeforeHandlingEdge.getIndex(variableOfCaller)) {
             // The variable was written while handling the return, i.e., it was assigned the
             // return value in a statement like `a = f();`. Then it already holds the correct
             // value for the caller and must not be reset.
             continue;
           }
 
-          if (!callerSsa.containsVariable(variable)) {
+          if (!callerSsa.containsVariable(variableOfCaller)) {
             // The caller has no information about this variable, so we cannot reset it to its
             // value from before the call. Instead we give it a fresh index without adding any
             // constraint, so a later use in the caller reads an unconstrained value. We must not
@@ -176,16 +176,16 @@ public abstract class LanguageToSmtConverter<T extends Type> {
             // frame it occurs in, so a caller that has no SSA entry for the variable has not
             // reached its declaration yet and thus cannot have taken its address either.
             assert !newPts.isActualBase(
-                    PointerBase.forVariable(variable, newPts.getCallStackDepth()))
-                : "Aliased variable " + variable + " is missing from the SSA map of the caller";
+                    PointerBase.forVariable(variableOfCaller, newPts.getCallStackDepth()))
+                : "Aliased variable " + variableOfCaller + " is missing from the SSA map of the caller";
 
             @SuppressWarnings("unchecked")
-            T varType = (T) pSsaMapAfterHandlingEdge.getType(variable);
-            makeFreshIndex(variable, varType, resultSsa);
+            T varType = (T) pSsaMapAfterHandlingEdge.getType(variableOfCaller);
+            makeFreshIndex(variableOfCaller, varType, resultSsa);
           } else if (
           // If we are not in a recursive call, then we do not need to reset the index, we know
           // this since if the same variable has not been written we are not in a recursive call
-          pSsaMapAfterHandlingEdge.getIndex(variable) != callerSsa.getIndex(variable)
+          pSsaMapAfterHandlingEdge.getIndex(variableOfCaller) != callerSsa.getIndex(variableOfCaller)
               // The reset is only sound for the plain SSA copy of a variable. A variable whose
               // address has been taken lives in the memory encoding instead, where the callee may
               // legitimately have changed it through a pointer into the caller's frame, so its
@@ -194,24 +194,24 @@ public abstract class LanguageToSmtConverter<T extends Type> {
               // the callee. (Reaching this point implies a recursive call, so the caller function
               // is still on the call stack of newPts.)
               && !newPts.isActualBase(
-                  PointerBase.forVariable(variable, newPts.getCallStackDepth()))) {
+                  PointerBase.forVariable(variableOfCaller, newPts.getCallStackDepth()))) {
 
             // The SSAMap is not polymorphic so it does not know that it should only contain a T.
             @SuppressWarnings("unchecked")
-            T varType = (T) callerSsa.getType(variable);
+            T varType = (T) callerSsa.getType(variableOfCaller);
             Verify.verify(
-                varType == pSsaMapAfterHandlingEdge.getType(variable),
+                varType == pSsaMapAfterHandlingEdge.getType(variableOfCaller),
                 "Variable %s has different types in caller and callee SSA",
-                variable);
+                variableOfCaller);
 
-            makeFreshIndex(variable, varType, resultSsa);
+            makeFreshIndex(variableOfCaller, varType, resultSsa);
             // Now make it such that the new variable is equal to the old one
             // Both sides use newPts: the variable belongs to the caller, so both formulas must be
             // built with the caller's view of the pointer target set.
             pConstraints.addConstraint(
                 fmgr.assignment(
-                    makeFormulaForVariable(callerSsa, newPts, variable, varType),
-                    makeFormulaForVariable(resultSsa.build(), newPts, variable, varType)));
+                    makeFormulaForVariable(callerSsa, newPts, variableOfCaller, varType),
+                    makeFormulaForVariable(resultSsa.build(), newPts, variableOfCaller, varType)));
           }
         }
 
