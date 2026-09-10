@@ -518,13 +518,11 @@ public class ARGUtils {
         // several operations that overflow for the same values.
         final ARGState finalCurrentElement = currentElement;
         final ARGState child =
-            Iterables.getFirst(
-                FluentIterable.from(childrenInArg)
-                    .filter(
-                        currentChild ->
-                            branchingInformation.test(finalCurrentElement, currentChild)),
-                null);
-        checkArgument(child != null, "ARG branches without direction information!");
+            FluentIterable.from(childrenInArg)
+                .filter(
+                    currentChild -> branchingInformation.test(finalCurrentElement, currentChild))
+                .first()
+                .get();
         builder.add(currentElement, currentElement.getEdgeToChild(child));
         currentElement = child;
       }
