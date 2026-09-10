@@ -35,7 +35,7 @@ public record PointerBase(String name, @Nullable Integer callStackDepth)
     implements Comparable<PointerBase>, Serializable {
 
   private static final String BASE_PREFIX = "__ADDRESS_OF_";
-  private static final String CALL_STACK_DEPTH_SEPARATOR = "__CALL_STACK_DEPTH_";
+  private static final String CALL_STACK_DEPTH_SEPARATOR = "_AT_DEPTH_";
 
   /**
    * Create a PointerBase from a plain name. Make sure that this is not the encoded form of the

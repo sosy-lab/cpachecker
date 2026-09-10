@@ -33,7 +33,7 @@ public class PointerBaseTest {
   @Test
   public void testRoundTripOfNameContainingCallStackDepthSeparator() {
     // the call stack depth is appended at the end, so the last separator is the relevant one
-    assertRoundTrip(new PointerBase("f::x__CALL_STACK_DEPTH_5", 3));
+    assertRoundTrip(new PointerBase("f::x_AT_DEPTH_5", 3));
   }
 
   @Test
