@@ -38,7 +38,9 @@ import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -535,7 +537,8 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
     // Find out the edge which corresponds to this statement, it can either be a CFunctionCallEdge
     // or a CStatementEdge
     ImmutableSet<CFAEdge> inputEdges =
-        findFunctionEnterEdge(followLine, followColumn, startLineToCFAEdge);
+        findFunctionEnterEdge(
+            followLine, followColumn, startLineToCFAEdge, cfa.getAstCfaRelation());
 
     if (inputEdges.isEmpty()) {
       throw new WitnessParseException(
@@ -571,17 +574,21 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
   /**
    * Finds the CFA edge corresponding to a function-enter waypoint.
    *
-   * <p>The matching edge is either a {@link FunctionCallEdge} or an {@link AStatementEdge}. The
-   * edges on the given line are sorted by their column so that the first one matching the requested
-   * column is returned.
+   * <p>The matching edge is either a {@link FunctionCallEdge} or an {@link AStatementEdge}
+   * containing a function call. The edges on the given line are sorted by their column so that the
+   * first one matching the requested column is returned.
    *
    * @param followLine the line the waypoint should pass through
    * @param followColumn the column the waypoint should pass through, if given
    * @param startLineToCFAEdge mapping from start lines to the CFA edges starting there
+   * @param pAstCfaRelation the relation between the CFA and the AST, used to locate the call
    * @return the matching edge, or {@link Optional#empty()} if no edge matches
    */
   private static ImmutableSet<CFAEdge> findFunctionEnterEdge(
-      Integer followLine, OptionalInt followColumn, Multimap<Integer, CFAEdge> startLineToCFAEdge) {
+      Integer followLine,
+      OptionalInt followColumn,
+      Multimap<Integer, CFAEdge> startLineToCFAEdge,
+      AstCfaRelation pAstCfaRelation) {
     // We sort the edges by their column, so we can take the first one which matches the given
     // column
     ImmutableSet.Builder<CFAEdge> foundEdges = ImmutableSet.builder();
@@ -591,25 +598,36 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
                 Comparator.comparingInt(
                     pCFAEdge -> pCFAEdge.getFileLocation().getStartColumnInLine()))) {
       // Not a function call so we skip it
-      if (!(edge instanceof AStatementEdge || edge instanceof FunctionCallEdge)) {
+      Optional<AFunctionCallExpression> functionCall = getCalledFunction(edge);
+      if (functionCall.isEmpty()) {
         continue;
       }
 
       // If the column does not match we continue by not matching this edge
-      if (followColumn.isPresent()
-          && followColumn.orElseThrow()
-              // This code is overly simplistic, but it is the best we can do without tracking the
-              // opening parenthesis of the function call.
-              // https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1687 keeps track of
-              // this
-              != edge.getFileLocation().getStartColumnInLine() + edge.getCode().indexOf("(")) {
-        continue;
+      if (followColumn.isPresent()) {
+        OptionalInt columnOfCall =
+            pAstCfaRelation.getColumnOfFunctionCallParenthesis(functionCall.orElseThrow());
+        if (columnOfCall.isEmpty() || columnOfCall.orElseThrow() != followColumn.orElseThrow()) {
+          continue;
+        }
       }
 
       foundEdges.add(edge);
     }
 
     return foundEdges.build();
+  }
+
+  /** Returns the function called by the given edge, if it is a function call at all. */
+  private static Optional<AFunctionCallExpression> getCalledFunction(CFAEdge pEdge) {
+    return switch (pEdge) {
+      case FunctionCallEdge functionCallEdge ->
+          Optional.of(functionCallEdge.getFunctionCallExpression());
+      case AStatementEdge statementEdge
+          when statementEdge.getStatement() instanceof AFunctionCall functionCall ->
+          Optional.of(functionCall.getFunctionCallExpression());
+      default -> Optional.empty();
+    };
   }
 
   /**

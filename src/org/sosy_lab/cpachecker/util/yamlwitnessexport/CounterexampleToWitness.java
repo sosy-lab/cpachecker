@@ -41,8 +41,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -414,13 +416,18 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     } else if (pWitnessVersion.equals(YAMLWitnessVersion.V2d2)
         && pEdge instanceof CStatementEdge pStatementEdge
         && pStatementEdge.getStatement() instanceof CFunctionCallStatement pFunctionCallStatement
-        && pFunctionCallStatement
-            .getFunctionCallExpression()
-            .getDeclaration()
-            .getOrigName()
-            .equals("pthread_create")) {
+        && isCallTo(pFunctionCallStatement.getFunctionCallExpression(), "pthread_create")) {
 
       FileLocation functionCallLocation = pFunctionCallStatement.getFileLocation();
+      OptionalInt columnOfCall =
+          pAstCFARelation.getColumnOfFunctionCallParenthesis(
+              pFunctionCallStatement.getFunctionCallExpression());
+      if (columnOfCall.isEmpty()) {
+        logger.log(
+            Level.FINEST,
+            "Could not compute the column of the thread creation for the edge: " + pEdge);
+        return ImmutableList.of();
+      }
 
       Optional<String> currentThreadNameIfExists = getNewThreadNameIfExists(pState, pPreviousState);
 
@@ -435,12 +442,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
               new LocationRecord(
                   functionCallLocation.getFileName().toString(),
                   functionCallLocation.getStartingLineInOrigin(),
-                  functionCallLocation.getStartColumnInLine()
-                      // This code is overly simplistic, but it is the best we can do
-                      // without tracking the opening parenthesis of the function call.
-                      // https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1687 keeps
-                      // track of this issue
-                      + pFunctionCallStatement.toASTString().indexOf("("),
+                  columnOfCall.orElseThrow(),
                   pStatementEdge.getPredecessor().getFunctionName()),
               OptionalInt.empty());
 
@@ -471,6 +473,13 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
 
     // Not all edges are relevant for the counterexample, so we do not export them
     return ImmutableList.of();
+  }
+
+  /** Checks whether the given expression directly calls the function with the given name. */
+  private static boolean isCallTo(CFunctionCallExpression pCall, String pFunctionName) {
+    return pCall.getFunctionNameExpression() instanceof CIdExpression functionName
+        && functionName.getDeclaration() != null
+        && functionName.getDeclaration().getOrigName().equals(pFunctionName);
   }
 
   private static WaypointRecord defaultTargetWaypoint(
