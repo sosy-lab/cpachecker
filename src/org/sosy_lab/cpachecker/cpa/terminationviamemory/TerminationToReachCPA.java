@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
@@ -16,7 +15,6 @@ import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -30,7 +28,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -58,11 +55,6 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
   private final TerminationToReachStatistics statistics;
   private final LogManager logger;
 
-  @Option(
-      secure = true,
-      description = "Allows the analysis to also check for infinite loops caused by recursion.")
-  private boolean considerRecursion = false;
-
   public TerminationToReachCPA(
       LogManager pLogger,
       Configuration pConfiguration,
@@ -79,15 +71,6 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
 
     ImmutableSet.Builder<Loop> builder = ImmutableSet.builder();
     builder.addAll(cfa.getLoopStructure().orElseThrow().getAllLoops());
-    if (considerRecursion) {
-      builder.addAll(LoopStructure.getRecursions(cfa));
-      for (CFANode loopHead :
-          LoopStructure.getRecursions(cfa).stream()
-              .flatMap(loop -> loop.getLoopHeads().stream())
-              .collect(ImmutableList.toImmutableList())) {
-        loopHead.setLoopStart();
-      }
-    }
     possiblyNonTerminatingLoops = builder.build();
   }
 
