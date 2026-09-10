@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -218,14 +219,21 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           candidateTransInv = candidateTransInv.withPrevVarsSuffixed(PREV_KEYWORD);
           candidateTransInv = candidateTransInv.withCurrVarsSuffixed(CURR_KEYWORD);
 
-          PartitionedRelationFormula newInterpolant =
-              computeNewRelationalInterpolant(
-                  isOverapproximating,
-                  candidateTransInv,
-                  iterationFormula,
-                  prefixPathFormula,
-                  latestSameStateFormula,
-                  callstackState);
+          PartitionedRelationFormula newInterpolant;
+          try {
+            newInterpolant =
+                computeNewRelationalInterpolant(
+                    isOverapproximating,
+                    candidateTransInv,
+                    iterationFormula,
+                    prefixPathFormula,
+                    latestSameStateFormula,
+                    callstackState);
+          } catch (NoSuchElementException e) {
+            logger.logDebugException(e);
+            return Optional.of(result.withAction(Action.BREAK));
+          }
+
           try {
             if (solver.implies(newInterpolant.getFormula(), candidateTransInv.getFormula())) {
               return Optional.of(result);
@@ -335,7 +343,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       PathFormula prefixPathFormula,
       BooleanFormula latestSameStateFormula,
       CallstackState callstackState)
-      throws CPAException, InterruptedException {
+      throws CPAException, InterruptedException, NoSuchElementException {
 
     BooleanFormula firstStep = prefixPathFormula.getFormula();
     if (isOverapproximating) {
