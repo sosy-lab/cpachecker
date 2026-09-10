@@ -18,6 +18,7 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssComponentKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageKeys;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatePayload;
+import org.sosy_lab.cpachecker.cpa.block.BlockState;
 
 public record DssBlockStatePayload(String blockId, String witness, ImmutableList<String> history)
     implements DssStatePayload {
@@ -31,12 +32,15 @@ public record DssBlockStatePayload(String blockId, String witness, ImmutableList
     String suffix = " W:" + witness();
     suffix = suffix + (history().isEmpty() ? "" : " H:" + Joiner.on(",").join(history()));
     return ImmutableMap.of(
-        DssComponentKey.BLOCK_STATE + "." + DssMessageKeys.STATE, blockId() + suffix);
+        getComponentKey().getSerializedName() + "." + DssMessageKeys.STATE, blockId() + suffix);
   }
 
   public static DssBlockStatePayload fromContentMap(Map<String, String> pContent) {
     return fromContentString(
-        pContent.get(DssComponentKey.BLOCK_STATE + "." + DssMessageKeys.STATE));
+        pContent.get(
+            DssComponentKey.forClass(BlockState.class).getSerializedName()
+                + "."
+                + DssMessageKeys.STATE));
   }
 
   public static DssBlockStatePayload fromContentString(String pContent) {
