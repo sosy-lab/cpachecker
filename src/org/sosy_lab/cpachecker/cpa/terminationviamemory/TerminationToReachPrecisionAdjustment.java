@@ -229,7 +229,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
             if (solver.implies(newInterpolant.getFormula(), candidateTransInv.getFormula())) {
               return Optional.of(result);
             }
-          } catch (SolverException | InterruptedException e) {
+          } catch (SolverException e) {
+            logger.logDebugException(e);
             return Optional.of(result);
           }
 
@@ -410,7 +411,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private boolean isTransitionInvariant(
       PartitionedRelationFormula candidateTransitionInvariant,
       PartitionedRelationFormula iterationFormula,
-      CFANode pLocation) {
+      CFANode pLocation) throws InterruptedException {
     boolean isTransitionInvariant;
 
     // The goal is to construct formula of the following form:
@@ -447,7 +448,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           isTransitionInvariant
               && solver.implies(
                   iterationFormula.getFormula(), candidateTransitionInvariant.getFormula());
-    } catch (SolverException | InterruptedException e) {
+    } catch (SolverException e) {
       logger.logDebugException(e);
       return false;
     }
