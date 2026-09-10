@@ -17,10 +17,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -28,7 +28,6 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.logging.Level;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -63,6 +62,7 @@ import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationPro
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.ast.ASTElement;
@@ -98,23 +98,17 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
    * Return all CFA edges of the given path together with their surrounding states. Consecutive
    * states of an {@link ARGPath} are not necessarily connected by a single CFA edge, since an
    * analysis may handle a whole basic block in one step (cf. option
-   * cpa.composite.aggregateBasicBlocks). {@link ARGPath#getInnerEdges()} contains null for these
-   * holes, this method resolves them into the edges they stand for. Holes which cannot be resolved,
-   * as may happen with BAM, are ignored.
+   * cpa.composite.aggregateBasicBlocks). {@link ARGPath#fullPathIterator()} resolves such holes
+   * into the edges they stand for.
    */
   private static ImmutableList<EdgeWithStates> getEdgesWithStates(ARGPath pPath) {
-    ImmutableList<ARGState> states = pPath.asStatesList();
-    List<@Nullable CFAEdge> innerEdges = pPath.getInnerEdges();
     ImmutableList.Builder<EdgeWithStates> edgesWithStates = ImmutableList.builder();
 
-    for (int i = 0; i < innerEdges.size(); i++) {
-      ARGState previousState = states.get(i);
-      ARGState state = states.get(i + 1);
-      CFAEdge innerEdge = innerEdges.get(i);
-      for (CFAEdge edge :
-          innerEdge == null ? previousState.getEdgesToChild(state) : ImmutableList.of(innerEdge)) {
-        edgesWithStates.add(new EdgeWithStates(edge, previousState, state));
-      }
+    for (PathIterator it = pPath.fullPathIterator(); it.hasNext(); it.advance()) {
+      ARGState previousState =
+          it.isPositionWithState() ? it.getAbstractState() : it.getPreviousAbstractState();
+      edgesWithStates.add(
+          new EdgeWithStates(it.getOutgoingEdge(), previousState, it.getNextAbstractState()));
     }
 
     return edgesWithStates.build();
@@ -253,10 +247,9 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       }
     }
 
-    Set<String> currentThreadIds = new HashSet<>(threadingState.getThreadIds());
-    currentThreadIds.removeAll(previousThreadingState.getThreadIds());
-
-    return Optional.of(Iterables.getOnlyElement(currentThreadIds));
+    return Optional.of(
+        Iterables.getOnlyElement(
+            Sets.difference(threadingState.getThreadIds(), previousThreadingState.getThreadIds())));
   }
 
   private static Optional<String> getCurrentThreadNameIfExists(ARGState pState, CFAEdge pEdge) {
