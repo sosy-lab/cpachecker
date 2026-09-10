@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.bmc;
+package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
-public class BMCAlgorithmIntegrationTest {
+public class PredicateAnalysisRecursionIntegrationTest {
 
   @BeforeClass
   public static void skipUnlessExtendedTestsEnabled() {
@@ -31,7 +31,7 @@ public class BMCAlgorithmIntegrationTest {
 
   private Configuration getConfiguration() throws IOException, InvalidConfigurationException {
     return TestUtils.configurationForTest()
-        .loadFromFile(Path.of("test/config/bmc-rec.properties"))
+        .loadFromFile(Path.of("config/predicateAnalysis-pathExploration.properties"))
         .build();
   }
 

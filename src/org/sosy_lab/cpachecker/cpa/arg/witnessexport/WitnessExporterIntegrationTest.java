@@ -55,7 +55,7 @@ public class WitnessExporterIntegrationTest {
 
     BAM("valueAnalysis-predicateAnalysis-bam"),
 
-    BMC_REC("bmc-rec");
+    PREDICATE_ANALYSIS_PATH_EXPLORATION("predicateAnalysis-pathExploration");
 
     private final String fileName;
 
@@ -176,7 +176,9 @@ public class WitnessExporterIntegrationTest {
   @Ignore // The witness cannot be confirmed even though it seems to be correct
   public void countup_recursive_false() throws Exception {
     new WitnessTester(
-            "countup_recursive_false.c", ExpectedVerdict.FALSE, WitnessGenerationConfig.BMC_REC)
+            "countup_recursive_false.c",
+            ExpectedVerdict.FALSE,
+            WitnessGenerationConfig.PREDICATE_ANALYSIS_PATH_EXPLORATION)
         .performTest();
   }
 
