@@ -750,6 +750,20 @@ public class ExpressionToFormulaVisitor
           }
         }
 
+      } else if (BuiltinFloatFunctions.matchesSqrt(functionName)) {
+
+        if (parameters.size() == 1) {
+          CType paramType = getTypeOfBuiltinFloatFunction(functionName);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
+          if (formulaType.isFloatingPointType()) {
+            FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
+            FloatingPointFormula param =
+                (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
+
+            return fpfmgr.sqrt(param);
+          }
+        }
+
       } else if (BuiltinFloatFunctions.matchesFinite(functionName)) {
 
         if (parameters.size() == 1) {
