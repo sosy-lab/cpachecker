@@ -86,6 +86,12 @@ public abstract class LanguageToSmtConverter<T extends Type> {
     return idx;
   }
 
+  /**
+   * Compute the SSA stack of the successor formula for the given edge.
+   *
+   * <p>The stack of the old formula is returned unchanged if the edge does not change the SSAMap,
+   * so callers can detect this with an identity check.
+   */
   public PersistentStack<SSAMap> handleSsaStack(
       CFAEdge pEdge,
       Constraints pConstraints,
@@ -235,11 +241,11 @@ public abstract class LanguageToSmtConverter<T extends Type> {
           }
         }
 
-        // Now the current state of the caller is the rebuilt SSA map. Pop
-        // the stale caller frame and replace them with the resulting SSA map.
-        yield callerSsaStack.popAndCopy().pushAndCopy(resultSsa.build());
+        // Now the current state of the caller is the rebuilt SSA map,
+        // so replace the stale caller frame with it.
+        yield callerSsaStack.replaceTopAndCopy(resultSsa.build());
       }
-      default -> oldFormula.getSsaStack().popAndCopy().pushAndCopy(pSsaMapAfterHandlingEdge);
+      default -> oldFormula.getSsaStack().replaceTopAndCopy(pSsaMapAfterHandlingEdge);
     };
   }
 

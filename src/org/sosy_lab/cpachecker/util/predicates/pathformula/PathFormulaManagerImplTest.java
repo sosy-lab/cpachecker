@@ -79,6 +79,7 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
 
   private CDeclarationEdge x_decl;
   private CStatementEdge assignment;
+  private BlankEdge blankEdge;
 
   private static final CType variableType = CNumericTypes.INT;
   private static final FormulaType<?> formulaType = FormulaType.getBitvectorTypeWithSize(32);
@@ -153,6 +154,8 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
             new CInitializerExpression(FileLocation.DUMMY, CIntegerLiteralExpression.ZERO));
 
     x_decl = new CDeclarationEdge("int x = 0", FileLocation.DUMMY, a, b, xDeclaration);
+
+    blankEdge = new BlankEdge("", FileLocation.DUMMY, a, b, "noop");
 
     // x + 1
     CExpression rhs =
@@ -231,6 +234,15 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
             mgrv.makePlus(
                 mgrv.makeVariable(formulaType, "x", 10), mgrv.makeNumber(formulaType, 1)));
     assertThatFormula(pf.getFormula()).isEquivalentTo(expected);
+  }
+
+  @Test
+  public void testEdgeWithoutEffectKeepsPathFormula() throws Exception {
+    PathFormula pf = makePathFormulaWithCustomIndex(pfmgrFwd, "x", CNumericTypes.INT, 10);
+
+    // An edge that neither contributes to the formula nor changes the SSA map or the pointer
+    // target set must return the very same instance, which callers rely on for performance.
+    assertThat(pfmgrFwd.makeAnd(pf, blankEdge)).isSameInstanceAs(pf);
   }
 
   private PathFormula makePathFormulaWithCustomIndex(

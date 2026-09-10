@@ -150,8 +150,7 @@ public final class PathFormula implements Serializable {
    * should be used instead.
    */
   public PathFormula withTopmostStackSsa(SSAMap newSsa) {
-    return new PathFormula(
-        formula, ssaStack.popAndCopy().pushAndCopy(checkNotNull(newSsa)), pts, length);
+    return new PathFormula(formula, ssaStack.replaceTopAndCopy(checkNotNull(newSsa)), pts, length);
   }
 
   @Override

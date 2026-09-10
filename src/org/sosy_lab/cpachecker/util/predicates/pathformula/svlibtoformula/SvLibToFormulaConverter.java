@@ -172,6 +172,15 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
             pEdge, constraints, pOldFormula, ssa.build(), pOldFormula.getPointerTargetSet(), fmgr);
 
     edgeFormula = bfmgr.and(edgeFormula, constraints.get());
+
+    // There are no pointers in SV-LIB, so the pointer target set remains unchanged and can
+    // therefore be ignored.
+    if (bfmgr.isTrue(edgeFormula) && (newSsaStack == pOldFormula.getSsaStack())) {
+      // formula is just "true" and rest is equal
+      // i.e. no writes to SSAMap, no branching and length should stay the same
+      return pOldFormula;
+    }
+
     BooleanFormula newFormula = bfmgr.and(pOldFormula.getFormula(), edgeFormula);
     int newLength = pOldFormula.getLength() + 1;
 

@@ -52,6 +52,20 @@ public class PersistentStack<T> implements Iterable<T>, Serializable {
     return delegate.get(delegate.size());
   }
 
+  /**
+   * Replace the topmost element with the given element.
+   *
+   * <p>Returns this stack if the given element is identical to the current topmost one.
+   */
+  public PersistentStack<T> replaceTopAndCopy(T elem) {
+    Preconditions.checkState(!delegate.isEmpty(), "there is no element");
+    int index = delegate.size();
+    if (elem == delegate.get(index)) {
+      return this;
+    }
+    return new PersistentStack<>(delegate.putAndCopy(index, elem));
+  }
+
   /** replace the first entry where the predicate is valid with the given element. */
   public PersistentStack<T> replace(Predicate<T> pred, T elem) {
     for (Entry<Integer, T> entry : delegate.entrySet()) {

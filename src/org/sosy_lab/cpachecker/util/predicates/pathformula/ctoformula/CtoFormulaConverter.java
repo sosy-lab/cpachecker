@@ -1073,6 +1073,15 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
 
     // Now build the new formula
     edgeFormula = bfmgr.and(edgeFormula, constraints.get());
+
+    if (bfmgr.isTrue(edgeFormula)
+        && (newSsaStack == oldFormula.getSsaStack())
+        && newPts.equals(oldFormula.getPointerTargetSet())) {
+      // formula is just "true" and rest is equal
+      // i.e. no writes to SSAMap, no branching and length should stay the same
+      return oldFormula;
+    }
+
     BooleanFormula newFormula = bfmgr.and(oldFormula.getFormula(), edgeFormula);
     int newLength = oldFormula.getLength() + 1;
 

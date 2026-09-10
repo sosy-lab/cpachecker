@@ -426,7 +426,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     PathFormula out =
         new PathFormula(
             newFormula,
-            pathFormula1.getSsaStack().popAndCopy().pushAndCopy(newSSA.build()),
+            pathFormula1.getSsaStack().replaceTopAndCopy(newSSA.build()),
             newPTS,
             newLength);
     if (simplifyGeneratedPathFormulas) {
@@ -450,7 +450,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final PointerTargetSet pts = pPathFormula.getPointerTargetSet();
     return new PathFormula(
         resultFormula,
-        pPathFormula.getSsaStack().popAndCopy().pushAndCopy(ssa),
+        pPathFormula.getSsaStack().replaceTopAndCopy(ssa),
         pts,
         pPathFormula.getLength());
   }
