@@ -1208,6 +1208,12 @@ cfa.pathForExportingVariablesInScopeWithTheirType = no default value
 # 'null', no pixel graphic is exported.
 cfa.pixelGraphicFile = no default value
 
+# Remove all trivial loops (with only blank edges) in the CFA and replace
+# them with program termination. This is not valid for properties like
+# termination and valid-memcleanup, but more efficient for standard
+# reachability properties. Cf. #1713.
+cfa.removeTrivialLoops = false
+
 # Show messages when dead code is encountered during parsing.
 cfa.showDeadCode = true
 
