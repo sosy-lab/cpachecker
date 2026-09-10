@@ -8,8 +8,14 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.trivialrules;
 
+import static com.google.common.truth.Truth.assertThat;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -292,6 +298,48 @@ public class TrivialRulesAlgorithmIntegrationTest {
     runWithProperty(MEMORY_SAFETY_CONFIG, "valid-memsafety.prp", "empty-main-true.c")
         .assertIsSafe();
     runWithProperty(DATA_RACE_CONFIG, "no-data-race.prp", "empty-main-true.c").assertIsSafe();
+  }
+
+  // ------------------------------------------------------------------------------------------
+  // witnesses
+  // ------------------------------------------------------------------------------------------
+
+  @Rule public TemporaryFolder outputDirectory = new TemporaryFolder();
+
+  private String runAndReadWitness(String pConfigFile, String pProperty, String pProgram)
+      throws Exception {
+    Configuration configuration =
+        TestUtils.configurationForTestWithOutput(outputDirectory)
+            .loadFromFile(pConfigFile)
+            .setOption("specification", PROPERTY_DIR + pProperty)
+            .setOption("analysis.entryFunction", "main")
+            .setOption("trivialrules.witness", "witness.yml")
+            .build();
+    IntegrationTestResult result = IntegrationTestRunner.run(configuration, PROGRAM_DIR + pProgram);
+    // The output files are written by the caller of CPAchecker, not by CPAchecker itself.
+    result.cpaCheckerResult().writeOutputFiles();
+    Path witness = outputDirectory.getRoot().toPath().resolve("output").resolve("witness.yml");
+    assertThat(Files.exists(witness)).isTrue();
+    return Files.readString(witness);
+  }
+
+  @Test
+  public void correctnessWitnessIsAnEmptyInvariantSet() throws Exception {
+    // A trivial rule argues about the program as a whole, so it has no invariant to offer.
+    String witness =
+        runAndReadWitness(REACHABILITY_CONFIG, "unreach-call.prp", "no-error-call-true.c");
+    assertThat(witness).contains("entry_type: \"invariant_set\"");
+    assertThat(witness).contains("content: []");
+  }
+
+  @Test
+  public void violationWitnessPointsToTheViolatedLocation() throws Exception {
+    String witness =
+        runAndReadWitness(
+            REACHABILITY_CONFIG, "unreach-call.prp", "error-called-unconditionally-false.c");
+    assertThat(witness).contains("entry_type: \"violation_sequence\"");
+    assertThat(witness).contains("type: \"target\"");
+    assertThat(witness).contains("error-called-unconditionally-false.c");
   }
 
   @Test

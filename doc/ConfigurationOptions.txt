@@ -5972,6 +5972,12 @@ traceformula.reduceSelectors = false
 # specification. The names of the rules are printed in the statistics.
 trivialrules.rules = {}
 
+# The file to write the witness to. On the result TRUE an invariant set
+# without invariants is written, on the result FALSE a violation witness that
+# points to the violated location. Witnesses are written in version 2.0.
+# Leave empty to not export any witness.
+trivialrules.witness = no default value
+
 # Ignore functions that are defined by C11
 undefinedFunctionsCollector.allowC11Functions = true
 

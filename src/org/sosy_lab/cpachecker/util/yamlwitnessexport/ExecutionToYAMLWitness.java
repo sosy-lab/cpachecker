@@ -54,8 +54,10 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.Waypo
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointType;
 
 /**
- * Exports witnesses in version 2.0 for an analysis that executes the program instead of abstracting
- * it (cf. {@link org.sosy_lab.cpachecker.cpa.execution.ExecutionCPA}).
+ * Exports witnesses in version 2.0 for an analysis without an ARG, such as an analysis that
+ * executes the program instead of abstracting it (cf. {@link
+ * org.sosy_lab.cpachecker.cpa.execution.ExecutionCPA}) or one that decides the specification with
+ * trivial rules (cf. {@link org.sosy_lab.cpachecker.core.algorithm.trivialrules}).
  *
  * <p>Such an analysis does not need an ARG, so the witnesses cannot be built from one:
  *

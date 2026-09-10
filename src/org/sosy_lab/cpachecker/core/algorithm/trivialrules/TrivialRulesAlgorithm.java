@@ -65,6 +65,7 @@ public class TrivialRulesAlgorithm implements Algorithm, StatisticsProvider {
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final TrivialRulesStatistics stats = new TrivialRulesStatistics();
+  private final TrivialRulesWitnessExporter witnessExporter;
 
   public TrivialRulesAlgorithm(
       Configuration pConfig,
@@ -79,6 +80,8 @@ public class TrivialRulesAlgorithm implements Algorithm, StatisticsProvider {
     shutdownNotifier = pShutdownNotifier;
     cfa = pCfa;
     specification = pSpecification;
+    witnessExporter =
+        new TrivialRulesWitnessExporter(pConfig, pCfa, pSpecification, pLogger, stats);
   }
 
   @Override
@@ -203,5 +206,6 @@ public class TrivialRulesAlgorithm implements Algorithm, StatisticsProvider {
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
+    pStatsCollection.add(witnessExporter);
   }
 }
