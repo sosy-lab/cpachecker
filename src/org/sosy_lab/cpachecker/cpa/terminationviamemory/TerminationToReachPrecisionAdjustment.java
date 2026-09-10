@@ -66,8 +66,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   @Option(
       secure = true,
       description =
-          "There might be programs with unsigned integer overflow, and"
-              + "due to the overflow, they are non-terminating."
+          "There might be programs with unsigned integer overflow, and "
+              + "due to the overflow, they are non-terminating. "
               + "This option enforces the transition invariants to "
               + "have constraints to limit the mathematical integers.")
   private boolean addConstraintsToPreventOverflows = false;
@@ -75,15 +75,15 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   @Option(
       secure = true,
       description =
-          "Some bitwise operations or modulo are UFs in integer encoding, and"
-              + "they might lead to unsound results. If integer encoding is set,"
+          "Some bitwise operations or modulo are UFs in integer encoding, and "
+              + "they might lead to unsound results. If integer encoding is set, "
               + "we also have to use this option.")
   private boolean checkUFsInIntegerEncoding = false;
 
   @Option(
       secure = true,
       description =
-          "Disables checks for fix-point with transition invariants and performs" + "plain BMC.")
+          "Disables checks for fix-point with transition invariants and performs " + "plain BMC.")
   private boolean performBMC = false;
 
   public TerminationToReachPrecisionAdjustment(
