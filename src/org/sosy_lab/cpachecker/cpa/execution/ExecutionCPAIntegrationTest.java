@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.execution;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
@@ -19,6 +20,8 @@ import org.sosy_lab.cpachecker.util.test.TestUtils;
 public class ExecutionCPAIntegrationTest {
 
   private static final String PROGRAM_DIR = "test/programs/execution/";
+
+  private static final String PROPERTY_DIR = "test/programs/benchmarks/properties/";
 
   private static final String REACHABILITY_SPECIFICATION =
       "config/specification/sv-comp-reachability.spc";
@@ -41,6 +44,26 @@ public class ExecutionCPAIntegrationTest {
   private static IntegrationTestResult run(String pConfigFile, String pProgram) throws Exception {
     Configuration config = TestUtils.configurationForTest().loadFromFile(pConfigFile).build();
     return IntegrationTestRunner.run(config, PROGRAM_DIR + pProgram);
+  }
+
+  /**
+   * Create the configuration that CPAchecker uses after it has detected an SV-COMP property on the
+   * command line and switched to the configuration named by the corresponding {@code *.config}
+   * option: the given configuration file with the property file as specification. The entry
+   * function is taken from the property file by CPAchecker itself, so we have to set it here.
+   */
+  private static ConfigurationBuilder configWithProperty(String pConfigFile, String pProperty)
+      throws Exception {
+    return TestUtils.configurationForTest()
+        .loadFromFile(pConfigFile)
+        .setOption("specification", PROPERTY_DIR + pProperty)
+        .setOption("analysis.entryFunction", "main");
+  }
+
+  private static IntegrationTestResult runWithProperty(
+      String pConfigFile, String pProperty, String pProgram) throws Exception {
+    return IntegrationTestRunner.run(
+        configWithProperty(pConfigFile, pProperty).build(), PROGRAM_DIR + pProgram);
   }
 
   @Test
@@ -106,5 +129,72 @@ public class ExecutionCPAIntegrationTest {
   @Test
   public void memorySafetyWithRecursionIsProven() throws Exception {
     run("config/execution--memorysafety.properties", "heap-recursion-true.c").assertIsSafe();
+  }
+
+  // The following tests use the SV-COMP property files, i.e., they check that the execution
+  // configurations give the right answer for the specification that CPAchecker derives from
+  // "--spec <property>.prp".
+
+  @Test
+  public void unreachCallProperty() throws Exception {
+    runWithProperty("config/execution.properties", "unreach-call.prp", "recursive-factorial-true.c")
+        .assertIsSafe();
+    runWithProperty(
+            "config/execution.properties", "unreach-call.prp", "recursive-factorial-false.c")
+        .assertIsUnsafe();
+  }
+
+  @Test
+  public void terminationProperty() throws Exception {
+    runWithProperty(
+            "config/execution--termination.properties",
+            "termination.prp",
+            "terminating-loop-true.c")
+        .assertIsSafe();
+    // A non-terminating program cannot be shown to be non-terminating by executing it, so the
+    // analysis must not report FALSE. (It runs into the time limit, hence the small limit here.)
+    Configuration config =
+        configWithProperty("config/execution--termination.properties", "termination.prp")
+            .setOption("limits.time.cpu", "10s")
+            .build();
+    IntegrationTestRunner.run(config, PROGRAM_DIR + "nonterminating.c").assertIs(Result.UNKNOWN);
+  }
+
+  @Test
+  public void noOverflowProperty() throws Exception {
+    runWithProperty(
+            "config/execution--overflow.properties", "no-overflow.prp", "terminating-loop-true.c")
+        .assertIsSafe();
+    runWithProperty(
+            "config/execution--overflow.properties", "no-overflow.prp", "signed-overflow-false.c")
+        .assertIsUnsafe();
+  }
+
+  @Test
+  public void validMemsafetyProperty() throws Exception {
+    runWithProperty(
+            "config/execution--memorysafety.properties",
+            "valid-memsafety.prp",
+            "heap-recursion-true.c")
+        .assertIsSafe();
+    runWithProperty(
+            "config/execution--memorysafety.properties",
+            "valid-memsafety.prp",
+            "heap-out-of-bounds-false.c")
+        .assertIsUnsafe();
+  }
+
+  @Test
+  public void validMemcleanupProperty() throws Exception {
+    runWithProperty(
+            "config/execution--memorycleanup.properties",
+            "valid-memcleanup.prp",
+            "heap-recursion-true.c")
+        .assertIsSafe();
+    runWithProperty(
+            "config/execution--memorycleanup.properties",
+            "valid-memcleanup.prp",
+            "heap-leak-false.c")
+        .assertIsUnsafe();
   }
 }
