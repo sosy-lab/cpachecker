@@ -28,7 +28,7 @@ import org.sosy_lab.java_smt.api.Formula;
  * <p>Instances are immutable: {@link #withPrevVarsSuffixed} and {@link #withCurrVarsSuffixed}
  * return new instances rather than mutating the receiver.
  */
-public class PartitionedRelationFormula {
+class PartitionedRelationFormula {
 
   // Any real SSA index used by JavaSMT/CPAchecker's formula encoding is >= 0 (unindexed
   // variables are reported as absent from SSA and are treated as index 0 by callers), so -2
