@@ -734,6 +734,12 @@ class CExpressionVisitorWithPointerAliasing
               dereference(resultExpression, resultExpression.accept(this));
           Formula destinationFormula = destinationAsAliasedLocation.getAddress();
           return Value.ofValue(destinationFormula);
+
+        } else if (functionName.equals("__VERIFIER_nondet_memory")) {
+          MemoryManipulationFunctionHandler memoryFunctionHandler =
+              new MemoryManipulationFunctionHandler(
+                  conv, edge, functionName, ssa, pts, constraints, errorConditions, regionMgr);
+          memoryFunctionHandler.handleNondetMemoryAssignment(e);
         }
 
       } catch (InterruptedException exc) {

@@ -130,7 +130,8 @@ class MemoryManipulationFunctionHandler {
     // Handover to function-specific code
     try {
       if (functionName.equals("memset")) {
-        handleMemsetFunction(destination, secondArgument, sizeInBytes);
+        Optional<CExpression> value = Optional.of(secondArgument);
+        handleMemsetFunction(destination, value, sizeInBytes);
       } else if (functionName.equals("memcpy") || functionName.equals("memmove")) {
         // memcpy and memmove only differ in that memcpy is not well-defined if destination and
         // source overlap; we do not model this
@@ -156,6 +157,31 @@ class MemoryManipulationFunctionHandler {
 
     // return destination parameter
     return destination;
+  }
+
+  void handleNondetMemoryAssignment(final CFunctionCallExpression pNondetMemoryCall)
+      throws UnrecognizedCodeException, InterruptedException {
+
+    CExpression functionName = pNondetMemoryCall.getFunctionNameExpression();
+    boolean hasFunctionCorrectName =
+        functionName instanceof CIdExpression idExpression
+            && idExpression.getName().equals("__VERIFIER_nondet_memory");
+    verify(
+        hasFunctionCorrectName,
+        "Expected function name __VERIFIER_nondet_memory function, got %s",
+        functionName);
+
+    ImmutableList<CExpression> params = pNondetMemoryCall.getParameterExpressions();
+    verify(
+        params.size() == 2,
+        "Expected 2 parameters for __VERIFIER_nondet_memory, got %s",
+        params.size());
+
+    CExpression objectPointer = params.get(0);
+    CExpression regionSize = params.get(1);
+
+    Optional<CExpression> nondetValue = Optional.empty();
+    handleMemsetFunction(objectPointer, nondetValue, regionSize);
   }
 
   /**
@@ -252,13 +278,16 @@ class MemoryManipulationFunctionHandler {
    * Handles the {@code memset} function.
    *
    * @param destination Destination argument.
-   * @param setValue Value to set.
+   * @param setValue Value to set. If Optional.empty(), the value is assumed to be
+   *     non-deterministic.
    * @param sizeInBytes Size argument, given in bytes.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If a shutdown was requested during handling.
    */
   private void handleMemsetFunction(
-      final CExpression destination, final CExpression setValue, final CExpression sizeInBytes)
+      final CExpression destination,
+      final Optional<CExpression> setValue,
+      final CExpression sizeInBytes)
       throws UnrecognizedCodeException, InterruptedException {
 
     // process destination
@@ -275,9 +304,16 @@ class MemoryManipulationFunctionHandler {
     SliceVariable sliceIndex = new SliceVariable(sizeInElements);
     SliceExpression lhs = new SliceExpression(processedDestination).withIndex(sliceIndex);
 
+    // if the 'setValue' is present (not non-deterministic),
     // cast the value to be set to unsigned char so that byte repeat cast can be used
-    CExpression setValueAsUnsignedChar =
-        new CCastExpression(FileLocation.DUMMY, CNumericTypes.UNSIGNED_CHAR, setValue);
+    final Optional<SliceExpression> setValueAsSliceExpression;
+    if (setValue.isPresent()) {
+      CExpression setValueAsUnsignedChar =
+          new CCastExpression(FileLocation.DUMMY, CNumericTypes.UNSIGNED_CHAR, setValue.get());
+      setValueAsSliceExpression = Optional.of(new SliceExpression(setValueAsUnsignedChar));
+    } else {
+      setValueAsSliceExpression = Optional.empty();
+    }
 
     // for relevancy checking, we need a CLeftHandSide expression; we construct a dummy dereference,
     // which, for relevancy checking purposes, describes assignment to the first element of
@@ -286,15 +322,14 @@ class MemoryManipulationFunctionHandler {
         (CPointerType) CTypes.adjustFunctionOrArrayType(destinationType);
     final CType destinationElementType =
         typeHandler.simplifyType(adjustedDestinationType.getType());
-    final CLeftHandSide lhsForRelevancyChecking =
-        new CPointerExpression(FileLocation.DUMMY, destinationElementType, processedDestination);
+    final Optional<CLeftHandSide> lhsForRelevancyChecking =
+        Optional.of(
+            new CPointerExpression(
+                FileLocation.DUMMY, destinationElementType, processedDestination));
 
     // create the assignment
     SliceAssignment assignment =
-        new SliceAssignment(
-            lhs,
-            Optional.of(lhsForRelevancyChecking),
-            Optional.of(new SliceExpression(setValueAsUnsignedChar)));
+        new SliceAssignment(lhs, lhsForRelevancyChecking, setValueAsSliceExpression);
 
     // use BYTE_REPEAT conversion type to properly assign each byte of the left-hand side to the
     // given value, leave everything else as-is
