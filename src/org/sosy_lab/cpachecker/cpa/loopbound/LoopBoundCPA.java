@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.LoopIterationBounding;
@@ -58,6 +59,25 @@ public class LoopBoundCPA extends AbstractCPA
               + " feature.")
   private int cyclicStopModulus = -1;
 
+  @Option(
+      secure = true,
+      name = "domain",
+      toUppercase = true,
+      values = {"FLAT", "DEEPEST_ITERATION"},
+      description =
+          "Which abstract domain to use for the loop-bound CPA.\n"
+              + "FLAT (the default) considers two states comparable only if their whole per-loop"
+              + " iteration vectors are equal.\n"
+              + "DEEPEST_ITERATION considers them comparable as soon as their deepest loop"
+              + " iteration is equal, which lets states that merely visited a different set of"
+              + " loops be merged and cover each other. This is much coarser and is intended for"
+              + " analyses that only inspect the deepest iteration, such as the induction step"
+              + " case of k-induction. It is NOT sound for analyses that read back the per-loop"
+              + " iteration counts of individual states, in particular k-induction with candidate"
+              + " invariants for specific program locations (cf."
+              + " BMCHelper.filterBmcCheckedWithin).")
+  private String domainType = "FLAT";
+
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(LoopBoundCPA.class);
   }
@@ -72,6 +92,15 @@ public class LoopBoundCPA extends AbstractCPA
     pConfig.inject(this);
     loopStructure = pCFA.getLoopStructure().orElseThrow();
     precisionAdjustment = new LoopBoundPrecisionAdjustment(pConfig, pCFA, pLogger);
+  }
+
+  @Override
+  public AbstractDomain getAbstractDomain() {
+    return switch (domainType) {
+      case "FLAT" -> super.getAbstractDomain();
+      case "DEEPEST_ITERATION" -> LoopBoundDeepestIterationDomain.INSTANCE;
+      default -> throw new AssertionError("Unknown domain type for loop-bound CPA: " + domainType);
+    };
   }
 
   @Override

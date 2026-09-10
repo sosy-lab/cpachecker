@@ -705,11 +705,14 @@ analysis.programNames = []
 # LOCATIONMAPPED: a different set per location (faster, states with different
 # locations cannot be merged)
 # PARTITIONED: partitioning depending on CPAs (e.g. Location, Callstack etc.)
+# INDUCTIONPARTITIONED: partitioning by location, call chain and deepest loop
+# iteration; intended for the induction step case of k-induction
 # PSEUDOPARTITIONED: based on PARTITIONED, uses additional info about the
 # states' lattice (maybe faster for some special analyses which use merge_sep
 # and stop_sep
 analysis.reachedSet = PARTITIONED
-  enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED, USAGE]
+  enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED,
+             INDUCTIONPARTITIONED, USAGE]
 
 # track more statistics about the reachedset
 analysis.reachedSet.withStatistics = false
@@ -1091,6 +1094,28 @@ bmc.kinduction.reuse.pred.strategy = GLOBAL
 
 # Propagates the interrupts of the invariant generator.
 bmc.propagateInvGenInterrupts = false
+
+# Relax the coverage and merge criteria of the induction step case so that
+# its state-space exploration can actually be collapsed.
+# The step case starts from an arbitrary state at each loop head, so it may
+# freely over-approximate: a coarser exploration can only make the induction
+# check harder to discharge, never wrong. Without this, however, nothing
+# collapses at all: in BMC mode merge^JOIN is the only mechanism that can
+# join states (the predicate domain covers a state only if the path formulas
+# are identical), merge is only ever attempted between states of the same
+# reached-set partition, and the partition key distinguishes every single
+# state, because CallstackState is compared by object identity and
+# LoopBoundState carries the whole per-loop iteration vector.
+# Enabling this sets, for the step case only, a reached set partitioned by
+# location, call chain and deepest loop iteration
+# (analysis.reachedSet=INDUCTIONPARTITIONED), structural callstack coverage
+# (cpa.callstack.domain=FLATPCC) and deepest-iteration loop-bound coverage
+# (cpa.loopbound.domain=DEEPEST_ITERATION).
+# This is sound for the plain safety property, but not for candidate
+# invariants that are attached to specific program locations, because those
+# read back the per-loop iteration counts of individual states. It is
+# therefore disabled by default.
+bmc.relaxStepCaseCoverage = false
 
 # Restrict the state-space exploration of the induction step case to the
 # states from which the loop-unrolling bound can still be reached, i.e., drop
@@ -2427,6 +2452,20 @@ cpa.loopbound.checkOnlyAtBounds = []
 # regarding the modulus of this number. Values smaller or equal to zero will
 # deactivate this feature.
 cpa.loopbound.cyclicStopModulus = -1
+
+# Which abstract domain to use for the loop-bound CPA.
+# FLAT (the default) considers two states comparable only if their whole
+# per-loop iteration vectors are equal.
+# DEEPEST_ITERATION considers them comparable as soon as their deepest loop
+# iteration is equal, which lets states that merely visited a different set
+# of loops be merged and cover each other. This is much coarser and is
+# intended for analyses that only inspect the deepest iteration, such as the
+# induction step case of k-induction. It is NOT sound for analyses that read
+# back the per-loop iteration counts of individual states, in particular
+# k-induction with candidate invariants for specific program locations (cf.
+# BMCHelper.filterBmcCheckedWithin).
+cpa.loopbound.domain = "FLAT"
+  allowed values: [FLAT, DEEPEST_ITERATION]
 
 # Drop states that can never reach the bound for the number of loop
 # unrollings, i.e., states whose loop-iteration counter is still below the

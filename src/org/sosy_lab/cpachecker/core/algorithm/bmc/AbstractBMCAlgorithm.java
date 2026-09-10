@@ -271,6 +271,32 @@ abstract class AbstractBMCAlgorithm
   @Option(
       secure = true,
       description =
+          "Relax the coverage and merge criteria of the induction step case so that its state-space"
+              + " exploration can actually be collapsed.\n"
+              + "The step case starts from an arbitrary state at each loop head, so it may freely"
+              + " over-approximate: a coarser exploration can only make the induction check harder"
+              + " to discharge, never wrong. Without this, however, nothing collapses at all: in"
+              + " BMC mode merge^JOIN is the only mechanism that can join states (the predicate"
+              + " domain covers a state only if the path formulas are identical), merge is only"
+              + " ever attempted between states of the same reached-set partition, and the"
+              + " partition key distinguishes every single state, because CallstackState is"
+              + " compared by object identity and LoopBoundState carries the whole per-loop"
+              + " iteration vector.\n"
+              + "Enabling this sets, for the step case only, a reached set partitioned by"
+              + " location, call chain and deepest loop iteration"
+              + " (analysis.reachedSet=INDUCTIONPARTITIONED), structural callstack coverage"
+              + " (cpa.callstack.domain=FLATPCC) and deepest-iteration loop-bound coverage"
+              + " (cpa.loopbound.domain=DEEPEST_ITERATION).\n"
+              + "This is sound for the plain safety property, but not for candidate invariants"
+              + " that are attached to specific program locations, because those read back the"
+              + " per-loop iteration counts of individual states. It is therefore disabled by"
+              + " default.",
+      name = "bmc.relaxStepCaseCoverage")
+  private boolean relaxStepCaseCoverage = false;
+
+  @Option(
+      secure = true,
+      description =
           "Restrict the state-space exploration of the induction step case to the states from"
               + " which the loop-unrolling bound can still be reached, i.e., drop states that"
               + " cannot visit any loop head anymore and whose loop-iteration counter is below the"
@@ -288,6 +314,7 @@ abstract class AbstractBMCAlgorithm
   private final ConfigurableProgramAnalysis cpa;
 
   private final @Nullable ConfigurableProgramAnalysis stepCaseCPA;
+  private final ReachedSetFactory reachedSetFactory;
   private final @Nullable Algorithm stepCaseAlgorithm;
 
   protected final InvariantGenerator invariantGenerator;
@@ -299,7 +326,6 @@ abstract class AbstractBMCAlgorithm
   private final Solver solver;
 
   protected final LogManager logger;
-  private final ReachedSetFactory reachedSetFactory;
   private final Configuration config;
   private final CFA cfa;
   private final AssignmentToPathAllocator assignmentToPathAllocator;
@@ -344,7 +370,6 @@ abstract class AbstractBMCAlgorithm
     algorithm = pAlgorithm;
     cpa = pCPA;
     logger = pLogger;
-    reachedSetFactory = pReachedSetFactory;
     cfa = pCFA;
     config = pConfig;
     specification = checkNotNull(pSpecification);
@@ -374,7 +399,9 @@ abstract class AbstractBMCAlgorithm
       // the base case must explore the whole program and does not benefit from satisfiability
       // checks, because its initial state is the (fully determined) program entry.
       Configuration stepCaseConfig = pConfig;
-      if (stepCaseSatCheckBlockSize > 0 || restrictStepCaseToRemainingIterations) {
+      if (stepCaseSatCheckBlockSize > 0
+          || restrictStepCaseToRemainingIterations
+          || relaxStepCaseCoverage) {
         ConfigurationBuilder stepCaseConfigBuilder = Configuration.builder().copyFrom(pConfig);
         if (stepCaseSatCheckBlockSize > 0) {
           stepCaseConfigBuilder.setOption(
@@ -383,11 +410,30 @@ abstract class AbstractBMCAlgorithm
         if (restrictStepCaseToRemainingIterations) {
           stepCaseConfigBuilder.setOption("cpa.loopbound.dropStatesThatCannotReachBound", "true");
         }
+        if (relaxStepCaseCoverage) {
+          // Partition the reached set by location only, so that merge^JOIN is attempted at all,
+          // and let the two components that otherwise keep every state in its own partition
+          // compare states structurally instead of by identity resp. by the whole iteration
+          // vector.
+          stepCaseConfigBuilder.setOption("analysis.reachedSet", "INDUCTIONPARTITIONED");
+          stepCaseConfigBuilder.setOption("cpa.callstack.domain", "FLATPCC");
+          stepCaseConfigBuilder.setOption("cpa.loopbound.domain", "DEEPEST_ITERATION");
+        }
         stepCaseConfig = stepCaseConfigBuilder.build();
       }
+      // The reached set of the step case is created by this factory, so it has to be built from
+      // the step-case configuration for analysis.reachedSet above to take effect.
+      ReachedSetFactory stepCaseReachedSetFactory =
+          stepCaseConfig == pConfig
+              ? pReachedSetFactory
+              : new ReachedSetFactory(stepCaseConfig, stepCaseLogger);
+      reachedSetFactory = stepCaseReachedSetFactory;
       CPABuilder builder =
           new CPABuilder(
-              stepCaseConfig, stepCaseLogger, pShutdownManager.getNotifier(), pReachedSetFactory);
+              stepCaseConfig,
+              stepCaseLogger,
+              pShutdownManager.getNotifier(),
+              stepCaseReachedSetFactory);
       stepCaseCPA = builder.buildCPAs(cfa, pSpecification, AggregatedReachedSets.empty());
       stepCaseAlgorithm =
           CPAAlgorithm.create(
@@ -395,6 +441,7 @@ abstract class AbstractBMCAlgorithm
     } else {
       stepCaseCPA = null;
       stepCaseAlgorithm = null;
+      reachedSetFactory = pReachedSetFactory;
       invariantGenerationStrategy = InvariantGeneratorFactory.DO_NOTHING;
       invariantGeneratorHeadStartStrategy = InvariantGeneratorHeadStartFactories.NONE;
     }
