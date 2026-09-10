@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
  * store an already seen state. Transition relation allows to non-deterministically store an already
  * visiting state.
  */
-@Options(prefix = "cpa.terminationviamemory")
 public class TerminationToReachCPA extends AbstractCPA implements StatisticsProvider {
   private Solver solver;
   private InterpolationManager itpMgr;
