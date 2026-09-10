@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -211,11 +212,11 @@ public class PORTransferRelation implements TransferRelation {
       return;
     }
 
-    String functionName = calledFunctionName(cfaEdge);
-    if (functionName != null) {
+    Optional<String> functionName = calledFunctionName(cfaEdge);
+    if (functionName.isPresent()) {
       List<? extends AExpression> params = callParameters(cfaEdge);
 
-      if (ThreadFunctions.isCreateFunction(functionName)) {
+      if (ThreadFunctions.isCreateFunction(functionName.get())) {
         ThreadFunctions.checkCreateParams(params);
         String threadFunc = ThreadFunctions.extractCreateFunctionName(params);
         int newPid = state.threads().size();
@@ -225,7 +226,7 @@ public class PORTransferRelation implements TransferRelation {
               applyBookkeepingEdge(
                   precision,
                   wrapped,
-                  writeThreadHandleEdge((CExpression) params.get(0), newPid, cfaEdge),
+                  writeThreadHandleEdge((CExpression) params.getFirst(), newPid, cfaEdge),
                   pid));
         }
         CFAEdge argumentInitEdge =
@@ -239,7 +240,8 @@ public class PORTransferRelation implements TransferRelation {
           afterWrite = afterArgumentInit;
         }
         afterWrite = initializeThreadLocals(precision, afterWrite, newPid, cfaEdge, pid);
-        String handleName = ThreadFunctions.canonicalHandleAddressKey((CExpression) params.get(0));
+        Optional<String> handleName =
+            ThreadFunctions.canonicalHandleAddressKey((CExpression) params.getFirst());
         finishEdge(
             addNewThread(state, threadFunc, handleName),
             precision,
@@ -250,9 +252,9 @@ public class PORTransferRelation implements TransferRelation {
         return;
       }
 
-      if (ThreadFunctions.isJoinFunction(functionName)) {
+      if (ThreadFunctions.isJoinFunction(functionName.get())) {
         ThreadFunctions.checkJoinParams(params);
-        CExpression handle = (CExpression) params.get(0);
+        CExpression handle = (CExpression) params.getFirst();
 
         // Fast path for the common case: the handle expression's storage location can be
         // determined purely syntactically (a plain variable, or a path to it through only literal
@@ -268,13 +270,13 @@ public class PORTransferRelation implements TransferRelation {
         // feasible schedule along with the spurious one it meant to exclude. The general
         // candidate-branching path below remains the sound fallback for every case this fast path
         // does not apply to (e.g. a runtime-computed array index).
-        String handleKey = ThreadFunctions.canonicalHandleLvalueKey(handle);
-        if (handleKey != null) {
-          Integer hint = state.getHandleHint(handleKey);
+        Optional<String> handleKey = ThreadFunctions.canonicalHandleLvalueKey(handle);
+        if (handleKey.isPresent()) {
+          Integer hint = state.getHandleHint(handleKey.get());
           if (hint != null && state.livePids().contains(hint)) {
-            PORState joined = state.joinThread(hint);
-            if (joined != null) {
-              finishEdge(joined, precision, cfaEdge, pid, wrappedSuccessors, result);
+            Optional<PORState> joined = state.joinThread(hint);
+            if (joined.isPresent()) {
+              finishEdge(joined.get(), precision, cfaEdge, pid, wrappedSuccessors, result);
             }
             return;
           }
@@ -290,8 +292,8 @@ public class PORTransferRelation implements TransferRelation {
         // needed here (and forgetting an ignorable handle value, same as any other edge, lets
         // more than one candidate stay feasible when POR's reduction has no information yet).
         for (int candidate : state.livePids()) {
-          PORState joined = state.joinThread(candidate);
-          if (joined == null) {
+          Optional<PORState> joined = state.joinThread(candidate);
+          if (joined.isEmpty()) {
             continue; // that candidate has not finished yet
           }
           List<AbstractState> filtered = new ArrayList<>();
@@ -304,13 +306,13 @@ public class PORTransferRelation implements TransferRelation {
                     pid));
           }
           if (!filtered.isEmpty()) {
-            finishEdge(joined, precision, cfaEdge, pid, filtered, result);
+            finishEdge(joined.get(), precision, cfaEdge, pid, filtered, result);
           }
         }
         return;
       }
 
-      if (ThreadFunctions.isThreadExitFunction(functionName)) {
+      if (ThreadFunctions.isThreadExitFunction(functionName.get())) {
         PORState exited = state.exitThread(pid, locationCPA.getStateFactory());
         if (exited != null) {
           finishEdge(exited, precision, cfaEdge, pid, wrappedSuccessors, result);
@@ -445,14 +447,14 @@ public class PORTransferRelation implements TransferRelation {
   }
 
   /** The called function's name, or null if {@code edge} is not a function-call statement. */
-  private static @Nullable String calledFunctionName(CFAEdge edge) {
+  private static Optional<String> calledFunctionName(CFAEdge edge) {
     if (edge instanceof AStatementEdge statementEdge
         && statementEdge.getStatement() instanceof AFunctionCall call
         && call.getFunctionCallExpression().getFunctionNameExpression()
             instanceof AIdExpression functionName) {
-      return functionName.getName();
+      return Optional.of(functionName.getName());
     }
-    return null;
+    return Optional.empty();
   }
 
   private static List<? extends AExpression> callParameters(CFAEdge edge) {
@@ -563,7 +565,7 @@ public class PORTransferRelation implements TransferRelation {
     if (entry == null || entry.getFunctionParameters().isEmpty()) {
       return null;
     }
-    if (!(entry.getFunctionParameters().get(0) instanceof CParameterDeclaration origParam)) {
+    if (!(entry.getFunctionParameters().getFirst() instanceof CParameterDeclaration origParam)) {
       return null;
     }
     CParameterDeclaration childParam =
@@ -644,11 +646,11 @@ public class PORTransferRelation implements TransferRelation {
 
   PORState initial(AbstractState wrappedInitialState) {
     return addNewThreadNode(
-        PORState.empty(wrappedInitialState, cfa, logger, random), false, "main", null);
+        PORState.empty(wrappedInitialState, cfa, logger, random), false, "main", Optional.empty());
   }
 
   PORState addNewThread(
-      final PORState old, final String functionName, @Nullable String handleName) {
+      final PORState old, final String functionName, Optional<String> handleName) {
     return addNewThreadNode(old, true, functionName, handleName);
   }
 
@@ -656,7 +658,7 @@ public class PORTransferRelation implements TransferRelation {
       final PORState old,
       boolean addToLivePids,
       final String functionName,
-      @Nullable String handleName) {
+      Optional<String> handleName) {
     CFANode functionCallNode =
         Preconditions.checkNotNull(
             cfa.getFunctionHead(functionName), "Function '%s' was not found.", functionName);

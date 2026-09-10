@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -150,21 +151,21 @@ public final class ThreadFunctions {
    * variable, say) or a pointer dereference (which could alias in ways this syntactic check cannot
    * rule out) returns null, falling back to general candidate-set branching.
    */
-  public static @Nullable String canonicalHandleLvalueKey(CExpression handle) {
-    return handle instanceof CLeftHandSide lvalue ? canonicalLvalueKey(lvalue) : null;
+  public static Optional<String> canonicalHandleLvalueKey(CExpression handle) {
+    return handle instanceof CLeftHandSide lvalue ? canonicalLvalueKey(lvalue) : Optional.empty();
   }
 
   /**
    * Same as {@link #canonicalHandleLvalueKey}, but for a {@code pthread_create} handle, which is
    * syntactically {@code &lvalue} (the lvalue itself, not the address-of expression, is the key).
    */
-  public static @Nullable String canonicalHandleAddressKey(CExpression handle) {
+  public static Optional<String> canonicalHandleAddressKey(CExpression handle) {
     if (handle instanceof CUnaryExpression unary
         && unary.getOperator() == UnaryOperator.AMPER
         && unary.getOperand() instanceof CLeftHandSide lvalue) {
       return canonicalLvalueKey(lvalue);
     }
-    return null;
+    return Optional.empty();
   }
 
   /**
@@ -269,22 +270,22 @@ public final class ThreadFunctions {
         || canonical instanceof CElaboratedType);
   }
 
-  private static @Nullable String canonicalLvalueKey(CLeftHandSide lvalue) {
+  private static Optional<String> canonicalLvalueKey(CLeftHandSide lvalue) {
     if (lvalue instanceof CIdExpression id) {
-      return id.getDeclaration().getQualifiedName();
+      return Optional.of(id.getDeclaration().getQualifiedName());
     }
     if (lvalue instanceof CArraySubscriptExpression subscript
         && subscript.getArrayExpression() instanceof CLeftHandSide array
         && subscript.getSubscriptExpression() instanceof CIntegerLiteralExpression literal) {
-      String arrayKey = canonicalLvalueKey(array);
-      return arrayKey == null ? null : arrayKey + "[" + literal.getValue() + "]";
+      Optional<String> arrayKey = canonicalLvalueKey(array);
+      return arrayKey.map(k -> k + "[" + literal.getValue() + "]");
     }
     if (lvalue instanceof CFieldReference field
         && !field.isPointerDereference()
         && field.getFieldOwner() instanceof CLeftHandSide owner) {
-      String ownerKey = canonicalLvalueKey(owner);
-      return ownerKey == null ? null : ownerKey + "." + field.getFieldName();
+      Optional<String> ownerKey = canonicalLvalueKey(owner);
+      return ownerKey.map(k -> k + "." + field.getFieldName());
     }
-    return null;
+    return Optional.empty();
   }
 }

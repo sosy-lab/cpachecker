@@ -163,7 +163,7 @@ public class PORState extends AbstractSingleWrapperState
    */
   PORState addNewThread(
       boolean pAddToLivePids,
-      @Nullable String pHandleQualifiedName,
+      Optional<String> pHandleQualifiedName,
       LocationState pInitialLoc,
       CallstackState pInitialStack) {
     final int newPid = threads.size();
@@ -177,12 +177,13 @@ public class PORState extends AbstractSingleWrapperState
             ? ImmutableSet.<Integer>builder().addAll(livePids).add(newPid).build()
             : livePids;
     final ImmutableMap<String, Integer> newHandleHints =
-        pHandleQualifiedName == null
-            ? handleHints
-            : ImmutableMap.<String, Integer>builder()
-                .putAll(handleHints)
-                .put(pHandleQualifiedName, newPid)
-                .buildKeepingLast();
+        pHandleQualifiedName
+            .map(pS ->
+                ImmutableMap.<String, Integer>builder()
+                    .putAll(handleHints)
+                    .put(pS, newPid)
+                    .buildKeepingLast())
+            .orElse(handleHints);
     return new PORState(
         getWrappedState(), cfa, logger, newThreads, newLivePids, newHandleHints, random);
   }
@@ -195,9 +196,9 @@ public class PORState extends AbstractSingleWrapperState
    * ones the wrapped analysis finds feasible (see PORTransferRelation's join dispatch) — not by
    * this method.
    */
-  PORState joinThread(int pPid) {
+  Optional<PORState> joinThread(int pPid) {
     if (!canJoin(pPid)) {
-      return null;
+      return Optional.empty();
     }
 
     final ImmutableMap<Integer, PORThreadState> newThreads =
@@ -206,8 +207,8 @@ public class PORState extends AbstractSingleWrapperState
             .collect(ImmutableMap.toImmutableMap(Entry::getKey, Entry::getValue));
     final ImmutableSet<Integer> newLivePids =
         livePids.stream().filter(pid -> pid != pPid).collect(ImmutableSet.toImmutableSet());
-    return new PORState(
-        getWrappedState(), cfa, logger, newThreads, newLivePids, handleHints, random);
+    return Optional.of(new PORState(
+        getWrappedState(), cfa, logger, newThreads, newLivePids, handleHints, random));
   }
 
   private boolean canJoin(int pPid) {
@@ -223,9 +224,9 @@ public class PORState extends AbstractSingleWrapperState
   private boolean isJoinCurrentlyEnabled(AFunctionCall pJoinCall) {
     var params = pJoinCall.getFunctionCallExpression().getParameterExpressions();
     if (!params.isEmpty() && params.getFirst() instanceof CExpression handle) {
-      String handleKey = ThreadFunctions.canonicalHandleLvalueKey(handle);
-      if (handleKey != null) {
-        Integer hint = handleHints.get(handleKey);
+      Optional<String> handleKey = ThreadFunctions.canonicalHandleLvalueKey(handle);
+      if (handleKey.isPresent()) {
+        Integer hint = handleHints.get(handleKey.get());
         if (hint != null && livePids.contains(hint)) {
           return canJoin(hint);
         }
