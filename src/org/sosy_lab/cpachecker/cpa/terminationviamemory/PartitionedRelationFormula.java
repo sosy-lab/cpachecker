@@ -97,9 +97,9 @@ class PartitionedRelationFormula {
           && index.isPresent()
           && (!foundIndex.containsKey(pureVar)
               || (instantiatePrevVars
-                  && getSSAIndex(foundIndex.get(pureVar)).getAsInt() > index.getAsInt())
+                  && getSSAIndex(foundIndex.get(pureVar)).orElseThrow() > index.orElseThrow())
               || (!instantiatePrevVars
-                  && getSSAIndex(foundIndex.get(pureVar)).getAsInt() < index.getAsInt()))) {
+                  && getSSAIndex(foundIndex.get(pureVar)).orElseThrow() < index.orElseThrow()))) {
         foundIndex.put(pureVar, entry.getKey());
       }
     }
