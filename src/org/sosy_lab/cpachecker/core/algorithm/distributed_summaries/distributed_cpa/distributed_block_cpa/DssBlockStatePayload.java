@@ -35,10 +35,12 @@ public record DssBlockStatePayload(String blockId, String witness, ImmutableList
   }
 
   public static DssBlockStatePayload fromContentMap(Map<String, String> pContent) {
-    List<String> idAndWitnessAndMaybeHistory =
-        Splitter.on(" W:")
-            .limit(2)
-            .splitToList(pContent.get(DssComponentKey.BLOCK_STATE + "." + DssMessageKeys.STATE));
+    return fromContentString(
+        pContent.get(DssComponentKey.BLOCK_STATE + "." + DssMessageKeys.STATE));
+  }
+
+  public static DssBlockStatePayload fromContentString(String pContent) {
+    List<String> idAndWitnessAndMaybeHistory = Splitter.on(" W:").limit(2).splitToList(pContent);
     Preconditions.checkArgument(idAndWitnessAndMaybeHistory.size() == 2);
     String blockId = idAndWitnessAndMaybeHistory.getFirst();
     List<String> witnessAndMaybeHistory =

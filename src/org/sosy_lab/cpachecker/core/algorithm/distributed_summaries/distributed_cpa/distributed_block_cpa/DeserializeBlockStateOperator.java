@@ -51,6 +51,10 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
         parsed.witness);
   }
 
+  public static ParseResult parseWitness(String pContent) {
+    return ParseResult.fromPayload(DssBlockStatePayload.fromContentString(pContent));
+  }
+
   public record ParseResult(
       String serializedBlockState, SegmentedPaths witness, BlockGraphPath history) {
     public static ParseResult fromPayload(DssBlockStatePayload pPayload) {

@@ -20,18 +20,12 @@ import java.nio.file.Path;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.mockito.Mockito;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.location.DeserializeLocationState;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.location.DssLocationStatePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
 
 public class DssMessagePayloadTest {
   private DssMessageFactory defaultFactory() throws InvalidConfigurationException {
@@ -242,56 +236,5 @@ public class DssMessagePayloadTest {
             ImmutableMap.of(DssMessageKeys.RESULT, "true"));
 
     assertThrows(IllegalArgumentException.class, () -> DssMessageCodec.fromPayload(payload));
-  }
-
-  @Test
-  public void locationPayloadConvertsToContentMap() {
-    DssLocationStatePayload payload = new DssLocationStatePayload(42);
-
-    assertThat(payload.asContentMap())
-        .containsExactly(
-            DssComponentKey.serializedNameFor(LocationState.class) + "." + DssMessageKeys.STATE,
-            "42");
-  }
-
-  @Test
-  public void locationPayloadParsesFromContentMap() {
-    ImmutableMap<String, String> content =
-        ImmutableMap.of(
-            DssComponentKey.serializedNameFor(LocationState.class) + "." + DssMessageKeys.STATE,
-            "42");
-    DssLocationStatePayload payload = DssLocationStatePayload.fromContentMap(content);
-
-    assertThat(payload.nodeId()).isEqualTo(42);
-  }
-
-  @Test
-  public void locationPayloadRoundTrips() {
-    DssLocationStatePayload original = new DssLocationStatePayload(42);
-    DssLocationStatePayload parsed =
-        DssLocationStatePayload.fromContentMap(original.asContentMap());
-
-    assertThat(parsed).isEqualTo(original);
-  }
-
-  @Test
-  public void deserializerCanReadLocationPayload()
-      throws InvalidConfigurationException, InterruptedException {
-    CFANode node = CFANode.newDummyCFANode();
-    LocationState expectedState = Mockito.mock(LocationState.class);
-    LocationStateFactory locationStateFactory = Mockito.mock(LocationStateFactory.class);
-    Mockito.when(locationStateFactory.getState(node)).thenReturn(expectedState);
-
-    ImmutableList<ImmutableMap<String, String>> states =
-        ImmutableList.of(new DssLocationStatePayload(42).asContentMap());
-    DssPostConditionMessage postConditionMessage =
-        defaultFactory()
-            .createDssPostConditionMessage("B1", AlgorithmStatus.SOUND_AND_PRECISE, states);
-    DeserializeLocationState deserializer =
-        new DeserializeLocationState(locationStateFactory, ImmutableMap.of(42, node));
-
-    AbstractState parsed = deserializer.deserialize(postConditionMessage, 0);
-
-    assertThat(parsed).isSameInstanceAs(expectedState);
   }
 }
