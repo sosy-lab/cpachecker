@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -31,13 +32,13 @@ class CallstackOptions {
           "__builtin_va_arg",
           "atexit");
 
+  @IntegerOption(min = -1)
   @Option(
       secure = true,
       name = "depth",
       description =
           "depth of recursion bound, i.e., how often a function may appear on the call stack"
-              + " in addition to its first occurrence. Negative values mean that recursion is"
-              + " not bounded at all.")
+              + " in addition to its first occurrence. Use -1 for no bound.")
   private int recursionBoundDepth = 0;
 
   @Option(
