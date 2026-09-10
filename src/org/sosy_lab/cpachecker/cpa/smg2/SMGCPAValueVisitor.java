@@ -3271,8 +3271,9 @@ public class SMGCPAValueVisitor
       if (numRight.bigIntegerValue().signum() < 0) {
         return handleUndefinedBitwiseShift(
             expression, "Second argument in left shift operation is negative.");
-      } else if (BigInteger.valueOf(machineModel.getSizeofInBits(calculationType))
-              .compareTo(numRight.bigIntegerValue())
+      } else if (numRight
+              .bigIntegerValue()
+              .compareTo(BigInteger.valueOf(machineModel.getSizeofInBits(calculationType)))
           >= 0) {
         return handleUndefinedBitwiseShift(
             expression,
@@ -3382,18 +3383,19 @@ public class SMGCPAValueVisitor
       // Is this handling correct for integer promotion?
       if (numRight.bigIntegerValue().signum() < 0) {
         return handleUndefinedBitwiseShift(
-            expression, "Second argument in left shift operation is negative.");
-      } else if (BigInteger.valueOf(machineModel.getSizeofInBits(calculationType))
-              .compareTo(numRight.bigIntegerValue())
+            expression, "Second argument in right shift operation is negative.");
+      } else if (numRight
+              .bigIntegerValue()
+              .compareTo(BigInteger.valueOf(machineModel.getSizeofInBits(calculationType)))
           >= 0) {
         return handleUndefinedBitwiseShift(
             expression,
-            "Second argument in left shift operation is equal or exceeding the width of the first"
+            "Second argument in right shift operation is equal or exceeding the width of the first"
                 + " arguments type.");
       }
     }
 
-    // Simplify (0 << x) = 0 ?
+    // Simplify (0 >> x) = 0 ?
     if (leftValue instanceof NumericValue numLeft
         && !calculationType.getType().isFloatingPointType()) {
       if (numLeft.bigIntegerValue().equals(BigInteger.ZERO)) {

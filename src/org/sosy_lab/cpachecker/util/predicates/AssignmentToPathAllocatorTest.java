@@ -17,7 +17,6 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -25,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
@@ -37,7 +37,7 @@ public class AssignmentToPathAllocatorTest {
   public void setUp() throws InvalidConfigurationException {
     allocator =
         new AssignmentToPathAllocator(
-            Configuration.defaultConfiguration(),
+            TestUtils.configurationForTest().build(),
             ShutdownNotifier.createDummy(),
             LogManager.createTestLogManager(),
             MachineModel.LINUX32);

@@ -19,20 +19,16 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssTestUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.inlining.InliningDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
-import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /** Decomposing the same CFA twice must assign exactly the same block ids. */
 @RunWith(Parameterized.class)
@@ -105,18 +101,7 @@ public class DecompositionDeterminismTest {
 
   private static DssBlockDecomposition createDecomposition(CFA cfa, boolean pInline)
       throws InvalidConfigurationException, IOException {
-    BlockOperator blockOperator = new BlockOperator();
-    Configuration config =
-        TestUtils.configurationForTest().loadFromFile(TestUtil.DSS_CONFIGURATION_FILE).build();
-    config.inject(blockOperator);
-    try {
-      blockOperator.setCFA(cfa);
-    } catch (CPAException e) {
-      // if blockOperator.setCFA throws a CPAexception, this is because of an invalid configuration
-      throw new InvalidConfigurationException("Initialization of block operator failed", e);
-    }
-
-    Predicate<CFANode> isBlockEnd = n -> blockOperator.isBlockEnd(n, -1);
+    Predicate<CFANode> isBlockEnd = DssTestUtils.createBlockOperator(cfa);
 
     DssBlockDecomposition child = new LinearBlockNodeDecomposition(isBlockEnd);
     if (pInline) {
