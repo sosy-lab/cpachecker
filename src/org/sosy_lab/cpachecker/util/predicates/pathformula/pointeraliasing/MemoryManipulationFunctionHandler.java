@@ -172,10 +172,11 @@ class MemoryManipulationFunctionHandler {
         functionName);
 
     ImmutableList<CExpression> params = pNondetMemoryCall.getParameterExpressions();
-    verify(
-        params.size() == 2,
-        "Expected 2 parameters for __VERIFIER_nondet_memory, got %s",
-        params.size());
+    if (params.size() != 2) {
+      throw new UnrecognizedCodeException(
+          "Expected 2 parameters for __VERIFIER_nondet_memory, got " + params.size(),
+          pNondetMemoryCall);
+    }
 
     CExpression objectPointer = params.get(0);
     CExpression regionSize = params.get(1);
