@@ -1257,7 +1257,7 @@ public class FormulaManagerView {
         myFreeVariableNodeTransformer(unwrap(pFormula), new HashMap<>(), pRenameFunction));
   }
 
-  public <F extends Formula> boolean hasUninstantiatedFunction(final F pFormula) {
+  public <F extends Formula> boolean hasUninterpretedFunction(final F pFormula) {
     AtomicBoolean hasUF = new AtomicBoolean(false);
     this.visitRecursively(
         pFormula,

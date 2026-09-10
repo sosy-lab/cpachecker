@@ -367,7 +367,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   }
 
   private boolean isSound(Formula pFormula) {
-    return !checkUFsInIntegerEncoding || !fmgr.hasUninstantiatedFunction(pFormula);
+    return !checkUFsInIntegerEncoding || !fmgr.hasUninterpretedFunction(pFormula);
   }
 
   private BooleanFormula restrictFormulaVariablesWithIntRange(
