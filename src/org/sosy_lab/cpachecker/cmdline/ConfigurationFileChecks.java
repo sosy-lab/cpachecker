@@ -419,6 +419,11 @@ public class ConfigurationFileChecks {
         || isOptionEnabled(config, "analysis.algorithm.nonterminationWitnessCheck")
         || basePath.toString().contains("validation-termination")) {
       assertThat(Strings.nullToEmpty(spec)).isEmpty();
+    } else if (basePath.toString().equals("execution--termination.properties")) {
+      // This config proves termination by executing the program instead of using a dedicated
+      // termination algorithm, so it needs to know which functions do not return, but it must
+      // not look for any property violation.
+      assertThat(spec).endsWith("specification/TerminatingFunctions.spc");
     } else if (basePath.toString().contains("overflow")) {
       if (isSvcompConfig) {
         assertThat(spec).endsWith("specification/sv-comp-overflow.spc");
