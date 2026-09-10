@@ -21,6 +21,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
@@ -54,6 +55,8 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
   private final ShutdownNotifier shutdownNotifier;
   private final LogManagerWithoutDuplicates logger;
   private final ExecutionStatistics stats;
+  private final ExecutionWitnessExporter witnessExporter;
+  private final boolean collectInvariants;
   private final int stepsPerTransfer;
   private final boolean restoreCallerValues;
 
@@ -62,12 +65,15 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
       ShutdownNotifier pShutdownNotifier,
       LogManager pLogger,
       ExecutionStatistics pStats,
+      ExecutionWitnessExporter pWitnessExporter,
       int pStepsPerTransfer,
       boolean pRestoreCallerValues) {
     super(pWrapped);
     shutdownNotifier = pShutdownNotifier;
     logger = new LogManagerWithoutDuplicates(pLogger);
     stats = pStats;
+    witnessExporter = pWitnessExporter;
+    collectInvariants = pWitnessExporter.collectsInvariants();
     stepsPerTransfer = pStepsPerTransfer;
     restoreCallerValues = pRestoreCallerValues;
   }
@@ -115,6 +121,13 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
           "ExecutionCPA needs a CPA that tracks the program location, e.g., LocationCPA");
     }
 
+    if (collectInvariants) {
+      // Remember the assignments of this execution for the invariants of a correctness witness.
+      for (CFANode location : locationState.getLocationNodes()) {
+        witnessExporter.observe(location, wrappedState);
+      }
+    }
+
     // The state whose function-scoped values were restored, computed on demand
     // because this is necessary only when returning from a recursive function call.
     AbstractState restoredState = null;
@@ -143,6 +156,10 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
 
     if (successor == null) {
       return null;
+    }
+    if (AbstractStates.isTargetState(successor)) {
+      // Remember where the specification was violated for the violation witness.
+      witnessExporter.reportViolation(successorEdge);
     }
     stats.executedSteps.inc();
     return new ExecutionState(successor, updateCallStack(pState, successorEdge, wrappedState));

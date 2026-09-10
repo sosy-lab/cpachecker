@@ -2257,6 +2257,13 @@ cpa.dca.refiner.skipAnalysis = false
 cpa.defuse.merge = "sep"
   allowed values: [sep, join]
 
+# Maximum number of different assignments to collect per location for the
+# invariants of a correctness witness. If a location has more assignments
+# than this, no invariant is exported for it, because an incomplete
+# disjunction would be unsound. Use -1 for no limit (which needs memory
+# proportional to the length of the execution).
+cpa.execution.maxAssignmentsPerLocation = 100
+
 # Restore the values of the local variables of a caller when a recursive
 # function call returns. A value analysis identifies local variables by the
 # name of their function, so all invocations of a function share the same
@@ -2274,6 +2281,12 @@ cpa.execution.restoreCallerValuesOnRecursion = true
 # the reached set (needed for a complete ARG, e.g., for exporting
 # counterexamples).
 cpa.execution.stepsPerTransfer = -1
+
+# The file to write the witness to. On the result TRUE a correctness witness
+# with the invariants of the execution is written, on the result FALSE a
+# violation witness that points to the violated location. Witnesses are
+# written in version 2.0. Leave empty to not export any witness.
+cpa.execution.witness = no default value
 
 # Which strategy to use for forced coverings (empty for none)
 cpa.forcedCovering = no default value

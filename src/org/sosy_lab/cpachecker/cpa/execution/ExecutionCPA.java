@@ -15,6 +15,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -30,6 +31,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 
 /**
  * CPA that executes a program instead of abstracting it.
@@ -89,12 +91,15 @@ public class ExecutionCPA extends AbstractSingleWrapperCPA {
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final ExecutionStatistics stats = new ExecutionStatistics();
+  private final ExecutionWitnessExporter witnessExporter;
 
   private ExecutionCPA(
       ConfigurableProgramAnalysis pCpa,
       Configuration pConfig,
       LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier)
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCfa,
+      Specification pSpecification)
       throws InvalidConfigurationException {
     super(pCpa);
     pConfig.inject(this);
@@ -105,6 +110,7 @@ public class ExecutionCPA extends AbstractSingleWrapperCPA {
     }
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
+    witnessExporter = new ExecutionWitnessExporter(pConfig, pCfa, pSpecification, pLogger);
   }
 
   @Override
@@ -120,6 +126,7 @@ public class ExecutionCPA extends AbstractSingleWrapperCPA {
         shutdownNotifier,
         logger,
         stats,
+        witnessExporter,
         stepsPerTransfer,
         restoreCallerValuesOnRecursion);
   }
@@ -155,5 +162,6 @@ public class ExecutionCPA extends AbstractSingleWrapperCPA {
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     super.collectStatistics(pStatsCollection);
     pStatsCollection.add(stats);
+    pStatsCollection.add(witnessExporter);
   }
 }
