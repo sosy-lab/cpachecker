@@ -558,7 +558,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
               throw new WrappingException(e);
             }
 
-            return model.evaluate(bfmgr.and(pathFormula.getFormula(), assumptions));
+            Boolean evaluatedModel =
+                model.evaluate(bfmgr.and(pathFormula.getFormula(), assumptions));
+            return evaluatedModel == null || evaluatedModel;
           });
     } catch (WrappingException e) {
       Throwables.throwIfInstanceOf(e.getCause(), CPATransferException.class);
