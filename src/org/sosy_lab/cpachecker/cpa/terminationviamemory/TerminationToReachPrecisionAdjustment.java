@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -231,6 +232,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                     callstackState);
           } catch (NoSuchElementException e) {
             logger.logDebugException(e);
+            logger.log(Level.WARNING, "The SMT solver did not provide any interpolant.");
             return Optional.of(result.withAction(Action.BREAK));
           }
 
