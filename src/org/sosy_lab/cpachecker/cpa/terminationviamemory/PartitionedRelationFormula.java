@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -29,17 +30,10 @@ import org.sosy_lab.java_smt.api.Formula;
  * return new instances rather than mutating the receiver.
  */
 class PartitionedRelationFormula {
-
-  // Any real SSA index used by JavaSMT/CPAchecker's formula encoding is >= 0 (unindexed
-  // variables are reported as absent from SSA and are treated as index 0 by callers), so -2
-  // is used as an "not applicable / not SSA-indexed" sentinel that can never collide with a
-  // real index and is distinguishable from the "no index found" case some parsers use (-1).
-  private static final int NO_SSA_INDEX = -2;
-
   private final FormulaManagerView fmgr;
-  private ImmutableSet<Formula> prevVariables;
-  private ImmutableSet<Formula> currVariables;
-  private BooleanFormula formula;
+  private final ImmutableSet<Formula> prevVariables;
+  private final ImmutableSet<Formula> currVariables;
+  private final BooleanFormula formula;
 
   public PartitionedRelationFormula(BooleanFormula pFormula, FormulaManagerView pFmgr) {
     formula = pFormula;
@@ -95,23 +89,23 @@ class PartitionedRelationFormula {
 
     // Search for the smallest SSA index of the variable
     for (Entry<String, Formula> entry : varNamesToFormulas.entrySet()) {
-      int index = getSSAIndex(entry.getKey());
+      OptionalInt index = getSSAIndex(entry.getKey());
       Formula pureVar = fmgr.uninstantiate(entry.getValue());
 
       if (containsTransInv == entry.getKey().contains(TransitionInvariantUtils.TRANS_INV_KEYWORD)
-          && index > 0
+          && index.isPresent()
           && (!foundIndex.containsKey(pureVar)
-              || (instantiatePrevVars && getSSAIndex(foundIndex.get(pureVar)) > index)
-              || (!instantiatePrevVars && getSSAIndex(foundIndex.get(pureVar)) < index))) {
+              || (instantiatePrevVars && getSSAIndex(foundIndex.get(pureVar)).getAsInt() > index.getAsInt())
+              || (!instantiatePrevVars && getSSAIndex(foundIndex.get(pureVar)).getAsInt() < index.getAsInt()))) {
         foundIndex.put(pureVar, entry.getKey());
       }
     }
 
     ImmutableSet.Builder<Formula> result = ImmutableSet.builder();
     for (Entry<String, Formula> entry : varNamesToFormulas.entrySet()) {
-      int index = getSSAIndex(entry.getKey());
+      OptionalInt index = getSSAIndex(entry.getKey());
       if (containsTransInv == entry.getKey().contains(TransitionInvariantUtils.TRANS_INV_KEYWORD)
-          && index > 0
+          && index.isPresent()
           && getSSAIndex(foundIndex.get(fmgr.uninstantiate(entry.getValue()))) == index
           // The variables that occur only once in the formula should be in the prevVariables only
           && (excludeIfAlreadyIn.isEmpty()
@@ -127,8 +121,8 @@ class PartitionedRelationFormula {
         .anyMatch(varName -> varName.contains(TransitionInvariantUtils.TRANS_INV_KEYWORD));
   }
 
-  private int getSSAIndex(String pFormula) {
-    return FormulaManagerView.parseName(pFormula).getSecond().orElse(NO_SSA_INDEX);
+  private OptionalInt getSSAIndex(String pFormula) {
+    return FormulaManagerView.parseName(pFormula).getSecond();
   }
 
   private ImmutableMap<Formula, Formula> getSubMap(ImmutableSet<Formula> variables, String suffix) {
