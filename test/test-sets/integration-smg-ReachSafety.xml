@@ -5,7 +5,7 @@ This file is part of CPAchecker,
 a tool for configurable software verification:
 https://cpachecker.sosy-lab.org
 
-SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
 
 SPDX-License-Identifier: Apache-2.0
 -->
@@ -31,6 +31,11 @@ SPDX-License-Identifier: Apache-2.0
   <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
     <propertyfile>../config/Assertion.spc</propertyfile>
+  </tasks>
+
+  <tasks name="AnonymousLocalAllocationReachSafety">
+    <include>../programs/smg2_tests/anonymousLocalAllocation/*_safe_*.yml</include>
+    <propertyfile>../../config/specification/ErrorLabel.spc</propertyfile>
   </tasks>
 
   <tasks>

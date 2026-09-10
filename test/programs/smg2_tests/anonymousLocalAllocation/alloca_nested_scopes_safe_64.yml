@@ -13,6 +13,8 @@ input_files: 'alloca_nested_scopes_safe.c'
 properties:
   - property_file: ../../../../config/specification/memorysafety.spc
     expected_verdict: true
+  - property_file: ../../../../config/specification/ErrorLabel.spc
+    expected_verdict: true
 
 options:
   language: C
