@@ -13,6 +13,7 @@ import static com.google.common.base.Verify.verifyNotNull;
 import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
 import com.google.common.base.Verify;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
 import java.io.PrintStream;
 import java.io.Serial;
@@ -516,7 +517,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
             // Now create the pathformula with all assumptions from the egdes
             boolean overridePathFormula = false;
-            for (CFAEdge edge : edgesBetweenElements) {
+            for (CFAEdge edge :
+                FluentIterable.from(edgesBetweenElements).filter(AssumeEdge.class)) {
               if (edge instanceof AssumeEdge pAssumeEdge) {
                 // Only consider assume edges, since we only want to evaluate whether this branching
                 // is possible in the model
