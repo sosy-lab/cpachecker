@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.mutex;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -44,7 +45,8 @@ public class MutexState implements AbstractState {
    */
   private final @Nullable Integer atomicHolder;
 
-  private @Nullable Map<CFAEdge, Integer> edgePidMap = null;
+  /** Maps CFA edges to the PIDs of the threads that execute them. */
+  private final Map<CFAEdge, Integer> edgePidMap = new HashMap<>();
 
   MutexState(
       ImmutableSet<String> pInitializedMutexes,
@@ -56,15 +58,11 @@ public class MutexState implements AbstractState {
   }
 
   public void addEdgePids(Map<CFAEdge, Integer> pEdgePidMap) {
-    if (edgePidMap == null) {
-      edgePidMap = pEdgePidMap;
-    } else {
-      edgePidMap.putAll(pEdgePidMap);
-    }
+    edgePidMap.putAll(pEdgePidMap);
   }
 
   public Integer getEdgePid(CFAEdge edge) {
-    return edgePidMap != null ? edgePidMap.get(edge) : null;
+    return edgePidMap.get(edge);
   }
 
   public ImmutableSet<String> getInitializedMutexes() {
