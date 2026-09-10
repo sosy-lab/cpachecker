@@ -8,6 +8,10 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
+import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.CURR2_KEYWORD;
+import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.CURR_KEYWORD;
+import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.PREV_KEYWORD;
+
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -58,10 +62,6 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private final CFA cfa;
   private final LogManager logger;
   private final ImmutableSet<Loop> allLoops;
-
-  private final String PREV_KEYWORD = "__TransInv@1";
-  private final String CURR_KEYWORD = "__TransInv@2";
-  private final String CURR2_KEYWORD = "__TransInv@3";
 
   @Option(
       secure = true,
@@ -437,6 +437,9 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
 
     boolean isTransitionInvariant;
     try {
+      System.out.println(firstStepInTransInv);
+      System.out.println(iterationFormula.getFormula());
+      System.out.println(secondStepInTransInv);
       isTransitionInvariant =
           solver.implies(
               bfmgr.and(firstStepInTransInv, iterationFormula.getFormula()), secondStepInTransInv);

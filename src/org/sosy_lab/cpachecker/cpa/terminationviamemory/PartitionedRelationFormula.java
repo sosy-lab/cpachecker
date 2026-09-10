@@ -86,30 +86,34 @@ class PartitionedRelationFormula {
       boolean containsTransInv,
       boolean instantiatePrevVars,
       Optional<ImmutableSet<Formula>> excludeIfAlreadyIn) {
-    Map<Formula, String> foundIndex = new HashMap<>();
+    Map<String, String> foundIndex = new HashMap<>();
 
     // Search for the smallest SSA index of the variable
     for (Entry<String, Formula> entry : varNamesToFormulas.entrySet()) {
-      OptionalInt index = getSSAIndex(entry.getKey());
-      Formula pureVar = fmgr.uninstantiate(entry.getValue());
+      OptionalInt index = getSSAOrTransInvIndex(entry.getKey());
+      String pureVar = getPureVariableName(entry.getValue());
 
       if (containsTransInv == entry.getKey().contains(TransitionInvariantUtils.TRANS_INV_KEYWORD)
           && index.isPresent()
           && (!foundIndex.containsKey(pureVar)
               || (instantiatePrevVars
-                  && getSSAIndex(foundIndex.get(pureVar)).orElseThrow() > index.orElseThrow())
+                  && getSSAOrTransInvIndex(foundIndex.get(pureVar)).orElseThrow()
+                      > index.orElseThrow())
               || (!instantiatePrevVars
-                  && getSSAIndex(foundIndex.get(pureVar)).orElseThrow() < index.orElseThrow()))) {
+                  && getSSAOrTransInvIndex(foundIndex.get(pureVar)).orElseThrow()
+                      < index.orElseThrow()))) {
         foundIndex.put(pureVar, entry.getKey());
       }
     }
 
     ImmutableSet.Builder<Formula> result = ImmutableSet.builder();
     for (Entry<String, Formula> entry : varNamesToFormulas.entrySet()) {
-      OptionalInt index = getSSAIndex(entry.getKey());
+      OptionalInt index = getSSAOrTransInvIndex(entry.getKey());
       if (containsTransInv == entry.getKey().contains(TransitionInvariantUtils.TRANS_INV_KEYWORD)
           && index.isPresent()
-          && getSSAIndex(foundIndex.get(fmgr.uninstantiate(entry.getValue()))) == index
+          && getSSAOrTransInvIndex(foundIndex.get(getPureVariableName(entry.getValue())))
+                  .orElseThrow()
+              == index.orElseThrow()
           // The variables that occur only once in the formula should be in the prevVariables only
           && (excludeIfAlreadyIn.isEmpty()
               || !excludeIfAlreadyIn.orElseThrow().contains(entry.getValue()))) {
@@ -119,25 +123,46 @@ class PartitionedRelationFormula {
     return result.build();
   }
 
+  private String getPureVariableName(Formula pFormula) {
+    if (pFormula.toString().contains(TransitionInvariantUtils.TRANS_INV_KEYWORD)) {
+      String variableName = pFormula.toString();
+      return variableName.substring(
+          0,
+          variableName.indexOf(TransitionInvariantUtils.TRANS_INV_KEYWORD)
+              + TransitionInvariantUtils.TRANS_INV_KEYWORD.length());
+    }
+    return fmgr.uninstantiate(pFormula).toString();
+  }
+
   private boolean usesTransInvKeyWord(Map<String, Formula> varNamesToFormulas) {
     return varNamesToFormulas.keySet().stream()
         .anyMatch(varName -> varName.contains(TransitionInvariantUtils.TRANS_INV_KEYWORD));
   }
 
-  private OptionalInt getSSAIndex(String pFormula) {
+  private OptionalInt getSSAOrTransInvIndex(String pFormula) {
+    if (pFormula.contains(TransitionInvariantUtils.TRANS_INV_KEYWORD)) {
+      if (pFormula.contains(TransitionInvariantUtils.PREV_KEYWORD)) {
+        return OptionalInt.of(1);
+      }
+      if (pFormula.contains(TransitionInvariantUtils.CURR_KEYWORD)) {
+        return OptionalInt.of(2);
+      }
+      return OptionalInt.of(3);
+    }
     return FormulaManagerView.parseName(pFormula).getSecond();
   }
 
   private ImmutableMap<Formula, Formula> getSubstitutionMap(
       ImmutableSet<Formula> variables, String suffix) {
-    return Maps.uniqueIndex(
-        variables,
-        variable ->
-            fmgr.makeVariable(
-                fmgr.getFormulaType(variable),
-                TransitionInvariantUtils.removeTransInvKeyWord(
-                        fmgr.uninstantiate(variable).toString())
-                    + suffix));
+    return ImmutableMap.copyOf(
+        Maps.asMap(
+            variables,
+            variable ->
+                fmgr.makeVariable(
+                    fmgr.getFormulaType(variable),
+                    TransitionInvariantUtils.removeTransInvKeyWord(
+                            fmgr.uninstantiate(variable).toString())
+                        + suffix)));
   }
 
   /**
