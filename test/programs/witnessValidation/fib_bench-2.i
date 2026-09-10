@@ -707,10 +707,10 @@ main(int argc, char **argv)
   pthread_create(&id1, ((void *)0), t1, ((void *)0));
   pthread_create(&id2, ((void *)0), t2, ((void *)0));
   __VERIFIER_atomic_begin();
-  int condI = i >= 144;
+  int condI = i >= 89;
   __VERIFIER_atomic_end();
   __VERIFIER_atomic_begin();
-  int condJ = j >= 144;
+  int condJ = j >= 89;
   __VERIFIER_atomic_end();
   if (condI || condJ) {
     ERROR: {reach_error();abort();}

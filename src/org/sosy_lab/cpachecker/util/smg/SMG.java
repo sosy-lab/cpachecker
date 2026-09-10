@@ -501,7 +501,7 @@ public class SMG {
   public int getNumberOfValueUsages(SMGValue value) {
     PersistentMap<SMGObject, Integer> sourceObjectsMap =
         valuesToRegionsTheyAreSavedIn.getOrDefault(value, PathCopyingPersistentTreeMap.of());
-    return sourceObjectsMap.values().stream().reduce(0, Integer::sum);
+    return sourceObjectsMap.values().stream().mapToInt(Integer::intValue).sum();
   }
 
   public Set<SMGObject> getAllObjectsWithValueInThem(SMGValue value) {
