@@ -22,6 +22,10 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../config/specification/ErrorLabel.spc</propertyfile>
+  </tasks>
+  <tasks>
+    <includesfile>../programs/simple/simple.set</includesfile>
     <propertyfile>../config/properties/unreach-label.prp</propertyfile>
   </tasks>
   <tasks>
@@ -30,7 +34,7 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
   <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
-    <propertyfile>../config/Assertion.spc</propertyfile>
+    <propertyfile>../config/specification/Assertion.spc</propertyfile>
   </tasks>
 
   <tasks>
