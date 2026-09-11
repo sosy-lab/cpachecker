@@ -1,0 +1,26 @@
+; This file is part of CPAchecker,
+; a tool for configurable software verification:
+; https://cpachecker.sosy-lab.org
+;
+; SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+;
+; SPDX-License-Identifier: Apache-2.0
+
+; Both location invariants are violated on the same program path, so an analysis that does not
+; stop at the first violation has to decide at the first one whether the counterexample continues.
+
+(set-logic LIA)
+
+(set-info :format-version 1.0)
+
+(define-proc
+  f1
+  ()
+  ()
+  ((a Int))
+  (! (sequence
+    (assign (a 0))
+    (! (assign (a 1)) :check-true (= a 5))
+    (! (assign (a 2)) :check-true (= a 5))) :tag proc-f1))
+
+(verify-call f1 ())

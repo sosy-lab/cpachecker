@@ -36,6 +36,11 @@ SPDX-License-Identifier: Apache-2.0
       <propertyfile>../config/Assertion.spc</propertyfile>
     </tasks>
 
+    <tasks name="C.unreach-label.math">
+      <includesfile>../programs/math/math.set</includesfile>
+      <propertyfile>../config/properties/unreach-label.prp</propertyfile>
+    </tasks>
+
     <tasks name="C.unreach-call.Arrays">
       <includesfile>../programs/benchmarks/Arrays.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
