@@ -22,10 +22,6 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
-    <propertyfile>../config/ErrorLabel.spc</propertyfile>
-  </tasks>
-  <tasks>
-    <includesfile>../programs/simple/simple.set</includesfile>
     <propertyfile>../config/properties/unreach-label.prp</propertyfile>
   </tasks>
   <tasks>
