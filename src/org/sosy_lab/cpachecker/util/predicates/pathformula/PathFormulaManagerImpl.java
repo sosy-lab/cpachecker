@@ -505,66 +505,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           root,
           stateFilter,
           (pathElement, successor) -> {
-            // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractState,
-            // it is used without PredicateCPA as well.
-            PredicateAbstractState pe =
-                AbstractStates.extractStateByType(pathElement, PredicateAbstractState.class);
-            verifyNotNull(pe, "Cannot find precise error path information without PredicateCPA.");
-
-            // Only a single assume edge tells us whether a branching is possible in the model.
-            // Any other sequence of edges is ignored, for it we rely on the assumptions of the
-            // successor state below.
-            List<CFAEdge> edgesBetweenElements = pathElement.getEdgesToChild(successor);
-            BooleanFormula branchingFormula = bfmgr.makeTrue();
-            if (edgesBetweenElements.size() == 1
-                && edgesBetweenElements.getFirst() instanceof AssumeEdge assumeEdge) {
-              final Pair<ARGState, CFAEdge> key = Pair.of(pathElement, assumeEdge);
-              PathFormula edgePathFormula = branchingFormulasOverride.get(key);
-              if (edgePathFormula == null) {
-                // No pathformula for the edge available, so create one with the correct SSA indices
-                try {
-                  edgePathFormula =
-                      makeAnd(makeEmptyPathFormulaWithContextFrom(pe.getPathFormula()), assumeEdge);
-                } catch (CPATransferException | InterruptedException e) {
-                  throw new WrappingException(e);
-                }
-              }
-              branchingFormula = edgePathFormula.getFormula();
-            } else {
-              // Conjoining several assume edges would be unsound, because assignments in between
-              // change the SSA indices, cf.
-              // https://gitlab.com/sosy-lab/software/cpachecker/-/merge_requests/615#note_3820396542
-              Verify.verify(
-                  FluentIterable.from(edgesBetweenElements).filter(AssumeEdge.class).isEmpty(),
-                  "Unexpected assume edge among the edges %s between ARG states %s and %s.",
-                  edgesBetweenElements,
-                  pathElement.getStateId(),
-                  successor.getStateId());
-            }
-
-            // Now add the assumptions from the successor state to know if it is reachable.
-            // They were conjoined to the path formula of the successor, i.e., after the edges,
-            // so they need the SSA indices of the successor and not those of this state.
-            PredicateAbstractState successorPe =
-                AbstractStates.extractStateByType(successor, PredicateAbstractState.class);
-            verifyNotNull(
-                successorPe, "Cannot find precise error path information without PredicateCPA.");
-            BooleanFormula assumptions;
             try {
-              assumptions =
-                  addAssumptions(
-                          makeEmptyPathFormulaWithContextFrom(successorPe.getPathFormula()),
-                          successor)
-                      .getFormula();
+              return isSuccessorOnPath(model, branchingFormulasOverride, pathElement, successor);
             } catch (CPATransferException | InterruptedException e) {
               throw new WrappingException(e);
             }
-
-            Boolean evaluatedModel = model.evaluate(bfmgr.and(branchingFormula, assumptions));
-            // If the evaluation of the model returns null, then this means that it could not be
-            // evaluated and therefore be `true` or `false`. So we overapproximate by stating that
-            // this edge could be on the path.
-            return evaluatedModel == null || evaluatedModel;
           });
     } catch (WrappingException e) {
       Throwables.throwIfInstanceOf(e.getCause(), CPATransferException.class);
@@ -572,6 +517,85 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       Throwables.throwIfUnchecked(e.getCause());
       throw e;
     }
+  }
+
+  /**
+   * Check whether a successor of an ARG state is on the path described by a given {@link Model},
+   * i.e., whether the model satisfies the transition to that successor.
+   *
+   * @param pBranchingFormulasOverride Formulas for assume edges as in {@link #getARGPathFromModel}.
+   */
+  private boolean isSuccessorOnPath(
+      Model pModel,
+      Map<Pair<ARGState, CFAEdge>, PathFormula> pBranchingFormulasOverride,
+      ARGState pState,
+      ARGState pSuccessor)
+      throws CPATransferException, InterruptedException {
+
+    BooleanFormula branchingFormula =
+        getBranchingFormula(pBranchingFormulasOverride, pState, pSuccessor);
+
+    // Now add the assumptions from the successor state to know if it is reachable.
+    // They were conjoined to the path formula of the successor, i.e., after the edges,
+    // so they need the SSA indices of the successor and not those of this state.
+    // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractState,
+    PredicateAbstractState successorPe =
+        AbstractStates.extractStateByType(pSuccessor, PredicateAbstractState.class);
+    verifyNotNull(successorPe, "Cannot find precise error path information without PredicateCPA.");
+    BooleanFormula assumptions =
+        addAssumptions(
+                makeEmptyPathFormulaWithContextFrom(successorPe.getPathFormula()), pSuccessor)
+            .getFormula();
+
+    Boolean evaluatedModel = pModel.evaluate(bfmgr.and(branchingFormula, assumptions));
+    // If the evaluation of the model returns null, then this means that it could not be
+    // evaluated and therefore be `true` or `false`. So we overapproximate by stating that
+    // this edge could be on the path.
+    return evaluatedModel == null || evaluatedModel;
+  }
+
+  /**
+   * Get the formula that decides whether the transition from an ARG state to one of its successors
+   * is taken. Only a single assume edge tells us whether a branching is possible in the model. Any
+   * other sequence of edges is ignored, for these cases we rely on the assumptions of the successor state.
+   *
+   * @param pBranchingFormulasOverride Formulas for assume edges as in {@link #getARGPathFromModel}.
+   */
+  private BooleanFormula getBranchingFormula(
+      Map<Pair<ARGState, CFAEdge>, PathFormula> pBranchingFormulasOverride,
+      ARGState pState,
+      ARGState pSuccessor)
+      throws CPATransferException, InterruptedException {
+
+    // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractState,
+    // it is used without PredicateCPA as well.
+    PredicateAbstractState pe =
+        AbstractStates.extractStateByType(pState, PredicateAbstractState.class);
+    verifyNotNull(pe, "Cannot find precise error path information without PredicateCPA.");
+
+    List<CFAEdge> edgesBetweenElements = pState.getEdgesToChild(pSuccessor);
+    if (edgesBetweenElements.size() == 1
+        && edgesBetweenElements.getFirst() instanceof AssumeEdge assumeEdge) {
+      final Pair<ARGState, CFAEdge> key = Pair.of(pState, assumeEdge);
+      PathFormula edgePathFormula = pBranchingFormulasOverride.get(key);
+      if (edgePathFormula == null) {
+        // No pathformula for the edge available, so create one with the correct SSA indices
+        edgePathFormula =
+            makeAnd(makeEmptyPathFormulaWithContextFrom(pe.getPathFormula()), assumeEdge);
+      }
+      return edgePathFormula.getFormula();
+    }
+
+    // Conjoining several assume edges would be unsound, because assignments in between
+    // change the SSA indices, cf.
+    // https://gitlab.com/sosy-lab/software/cpachecker/-/merge_requests/615#note_3820396542
+    Verify.verify(
+        FluentIterable.from(edgesBetweenElements).filter(AssumeEdge.class).isEmpty(),
+        "Unexpected assume edge among the edges %s between ARG states %s and %s.",
+        edgesBetweenElements,
+        pState.getStateId(),
+        pSuccessor.getStateId());
+    return bfmgr.makeTrue();
   }
 
   /**
