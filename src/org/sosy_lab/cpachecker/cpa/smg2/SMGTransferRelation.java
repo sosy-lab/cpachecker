@@ -146,8 +146,7 @@ public class SMGTransferRelation
 
   private final ConstraintsSolver solver;
 
-  // Nullable for tests
-  @Nullable private final CFA cfa;
+  private final CFA cfa;
 
   public SMGTransferRelation(
       LogManager pLogger,
@@ -174,22 +173,17 @@ public class SMGTransferRelation
     evaluator = pEvaluator;
     constraintsStrengthenOperator = pConstraintsStrengthenOperator;
     stats = pStats;
-    if (cfa != null) {
-      maybeLoopHeads = cfa.getAllLoopHeads();
-      Optional<LoopStructure> loopStructure = cfa.getLoopStructure();
-      ImmutableSet.Builder<CFAEdge> incomingAndOutgoing = ImmutableSet.builder();
-      if (loopStructure.isPresent()) {
-        ImmutableCollection<Loop> allLoops = loopStructure.orElseThrow().getAllLoops();
-        for (Loop loop : allLoops) {
-          incomingAndOutgoing.addAll(loop.getOutgoingEdges());
-          incomingAndOutgoing.addAll(loop.getIncomingEdges());
-        }
+    maybeLoopHeads = cfa.getAllLoopHeads();
+    Optional<LoopStructure> loopStructure = cfa.getLoopStructure();
+    ImmutableSet.Builder<CFAEdge> incomingAndOutgoing = ImmutableSet.builder();
+    if (loopStructure.isPresent()) {
+      ImmutableCollection<Loop> allLoops = loopStructure.orElseThrow().getAllLoops();
+      for (Loop loop : allLoops) {
+        incomingAndOutgoing.addAll(loop.getOutgoingEdges());
+        incomingAndOutgoing.addAll(loop.getIncomingEdges());
       }
-      incomingAndOutgoingLoopEdges = incomingAndOutgoing.build();
-    } else {
-      maybeLoopHeads = Optional.empty();
-      incomingAndOutgoingLoopEdges = ImmutableSet.of();
     }
+    incomingAndOutgoingLoopEdges = incomingAndOutgoing.build();
   }
 
   /* For tests only. */
