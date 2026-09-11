@@ -22,7 +22,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
-    <propertyfile>../config/specification/ErrorLabel.spc</propertyfile>
+    <propertyfile>../config/ErrorLabel.spc</propertyfile>
   </tasks>
   <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
@@ -34,7 +34,7 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
   <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
-    <propertyfile>../config/specification/Assertion.spc</propertyfile>
+    <propertyfile>../config/Assertion.spc</propertyfile>
   </tasks>
 
   <tasks>
