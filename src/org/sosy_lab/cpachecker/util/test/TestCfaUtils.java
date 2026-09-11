@@ -8,11 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.test;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.File;
 import java.io.IOException;
@@ -156,42 +153,23 @@ public class TestCfaUtils {
 
   /**
    * Convert the given C expression to a {@link PathFormula}. The expression is used as an
-   * assumption in a new program that declares the variables of the main function of the given
-   * {@code cfa}.
+   * assumption in a new program whose main function starts with the given declarations.
    */
-  public static PathFormula toFormula(String expression, CFA cfa, PathFormulaManager pfmgr)
+  @SafeVarargs
+  public static PathFormula toFormula(
+      String declarations,
+      String expression,
+      PathFormulaManager pfmgr,
+      Map.Entry<String, String>... options)
       throws Exception {
-    String mainFunction = cfa.getMainFunction().getFunctionName();
-    ImmutableSet<CVariableDeclaration> declarations =
-        CFAUtils.allEdges(cfa)
-            .filter(edge -> edge.getPredecessor().getFunctionName().equals(mainFunction))
-            .filter(CDeclarationEdge.class)
-            .transform(CDeclarationEdge::getDeclaration)
-            .filter(CVariableDeclaration.class)
-            .toSet();
-
-    String program =
-        ABORT_DECLARATION
-            + declarationCode(declarations, true)
-            + getProgram(
-                declarationCode(declarations, false)
-                    + "\nif (!("
-                    + expression
-                    + ")) {\n  abort();\n}");
-    CFA expressionCfa =
+    @SuppressWarnings("varargs")
+    CFA cfa =
         makeCfaFromString(
-            program, Map.entry("analysis.machineModel", cfa.getMachineModel().name()));
+            ABORT_DECLARATION
+                + getProgram(declarations + "\nif (!(" + expression + ")) {\n  abort();\n}"),
+            options);
 
-    return toPathFormula(expressionCfa, SSAMap.emptySSAMap(), pfmgr, true);
-  }
-
-  /** Returns the C code of the global or the local declarations among the given ones. */
-  private static String declarationCode(
-      ImmutableSet<CVariableDeclaration> declarations, boolean global) {
-    return FluentIterable.from(declarations)
-        .filter(declaration -> declaration.isGlobal() == global)
-        .transform(CVariableDeclaration::toASTString)
-        .join(Joiner.on('\n'));
+    return toPathFormula(cfa, SSAMap.emptySSAMap(), pfmgr, true);
   }
 
   private static String getProgram(String functionBody) {

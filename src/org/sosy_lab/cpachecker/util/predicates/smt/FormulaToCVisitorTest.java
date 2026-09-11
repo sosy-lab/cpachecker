@@ -22,10 +22,10 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
@@ -64,7 +64,6 @@ public class FormulaToCVisitorTest extends SolverViewBasedTest0 {
   @Parameter(1)
   public MachineModel machineModel;
 
-  private CFA cfa;
   private PathFormulaManager pfmgr;
 
   @Override
@@ -73,10 +72,7 @@ public class FormulaToCVisitorTest extends SolverViewBasedTest0 {
   }
 
   @Before
-  public void createCfaAndPathFormulaManager() throws Exception {
-    cfa =
-        TestCfaUtils.makeCfaFromFunctionBody(
-            DECLARATIONS, Map.entry("analysis.machineModel", machineModel.name()));
+  public void createPathFormulaManager() throws Exception {
     pfmgr =
         new PathFormulaManagerImpl(
             mgrv,
@@ -100,7 +96,13 @@ public class FormulaToCVisitorTest extends SolverViewBasedTest0 {
 
   /** Returns the formula of the given C expression, with the variables not instantiated. */
   private BooleanFormula toFormula(String pExpression) throws Exception {
-    return mgrv.uninstantiate(TestCfaUtils.toFormula(pExpression, cfa, pfmgr).getFormula());
+    PathFormula formula =
+        TestCfaUtils.toFormula(
+            DECLARATIONS,
+            pExpression,
+            pfmgr,
+            Map.entry("analysis.machineModel", machineModel.name()));
+    return mgrv.uninstantiate(formula.getFormula());
   }
 
   /** Returns the C expression that {@link FormulaToCVisitor} creates for the given formula. */
