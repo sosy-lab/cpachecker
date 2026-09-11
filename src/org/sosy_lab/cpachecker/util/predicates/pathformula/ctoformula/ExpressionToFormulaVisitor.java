@@ -694,9 +694,9 @@ public class ExpressionToFormulaVisitor
       } else if (BuiltinFunctions.isIntegerAbsFunction(functionName)) {
 
         if (parameters.size() == 1) {
-          // Each of abs()/labs()/llabs()/imaxabs() has a parameter type identical to its own
-          // return type
           CType paramType = conv.getReturnType(e, edge);
+          assert hasMatchingSingleParameterType(e.getDeclaration(), paramType)
+              : "abs-like function " + functionName + " with unexpected declaration";
           FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
           if (formulaType.isBitvectorType() || formulaType.isIntegerType()) {
             Formula param = processOperand(parameters.getFirst(), paramType, paramType);
@@ -1765,6 +1765,20 @@ public class ExpressionToFormulaVisitor
     }
 
     return null;
+  }
+
+  /**
+   * Returns whether the given function declaration (if any) has a single formal parameter of the
+   * given type Returns {@code true} if there is no declaration to check against.
+   */
+  private static boolean hasMatchingSingleParameterType(
+      @Nullable CFunctionDeclaration functionDeclaration, CType expectedParamType) {
+    if (functionDeclaration == null) {
+      return true;
+    }
+    List<CType> formalParameters = functionDeclaration.getType().getParameters();
+    return formalParameters.size() != 1
+        || formalParameters.getFirst().getCanonicalType().equals(expectedParamType.getCanonicalType());
   }
 
   /**
