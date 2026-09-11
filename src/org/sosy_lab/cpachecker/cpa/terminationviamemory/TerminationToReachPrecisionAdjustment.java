@@ -212,6 +212,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                     terminationState.getPathFormulasForIteration(),
                     terminationState.getPathFormulasForPrefix(),
                     terminationState.getPathFormulaFull(),
+                    terminationState.getPathSequence(),
                     builderTransitionInvariants.build(),
                     builderTransitionPredicates.build());
             return Optional.of(result.withAbstractState(newTerminationState));

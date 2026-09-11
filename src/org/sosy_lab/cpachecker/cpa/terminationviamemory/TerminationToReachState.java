@@ -78,6 +78,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
   private final ImmutableSet<PartitionedRelationFormula> transitionPredicates;
 
   private final Optional<PathFormula> pathFormulaFull;
+  private final String pathSequence;
 
   public TerminationToReachState(
       ImmutableMap<
@@ -87,6 +88,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
       ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaForIteration,
       Optional<PathFormula> pPathFormulaForPrefix,
       Optional<PathFormula> pPathFormulaFull,
+      String pPathSequence,
       ImmutableSet<PartitionedRelationFormula> pTransitionInvariants,
       ImmutableSet<PartitionedRelationFormula> pAvailableTransitionPredicates) {
 
@@ -95,6 +97,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     pathFormulaForIteration = pPathFormulaForIteration;
     pathFormulaForPrefix = pPathFormulaForPrefix;
     pathFormulaFull = pPathFormulaFull;
+    pathSequence = pPathSequence;
     isTarget = false;
     transitionInvariants = pTransitionInvariants;
     transitionPredicates = pAvailableTransitionPredicates;
@@ -128,6 +131,10 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
 
   public Optional<PathFormula> getPathFormulaFull() {
     return pathFormulaFull;
+  }
+
+  public String getPathSequence() {
+    return pathSequence;
   }
 
   public void makeTarget() {

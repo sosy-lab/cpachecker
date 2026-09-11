@@ -31,10 +31,6 @@ public class TerminationToReachAbstractDomain implements AbstractDomain {
     // An abstract state in this domain expresses paths.
     // Therefore, one abstract state can cover other only if they are on the same path.
     return newTerminationState.equals(reachedTerminationState)
-        && newTerminationState
-            .getPathFormulaFull()
-            .orElseThrow()
-            .toString()
-            .contains(reachedTerminationState.getPathFormulaFull().orElseThrow().toString());
+        && newTerminationState.getPathSequence().equals(reachedTerminationState.getPathSequence());
   }
 }
