@@ -702,6 +702,8 @@ public class ExpressionToFormulaVisitor
             Formula param = processOperand(parameters.getFirst(), paramType, paramType);
             Formula zero = mgr.makeNumber(formulaType, 0);
 
+            // `param` is already of type paramType (a signed type), even if the argument
+            // expression itself was unsigned, so signed=true is correct here.
             BooleanFormula isNegative = mgr.makeLessThan(param, zero, true);
             // Calling one of these functions on the type's minimum value is undefined behavior
             // per the C standard (the result is not representable, cf. C11 7.22.6.1p2/7.8.2.1p2),
