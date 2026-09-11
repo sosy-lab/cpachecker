@@ -55,17 +55,19 @@ class ExecutionPrecisionAdjustment implements PrecisionAdjustment {
             pFullState);
 
     if (result.isEmpty()) {
+      state.checkSoundness();
       return result;
     }
     PrecisionAdjustmentResult unwrapped = result.orElseThrow();
     if (unwrapped.abstractState() == state.getWrappedState()) {
+      state.checkTargetState();
       return Optional.of(
           new PrecisionAdjustmentResult(state, unwrapped.precision(), unwrapped.action()));
     }
+    ExecutionState adjustedState =
+        new ExecutionState(unwrapped.abstractState(), state.getCallStack(), state.getStatus());
+    adjustedState.checkTargetState();
     return Optional.of(
-        new PrecisionAdjustmentResult(
-            new ExecutionState(unwrapped.abstractState(), state.getCallStack()),
-            unwrapped.precision(),
-            unwrapped.action()));
+        new PrecisionAdjustmentResult(adjustedState, unwrapped.precision(), unwrapped.action()));
   }
 }

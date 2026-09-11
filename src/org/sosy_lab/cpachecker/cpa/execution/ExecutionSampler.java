@@ -135,15 +135,6 @@ class ExecutionSampler {
     return sampleNondeterministicValues;
   }
 
-  /** Whether an assignment was sampled, i.e. whether the analysis must not report TRUE. */
-  boolean hasSampled() {
-    return samples > 0;
-  }
-
-  int getSampleCount() {
-    return samples;
-  }
-
   /**
    * Fix the nondeterministic values of the given state such that its successor is determined.
    *

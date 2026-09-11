@@ -12,25 +12,58 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * State of the {@link ExecutionCPA}. Besides the state of the wrapped CPA it stores the stack of
  * currently active function calls, which is needed to restore the values of a caller after
- * returning from a recursive function call (cf. {@link StackFrame}).
+ * returning from a recursive function call (cf. {@link StackFrame}), and whether the execution
+ * still permits a sound proof of safety or a precise counterexample.
  */
 public class ExecutionState extends AbstractSingleWrapperState implements Graphable {
 
   /** Stack of active function calls, {@code null} if no function call is active. */
   private final @Nullable StackFrame callStack;
 
+  private final AlgorithmStatus status;
+
   ExecutionState(AbstractState pWrappedState, @Nullable StackFrame pCallStack) {
+    this(pWrappedState, pCallStack, AlgorithmStatus.SOUND_AND_PRECISE);
+  }
+
+  ExecutionState(
+      AbstractState pWrappedState, @Nullable StackFrame pCallStack, AlgorithmStatus pStatus) {
     super(checkNotNull(pWrappedState));
     callStack = pCallStack;
+    status = checkNotNull(pStatus);
+  }
+
+  public AlgorithmStatus getStatus() {
+    return status;
+  }
+
+  void checkSoundness() throws CPATransferException {
+    if (!status.isSound()) {
+      throw new CPATransferException(
+          "The execution ended without violating the specification, but it is no longer sound"
+              + " because function side effects were ignored or inputs were sampled. ExecutionCPA"
+              + " cannot prove that the program is safe.");
+    }
+  }
+
+  void checkTargetState() throws CPATransferException {
+    if (isTarget() && !status.isPrecise()) {
+      throw new CPATransferException(
+          "The execution reached a target state, but it is no longer precise because a return"
+              + " value of an unhandled function call was overapproximated. ExecutionCPA cannot"
+              + " report a property violation.");
+    }
   }
 
   @Nullable StackFrame getCallStack() {

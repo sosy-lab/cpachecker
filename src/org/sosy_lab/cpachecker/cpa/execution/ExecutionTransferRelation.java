@@ -20,11 +20,15 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
@@ -34,6 +38,8 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.execution.ExecutionState.StackFrame;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -57,6 +63,7 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
   private final ExecutionStatistics stats;
   private final ExecutionWitnessExporter witnessExporter;
   private final ExecutionSampler sampler;
+  private final @Nullable ValueTransferOptions valueTransferOptions;
   private final boolean collectInvariants;
   private final int stepsPerTransfer;
   private final boolean restoreCallerValues;
@@ -68,6 +75,7 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
       ExecutionStatistics pStats,
       ExecutionWitnessExporter pWitnessExporter,
       ExecutionSampler pSampler,
+      @Nullable ValueTransferOptions pValueTransferOptions,
       int pStepsPerTransfer,
       boolean pRestoreCallerValues) {
     super(pWrapped);
@@ -76,6 +84,7 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
     stats = pStats;
     witnessExporter = pWitnessExporter;
     sampler = pSampler;
+    valueTransferOptions = pValueTransferOptions;
     collectInvariants = pWitnessExporter.collectsInvariants();
     stepsPerTransfer = pStepsPerTransfer;
     restoreCallerValues = pRestoreCallerValues;
@@ -94,16 +103,6 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
       if (next == null) {
         // The program ends here (or the specification excludes this path),
         // so this execution has no successor at all.
-        if (sampler.hasSampled()) {
-          // We chose the values of the inputs ourselves, so this is only one of the executions of
-          // the program and the others may still violate the specification.
-          throw new CPATransferException(
-              "The execution ended without violating the specification, but "
-                  + sampler.getSampleCount()
-                  + " assignment(s) of the inputs of the program were sampled, so only one of its"
-                  + " executions was explored. ExecutionCPA cannot prove that the program is"
-                  + " safe.");
-        }
         return ImmutableList.of();
       }
       current = next;
@@ -142,6 +141,20 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
     }
 
     AbstractState state = wrappedState;
+    AlgorithmStatus status = pState.getStatus();
+    if (valueTransferOptions != null) {
+      for (CFAEdge edge : locationState.getOutgoingEdges()) {
+        if (edge instanceof CStatementEdge statementEdge
+            && !(edge instanceof CFunctionSummaryStatementEdge)
+            && statementEdge.getStatement() instanceof CFunctionCall functionCall) {
+          // Account for calls even if the specification subsequently removes their successors.
+          status =
+              status.update(
+                  ValueAnalysisTransferRelation.handleUnknownOrUnhandledFunctionCalls(
+                      statementEdge, functionCall, valueTransferOptions, logger));
+        }
+      }
+    }
     List<ExecutionStep> steps =
         computeSteps(
             state,
@@ -158,6 +171,7 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
         throw nondeterminismException(steps.get(0).edge(), steps.get(1).edge());
       }
       state = sampledState;
+      status = status.withSound(false);
       steps =
           computeSteps(
               state,
@@ -168,15 +182,19 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
     }
 
     if (steps.isEmpty()) {
+      new ExecutionState(wrappedState, pState.getCallStack(), status).checkSoundness();
       return null;
     }
     ExecutionStep step = steps.getFirst();
-    if (AbstractStates.isTargetState(step.successor())) {
+    ExecutionState successor =
+        new ExecutionState(step.successor(), updateCallStack(pState, step.edge(), state), status);
+    if (AbstractStates.isTargetState(successor)) {
+      successor.checkTargetState();
       // Remember where the specification was violated for the violation witness.
       witnessExporter.reportViolation(step.edge());
     }
     stats.executedSteps.inc();
-    return new ExecutionState(step.successor(), updateCallStack(pState, step.edge(), state));
+    return successor;
   }
 
   /**

@@ -100,6 +100,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -125,6 +126,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinIoFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
@@ -880,24 +882,25 @@ public class ValueAnalysisTransferRelation
 
         } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(func)) {
           if (!BuiltinOverflowFunctions.isFunctionWithoutSideEffect(func)) {
-            if (isUnsupportedFunction(func)) {
+            if (isUnsupportedFunction(func, options)) {
               throw new UnsupportedCodeException(func + " is unsupported for this analysis", null);
             }
           }
         } else if (expression
             instanceof CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement) {
 
+          handleUnknownOrUnhandledFunctionCalls(cfaEdge, functionCall, options, logger);
           return handleFunctionAssignment(cFunctionCallAssignmentStatement);
         } else if (BuiltinIoFunctions.matchesFscanf(func)) {
           return handleFunctionAssignment(
               BuiltinIoFunctions.createNondetCallModellingFscanf(functionCallExp, cfaEdge));
         } else {
 
-          handleUnknownOrUnhandledFunctionCalls(cfaEdge, functionCall, fn);
+          handleUnknownOrUnhandledFunctionCalls(cfaEdge, functionCall, options, logger);
         }
       } else {
 
-        handleUnknownOrUnhandledFunctionCalls(cfaEdge, functionCall, fn);
+        handleUnknownOrUnhandledFunctionCalls(cfaEdge, functionCall, options, logger);
       }
     }
 
@@ -923,9 +926,10 @@ public class ValueAnalysisTransferRelation
    * Returns true for all functions (i.e. function names) not known to the analysis and are
    * unsupported. Else false.
    */
-  private boolean isUnsupportedFunction(String nameOfFunction) {
+  private static boolean isUnsupportedFunction(
+      String nameOfFunction, ValueTransferOptions pOptions) {
     return !(IGNORED_UNSUPPORTED_FUNCTIONS.contains(nameOfFunction)
-        || options.isUserDefinedAllowedUnsupportedFunction(nameOfFunction));
+        || pOptions.isUserDefinedAllowedUnsupportedFunction(nameOfFunction));
   }
 
   private ValueAnalysisState handleFunctionAssignment(
@@ -1834,9 +1838,16 @@ public class ValueAnalysisTransferRelation
    * All function calls that are not explicitly allowed by option 'allowedUnsupportedFunctions'
    * either trigger a warning or a {@link UnsupportedCodeException} depending on option
    * 'ignoreCallsToUnknownFunctions'.
+   *
+   * @return which verdicts remain valid after this call: ignoring side effects prevents a sound
+   *     proof of safety, and overapproximating a return value prevents a precise counterexample.
+   *     Both restrictions may apply to the same call.
    */
-  private void handleUnknownOrUnhandledFunctionCalls(
-      AStatementEdge cfaEdge, CFunctionCall functionCall, CExpression fn)
+  public static AlgorithmStatus handleUnknownOrUnhandledFunctionCalls(
+      AStatementEdge cfaEdge,
+      CFunctionCall functionCall,
+      ValueTransferOptions pOptions,
+      LogManagerWithoutDuplicates pLogger)
       throws UnsupportedCodeException {
     // Unhandled cases of CFunctionCallStatement and CFunctionCallAssignmentStatement
     String calledFunctionName;
@@ -1848,11 +1859,26 @@ public class ValueAnalysisTransferRelation
     } else {
       // Ignore function calls from pointers for now, as its hard to get the correct function name
       // TODO: add them as well
-      return;
+      return AlgorithmStatus.SOUND_AND_PRECISE;
     }
 
-    if (isUnsupportedFunction(calledFunctionName)) {
-      if (options.ignoreCallsToUnknownFunctions) {
+    // These calls have their own handling in the transfer relation or expression visitor.
+    // Nondeterministic inputs are exact nondeterminism; ExecutionCPA handles their sampling.
+    if (calledFunctionName.equals("free")
+        || BuiltinIoFunctions.matchesFscanf(calledFunctionName)
+        || calledFunctionName.startsWith(
+            ExpressionValueVisitorWithRandomSampling.PATTERN_FOR_RANDOM)
+        || (functionCall instanceof CFunctionCallAssignmentStatement
+            && (BuiltinFloatFunctions.isBuiltinFloatFunction(calledFunctionName)
+                || BuiltinOverflowFunctions.isBuiltinOverflowFunction(calledFunctionName)
+                || (BuiltinFunctions.isBuiltinFunction(calledFunctionName)
+                    && BuiltinFunctions.isPopcountFunction(calledFunctionName))))) {
+      return AlgorithmStatus.SOUND_AND_PRECISE;
+    }
+
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
+    if (isUnsupportedFunction(calledFunctionName, pOptions)) {
+      if (pOptions.ignoreCallsToUnknownFunctions) {
         // CVoidType -> No return value
         boolean hasReturnValue =
             !(funcCallExpr.getExpressionType().getCanonicalType() instanceof CVoidType);
@@ -1865,6 +1891,7 @@ public class ValueAnalysisTransferRelation
                         || p.getExpressionType().getCanonicalType() instanceof CArrayType)) {
           // It is UNSOUND to ignore these (in case of side effects)!!!!
           // It might be that the variable of the side effect is already overapproximated though.
+          status = status.withSound(false);
           sideEffectsMsg =
               " Side-effects of function call "
                   + functionCall
@@ -1873,7 +1900,8 @@ public class ValueAnalysisTransferRelation
         }
 
         if (hasReturnValue) {
-          logger.logOnce(
+          status = status.withPrecise(false);
+          pLogger.logOnce(
               Level.WARNING,
               "Return value for unknown and unhandled function call "
                   + functionCall
@@ -1882,15 +1910,18 @@ public class ValueAnalysisTransferRelation
 
         } else if (!sideEffectsMsg.isEmpty()) {
           // No return value, but possible side effects
-          logger.logOnce(
+          pLogger.logOnce(
               Level.WARNING,
               "Found unhandled function call " + functionCall + "." + sideEffectsMsg);
         }
 
       } else {
         throw new UnsupportedCodeException(
-            "Unhandled call to function " + functionCall, cfaEdge, fn);
+            "Unhandled call to function " + functionCall,
+            cfaEdge,
+            funcCallExpr.getFunctionNameExpression());
       }
     }
+    return status;
   }
 }

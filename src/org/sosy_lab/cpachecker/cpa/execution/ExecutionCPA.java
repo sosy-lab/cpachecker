@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.execution;
 
 import java.util.Collection;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -32,6 +33,9 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
+import org.sosy_lab.cpachecker.util.CPAs;
 
 /**
  * CPA that executes a program instead of abstracting it.
@@ -46,7 +50,10 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
  * aborts with an {@link org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException} and the result
  * is {@code UNKNOWN}.
  *
- * <p>Because the program is executed and not abstracted, the result of the analysis is exact:
+ * <p>The state tracks whether ignored external calls have made the execution unsound or imprecise.
+ * A target state is reported only if the execution is still precise, and termination without a
+ * target state proves safety only if the execution is still sound. Otherwise the analysis aborts
+ * with an exception and reports {@code UNKNOWN}. For an exact execution:
  *
  * <ul>
  *   <li>If a target state is reached, the specification is really violated ({@code FALSE}).
@@ -93,6 +100,7 @@ public class ExecutionCPA extends AbstractSingleWrapperCPA {
   private final ExecutionStatistics stats = new ExecutionStatistics();
   private final ExecutionWitnessExporter witnessExporter;
   private final ExecutionSampler sampler;
+  private final @Nullable ValueTransferOptions valueTransferOptions;
 
   private ExecutionCPA(
       ConfigurableProgramAnalysis pCpa,
@@ -113,6 +121,8 @@ public class ExecutionCPA extends AbstractSingleWrapperCPA {
     shutdownNotifier = pShutdownNotifier;
     witnessExporter = new ExecutionWitnessExporter(pConfig, pCfa, pSpecification, pLogger);
     sampler = new ExecutionSampler(pConfig, pCfa, pLogger, stats);
+    ValueAnalysisCPA valueAnalysis = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
+    valueTransferOptions = valueAnalysis == null ? null : valueAnalysis.getTransferOptions();
   }
 
   @Override
@@ -130,6 +140,7 @@ public class ExecutionCPA extends AbstractSingleWrapperCPA {
         stats,
         witnessExporter,
         sampler,
+        valueTransferOptions,
         stepsPerTransfer,
         restoreCallerValuesOnRecursion);
   }
