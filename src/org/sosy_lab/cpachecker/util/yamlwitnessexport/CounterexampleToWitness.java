@@ -88,11 +88,10 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   }
 
   /**
-   * An edge of a counterexample together with the {@link ARGState}s directly before and after it.
-   * For edges which fill a hole of the {@link ARGPath} these are the states enclosing the whole
-   * hole.
+   * An edge of a counterexample together with the {@link ARGState}s before and after it. For edges
+   * which fill a hole of the {@link ARGPath} these are the states enclosing the whole hole.
    */
-  private record EdgeWithStates(CFAEdge edge, ARGState previousState, ARGState state) {}
+  private record EdgeWithStates(CFAEdge edge, ARGState previousState, ARGState nextState) {}
 
   /**
    * Return all CFA edges of the given path together with their surrounding states. Consecutive
@@ -658,7 +657,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
               astCFARelation,
               edgeToCurrentExpressionIndex,
               threadNameToIdBuilder,
-              edgeWithStates.state(),
+              edgeWithStates.nextState(),
               edgeWithStates.previousState(),
               pWitnessVersion);
 
@@ -718,7 +717,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         EdgeWithStates lastEdgeOnThread = edgesWithoutBlankEdges.getLast();
         OptionalInt lastThreadId =
             getThreadIdIfExists(
-                lastEdgeOnThread.state(),
+                lastEdgeOnThread.nextState(),
                 lastEdgeOnThread.edge(),
                 threadNameToIdBuilder.buildOrThrow());
         Verify.verify(lastThreadId.isPresent(), "Last thread ID should be present for data races");
@@ -728,7 +727,8 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         for (EdgeWithStates edge :
             edgesWithoutBlankEdges.reverse().subList(1, edgesWithoutBlankEdges.size())) {
           secondToLastThreadId =
-              getThreadIdIfExists(edge.state(), edge.edge(), threadNameToIdBuilder.buildOrThrow());
+              getThreadIdIfExists(
+                  edge.nextState(), edge.edge(), threadNameToIdBuilder.buildOrThrow());
 
           if (secondToLastThreadId.isPresent()
               && secondToLastThreadId.orElseThrow() != lastThreadId.orElseThrow()) {
