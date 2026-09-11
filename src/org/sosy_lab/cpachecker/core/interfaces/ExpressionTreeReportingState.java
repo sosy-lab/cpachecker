@@ -12,6 +12,7 @@ import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
@@ -49,12 +50,13 @@ public interface ExpressionTreeReportingState extends AbstractState {
    * @param pFunctionScope the function scope as a function entry node.
    * @param pLocation the formula should at least try to approximate variables referenced by
    *     entering edges
+   * @param pMachineModel the machine model of the analyzed program
    * @throws InterruptedException if the computation is interrupted
    * @throws TranslationToExpressionTreeFailedException if the translation to an expression tree
    *     failed
    */
   ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
-      FunctionEntryNode pFunctionScope, CFANode pLocation)
+      FunctionEntryNode pFunctionScope, CFANode pLocation, MachineModel pMachineModel)
       throws InterruptedException, TranslationToExpressionTreeFailedException;
 
   /**
@@ -68,6 +70,7 @@ public interface ExpressionTreeReportingState extends AbstractState {
    * @param useOldKeywordForVariables whether to use the old keyword for variables or not. For
    *     example if true the variable `x` should be denoted by `\old(x)` in the produced ACSL
    *     formula
+   * @param pMachineModel the machine model of the analyzed program
    * @return the formula approximation
    * @throws InterruptedException if the computation is interrupted
    * @throws ReportingMethodNotImplementedException if the computation is not implemented
@@ -78,7 +81,8 @@ public interface ExpressionTreeReportingState extends AbstractState {
       FunctionEntryNode pFunctionScope,
       CFANode pLocation,
       AstCfaRelation pAstCfaRelation,
-      boolean useOldKeywordForVariables)
+      boolean useOldKeywordForVariables,
+      MachineModel pMachineModel)
       throws InterruptedException,
           ReportingMethodNotImplementedException,
           TranslationToExpressionTreeFailedException;
@@ -95,6 +99,7 @@ public interface ExpressionTreeReportingState extends AbstractState {
    * @param pFunctionScope the function entry node. It references the {@link
    *     org.sosy_lab.cpachecker.cfa.model.FunctionExitNode} if it exists
    * @param pFunctionReturnVariable the variable to replace function return expressions with
+   * @param pMachineModel the machine model of the analyzed program
    * @return the formula approximation
    * @throws InterruptedException if the computation is interrupted
    * @throws ReportingMethodNotImplementedException if the computation is not implemented
@@ -102,7 +107,9 @@ public interface ExpressionTreeReportingState extends AbstractState {
    *     failed
    */
   ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
-      FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
+      FunctionEntryNode pFunctionScope,
+      AIdExpression pFunctionReturnVariable,
+      MachineModel pMachineModel)
       throws InterruptedException,
           ReportingMethodNotImplementedException,
           TranslationToExpressionTreeFailedException;

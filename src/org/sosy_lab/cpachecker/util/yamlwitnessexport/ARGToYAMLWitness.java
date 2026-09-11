@@ -141,7 +141,11 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
         argStates,
         (ExpressionTreeReportingState x) ->
             x.getFormulaApproximationInputProgramInScopeVariables(
-                entryNode, node, cfa.getAstCfaRelation(), useOldKeywordForVariables));
+                entryNode,
+                node,
+                cfa.getAstCfaRelation(),
+                useOldKeywordForVariables,
+                cfa.getMachineModel()));
   }
 
   protected ExpressionTreeResult getOverapproximationOfStatesWithOnlyReturnVariables(
@@ -174,7 +178,8 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     return getOverapproximationOfStates(
         argStates,
         (ExpressionTreeReportingState x) ->
-            x.getFormulaApproximationFunctionReturnVariableOnly(entryNode, returnVariable));
+            x.getFormulaApproximationFunctionReturnVariableOnly(
+                entryNode, returnVariable, cfa.getMachineModel()));
   }
 
   /**
