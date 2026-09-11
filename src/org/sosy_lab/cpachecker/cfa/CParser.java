@@ -163,8 +163,10 @@ public interface CParser extends Parser {
         description =
             "Whether to enable (experimental) support for the atomic type specifier"
                 + " '_Atomic(type-name)' by rewriting it to the equivalent '_Atomic' qualifier"
-                + " before parsing.")
-    private boolean rewriteAtomicTypeSpecifiers = false;
+                + " before parsing. Disadvantage: this rewriting is a purely textual replacement"
+                + " that is applied unconditionally to the whole input, including string literals"
+                + " and comments.")
+    private boolean handleAtomicTypeSpecifiers = false;
 
     protected ParserOptions() {}
 
@@ -176,8 +178,8 @@ public interface CParser extends Parser {
       return collectACSLAnnotations;
     }
 
-    public boolean shouldRewriteAtomicTypeSpecifiers() {
-      return rewriteAtomicTypeSpecifiers;
+    public boolean shouldHandleAtomicTypeSpecifiers() {
+      return handleAtomicTypeSpecifiers;
     }
   }
 

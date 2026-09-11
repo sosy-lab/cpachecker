@@ -243,7 +243,7 @@ public class CTypeToStringTest {
     // Enable the (default-disabled) rewriting so that the atomic type specifier tests below apply.
     EclipseCParserOptions options = new EclipseCParserOptions();
     Configuration.builder()
-        .setOption("parser.rewriteAtomicTypeSpecifiers", "true")
+        .setOption("parser.handleAtomicTypeSpecifiers", "true")
         .build()
         .recursiveInject(options);
     parser =

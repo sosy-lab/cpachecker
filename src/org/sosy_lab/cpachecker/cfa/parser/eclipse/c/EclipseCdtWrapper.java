@@ -66,7 +66,7 @@ public class EclipseCdtWrapper {
 
   private final ShutdownNotifier shutdownNotifier;
 
-  private final boolean rewriteAtomicTypeSpecifiers;
+  private final boolean handleAtomicTypeSpecifiers;
 
   public EclipseCdtWrapper(
       final ParserOptions pOptions,
@@ -75,7 +75,7 @@ public class EclipseCdtWrapper {
     shutdownNotifier = pShutdownNotifier;
     parserLog = new ShutdownNotifierLogAdapter(shutdownNotifier);
     scannerInfo = new StubScannerInfo(pMachineModel);
-    rewriteAtomicTypeSpecifiers = pOptions.shouldRewriteAtomicTypeSpecifiers();
+    handleAtomicTypeSpecifiers = pOptions.shouldHandleAtomicTypeSpecifiers();
 
     language =
         switch (pOptions.getDialect()) {
@@ -87,7 +87,7 @@ public class EclipseCdtWrapper {
   FileContent wrapCode(final Path pFileName, final String pCode) {
     // The rewriting of atomic type specifiers (#1667) is optional; without it the code is passed to
     // CDT unchanged, which is the behavior before that feature was added.
-    String code = rewriteAtomicTypeSpecifiers ? AtomicTypeSpecifierRewriter.rewrite(pCode) : pCode;
+    String code = handleAtomicTypeSpecifiers ? AtomicTypeSpecifierRewriter.rewrite(pCode) : pCode;
     return FileContent.create(pFileName.toString(), code.toCharArray());
   }
 
