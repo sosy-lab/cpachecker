@@ -147,4 +147,12 @@ public class PredicateAnalysisRecursionIntegrationTest {
             getConfiguration(), getProgramPath("param_address_deepest_frame_correct.c"));
     results.assertIsSafe();
   }
+
+  @Test(timeout = 3000)
+  public void deferred_allocation_correct() throws Exception {
+    IntegrationTestResult results =
+        IntegrationTestRunner.run(
+            getConfiguration(), getProgramPath("deferred_allocation_correct.c"));
+    results.assertIsSafe();
+  }
 }

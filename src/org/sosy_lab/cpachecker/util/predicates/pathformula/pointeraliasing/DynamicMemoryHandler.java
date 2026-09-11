@@ -836,16 +836,18 @@ public final class DynamicMemoryHandler {
    * The function removes local void * pointers (deferred allocations) declared in current function
    * scope from tracking after returning from the function.
    *
-   * @param function The name of the function.
+   * @param function The name of the function that is left.
+   * @param callStackDepth The call stack depth of the stack frame that is popped. This is not the
+   *     current depth of {@link #pts}, because that has already left the stack frame.
    */
-  void handleDeferredAllocationInFunctionExit(final String function) {
+  void handleDeferredAllocationInFunctionExit(final String function, final int callStackDepth) {
     for (String v :
         CFAUtils.filterVariablesOfFunction(
             from(pts.getDeferredAllocationPointers())
                 .transform(PointerBase::name)
                 .toSortedSet(Comparator.naturalOrder()),
             function)) {
-      if (!pts.removeDeferredAllocationPointer(PointerBase.forVariable(v, pts.getCallStackDepth()))
+      if (!pts.removeDeferredAllocationPointer(PointerBase.forVariable(v, callStackDepth))
           .isEmpty()) {
         conv.logger.logfOnce(
             Level.WARNING,

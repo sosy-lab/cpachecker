@@ -1257,7 +1257,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       DynamicMemoryHandler memoryHandler =
           new DynamicMemoryHandler(
               this, summaryEdge, calledFunction, ssa, pts, constraints, errorConditions, regionMgr);
-      memoryHandler.handleDeferredAllocationInFunctionExit(calledFunction);
+      // The stack frame of the called function has already been popped from the pointer target
+      // set (cf. CtoFormulaConverter.makeAnd), so its local variables belong to the next deeper
+      // call stack depth.
+      memoryHandler.handleDeferredAllocationInFunctionExit(
+          calledFunction, pts.getCallStackDepth() + 1);
     }
 
     return result;
