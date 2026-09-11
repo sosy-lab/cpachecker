@@ -277,25 +277,24 @@ public class CTypeToStringTest {
     // C23 § 6.7.3.5 (issue #1667): the atomic type specifier "_Atomic(T)" denotes the same type as
     // the "_Atomic T" qualifier (footnote 147). Its string representation is the qualifier form, so
     // this cannot be checked with the round-trip test above.
+    // The expected types here and below are written in canonical form (in which "int" is
+    // SIGNED_INT), so that they can be compared directly against the canonical parse result.
     assertThat(parseGlobalType("_Atomic(int) v;").getCanonicalType())
-        .isEqualTo(CNumericTypes.INT.withAtomic().getCanonicalType());
+        .isEqualTo(CNumericTypes.SIGNED_INT.withAtomic());
     assertThat(parseGlobalType("_Atomic (unsigned long) v;").getCanonicalType())
-        .isEqualTo(CNumericTypes.UNSIGNED_LONG_INT.withAtomic().getCanonicalType());
+        .isEqualTo(CNumericTypes.UNSIGNED_LONG_INT.withAtomic());
 
     // The parentheses are significant: "_Atomic(int) *" is a pointer to an _Atomic int, whereas
     // "_Atomic(int*)" is an _Atomic pointer to a (non-atomic) int.
     assertThat(parseGlobalType("_Atomic(int) *v;").getCanonicalType())
-        .isEqualTo(
-            new CPointerType(CTypeQualifiers.NONE, CNumericTypes.INT.withAtomic())
-                .getCanonicalType());
+        .isEqualTo(new CPointerType(CTypeQualifiers.NONE, CNumericTypes.SIGNED_INT.withAtomic()));
     assertThat(parseGlobalType("_Atomic(int*) v;").getCanonicalType())
-        .isEqualTo(new CPointerType(CTypeQualifiers.ATOMIC, CNumericTypes.INT).getCanonicalType());
+        .isEqualTo(new CPointerType(CTypeQualifiers.ATOMIC, CNumericTypes.SIGNED_INT));
     assertThat(parseGlobalType("_Atomic(int**) v;").getCanonicalType())
         .isEqualTo(
             new CPointerType(
-                    CTypeQualifiers.ATOMIC,
-                    new CPointerType(CTypeQualifiers.NONE, CNumericTypes.INT))
-                .getCanonicalType());
+                CTypeQualifiers.ATOMIC,
+                new CPointerType(CTypeQualifiers.NONE, CNumericTypes.SIGNED_INT)));
   }
 
   @Test
@@ -307,13 +306,13 @@ public class CTypeToStringTest {
     // testAtomicTypeSpecifierRejectsUnsupportedTypeNames).
     CType arrayOfAtomicInt = parseLastGlobalType("_Atomic(int) x[3];").getCanonicalType();
     assertThat(arrayOfAtomicInt).isInstanceOf(CArrayType.class);
-    assertThat(((CArrayType) arrayOfAtomicInt).getType().getCanonicalType())
-        .isEqualTo(CNumericTypes.INT.withAtomic().getCanonicalType());
+    assertThat(((CArrayType) arrayOfAtomicInt).getType())
+        .isEqualTo(CNumericTypes.SIGNED_INT.withAtomic());
 
     CType arrayOfAtomicPointers = parseLastGlobalType("_Atomic(int*) x[3];").getCanonicalType();
     assertThat(arrayOfAtomicPointers).isInstanceOf(CArrayType.class);
-    assertThat(((CArrayType) arrayOfAtomicPointers).getType().getCanonicalType())
-        .isEqualTo(new CPointerType(CTypeQualifiers.ATOMIC, CNumericTypes.INT).getCanonicalType());
+    assertThat(((CArrayType) arrayOfAtomicPointers).getType())
+        .isEqualTo(new CPointerType(CTypeQualifiers.ATOMIC, CNumericTypes.SIGNED_INT));
 
     // struct/union/enum/typedef type names are plain type names and are handled as well.
     assertThat(parseLastGlobalType("struct s { int a; }; _Atomic(struct s) v;").isAtomic())
@@ -321,7 +320,7 @@ public class CTypeToStringTest {
     assertThat(parseLastGlobalType("union u { int a; }; _Atomic(union u) v;").isAtomic()).isTrue();
     assertThat(parseLastGlobalType("enum e { A }; _Atomic(enum e) v;").isAtomic()).isTrue();
     assertThat(parseLastGlobalType("typedef int t; _Atomic(t) v;").getCanonicalType())
-        .isEqualTo(CNumericTypes.INT.withAtomic().getCanonicalType());
+        .isEqualTo(CNumericTypes.SIGNED_INT.withAtomic());
   }
 
   @Test
@@ -333,15 +332,13 @@ public class CTypeToStringTest {
         parseLastGlobalType("_Atomic(int (*)(void)) fp;").getCanonicalType();
     assertThat(atomicFunctionPointer.isAtomic()).isTrue();
     assertThat(atomicFunctionPointer).isInstanceOf(CPointerType.class);
-    assertThat(((CPointerType) atomicFunctionPointer).getType().getCanonicalType())
-        .isInstanceOf(CFunctionType.class);
+    assertThat(((CPointerType) atomicFunctionPointer).getType()).isInstanceOf(CFunctionType.class);
 
     // "_Atomic(int (*)[3]) p" is an atomic pointer to an array.
     CType atomicArrayPointer = parseLastGlobalType("_Atomic(int (*)[3]) p;").getCanonicalType();
     assertThat(atomicArrayPointer.isAtomic()).isTrue();
     assertThat(atomicArrayPointer).isInstanceOf(CPointerType.class);
-    assertThat(((CPointerType) atomicArrayPointer).getType().getCanonicalType())
-        .isInstanceOf(CArrayType.class);
+    assertThat(((CPointerType) atomicArrayPointer).getType()).isInstanceOf(CArrayType.class);
 
     // The shared type name applies to every declarator, so both are atomic function pointers.
     assertThat(parseLastGlobalType("_Atomic(int (*)(void)) fp, gp;").isAtomic()).isTrue();
