@@ -498,7 +498,8 @@ class ASTTypeConverter {
    * from a pointer operator, so this information cannot be read from the pointer directly and has
    * to be recovered separately (cf. {@link #isAtomicPointerOperator}, #1670).
    */
-  CPointerType convert(final IASTPointerOperator po, final CType type, final boolean pAtomic) {
+  private CPointerType convert(
+      final IASTPointerOperator po, final CType type, final boolean pAtomic) {
     if (po instanceof IASTPointer p) {
       return new CPointerType(
           CTypeQualifiers.create(
