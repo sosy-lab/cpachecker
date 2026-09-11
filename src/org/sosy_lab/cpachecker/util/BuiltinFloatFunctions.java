@@ -37,6 +37,11 @@ public class BuiltinFloatFunctions {
   private static final ImmutableList<String> ABSOLUTE_VAL = of("fabs");
   private static final ImmutableList<String> ABSOLUTE_VAL_LONG_DOUBLE = of("fabsl");
 
+  // C11 7.12.7.5 "The sqrt functions" (math.h);
+  private static final ImmutableList<String> SQRT_FLOAT = of("sqrtf");
+  private static final ImmutableList<String> SQRT = of("sqrt");
+  private static final ImmutableList<String> SQRT_LONG_DOUBLE = of("sqrtl");
+
   private static final ImmutableList<String> FLOOR_FLOAT = of("floorf");
   private static final ImmutableList<String> FLOOR = of("floor");
   private static final ImmutableList<String> FLOOR_LONG_DOUBLE = of("floorl");
@@ -115,6 +120,7 @@ public class BuiltinFloatFunctions {
           .addAll(INFINITY)
           .addAll(HUGE_VAL)
           .addAll(ABSOLUTE_VAL)
+          .addAll(SQRT)
           .addAll(CEIL)
           .addAll(FLOOR)
           .addAll(ROUND)
@@ -291,6 +297,12 @@ public class BuiltinFloatFunctions {
 
   public static boolean matchesAbsoluteLongDouble(String pFunctionName) {
     return ABSOLUTE_VAL_LONG_DOUBLE.contains(pFunctionName);
+  }
+
+  public static boolean matchesSqrt(String pFunctionName) {
+    return SQRT_FLOAT.contains(pFunctionName)
+        || SQRT.contains(pFunctionName)
+        || SQRT_LONG_DOUBLE.contains(pFunctionName);
   }
 
   public static boolean matchesCeil(String pFunctionName) {

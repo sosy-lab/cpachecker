@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
-import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableAndFieldRelevancyComputer.VarFieldDependencies;
 
@@ -92,7 +91,7 @@ final class CollectingRHSVisitor
       result = result.withDependency(lhs, VariableOrField.newField(pType, member.getName()));
       // Inner composite members might be CElaboratedType and have to be unboxed to be handle them
       // well
-      CType memberType = TypeUtils.getRealExpressionType(member.getType());
+      CType memberType = member.getType().getCanonicalType();
       if (memberType instanceof CCompositeType cCompositeType) {
         result = addNestedDependenciesAsNecessary(result, cCompositeType);
       }

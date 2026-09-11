@@ -102,11 +102,9 @@ public class WitnessExporterIntegrationTest {
         .performTest();
   }
 
-  @Test(timeout = 100000)
+  @Test(timeout = 30000)
   public void concurrency_false_fib_bench() throws Exception {
-    // TODO takes too long and needs replacement, cf. #926
     IntegrationTestRunner.skipUnlessExtendedTestsEnabled();
-
     new WitnessTester(
             "fib_bench-2.i", ExpectedVerdict.FALSE, WitnessGenerationConfig.BDD_CONCURRENCY)
         .performTest();

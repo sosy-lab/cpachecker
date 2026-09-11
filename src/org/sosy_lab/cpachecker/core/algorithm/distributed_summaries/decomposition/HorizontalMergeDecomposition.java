@@ -8,13 +8,14 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
 import java.util.Collection;
 import java.util.Comparator;
+import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
@@ -27,8 +28,8 @@ public class HorizontalMergeDecomposition implements DssBlockDecomposition {
   private final DssBlockDecomposition decomposer;
   private final long targetNumber;
   private final Comparator<BlockNode> sort;
+  private final int mergeLimit;
   private int id;
-  private int mergeLimit;
 
   private final boolean mergeFunctionCalls;
 
@@ -68,8 +69,9 @@ public class HorizontalMergeDecomposition implements DssBlockDecomposition {
     return ImmutableList.sortedCopyOf(sort, pSort);
   }
 
-  Collection<BlockNode> mergeHorizontally(Collection<BlockNode> pNodes) {
-    Multimap<BlockScope, BlockNode> blockScopes = ArrayListMultimap.create();
+  Collection<BlockNode> mergeHorizontally(Collection<@NonNull BlockNode> pNodes) {
+    Multimap<BlockScope, BlockNode> blockScopes =
+        MultimapBuilder.linkedHashKeys(pNodes.size()).arrayListValues(2).build();
     pNodes.forEach(
         n ->
             blockScopes.put(
@@ -99,7 +101,7 @@ public class HorizontalMergeDecomposition implements DssBlockDecomposition {
         continue;
       }
 
-      Collection<BlockNode> toMerge = blockScopes.removeAll(blockScope);
+      Collection<@NonNull BlockNode> toMerge = blockScopes.removeAll(blockScope);
       BlockNode result = mergeBlocksHorizontally(toMerge, blockScope);
 
       idTracker.merge(FluentIterable.from(toMerge).transform(n -> n.getId()), result.getId());
@@ -112,7 +114,8 @@ public class HorizontalMergeDecomposition implements DssBlockDecomposition {
     return idTracker.mapBlockNodeEdges(blockScopes.values());
   }
 
-  private BlockNode mergeBlocksHorizontally(Collection<BlockNode> pCollection, BlockScope pScope) {
+  private BlockNode mergeBlocksHorizontally(
+      Collection<@NonNull BlockNode> pCollection, BlockScope pScope) {
     Preconditions.checkArgument(
         pCollection.stream()
             .allMatch(

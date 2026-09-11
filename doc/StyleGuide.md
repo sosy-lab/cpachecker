@@ -282,6 +282,16 @@ Note that the syntax of configuration files is explained in
   (read "Effective Java" before using it).
   If you have serializable classes,
   mark all serialization-related fields and methods with `@Serial`.
+- Avoid the `var` keyword and instead spell out types explicitly.  
+  An exception can be made for cases like the following
+  where the type of `entry` is redundant (the important `key` and `value` types are specified again directly below)
+  and can clutter and decrease the readability of the `for` line a lot:
+  ```java
+  for (Map.Entry<LongType1, LongType2> entry : map) { // can use var keyword here
+    LongType1 key = entry.getKey();
+    LongType2 value = entry.getValue();
+    ...
+  ```
 
 #### `switch`
 

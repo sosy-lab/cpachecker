@@ -9,9 +9,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.inlining;
 
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.inlining.FunctionGraph.Call;
 import org.sosy_lab.cpachecker.util.graph.SccFinder;
@@ -76,7 +76,9 @@ public class FunctionSCCGraph {
 
   public Multimap<FunctionSCC, CallStack> findCallStacks() {
 
-    Multimap<FunctionSCC, CallStack> stacks = HashMultimap.create();
+    // Insertion order, because the entries determine the order in which the inlined blocks (and
+    // hence their ids) are created in InliningDecomposition
+    Multimap<FunctionSCC, CallStack> stacks = LinkedHashMultimap.create();
     stacks.put(root, CallStack.empty());
 
     for (FunctionSCC currSCC : TopologicalTraversal.traverse(root, this::getSuccessors)) {

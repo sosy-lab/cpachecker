@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /**
  * This class provides strategies for iterating through a CFA (a set of {@link CFANode}s connected
@@ -153,7 +152,7 @@ public class CFATraversal {
    * @param startingNode The starting node.
    * @param visitor The visitor to notify.
    */
-  public void traverse(final CFANode startingNode, final CFATraversal.CFAVisitor visitor) {
+  public void traverse(final CFANode startingNode, final CFAVisitor visitor) {
 
     Deque<CFANode> toProcess = new ArrayDeque<>();
 
@@ -162,7 +161,7 @@ public class CFATraversal {
     while (!toProcess.isEmpty()) {
       CFANode n = toProcess.removeLast();
 
-      CFATraversal.TraversalProcess result = visitor.visitNode(n);
+      TraversalProcess result = visitor.visitNode(n);
       if (result == TraversalProcess.ABORT) {
         return;
       }
@@ -199,7 +198,7 @@ public class CFATraversal {
    * @param startingNode The starting node.
    * @param visitor The visitor to notify.
    */
-  public void traverseOnce(final CFANode startingNode, final CFATraversal.CFAVisitor visitor) {
+  public void traverseOnce(final CFANode startingNode, final CFAVisitor visitor) {
     traverse(startingNode, new NodeCollectingCFAVisitor(visitor));
   }
 
@@ -212,7 +211,7 @@ public class CFATraversal {
    * @param startingNode The starting node.
    * @param visitor The visitor to notify.
    */
-  public void traverseEdgesOnce(final CFANode startingNode, final CFATraversal.CFAVisitor visitor) {
+  public void traverseEdgesOnce(final CFANode startingNode, final CFAVisitor visitor) {
 
     record CFANodeCFAEdgePair(CFANode successor, CFAEdge enteringEdge) {}
 
@@ -238,7 +237,7 @@ public class CFATraversal {
         continue;
       }
       discovered.add(currentNode);
-      CFATraversal.TraversalProcess result = visitor.visitNode(currentNode);
+      TraversalProcess result = visitor.visitNode(currentNode);
       if (result == TraversalProcess.ABORT) {
         return;
       }
@@ -449,59 +448,6 @@ public class CFATraversal {
      */
     public Map<String, Set<String>> getVisitedDeclarations() {
       return funToVars;
-    }
-  }
-
-  /**
-   * An implementation of {@link CFAVisitor} which keeps track of the names of all visited
-   * declarations.
-   */
-  public static final class VariableAndTypeVisitor extends ForwardingCFAVisitor {
-
-    private final Map<String, Type> variablesToTypes = new HashMap<>();
-
-    /**
-     * Creates a new instance which delegates calls to another visitor.
-     *
-     * @param pDelegate The visitor to delegate to.
-     */
-    public VariableAndTypeVisitor(CFAVisitor pDelegate) {
-      super(pDelegate);
-    }
-
-    /**
-     * Convenience constructor for cases when you only need the functionality of this visitor and a
-     * {@link NodeCollectingCFAVisitor}.
-     */
-    public VariableAndTypeVisitor() {
-      super(new NodeCollectingCFAVisitor());
-    }
-
-    @Override
-    public TraversalProcess visitEdge(CFAEdge pEdge) {
-      if (pEdge instanceof ADeclarationEdge aDeclarationEdge) {
-        if (aDeclarationEdge.getDeclaration().getQualifiedName() != null) {
-          variablesToTypes.put(
-              aDeclarationEdge.getDeclaration().getQualifiedName(),
-              aDeclarationEdge.getDeclaration().getType());
-        }
-      } else if (pEdge instanceof FunctionCallEdge functionCallEdge) {
-        for (AParameterDeclaration paramDecl :
-            functionCallEdge.getSuccessor().getFunctionParameters()) {
-          if (paramDecl.getQualifiedName() == null) {
-            continue;
-          }
-          variablesToTypes.put(paramDecl.getQualifiedName(), paramDecl.getType());
-        }
-        String functionReturnValue = pEdge.getSuccessor().getFunctionName() + "::__retval__";
-        Type returnType = pEdge.getSuccessor().getFunction().getType().getReturnType();
-        variablesToTypes.put(functionReturnValue, returnType);
-      }
-      return super.visitEdge(pEdge);
-    }
-
-    public Map<String, Type> getVariablesToTypes() {
-      return variablesToTypes;
     }
   }
 
