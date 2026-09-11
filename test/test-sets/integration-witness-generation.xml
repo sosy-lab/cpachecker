@@ -173,4 +173,14 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/verifythis/elimination_max_rec_onepoint.yml</exclude> <!-- flapping timeout/recursion -->
     <option name="--option">cpa.callstack.skipVoidRecursion=false</option>
   </tasks>
+  <!-- Recursive programs for which no state at the exit node of main is computed, cf. #1539.
+       These use our own property files, so they need their own tasks. -->
+  <tasks name="RecursiveWithoutMainExit">
+    <include>../programs/simple/recursion/*.yml</include>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="RecursiveWithoutMainExitOverflows">
+    <include>../programs/simple/recursion/*.yml</include>
+    <propertyfile>../config/properties/no-overflow.prp</propertyfile>
+  </tasks>
 </benchmark>
