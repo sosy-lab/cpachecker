@@ -302,8 +302,8 @@ final class MemorySafetyRules {
 
   /**
    * Whether the given array access is inside the bounds of its array: {@code true} if it is for
-   * every value of the subscript, {@code false} if it is for none, and {@code null} if we cannot
-   * say or if the length of the array is unknown.
+   * every value of the subscript, {@code false} if it is for none, and {@code Optional#empty} if we
+   * cannot say or if the length of the array is unknown.
    */
   private static Optional<Boolean> isInBounds(
       ProgramFacts pFacts, CArraySubscriptExpression pSubscript) {
