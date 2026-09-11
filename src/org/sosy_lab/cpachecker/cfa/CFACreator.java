@@ -90,6 +90,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFADeclarationMover;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFunctionPointerResolver;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ExpandFunctionPointerArrayAssignments;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.LoopUnroller;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.NullPointerChecks;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ThreadCreateTransformer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.TrivialLoopRemover;
@@ -344,6 +345,12 @@ public class CFACreator {
               + " computed for each edge of the CFA. Live means that their value"
               + " is read later on.")
   private boolean findLiveVariables = false;
+
+  @Option(
+      secure = true,
+      name = "cfa.unrollBoundedLoops",
+      description = "unroll loops that a can be determined to have a fixed upper bound")
+  private boolean unrollBoundedLoops = true;
 
   @Option(
       secure = true,
@@ -895,6 +902,11 @@ public class CFACreator {
       // must be done before adding global vars
       final FunctionCallUnwinder fca = new FunctionCallUnwinder(cfa, config);
       cfa = fca.unwindRecursion();
+    }
+
+    if (unrollBoundedLoops) {
+      final LoopUnroller unroller = new LoopUnroller(logger);
+      unroller.unrollBoundedLoops(cfa);
     }
 
     if (useCFACloningForMultiThreadedPrograms && isMultiThreadedProgram(cfa)) {
