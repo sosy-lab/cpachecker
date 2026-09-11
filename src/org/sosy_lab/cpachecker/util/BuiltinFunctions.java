@@ -35,6 +35,8 @@ public class BuiltinFunctions {
   private static final String STRLEN = "strlen";
   private static final String POPCOUNT = "popcount";
 
+  // abs, labs, llabs: C11 7.22.6.1 "The abs, labs and llabs functions" (stdlib.h).
+  // imaxabs: C11 7.8.2.1 "The imaxabs function" (inttypes.h).
   private static final ImmutableSet<String> INTEGER_ABS =
       ImmutableSet.of("abs", "labs", "llabs", "imaxabs");
 

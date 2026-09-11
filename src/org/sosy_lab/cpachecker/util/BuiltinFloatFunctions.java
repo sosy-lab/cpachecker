@@ -36,6 +36,7 @@ public class BuiltinFloatFunctions {
   private static final ImmutableList<String> ABSOLUTE_VAL = of("fabs");
   private static final ImmutableList<String> ABSOLUTE_VAL_LONG_DOUBLE = of("fabsl");
 
+  // C11 7.12.7.5 "The sqrt functions" (math.h);
   private static final ImmutableList<String> SQRT_FLOAT = of("sqrtf");
   private static final ImmutableList<String> SQRT = of("sqrt");
   private static final ImmutableList<String> SQRT_LONG_DOUBLE = of("sqrtl");

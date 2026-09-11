@@ -703,6 +703,10 @@ public class ExpressionToFormulaVisitor
             Formula zero = mgr.makeNumber(formulaType, 0);
 
             BooleanFormula isNegative = mgr.makeLessThan(param, zero, true);
+            // Calling one of these functions on the type's minimum value is undefined behavior
+            // per the C standard (the result is not representable, cf. C11 7.22.6.1p2/7.8.2.1p2),
+            // so the standard does not mandate any particular value here. In that case,
+            // the SMT solver would decide the behavior.
             return conv.bfmgr.ifThenElse(isNegative, mgr.makeNegate(param), param);
           }
         }
@@ -776,6 +780,9 @@ public class ExpressionToFormulaVisitor
             FloatingPointFormula param =
                 (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
 
+            // C11 7.12.7.5 "The sqrt functions"; Annex F.10.4.5 fully defers sqrt's behavior
+            // (rounding, domain error, special values) to IEC 60559 (IEEE 754), which fp.sqrt
+            // from the SMT FloatingPoint theory encodes exactly, so this is not an approximation.
             return fpfmgr.sqrt(param);
           }
         }
