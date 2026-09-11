@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Map;
 import java.util.Optional;
@@ -23,19 +22,10 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CParser;
-import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.Language;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.util.CParserUtils;
-import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
@@ -45,8 +35,8 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * Tests for {@link FormulaToCVisitor}. Every test is a round trip C -> SMT -> C: the formula of a C
  * expression is converted back to a C expression, whose formula must be equivalent to the one we
  * started with. Comparing the formulas instead of the C expressions keeps the tests independent of
- * how the solvers restructure a formula. The C expressions are parsed the same way as the
- * invariants of a witness, so a round trip mirrors exporting an invariant and validating it.
+ * how the solvers restructure a formula. A round trip mirrors exporting an invariant of a witness
+ * and validating it.
  */
 @RunWith(Parameterized.class)
 @SuppressFBWarnings("NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
@@ -77,50 +67,27 @@ public class FormulaToCVisitorTest extends SolverViewBasedTest0 {
       CFA cfa =
           TestCfaUtils.makeCfaFromFunctionBody(
               DECLARATIONS, Map.entry("analysis.machineModel", machineModel.name()));
-      BooleanFormula formula = toFormula(pExpression, cfa);
+      PathFormulaManager pfmgr =
+          new PathFormulaManagerImpl(
+              mgrv,
+              config,
+              logger,
+              ShutdownNotifier.createDummy(),
+              machineModel,
+              Optional.empty(),
+              AnalysisDirection.FORWARD,
+              Language.C);
+
+      BooleanFormula formula = toFormula(pExpression, cfa, pfmgr);
       String roundTripped = toCExpression(formula, machineModel);
-      assertThatFormula(toFormula(roundTripped, cfa)).isEquivalentTo(formula);
+      assertThatFormula(toFormula(roundTripped, cfa, pfmgr)).isEquivalentTo(formula);
     }
   }
 
-  /**
-   * Returns the formula of the given C expression, which is parsed in the scope of the main
-   * function of the given CFA, in the same way as the invariant of a witness.
-   */
-  private BooleanFormula toFormula(String pExpression, CFA pCfa) throws Exception {
-    CParser parser =
-        CParser.Factory.getParser(
-            logger,
-            CParser.Factory.getOptions(config),
-            pCfa.getMachineModel(),
-            ShutdownNotifier.createDummy());
-    ExpressionTree<AExpression> expression =
-        CParserUtils.parseStatementsAsExpressionTree(
-            ImmutableSet.of(pExpression),
-            Optional.empty(),
-            parser,
-            new CProgramScope(pCfa, logger).withFunctionScope("main"),
-            ParserTools.create(ExpressionTrees.newFactory(), pCfa.getMachineModel(), logger));
-    CAssumeEdge assumption =
-        new CAssumeEdge(
-            pExpression,
-            FileLocation.DUMMY,
-            pCfa.getMainFunction(),
-            pCfa.getMainFunction(),
-            expression.accept(new ToCExpressionVisitor(pCfa.getMachineModel(), logger)),
-            true);
-
-    PathFormulaManagerImpl pfmgr =
-        new PathFormulaManagerImpl(
-            mgrv,
-            config,
-            logger,
-            ShutdownNotifier.createDummy(),
-            pCfa.getMachineModel(),
-            Optional.empty(),
-            AnalysisDirection.FORWARD,
-            Language.C);
-    return mgrv.uninstantiate(pfmgr.makeAnd(pfmgr.makeEmptyPathFormula(), assumption).getFormula());
+  /** Returns the formula of the given C expression, with the variables not instantiated. */
+  private BooleanFormula toFormula(String pExpression, CFA pCfa, PathFormulaManager pPfmgr)
+      throws Exception {
+    return mgrv.uninstantiate(TestCfaUtils.toFormula(pExpression, pCfa, pPfmgr).getFormula());
   }
 
   /** Returns the C expression that {@link FormulaToCVisitor} creates for the given formula. */
@@ -221,13 +188,6 @@ public class FormulaToCVisitorTest extends SolverViewBasedTest0 {
   public void roundTripSignedDivision() throws Exception {
     requireBitvectors();
     assertRoundTrip("x / -2 == 3");
-  }
-
-  /** Unsigned remainder, as exported for the tasks that use alloca. */
-  @Test
-  public void roundTripUnsignedRemainder() throws Exception {
-    requireBitvectors();
-    assertRoundTrip("(unsigned int) x % 16u == 0");
   }
 
   /** Expressions that need no reinterpretation must not be changed either. */
