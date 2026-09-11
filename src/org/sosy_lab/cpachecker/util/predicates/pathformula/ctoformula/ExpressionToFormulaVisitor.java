@@ -780,9 +780,6 @@ public class ExpressionToFormulaVisitor
             FloatingPointFormula param =
                 (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
 
-            // C11 7.12.7.5 "The sqrt functions"; Annex F.10.4.5 fully defers sqrt's behavior
-            // (rounding, domain error, special values) to IEC 60559 (IEEE 754), which fp.sqrt
-            // from the SMT FloatingPoint theory encodes exactly, so this is not an approximation.
             return fpfmgr.sqrt(param);
           }
         }
