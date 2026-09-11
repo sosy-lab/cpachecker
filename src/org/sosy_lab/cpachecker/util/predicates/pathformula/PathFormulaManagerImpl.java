@@ -532,7 +532,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
               branchingFormula = edgePathFormula.getFormula();
             } else {
               // Conjoining several assume edges would be unsound, because assignments in between
-              // change the SSA indices.
+              // change the SSA indices, cf.
+              // https://gitlab.com/sosy-lab/software/cpachecker/-/merge_requests/615#note_3820396542
               Verify.verify(
                   FluentIterable.from(edgesBetweenElements).filter(AssumeEdge.class).isEmpty(),
                   "Unexpected assume edge among the edges %s between ARG states %s and %s.",
@@ -560,6 +561,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             }
 
             Boolean evaluatedModel = model.evaluate(bfmgr.and(branchingFormula, assumptions));
+            // If the evaluation of the model returns null, then this means that it could not be
+            // evaluated and therefore be `true` or `false`. So we overapproximate by stating that
+            // this edge could be on the path.
             return evaluatedModel == null || evaluatedModel;
           });
     } catch (WrappingException e) {
