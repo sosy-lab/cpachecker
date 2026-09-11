@@ -411,8 +411,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private boolean containsOnlyIrrelevantVariables(
       BooleanFormula pInvariant, CallstackState pCallstackState) {
     for (Entry<String, Formula> varNames : fmgr.extractVariables(pInvariant).entrySet()) {
-      if (varNames.getKey().startsWith(pCallstackState.getCurrentFunction())
-          || fmgr.getFormulaType(varNames.getValue()).isArrayType()) {
+      if (varNames.getKey().startsWith(pCallstackState.getCurrentFunction())) {
         return false;
       }
     }
