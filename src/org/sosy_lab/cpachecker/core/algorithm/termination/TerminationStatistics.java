@@ -159,7 +159,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       secure = true,
       name = "exportYamlCorrectnessWitness",
       description = "export correctness witness in YAML format")
-  private boolean exportYamlCorrectnessWitness = true;
+  protected boolean exportYamlCorrectnessWitness = false;
 
   @Option(
       secure = true,

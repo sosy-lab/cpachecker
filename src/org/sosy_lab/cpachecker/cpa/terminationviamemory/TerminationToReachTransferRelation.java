@@ -59,7 +59,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
             terminationState.getPathFormulasForIteration(),
             terminationState.getPathFormulasForPrefix(),
             terminationState.getPathFormulaFull(),
-            terminationState.getPathSequence(),
+            terminationState.getPathSequence() + cfaEdge.getSuccessor(),
             ImmutableSet.of(),
             terminationState.getTransitionPredicates());
     return ImmutableList.of(newState);
@@ -143,7 +143,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
               newPathFormulaForIteration.buildOrThrow(),
               newPrefixFormula,
               Optional.of(newFullFormula),
-              terminationState.getPathSequence() + location,
+              terminationState.getPathSequence(),
               ImmutableSet.of(),
               terminationState.getTransitionPredicates());
       return ImmutableList.of(newState);
