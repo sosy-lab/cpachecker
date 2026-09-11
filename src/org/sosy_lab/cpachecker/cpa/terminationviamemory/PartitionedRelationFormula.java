@@ -159,7 +159,7 @@ class PartitionedRelationFormula {
             variable ->
                 fmgr.makeVariable(
                     fmgr.getFormulaType(variable),
-                    TransitionInvariantUtils.removeTransInvKeyWord(
+                    TransitionInvariantUtils.removeKeyWordAfterTransInv(
                             fmgr.uninstantiate(variable).toString())
                         + suffix)));
   }

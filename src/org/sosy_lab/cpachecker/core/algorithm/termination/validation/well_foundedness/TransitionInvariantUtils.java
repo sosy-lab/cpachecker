@@ -60,7 +60,7 @@ public class TransitionInvariantUtils {
   public static final String CURR_KEYWORD = TRANS_INV_KEYWORD + "MID";
   public static final String CURR2_KEYWORD = TRANS_INV_KEYWORD + "CURR";
 
-  public static String removeTransInvKeyWord(String pFormula) {
+  public static String removeKeyWordAfterTransInv(String pFormula) {
     assert (pFormula.endsWith(PREV_KEYWORD)
         || pFormula.endsWith(CURR_KEYWORD)
         || pFormula.endsWith(CURR2_KEYWORD));
