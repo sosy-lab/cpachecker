@@ -13,6 +13,7 @@ import static com.google.common.truth.Truth.assertThat;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -126,7 +127,7 @@ public class ExecutionWitnessIntegrationTest {
             PROGRAM);
     result.assertIsSafe();
     assertThat(result.cpaCheckerResult().getReached().size()).isAtMost(2);
-    for (String version : List.of("2.0", "2.1")) {
+    for (String version : ImmutableList.of("2.0", "2.1")) {
       JsonNode content = witness("proof-" + version + ".yml").get("content");
       boolean foundLoop = false;
       boolean foundCall = false;

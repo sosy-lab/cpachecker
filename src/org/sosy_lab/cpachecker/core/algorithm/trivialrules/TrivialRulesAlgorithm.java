@@ -15,6 +15,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -143,12 +144,13 @@ public class TrivialRulesAlgorithm implements Algorithm, StatisticsProvider {
 
     // A rule that refutes a proposition which another rule has proven is a bug in one of them, and
     // we must not report either answer.
-    if (violation != null && !Collections.disjoint(proven.keySet(), violatedBy.decides())) {
+    if (violation != null
+        && !Collections.disjoint(proven.keySet(), Objects.requireNonNull(violatedBy).decides())) {
       logger.logf(
           Level.SEVERE,
           "Rule %s refutes a proposition that another rule has proven. This is a bug, please"
               + " report it. The answer of the trivial rules is UNKNOWN.",
-          violatedBy.name());
+          Objects.requireNonNull(violatedBy).name());
       return unknown(pReachedSet);
     }
 

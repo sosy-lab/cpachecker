@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.execution;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.ImmutableMap;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
@@ -68,7 +69,7 @@ public class ExecutionVerdictIntegrationTest {
             + "MATCH {external($?)} -> "
             + pAction
             + ";\nEND AUTOMATON\n");
-    return Map.of("specification", specification.toString());
+    return ImmutableMap.of("specification", specification.toString());
   }
 
   private void checkVerdicts(
@@ -83,7 +84,7 @@ public class ExecutionVerdictIntegrationTest {
                   + pStatements
                   + (target ? " reach_error(); " : "")
                   + " return 0; }",
-              Map.of());
+              ImmutableMap.of());
       Result expected = target ? pWithTarget : pWithoutTarget;
       result.assertIs(expected);
       if (expected == Result.UNKNOWN) {
@@ -159,7 +160,7 @@ public class ExecutionVerdictIntegrationTest {
     run(
             "extern int external(int *); int execution_verdict_test(void) { int x = 0;"
                 + " external(&x); return 0; }",
-            Map.of("cpa.value.allowedUnsupportedFunctions", "external"))
+            ImmutableMap.of("cpa.value.allowedUnsupportedFunctions", "external"))
         .assertIsSafe();
   }
 
@@ -169,7 +170,7 @@ public class ExecutionVerdictIntegrationTest {
         run(
             "extern int external(void); int execution_verdict_test(void) { int x = external();"
                 + " return 0; }",
-            Map.of("cpa.value.ignoreCallsToUnknownFunctions", "false"));
+            ImmutableMap.of("cpa.value.ignoreCallsToUnknownFunctions", "false"));
     result.assertIs(Result.UNKNOWN);
     assertThat(result.log()).contains("Unhandled call to function");
   }

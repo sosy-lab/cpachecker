@@ -60,7 +60,7 @@ public class ExecutionPrecisionAdjustmentTest {
           AlgorithmStatus.SOUND_AND_PRECISE,
           AlgorithmStatus.SOUND_AND_IMPRECISE,
           AlgorithmStatus.UNSOUND_AND_PRECISE,
-          AlgorithmStatus.UNSOUND_AND_IMPRECISE
+          AlgorithmStatus.UNSOUND_AND_IMPRECISE,
         }) {
       ExecutionState state = new ExecutionState(SingletonAbstractState.INSTANCE, stack, status);
       ExecutionState adjusted =

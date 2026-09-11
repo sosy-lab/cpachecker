@@ -10,8 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import java.io.OutputStream;
-import java.io.PrintStream;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
@@ -43,9 +41,6 @@ public class SimpleChecksIntegrationTest {
             .setOption("analysis.entryFunction", "main")
             .build();
     IntegrationTestResult result = IntegrationTestRunner.run(config, "test/programs/" + pProgram);
-    try (PrintStream statistics = new PrintStream(OutputStream.nullOutputStream())) {
-      result.cpaCheckerResult().printStatistics(statistics);
-    }
     var reached = result.cpaCheckerResult().getReached();
     for (var state : reached) {
       assertThat(reached.getReached(state)).contains(state);

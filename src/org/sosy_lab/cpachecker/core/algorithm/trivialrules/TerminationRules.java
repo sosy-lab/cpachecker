@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.trivialrules;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
