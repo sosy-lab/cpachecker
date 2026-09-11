@@ -186,7 +186,7 @@ public class FormulaToCVisitorTest extends SolverViewBasedTest0 {
   /** A shift is signedness-agnostic, so its operands keep the signedness of the comparison. */
   @Test
   public void roundTripShiftBelowComparison() throws Exception {
-    requireBitvectors();
+    requireBitvectorEncoding();
     assertRoundTrip("(x << 1) < -2147483647");
   }
 
@@ -199,7 +199,7 @@ public class FormulaToCVisitorTest extends SolverViewBasedTest0 {
   /** Signed division reads both of its operands as signed. */
   @Test
   public void roundTripSignedDivision() throws Exception {
-    requireBitvectors();
+    requireBitvectorEncoding();
     assertRoundTrip("x / -2 == 3");
   }
 
