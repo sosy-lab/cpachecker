@@ -13,6 +13,7 @@ atomic/*.yml
 bitvectors/*.yml
 block_analysis/*.yml
 cast_to_union/*.yml
+math/*.yml
 pointer_aliasing/*.yml
 arrays/*.yml
 *.yml

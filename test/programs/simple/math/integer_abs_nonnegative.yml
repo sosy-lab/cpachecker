@@ -6,4 +6,13 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-*.yml
+format_version: '1.0'
+
+input_files: 'integer_abs_nonnegative.c'
+
+properties:
+  - property_file: ../../../config/properties/unreach-label.prp
+    expected_verdict: true
+
+options:
+  data_model: ILP32
