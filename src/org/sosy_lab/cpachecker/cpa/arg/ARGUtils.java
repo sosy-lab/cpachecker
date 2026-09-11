@@ -485,7 +485,7 @@ public class ARGUtils {
    * @param stateFilter Only consider the subset of ARG states that satisfy this filter.
    * @param branchingInformation A function from an ARG state and one of its successors to a boolean
    *     value indicating whether this successor is on the path. It is only called for ARG states
-   *     with more than one successor, and null indicates missing information.
+   *     with more than one successor.
    * @return A path through the ARG unambiguously described by the branching information.
    * @throws IllegalArgumentException If the direction information doesn't match the ARG or the ARG
    *     is inconsistent.
