@@ -524,7 +524,7 @@ public class ARGUtils {
         // successors, in both cases the path cannot be determined any further.
         checkArgument(
             !possibleChildren.isEmpty(),
-            "ARG branches without direction information for any successor of state %s!",
+            "ARG branches but direction information excludes all successors of state %s!",
             currentElement.getStateId());
 
         final ARGState child = possibleChildren.getFirst();
