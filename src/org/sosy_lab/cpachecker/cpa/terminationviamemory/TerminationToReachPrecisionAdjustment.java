@@ -221,20 +221,14 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           candidateTransInv = candidateTransInv.withCurrVarsSuffixed(CURR_KEYWORD);
 
           PartitionedRelationFormula newInterpolant;
-          try {
-            newInterpolant =
-                computeNewRelationalInterpolant(
-                    isOverapproximating,
-                    candidateTransInv,
-                    iterationFormula,
-                    prefixPathFormula,
-                    latestSameStateFormula,
-                    callstackState);
-          } catch (NoSuchElementException e) {
-            logger.logDebugException(e);
-            logger.log(Level.WARNING, "The SMT solver did not provide any interpolant.");
-            return Optional.of(result.withAction(Action.BREAK));
-          }
+          newInterpolant =
+              computeNewRelationalInterpolant(
+                  isOverapproximating,
+                  candidateTransInv,
+                  iterationFormula,
+                  prefixPathFormula,
+                  latestSameStateFormula,
+                  callstackState);
 
           try {
             if (solver.implies(newInterpolant.getFormula(), candidateTransInv.getFormula())) {
@@ -345,7 +339,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       PathFormula prefixPathFormula,
       BooleanFormula latestSameStateFormula,
       CallstackState callstackState)
-      throws CPAException, InterruptedException, NoSuchElementException {
+      throws CPAException, InterruptedException {
 
     BooleanFormula firstStep = prefixPathFormula.getFormula();
     if (isOverapproximating) {
