@@ -29,14 +29,31 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model;
 
 /**
- * Checks whether a model of the base encoding describes a consistent execution: builds the event
- * graph (program order plus the read-from, write-serialization, and critical-section edges whose
- * selector is true in the model) and closes it under the derivation rules — write-serialization: (w
- * rf-> r) and (w' before r) and w' enabled implies (w' before w); from-read: (w rf-> r) and (w
- * before w') and w' enabled implies (r before w'); "before" is reachability in the edge graph, so
- * transitivity needs no own edges. A cycle is an inconsistency; its "reason" (the conjunction of
- * selector variables and guards of the edges it consists of) is returned as a conflict to be
- * excluded.
+ * Checks whether a model of the base encoding describes a consistent execution.
+ *
+ * <p>The check proceeds in two steps:
+ *
+ * <ul>
+ *   <li>Build the event graph from the edges that this model selects:
+ *       <ul>
+ *         <li>program order, which holds unconditionally between two events of the same thread;
+ *         <li>read-from, write-serialization, and critical-section edges, each of them included
+ *             only if its selector variable evaluates to true in the model.
+ *       </ul>
+ *   <li>Close the graph under the derivation rules. Here "{@code x} before {@code y}" means that
+ *       {@code y} is reachable from {@code x} in the graph, so transitivity needs no edges of its
+ *       own:
+ *       <ul>
+ *         <li>write-serialization: {@code w rf-> r} and {@code w' before r} and {@code w'} enabled
+ *             implies {@code w' before w};
+ *         <li>from-read: {@code w rf-> r} and {@code w before w'} and {@code w'} enabled implies
+ *             {@code r before w'}.
+ *       </ul>
+ * </ul>
+ *
+ * <p>A cycle in the closed graph is an inconsistency. Its <em>reason</em> — the conjunction of the
+ * selector variables and guards of the edges the cycle consists of — is returned as a conflict to
+ * be excluded from the following solver queries.
  */
 final class ConsistencyChecker {
 
