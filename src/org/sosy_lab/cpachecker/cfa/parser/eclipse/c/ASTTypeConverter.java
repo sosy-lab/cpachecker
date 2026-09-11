@@ -554,7 +554,11 @@ class ASTTypeConverter {
             true,
             new FileLocation(fileName, regionEnd, 0, 0, 0, 0, 0),
             false);
-    return candidates.pollFirst() != null;
+    if (candidates.isEmpty()) {
+      return false;
+    }
+    unhandledAtomicOccurrences.remove(candidates.first());
+    return true;
   }
 
   /** returns a pointerType, that wraps all the converted types. */
