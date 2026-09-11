@@ -13,8 +13,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -176,17 +176,17 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
    * Returns the unsigned C type with the same bit-width as the given operand, or {@code null} if
    * there is no such type.
    */
-  private @Nullable CSimpleType unsignedTypeOf(Formula pOperand) {
+  private Optional<CSimpleType> unsignedTypeOf(Formula pOperand) {
     FormulaType<?> type = fmgr.getFormulaType(pOperand);
     if (type.isBitvectorType()) {
       int size = ((FormulaType.BitvectorType) type).getSize();
       for (CSimpleType unsignedType : UNSIGNED_TYPES) {
         if (machineModel.getSizeofInBits(unsignedType) == size) {
-          return unsignedType;
+          return Optional.of(unsignedType);
         }
       }
     }
-    return null;
+    return Optional.empty();
   }
 
   @Override
@@ -240,12 +240,12 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
     // operands as unsigned numbers need an explicit cast.
     String cast = "";
     if (UNSIGNED_OPS.contains(kind)) {
-      CSimpleType unsignedType = unsignedTypeOf(pArgs.getFirst());
-      if (unsignedType == null) {
+      Optional<CSimpleType> unsignedType = unsignedTypeOf(pArgs.getFirst());
+      if (unsignedType.isEmpty()) {
         // there is no C type with the bit-width of the operands
         return false;
       }
-      cast = "( " + unsignedType + " ) ";
+      cast = "( " + unsignedType.orElseThrow() + " ) ";
     }
 
     builder.append("( ");
