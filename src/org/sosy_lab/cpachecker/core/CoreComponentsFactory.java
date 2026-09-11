@@ -172,7 +172,7 @@ public class CoreComponentsFactory {
       description =
           "use the ordering-consistency algorithm for concurrent programs, "
               + "works only with the OrderingConsistencyCPA")
-  private boolean useOC = false;
+  private boolean useOrderingConsistency = false;
 
   @Option(
       secure = true,
@@ -728,7 +728,7 @@ public class CoreComponentsFactory {
                 aggregatedReachedSets);
       }
 
-      if (useOC) {
+      if (useOrderingConsistency) {
         algorithm =
             new OrderingConsistencyAlgorithm(
                 algorithm, cpa, config, logger, shutdownNotifier, cfa, specification);
@@ -987,7 +987,7 @@ public class CoreComponentsFactory {
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }
 
-    if (useOC) {
+    if (useOrderingConsistency) {
       // The ordering-consistency analysis does its own, built-in target detection (it reads the
       // property from the specification directly, see OrderingConsistencyAlgorithm). It has no
       // CompositeCPA to hold a specification automaton, so the automata that a property file would
