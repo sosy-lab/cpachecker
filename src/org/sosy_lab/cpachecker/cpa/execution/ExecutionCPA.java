@@ -119,7 +119,7 @@ public class ExecutionCPA extends AbstractSingleWrapperCPA {
     }
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
-    witnessExporter = new ExecutionWitnessExporter(pConfig, pCfa, pSpecification, pLogger);
+    witnessExporter = new ExecutionWitnessExporter(pConfig, pCfa, pSpecification, pLogger, pCpa);
     sampler = new ExecutionSampler(pConfig, pCfa, pLogger, stats);
     ValueAnalysisCPA valueAnalysis = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
     valueTransferOptions = valueAnalysis == null ? null : valueAnalysis.getTransferOptions();

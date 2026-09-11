@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.trivialrules;
 
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Collection;
@@ -27,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -72,7 +74,8 @@ public class TrivialRulesAlgorithm implements Algorithm, StatisticsProvider {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       CFA pCfa,
-      Specification pSpecification)
+      Specification pSpecification,
+      ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     config = pConfig;
@@ -81,7 +84,7 @@ public class TrivialRulesAlgorithm implements Algorithm, StatisticsProvider {
     cfa = pCfa;
     specification = pSpecification;
     witnessExporter =
-        new TrivialRulesWitnessExporter(pConfig, pCfa, pSpecification, pLogger, stats);
+        new TrivialRulesWitnessExporter(pConfig, pCfa, pSpecification, pLogger, pCpa, stats);
   }
 
   @Override
@@ -151,10 +154,15 @@ public class TrivialRulesAlgorithm implements Algorithm, StatisticsProvider {
 
     if (violation != null) {
       logger.logf(Level.INFO, "Trivial rule %s: %s", violatedBy.name(), violation.reason());
-      pReachedSet.clear();
-      pReachedSet.add(
-          DummyTargetState.withSimpleTargetInformation(targetDescription(violatedBy, violation)),
-          SingletonPrecision.getInstance());
+      DummyTargetState target =
+          DummyTargetState.withSimpleTargetInformation(targetDescription(violatedBy, violation));
+      if (violation.violatingEdge() != null) {
+        witnessExporter.prepareViolationWitness(pReachedSet, violation.violatingEdge(), target);
+      } else {
+        pReachedSet.clear();
+        pReachedSet.add(target, SingletonPrecision.getInstance());
+        pReachedSet.clearWaitlist();
+      }
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
 
@@ -166,7 +174,7 @@ public class TrivialRulesAlgorithm implements Algorithm, StatisticsProvider {
             entry.getValue().name(),
             TrivialRules.nameOf(entry.getKey()));
       }
-      pReachedSet.clear();
+      witnessExporter.prepareCorrectnessWitness(pReachedSet, ImmutableMultimap.of());
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
 

@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
-import com.google.common.collect.FluentIterable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -28,7 +27,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ReportingMethodNotImplementedException;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
@@ -190,43 +188,24 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
       NotImplementedThrowingFunction<ExpressionTreeReportingState, ExpressionTree<Object>>
           pStateToAbstraction)
       throws InterruptedException, ReportingMethodNotImplementedException {
-    FluentIterable<ExpressionTreeReportingState> reportingStates =
-        FluentIterable.from(pArgStates)
-            .transformAndConcat(AbstractStates::asIterable)
-            .filter(ExpressionTreeReportingState.class);
-    List<List<ExpressionTreeResult>> expressionsPerClass = new ArrayList<>();
-
-    for (Class<?> stateClass : reportingStates.transform(AbstractState::getClass).toSet()) {
-      List<ExpressionTreeResult> expressionsMatchingClass = new ArrayList<>();
-      for (ExpressionTreeReportingState state : reportingStates) {
-        if (stateClass.isAssignableFrom(state.getClass())) {
-          ExpressionTreeResult expressionTreeResult;
-          try {
-            expressionTreeResult = new ExpressionTreeResult(pStateToAbstraction.apply(state), true);
-          } catch (TranslationToExpressionTreeFailedException e) {
-            logger.logDebugException(e, "Could not translate state to expression tree");
-            expressionTreeResult = new ExpressionTreeResult(ExpressionTrees.getTrue(), false);
-          }
-          expressionsMatchingClass.add(expressionTreeResult);
+    List<ExpressionTree<Object>> stateInvariants = new ArrayList<>();
+    boolean backTranslationSuccessful = true;
+    for (ARGState argState : pArgStates) {
+      List<ExpressionTree<Object>> components = new ArrayList<>();
+      for (ExpressionTreeReportingState state :
+          AbstractStates.asIterable(argState).filter(ExpressionTreeReportingState.class)) {
+        try {
+          components.add(pStateToAbstraction.apply(state));
+        } catch (TranslationToExpressionTreeFailedException e) {
+          logger.logDebugException(e, "Could not translate state to expression tree");
+          components.add(ExpressionTrees.getTrue());
+          backTranslationSuccessful = false;
         }
       }
-      expressionsPerClass.add(expressionsMatchingClass);
+      stateInvariants.add(And.of(components));
     }
-
-    ExpressionTree<Object> overapproximationOfState =
-        And.of(
-            FluentIterable.from(expressionsPerClass)
-                .transform(
-                    elementsForClass ->
-                        FluentIterable.from(elementsForClass)
-                            .transform(ExpressionTreeResult::expressionTree))
-                .transform(Or::of));
-    boolean backTranslationSuccessful =
-        expressionsPerClass.stream()
-            .allMatch(
-                elementsForClass ->
-                    elementsForClass.stream()
-                        .allMatch(ExpressionTreeResult::backTranslationSuccessful));
+    // Components of one observation hold together; different observations are alternatives.
+    ExpressionTree<Object> overapproximationOfState = Or.of(stateInvariants);
 
     // Filter out CPAchecker internal variables from the over-approximation of the states
     // This transformation is NOT correct for all possible cases, since if multiple internal

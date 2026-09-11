@@ -192,6 +192,34 @@ public class CEXExporter {
     }
   }
 
+  /** Export only a YAML violation witness, without exporting a counterexample trace. */
+  public void exportYamlWitness(CounterexampleInfo pCounterexample) {
+    if (!options.hasYamlWitnessExport() || cexToWitness == null) {
+      return;
+    }
+    if (cfa.getMetadata().getInputLanguage() != Language.C) {
+      logger.log(
+          Level.WARNING,
+          "Cannot export violation witness to YAML format for languages other than C.");
+      return;
+    }
+    CfaTransformationMetadata transformationMetadata =
+        cfa.getMetadata().getTransformationMetadata();
+    if (transformationMetadata != null
+        && transformationMetadata.transformation()
+            == ProgramTransformation.SEQUENTIALIZATION_ATTEMPTED) {
+      logger.log(
+          Level.WARNING, "Cannot export a YAML violation witness for a sequentialized program.");
+      return;
+    }
+    try {
+      cexToWitness.export(
+          pCounterexample, options.getYamlWitnessPathTemplate(), pCounterexample.getUniqueId());
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not generate YAML violation witness.");
+    }
+  }
+
   /**
    * Export an Error Trace in different formats, for example as C-file, dot-file or automaton.
    *
@@ -391,21 +419,7 @@ public class CEXExporter {
                 uniqueId,
                 (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
                 compressWitness);
-            if (cfa.getMetadata().getInputLanguage() == Language.C) {
-              if (options.getYamlWitnessPathTemplate() != null && cexToWitness != null) {
-                try {
-                  cexToWitness.export(
-                      counterexample, options.getYamlWitnessPathTemplate(), uniqueId);
-                } catch (IOException e) {
-                  logger.logUserException(
-                      Level.WARNING, e, "Could not generate YAML violation witness.");
-                }
-              }
-            } else {
-              logger.log(
-                  Level.WARNING,
-                  "Cannot export violation witness to YAML format for languages other than C.");
-            }
+            exportYamlWitness(counterexample);
 
           } catch (InterruptedException e) {
             logger.logUserException(

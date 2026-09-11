@@ -2301,12 +2301,6 @@ cpa.execution.sampleNondeterministicValues = false
 # counterexamples).
 cpa.execution.stepsPerTransfer = -1
 
-# The file to write the witness to. On the result TRUE a correctness witness
-# with the invariants of the execution is written, on the result FALSE a
-# violation witness that points to the violated location. Witnesses are
-# written in version 2.0. Leave empty to not export any witness.
-cpa.execution.witness = no default value
-
 # Which strategy to use for forced coverings (empty for none)
 cpa.forcedCovering = no default value
 
@@ -5971,12 +5965,6 @@ traceformula.reduceSelectors = false
 # Leave empty to use all rules that can decide a proposition of the
 # specification. The names of the rules are printed in the statistics.
 trivialrules.rules = {}
-
-# The file to write the witness to. On the result TRUE an invariant set
-# without invariants is written, on the result FALSE a violation witness that
-# points to the violated location. Witnesses are written in version 2.0.
-# Leave empty to not export any witness.
-trivialrules.witness = no default value
 
 # Ignore functions that are defined by C11
 undefinedFunctionsCollector.allowC11Functions = true

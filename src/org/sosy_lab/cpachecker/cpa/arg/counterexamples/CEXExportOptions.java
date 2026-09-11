@@ -284,4 +284,8 @@ public final class CEXExportOptions {
   public boolean dumpErrorPathImmediately() {
     return dumpErrorPathImmediately;
   }
+
+  public boolean hasYamlWitnessExport() {
+    return getYamlWitnessPathTemplate() != null;
+  }
 }

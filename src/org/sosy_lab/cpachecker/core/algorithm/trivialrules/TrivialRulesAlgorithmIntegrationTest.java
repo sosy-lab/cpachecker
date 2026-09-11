@@ -313,7 +313,8 @@ public class TrivialRulesAlgorithmIntegrationTest {
             .loadFromFile(pConfigFile)
             .setOption("specification", PROPERTY_DIR + pProperty)
             .setOption("analysis.entryFunction", "main")
-            .setOption("trivialrules.witness", "witness.yml")
+            .setOption("cpa.arg.yamlProofWitness", "witness.yml")
+            .setOption("counterexample.export.yaml", "witness.yml")
             .build();
     IntegrationTestResult result = IntegrationTestRunner.run(configuration, PROGRAM_DIR + pProgram);
     // The output files are written by the caller of CPAchecker, not by CPAchecker itself.

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -20,6 +21,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.ReportingMethodNotImplementedException;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -58,16 +60,22 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
       Collection<ARGState> argStates, CFANode node, String type)
       throws InterruptedException, ReportingMethodNotImplementedException {
 
-    // We now conjunct all the overapproximations of the states and export them as loop invariants
-    Optional<IterationElement> iterationStructure =
-        getASTStructure().getTightestIterationStructureForNode(node);
-    if (iterationStructure.isEmpty()) {
-      return null;
+    FileLocation fileLocation;
+    if (type.equals(InvariantRecordType.LOOP_INVARIANT.getKeyword())) {
+      Optional<IterationElement> iterationStructure =
+          getASTStructure().getTightestIterationStructureForNode(node);
+      if (iterationStructure.isEmpty()) {
+        return null;
+      }
+      fileLocation = iterationStructure.orElseThrow().getCompleteElement().location();
+    } else if (node instanceof FunctionEntryNode functionEntry) {
+      // Location invariants belong at the start of the function body, before its statements.
+      fileLocation =
+          getASTStructure()
+              .nextStartStatementLocation(functionEntry.getFileLocation().getNodeOffset());
+    } else {
+      fileLocation = node.getLeavingEdge(0).getFileLocation();
     }
-
-    FileLocation fileLocation = iterationStructure.orElseThrow().getCompleteElement().location();
-    // TODO: The original name of the variables should be used here. This requires a visitor to
-    // rename them
     ExpressionTreeResult invariantResult =
         getOverapproximationOfStatesIgnoringReturnVariables(
             argStates, node, /* useOldKeywordForVariables= */ false);
@@ -93,7 +101,9 @@ class ARGToWitnessV2 extends ARGToYAMLWitness {
     CollectedARGStates statesCollector = getRelevantStates(pRootState);
 
     Multimap<CFANode, ARGState> loopInvariants = statesCollector.loopInvariants();
-    Multimap<CFANode, ARGState> functionCallInvariants = statesCollector.functionCallInvariants();
+    Multimap<CFANode, ARGState> functionCallInvariants =
+        LinkedHashMultimap.create(statesCollector.functionCallInvariants());
+    functionCallInvariants.putAll(statesCollector.functionContractRequires());
 
     // Use the collected states to generate invariants
     ImmutableList.Builder<AbstractInvariantEntry> entries = new ImmutableList.Builder<>();

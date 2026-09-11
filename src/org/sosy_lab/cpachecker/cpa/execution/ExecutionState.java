@@ -15,7 +15,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -26,7 +25,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * returning from a recursive function call (cf. {@link StackFrame}), and whether the execution
  * still permits a sound proof of safety or a precise counterexample.
  */
-public class ExecutionState extends AbstractSingleWrapperState implements Graphable {
+public class ExecutionState extends AbstractSingleWrapperState {
 
   /** Stack of active function calls, {@code null} if no function call is active. */
   private final @Nullable StackFrame callStack;
@@ -68,16 +67,6 @@ public class ExecutionState extends AbstractSingleWrapperState implements Grapha
 
   @Nullable StackFrame getCallStack() {
     return callStack;
-  }
-
-  @Override
-  public String toDOTLabel() {
-    return getWrappedState() instanceof Graphable graphable ? graphable.toDOTLabel() : "";
-  }
-
-  @Override
-  public boolean shouldBeHighlighted() {
-    return getWrappedState() instanceof Graphable graphable && graphable.shouldBeHighlighted();
   }
 
   /**

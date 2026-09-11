@@ -64,14 +64,22 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
       Collection<ARGState> argStates, CFANode node, String type)
       throws InterruptedException, ReportingMethodNotImplementedException {
 
-    // We now conjunct all the over approximations of the states and export them as loop invariants
-    Optional<IterationElement> iterationStructure =
-        getASTStructure().getTightestIterationStructureForNode(node);
-    if (iterationStructure.isEmpty()) {
-      return null;
+    FileLocation fileLocation;
+    if (type.equals(InvariantRecordType.LOOP_INVARIANT.getKeyword())) {
+      Optional<IterationElement> iterationStructure =
+          getASTStructure().getTightestIterationStructureForNode(node);
+      if (iterationStructure.isEmpty()) {
+        return null;
+      }
+      fileLocation = iterationStructure.orElseThrow().getCompleteElement().location();
+    } else if (node instanceof FunctionEntryNode functionEntry) {
+      // Location invariants belong at the start of the function body, before its statements.
+      fileLocation =
+          getASTStructure()
+              .nextStartStatementLocation(functionEntry.getFileLocation().getNodeOffset());
+    } else {
+      fileLocation = node.getLeavingEdge(0).getFileLocation();
     }
-
-    FileLocation fileLocation = iterationStructure.orElseThrow().getCompleteElement().location();
     ExpressionTreeResult invariantResult =
         getOverapproximationOfStatesIgnoringReturnVariables(
             argStates, node, /* useOldKeywordForVariables= */ false);
@@ -189,7 +197,19 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
       }
     }
 
-    // If we are exporting to witness version 3.0 then we want to include function contracts
+    for (CFANode node : statesCollector.functionCallInvariants().keySet()) {
+      InvariantCreationResult invariant =
+          createInvariant(
+              statesCollector.functionCallInvariants().get(node),
+              node,
+              InvariantRecordType.LOCATION_INVARIANT.getKeyword());
+      if (invariant != null) {
+        entries.add(invariant.invariantEntry());
+        translationAlwaysSuccessful &= invariant.translationSuccessful();
+      }
+    }
+
+    // Witness version 2.1 also supports function contracts.
     ImmutableList<FunctionContractCreationResult> functionContractCreationResult =
         handleFunctionContract(
             statesCollector.functionContractRequires(), statesCollector.functionContractEnsures());
