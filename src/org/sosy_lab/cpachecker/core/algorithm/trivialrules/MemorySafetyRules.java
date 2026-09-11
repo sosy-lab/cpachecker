@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Optional;
 import java.util.OptionalInt;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -171,8 +170,8 @@ final class MemorySafetyRules {
           return Optional.empty();
         }
         if (node instanceof CArraySubscriptExpression subscript) {
-          Boolean inBounds = isInBounds(pFacts, subscript);
-          if (inBounds == null || !inBounds) {
+          Optional<Boolean> inBounds = isInBounds(pFacts, subscript);
+          if (!inBounds.orElse(false)) {
             return Optional.empty();
           }
           accesses++;
@@ -194,8 +193,8 @@ final class MemorySafetyRules {
     for (CFAEdge edge : pFacts.chain().edges()) {
       for (CAstNode node : ProgramFacts.astNodes(edge)) {
         if (node instanceof CArraySubscriptExpression subscript) {
-          Boolean inBounds = isInBounds(pFacts, subscript);
-          if (inBounds != null && !inBounds) {
+          Optional<Boolean> inBounds = isInBounds(pFacts, subscript);
+          if (!inBounds.orElse(false)) {
             return RuleVerdict.refuted(
                 "every execution evaluates \""
                     + subscript.toASTString()
@@ -306,28 +305,28 @@ final class MemorySafetyRules {
    * every value of the subscript, {@code false} if it is for none, and {@code null} if we cannot
    * say or if the length of the array is unknown.
    */
-  private static @Nullable Boolean isInBounds(
+  private static Optional<Boolean> isInBounds(
       ProgramFacts pFacts, CArraySubscriptExpression pSubscript) {
     CType arrayType = pSubscript.getArrayExpression().getExpressionType().getCanonicalType();
     if (!(arrayType instanceof CArrayType array)) {
-      return null;
+      return Optional.empty();
     }
     OptionalInt length = array.getLengthAsInt();
     if (length.isEmpty()) {
-      return null;
+      return Optional.empty();
     }
     IntegerRange index = pFacts.ranges().rangeOf(pSubscript.getSubscriptExpression());
     if (index == null) {
-      return null;
+      return Optional.empty();
     }
     IntegerRange bounds =
         new IntegerRange(BigInteger.ZERO, BigInteger.valueOf(length.orElseThrow() - 1L));
     if (index.isWithin(bounds)) {
-      return true;
+      return Optional.of(true);
     }
     boolean outside =
         index.high().compareTo(bounds.low()) < 0 || index.low().compareTo(bounds.high()) > 0;
-    return outside ? Boolean.FALSE : null;
+    return outside ? Optional.of(false) : Optional.empty();
   }
 
   /** Whether the given expression is the null pointer, i.e., the literal 0. */
