@@ -59,7 +59,7 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
       ShutdownNotifier pShutdownNotifier,
       CFA pCFA)
       throws InvalidConfigurationException {
-    super("sep", "sep", null);
+    super("sep", "sep", new TerminationToReachAbstractDomain(), null);
     statistics = new TerminationToReachStatistics(pConfiguration, pLogger, pCFA);
     cfa = pCFA;
     configuration = pConfiguration;
