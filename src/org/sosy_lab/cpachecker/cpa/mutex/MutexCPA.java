@@ -9,12 +9,10 @@
 package org.sosy_lab.cpachecker.cpa.mutex;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -49,7 +47,7 @@ public class MutexCPA extends AbstractCPA {
     return AutomaticCPAFactory.forType(MutexCPA.class);
   }
 
-  public MutexCPA(CFA pCFA) throws InvalidConfigurationException {
+  public MutexCPA(CFA pCFA) {
     super("sep", "sep", new MutexTransferRelation(collectMutexHandleCandidates(pCFA)));
   }
 
