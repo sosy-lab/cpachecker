@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.List;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -41,7 +42,7 @@ import org.sosy_lab.cpachecker.util.test.KnownConcurrencyIssues;
  * requires naming the entry function explicitly.
  */
 @RunWith(Parameterized.class)
-public class DataRaceAnalysisTest {
+public class DataRaceAnalysisIntegrationTest {
 
   private static final String TEST_DIR = "test/programs/por/";
   private static final String CONFIG = "config/dataRaceAnalysis.properties";
@@ -52,6 +53,11 @@ public class DataRaceAnalysisTest {
    * race-free. (Ordering consistency proves this one TRUE.)
    */
   private static final ImmutableSet<String> INCOMPLETE = ImmutableSet.of("atomic_float_ptr_safe.c");
+
+  @BeforeClass
+  public static void skipUnlessExtendedTestsEnabled() {
+    IntegrationTestRunner.skipUnlessExtendedTestsEnabled();
+  }
 
   private static Configuration getConfig() throws InvalidConfigurationException, IOException {
     return configurationForTest()

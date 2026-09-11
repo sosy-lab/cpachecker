@@ -25,8 +25,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * then run for real, CI turns red, and the failure output is the reproducer for the issue report.
  * Deleting an entry is the only edit needed; the test classes read this list and need no change.
  *
- * <p>Consumed by {@code ConcurrencyReachabilityTest}, {@code DataRaceAnalysisTest}, {@code
- * ConcurrencyOverflowTest} and {@code PORCPAOverflowTest}. The programs live in {@code
+ * <p>Consumed by {@code ConcurrencyReachabilityTest}, {@code DataRaceAnalysisIntegrationTest},
+ * {@code ConcurrencyOverflowTest} and {@code PORCPAOverflowTest}. The programs live in {@code
  * test/programs/por/}.
  */
 public final class KnownConcurrencyIssues {
