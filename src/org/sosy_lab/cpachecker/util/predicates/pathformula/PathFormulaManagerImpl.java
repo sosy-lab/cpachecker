@@ -13,6 +13,8 @@ import static com.google.common.base.Verify.verifyNotNull;
 import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
 import com.google.common.base.Verify;
+import com.google.common.collect.FluentIterable;
+import com.google.common.base.Verify;
 import com.google.common.collect.Lists;
 import java.io.PrintStream;
 import java.io.Serial;
@@ -29,11 +31,13 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -43,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -499,7 +504,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    * Extract a single path from the ARG that is feasible for the values in a given {@link Model}.
    * The model needs to correspond to something like a BMC query for (a subset of) the ARG. This
    * method is basically like calling {@link ARGUtils#getPathFromBranchingInformation(ARGState,
-   * Predicate, java.util.function.BiFunction)} and takes the branching information from the model.
+   * Predicate, java.util.function.BiPredicate)} and takes the branching information from the model.
    *
    * @param model The model to use for determining branching information.
    * @param root The root of the ARG, from which the path should start.
@@ -531,27 +536,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       return ARGUtils.getPathFromBranchingInformation(
           root,
           stateFilter,
-          (pathElement, positiveEdge) -> {
-            final Pair<ARGState, CFAEdge> key = Pair.of(pathElement, positiveEdge);
-            PathFormula pf = branchingFormulasOverride.get(key);
-
-            if (pf == null) {
-              // create formula by edge, be sure to use the correct SSA indices!
-              // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractState,
-              // it is used without PredicateCPA as well.
-              PredicateAbstractState pe =
-                  AbstractStates.extractStateByType(pathElement, PredicateAbstractState.class);
-              verifyNotNull(pe, "Cannot find precise error path information without PredicateCPA.");
-              try {
-                pf =
-                    this.makeAnd(
-                        makeEmptyPathFormulaWithContextFrom(pe.getPathFormula()), positiveEdge);
-              } catch (CPATransferException | InterruptedException e) {
-                throw new WrappingException(e);
-              }
+          (pathElement, successor) -> {
+            try {
+              return isSuccessorOnPath(model, branchingFormulasOverride, pathElement, successor);
+            } catch (CPATransferException | InterruptedException e) {
+              throw new WrappingException(e);
             }
-
-            return model.evaluate(pf.getFormula());
           });
     } catch (WrappingException e) {
       Throwables.throwIfInstanceOf(e.getCause(), CPATransferException.class);
@@ -559,6 +549,113 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       Throwables.throwIfUnchecked(e.getCause());
       throw e;
     }
+  }
+
+  /**
+   * Check whether a successor of an ARG state is on the path described by a given {@link Model},
+   * i.e., whether the model satisfies the transition to that successor.
+   *
+   * @param pBranchingFormulasOverride Formulas for assume edges as in {@link #getARGPathFromModel}.
+   */
+  private boolean isSuccessorOnPath(
+      Model pModel,
+      Map<Pair<ARGState, CFAEdge>, PathFormula> pBranchingFormulasOverride,
+      ARGState pState,
+      ARGState pSuccessor)
+      throws CPATransferException, InterruptedException {
+
+    BooleanFormula branchingFormula =
+        getBranchingFormula(pBranchingFormulasOverride, pState, pSuccessor);
+
+    // Now add the assumptions from the successor state to know if it is reachable.
+    // They were conjoined to the path formula of the successor, i.e., after the edges,
+    // so they need the SSA indices of the successor and not those of this state.
+    // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractState,
+    PredicateAbstractState successorPe =
+        AbstractStates.extractStateByType(pSuccessor, PredicateAbstractState.class);
+    verifyNotNull(successorPe, "Cannot find precise error path information without PredicateCPA.");
+    BooleanFormula assumptions =
+        addAssumptions(
+                makeEmptyPathFormulaWithContextFrom(successorPe.getPathFormula()), pSuccessor)
+            .getFormula();
+
+    Boolean evaluatedModel = pModel.evaluate(bfmgr.and(branchingFormula, assumptions));
+    // If the evaluation of the model returns null, then this means that it could not be
+    // evaluated and therefore be `true` or `false`. So we overapproximate by stating that
+    // this edge could be on the path.
+    return evaluatedModel == null || evaluatedModel;
+  }
+
+  /**
+   * Get the formula that decides whether the transition from an ARG state to one of its successors
+   * is taken. Only a single assume edge tells us whether a branching is possible in the model. Any
+   * other sequence of edges is ignored, for these cases we rely on the assumptions of the successor
+   * state.
+   *
+   * @param pBranchingFormulasOverride Formulas for assume edges as in {@link #getARGPathFromModel}.
+   */
+  private BooleanFormula getBranchingFormula(
+      Map<Pair<ARGState, CFAEdge>, PathFormula> pBranchingFormulasOverride,
+      ARGState pState,
+      ARGState pSuccessor)
+      throws CPATransferException, InterruptedException {
+
+    // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractState,
+    // it is used without PredicateCPA as well.
+    PredicateAbstractState pe =
+        AbstractStates.extractStateByType(pState, PredicateAbstractState.class);
+    verifyNotNull(pe, "Cannot find precise error path information without PredicateCPA.");
+
+    List<CFAEdge> edgesBetweenElements = pState.getEdgesToChild(pSuccessor);
+    if (edgesBetweenElements.size() == 1
+        && edgesBetweenElements.getFirst() instanceof AssumeEdge assumeEdge) {
+      final Pair<ARGState, CFAEdge> key = Pair.of(pState, assumeEdge);
+      PathFormula edgePathFormula = pBranchingFormulasOverride.get(key);
+      if (edgePathFormula == null) {
+        // No pathformula for the edge available, so create one with the correct SSA indices
+        edgePathFormula =
+            makeAnd(makeEmptyPathFormulaWithContextFrom(pe.getPathFormula()), assumeEdge);
+      }
+      return edgePathFormula.getFormula();
+    }
+
+    // Conjoining several assume edges would be unsound, because assignments in between
+    // change the SSA indices, cf.
+    // https://gitlab.com/sosy-lab/software/cpachecker/-/merge_requests/615#note_3820396542
+    Verify.verify(
+        FluentIterable.from(edgesBetweenElements).filter(AssumeEdge.class).isEmpty(),
+        "Unexpected assume edge among the edges %s between ARG states %s and %s.",
+        edgesBetweenElements,
+        pState.getStateId(),
+        pSuccessor.getStateId());
+    return bfmgr.makeTrue();
+  }
+
+  /**
+   * Add the assumptions of an ARG state in a model, because they were created by a CPA that returns
+   * several successors for the same edge (e.g., {@link
+   * org.sosy_lab.cpachecker.cpa.overflow.OverflowCPA}).
+   *
+   * @return the new path formula which includes the assumptions
+   */
+  private PathFormula addAssumptions(PathFormula pPathFormula, ARGState pState)
+      throws CPATransferException, InterruptedException {
+    // The assumptions of a state were added to its path formula after its entering edge,
+    // so the context of that path formula has the SSA indices that we need here.
+    for (AbstractStateWithAssumptions state :
+        AbstractStates.asIterable(pState).filter(AbstractStateWithAssumptions.class)) {
+      for (AExpression assumption : state.getAssumptions()) {
+        pPathFormula =
+            switch (assumption) {
+              case CExpression cAssumption -> makeAnd(pPathFormula, cAssumption);
+              case SvLibRelationalTerm svLibAssumption -> makeAnd(pPathFormula, svLibAssumption);
+              default ->
+                  throw new CPATransferException(
+                      "Unsupported assumption " + assumption.getClass().getSimpleName());
+            };
+      }
+    }
+    return pPathFormula;
   }
 
   @Override
