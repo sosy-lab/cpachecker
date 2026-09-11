@@ -407,6 +407,11 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   /**
    * It can happen that the transition invariant contains only variables outside the loop or
    * function. In that case, we have to not use the invariant as it might be potentially unsound.
+   * The reason why it is potentially unsound is that there could be a function call inside
+   * a loop that decreases or alternates some variable local for that function. The interpolant
+   * could express this property, but the actual state at the loop head in the loop does not change.
+   * Therefore, there needs to be at least one variable that is local for the function, where
+   * the loop is, such that we check that some variable actually decreases/increases.
    */
   private boolean containsOnlyIrrelevantVariables(
       BooleanFormula pInvariant, CallstackState pCallstackState) {
