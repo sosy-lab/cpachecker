@@ -453,25 +453,19 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     iterationFormula = iterationFormula.withPrevVarsSuffixed(CURR_KEYWORD);
     iterationFormula = iterationFormula.withCurrVarsSuffixed(CURR2_KEYWORD);
 
-    boolean isTransitionInvariant;
     try {
-      isTransitionInvariant =
-          solver.implies(
-              bfmgr.and(firstStepInTransInv, iterationFormula.getFormula()), secondStepInTransInv);
-
       // Check Tr(x__CURR, x__CURR2) => T(x__CURR, x__CURR2)
       candidateTransitionInvariant =
           candidateTransitionInvariant.withPrevVarsSuffixed(CURR_KEYWORD);
 
-      isTransitionInvariant =
-          isTransitionInvariant
-              && solver.implies(
-                  iterationFormula.getFormula(), candidateTransitionInvariant.getFormula());
+      return solver.implies(
+              bfmgr.and(firstStepInTransInv, iterationFormula.getFormula()), secondStepInTransInv)
+          && solver.implies(
+              iterationFormula.getFormula(), candidateTransitionInvariant.getFormula());
     } catch (SolverException e) {
       logger.logDebugException(e);
       return false;
     }
-    return isTransitionInvariant;
   }
 
   private ImmutableList<BooleanFormula> buildCycleFormula(
