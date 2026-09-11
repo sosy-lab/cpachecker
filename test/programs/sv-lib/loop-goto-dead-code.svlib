@@ -1,0 +1,31 @@
+; This file is part of CPAchecker,
+; a tool for configurable software verification:
+; https://cpachecker.sosy-lab.org
+;
+; SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+;
+; SPDX-License-Identifier: Apache-2.0
+
+(set-logic QF_LIA)
+(set-info :format-version 1.0)
+
+(define-proc main () () ((x Int))
+  (!
+    (sequence
+      (assign (x 0))
+      (goto N0)
+      (assume false)
+      (! (label N2) :tag N2)
+       (assign (x (+ x 42)))
+      (goto N2)
+      (! (label N1) :tag N1)
+      (assign (x (+ x 0)))
+      (! (label N0) :tag N0)
+      (if(< x 3)
+        (sequence
+          (assign (x (+ x 1)))
+          (goto N1)))
+      (! (sequence) :tag loop-end :check-true (= x 3))
+ ):tag main))
+
+(verify-call main ())

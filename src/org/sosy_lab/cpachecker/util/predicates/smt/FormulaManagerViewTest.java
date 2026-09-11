@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
+import static com.google.common.truth.TruthJUnit.assume;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -240,6 +241,10 @@ public class FormulaManagerViewTest extends SolverViewBasedTest0 {
   public void testUnInstantiateQuantifiersAndArrays() throws SolverException, InterruptedException {
     requireQuantifiers();
     requireArrays();
+    assume()
+        .withMessage("Bitwuzla runs into timeout here")
+        .that(solverToUse())
+        .isNotEqualTo(Solvers.BITWUZLA);
 
     IntegerFormula _0 = imgrv.makeNumber(0);
     IntegerFormula _i = imgrv.makeVariable("i");

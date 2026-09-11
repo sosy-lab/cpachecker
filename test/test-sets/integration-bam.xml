@@ -11,7 +11,7 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
-<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="2 GB" cpuCores="1">
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="2 GB" cpuCores="2">
 
   <!--
     This is a large collection of different configurations using BAM:
@@ -28,8 +28,6 @@ SPDX-License-Identifier: Apache-2.0
 
   <option name="--no-output-files"/>
   <option name="--heap">1500M</option>
-  <!-- SV-Comp files assume that malloc always succeeds -->
-  <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
 
   <rundefinition/> <!-- BuildBot does not like names! -->
 
@@ -81,6 +79,20 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">cpa.predicate.refinement.strategy=tree_wellscoped</option>
     <option name="--option">solver.solver=mathsat5</option>
     <option name="--predicateAnalysis-bam-rec"/>
+  </tasks>
+
+
+  <!-- recursive programs for which no state at the exit node of main is computed, cf. #1539 -->
+  <tasks name="predicate_without_main_exit">
+    <include>../programs/simple/recursion/*.yml</include>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+    <option name="--predicateAnalysis-bam-rec"/>
+  </tasks>
+
+  <tasks name="predicate_without_main_exit_overflow">
+    <include>../programs/simple/recursion/*.yml</include>
+    <propertyfile>../config/properties/no-overflow.prp</propertyfile>
+    <option name="--predicateAnalysis-bam-rec--overflow"/>
   </tasks>
 
 
@@ -183,9 +195,10 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--input--*</exclude>
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--media--*</exclude>
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--usb--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_linux-43_1a-drivers--usb--gadget--mv_udc.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout/OOM -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--hwmon--asus_atk0110.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--net--wireless--mwifiex--mwifiex_pcie.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--power--max8903_charger.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout/OOM -->
-    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_linux-43_1a-drivers--usb--gadget--mv_udc.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout/OOM -->
   </tasks>
 
 </benchmark>

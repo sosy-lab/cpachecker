@@ -313,8 +313,8 @@ public class SMGEdgeInterpolator {
   }
 
   /**
-   * This method checks, whether or not the (remaining) error path is feasible when starting with
-   * the given (pseudo) initial state.
+   * This method checks, whether the (remaining) error path is feasible when starting with the given
+   * (pseudo) initial state.
    *
    * @param remainingErrorPath the error path to check feasibility on
    * @param state the (pseudo) initial state

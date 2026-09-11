@@ -13,7 +13,6 @@ import com.google.common.collect.Comparators;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -138,7 +137,7 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
   @Override
   public String toString() {
     // Info method, in difficult cases may be wrong
-    return Lists.reverse(order).stream()
+    return order.reversed().stream()
         .filter(l -> threadSet.getOrDefault(l.getVarName(), null) == ThreadStatus.CREATED_THREAD)
         .findFirst()
         .map(ThreadLabel::getName)

@@ -171,7 +171,7 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
    * <p>This class ensures that each identical subtree of the formula is visited only once to avoid
    * the exponential explosion.
    *
-   * <p>By default this class implements the identity function.
+   * <p>By default, this class implements the identity function.
    *
    * <p>No guarantee on iteration order is made.
    */

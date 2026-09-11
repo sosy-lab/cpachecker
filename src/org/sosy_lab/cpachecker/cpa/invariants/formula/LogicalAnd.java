@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 /** Instances of this class represent logical conjunctions over invariants formulae. */
-public class LogicalAnd<ConstantType> implements BooleanFormula<ConstantType> {
+public final class LogicalAnd<ConstantType> implements BooleanFormula<ConstantType> {
 
   /** The first operand. */
   private final BooleanFormula<ConstantType> operand1;

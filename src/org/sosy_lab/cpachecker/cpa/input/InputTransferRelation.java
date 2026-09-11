@@ -71,11 +71,11 @@ public class InputTransferRelation extends SingleEdgeTransferRelation {
     AStatement statement = pEdge.getStatement();
     if (statement instanceof AAssignment assignment) {
       ALeftHandSide lhs = assignment.getLeftHandSide();
-      if (!(lhs instanceof AIdExpression)) {
+      if (!(lhs instanceof AIdExpression aIdExpression)) {
         // Unhandled left-hand side
         return InputState.empty();
       }
-      String lhsVariable = ((AIdExpression) lhs).getDeclaration().getQualifiedName();
+      String lhsVariable = aIdExpression.getDeclaration().getQualifiedName();
       if (assignment instanceof AFunctionCallAssignmentStatement callAssignment) {
         AFunctionCallExpression callExpression = callAssignment.getRightHandSide();
         AExpression functionNameExpression = callExpression.getFunctionNameExpression();

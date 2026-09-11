@@ -154,8 +154,8 @@ class IntEqualCollectingVisitor extends VariablesCollectingVisitor {
     if (exp instanceof CBinaryExpression) {
       return true;
 
-    } else if (exp instanceof CCastExpression) {
-      return isNestedBinaryExp(((CCastExpression) exp).getOperand());
+    } else if (exp instanceof CCastExpression cCastExpression) {
+      return isNestedBinaryExp(cCastExpression.getOperand());
 
     } else {
       return false;

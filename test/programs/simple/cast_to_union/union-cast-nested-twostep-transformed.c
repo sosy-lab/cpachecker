@@ -1,0 +1,34 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+// This transformed test avoids casts to union type.
+// Instead it uses equivalent expressions and directly assigns values to members of the unions.
+// This showcases the same behaviour that is expected when using the cast.
+
+typedef union Inner {
+  float f;
+  int i;
+} Inner;
+
+typedef union Outer {
+  double d;
+  Inner in;
+} Outer;
+
+int main(void) {
+  int x = 7;
+
+  Inner a = (Inner){ .i = x };
+  Outer o = (Outer){ .in = a };
+
+  if (o.in.i != 7) goto error;
+  return 0;
+
+error:
+  return -1;
+}

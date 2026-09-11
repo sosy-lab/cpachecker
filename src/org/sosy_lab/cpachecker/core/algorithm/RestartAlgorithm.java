@@ -11,10 +11,10 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
-import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.PartialARGsCombiner;
 import org.sosy_lab.cpachecker.core.defaults.MultiStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
@@ -72,7 +71,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
     private int noOfAlgorithmsUsed = 0;
     private Timer totalTime = new Timer();
 
-    public RestartAlgorithmStatistics(List<String> pAlgorithms, LogManager pLogger) {
+    RestartAlgorithmStatistics(List<String> pAlgorithms, LogManager pLogger) {
       super(pLogger);
       algorithms = pAlgorithms;
     }
@@ -288,6 +287,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
           currentCpa = currentAlg.cpa();
           currentReached = currentAlg.reached();
         } catch (InvalidConfigurationException e) {
+          // TODO: log/return the config that triggers this!
           logger.logUserException(
               Level.WARNING,
               e,
@@ -296,6 +296,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
                   + " is invalid");
           continue;
         } catch (IOException e) {
+          // TODO: log/return the config that triggers this!
           String message =
               "Skipping one analysis because the configuration file "
                   + singleConfigFileName
@@ -308,14 +309,11 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
           continue;
         }
 
-        if (reached instanceof HistoryForwardingReachedSet) {
-          ((HistoryForwardingReachedSet) reached).saveCPA(currentCpa);
+        if (reached instanceof HistoryForwardingReachedSet historyForwardingReachedSet) {
+          historyForwardingReachedSet.saveCPA(currentCpa);
         }
         reached.setDelegate(currentReached);
 
-        if (currentAlgorithm instanceof StatisticsProvider) {
-          ((StatisticsProvider) currentAlgorithm).collectStatistics(stats.getSubStatistics());
-        }
         shutdownNotifier.shutdownIfNecessary();
 
         stats.noOfAlgorithmsUsed++;
@@ -399,7 +397,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
         unregisterReachedSetUpdateListeners();
         singleShutdownManager.getNotifier().unregister(logShutdownListener);
         singleShutdownManager.requestShutdown(
-            "Analysis terminated"); // shutdown any remaining components
+            "Analysis terminated"); // shut down any remaining components
         stats.totalTime.stop();
       }
 
@@ -430,9 +428,9 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
   }
 
   /**
-   * Advance the given iterator by skipping over analyses where the usage condition does not match,
-   * such that the next entry in the iterator is the next analysis that should be used or the
-   * iterator is empty.
+   * Advance the given iterator by skipping analyses where the usage condition does not match, such
+   * that the next entry in the iterator is the next analysis that should be used or the iterator is
+   * empty.
    */
   private void skipNextAnalysesIfRequired(
       final PeekingIterator<AnnotatedValue<Path>> configFilesIterator,
@@ -515,7 +513,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
         pCfa,
         singleShutdownManager,
         aggregateReached,
-        Sets.newHashSet("restartAlgorithm.configFiles", "analysis.restartAfterUnknown"),
+        ImmutableSet.of("restartAlgorithm.configFiles", "analysis.restartAfterUnknown"),
         stats.getSubStatistics());
   }
 
@@ -525,9 +523,6 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (currentAlgorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) currentAlgorithm).collectStatistics(pStatsCollection);
-    }
     pStatsCollection.add(stats);
   }
 

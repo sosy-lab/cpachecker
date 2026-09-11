@@ -353,7 +353,7 @@ final class TypeHierarchy {
 
       checkArgument(
           objectType.equals(superClass),
-          "Class %s must be a sub-class of Object",
+          "Class %s must be a subclass of Object",
           pClassType.getName());
     }
 

@@ -13,6 +13,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum YAMLWitnessExpressionType {
   C,
+  EXT_C,
   ACSL;
 
   @Override
@@ -20,6 +21,7 @@ public enum YAMLWitnessExpressionType {
   public String toString() {
     return switch (this) {
       case C -> "c_expression";
+      case EXT_C -> "ext_c_expression";
       case ACSL -> "acsl_expression";
     };
   }
@@ -28,6 +30,7 @@ public enum YAMLWitnessExpressionType {
   public static YAMLWitnessExpressionType fromKeyword(String keyword) {
     return switch (keyword) {
       case "c_expression" -> C;
+      case "ext_c_expression" -> EXT_C;
       case "acsl_expression" -> ACSL;
       default -> throw new IllegalArgumentException("Unknown keyword: " + keyword);
     };

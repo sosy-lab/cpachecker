@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.SequencedMap;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.logging.Level;
@@ -435,11 +436,11 @@ class KInductionProver implements AutoCloseable {
 
     // Obtain the predecessor assertion created earlier
     final BooleanFormula predecessorAssertion =
-        bfmgr.and(
-            from(CandidateInvariantCombination.getConjunctiveParts(
-                    CandidateInvariantCombination.conjunction(pPredecessorAssumptions)))
-                .transform(conjunctivePart -> assertions.get(conjunctivePart))
-                .toList());
+        CandidateInvariantCombination.getConjunctiveParts(
+                CandidateInvariantCombination.conjunction(pPredecessorAssumptions))
+            .stream()
+            .map(conjunctivePart -> assertions.get(conjunctivePart))
+            .collect(bfmgr.toConjunction());
     // Create the successor violation formula
     Multimap<BooleanFormula, BooleanFormula> successorViolationAssertions =
         getSuccessorViolationAssertions(
@@ -456,9 +457,8 @@ class KInductionProver implements AutoCloseable {
 
     // Try to prove the invariance of the assertion
     Object successorExistsAssertionId = prover.push(successorExistsAssertion);
-    Object predecessorAssertionId =
-        prover.push(
-            predecessorAssertion); // Assert the formula we want to prove at the predecessors
+    // Assert the formula we want to prove at the predecessors
+    Object predecessorAssertionId = prover.push(predecessorAssertion);
     // Assert that the formula is violated at a successor
     prover.push(successorViolation);
 
@@ -485,9 +485,7 @@ class KInductionProver implements AutoCloseable {
         // or want to log the model
         if (!loopHeadInvChanged || logger.wouldBeLogged(Level.ALL)) {
           List<ValueAssignment> modelAssignments = prover.getModelAssignments();
-          if (logger.wouldBeLogged(Level.ALL)) {
-            logger.log(Level.ALL, "Model returned for induction check:", modelAssignments);
-          }
+          logger.log(Level.ALL, "Model returned for induction check:", modelAssignments);
 
           if (!loopHeadInvChanged) {
             // We are in the last iteration and failed to prove the candidate invariant
@@ -672,7 +670,12 @@ class KInductionProver implements AutoCloseable {
         return AlgorithmStatus.SOUND_AND_PRECISE;
       }
     }
-    return unroll(logger, pReached, pAlg, pCPA);
+    stats.inductionUnrolling.start();
+    try {
+      return unroll(logger, pReached, pAlg, pCPA);
+    } finally {
+      stats.inductionUnrolling.stop();
+    }
   }
 
   private Multimap<String, Integer> extractInputs(
@@ -693,11 +696,11 @@ class KInductionProver implements AutoCloseable {
           if (ssaMap.containsVariable(input)) {
             inputs.put(input, ssaMap.getIndex(input) - 1);
             inputs.put(input, ssaMap.getIndex(input));
-            types.put(input, ssaMap.getType(input));
+            types.put(input, (CType) ssaMap.getType(input));
           }
         }
         for (String varName : ssaMap.allVariables()) {
-          types.put(varName, ssaMap.getType(varName));
+          types.put(varName, (CType) ssaMap.getType(varName));
         }
       }
       ARGState argState = AbstractStates.extractStateByType(current, ARGState.class);
@@ -729,7 +732,7 @@ class KInductionProver implements AutoCloseable {
     }
     Multimap<String, Integer> inputs = extractInputs(inputStates, types);
 
-    Map<CounterexampleToInductivity, BooleanFormula> ctis = new LinkedHashMap<>();
+    SequencedMap<CounterexampleToInductivity, BooleanFormula> ctis = new LinkedHashMap<>();
     for (CFANode loopHead : loopHeads) {
       // We compute the CTI state "at the start of the second loop iteration",
       // because that is where we will later apply it (or its negation) as a candidate invariant.
@@ -881,11 +884,6 @@ class KInductionProver implements AutoCloseable {
 
     @Override
     public TraversalProcess visitConstant(Formula pArg0, Object pArg1) {
-      return TraversalProcess.CONTINUE;
-    }
-
-    @Override
-    public TraversalProcess visitBoundVariable(Formula pArg0, int pArg1) {
       return TraversalProcess.CONTINUE;
     }
   }

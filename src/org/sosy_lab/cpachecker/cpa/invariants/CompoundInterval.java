@@ -12,7 +12,8 @@ import java.math.BigInteger;
 import java.util.List;
 
 /** Instances of this class represent compound states of intervals. */
-public interface CompoundInterval {
+public sealed interface CompoundInterval
+    permits CompoundFloatingPointInterval, CompoundIntegralInterval {
 
   boolean isSingleton();
 

@@ -6,5 +6,11 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** LLVM IR -> CFA parser */
+/**
+ * LLVM IR -> CFA parser. Currently unsupported because it depends on an old LLVM version. Cf.
+ * https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356
+ */
+@Unmaintained
 package org.sosy_lab.cpachecker.cfa.parser.llvm;
+
+import org.sosy_lab.common.annotations.Unmaintained;

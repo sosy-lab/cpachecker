@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentBiMap;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentStack;
+import org.sosy_lab.cpachecker.util.smg.join.SMGJoinStatus;
 
 /**
  * Joins two SMGs and provides a new merged SMG. Can use a surrounding SMGState to extract further

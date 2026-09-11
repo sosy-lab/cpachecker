@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.cfa.ast.FileLocation.DUMMY;
-import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BINARY_AND;
-import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BINARY_OR;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BITWISE_AND;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BITWISE_OR;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.GREATER_EQUAL;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.MULTIPLY;
@@ -138,20 +138,17 @@ public class RankingRelationBuilder {
   private RankingRelation fromRankingFunction(
       Set<CVariableDeclaration> pRelevantVariables, RankingFunction rankingFunction)
       throws UnrecognizedCodeException, RankingRelationException {
-    if (rankingFunction instanceof LinearRankingFunction) {
-      AffineFunction function = ((LinearRankingFunction) rankingFunction).getComponent();
-      return fromAffineFunction(pRelevantVariables, function);
-
-    } else if (rankingFunction instanceof LexicographicRankingFunction) {
-      return fromLexicographicRankingFunction(
-          (LexicographicRankingFunction) rankingFunction, pRelevantVariables);
-
-    } else if (rankingFunction instanceof NestedRankingFunction) {
-      return fromNestedRankingFunction((NestedRankingFunction) rankingFunction, pRelevantVariables);
-
-    } else {
-      throw new UnsupportedOperationException(rankingFunction.getName());
-    }
+    return switch (rankingFunction) {
+      case LinearRankingFunction linearRankingFunction -> {
+        AffineFunction function = linearRankingFunction.getComponent();
+        yield fromAffineFunction(pRelevantVariables, function);
+      }
+      case LexicographicRankingFunction lexicographicRankingFunction ->
+          fromLexicographicRankingFunction(lexicographicRankingFunction, pRelevantVariables);
+      case NestedRankingFunction nestedRankingFunction ->
+          fromNestedRankingFunction(nestedRankingFunction, pRelevantVariables);
+      default -> throw new UnsupportedOperationException(rankingFunction.getName());
+    };
   }
 
   private RankingRelation fromLexicographicRankingFunction(
@@ -165,7 +162,7 @@ public class RankingRelationBuilder {
       RankingRelation rankingRelation = fromRankingFunction(pRelevantVariables, component);
       CExpression cExpressionComponent = rankingRelation.asCExpression();
       cExpression =
-          cExpressionBuilder.buildBinaryExpression(cExpression, cExpressionComponent, BINARY_OR);
+          cExpressionBuilder.buildBinaryExpression(cExpression, cExpressionComponent, BITWISE_OR);
       formulas.add(rankingRelation.asFormula());
     }
 
@@ -189,7 +186,7 @@ public class RankingRelationBuilder {
 
       CBinaryExpression componentExpression =
           cExpressionBuilder.buildBinaryExpression(
-              phaseConditionExpression, componentRelation.asCExpression(), BINARY_AND);
+              phaseConditionExpression, componentRelation.asCExpression(), BITWISE_AND);
       componentExpressions.add(componentExpression);
       BooleanFormula componentFormula =
           fmgr.makeAnd(phaseConditionFormula, componentRelation.asFormula());
@@ -208,7 +205,7 @@ public class RankingRelationBuilder {
               rankingRelationComponents.getUnprimedExpression().orElse(ZERO), ZERO, LESS_THAN);
       phaseConditionExpression =
           cExpressionBuilder.buildBinaryExpression(
-              phaseConditionExpression, unprimedLessThanZeroExpression, BINARY_AND);
+              phaseConditionExpression, unprimedLessThanZeroExpression, BITWISE_AND);
     }
 
     BooleanFormula formula = fmgr.getBooleanFormulaManager().or(componentFormulas);
@@ -216,7 +213,7 @@ public class RankingRelationBuilder {
         componentExpressions.stream()
             .reduce(
                 (op1, op2) ->
-                    cExpressionBuilder.buildBinaryExpressionUnchecked(op1, op2, BINARY_OR))
+                    cExpressionBuilder.buildBinaryExpressionUnchecked(op1, op2, BITWISE_OR))
             .orElseThrow();
 
     return new RankingRelation(expression, formula, cExpressionBuilder, fmgr);
@@ -249,7 +246,7 @@ public class RankingRelationBuilder {
 
       CBinaryExpression rankingRelation =
           cExpressionBuilder.buildBinaryExpression(
-              unprimedGreatorThanZero, primedLessThanUnprimed, BINARY_AND);
+              unprimedGreatorThanZero, primedLessThanUnprimed, BITWISE_AND);
       return Optional.of(rankingRelation);
 
     } else {
@@ -447,19 +444,19 @@ public class RankingRelationBuilder {
       primedFormulaSummands = pPrimedFormulaSummands;
     }
 
-    public Optional<CExpression> getPrimedExpression() {
+    Optional<CExpression> getPrimedExpression() {
       return primedExpression;
     }
 
-    public Optional<CExpression> getUnprimedExpression() {
+    Optional<CExpression> getUnprimedExpression() {
       return unprimedExpression;
     }
 
-    public NumeralFormula getPrimedFormula() {
+    NumeralFormula getPrimedFormula() {
       return sum(primedFormulaSummands);
     }
 
-    public NumeralFormula getUnprimedFormula() {
+    NumeralFormula getUnprimedFormula() {
       return sum(unprimedFormulaSummands);
     }
 

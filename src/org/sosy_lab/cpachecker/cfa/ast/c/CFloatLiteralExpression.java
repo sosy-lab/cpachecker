@@ -8,65 +8,31 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import com.google.common.base.Preconditions;
 import java.io.Serial;
-import java.math.BigDecimal;
 import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 
 public final class CFloatLiteralExpression extends AFloatLiteralExpression
     implements CLiteralExpression {
 
   @Serial private static final long serialVersionUID = 5021145411123854111L;
 
-  public CFloatLiteralExpression(FileLocation pFileLocation, CType pType, BigDecimal pValue) {
+  public CFloatLiteralExpression(
+      FileLocation pFileLocation, MachineModel pMachineModel, CType pType, FloatValue pValue) {
     super(pFileLocation, pType, pValue);
-  }
-
-  /** Returns a <code>CFloatLiteralExpression</code> for positive infinity. */
-  public static CFloatLiteralExpression forPositiveInfinity(FileLocation pFileLocation, CType pType)
-      throws NumberFormatException {
-    // TODO: This method is a temporary hack until 'BigDecimal's are fully replaced by 'CFloat's in
-    // AFloatLiteralExpression class.
-
-    return new CFloatLiteralExpression(pFileLocation, pType, getInfinityApprox(false, pType));
-  }
-
-  /** Returns a <code>CFloatLiteralExpression</code> for negative infinity. */
-  public static CFloatLiteralExpression forNegativeInfinity(FileLocation pFileLocation, CType pType)
-      throws NumberFormatException {
-    // TODO: This method is a temporary hack until 'BigDecimal's are fully replaced by 'CFloat's in
-    // AFloatLiteralExpression class.
-
-    return new CFloatLiteralExpression(pFileLocation, pType, getInfinityApprox(true, pType));
-  }
-
-  private static BigDecimal getInfinityApprox(boolean pIsNegative, CType pType) {
-    // TODO: This method is a temporary hack until 'BigDecimal's are replaced by 'CFloat's in
-    // AFloatLiteralExpression class.
-    // This is necessary because CFloats are already able to return "inf" as a value, however, the
-    // BigDecimal object requires a concrete numerical value instead. The code below thus returns a
-    // placeholder value in the meantime.
-    BigDecimal APPROX_INFINITY =
-        BigDecimal.valueOf(Double.MAX_VALUE).add(BigDecimal.valueOf(Double.MAX_VALUE));
-
-    CBasicType basicType = ((CSimpleType) pType).getType();
-    switch (basicType) {
-      case FLOAT:
-      case DOUBLE:
-        if (pIsNegative) {
-          return APPROX_INFINITY.negate();
-        } else {
-          return APPROX_INFINITY;
-        }
-      default:
-        // unsupported operation
-        break;
-    }
-
-    throw new NumberFormatException(String.format("Invalid type for float infinity: %s", pType));
+    // Make sure that the provided type matches the type of the float value
+    Preconditions.checkArgument(
+        FloatValue.Format.fromCType(pMachineModel, pType).equals(pValue.getFormat()),
+        "Precision of the value (%s) does not match the target type of the literal (`%s` = %s)",
+        pValue.getFormat(),
+        pType,
+        FloatValue.Format.fromCType(pMachineModel, pType));
   }
 
   @Override
@@ -101,5 +67,30 @@ public final class CFloatLiteralExpression extends AFloatLiteralExpression
     }
 
     return obj instanceof CFloatLiteralExpression && super.equals(obj);
+  }
+
+  @Override
+  public String toASTString() {
+    FloatValue value = getValue();
+    if (value.isInfinite()) {
+      // "Infinity" is not a valid float literal
+      // We need to rewrite it as the expression 1.0/0.0
+      return (value.isNegative() ? "-" : "") + "1.0/0.0";
+    } else if (value.isNan()) {
+      // Same for NaN: It needs to be replaced by the expression 0.0/0.0
+      return (value.isNegative() ? "-" : "") + "0.0/0.0";
+    } else {
+      // We have a regular value: print the number and add a suffix if necessary
+      String repr = value.toString();
+
+      // Add a suffix for "float" and "long double"
+      CSimpleType type = (CSimpleType) getExpressionType();
+      String suffix =
+          type.equals(CNumericTypes.FLOAT)
+              ? "f"
+              : type.equals(CNumericTypes.LONG_DOUBLE) ? "l" : "";
+
+      return repr + suffix;
+    }
   }
 }

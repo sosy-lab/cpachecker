@@ -8,9 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.base.Preconditions;
 import java.io.Serial;
-import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -29,15 +31,20 @@ public final class AddressExpression extends SymbolicExpression {
 
   // The address Value should map to memory
   private final Value addressValue;
-  private final Type addressType;
+  private final CType addressType;
 
-  // The offset may be any Value, but numeric values are prefered
+  // The offset may be any Value, but numeric values are preferred
   private final Value offset;
 
-  private AddressExpression(Value pAddress, Type pAddressType, Value pOffsetValue) {
+  private AddressExpression(Value pAddress, CType pAddressType, Value pOffsetValue) {
     Preconditions.checkNotNull(pAddress);
     Preconditions.checkNotNull(pAddressType);
     Preconditions.checkNotNull(pOffsetValue);
+    checkArgument(!pAddress.isUnknown() && !(pAddress instanceof NumericValue));
+    checkArgument(
+        !(pAddress instanceof ConstantSymbolicExpression wrappedAddress)
+            || (!wrappedAddress.getValue().isUnknown()
+                && !(wrappedAddress.getValue() instanceof NumericValue)));
     addressValue = pAddress;
     addressType = pAddressType;
     offset = pOffsetValue;
@@ -45,21 +52,22 @@ public final class AddressExpression extends SymbolicExpression {
 
   // TODO: add of/withZeroOffset etc. with state
   private AddressExpression(
-      Value pAddress, Type pAddressType, Value pOffsetValue, AbstractState pAbstractState) {
+      Value pAddress, CType pAddressType, Value pOffsetValue, AbstractState pAbstractState) {
     super(pAbstractState);
     Preconditions.checkNotNull(pAddress);
     Preconditions.checkNotNull(pAddressType);
     Preconditions.checkNotNull(pOffsetValue);
+    checkArgument(!pAddress.isUnknown() && !(pAddress instanceof NumericValue));
     addressValue = pAddress;
     addressType = pAddressType;
     offset = pOffsetValue;
   }
 
-  public static AddressExpression of(Value pAddress, Type pAddressType, Value pOffsetValue) {
+  public static AddressExpression of(Value pAddress, CType pAddressType, Value pOffsetValue) {
     return new AddressExpression(pAddress, pAddressType, pOffsetValue);
   }
 
-  public static AddressExpression withZeroOffset(Value pAddress, Type pType) {
+  public static AddressExpression withZeroOffset(Value pAddress, CType pType) {
     return new AddressExpression(pAddress, pType, new NumericValue(0));
   }
 
@@ -81,7 +89,7 @@ public final class AddressExpression extends SymbolicExpression {
   }
 
   @Override
-  public Type getType() {
+  public CType getType() {
     return addressType;
   }
 
@@ -131,19 +139,15 @@ public final class AddressExpression extends SymbolicExpression {
       return false;
     }
     if (hasAbstractState()
-        && o instanceof AddressExpression
-        && ((AddressExpression) o).hasAbstractState()) {
-      if (getAbstractState() instanceof SMGState
-          && ((AddressExpression) o).getAbstractState() instanceof SMGState) {
-        // Precondition as this should never fail in SMGs
-        Preconditions.checkArgument(getOffset().equals(((AddressExpression) o).getOffset()));
-        // SMG values have the offset baked into them. Only the SMG truly knows equality for them
-        return SMGState.areValuesEqual(
-            (SMGState) getAbstractState(),
-            addressValue,
-            (SMGState) ((AddressExpression) o).getAbstractState(),
-            ((AddressExpression) o).addressValue);
-      }
+        && o instanceof AddressExpression other
+        && other.hasAbstractState()
+        && getAbstractState() instanceof SMGState thisState
+        && other.getAbstractState() instanceof SMGState otherState) {
+      // Precondition as this should never fail in SMGs
+      checkArgument(getOffset().equals(other.getOffset()));
+      // SMG values have the offset baked into them. Only the SMG truly knows equality for them
+      return SMGState.areValuesEqual(
+          thisState, addressValue, otherState, other.addressValue, false);
     }
     return super.equals(o);
   }

@@ -27,7 +27,7 @@ public class AbstractionPredicate {
   }
 
   /**
-   * Returns an formula representing this predicate.
+   * Returns a formula representing this predicate.
    *
    * @return an abstract formula
    */

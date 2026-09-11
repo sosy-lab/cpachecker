@@ -75,7 +75,7 @@ public class SymbolicIdentifierLocator implements SymbolicValueVisitor<Set<Symbo
     final Set<SymbolicIdentifier> identifiersOnLeft = pExpression.getOperand1().accept(this);
     final Set<SymbolicIdentifier> identifiersOnRight = pExpression.getOperand2().accept(this);
 
-    // all of the produced sets in this visitor are immutable sets,
+    // all the produced sets in this visitor are immutable sets,
     // so the union will also be immutable
     // and there is no need to generate a separate ImmutableSet.
     return Sets.union(identifiersOnLeft, identifiersOnRight);

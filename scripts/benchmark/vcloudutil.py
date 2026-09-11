@@ -25,9 +25,9 @@ def parse_vcloud_run_result(values):
     def set_exitcode(new):
         if "exitcode" in result_values:
             old = result_values["exitcode"]
-            assert (
-                old == new
-            ), f"Inconsistent exit codes {old} and {new} from VerifierCloud"
+            assert old == new, (
+                f"Inconsistent exit codes {old} and {new} from VerifierCloud"
+            )
         else:
             result_values["exitcode"] = new
 
@@ -43,13 +43,13 @@ def parse_vcloud_run_result(values):
             set_exitcode(benchexec.util.ProcessExitCode.create(value=int(value)))
         elif key == "exitsignal":
             set_exitcode(benchexec.util.ProcessExitCode.create(signal=int(value)))
-        elif (
-            key in ["host", "terminationreason", "cpuCores", "memoryNodes", "starttime"]
-            or key.startswith("blkio-")
-            or key.startswith("cpuenergy")
-            or key.startswith("energy-")
-            or key.startswith("cputime-cpu")
-        ):
+        elif key in [
+            "host",
+            "terminationreason",
+            "cpuCores",
+            "memoryNodes",
+            "starttime",
+        ] or key.startswith(("blkio-", "cpuenergy", "energy-", "cputime-cpu")):
             result_values[key] = value
         elif key not in ["command", "timeLimit", "coreLimit", "memoryLimit"]:
             result_values["vcloud-" + key] = value

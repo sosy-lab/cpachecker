@@ -10,50 +10,43 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
-import java.io.Serial;
-import java.util.ArrayList;
-import java.util.List;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+import com.google.errorprone.annotations.InlineMe;
+import java.util.Arrays;
 
 /**
  * This class represents the type "void". It does not allow any modifiers and has only a single
  * instance.
  */
-public final class CVoidType implements CType {
+public enum CVoidType implements CType {
+  VOID(CTypeQualifiers.NONE),
+  ATOMIC_VOID(CTypeQualifiers.ATOMIC),
+  CONST_VOID(CTypeQualifiers.CONST),
+  VOLATILE_VOID(CTypeQualifiers.VOLATILE),
+  ATOMIC_CONST_VOID(CTypeQualifiers.ATOMIC_CONST),
+  ATOMIC_VOLATILE_VOID(CTypeQualifiers.ATOMIC_VOLATILE),
+  CONST_VOLATILE_VOID(CTypeQualifiers.CONST_VOLATILE),
+  ATOMIC_CONST_VOLATILE_VOID(CTypeQualifiers.ATOMIC_CONST_VOLATILE),
+  ;
 
-  @Serial private static final long serialVersionUID = 1385808708190595556L;
+  private static ImmutableMap<CTypeQualifiers, CVoidType> LOOKUP =
+      Arrays.stream(CVoidType.values())
+          .collect(Maps.toImmutableEnumMap(t -> t.getQualifiers(), t -> t));
 
-  public static final CVoidType VOID = new CVoidType(false, false);
-
-  private static final CVoidType CONST_VOID = new CVoidType(true, false);
-  private static final CVoidType VOLATILE_VOID = new CVoidType(false, true);
-  private static final CVoidType CONST_VOLATILE_VOID = new CVoidType(true, true);
-
-  public static CVoidType create(boolean pIsConst, boolean pIsVolatile) {
-    if (pIsConst) {
-      return pIsVolatile ? CONST_VOLATILE_VOID : CONST_VOID;
-    } else {
-      return pIsVolatile ? VOLATILE_VOID : VOID;
-    }
+  public static CVoidType create(CTypeQualifiers qualifiers) {
+    return checkNotNull(LOOKUP.get(qualifiers));
   }
 
-  private final boolean isConst;
-  private final boolean isVolatile;
+  private final CTypeQualifiers qualifiers;
 
-  private CVoidType(boolean pIsConst, boolean pIsVolatile) {
-    isConst = pIsConst;
-    isVolatile = pIsVolatile;
-  }
-
-  @Override
-  public boolean isConst() {
-    return isConst;
+  private CVoidType(CTypeQualifiers pQualifiers) {
+    qualifiers = checkNotNull(pQualifiers);
   }
 
   @Override
-  public boolean isVolatile() {
-    return isVolatile;
+  public CTypeQualifiers getQualifiers() {
+    return qualifiers;
   }
 
   @Override
@@ -80,20 +73,9 @@ public final class CVoidType implements CType {
 
   @Override
   public String toASTString(String pDeclarator) {
-    checkNotNull(pDeclarator);
-    List<String> parts = new ArrayList<>();
-
-    if (isConst()) {
-      parts.add("const");
-    }
-    if (isVolatile()) {
-      parts.add("volatile");
-    }
-
-    parts.add("void");
-    parts.add(Strings.emptyToNull(pDeclarator));
-
-    return Joiner.on(' ').skipNulls().join(parts);
+    return qualifiers.toASTStringPrefix()
+        + "void"
+        + (pDeclarator.isEmpty() ? "" : " " + pDeclarator);
   }
 
   @Override
@@ -102,12 +84,15 @@ public final class CVoidType implements CType {
   }
 
   @Override
-  public CVoidType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    return create(isConst || pForceConst, isVolatile || pForceVolatile);
+  public CVoidType getCanonicalType(CTypeQualifiers pQualifiersToAdd) {
+    return create(CTypeQualifiers.union(qualifiers, pQualifiersToAdd));
   }
 
-  @Serial
-  private Object readResolve() {
-    return create(isConst, isVolatile);
+  @Override
+  @InlineMe(
+      replacement = "CVoidType.create(pNewQualifiers)",
+      imports = "org.sosy_lab.cpachecker.cfa.types.c.CVoidType")
+  public CVoidType withQualifiersSetTo(CTypeQualifiers pNewQualifiers) {
+    return create(pNewQualifiers);
   }
 }

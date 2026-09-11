@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNodeVisitor;
 
 /**
  * Interface for all AST Nodes of the Java AST. All classes representing Java AST Nodes have to
@@ -26,9 +27,11 @@ public sealed interface JAstNode extends AAstNode
           R,
           R1 extends R,
           R2 extends R,
+          R3 extends R,
           X1 extends Exception,
           X2 extends Exception,
-          V extends CAstNodeVisitor<R1, X1> & JAstNodeVisitor<R2, X2>>
+          X3 extends Exception,
+          V extends CAstNodeVisitor<R1, X1> & JAstNodeVisitor<R2, X2> & SvLibAstNodeVisitor<R3, X3>>
       R accept_(V pV) throws X2 {
     return accept(pV);
   }

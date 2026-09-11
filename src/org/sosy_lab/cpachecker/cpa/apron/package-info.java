@@ -27,7 +27,7 @@
  *
  * <pre>c</pre>
  *
- * being a constant number in the range of the real numbers. Thus it can be seen as a more specific
+ * being a constant number in the range of the real numbers. Thus, it can be seen as a more specific
  * version of the polyhedron domain, which allows the representation of linear constraints with an
  * arbitrary number of variables.
  *

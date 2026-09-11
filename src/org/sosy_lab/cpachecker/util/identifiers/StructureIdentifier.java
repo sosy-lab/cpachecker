@@ -19,8 +19,8 @@ public sealed class StructureIdentifier extends SingleIdentifier permits Structu
 
   protected final AbstractIdentifier owner;
 
-  public StructureIdentifier(String pNm, CType pTp, int dereference, AbstractIdentifier own) {
-    super(pNm, pTp, dereference);
+  public StructureIdentifier(String pNm, CType pTp, int pDereference, AbstractIdentifier own) {
+    super(pNm, pTp, pDereference);
     owner = own;
   }
 
@@ -83,8 +83,8 @@ public sealed class StructureIdentifier extends SingleIdentifier permits Structu
   }
 
   public StructureFieldIdentifier toStructureFieldIdentifier() {
-    if (owner instanceof SingleIdentifier) {
-      return new StructureFieldIdentifier(name, ((SingleIdentifier) owner).type, dereference, null);
+    if (owner instanceof SingleIdentifier singleIdentifier) {
+      return new StructureFieldIdentifier(name, singleIdentifier.type, dereference, null);
     } else {
       return new StructureFieldIdentifier(name, type, dereference, null);
     }

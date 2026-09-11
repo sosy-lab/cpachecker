@@ -198,7 +198,7 @@ class CodeAppender implements Appendable {
         appendDeclaration(returnType, RETVAL_NAME);
         if (inputValues.size() == 1) {
           append("  ");
-          appendAssignment(RETVAL_NAME, inputValues.iterator().next());
+          appendAssignment(RETVAL_NAME, inputValues.getFirst());
           appendln();
         } else if (inputValues.size() > 1) {
           append("  switch (");
@@ -247,7 +247,7 @@ class CodeAppender implements Appendable {
           inputVariable.getOrigName(),
           inputVariable.getQualifiedName(),
           (CInitializer) initializer);
-    } else if (inputVariable instanceof JVariableDeclaration) {
+    } else if (inputVariable instanceof JVariableDeclaration jVariableDeclaration) {
       return new JVariableDeclaration(
           FileLocation.DUMMY,
           (JType) inputVariable.getType(),
@@ -255,7 +255,7 @@ class CodeAppender implements Appendable {
           inputVariable.getOrigName(),
           inputVariable.getQualifiedName(),
           initializer,
-          ((JVariableDeclaration) inputVariable).isFinal());
+          jVariableDeclaration.isFinal());
     } else {
       throw new AssertionError("Unsupported declaration type: " + inputVariable);
     }

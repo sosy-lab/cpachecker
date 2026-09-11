@@ -16,7 +16,7 @@ This documentation adds both karma/jasmine unit test and protractor end-to-end t
 
 These tools are configured for specific conventions described below.
 
-*It is unwise and rarely possible to run the the unit tests, and the e2e tests at the same time.
+*It is unwise and rarely possible to run the unit tests, and the e2e tests at the same time.
 We recommend that you shut down one before starting another.*
 
 ## Writing Test Cases
@@ -60,7 +60,7 @@ It houses all `test case` files for Unit testing.
 
 ### Configuration
 
-At first the javascript loads all the scripts in the the `report.html` to the `testreport.html` and then we start testing our functions using Jasmine/Karma.
+At first the javascript loads all the scripts in the `report.html` to the `testreport.html` and then we start testing our functions using Jasmine/Karma.
 
 We will use all available browsers out of `Google Chrome`, `Chromium` and `Firefox` that are installed locally in headless mode for Unit testing application. Make sure that at least one of these is installed on your machine.
 

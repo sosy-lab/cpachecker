@@ -9,11 +9,11 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import java.io.Serial;
-import java.math.BigDecimal;
 import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 
 /** This class represents the float number literal AST node type. */
 public final class JFloatLiteralExpression extends AFloatLiteralExpression
@@ -21,8 +21,23 @@ public final class JFloatLiteralExpression extends AFloatLiteralExpression
 
   @Serial private static final long serialVersionUID = -8344145326316408368L;
 
-  public JFloatLiteralExpression(FileLocation pFileLocation, BigDecimal pValue) {
-    super(pFileLocation, JSimpleType.FLOAT, pValue);
+  public JFloatLiteralExpression(FileLocation pFileLocation, FloatValue pValue) {
+    super(pFileLocation, getJType(pValue), pValue);
+  }
+
+  /** Returns the equivalent Java type for a {@link FloatValue} */
+  private static JSimpleType getJType(FloatValue pValue) {
+    if (pValue.getFormat().equals(FloatValue.Format.Float32)) {
+      return JSimpleType.FLOAT;
+    } else if (pValue.getFormat().equals(FloatValue.Format.Float64)) {
+      return JSimpleType.DOUBLE;
+    } else {
+      throw new IllegalArgumentException(
+          String.format(
+              "Unsupported precision. The value `%s` has precision `%s`, but only Float32 and"
+                  + "Float64 are supported in Java.",
+              pValue, pValue.getFormat()));
+    }
   }
 
   @Override
@@ -49,5 +64,27 @@ public final class JFloatLiteralExpression extends AFloatLiteralExpression
     }
 
     return obj instanceof JFloatLiteralExpression && super.equals(obj);
+  }
+
+  @Override
+  public String toASTString() {
+    FloatValue value = getValue();
+    if (value.isInfinite()) {
+      // "Infinity" is not a valid float literal
+      // We need to rewrite it as the expression 1.0/0.0
+      return (value.isNegative() ? "-" : "") + "1.0/0.0";
+    } else if (value.isNan()) {
+      // Same for NaN: It needs to be replaced by the expression 0.0/0.0
+      return (value.isNegative() ? "-" : "") + "0.0/0.0";
+    } else {
+      // We have a regular value: print the number and add a suffix if necessary
+      String repr = value.toString();
+
+      // Add a suffix for "float" literals
+      JSimpleType type = (JSimpleType) getExpressionType();
+      String suffix = type.equals(JSimpleType.FLOAT) ? "f" : "";
+
+      return repr + suffix;
+    }
   }
 }

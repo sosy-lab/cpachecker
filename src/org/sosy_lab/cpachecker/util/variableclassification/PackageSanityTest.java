@@ -13,11 +13,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.testing.AbstractPackageSanityTests;
 import java.util.HashMap;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class PackageSanityTest extends AbstractPackageSanityTests {
 
@@ -25,7 +28,11 @@ public class PackageSanityTest extends AbstractPackageSanityTests {
     setDefault(
         LogManagerWithoutDuplicates.class,
         new LogManagerWithoutDuplicates(LogManager.createTestLogManager()));
-    setDefault(Configuration.class, Configuration.defaultConfiguration());
+    try {
+      setDefault(Configuration.class, TestUtils.configurationForTest().build());
+    } catch (InvalidConfigurationException e) {
+      throw new AssertionError(e);
+    }
     setDefault(CFANode.class, CFANode.newDummyCFANode());
 
     setDefault(VariableOrField.class, VariableOrField.unknown());
@@ -33,10 +40,10 @@ public class PackageSanityTest extends AbstractPackageSanityTests {
 
     CCompositeType dummystruct =
         new CCompositeType(
-            false, false, ComplexTypeKind.STRUCT, ImmutableList.of(), "dummy", "dummy");
+            CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, ImmutableList.of(), "dummy", "dummy");
     CCompositeType dummyunion =
         new CCompositeType(
-            false, false, ComplexTypeKind.UNION, ImmutableList.of(), "dummy", "dummy");
+            CTypeQualifiers.NONE, ComplexTypeKind.UNION, ImmutableList.of(), "dummy", "dummy");
     setDefault(CCompositeType.class, dummystruct);
 
     setDistinctValues(CCompositeType.class, dummystruct, dummyunion);

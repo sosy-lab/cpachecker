@@ -40,7 +40,7 @@ public class VariableTrackingConstraintsPrecision implements ConstraintsPrecisio
       order = pOrder;
     }
 
-    public IncrementScope lower(final IncrementScope pOther) {
+    IncrementScope lower(final IncrementScope pOther) {
       if (pOther.order < order) {
         return pOther;
       } else {
@@ -69,54 +69,42 @@ public class VariableTrackingConstraintsPrecision implements ConstraintsPrecisio
     if (!constraintsPrecision.isTracked(pConstraint, pLocation)) {
       IncrementScope constraintScope = IncrementScope.NONE;
       // verify if pConstraint is Unary or BinaryConstraint
-      if (pConstraint instanceof UnaryConstraint) {
+      if (pConstraint instanceof UnaryConstraint unaryConstraint) {
         constraintScope =
             getScopeForConstraint(
-                ((UnaryConstraint) pConstraint)
-                    .getOperand()
-                    .accept(SymbolicIdentifierLocator.getInstance()),
+                unaryConstraint.getOperand().accept(SymbolicIdentifierLocator.getInstance()),
                 pLocation,
                 IncrementScope.GLOBAL);
-      } else if (pConstraint instanceof BinaryConstraint) {
+      } else if (pConstraint instanceof BinaryConstraint binaryConstraint) {
         constraintScope =
             getScopeForConstraint(
-                ((BinaryConstraint) pConstraint)
-                    .getOperand1()
-                    .accept(SymbolicIdentifierLocator.getInstance()),
+                binaryConstraint.getOperand1().accept(SymbolicIdentifierLocator.getInstance()),
                 pLocation,
                 IncrementScope.GLOBAL);
         if (constraintScope != IncrementScope.NONE) {
           constraintScope =
               getScopeForConstraint(
-                  ((BinaryConstraint) pConstraint)
-                      .getOperand2()
-                      .accept(SymbolicIdentifierLocator.getInstance()),
+                  binaryConstraint.getOperand2().accept(SymbolicIdentifierLocator.getInstance()),
                   pLocation,
                   constraintScope);
         }
       }
 
-      switch (constraintScope) {
-        case LOCAL:
-          constraintsPrecision =
-              constraintsPrecision.withIncrement(
-                  Increment.builder().locallyTracked(pLocation, pConstraint).build());
-          break;
-        case FUNCTION:
-          constraintsPrecision =
-              constraintsPrecision.withIncrement(
-                  Increment.builder()
-                      .functionWiseTracked(pLocation.getFunctionName(), pConstraint)
-                      .build());
-          break;
-        case GLOBAL:
-          constraintsPrecision =
-              constraintsPrecision.withIncrement(
-                  Increment.builder().globallyTracked(pConstraint).build());
-          break;
-        case NONE:
-          break;
-      }
+      constraintsPrecision =
+          switch (constraintScope) {
+            case LOCAL ->
+                constraintsPrecision.withIncrement(
+                    Increment.builder().locallyTracked(pLocation, pConstraint).build());
+            case FUNCTION ->
+                constraintsPrecision.withIncrement(
+                    Increment.builder()
+                        .functionWiseTracked(pLocation.getFunctionName(), pConstraint)
+                        .build());
+            case GLOBAL ->
+                constraintsPrecision.withIncrement(
+                    Increment.builder().globallyTracked(pConstraint).build());
+            case NONE -> constraintsPrecision;
+          };
       return constraintScope != IncrementScope.NONE;
     }
     return true;

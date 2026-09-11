@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -204,7 +203,7 @@ public final class ModificationsPropState
         sb.append("}");
       }
       sb.append(":");
-      FluentIterable<CFAEdge> edgesInMod = CFAUtils.enteringEdges(locationInModCfa);
+      FluentIterable<CFAEdge> edgesInMod = locationInModCfa.getEnteringEdges();
       for (CFAEdge e : edgesInMod) {
         sb.append(e);
         sb.append(", ");

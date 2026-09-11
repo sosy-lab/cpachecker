@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /** Transfer relation for abstract states used in variable-dependent difference verification. */
@@ -99,7 +98,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
 
         // case 3 outsourced to abstract state creation
 
-        if (CFAUtils.leavingEdges(nodeInMod).contains(pCfaEdge)) {
+        if (nodeInMod.getLeavingEdges().contains(pCfaEdge)) {
           // helper.logCase(pCfaEdge.getCode());
           // prepare further cases by skipping ignored operations
           // for original CFA skip untracked edges in ModificationPropState constructor
@@ -111,7 +110,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
           }
 
           // case 4
-          for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
+          for (CFAEdge edgeInOriginal : nodeInOriginal.getLeavingEdges()) {
             // check function return location later,
             // needed if pCfaEdge instanceof CFunctionReturnEdge
             if (helper.edgesMatchIgnoringFunctionReturnLocation(pCfaEdge, edgeInOriginal)) {
@@ -135,12 +134,12 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                           changedVars,
                           stack,
                           helper));
-                } else if (pCfaEdge instanceof CStatementEdge) {
+                } else if (pCfaEdge instanceof CStatementEdge cStatementEdge) {
                   helper.logCase("Taking case 4b.");
                   final ImmutableSet<String> changedVarsInSuccessor;
                   try {
                     changedVarsInSuccessor =
-                        helper.modifySetForAssignment((CStatementEdge) pCfaEdge, changedVars);
+                        helper.modifySetForAssignment(cStatementEdge, changedVars);
                   } catch (PointerAccessException e) {
                     helper.logProblem("Caution: Pointer or similar detected.");
                     return ImmutableSet.of(modPropState.makeBad());
@@ -159,11 +158,11 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
               }
             }
           }
-          if (pCfaEdge instanceof CDeclarationEdge) {
-            for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
-              if (edgeInOriginal instanceof CDeclarationEdge) {
-                final CDeclaration declOr = ((CDeclarationEdge) edgeInOriginal).getDeclaration();
-                final CDeclaration declMo = ((CDeclarationEdge) pCfaEdge).getDeclaration();
+          if (pCfaEdge instanceof CDeclarationEdge declEdge) {
+            for (CFAEdge edgeInOriginal : nodeInOriginal.getLeavingEdges()) {
+              if (edgeInOriginal instanceof CDeclarationEdge declEdgeInOriginal) {
+                final CDeclaration declOr = declEdgeInOriginal.getDeclaration();
+                final CDeclaration declMo = declEdge.getDeclaration();
                 if (declOr.getOrigName() != null
                     && declOr.getOrigName().equals(declMo.getOrigName())) {
                   helper.logCase("Taking case 4 for different declarations or modified variables.");
@@ -181,11 +180,10 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
               }
             }
           }
-          if (pCfaEdge instanceof CReturnStatementEdge) {
-            for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
-              if (edgeInOriginal instanceof CReturnStatementEdge) {
-                final CReturnStatementEdge retOr = (CReturnStatementEdge) edgeInOriginal;
-                final CReturnStatementEdge retMo = (CReturnStatementEdge) pCfaEdge;
+          if (pCfaEdge instanceof CReturnStatementEdge retMo) {
+            for (CFAEdge edgeInOriginal : nodeInOriginal.getLeavingEdges()) {
+              if (edgeInOriginal instanceof CReturnStatementEdge retOr) {
+
                 if (helper.inSameFunction(retMo.getSuccessor(), retOr.getSuccessor())) {
                   helper.logCase(
                       "Taking case 4 for function returns, potentially with modified variables or"
@@ -261,15 +259,15 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
               }
             }
           }
-          if (pCfaEdge instanceof CFunctionReturnEdge) {
+          if (pCfaEdge instanceof CFunctionReturnEdge retMo) {
             final Deque<CFANode> stackminus = new ArrayDeque<>(stack);
             // Pop summary edge goal to compare to function return edge goal.
             final CFANode summaryGoal = stackminus.removeLast();
             if (summaryGoal != null) {
-              for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
+              for (CFAEdge edgeInOriginal : nodeInOriginal.getLeavingEdges()) {
                 if (edgeInOriginal instanceof final CFunctionReturnEdge retOr
                     && edgeInOriginal.getSuccessor().equals(summaryGoal)) {
-                  final CFunctionReturnEdge retMo = (CFunctionReturnEdge) pCfaEdge;
+
                   if (helper.inSameFunction(retMo.getSuccessor(), retOr.getSuccessor())) {
                     helper.logCase(
                         "Taking case 4 for function return statement with modified variables or"
@@ -337,10 +335,10 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
               helper.logProblem("Stack is empty. Something went wrong.");
             }
           }
-          if (pCfaEdge instanceof CFunctionCallEdge) {
-            for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
+          if (pCfaEdge instanceof CFunctionCallEdge callMo) {
+            for (CFAEdge edgeInOriginal : nodeInOriginal.getLeavingEdges()) {
               if (edgeInOriginal instanceof final CFunctionCallEdge callOr) {
-                final CFunctionCallEdge callMo = (CFunctionCallEdge) pCfaEdge;
+
                 final CFunctionEntryNode entryNodeOr = callOr.getSuccessor();
                 final CFunctionEntryNode entryNodeMo = callMo.getSuccessor();
                 final List<String> paramsOr =
@@ -459,7 +457,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
           // case 7
           if (helper.useImplicationCheck()) {
             if (pCfaEdge instanceof CAssumeEdge assGiven) {
-              for (CFAEdge ce : CFAUtils.leavingEdges(nodeInOriginal)) {
+              for (CFAEdge ce : nodeInOriginal.getLeavingEdges()) {
                 if (ce instanceof CAssumeEdge assOrig) {
                   helper.logCase("Checking for case 7 compliance.");
                   if (helper.implies(assGiven, assOrig)) {

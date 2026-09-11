@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.Serial;
 import java.util.Arrays;
 import java.util.List;
+import java.util.OptionalLong;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
@@ -110,8 +111,8 @@ public final class ArrayValue implements Value {
     if (pType instanceof JClassOrInterfaceType) {
       return NullValue.getInstance();
 
-    } else if (pType instanceof JSimpleType) {
-      return switch ((JSimpleType) pType) {
+    } else if (pType instanceof JSimpleType jSimpleType) {
+      return switch (jSimpleType) {
         case BOOLEAN -> BooleanValue.valueOf(false);
         case BYTE, CHAR, SHORT, INT, LONG, FLOAT, DOUBLE -> new NumericValue(0L);
         default -> throw new AssertionError("Unhandled type " + pType.getClass());
@@ -132,8 +133,8 @@ public final class ArrayValue implements Value {
 
     int counter = 0;
     for (Value v : pArrayValue.values) {
-      if (v instanceof ArrayValue) {
-        newArray.values[counter] = ArrayValue.copyOf((ArrayValue) v);
+      if (v instanceof ArrayValue arrayValue) {
+        newArray.values[counter] = ArrayValue.copyOf(arrayValue);
       } else {
         newArray.values[counter] = v;
       }
@@ -163,30 +164,24 @@ public final class ArrayValue implements Value {
 
     } else if (elementType instanceof JSimpleType concreteType) {
       switch (concreteType) {
-        case BYTE:
-        case CHAR:
-        case SHORT:
-        case INT:
-        case LONG:
+        case BYTE, CHAR, SHORT, INT, LONG -> {
           // check that, if Value is of NumericValue, it contains an integer
-          if (!(pValue instanceof NumericValue)
-              || (((NumericValue) pValue).doubleValue() % 1) != 0) {
+          if (!(pValue instanceof NumericValue numericValue)
+              || (numericValue.doubleValue() % 1) != 0) {
             throw new IllegalArgumentException(errorMessage);
           }
-          break;
-        case FLOAT:
-        case DOUBLE:
+        }
+        case FLOAT, DOUBLE -> {
           if (!(pValue instanceof NumericValue)) {
             throw new IllegalArgumentException(errorMessage);
           }
-          break;
-        case BOOLEAN:
+        }
+        case BOOLEAN -> {
           if (!(pValue instanceof BooleanValue)) {
             throw new IllegalArgumentException(errorMessage);
           }
-          break;
-        default:
-          throw new IllegalArgumentException(errorMessage);
+        }
+        default -> throw new IllegalArgumentException(errorMessage);
       }
     }
   }
@@ -285,8 +280,8 @@ public final class ArrayValue implements Value {
   }
 
   @Override
-  public Long asLong(CType type) {
-    return null;
+  public OptionalLong asLong(CType type) {
+    return OptionalLong.empty();
   }
 
   @Override

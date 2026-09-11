@@ -135,11 +135,11 @@ public class PredicateRequirementsTranslator
     private final Set<String> relevantVars;
     private boolean success = true;
 
-    public RelevantFormulaDetector(final Set<String> pRelevantVars) {
+    RelevantFormulaDetector(final Set<String> pRelevantVars) {
       relevantVars = pRelevantVars;
     }
 
-    public BooleanFormula getRelevantFormula() {
+    BooleanFormula getRelevantFormula() {
       Preconditions.checkState(success);
       if (clauses.isEmpty()) {
         return fmgr.getBooleanFormulaManager().makeTrue();
@@ -147,18 +147,18 @@ public class PredicateRequirementsTranslator
       return fmgr.getBooleanFormulaManager().and(clauses);
     }
 
-    public boolean detectionSuccessful() {
+    boolean detectionSuccessful() {
       return success;
     }
 
     @Override
     protected TraversalProcess visitDefault(final Formula pFormula) {
-      if (!(pFormula instanceof BooleanFormula)) {
+      if (!(pFormula instanceof BooleanFormula booleanFormula)) {
         success = false;
         return TraversalProcess.ABORT;
       }
 
-      clauses.add((BooleanFormula) pFormula);
+      clauses.add(booleanFormula);
       return TraversalProcess.SKIP;
     }
 
@@ -170,12 +170,12 @@ public class PredicateRequirementsTranslator
       }
 
       if (!Sets.intersection(fmgr.extractVariableNames(pFormula), relevantVars).isEmpty()) {
-        if (!(pFormula instanceof BooleanFormula)) {
+        if (!(pFormula instanceof BooleanFormula booleanFormula)) {
           success = false;
           return TraversalProcess.ABORT;
         }
 
-        clauses.add((BooleanFormula) pFormula);
+        clauses.add(booleanFormula);
       }
 
       return TraversalProcess.SKIP;

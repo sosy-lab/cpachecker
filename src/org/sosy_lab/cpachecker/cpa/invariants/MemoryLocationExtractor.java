@@ -103,47 +103,54 @@ public class MemoryLocationExtractor {
   }
 
   public MemoryLocation getMemoryLocation(AExpression pLhs) throws UnrecognizedCodeException {
-    if (pLhs instanceof AIdExpression) {
-      return getMemoryLocation((AIdExpression) pLhs);
-    } else if (pLhs instanceof CFieldReference fieldRef) {
-      String varName = fieldRef.getFieldName();
-      CExpression owner = fieldRef.getFieldOwner();
-      return getFieldReferenceMemoryLocation(varName, owner, fieldRef.isPointerDereference());
-    } else if (pLhs instanceof JFieldAccess fieldRef) {
-      String varName = fieldRef.getName();
-      JIdExpression owner = fieldRef.getReferencedVariable();
-      return getFieldReferenceMemoryLocation(varName, owner, false);
-    } else if (pLhs instanceof CArraySubscriptExpression arraySubscript) {
-      CExpression subscript = arraySubscript.getSubscriptExpression();
-      CExpression owner = arraySubscript.getArrayExpression();
-      return getArraySubscriptMemoryLocation(owner, subscript);
-    } else if (pLhs instanceof JArraySubscriptExpression arraySubscript) {
-      JExpression subscript = arraySubscript.getSubscriptExpression();
-      JExpression owner = arraySubscript.getArrayExpression();
-      return getArraySubscriptMemoryLocation(owner, subscript);
-    } else if (pLhs instanceof CPointerExpression pe) {
-      if (pe.getOperand() instanceof CLeftHandSide) {
-        // TODO
-        return MemoryLocation.parseExtendedQualifiedName(
-            String.format("*(%s)", getMemoryLocation(pe.getOperand())));
+    return switch (pLhs) {
+      case CFieldReference fieldRef -> {
+        String varName = fieldRef.getFieldName();
+        CExpression owner = fieldRef.getFieldOwner();
+        yield getFieldReferenceMemoryLocation(varName, owner, fieldRef.isPointerDereference());
       }
-      // TODO
-      return MemoryLocation.forLocalVariable(functionName, pLhs.toString());
-    } else if (pLhs instanceof CCastExpression cast) {
-      return getMemoryLocation(cast.getOperand());
-    } else if (pLhs instanceof JCastExpression cast) {
-      return getMemoryLocation(cast.getOperand());
-    } else if (pLhs instanceof CUnaryExpression
-        && ((CUnaryExpression) pLhs).getOperator() == UnaryOperator.AMPER) {
-      // TODO
-      return MemoryLocation.parseExtendedQualifiedName(
-          String.format("&(%s)", getMemoryLocation(((CUnaryExpression) pLhs).getOperand())));
-    } else {
-      // TODO
-      // This actually seems wrong but is currently the only way to deal with some cases of pointer
-      // arithmetics
-      return MemoryLocation.forLocalVariable(functionName, pLhs.toString());
-    }
+      case JFieldAccess fieldRef -> {
+        String varName = fieldRef.getName();
+        JIdExpression owner = fieldRef.getReferencedVariable();
+        yield getFieldReferenceMemoryLocation(varName, owner, false);
+      }
+      case AIdExpression aIdExpression -> getMemoryLocation(aIdExpression);
+
+      case CArraySubscriptExpression arraySubscript -> {
+        CExpression subscript = arraySubscript.getSubscriptExpression();
+        CExpression owner = arraySubscript.getArrayExpression();
+        yield getArraySubscriptMemoryLocation(owner, subscript);
+      }
+      case JArraySubscriptExpression arraySubscript -> {
+        JExpression subscript = arraySubscript.getSubscriptExpression();
+        JExpression owner = arraySubscript.getArrayExpression();
+        yield getArraySubscriptMemoryLocation(owner, subscript);
+      }
+      case CPointerExpression pe when pe.getOperand() instanceof CLeftHandSide ->
+          // TODO
+          MemoryLocation.parseExtendedQualifiedName(
+              String.format("*(%s)", getMemoryLocation(pe.getOperand())));
+
+      case CPointerExpression pe ->
+          // TODO
+          MemoryLocation.forLocalVariable(functionName, pLhs.toString());
+
+      case CCastExpression cast -> getMemoryLocation(cast.getOperand());
+
+      case JCastExpression cast -> getMemoryLocation(cast.getOperand());
+
+      case CUnaryExpression cUnaryExpression
+          when cUnaryExpression.getOperator() == UnaryOperator.AMPER ->
+          // TODO
+          MemoryLocation.parseExtendedQualifiedName(
+              String.format("&(%s)", getMemoryLocation(cUnaryExpression.getOperand())));
+
+      default ->
+          // TODO
+          // This actually seems wrong but is currently the only way to deal with some cases of
+          // pointer arithmetics
+          MemoryLocation.forLocalVariable(functionName, pLhs.toString());
+    };
   }
 
   private MemoryLocation getMemoryLocation(AIdExpression pIdExpression) {
@@ -176,10 +183,10 @@ public class MemoryLocationExtractor {
     ExpressionToFormulaVisitor expressionToFormulaVisitor =
         new ExpressionToFormulaVisitor(
             compoundIntervalManagerFactory, machineModel, this, environment);
-    if (pSubscript instanceof CExpression) {
-      subscriptValue = evaluate(((CExpression) pSubscript).accept(expressionToFormulaVisitor));
-    } else if (pSubscript instanceof JExpression) {
-      subscriptValue = evaluate(((JExpression) pSubscript).accept(expressionToFormulaVisitor));
+    if (pSubscript instanceof CExpression cExpression) {
+      subscriptValue = evaluate(cExpression.accept(expressionToFormulaVisitor));
+    } else if (pSubscript instanceof JExpression jExpression) {
+      subscriptValue = evaluate(jExpression.accept(expressionToFormulaVisitor));
     } else {
       subscriptValue =
           compoundIntervalManagerFactory

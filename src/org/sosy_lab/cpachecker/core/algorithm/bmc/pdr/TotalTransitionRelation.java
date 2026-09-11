@@ -175,9 +175,8 @@ public class TotalTransitionRelation {
       OptionalInt index = varNameWithIndex.getSecond();
       if (index.isPresent() && index.orElseThrow() == 1 && varName.equals(LOCATION_VARIABLE_NAME)) {
         Object value = valueAssignment.getValue();
-        if (value instanceof Number) {
-          PartialTransitionRelation result =
-              totalTransitionRelation.get(((Number) value).intValue());
+        if (value instanceof Number number) {
+          PartialTransitionRelation result = totalTransitionRelation.get(number.intValue());
           checkArgument(result != null, "Unknown location: %s", value);
           return result;
         }

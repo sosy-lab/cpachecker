@@ -142,8 +142,8 @@ public final class Interval implements Serializable {
    * This method determines if this interval is definitely greater than the other interval.
    *
    * @param other interval to compare with
-   * @return true if the lower bound of this interval is always strictly greater than the upper
-   *     bound of the other interval, else false
+   * @return whether the lower bound of this interval is always strictly greater than the upper
+   *     bound of the other interval
    */
   public boolean isGreaterThan(Interval other) {
     return !isEmpty() && !other.isEmpty() && low > other.high;
@@ -154,8 +154,8 @@ public final class Interval implements Serializable {
    * The equality is only satisfied for one single value!
    *
    * @param other interval to compare with
-   * @return true if the lower bound of this interval is always strictly greater or equal than the
-   *     upper bound of the other interval, else false
+   * @return whether the lower bound of this interval is always strictly greater or equal than the
+   *     upper bound of the other interval
    */
   public boolean isGreaterOrEqualThan(Interval other) {
     return !isEmpty() && !other.isEmpty() && low >= other.high;
@@ -165,8 +165,8 @@ public final class Interval implements Serializable {
    * This method determines if this interval maybe greater than the other interval.
    *
    * @param other interval to compare with
-   * @return true if the upper bound of this interval is strictly greater than the lower bound of
-   *     the other interval, else false
+   * @return whether the upper bound of this interval is strictly greater than the lower bound of
+   *     the other interval
    */
   public boolean mayBeGreaterThan(Interval other) {
     return other.isEmpty() || (!isEmpty() && !other.isEmpty() && high > other.low);
@@ -176,8 +176,8 @@ public final class Interval implements Serializable {
    * This method determines if this interval maybe greater or equal than the other interval.
    *
    * @param other interval to compare with
-   * @return true if the upper bound of this interval is strictly greater than the lower bound of
-   *     the other interval, else false
+   * @return whether the upper bound of this interval is strictly greater than the lower bound of
+   *     the other interval
    */
   public boolean mayBeGreaterOrEqualThan(Interval other) {
     return other.isEmpty() || (!isEmpty() && !other.isEmpty() && high >= other.low);
@@ -202,7 +202,7 @@ public final class Interval implements Serializable {
     long newLow;
 
     // New high of the interval can't be higher than the highest value in the divisor.
-    // If the divisible element is positive, it is also bounded by it's highest number,
+    // If the divisible element is positive, it is also bounded by its highest number,
     // or by the absolute value of the lowest number.
     // (-1 % 6 CAN be either -1 or 5 according to the C standard).
     long top;
@@ -285,7 +285,7 @@ public final class Interval implements Serializable {
    * This method determines if this interval intersects with another interval.
    *
    * @param other the other interval
-   * @return true if the intervals intersect, else false
+   * @return whether the intervals intersect
    */
   public boolean intersects(Interval other) {
     if (isEmpty() || other.isEmpty()) {
@@ -305,7 +305,7 @@ public final class Interval implements Serializable {
    * interval, this method will return false.
    *
    * @param other the other interval
-   * @return true if this interval contains the other interval, else false
+   * @return whether this interval contains the other interval
    */
   public boolean contains(Interval other) {
     return (!isEmpty() && !other.isEmpty() && low <= other.low && other.high <= high);
@@ -459,7 +459,7 @@ public final class Interval implements Serializable {
   /**
    * This method determines whether the interval is empty or not.
    *
-   * @return true, if the interval is empty, i.e. the lower and upper bounds are null
+   * @return whether the interval is empty, i.e. the lower and upper bounds are null
    */
   public boolean isEmpty() {
     return low == null && high == null;

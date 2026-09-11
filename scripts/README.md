@@ -36,5 +36,7 @@ cf. the [README](../README.md) in main directory.
   (cf. the respective [README](post_processing/coverage/README.md)).
 
 # Other Utilities
+- `bisect.sh`:
+  Helper for automated bisecting with `git bisect run`.
 - `generate-buildbot-table.sh`:
   Create and show a table with results from [BuildBot](https://buildbot.sosy-lab.org/cpachecker/).

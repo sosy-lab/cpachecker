@@ -103,7 +103,7 @@ class TypeHierachyConverter {
 
     } else {
 
-      // A Method is also abstract if its a member of an interface
+      // A Method is also abstract if it's a member of an interface
       boolean isAbstract = mb.isAbstract() || md.resolveBinding().getDeclaringClass().isInterface();
 
       JMethodType methodType =
@@ -169,7 +169,9 @@ class TypeHierachyConverter {
     IVariableBinding vB = vdf.resolveBinding();
 
     checkNotNull(
-        vdf, "Can't resolve binding of field declaration " + vdf.getName().getFullyQualifiedName());
+        vdf,
+        "Can't resolve binding of field declaration %s",
+        vdf.getName().getFullyQualifiedName());
 
     String qualifiedName = NameConverter.convertName(vB);
     String simpleName = vB.getName();
@@ -209,8 +211,8 @@ class TypeHierachyConverter {
   private JClassType convertClassOfConstructor(MethodDeclaration md) {
     JClassOrInterfaceType type = convertDeclaringClassType(md);
 
-    if (type instanceof JClassType) {
-      return (JClassType) type;
+    if (type instanceof JClassType jClassType) {
+      return jClassType;
     } else {
       return typeTable.getUnresolvableClassType();
     }

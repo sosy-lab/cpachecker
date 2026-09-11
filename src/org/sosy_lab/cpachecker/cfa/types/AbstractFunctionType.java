@@ -20,7 +20,7 @@ public abstract class AbstractFunctionType implements AFunctionType {
 
   @Serial private static final long serialVersionUID = 5378375954515193938L;
   private final Type returnType;
-  private final List<? extends Type> parameters;
+  private final ImmutableList<? extends Type> parameters;
   private final boolean takesVarArgs;
 
   public AbstractFunctionType(
@@ -37,7 +37,7 @@ public abstract class AbstractFunctionType implements AFunctionType {
   }
 
   @Override
-  public List<? extends Type> getParameters() {
+  public ImmutableList<? extends Type> getParameters() {
     return parameters;
   }
 

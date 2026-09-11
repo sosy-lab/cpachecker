@@ -170,8 +170,8 @@ class CheckBindingVisitor
     if (e.getFunctionNameExpression() instanceof CIdExpression f) {
       CType expressionType = f.getExpressionType().getCanonicalType();
       assert expressionType instanceof CFunctionType
-              || (expressionType instanceof CPointerType
-                  && ((CPointerType) expressionType).getType() instanceof CFunctionType)
+              || (expressionType instanceof CPointerType cPointerType
+                  && cPointerType.getType() instanceof CFunctionType)
           : "Invalid function call: Type of expression "
               + f.getName()
               + " in line "

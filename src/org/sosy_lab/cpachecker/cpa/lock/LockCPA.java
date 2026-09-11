@@ -81,8 +81,6 @@ public class LockCPA extends AbstractCPA
     return switch (analysisMode) {
       case RACE -> new LockState();
       case DEADLOCK -> new DeadLockState();
-      default -> // The analysis should fail at CPA creation
-          throw new UnsupportedOperationException("Unsupported analysis mode");
     };
   }
 
@@ -111,8 +109,6 @@ public class LockCPA extends AbstractCPA
     return switch (stopMode) {
       case DEFAULT -> buildStopOperator("SEP");
       case EMPTYLOCKSET -> new LockStopOperator();
-      default -> // The analysis should fail at CPA creation
-          throw new UnsupportedOperationException("Unsupported stop mode");
     };
   }
 

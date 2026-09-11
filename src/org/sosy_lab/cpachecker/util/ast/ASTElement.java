@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.ast;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.concurrent.LazyInit;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
@@ -28,7 +29,7 @@ public final class ASTElement {
   }
 
   /** Returns the set of CFA edges belonging to this ASTElement. */
-  public ImmutableSet<CFAEdge> edges() {
+  public ImmutableSet<@NonNull CFAEdge> edges() {
     // we calculate this set lazily upon the first invocation
     if (edges == null) {
       edges =

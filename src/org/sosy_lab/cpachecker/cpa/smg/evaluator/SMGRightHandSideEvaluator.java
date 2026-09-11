@@ -43,13 +43,14 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
- * The class {@link SMGExpressionEvaluator} is meant to evaluate a expression using an arbitrary
- * SMGState. Thats why it does not permit semantic changes of the state it uses. This class
+ * The class {@link SMGExpressionEvaluator} is meant to evaluate an expression using an arbitrary
+ * SMGState. That's why it does not permit semantic changes of the state it uses. This class
  * implements additionally the changes that occur while calculating the next smgState in the
  * Transfer Relation. These mainly include changes when evaluating functions. They also contain code
  * that should only be executed during the calculation of the next SMG State, e.g. logging.
@@ -81,12 +82,12 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
 
     Value val = rVal.accept(v);
 
-    if (val.isUnknown()) {
+    if (!(val instanceof NumericValue numValue)) {
       return SMGExplicitValueAndState.of(v.getState(), SMGUnknownValue.INSTANCE);
     }
 
     return SMGExplicitValueAndState.of(
-        v.getState(), SMGKnownExpValue.valueOf(val.asNumericValue().longValue()));
+        v.getState(), SMGKnownExpValue.valueOf(numValue.longValue()));
   }
 
   public SMGState deriveFurtherInformation(

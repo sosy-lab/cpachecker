@@ -119,11 +119,11 @@ class CompositeStopOperator implements StopOperator, ForcedCoveringStopOperator 
       Precision prec = compositePrecisions.get(idx);
 
       boolean possible;
-      if (stopOp instanceof ForcedCoveringStopOperator) {
+      if (stopOp instanceof ForcedCoveringStopOperator forcedCoveringStopOperator) {
 
         possible =
-            ((ForcedCoveringStopOperator) stopOp)
-                .isForcedCoveringPossible(wrappedState, wrappedReachedState, prec);
+            forcedCoveringStopOperator.isForcedCoveringPossible(
+                wrappedState, wrappedReachedState, prec);
 
       } else {
         possible = stopOp.stop(wrappedState, Collections.singleton(wrappedReachedState), prec);

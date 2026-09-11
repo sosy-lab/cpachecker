@@ -162,7 +162,7 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
    * This method may be overwritten if the standard behavior of <code>ARGUtils.getOnePathTo()</code>
    * is not appropriate in the implementations context.
    *
-   * <p>TODO: Currently this function may return null.
+   * <p>TODO: Currently, this function may return null.
    *
    * @param pLastElement Last ARGState of the given reached set
    * @param pReached ReachedSet
@@ -179,8 +179,8 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (refiner instanceof StatisticsProvider) {
-      ((StatisticsProvider) refiner).collectStatistics(pStatsCollection);
+    if (refiner instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
   }
 

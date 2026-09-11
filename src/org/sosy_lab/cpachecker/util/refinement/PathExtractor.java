@@ -11,13 +11,12 @@ package org.sosy_lab.cpachecker.util.refinement;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.SequencedSet;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -47,11 +46,11 @@ public class PathExtractor implements Statistics {
   @Option(
       secure = true,
       name = "cegar.globalRefinement",
-      description = "whether or not global refinement is performed")
+      description = "whether global refinement is performed")
   private boolean globalRefinement = false;
 
   /** keep log of feasible targets that were already found */
-  private final Set<ARGState> feasibleTargets = new LinkedHashSet<>();
+  private final SequencedSet<ARGState> feasibleTargets = new LinkedHashSet<>();
 
   private final LogManager logger;
 
@@ -87,7 +86,7 @@ public class PathExtractor implements Statistics {
     // set of targets may only be empty, if all of them were found feasible previously
     if (targets.isEmpty()) {
       throw new RefinementFailedException(
-          Reason.RepeatedCounterexample, ARGUtils.getOnePathTo(Iterables.getLast(feasibleTargets)));
+          Reason.RepeatedCounterexample, ARGUtils.getOnePathTo(feasibleTargets.getLast()));
     }
 
     logger.log(Level.FINEST, "number of targets found: " + targets.size());

@@ -19,21 +19,15 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
-import com.google.common.io.MoreFiles;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
@@ -53,7 +47,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 
 public class CFACreatorTest {
 
@@ -144,14 +138,11 @@ public class CFACreatorTest {
 
   @Test
   public void testParseSourceAndCreateCfaWithNoReturnAbort()
-      throws InvalidConfigurationException, ParserException, InterruptedException {
-    final Configuration config =
-        TestDataTools.configurationForTest().setOption("language", "C").build();
-    final CFACreator creator = createCfaCreatorForTesting(config);
+      throws ParserException, InterruptedException {
     final String programSource =
         "extern void abort() __attribute__((__noreturn__));int main() { abort(); }";
 
-    final CFA created = creator.parseSourceAndCreateCFA(programSource);
+    final CFA created = TestCfaUtils.makeCfaFromString(programSource);
 
     Predicate<CFAEdge> isNoReturnFunctionCall =
         Predicates.and(
@@ -167,14 +158,11 @@ public class CFACreatorTest {
 
   @Test
   public void testParseSourceAndCreateCfaWithNoReturnFunctionAttribute()
-      throws InvalidConfigurationException, ParserException, InterruptedException {
-    final Configuration config =
-        TestDataTools.configurationForTest().setOption("language", "C").build();
-    final CFACreator creator = createCfaCreatorForTesting(config);
+      throws ParserException, InterruptedException {
     final String programSource =
         "extern void myfunc() __attribute__((__noreturn__));int main() { myfunc(); }";
 
-    final CFA created = creator.parseSourceAndCreateCFA(programSource);
+    final CFA created = TestCfaUtils.makeCfaFromString(programSource);
 
     Predicate<CFAEdge> isNoReturnFunctionCall =
         Predicates.and(
@@ -190,17 +178,12 @@ public class CFACreatorTest {
 
   @Test
   public void testParseSourceAndCreateCfaWithReturningAbort()
-      throws InvalidConfigurationException, ParserException, InterruptedException {
-    final Configuration config =
-        TestDataTools.configurationForTest()
-            .setOption("language", "C")
-            .setOption(
-                "cfa.nonReturningFunctions", "[]") // do not handle 'abort' as aborting function
-            .build();
-    final CFACreator creator = createCfaCreatorForTesting(config);
+      throws ParserException, InterruptedException {
     final String programSource = "extern void abort();int main() { abort(); }";
 
-    final CFA created = creator.parseSourceAndCreateCFA(programSource);
+    final CFA created =
+        TestCfaUtils.makeCfaFromString(
+            programSource, Map.entry("cfa.nonReturningFunctions", "[]")); // do not handle 'abort'
 
     Predicate<CFAEdge> isNoReturnFunctionCall =
         Predicates.and(
@@ -216,16 +199,14 @@ public class CFACreatorTest {
 
   @Test
   public void testParseSourceAndCreateCfaWithReturningAbortButExplicitTermination()
-      throws InvalidConfigurationException, ParserException, InterruptedException {
-    final Configuration config =
-        TestDataTools.configurationForTest()
-            .setOption("language", "C")
-            .setOption("cfa.nonReturningFunctions", "abort") // handle 'abort' as aborting function
-            .build();
-    final CFACreator creator = createCfaCreatorForTesting(config);
+      throws ParserException, InterruptedException {
     final String programSource = "extern void abort();int main() { abort(); }";
 
-    final CFA created = creator.parseSourceAndCreateCFA(programSource);
+    final CFA created =
+        TestCfaUtils.makeCfaFromString(
+            programSource,
+            Map.entry("cfa.nonReturningFunctions", "abort") // handle 'abort' as aborting function
+            );
 
     Predicate<CFAEdge> isNoReturnFunctionCall =
         Predicates.and(
@@ -241,48 +222,37 @@ public class CFACreatorTest {
 
   @Test
   public void testFileLocationsInCfa() throws IOException, InterruptedException, ParserException {
-    Path program_path = Path.of("test/programs/cfa-creation/cfa-creation-test.c");
-    CFA createdCFA =
-        TestDataTools.makeCFA(
-            IOUtils.toString(
-                MoreFiles.asByteSource(program_path).openStream(), StandardCharsets.UTF_8));
+    CFA createdCFA = TestCfaUtils.makeCfaFromFile("test/programs/cfa-creation/cfa-creation-test.c");
 
     Path testFilepath = Path.of("./test");
-    assertThat(TestDataTools.getEdge("x = 0", createdCFA).getFileLocation())
+    assertThat(TestCfaUtils.getEdge("x = 0", createdCFA).getFileLocation())
         .isEqualTo(new FileLocation(testFilepath, 252, 10, 10, 10, 3, 13));
-    assertThat(TestDataTools.getEdge("y = 0", createdCFA).getFileLocation())
+    assertThat(TestCfaUtils.getEdge("y = 0", createdCFA).getFileLocation())
         .isEqualTo(new FileLocation(testFilepath, 265, 10, 11, 11, 3, 13));
-    assertThat(TestDataTools.getEdge("[x == y]", createdCFA).getFileLocation())
+    assertThat(TestCfaUtils.getEdge("[x == y]", createdCFA).getFileLocation())
         .isEqualTo(new FileLocation(testFilepath, 282, 6, 12, 12, 7, 13));
-    assertThat(TestDataTools.getEdge("!(x == y)", createdCFA).getFileLocation())
+    assertThat(TestCfaUtils.getEdge("!(x == y)", createdCFA).getFileLocation())
         .isEqualTo(new FileLocation(testFilepath, 282, 6, 12, 12, 7, 13));
-    assertThat(TestDataTools.getEdge("[x == 0]", createdCFA).getFileLocation())
+    assertThat(TestCfaUtils.getEdge("[x == 0]", createdCFA).getFileLocation())
         .isEqualTo(new FileLocation(testFilepath, 292, 6, 12, 12, 17, 23));
-    assertThat(TestDataTools.getEdge("!(x == 0)", createdCFA).getFileLocation())
+    assertThat(TestCfaUtils.getEdge("!(x == 0)", createdCFA).getFileLocation())
         .isEqualTo(new FileLocation(testFilepath, 292, 6, 12, 12, 17, 23));
-    assertThat(TestDataTools.getEdge("[y == 0]", createdCFA).getFileLocation())
+    assertThat(TestCfaUtils.getEdge("[y == 0]", createdCFA).getFileLocation())
         .isEqualTo(new FileLocation(testFilepath, 308, 6, 13, 13, 7, 13));
-    assertThat(TestDataTools.getEdge("!(y == 0)", createdCFA).getFileLocation())
+    assertThat(TestCfaUtils.getEdge("!(y == 0)", createdCFA).getFileLocation())
         .isEqualTo(new FileLocation(testFilepath, 308, 6, 13, 13, 7, 13));
-    assertThat(TestDataTools.getEdge("[t1 == t2]", createdCFA).getFileLocation())
+    assertThat(TestCfaUtils.getEdge("[t1 == t2]", createdCFA).getFileLocation())
         .isEqualTo(new FileLocation(testFilepath, 384, 8, 21, 21, 10, 18));
-    assertThat(TestDataTools.getEdge("!(t1 == t2)", createdCFA).getFileLocation())
+    assertThat(TestCfaUtils.getEdge("!(t1 == t2)", createdCFA).getFileLocation())
         .isEqualTo(new FileLocation(testFilepath, 384, 8, 21, 21, 10, 18));
-    assertThat(TestDataTools.getEdge("[t1 == t3]", createdCFA).getFileLocation())
+    assertThat(TestCfaUtils.getEdge("[t1 == t3]", createdCFA).getFileLocation())
         .isEqualTo(new FileLocation(testFilepath, 405, 8, 22, 22, 10, 18));
-    assertThat(TestDataTools.getEdge("!(t1 == t3)", createdCFA).getFileLocation())
+    assertThat(TestCfaUtils.getEdge("!(t1 == t3)", createdCFA).getFileLocation())
         .isEqualTo(new FileLocation(testFilepath, 405, 8, 22, 22, 10, 18));
-    assertThat(TestDataTools.getEdge("[t2 == t3]", createdCFA).getFileLocation())
+    assertThat(TestCfaUtils.getEdge("[t2 == t3]", createdCFA).getFileLocation())
         .isEqualTo(new FileLocation(testFilepath, 426, 17, 23, 24, 10, 12));
-    assertThat(TestDataTools.getEdge("!(t2 == t3)", createdCFA).getFileLocation())
+    assertThat(TestCfaUtils.getEdge("!(t2 == t3)", createdCFA).getFileLocation())
         .isEqualTo(new FileLocation(testFilepath, 426, 17, 23, 24, 10, 12));
-  }
-
-  private CFACreator createCfaCreatorForTesting(Configuration config)
-      throws InvalidConfigurationException {
-    final LogManager logger = LogManager.createTestLogManager();
-    final ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
-    return new CFACreator(config, logger, shutdownNotifier);
   }
 
   /**
@@ -301,19 +271,18 @@ public class CFACreatorTest {
    * 'false'.
    */
   private static boolean isFunctionCall(CFAEdge pCfaEdge, String pExpectedFunctionName) {
-    if (!(pCfaEdge instanceof AStatementEdge)) {
+    if (!(pCfaEdge instanceof AStatementEdge aStatementEdge)) {
       return false;
     }
-    AStatement statement = ((AStatementEdge) pCfaEdge).getStatement();
-    if (!(statement instanceof AFunctionCall)) {
+    AStatement statement = aStatementEdge.getStatement();
+    if (!(statement instanceof AFunctionCall aFunctionCall)) {
       return false;
     }
-    AExpression callee =
-        ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-    if (!(callee instanceof AIdExpression)) {
+    AExpression callee = aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+    if (!(callee instanceof AIdExpression aIdExpression)) {
       return false;
     }
-    String functionName = ((AIdExpression) callee).getName();
+    String functionName = aIdExpression.getName();
     return functionName.equals(pExpectedFunctionName);
   }
 

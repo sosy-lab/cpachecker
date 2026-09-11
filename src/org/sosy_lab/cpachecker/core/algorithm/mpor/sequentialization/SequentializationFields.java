@@ -1,0 +1,166 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMapBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements.SeqFunctionStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements.SeqFunctionStatements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.SeqGhostElementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.SeqGhostElements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.nondeterminism.NondeterministicSimulationBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdgeBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadBuilder;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.cwriter.export.CExportFunctionDefinition;
+
+public class SequentializationFields {
+
+  public final CFunctionDeclaration inputMainFunctionDeclaration;
+
+  public final CFunctionDeclaration outputMainFunctionDeclaration;
+
+  public final int numThreads;
+
+  /** The list of threads in the program, including the main thread and all pthreads. */
+  public final ImmutableList<MPORThread> threads;
+
+  public final ImmutableList<AVariableDeclaration> allGlobalVariableDeclarations;
+
+  /**
+   * The list of thread specific variable declaration substitutions. The substitution for the main
+   * thread (0) handles global variables.
+   */
+  public final ImmutableList<MPORSubstitution> substitutions;
+
+  /** The {@link MPORSubstitution} of the main thread, containing global variable substitutes. */
+  public final MPORSubstitution mainSubstitution;
+
+  public final ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges;
+
+  public final ImmutableMap<MPORThread, SeqFunctionStatements> functionStatements;
+
+  public final MachineModel machineModel;
+
+  public final SeqPointerAliasingMap pointerAliasingMap;
+
+  public final SeqGhostElements ghostElements;
+
+  public final ImmutableListMultimap<MPORThread, SeqThreadStatementClause> clauses;
+
+  public final Optional<ImmutableMap<MPORThread, CExportFunctionDefinition>>
+      threadSimulationFunctions;
+
+  // TODO split into separate function so that unit tests create only what they test
+  SequentializationFields(MPOROptions pOptions, CFA pInputCfa, SequentializationUtils pUtils)
+      throws UnrecognizedCodeException {
+
+    resetStaticFields();
+
+    inputMainFunctionDeclaration = (CFunctionDeclaration) pInputCfa.getMainFunction().getFunction();
+    outputMainFunctionDeclaration =
+        new CFunctionDeclaration(
+            FileLocation.DUMMY,
+            // The sequentialized main function never has any parameters, regardless of the input
+            // CFA, because the main function arguments from the input program are explicit
+            // variables in the sequentialization.
+            new CFunctionType(CNumericTypes.INT, ImmutableList.of(), false),
+            // pass on the input main functions name
+            inputMainFunctionDeclaration.getName(),
+            ImmutableList.of(),
+            ImmutableSet.of());
+
+    MPORThreadBuilder threadBuilder = new MPORThreadBuilder(pOptions, pInputCfa);
+    threads = threadBuilder.extractThreadsFromCfa();
+    numThreads = threads.size();
+    allGlobalVariableDeclarations = CFAUtils.getGlobalVariableDeclarations(pInputCfa);
+
+    MPORSubstitutionBuilder substitutionBuilder =
+        new MPORSubstitutionBuilder(pOptions, allGlobalVariableDeclarations, threads, pUtils);
+    substitutions = substitutionBuilder.buildSubstitutions();
+    mainSubstitution =
+        substitutions.stream().filter(s -> s.getThread().isMain()).findAny().orElseThrow();
+    substituteEdges = SubstituteEdgeBuilder.substituteEdges(pOptions, substitutions, pInputCfa);
+
+    SeqFunctionStatementBuilder functionStatementBuilder =
+        new SeqFunctionStatementBuilder(threads, substitutions, substituteEdges, pUtils.logger());
+    functionStatements = functionStatementBuilder.buildFunctionStatements();
+
+    machineModel = pInputCfa.getMachineModel();
+
+    SeqPointerAliasingMapBuilder pointerAliasingMapBuilder =
+        new SeqPointerAliasingMapBuilder(
+            pOptions,
+            substituteEdges.values(),
+            functionStatements.values(),
+            pInputCfa,
+            machineModel);
+    pointerAliasingMap = pointerAliasingMapBuilder.buildPointerAliasingMap();
+
+    SeqGhostElementBuilder ghostElementBuilder =
+        new SeqGhostElementBuilder(
+            pOptions,
+            threads,
+            substituteEdges,
+            pointerAliasingMap,
+            pUtils.binaryExpressionBuilder());
+    ghostElements = ghostElementBuilder.buildGhostElements();
+
+    SeqThreadStatementClauseBuilder clauseBuilder =
+        new SeqThreadStatementClauseBuilder(
+            pOptions,
+            threads,
+            substitutions,
+            substituteEdges,
+            functionStatements,
+            machineModel,
+            pointerAliasingMap,
+            ghostElements,
+            pInputCfa.getAstCfaRelation(),
+            pUtils);
+    clauses = clauseBuilder.buildClauses();
+
+    threadSimulationFunctions =
+        pOptions.threadSimulationUnrolling()
+            ? Optional.of(
+                NondeterministicSimulationBuilder.buildThreadSimulationFunctions(
+                    pOptions, pointerAliasingMap, ghostElements, clauses, pUtils))
+            : Optional.empty();
+  }
+
+  /** Resets all static fields, e.g. used for IDs. This may be necessary for unit tests. */
+  private static void resetStaticFields() {
+    MPORThreadBuilder.resetThreadId();
+    MPORThreadBuilder.resetPc();
+    CFAEdgeForThread.resetId();
+    CFANodeForThread.resetId();
+  }
+}

@@ -102,10 +102,10 @@ public class SlicingDelegatingRefiner implements Refiner, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
-    if (delegate instanceof Statistics) {
-      statsCollection.add((Statistics) delegate);
-    } else if (delegate instanceof StatisticsProvider) {
-      ((StatisticsProvider) delegate).collectStatistics(statsCollection);
+    if (delegate instanceof Statistics statistics) {
+      statsCollection.add(statistics);
+    } else if (delegate instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(statsCollection);
     }
   }
 }

@@ -86,6 +86,8 @@ public class PropertyFileParserTest {
           .put(
               "CHECK( init(main()), LTL( F G (x = 1) ) )",
               new OtherLtlProperty(" F G (x = 1) ")) // TODO should trim
+          // SV-LIB properties
+          .put("CHECK(annotations, all)", CommonVerificationProperty.CORRECT_ANNOTATIONS)
           .buildOrThrow();
 
   private static final String VALID_ASSERT_PROPERTY = "CHECK( init(main()), LTL(G assert) )";
@@ -94,13 +96,15 @@ public class PropertyFileParserTest {
 
   @Test
   public void checkTestCompletness() {
+    Set<Property> allTestedProperties = ImmutableSet.copyOf(TEST_PROPERTIES.values());
+
     expect
         .withMessage("Please add tests when adding new properties")
-        .that(TEST_PROPERTIES.values())
+        .that(allTestedProperties)
         .containsAtLeastElementsIn(CommonVerificationProperty.values());
     expect
         .withMessage("Please add tests when adding new properties")
-        .that(TEST_PROPERTIES.values())
+        .that(allTestedProperties)
         .containsAtLeastElementsIn(CommonCoverageProperty.values());
   }
 
@@ -144,7 +148,8 @@ public class PropertyFileParserTest {
       String fileContent = String.format("CHECK( init(%s()), LTL(G assert) )", entryFunction);
       PropertyFileParser parser = new PropertyFileParser(CharSource.wrap(fileContent));
       parser.parse();
-      expect.that(parser.getEntryFunction()).isEqualTo(entryFunction.trim());
+      expect.that(parser.getEntryFunction()).isPresent();
+      expect.that(parser.getEntryFunction().orElseThrow()).isEqualTo(entryFunction.trim());
     }
   }
 
@@ -152,20 +157,58 @@ public class PropertyFileParserTest {
   public void testInvalid() {
     List<String> invalidFiles =
         ImmutableList.of(
-            "",
-            "  \n  ",
-            "# " + VALID_ASSERT_PROPERTY,
             " " + VALID_ASSERT_PROPERTY, // TODO trim first?
-            VALID_ASSERT_PROPERTY + "\n#",
             "CHECK( init(main), LTL(G assert) )",
             // "CHECK( init(()), LTL(G assert) )", TODO fix
             // "CHECK( init(m(ai)n()), LTL(G assert) )", TODO fix
             "CHECK( LTL(G assert) )",
-            VALID_ASSERT_PROPERTY + "\nCHECK( init(foo()), LTL(G assert) )");
+            VALID_ASSERT_PROPERTY + "\nCHECK( init(foo()), LTL(G assert) )",
+            // no white-space after comma
+            "CHECK(annotations,all)", // TODO accept missing whitespace?
+            // other options than CHECK(annotations,all) do not yet exist
+            "CHECK(annotations, safety)",
+            "CHECK(annotations, liveness)",
+            "CHECK(tags, all)");
 
     for (String fileContent : invalidFiles) {
       PropertyFileParser parser = new PropertyFileParser(CharSource.wrap(fileContent));
       assertThrows(InvalidPropertyFileException.class, () -> parser.parse());
+    }
+  }
+
+  @Test
+  public void testValid() {
+    Map<String, Integer> validFiles =
+        ImmutableMap.of(
+            // Empty properties are allowed due to SV-LIB, which
+            // may pass an empty property file to indicate that the properties
+            // given in the program need to be checked.
+            "",
+            0,
+            "#  \n",
+            0,
+            // Comments are allowed, since we need it for SV-LIB
+            "# " + VALID_ASSERT_PROPERTY,
+            0,
+            VALID_ASSERT_PROPERTY + "\n#",
+            1,
+            "#\n# Another comment\n",
+            0,
+            // This is a syntactically valid property but semantically
+            // meaningless, since it combines C and SV-LIB properties.
+            VALID_ASSERT_PROPERTY + "\n" + "CHECK(annotations, all)",
+            2);
+
+    for (Map.Entry<String, Integer> entry : validFiles.entrySet()) {
+      String fileContent = entry.getKey();
+      int expectedPropertyCount = entry.getValue();
+      PropertyFileParser parser = new PropertyFileParser(CharSource.wrap(fileContent));
+      try {
+        parser.parse();
+        assertThat(parser.getProperties()).hasSize(expectedPropertyCount);
+      } catch (InvalidPropertyFileException | IOException e) {
+        throw new AssertionError("Parsing failed for valid file content", e);
+      }
     }
   }
 }

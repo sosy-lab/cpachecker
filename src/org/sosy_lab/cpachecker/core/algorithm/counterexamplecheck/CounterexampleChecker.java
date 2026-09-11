@@ -26,7 +26,7 @@ public interface CounterexampleChecker {
    * @param rootState The source of the counterexample paths.
    * @param errorState The sink of the counterexample paths.
    * @param errorPathStates All state that belong to the counterexample paths.
-   * @return True if the counterexample is feasible.
+   * @return whether the counterexample is feasible.
    * @throws CPAException If something goes wrong.
    * @throws InterruptedException If the thread was interrupted.
    */

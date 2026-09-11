@@ -14,7 +14,6 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Multimaps;
@@ -49,7 +48,7 @@ enum CexTraceAnalysisDirection {
     @Override
     public ImmutableIntArray orderFormulas(
         List<BooleanFormula> traceFormulas,
-        List<AbstractState> abstractionStates,
+        List<? extends AbstractState> abstractionStates,
         VariableClassification pVariableClassification,
         LoopStructure pLoopStructure,
         FormulaManagerView pFmgr) {
@@ -62,7 +61,7 @@ enum CexTraceAnalysisDirection {
     @Override
     public ImmutableIntArray orderFormulas(
         List<BooleanFormula> traceFormulas,
-        List<AbstractState> abstractionStates,
+        List<? extends AbstractState> abstractionStates,
         VariableClassification pVariableClassification,
         LoopStructure pLoopStructure,
         FormulaManagerView pFmgr) {
@@ -79,7 +78,7 @@ enum CexTraceAnalysisDirection {
     @Override
     public ImmutableIntArray orderFormulas(
         List<BooleanFormula> traceFormulas,
-        List<AbstractState> abstractionStates,
+        List<? extends AbstractState> abstractionStates,
         VariableClassification pVariableClassification,
         LoopStructure pLoopStructure,
         FormulaManagerView pFmgr) {
@@ -105,7 +104,7 @@ enum CexTraceAnalysisDirection {
     @Override
     public ImmutableIntArray orderFormulas(
         List<BooleanFormula> traceFormulas,
-        List<AbstractState> abstractionStates,
+        List<? extends AbstractState> abstractionStates,
         VariableClassification pVariableClassification,
         LoopStructure pLoopStructure,
         FormulaManagerView pFmgr) {
@@ -126,7 +125,7 @@ enum CexTraceAnalysisDirection {
     @Override
     public ImmutableIntArray orderFormulas(
         List<BooleanFormula> traceFormulas,
-        List<AbstractState> abstractionStates,
+        List<? extends AbstractState> abstractionStates,
         VariableClassification pVariableClassification,
         LoopStructure pLoopStructure,
         FormulaManagerView pFmgr) {
@@ -154,7 +153,7 @@ enum CexTraceAnalysisDirection {
     @Override
     public ImmutableIntArray orderFormulas(
         List<BooleanFormula> traceFormulas,
-        List<AbstractState> abstractionStates,
+        List<? extends AbstractState> abstractionStates,
         VariableClassification pVariableClassification,
         LoopStructure pLoopStructure,
         FormulaManagerView pFmgr) {
@@ -174,7 +173,7 @@ enum CexTraceAnalysisDirection {
     @Override
     public ImmutableIntArray orderFormulas(
         List<BooleanFormula> traceFormulas,
-        List<AbstractState> abstractionStates,
+        List<? extends AbstractState> abstractionStates,
         VariableClassification pVariableClassification,
         LoopStructure pLoopStructure,
         FormulaManagerView pFmgr) {
@@ -195,7 +194,7 @@ enum CexTraceAnalysisDirection {
     @Override
     public ImmutableIntArray orderFormulas(
         List<BooleanFormula> traceFormulas,
-        List<AbstractState> abstractionStates,
+        List<? extends AbstractState> abstractionStates,
         VariableClassification pVariableClassification,
         LoopStructure pLoopStructure,
         FormulaManagerView pFmgr) {
@@ -206,7 +205,7 @@ enum CexTraceAnalysisDirection {
 
       ImmutableIntArray.Builder order = ImmutableIntArray.builder(traceFormulas.size());
       for (List<Integer> indices : Multimaps.asMap(loopLevelsToIndexMap).values()) {
-        order.addAll(Lists.reverse(indices));
+        order.addAll(indices.reversed());
       }
       return order.build();
     }
@@ -219,7 +218,7 @@ enum CexTraceAnalysisDirection {
    */
   public abstract ImmutableIntArray orderFormulas(
       List<BooleanFormula> traceFormulas,
-      List<AbstractState> abstractionStates,
+      List<? extends AbstractState> abstractionStates,
       VariableClassification variableClassification,
       LoopStructure loopStructure,
       FormulaManagerView fmgr);
@@ -298,7 +297,7 @@ enum CexTraceAnalysisDirection {
   }
 
   private static void createLoopDrivenStateOrdering(
-      final List<AbstractState> pAbstractionStates,
+      final List<? extends AbstractState> pAbstractionStates,
       final Multimap<Integer, Integer> loopLevelsToIndexMap,
       Deque<CFANode> actLevelStack,
       LoopStructure loopStructure) {
@@ -334,7 +333,7 @@ enum CexTraceAnalysisDirection {
   }
 
   private static void createLoopDrivenStateOrdering0(
-      final List<AbstractState> pAbstractionStates,
+      final List<? extends AbstractState> pAbstractionStates,
       final Multimap<Integer, Integer> loopLevelsToIndexMap,
       Deque<CFANode> actLevelStack,
       LoopStructure loopStructure) {
@@ -403,10 +402,10 @@ enum CexTraceAnalysisDirection {
       ARGState argState, ARGState lastState, String wantedFunction) {
     CFANode returnNode = AbstractStates.extractLocation(argState);
     while (!returnNode.getFunctionName().equals(wantedFunction)) {
-      argState = argState.getParents().iterator().next();
+      argState = argState.getParents().getFirst();
 
       // the function does not return to the wanted function we can skip the search here
-      if (Objects.equals(argState, lastState.getParents().iterator().next())) {
+      if (Objects.equals(argState, lastState.getParents().getFirst())) {
         return null;
       }
 

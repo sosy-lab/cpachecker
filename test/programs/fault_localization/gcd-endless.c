@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 int isDivisible(int number, int divisor) {
-	// e.g number = 10 and divisor = 3;
+	// e.g. number = 10 and divisor = 3;
 	// div = 3
 	int div = number / divisor;
 	// result = 3 * 3 = 9 != 10 -> not divisible

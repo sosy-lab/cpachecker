@@ -235,10 +235,10 @@ record SliceExpression(
    */
   SliceExpression constructCanonical() {
     // only CExpression can have outer field accesses
-    if (!(base instanceof CExpression)) {
+    if (!(base instanceof CExpression currentBase)) {
       return this;
     }
-    CExpression currentBase = (CExpression) base;
+
     Deque<SliceModifier> canonicalModifiers = new ArrayDeque<>(modifiers);
     while (currentBase instanceof CFieldReference outerFieldReference) {
       if (outerFieldReference.isPointerDereference()) {
@@ -312,6 +312,6 @@ record SliceExpression(
 
   /** Returns whether there are any resolved modifiers, i.e. slice formula index modifiers. */
   boolean containsResolvedModifiers() {
-    return modifiers.stream().anyMatch(modifier -> modifier instanceof SliceFormulaIndexModifier);
+    return modifiers.stream().anyMatch(SliceFormulaIndexModifier.class::isInstance);
   }
 }

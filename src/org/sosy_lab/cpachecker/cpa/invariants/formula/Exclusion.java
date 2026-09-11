@@ -8,8 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-public class Exclusion<ConstantType> extends AbstractFormula<ConstantType>
-    implements NumeralFormula<ConstantType> {
+public final class Exclusion<ConstantType> extends AbstractFormula<ConstantType> {
 
   private final NumeralFormula<ConstantType> excluded;
 

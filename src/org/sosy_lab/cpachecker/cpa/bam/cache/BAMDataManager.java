@@ -58,7 +58,7 @@ public interface BAMDataManager {
   boolean alreadyReturnedFromSameBlock(AbstractState state, Block block);
 
   /**
-   * Returns the non-expanded abstract state for a expanded abstract state, recursively if needed,
+   * Returns the non-expanded abstract state for an expanded abstract state, recursively if needed,
    * or the given state itself, if the state was never an expanded result.
    */
   AbstractState getInnermostState(AbstractState state);
@@ -125,7 +125,7 @@ public interface BAMDataManager {
    * If the corresponding block is 'uncached' the recursive analysis will not start
    *
    * @param node Block entry to check
-   * @return true if the block entry was added as 'uncached'
+   * @return whether the block entry was added as 'uncached'
    */
   boolean isUncachedBlockEntry(CFANode node);
 }

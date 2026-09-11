@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 
 @RunWith(Parameterized.class)
 @SuppressFBWarnings(
@@ -63,7 +64,8 @@ public class MachineModelSizeOfVisitorTest {
 
   // struct s { unsigned int a : 12; unsigned int b : 10; int c; };
   private static final CCompositeType STRUCT_1 =
-      new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS, TEST_STRUCT, TEST_STRUCT);
+      new CCompositeType(
+          CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, FIELDS, TEST_STRUCT, TEST_STRUCT);
 
   private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_2 =
       ImmutableList.of(
@@ -79,7 +81,8 @@ public class MachineModelSizeOfVisitorTest {
 
   // struct s { char a : 4; char b : 4; unsigned int c : 12; unsigned int d : 10; int e; };
   private static final CCompositeType STRUCT_2 =
-      new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS_2, TEST_STRUCT, TEST_STRUCT);
+      new CCompositeType(
+          CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, FIELDS_2, TEST_STRUCT, TEST_STRUCT);
 
   private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_3 =
       ImmutableList.of(
@@ -95,7 +98,8 @@ public class MachineModelSizeOfVisitorTest {
 
   // struct s { char a : 4; char b : 5; unsigned int c : 12; unsigned int d : 10; int e; };
   private static final CCompositeType STRUCT_3 =
-      new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS_3, TEST_STRUCT, TEST_STRUCT);
+      new CCompositeType(
+          CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, FIELDS_3, TEST_STRUCT, TEST_STRUCT);
 
   private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_4 =
       ImmutableList.of(
@@ -104,14 +108,15 @@ public class MachineModelSizeOfVisitorTest {
 
   // struct s { long long a : 8; };
   private static final CCompositeType STRUCT_4 =
-      new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS_4, TEST_STRUCT, TEST_STRUCT);
+      new CCompositeType(
+          CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, FIELDS_4, TEST_STRUCT, TEST_STRUCT);
 
   private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_5 =
       ImmutableList.of(
           new CCompositeTypeMemberDeclaration(CNumericTypes.CHAR, CHAR),
           new CCompositeTypeMemberDeclaration(CNumericTypes.LONG_LONG_INT, LONGLONG),
           new CCompositeTypeMemberDeclaration(
-              new CPointerType(false, false, CNumericTypes.INT), INT_POINTER),
+              new CPointerType(CTypeQualifiers.NONE, CNumericTypes.INT), INT_POINTER),
           new CCompositeTypeMemberDeclaration(
               new CBitFieldType(CNumericTypes.CHAR, 5), CHAR_BITFIELD_5),
           new CCompositeTypeMemberDeclaration(
@@ -127,7 +132,8 @@ public class MachineModelSizeOfVisitorTest {
   // struct s { char a; long long b; int* c; char d : 5; char e : 4; int f : 12; long long g : 3;
   // int h : 2; void* i; };
   private static final CCompositeType STRUCT_5 =
-      new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS_5, TEST_STRUCT, TEST_STRUCT);
+      new CCompositeType(
+          CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, FIELDS_5, TEST_STRUCT, TEST_STRUCT);
 
   private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_6 =
       ImmutableList.of(
@@ -139,7 +145,8 @@ public class MachineModelSizeOfVisitorTest {
 
   //  struct s { int a; long b : 15; long : 0; };
   private static final CCompositeType STRUCT_6 =
-      new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS_6, TEST_STRUCT, TEST_STRUCT);
+      new CCompositeType(
+          CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, FIELDS_6, TEST_STRUCT, TEST_STRUCT);
 
   private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_7 =
       ImmutableList.of(
@@ -152,7 +159,8 @@ public class MachineModelSizeOfVisitorTest {
 
   // struct s { int a; long b : 15; long c : 18; char d; };
   private static final CCompositeType STRUCT_7 =
-      new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS_7, TEST_STRUCT, TEST_STRUCT);
+      new CCompositeType(
+          CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, FIELDS_7, TEST_STRUCT, TEST_STRUCT);
 
   private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_8 =
       ImmutableList.of(
@@ -165,7 +173,8 @@ public class MachineModelSizeOfVisitorTest {
 
   // struct s { int a; long b : 15; long c : 9; char d; };
   private static final CCompositeType STRUCT_8 =
-      new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS_8, TEST_STRUCT, TEST_STRUCT);
+      new CCompositeType(
+          CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, FIELDS_8, TEST_STRUCT, TEST_STRUCT);
 
   private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_9 =
       ImmutableList.of(
@@ -178,7 +187,8 @@ public class MachineModelSizeOfVisitorTest {
 
   // struct s { int a; long b : 15; long : 0; char d; };
   private static final CCompositeType STRUCT_9 =
-      new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS_9, TEST_STRUCT, TEST_STRUCT);
+      new CCompositeType(
+          CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, FIELDS_9, TEST_STRUCT, TEST_STRUCT);
 
   @Parameters(name = "{3}: {1}")
   public static Object[][] machineModels() {
@@ -220,5 +230,40 @@ public class MachineModelSizeOfVisitorTest {
   @Test
   public void testSizeOfStruct() {
     assertThat(Optional.of(model.getSizeof(testStruct))).hasValue(BigInteger.valueOf(expectedSize));
+  }
+
+  @Test
+  public void testAtomicAlignment() {
+    // C11 § 6.2.5 (27) / C23 § 6.2.5 (32): an atomic type may be aligned more strictly than its
+    // non-atomic version. On 32-bit Linux an 8-byte atomic scalar is aligned to 8 (not 4).
+    assertThat(MODEL32.getAlignof(CNumericTypes.LONG_LONG_INT)).isEqualTo(4);
+    assertThat(MODEL32.getAlignof(CNumericTypes.LONG_LONG_INT.withAtomic())).isEqualTo(8);
+    assertThat(MODEL32.getAlignof(CNumericTypes.DOUBLE)).isEqualTo(4);
+    assertThat(MODEL32.getAlignof(CNumericTypes.DOUBLE.withAtomic())).isEqualTo(8);
+
+    // long double is 12 bytes on 32-bit Linux, not a power of two, so its alignment is unchanged,
+    // and types that are already naturally aligned are not affected either.
+    assertThat(MODEL32.getAlignof(CNumericTypes.LONG_DOUBLE.withAtomic()))
+        .isEqualTo(MODEL32.getAlignof(CNumericTypes.LONG_DOUBLE));
+    assertThat(MODEL32.getAlignof(CNumericTypes.INT.withAtomic()))
+        .isEqualTo(MODEL32.getAlignof(CNumericTypes.INT));
+
+    // On 64-bit Linux there is no difference between atomic and non-atomic alignment.
+    assertThat(MODEL64.getAlignof(CNumericTypes.LONG_LONG_INT.withAtomic()))
+        .isEqualTo(MODEL64.getAlignof(CNumericTypes.LONG_LONG_INT));
+    assertThat(MODEL64.getAlignof(CNumericTypes.DOUBLE.withAtomic()))
+        .isEqualTo(MODEL64.getAlignof(CNumericTypes.DOUBLE));
+
+    // The size of an atomic type never differs from the size of its non-atomic version.
+    assertThat(MODEL32.getSizeof(CNumericTypes.LONG_LONG_INT.withAtomic()))
+        .isEqualTo(BigInteger.valueOf(MODEL32.getSizeofLongLongInt()));
+
+    // The same rule applies to composite (struct/union) types: STRUCT_1 (two 4-byte bitfields
+    // plus an int) has size 8 but natural alignment 4 in both models, so the atomic version is
+    // aligned to its size.
+    assertThat(MODEL32.getAlignof(STRUCT_1)).isEqualTo(4);
+    assertThat(MODEL32.getAlignof(STRUCT_1.withAtomic())).isEqualTo(8);
+    assertThat(MODEL64.getAlignof(STRUCT_1)).isEqualTo(4);
+    assertThat(MODEL64.getAlignof(STRUCT_1.withAtomic())).isEqualTo(8);
   }
 }

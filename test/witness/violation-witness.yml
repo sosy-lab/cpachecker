@@ -8,7 +8,7 @@
 
 - entry_type: violation_sequence
   metadata:
-    format_version: 0.1
+    format_version: 2.0
     uuid: 91023a0f-9f45-4385-88c4-1152ade45537
     creation_time: 2021-05-05T15:18:43+02:00
     producer:
@@ -36,7 +36,7 @@
             column: 0
             function: main
           constraint:
-            string: (x >= 1024U)
+            value: (x >= 1024U)
             format: c_expression
     - segment:
       - waypoint:
@@ -46,7 +46,7 @@
             file_name: multivar_1-1.c
             line: 23
           constraint:
-            string: true
+            value: true
     - segment:
       - waypoint:
           action: avoid
@@ -55,7 +55,7 @@
             file_name: multivar_1-1.c
             line: 24
           constraint:
-            string: x > 2
+            value: x > 2
             format: c_expression
       - waypoint:
           action: follow
@@ -65,15 +65,8 @@
             line: 25
             function: main
           constraint:
-            string: \return == 4
+            value: \return == 4
             format: c_expression
-    - segment:
-      - waypoint:
-          action: follow
-          type: identifier_evaluation
-          location:
-            file_name: multivar_1-1.c
-            line: 25
     - segment:
       - waypoint:
           action: follow

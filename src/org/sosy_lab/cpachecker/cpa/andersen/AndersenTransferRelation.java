@@ -51,41 +51,28 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
   @Override
   public Collection<AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge) throws CPATransferException {
-
-    AbstractState successor = null;
     AndersenState andersenState = (AndersenState) pElement;
 
     // check the type of the edge
-    switch (pCfaEdge.getEdgeType()) {
-
-      // if edge is a statement edge, e.g. a = b + c
-      case StatementEdge:
-        CStatementEdge statementEdge = (CStatementEdge) pCfaEdge;
-        successor = handleStatement(andersenState, statementEdge.getStatement(), pCfaEdge);
-        break;
-
-      // edge is a declaration edge, e.g. int a;
-      case DeclarationEdge:
-        CDeclarationEdge declarationEdge = (CDeclarationEdge) pCfaEdge;
-        successor = handleDeclaration(andersenState, declarationEdge);
-        break;
-
-      // this is an assumption, e.g. if (a == b)
-      case AssumeEdge:
-        successor = andersenState;
-        break;
-
-      case BlankEdge:
-        successor = andersenState;
-        break;
-
-      case CallToReturnEdge:
-      case FunctionCallEdge:
-      case ReturnStatementEdge:
-      case FunctionReturnEdge:
-      default:
-        printWarning(pCfaEdge);
-    }
+    final AbstractState successor =
+        switch (pCfaEdge.getEdgeType()) {
+          case StatementEdge -> {
+            // if edge is a statement edge, e.g. a = b + c
+            CStatementEdge statementEdge = (CStatementEdge) pCfaEdge;
+            yield handleStatement(andersenState, statementEdge.getStatement(), pCfaEdge);
+          }
+          case DeclarationEdge -> {
+            // edge is a declaration edge, e.g. int a;
+            CDeclarationEdge declarationEdge = (CDeclarationEdge) pCfaEdge;
+            yield handleDeclaration(andersenState, declarationEdge);
+          }
+          case AssumeEdge -> andersenState; // this is an assumption, e.g. if (a == b)
+          case BlankEdge -> andersenState;
+          case CallToReturnEdge, FunctionCallEdge, ReturnStatementEdge, FunctionReturnEdge -> {
+            printWarning(pCfaEdge);
+            yield null;
+          }
+        };
 
     if (successor == null) {
       return ImmutableSet.of();
@@ -99,8 +86,8 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
       throws UnrecognizedCodeException {
 
     // e.g. a = b;
-    if (pExpression instanceof CAssignment) {
-      return handleAssignment(pElement, (CAssignment) pExpression, pCfaEdge);
+    if (pExpression instanceof CAssignment cAssignment) {
+      return handleAssignment(pElement, cAssignment, pCfaEdge);
     } else if (pExpression instanceof CFunctionCallStatement) {
       return pElement;
     } else if (pExpression instanceof CExpressionStatement) {
@@ -212,21 +199,19 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
   private AndersenState handleDeclaration(AndersenState pElement, CDeclarationEdge pDeclarationEdge)
       throws UnrecognizedCodeException {
 
-    if (!(pDeclarationEdge.getDeclaration() instanceof CVariableDeclaration)) {
+    if (!(pDeclarationEdge.getDeclaration() instanceof CVariableDeclaration decl)) {
       // nothing interesting to see here, please move along
       return pElement;
     }
-
-    CVariableDeclaration decl = (CVariableDeclaration) pDeclarationEdge.getDeclaration();
 
     // get the variable name in the declarator
     String varName = decl.getName();
 
     // get initial value
     CInitializer init = decl.getInitializer();
-    if (init instanceof CInitializerExpression) {
+    if (init instanceof CInitializerExpression cInitializerExpression) {
 
-      CRightHandSide exp = ((CInitializerExpression) init).getExpression();
+      CRightHandSide exp = cInitializerExpression.getExpression();
 
       return handleAssignmentTo(varName, exp, pElement, pDeclarationEdge);
     }

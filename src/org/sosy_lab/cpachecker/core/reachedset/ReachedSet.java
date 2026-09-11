@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.reachedset;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.Set;
+import java.util.SequencedSet;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.util.statistics.AbstractStatValue;
 public interface ReachedSet extends UnmodifiableReachedSet {
 
   @Override
-  Set<AbstractState> asCollection();
+  SequencedSet<AbstractState> asCollection();
 
   /**
    * Add a state with a precision to the reached set and to the waitlist. If the state is already in

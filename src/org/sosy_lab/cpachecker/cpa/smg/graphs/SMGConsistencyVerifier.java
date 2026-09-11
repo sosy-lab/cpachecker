@@ -41,7 +41,7 @@ final class SMGConsistencyVerifier {
    * A consistency checks related to the NULL object
    *
    * @param pLogger A logger to record results
-   * @param pSmg A SMG to verify
+   * @param pSmg An SMG to verify
    * @return True, if pSmg satisfies all consistency criteria
    */
   private static boolean verifyNullObject(LogManager pLogger, UnmodifiableSMG pSmg) {
@@ -104,7 +104,7 @@ final class SMGConsistencyVerifier {
    * consistent SMGs
    *
    * @param pLogger A logger to record results
-   * @param pSmg A SMG to verify
+   * @param pSmg An SMG to verify
    * @return True, if pSmg satisfies all consistency criteria.
    */
   private static boolean verifyInvalidRegionsHaveNoHVEdges(
@@ -131,7 +131,7 @@ final class SMGConsistencyVerifier {
    *
    * @param pLogger A logger to record results
    * @param pObject An object to verify
-   * @param pSmg A SMG to verify
+   * @param pSmg An SMG to verify
    * @return True, if Object in pSmg satisfies all consistency criteria. False otherwise.
    */
   private static boolean checkSingleFieldConsistency(
@@ -155,7 +155,7 @@ final class SMGConsistencyVerifier {
    * Verify all objects satisfy the Field Consistency criteria
    *
    * @param pLogger A logger to record results
-   * @param pSmg A SMG to verify
+   * @param pSmg An SMG to verify
    * @return True, if pSmg satisfies all consistency criteria. False otherwise.
    */
   private static boolean verifyFieldConsistency(LogManager pLogger, UnmodifiableSMG pSmg) {
@@ -172,7 +172,7 @@ final class SMGConsistencyVerifier {
    * Verify that the edges are consistent in the SMG
    *
    * @param pLogger A logger to record results
-   * @param pSmg A SMG to verify
+   * @param pSmg An SMG to verify
    * @param pEdges A set of edges for consistency verification
    * @return True, if all edges in pEdges satisfy consistency criteria. False otherwise.
    */
@@ -240,12 +240,12 @@ final class SMGConsistencyVerifier {
    * Verify a single SMG if it meets all consistency criteria.
    *
    * @param pLogger A logger to record results
-   * @param pSmg A SMG to verify
+   * @param pSmg An SMG to verify
    * @return True, if pSmg satisfies all consistency criteria
    */
   public static boolean verifySMG(LogManager pLogger, UnmodifiableSMG pSmg) {
     boolean toReturn = true;
-    pLogger.log(Level.FINEST, "Starting constistency check of a SMG");
+    pLogger.log(Level.FINEST, "Starting constistency check of an SMG");
 
     toReturn =
         toReturn
@@ -278,7 +278,7 @@ final class SMGConsistencyVerifier {
             && verifySMGProperty(
                 verifyObjectConsistency(pLogger, pSmg), pLogger, "Validity consistency");
 
-    pLogger.log(Level.FINEST, "Ending consistency check of a SMG");
+    pLogger.log(Level.FINEST, "Ending consistency check of an SMG");
 
     return toReturn;
   }

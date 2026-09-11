@@ -65,7 +65,7 @@ public abstract sealed class ACSLPredicate implements ACSLLogicExpression
    * is advised to call <code>simplify()</code> on both predicates before calling this method.
    *
    * @param other The predicate that shall be compared with <code>this</code>.
-   * @return true if <code>this</code> is a negation of <code>other</code>, false otherwise.
+   * @return whether <code>this</code> is a negation of <code>other</code>.
    */
   public boolean isNegationOf(ACSLPredicate other) {
     return equals(other.negate());

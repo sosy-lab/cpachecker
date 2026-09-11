@@ -9,56 +9,54 @@
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import com.google.common.base.Function;
-import java.util.ArrayList;
-import java.util.List;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.Set;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustment {
   private final Solver solver;
   private final BooleanFormulaManagerView bfmgr;
   private final FormulaManagerView fmgr;
-  private final FormulaManagerView predFmgr;
-  private final CtoFormulaConverter ctoFormulaConverter;
   private final TerminationToReachStatistics statistics;
   private final CFA cfa;
+  private final LogManager logger;
 
   public TerminationToReachPrecisionAdjustment(
       Solver pSolver,
       TerminationToReachStatistics pStatistics,
+      LogManager plogger,
       CFA pCFA,
       BooleanFormulaManagerView pBfmgr,
-      FormulaManagerView pFmgr,
-      FormulaManagerView pPredFmgr,
-      CToFormulaConverterWithPointerAliasing pCtoFormulaConverter) {
+      FormulaManagerView pFmgr) {
     solver = pSolver;
     statistics = pStatistics;
     cfa = pCFA;
     bfmgr = pBfmgr;
     fmgr = pFmgr;
-    predFmgr = pPredFmgr;
-    ctoFormulaConverter = pCtoFormulaConverter;
+    logger = plogger;
   }
 
   @Override
@@ -71,40 +69,30 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       throws CPAException, InterruptedException {
     TerminationToReachState terminationState = (TerminationToReachState) state;
     LocationState locationState = AbstractStates.extractStateByType(fullState, LocationState.class);
+    CallstackState callstackState =
+        AbstractStates.extractStateByType(fullState, CallstackState.class);
     CFANode location = AbstractStates.extractLocation(locationState);
-    PredicateAbstractState predicateState =
-        AbstractStates.extractStateByType(fullState, PredicateAbstractState.class);
 
-    SSAMap ssaMap = predicateState.getPathFormula().getSsa();
     PrecisionAdjustmentResult result =
         new PrecisionAdjustmentResult(state, precision, Action.CONTINUE);
+    Pair<LocationState, CallstackState> keyPair = Pair.of(locationState, callstackState);
 
-    if (location.isLoopStart() && terminationState.getStoredValues().containsKey(locationState)) {
-      terminationState.putNewPathFormula(
-          fmgr.translateFrom(predicateState.getPathFormula().getFormula(), predFmgr));
-
-      for (int i = 0;
-          i < terminationState.getNumberOfIterationsAtLoopHead(locationState) - 1;
-          ++i) {
-        boolean isTargetStateReachable = false;
+    if (location.isLoopStart() && terminationState.getStoredValues().containsKey(keyPair)) {
+      if (terminationState.getNumberOfIterationsAtLoopHead(keyPair) > 1) {
+        boolean isTargetStateReachable;
         BooleanFormula targetFormula =
             buildCycleFormula(
-                buildFullPathFormula(terminationState.getPathFormulas()),
-                terminationState.getStoredValues().get(locationState),
-                ssaMap,
-                i);
+                terminationState.getPathFormulas().get(keyPair).getFormula(),
+                terminationState.getStoredValues().get(keyPair),
+                terminationState.getPathFormulas().get(keyPair).getSsa(),
+                terminationState.getNumberOfIterationsAtLoopHead(keyPair) - 1);
         try {
           isTargetStateReachable = !solver.isUnsat(targetFormula);
         } catch (SolverException e) {
-          continue;
+          logger.logDebugException(e);
+          return Optional.of(result);
         }
         if (isTargetStateReachable) {
-          // This analysis may be imprecise if the program contains pointers. We return UNKNOWN
-          // instead.
-          // TODO: Implement pointers handling.
-          if (programContainsPointers(ssaMap)) {
-            return Optional.of(result.withAction(Action.BREAK));
-          }
           terminationState.makeTarget();
           result = result.withAbstractState(terminationState);
           statistics.setNonterminatingLoop(
@@ -116,43 +104,34 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     return Optional.of(result);
   }
 
-  private boolean programContainsPointers(SSAMap pSSAMap) {
-    for (String variable : pSSAMap.allVariables()) {
-      if (pSSAMap.getType(variable) instanceof CPointerType) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   private BooleanFormula buildCycleFormula(
       BooleanFormula pFullPathFormula,
-      List<BooleanFormula> storedValues,
-      SSAMap pSSAMap,
-      int pSSAIndex) {
-    BooleanFormula cycle = pFullPathFormula;
-    BooleanFormula extendedFormula;
-
-    cycle = bfmgr.and(cycle, storedValues.get(pSSAIndex));
-    for (String variable : pSSAMap.allVariables()) {
-      String newVariable = "__Q__" + variable;
-      extendedFormula =
-          fmgr.assignment(
-              fmgr.makeVariable(
-                  ctoFormulaConverter.getFormulaTypeFromCType(pSSAMap.getType(variable)),
-                  newVariable,
-                  pSSAIndex),
-              fmgr.makeVariable(
-                  ctoFormulaConverter.getFormulaTypeFromCType(pSSAMap.getType(variable)),
-                  variable,
-                  pSSAMap.getIndex(variable)));
-      cycle = bfmgr.and(cycle, extendedFormula);
-    }
-    return cycle;
+      Map<Integer, ImmutableSet<Formula>> storedValues,
+      SSAMap pLatestValues,
+      int pMaxIndex) {
+    BooleanFormula cycle =
+        buildComparingFormulas(storedValues, pMaxIndex, pLatestValues).stream()
+            .collect(bfmgr.toDisjunction());
+    return bfmgr.and(pFullPathFormula, cycle);
   }
 
-  private BooleanFormula buildFullPathFormula(Set<BooleanFormula> pPathFormulas) {
-    List<BooleanFormula> formulas = new ArrayList<>(pPathFormulas);
-    return bfmgr.and(formulas);
+  private ImmutableList<BooleanFormula> buildComparingFormulas(
+      Map<Integer, ImmutableSet<Formula>> storedValues, int pMaxIndex, SSAMap pLatestValues) {
+    ImmutableList.Builder<BooleanFormula> comparingFormulas = ImmutableList.builder();
+    for (Entry<Integer, ImmutableSet<Formula>> savedVariables : storedValues.entrySet()) {
+      if (savedVariables.getKey().intValue() >= pMaxIndex) {
+        continue;
+      }
+      BooleanFormula comparingFormula = bfmgr.makeTrue();
+      for (Formula oldVariable : savedVariables.getValue()) {
+        comparingFormula =
+            bfmgr.and(
+                comparingFormula,
+                fmgr.assignment(
+                    fmgr.instantiate(fmgr.uninstantiate(oldVariable), pLatestValues), oldVariable));
+      }
+      comparingFormulas.add(comparingFormula);
+    }
+    return comparingFormulas.build();
   }
 }

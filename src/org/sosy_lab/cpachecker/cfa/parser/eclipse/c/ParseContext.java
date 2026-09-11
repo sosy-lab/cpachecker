@@ -191,16 +191,16 @@ class ParseContext {
 
     final CodePosition startingInOrigin =
         sourceOriginMapping.getOriginLineFromAnalysisCodeLine(fileName, startingLineInInput);
-    final int startingLineInOrigin = startingInOrigin.getLineNumber();
+    final int startingLineInOrigin = startingInOrigin.lineNumber();
 
     final CodePosition endingInOrigin =
         sourceOriginMapping.getOriginLineFromAnalysisCodeLine(fileName, endingLineInInput);
-    final int endingLineInOrigin = endingInOrigin.getLineNumber();
+    final int endingLineInOrigin = endingInOrigin.lineNumber();
 
-    if (!startingInOrigin.getFileName().equals(endingInOrigin.getFileName())) {
+    if (!startingInOrigin.fileName().equals(endingInOrigin.fileName())) {
       return FileLocation.MULTIPLE_FILES;
     }
-    final Path originFileName = startingInOrigin.getFileName();
+    final Path originFileName = startingInOrigin.fileName();
 
     final boolean offsetRelatedToOrigin = sourceOriginMapping.isMappingToIdenticalLineNumbers();
 

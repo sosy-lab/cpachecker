@@ -39,8 +39,8 @@ public class CoverageTransferRelation extends SingleEdgeTransferRelation {
 
     cov.addVisitedEdge(pEdge);
 
-    if (pEdge.getPredecessor() instanceof FunctionEntryNode) {
-      cov.addVisitedFunction((FunctionEntryNode) pEdge.getPredecessor());
+    if (pEdge.getPredecessor() instanceof FunctionEntryNode functionEntryNode) {
+      cov.addVisitedFunction(functionEntryNode);
     }
   }
 }

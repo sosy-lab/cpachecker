@@ -103,7 +103,6 @@ public class WitnessToDotFormatter extends WitnessToOutputFormatter<String> {
       case ISENTRY -> "color=green";
       case ISSINKNODE -> "color=blue";
       case ISCYCLEHEAD -> "shape=doublecircle";
-      default -> "";
     };
   }
 

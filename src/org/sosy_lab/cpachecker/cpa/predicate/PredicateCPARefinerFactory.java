@@ -108,7 +108,7 @@ public final class PredicateCPARefinerFactory {
   }
 
   /**
-   * Create a {@link PredicateCPARefiner}. This factory can be reused afterwards.
+   * Create a {@link PredicateCPARefiner}. This factory can be reused afterward.
    *
    * @param pRefinementStrategy The refinement strategy to use.
    * @return A fresh instance.
@@ -138,7 +138,14 @@ public final class PredicateCPARefinerFactory {
 
     InterpolationManager interpolationManager =
         new InterpolationManager(
-            pfmgr, solver, loopStructure, variableClassification, config, shutdownNotifier, logger);
+            pfmgr,
+            solver,
+            loopStructure,
+            variableClassification,
+            config,
+            shutdownNotifier,
+            logger,
+            /* pEnableCounterexampleAnalysis= */ true);
 
     PathChecker pathChecker =
         new PathChecker(config, logger, shutdownNotifier, machineModel, pfmgr, solver);

@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /** Manipulating proof-carrying code for BAM. */
@@ -102,11 +101,11 @@ public final class BAMPCCManager {
       // do not support nodes which are call nodes of multiple blocks
       Block analyzedBlock = partitioning.getBlockForCallNode(node);
       try {
-        if (!(pState instanceof BAMARGBlockStartState)
-            || ((BAMARGBlockStartState) pState).getAnalyzedBlock() == null
+        if (!(pState instanceof BAMARGBlockStartState bAMARGBlockStartState)
+            || bAMARGBlockStartState.getAnalyzedBlock() == null
             || !bamCPA.isCoveredBy(
                 wrappedReducer.getVariableReducedStateForProofChecking(pState, analyzedBlock, node),
-                ((BAMARGBlockStartState) pState).getAnalyzedBlock())) {
+                bAMARGBlockStartState.getAnalyzedBlock())) {
           return false;
         }
       } catch (CPAException e) {
@@ -175,7 +174,7 @@ public final class BAMPCCManager {
       }
 
       // no call node, check if successors can be constructed with help of CFA edges
-      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(node)) {
+      for (CFAEdge leavingEdge : node.getLeavingEdges()) {
         // edge leads to node in inner block
         Collection<Block> blocks = partitioning.getBlocksForReturnNode(node);
         Preconditions.checkState(
@@ -311,11 +310,11 @@ public final class BAMPCCManager {
       Collection<? extends AbstractState> pSuccessors) {
     List<AbstractState> successorsWithExtendedInfo = new ArrayList<>(pSuccessors.size());
     for (AbstractState elem : pSuccessors) {
-      if (!(elem instanceof ARGState)) {
+      if (!(elem instanceof ARGState aRGState)) {
         return pSuccessors;
       }
       if (!(elem instanceof BAMARGBlockStartState)) {
-        successorsWithExtendedInfo.add(createAdditionalInfo((ARGState) elem));
+        successorsWithExtendedInfo.add(createAdditionalInfo(aRGState));
       } else {
         successorsWithExtendedInfo.add(elem);
       }
@@ -324,8 +323,8 @@ public final class BAMPCCManager {
   }
 
   AbstractState attachAdditionalInfoToCallNode(AbstractState pElem) {
-    if (!(pElem instanceof BAMARGBlockStartState) && pElem instanceof ARGState) {
-      return createAdditionalInfo((ARGState) pElem);
+    if (!(pElem instanceof BAMARGBlockStartState) && pElem instanceof ARGState aRGState) {
+      return createAdditionalInfo(aRGState);
     }
     return pElem;
   }
@@ -353,10 +352,10 @@ public final class BAMPCCManager {
   @SuppressWarnings("deprecation")
   void addBlockAnalysisInfo(AbstractState pElement) throws CPATransferException {
     if (data.getCache().getLastAnalyzedBlock() == null
-        || !(pElement instanceof BAMARGBlockStartState)) {
+        || !(pElement instanceof BAMARGBlockStartState bAMARGBlockStartState)) {
       throw new CPATransferException("Cannot build proof, ARG, for BAM analysis.");
     }
-    ((BAMARGBlockStartState) pElement).setAnalyzedBlock(data.getCache().getLastAnalyzedBlock());
+    bAMARGBlockStartState.setAnalyzedBlock(data.getCache().getLastAnalyzedBlock());
   }
 
   void setCurrentBlock(Block pCurrentBlock) {

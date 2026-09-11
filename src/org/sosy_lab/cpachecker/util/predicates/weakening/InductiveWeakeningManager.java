@@ -228,7 +228,6 @@ public class InductiveWeakeningManager implements StatisticsProvider {
       case CEX ->
           cexWeakeningManager.performWeakening(
               selectionVarsInfo.keySet(), fromState, transition, toState);
-      default -> throw new UnsupportedOperationException("Unexpected enum value");
     };
   }
 

@@ -8,12 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
-import java.util.Objects;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -34,9 +32,7 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
   @Override
   public DssMessageProcessing processBackward(AbstractState pState)
       throws InterruptedException, SolverException {
-    PredicateAbstractState predicateAbstractState =
-        Objects.requireNonNull(
-            AbstractStates.extractStateByType(pState, PredicateAbstractState.class));
+    PredicateAbstractState predicateAbstractState = (PredicateAbstractState) pState;
     BooleanFormula formula;
     if (predicateAbstractState.isAbstractionState()) {
       formula = predicateAbstractState.getAbstractionFormula().asFormula();

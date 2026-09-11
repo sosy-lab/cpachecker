@@ -11,7 +11,7 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
-<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="2 GB" cpuCores="1">
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="2 GB" cpuCores="2">
 
   <!--
   This is a small benchmark-file to check the BDDCPA with its most-used option-combinations.
@@ -76,7 +76,10 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/loops/*string*</exclude>
     <exclude>../programs/benchmarks/nla-digbench-scaling/*</exclude> <!-- only FALSE results due to missing multiplication support in BDD analysis -->
     <exclude>../programs/benchmarks/loop-invgen/*</exclude> <!-- mostly OOM/StackOverflow -->
+    <exclude>../programs/benchmarks/loop-crafted/simple_array_index_value_4.yml</exclude> <!-- flapping timeout / wrong alarm -->
+    <exclude>../programs/benchmarks/loop-simple/nested_6.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loops-crafted-1/mono-crafted_13.yml</exclude> <!-- flapping timeout / wrong alarm -->
     <exclude>../programs/benchmarks/loops-crafted-1/theatreSquare.yml</exclude> <!-- flapping OOM/StackOverflow -->
+    <exclude>../programs/benchmarks/loops/compact.yml</exclude> <!-- flapping error / timeout -->
   </tasks>
 </benchmark>

@@ -104,16 +104,14 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
       // side
       if (cfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
         CStatementEdge statementEdge = (CStatementEdge) cfaEdge;
-        if (statementEdge.getStatement() instanceof CFunctionCallAssignmentStatement) {
-          CFunctionCallAssignmentStatement statement =
-              (CFunctionCallAssignmentStatement) statementEdge.getStatement();
+        if (statementEdge.getStatement() instanceof CFunctionCallAssignmentStatement statement) {
+
           coveredVariables.add(statement.getLeftHandSide().toQualifiedASTString());
           remainingCounterexample.add(cfaEdge);
           continue;
         }
-        if (statementEdge.getStatement() instanceof CExpressionAssignmentStatement) {
-          CExpressionAssignmentStatement statement =
-              (CExpressionAssignmentStatement) statementEdge.getStatement();
+        if (statementEdge.getStatement() instanceof CExpressionAssignmentStatement statement) {
+
           String qualifiedName = statement.getLeftHandSide().toQualifiedASTString();
           if (coveredVariables.contains(qualifiedName)
               || !(statement.getRightHandSide() instanceof CLiteralExpression)) {
@@ -173,12 +171,10 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
 
   private boolean handleDeclarationEdge(CDeclarationEdge declarationEdge) {
     // only variable declarations can be part of preconditions
-    if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration)) {
+    if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration)) {
       return false;
     }
 
-    CVariableDeclaration variableDeclaration =
-        (CVariableDeclaration) declarationEdge.getDeclaration();
     // variable must not be excluded when added to precondition
     if (options.getExcludeFromPrecondition().contains(variableDeclaration.getQualifiedName())) {
       return false;
@@ -194,9 +190,9 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
     if (initializer instanceof CInitializerList listInitializer) {
       List<CInitializer> waitlist = new ArrayList<>(listInitializer.getInitializers());
       while (!waitlist.isEmpty()) {
-        CInitializer next = waitlist.remove(0);
-        if (next instanceof CInitializerList) {
-          waitlist.addAll(((CInitializerList) next).getInitializers());
+        CInitializer next = waitlist.removeFirst();
+        if (next instanceof CInitializerList cInitializerList) {
+          waitlist.addAll(cInitializerList.getInitializers());
           continue;
         }
         if ((next instanceof CInitializerExpression expression)

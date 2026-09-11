@@ -136,7 +136,7 @@ public final class IfElement extends StatementElement {
   private ImmutableSet<CFAEdge> findBlockEdges(Collection<CFAEdge> target) {
     ImmutableSet.Builder<CFAEdge> result = ImmutableSet.builder();
     for (CFAEdge e : conditionElement.edges()) {
-      for (CFAEdge successor : CFAUtils.leavingEdges(e.getSuccessor())) {
+      for (CFAEdge successor : e.getSuccessor().getLeavingEdges()) {
         if (target.contains(successor)) {
           result.add(successor);
         }

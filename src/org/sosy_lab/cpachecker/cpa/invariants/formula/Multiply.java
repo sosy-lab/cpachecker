@@ -13,8 +13,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formulae.
  */
-public final class Multiply<ConstantType> extends AbstractBinaryFormula<ConstantType>
-    implements NumeralFormula<ConstantType> {
+public final class Multiply<ConstantType> extends AbstractBinaryFormula<ConstantType> {
 
   /**
    * Creates a new multiplication formula with the given factors.

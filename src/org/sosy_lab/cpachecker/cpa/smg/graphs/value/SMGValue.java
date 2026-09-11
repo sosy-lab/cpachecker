@@ -17,7 +17,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
  * only know whether they are equal or not. The only exception is the value 0 that is used to
  * represent 0 in all possible types as well as the address of the {@link SMGNullObject}.
  */
-public interface SMGValue extends Comparable<SMGValue> {
+public sealed interface SMGValue extends Comparable<SMGValue>
+    permits SMGExplicitValue, SMGSymbolicValue {
 
   /**
    * For efficiency and performance we define an ordering on SMGValues. The ordering is as follows:
@@ -51,24 +52,22 @@ public interface SMGValue extends Comparable<SMGValue> {
     }
 
     // explicitValues (ordered by their value)
-    if (this instanceof SMGExplicitValue) {
+    if (this instanceof SMGExplicitValue thisValue) {
       if (other.isUnknown() || other.isZero()) {
         return 1;
-      } else if (other instanceof SMGExplicitValue) {
-        return ((SMGExplicitValue) this)
-            .getValue()
-            .compareTo(((SMGExplicitValue) other).getValue());
+      } else if (other instanceof SMGExplicitValue otherValue) {
+        return thisValue.getValue().compareTo(otherValue.getValue());
       } else {
         return -1;
       }
     }
 
     // symbolic values (ordered by their id)
-    if (this instanceof SMGSymbolicValue) {
-      if (other.isUnknown() || other.isZero() || !(other instanceof SMGSymbolicValue)) {
+    if (this instanceof SMGSymbolicValue thisValue) {
+      if (other.isUnknown() || other.isZero() || !(other instanceof SMGSymbolicValue otherValue)) {
         return 1;
       } else {
-        return ((SMGSymbolicValue) this).getId().compareTo(((SMGSymbolicValue) other).getId());
+        return thisValue.getId().compareTo(otherValue.getId());
       }
     }
 

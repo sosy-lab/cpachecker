@@ -12,7 +12,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.Iterables;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -28,8 +27,9 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
-import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
+import org.sosy_lab.cpachecker.util.smg.join.SMGJoinStatus;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class SMGSingleLinkedListCandidateTest {
 
@@ -82,7 +82,7 @@ public class SMGSingleLinkedListCandidateTest {
             new SMGState(
                 LogManager.createTestLogManager(),
                 MachineModel.LINUX64,
-                new SMGOptions(Configuration.defaultConfiguration())));
+                new SMGOptions(TestUtils.configurationForTest().build())));
     PersistentSet<SMGObject> heap = abstractedSmg.getHeapObjects();
     assertThat(heap).hasSize(2);
     SMGHasValueEdges globalHves =
@@ -132,7 +132,7 @@ public class SMGSingleLinkedListCandidateTest {
             new SMGState(
                 LogManager.createTestLogManager(),
                 MachineModel.LINUX64,
-                new SMGOptions(Configuration.defaultConfiguration())));
+                new SMGOptions(TestUtils.configurationForTest().build())));
     PersistentSet<SMGObject> heap = abstractedSmg.getHeapObjects();
     assertThat(heap).hasSize(2);
     SMGHasValueEdges globalHves =

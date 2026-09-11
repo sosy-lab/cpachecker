@@ -246,11 +246,11 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     expression = simplifiedExpression.getFirst();
     truthAssumption = simplifiedExpression.getSecond();
 
-    if (cfaEdge instanceof CAssumeEdge) {
-      return handleAssumption((CAssumeEdge) cfaEdge, (CExpression) expression, truthAssumption);
+    if (cfaEdge instanceof CAssumeEdge cAssumeEdge) {
+      return handleAssumption(cAssumeEdge, (CExpression) expression, truthAssumption);
 
-    } else if (cfaEdge instanceof JAssumeEdge) {
-      return handleAssumption((JAssumeEdge) cfaEdge, (JExpression) expression, truthAssumption);
+    } else if (cfaEdge instanceof JAssumeEdge jAssumeEdge) {
+      return handleAssumption(jAssumeEdge, (JExpression) expression, truthAssumption);
 
     } else {
       throw new AssertionError("unknown edge");
@@ -294,16 +294,16 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
       List<? extends AParameterDeclaration> parameters,
       String calledFunctionName)
       throws CPATransferException {
-    if (cfaEdge instanceof CFunctionCallEdge) {
+    if (cfaEdge instanceof CFunctionCallEdge cFunctionCallEdge) {
       return handleFunctionCallEdge(
-          (CFunctionCallEdge) cfaEdge,
+          cFunctionCallEdge,
           (List<CExpression>) arguments,
           (List<CParameterDeclaration>) parameters,
           calledFunctionName);
 
-    } else if (cfaEdge instanceof JMethodCallEdge) {
+    } else if (cfaEdge instanceof JMethodCallEdge jMethodCallEdge) {
       return handleFunctionCallEdge(
-          (JMethodCallEdge) cfaEdge,
+          jMethodCallEdge,
           (List<JExpression>) arguments,
           (List<JParameterDeclaration>) parameters,
           calledFunctionName);
@@ -353,15 +353,13 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   protected S handleFunctionReturnEdge(
       FunctionReturnEdge cfaEdge, AFunctionCall summaryExpr, String callerFunctionName)
       throws CPATransferException {
-    if (cfaEdge instanceof CFunctionReturnEdge) {
+    if (cfaEdge instanceof CFunctionReturnEdge cFunctionReturnEdge) {
       return handleFunctionReturnEdge(
-          (CFunctionReturnEdge) cfaEdge, (CFunctionCall) summaryExpr, callerFunctionName);
+          cFunctionReturnEdge, (CFunctionCall) summaryExpr, callerFunctionName);
 
-    } else if (cfaEdge instanceof JMethodReturnEdge) {
+    } else if (cfaEdge instanceof JMethodReturnEdge jMethodReturnEdge) {
       return handleFunctionReturnEdge(
-          (JMethodReturnEdge) cfaEdge,
-          (JMethodOrConstructorInvocation) summaryExpr,
-          callerFunctionName);
+          jMethodReturnEdge, (JMethodOrConstructorInvocation) summaryExpr, callerFunctionName);
 
     } else {
       throw new AssertionError("unknown edge");
@@ -401,11 +399,11 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   /** This function handles declarations like "int a = 0;" and "int b = !a;". */
   protected S handleDeclarationEdge(ADeclarationEdge cfaEdge, ADeclaration decl)
       throws CPATransferException {
-    if (cfaEdge instanceof CDeclarationEdge) {
-      return handleDeclarationEdge((CDeclarationEdge) cfaEdge, (CDeclaration) decl);
+    if (cfaEdge instanceof CDeclarationEdge cDeclarationEdge) {
+      return handleDeclarationEdge(cDeclarationEdge, (CDeclaration) decl);
 
-    } else if (cfaEdge instanceof JDeclarationEdge) {
-      return handleDeclarationEdge((JDeclarationEdge) cfaEdge, (JDeclaration) decl);
+    } else if (cfaEdge instanceof JDeclarationEdge jDeclarationEdge) {
+      return handleDeclarationEdge(jDeclarationEdge, (JDeclaration) decl);
 
     } else {
       throw new AssertionError("unknown edge");
@@ -441,11 +439,11 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    */
   protected S handleStatementEdge(AStatementEdge cfaEdge, AStatement statement)
       throws CPATransferException {
-    if (cfaEdge instanceof CStatementEdge) {
-      return handleStatementEdge((CStatementEdge) cfaEdge, (CStatement) statement);
+    if (cfaEdge instanceof CStatementEdge cStatementEdge) {
+      return handleStatementEdge(cStatementEdge, (CStatement) statement);
 
-    } else if (cfaEdge instanceof JStatementEdge) {
-      return handleStatementEdge((JStatementEdge) cfaEdge, (JStatement) statement);
+    } else if (cfaEdge instanceof JStatementEdge jStatementEdge) {
+      return handleStatementEdge(jStatementEdge, (JStatement) statement);
 
     } else {
       throw new AssertionError("unknown edge");
@@ -478,11 +476,11 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
   /** This function handles functionStatements like "return (x)". */
   protected S handleReturnStatementEdge(AReturnStatementEdge cfaEdge) throws CPATransferException {
-    if (cfaEdge instanceof CReturnStatementEdge) {
-      return handleReturnStatementEdge((CReturnStatementEdge) cfaEdge);
+    if (cfaEdge instanceof CReturnStatementEdge cReturnStatementEdge) {
+      return handleReturnStatementEdge(cReturnStatementEdge);
 
-    } else if (cfaEdge instanceof JReturnStatementEdge) {
-      return handleReturnStatementEdge((JReturnStatementEdge) cfaEdge);
+    } else if (cfaEdge instanceof JReturnStatementEdge jReturnStatementEdge) {
+      return handleReturnStatementEdge(jReturnStatementEdge);
 
     } else {
       throw new AssertionError("unknown edge");
@@ -523,10 +521,10 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   }
 
   protected S handleFunctionSummaryEdge(FunctionSummaryEdge cfaEdge) throws CPATransferException {
-    if (cfaEdge instanceof CFunctionSummaryEdge) {
-      return handleFunctionSummaryEdge((CFunctionSummaryEdge) cfaEdge);
-    } else if (cfaEdge instanceof JMethodSummaryEdge) {
-      return handleFunctionSummaryEdge((JMethodSummaryEdge) cfaEdge);
+    if (cfaEdge instanceof CFunctionSummaryEdge cFunctionSummaryEdge) {
+      return handleFunctionSummaryEdge(cFunctionSummaryEdge);
+    } else if (cfaEdge instanceof JMethodSummaryEdge jMethodSummaryEdge) {
+      return handleFunctionSummaryEdge(jMethodSummaryEdge);
     } else {
       throw new AssertionError("unkown error");
     }
@@ -553,31 +551,31 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   }
 
   public static boolean isGlobal(final AExpression exp) {
-    if (exp instanceof CExpression) {
-      return isGlobal((CExpression) exp);
-    } else if (exp instanceof JExpression) {
-      return isGlobal((JExpression) exp);
+    if (exp instanceof CExpression cExpression) {
+      return isGlobal(cExpression);
+    } else if (exp instanceof JExpression jExpression) {
+      return isGlobal(jExpression);
     } else {
       throw new AssertionError("unknown expression: " + exp);
     }
   }
 
   protected static boolean isGlobal(final CExpression exp) {
-    if (exp instanceof CIdExpression) {
-      CSimpleDeclaration decl = ((CIdExpression) exp).getDeclaration();
-      if (decl instanceof CDeclaration) {
-        return ((CDeclaration) decl).isGlobal();
+    if (exp instanceof CIdExpression cIdExpression) {
+      CSimpleDeclaration decl = cIdExpression.getDeclaration();
+      if (decl instanceof CDeclaration cDeclaration) {
+        return cDeclaration.isGlobal();
       }
     }
     return false;
   }
 
   protected static boolean isGlobal(final JExpression exp) {
-    if (exp instanceof JIdExpression) {
-      JSimpleDeclaration decl = ((JIdExpression) exp).getDeclaration();
+    if (exp instanceof JIdExpression jIdExpression) {
+      JSimpleDeclaration decl = jIdExpression.getDeclaration();
 
-      if (decl instanceof ADeclaration) {
-        return ((ADeclaration) decl).isGlobal();
+      if (decl instanceof ADeclaration aDeclaration) {
+        return aDeclaration.isGlobal();
       }
     }
 
@@ -625,8 +623,8 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
           org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.LESS_THAN);
 
   private static boolean isBooleanExpression(AExpression pExpression) {
-    return pExpression instanceof ABinaryExpression
-        && BOOLEAN_BINARY_OPERATORS.contains(((ABinaryExpression) pExpression).getOperator());
+    return pExpression instanceof ABinaryExpression aBinaryExpression
+        && BOOLEAN_BINARY_OPERATORS.contains(aBinaryExpression.getOperator());
   }
 
   private S notImplemented() throws AssertionError {

@@ -18,8 +18,9 @@ public final class GeneralLocalVariableIdentifier extends LocalVariableIdentifie
     super(pNm, null, "", pDereference);
   }
 
-  public GeneralLocalVariableIdentifier(String pNm, CType type, String function, int pDereference) {
-    super(pNm, type, function, pDereference);
+  public GeneralLocalVariableIdentifier(
+      String pNm, CType pType, String pFunction, int pDereference) {
+    super(pNm, pType, pFunction, pDereference);
   }
 
   @Override

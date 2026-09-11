@@ -117,8 +117,7 @@ class BitvectorComputer {
         value =
             bvmgr.toBitsize(
                 machineModel.getSizeofInBits((CSimpleType) targetType),
-                sourceType instanceof CSimpleType
-                    && machineModel.isSigned((CSimpleType) sourceType),
+                sourceType instanceof CSimpleType cSimpleType && machineModel.isSigned(cSimpleType),
                 value);
       }
       return value;
@@ -169,8 +168,7 @@ class BitvectorComputer {
         value =
             bvmgr.toBitsize(
                 machineModel.getSizeofInBits((CSimpleType) targetType),
-                sourceType instanceof CSimpleType
-                    && machineModel.isSigned((CSimpleType) sourceType),
+                sourceType instanceof CSimpleType cSimpleType && machineModel.isSigned(cSimpleType),
                 value);
       }
       return value;

@@ -134,7 +134,7 @@ public class RegressionVerificationWitnessToCandidateInvariantsConverter {
 
   private ImmutableMultimap<String, CFANode> mapLoopHeadsToFunctions() {
     return FluentIterable.from(cfa.getAllLoopHeads().orElseThrow())
-        .index(node -> extractFunctionName(node));
+        .index(this::extractFunctionName);
   }
 
   private ImmutableSet<CandidateInvariant> mapInvariantsToAllLoopLocationsWithSameFunctionName(

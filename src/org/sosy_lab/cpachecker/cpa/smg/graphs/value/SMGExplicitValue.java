@@ -10,7 +10,8 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.value;
 
 import java.math.BigInteger;
 
-public interface SMGExplicitValue extends SMGValue {
+public sealed interface SMGExplicitValue extends SMGValue
+    permits SMGKnownExpValue, SMGUnknownValue {
 
   BigInteger getValue();
 

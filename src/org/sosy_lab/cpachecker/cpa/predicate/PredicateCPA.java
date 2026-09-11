@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
-import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
@@ -107,12 +106,6 @@ public class PredicateCPA
 
   @Option(secure = true, description = "Direction of the analysis?")
   private AnalysisDirection direction = AnalysisDirection.FORWARD;
-
-  @Option(
-      secure = true,
-      name = "enableSharedInformation",
-      description = "Enable to share the information via serialization storage.")
-  private boolean enableSharedInformation = false;
 
   protected final Configuration config;
   protected final LogManager logger;
@@ -252,7 +245,9 @@ public class PredicateCPA
             logger,
             pCfa,
             domain,
-            merge instanceof PredicateMergeOperator ? (PredicateMergeOperator) merge : null,
+            merge instanceof PredicateMergeOperator predicateMergeOperator
+                ? predicateMergeOperator
+                : null,
             prec,
             transfer,
             solver,
@@ -262,12 +257,6 @@ public class PredicateCPA
             abstractionManager,
             predAbsManager,
             initialPrecision);
-
-    // TODO: Only a temporal hack on how to get information about fmgr to TerminationCPA, needs to
-    // be fixed !
-    if (enableSharedInformation) {
-      SerializationInfoStorage.storeSerializationInformation(this, cfa);
-    }
   }
 
   @Override

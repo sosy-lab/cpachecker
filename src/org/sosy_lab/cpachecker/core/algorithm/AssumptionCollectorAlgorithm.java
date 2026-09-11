@@ -223,7 +223,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         //        exceptionStates.add(state.getStatetId());
 
         // remove state
-        // remove it's parents from waitlist (CPAAlgorithm re-added them)
+        // remove its parents from waitlist (CPAAlgorithm re-added them)
         // and create assumptions for the parents
 
         // we have to do this for the parents and not for the errorState itself,
@@ -383,7 +383,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
               + " The CPA can only handle ONE Automaton!");
     }
 
-    return lst.get(0);
+    return lst.getFirst();
   }
 
   private void writeAutomatonToDot(Automaton automaton) {
@@ -406,7 +406,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
             falseAssumptionStates.add(state);
             if (state instanceof ARGState argState) {
               while (!argState.getChildren().isEmpty()) {
-                argState.getChildren().iterator().next().removeFromARG();
+                argState.getChildren().getFirst().removeFromARG();
               }
             }
           }
@@ -513,7 +513,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
         if (edges.size() > 1) {
           sb.append("    MATCH \"");
-          escape(edges.get(0).getRawStatement(), sb);
+          escape(edges.getFirst().getRawStatement(), sb);
           sb.append("\" -> ");
           sb.append("GOTO ARG" + s.getStateId() + "M" + multiEdgeID);
 
@@ -668,31 +668,20 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     for (int i = 0; i < s.length(); i++) {
       char c = s.charAt(i);
       switch (c) {
-        case '\r':
-          appendTo.append("\\r");
-          break;
-        case '\n':
-          appendTo.append("\\n");
-          break;
-        case '\"':
-          appendTo.append("\\\"");
-          break;
-        case '\\':
-          appendTo.append("\\\\");
-          break;
-        case '`':
-          break;
-        default:
-          appendTo.append(c);
-          break;
+        case '\r' -> appendTo.append("\\r");
+        case '\n' -> appendTo.append("\\n");
+        case '\"' -> appendTo.append("\\\"");
+        case '\\' -> appendTo.append("\\\\");
+        case '`' -> {}
+        default -> appendTo.append(c);
       }
     }
   }
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (innerAlgorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) innerAlgorithm).collectStatistics(pStatsCollection);
+    if (innerAlgorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(new AssumptionCollectionStatistics());
   }

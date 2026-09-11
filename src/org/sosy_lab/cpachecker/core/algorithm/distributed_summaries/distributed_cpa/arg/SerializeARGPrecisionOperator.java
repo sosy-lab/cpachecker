@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg;
 
+import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssMessagePayload;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 public class SerializeARGPrecisionOperator implements SerializePrecisionOperator {
@@ -21,7 +21,7 @@ public class SerializeARGPrecisionOperator implements SerializePrecisionOperator
   }
 
   @Override
-  public DssMessagePayload serializePrecision(Precision pPrecision) {
+  public ImmutableMap<String, String> serializePrecision(Precision pPrecision) {
     return wrapped.getSerializePrecisionOperator().serializePrecision(pPrecision);
   }
 }

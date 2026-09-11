@@ -17,7 +17,7 @@ public class DepthBasedWeightedWaitlist extends WeightedRandomWaitlist {
 
   /**
    * Compares abstract states by their depth in the ARG. A state that is deeper in the ARG is
-   * 'greater than' a state that is higher in the ARG
+   * 'greater than' a state that is closer to the root of the ARG
    */
   private static final Comparator<AbstractState> DEPTH_BASED_STATE_COMPARATOR =
       Comparator.<AbstractState>comparingInt(

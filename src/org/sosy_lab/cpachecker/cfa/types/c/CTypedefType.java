@@ -20,15 +20,12 @@ public final class CTypedefType implements CType {
   @Serial private static final long serialVersionUID = -3461236537115147688L;
   private final String name; // the typedef name
   private final CType realType; // the real type this typedef points to
-  private final boolean isConst;
-  private final boolean isVolatile;
+  private final CTypeQualifiers qualifiers;
   private int hashCache = 0;
 
-  public CTypedefType(
-      final boolean pConst, final boolean pVolatile, final String pName, CType pRealType) {
+  public CTypedefType(final CTypeQualifiers pQualifiers, final String pName, CType pRealType) {
 
-    isConst = pConst;
-    isVolatile = pVolatile;
+    qualifiers = checkNotNull(pQualifiers);
     name = pName.intern();
     realType = checkNotNull(pRealType);
   }
@@ -49,21 +46,12 @@ public final class CTypedefType implements CType {
   @Override
   public String toASTString(String pDeclarator) {
     checkNotNull(pDeclarator);
-    return (isConst() ? "const " : "")
-        + (isVolatile() ? "volatile " : "")
-        + name
-        + " "
-        + pDeclarator;
+    return qualifiers.toASTStringPrefix() + name + " " + pDeclarator;
   }
 
   @Override
-  public boolean isConst() {
-    return isConst;
-  }
-
-  @Override
-  public boolean isVolatile() {
-    return isVolatile;
+  public CTypeQualifiers getQualifiers() {
+    return qualifiers;
   }
 
   @Override
@@ -84,7 +72,7 @@ public final class CTypedefType implements CType {
   @Override
   public int hashCode() {
     if (hashCache == 0) {
-      hashCache = Objects.hash(name, isConst, isVolatile, realType);
+      hashCache = Objects.hash(name, qualifiers, realType);
     }
     return hashCache;
   }
@@ -102,18 +90,20 @@ public final class CTypedefType implements CType {
 
     return obj instanceof CTypedefType other
         && Objects.equals(name, other.name)
-        && isConst == other.isConst
-        && isVolatile == other.isVolatile
+        && qualifiers.equals(other.qualifiers)
         && Objects.equals(realType, other.realType);
   }
 
   @Override
-  public CType getCanonicalType() {
-    return getCanonicalType(false, false);
+  public CType getCanonicalType(CTypeQualifiers pQualifiersToAdd) {
+    return realType.getCanonicalType(CTypeQualifiers.union(qualifiers, pQualifiersToAdd));
   }
 
   @Override
-  public CType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    return realType.getCanonicalType(isConst || pForceConst, isVolatile || pForceVolatile);
+  public CTypedefType withQualifiersSetTo(CTypeQualifiers pNewQualifiers) {
+    if (pNewQualifiers.equals(qualifiers)) {
+      return this;
+    }
+    return new CTypedefType(pNewQualifiers, getName(), getRealType());
   }
 }

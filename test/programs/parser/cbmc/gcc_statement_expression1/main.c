@@ -3,7 +3,7 @@ int main()
   int x;
   int y;
 
-  // as a side-effect  
+  // as a side effect
   ({ x=1; x;});
   
   assert(x==1);

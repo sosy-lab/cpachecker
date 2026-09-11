@@ -18,6 +18,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -103,7 +104,7 @@ public abstract class ErrorTracePrinter {
     return true;
   }
 
-  private List<CFAEdge> createPath(UsageInfo usage) {
+  private List<@Nullable CFAEdge> createPath(UsageInfo usage) {
     assert usage.getKeyState() != null;
 
     ARGState target = (ARGState) usage.getKeyState();
@@ -128,8 +129,8 @@ public abstract class ErrorTracePrinter {
   public void printErrorTraces(UnmodifiableReachedSet reached) {
     preparationTimer.start();
     ReachedSet reachedSet;
-    if (reached instanceof ForwardingReachedSet) {
-      reachedSet = ((ForwardingReachedSet) reached).getDelegate();
+    if (reached instanceof ForwardingReachedSet forwardingReachedSet) {
+      reachedSet = forwardingReachedSet.getDelegate();
     } else {
       reachedSet = (ReachedSet) reached;
     }
@@ -194,8 +195,8 @@ public abstract class ErrorTracePrinter {
     return lockTransfer == null || pEdge == null ? "" : lockTransfer.doesChangeTheState(pEdge);
   }
 
-  protected List<CFAEdge> getPath(UsageInfo usage) {
-    List<CFAEdge> path = usage.getPath();
+  protected @Nullable List<@Nullable CFAEdge> getPath(UsageInfo usage) {
+    List<@Nullable CFAEdge> path = usage.getPath();
 
     if (usage.getPath() == null) {
       path = createPath(usage);

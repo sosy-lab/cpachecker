@@ -110,8 +110,8 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
 
     if (pType.isAssignableFrom(mCachedCPA.getClass())) {
       return pType.cast(mCachedCPA);
-    } else if (mCachedCPA instanceof WrapperCPA) {
-      return ((WrapperCPA) mCachedCPA).retrieveWrappedCpa(pType);
+    } else if (mCachedCPA instanceof WrapperCPA wrapperCPA) {
+      return wrapperCPA.retrieveWrappedCpa(pType);
     }
 
     return null;

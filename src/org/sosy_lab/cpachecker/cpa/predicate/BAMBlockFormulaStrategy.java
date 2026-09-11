@@ -93,7 +93,7 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
 
         boolean isSingleEdge = edges.size() == 1;
 
-        // we enter a function, so lets add the previous state to the stack
+        // we enter a function, so let's add the previous state to the stack
         if (isSingleEdge
             && Iterables.getOnlyElement(edges).getEdgeType() == CFAEdgeType.FunctionCallEdge) {
           prevCallState = parentElement;
@@ -148,7 +148,7 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
       assert new HashSet<>(currentStacks).size() <= 1
           : "function with multiple entry-states not supported";
 
-      callStacks.put(currentState, currentStacks.get(0));
+      callStacks.put(currentState, currentStacks.getFirst());
 
       PathFormula currentFormula;
       final PredicateAbstractState predicateElement =

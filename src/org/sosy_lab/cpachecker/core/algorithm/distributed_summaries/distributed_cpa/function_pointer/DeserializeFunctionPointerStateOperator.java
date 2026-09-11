@@ -8,12 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
@@ -23,22 +24,22 @@ import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.NamedFun
 public class DeserializeFunctionPointerStateOperator implements DeserializeOperator {
 
   private final FunctionPointerCPA functionPointerCPA;
-  private final ImmutableMap<Integer, CFANode> integerCFANodeMap;
+  private final BlockNode blockNode;
 
   public DeserializeFunctionPointerStateOperator(
-      FunctionPointerCPA pFunctionPointerCPA, ImmutableMap<Integer, CFANode> pIntegerCFANodeMap) {
+      FunctionPointerCPA pFunctionPointerCPA, BlockNode pBlockNode) {
     functionPointerCPA = pFunctionPointerCPA;
-    integerCFANodeMap = pIntegerCFANodeMap;
+    blockNode = pBlockNode;
   }
 
   @Override
   public AbstractState deserialize(DssMessage pMessage) {
-    String serialized =
-        pMessage.getAbstractState(functionPointerCPA.getClass()).map(Object::toString).orElse("");
+    String serialized = pMessage.getAbstractStateContent(FunctionPointerState.class).get(STATE_KEY);
+    Preconditions.checkNotNull(serialized, "If entry is contained, it cannot be null");
     if (serialized.isBlank()) {
+      CFANode location = DeserializeOperator.startLocationFromMessageType(pMessage, blockNode);
       return functionPointerCPA.getInitialState(
-          integerCFANodeMap.get(pMessage.getTargetNodeNumber()),
-          StateSpacePartition.getDefaultPartition());
+          location, StateSpacePartition.getDefaultPartition());
     }
     FunctionPointerState.Builder builder = FunctionPointerState.createEmptyState().createBuilder();
     for (String s : Splitter.on(", ").splitToList(serialized)) {
@@ -47,21 +48,14 @@ public class DeserializeFunctionPointerStateOperator implements DeserializeOpera
       }
       List<String> parts = Splitter.on(":").limit(3).splitToList(s);
       assert parts.size() >= 2;
-      switch (parts.get(0)) {
-        case "I":
-          builder.setTarget(parts.get(1), FunctionPointerState.InvalidTarget.getInstance());
-          break;
-        case "0":
-          builder.setTarget(parts.get(1), FunctionPointerState.NullTarget.getInstance());
-          break;
-        case "U":
-          builder.setTarget(parts.get(1), FunctionPointerState.UnknownTarget.getInstance());
-          break;
-        case "N":
-          builder.setTarget(parts.get(1), new NamedFunctionTarget(parts.get(2)));
-          break;
-        default:
-          throw new AssertionError("Unknown FunctionPointerState");
+      switch (parts.getFirst()) {
+        case "I" ->
+            builder.setTarget(parts.get(1), FunctionPointerState.InvalidTarget.getInstance());
+        case "0" -> builder.setTarget(parts.get(1), FunctionPointerState.NullTarget.getInstance());
+        case "U" ->
+            builder.setTarget(parts.get(1), FunctionPointerState.UnknownTarget.getInstance());
+        case "N" -> builder.setTarget(parts.get(1), new NamedFunctionTarget(parts.get(2)));
+        default -> throw new AssertionError("Unknown FunctionPointerState");
       }
     }
     return builder.build();

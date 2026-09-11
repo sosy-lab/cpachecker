@@ -60,8 +60,8 @@ public class ValueReadWriteTest extends SMGCPATest0 {
               true,
               true);
       assertThat(readAndState).hasSize(1);
-      currentState = readAndState.get(0).getState();
-      Value readValue = readAndState.get(0).getValue();
+      currentState = readAndState.getFirst().getState();
+      Value readValue = readAndState.getFirst().getValue();
       assertThat(readValue.asNumericValue().bigIntegerValue())
           .isEqualTo(INT_ARRAY_VALUES[i].asNumericValue().bigIntegerValue());
     }
@@ -142,8 +142,8 @@ public class ValueReadWriteTest extends SMGCPATest0 {
             true,
             true);
     assertThat(readAndState).hasSize(expectedNumOfEdges);
-    currentState = readAndState.get(0).getState();
-    Value readValue1 = readAndState.get(0).getValue();
+    currentState = readAndState.getFirst().getState();
+    Value readValue1 = readAndState.getFirst().getValue();
     assertThat(readValue1.isNumericValue()).isTrue();
 
     assertThat(readValue1.asNumericValue().bigIntegerValue().intValueExact())

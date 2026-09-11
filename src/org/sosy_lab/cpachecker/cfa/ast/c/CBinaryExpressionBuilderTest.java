@@ -17,7 +17,6 @@ import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.PLUS;
 
 import com.google.common.collect.ImmutableList;
-import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -56,9 +55,9 @@ public class CBinaryExpressionBuilderTest {
   private static final CSimpleType S_LONG_LONG_INT = CNumericTypes.LONG_LONG_INT.getCanonicalType();
   private static final CSimpleType U_LONG_LONG_INT = CNumericTypes.UNSIGNED_LONG_LONG_INT;
 
-  private static final List<CSimpleType> smallTypes =
+  private static final ImmutableList<CSimpleType> smallTypes =
       ImmutableList.of(S_CHAR, U_CHAR, S_SHORT_INT, U_SHORT_INT, S_INT);
-  private static final List<CSimpleType> bigTypes =
+  private static final ImmutableList<CSimpleType> bigTypes =
       ImmutableList.of(U_INT, S_LONG_INT, U_LONG_INT, S_LONG_LONG_INT, U_LONG_LONG_INT);
 
   private LogManager logger;

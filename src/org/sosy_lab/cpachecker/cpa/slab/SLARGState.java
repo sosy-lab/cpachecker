@@ -209,8 +209,8 @@ public final class SLARGState extends ARGState
   public ARGState forkWithReplacements(Collection<AbstractState> pReplacementStates) {
     AbstractState wrappedState = getWrappedState();
     AbstractState newWrappedState = null;
-    if (wrappedState instanceof Splitable) {
-      newWrappedState = ((Splitable) wrappedState).forkWithReplacements(pReplacementStates);
+    if (wrappedState instanceof Splitable splitable) {
+      newWrappedState = splitable.forkWithReplacements(pReplacementStates);
     } else {
       newWrappedState = wrappedState;
     }

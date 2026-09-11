@@ -27,7 +27,7 @@ public final class CFunctionTypeWithNames extends CFunctionType implements CType
 
   @Serial private static final long serialVersionUID = -3585082910610497708L;
 
-  private final List<CParameterDeclaration> parameters;
+  private final ImmutableList<CParameterDeclaration> parameters;
 
   public CFunctionTypeWithNames(
       CType pReturnType, List<CParameterDeclaration> pParameters, boolean pTakesVarArgs) {
@@ -40,7 +40,7 @@ public final class CFunctionTypeWithNames extends CFunctionType implements CType
     parameters = ImmutableList.copyOf(pParameters);
   }
 
-  public List<CParameterDeclaration> getParameterDeclarations() {
+  public ImmutableList<CParameterDeclaration> getParameterDeclarations() {
     return parameters;
   }
 
@@ -82,7 +82,7 @@ public final class CFunctionTypeWithNames extends CFunctionType implements CType
 
   @Serial
   private Object writeReplace() {
-    // Cannot serialize parameter names, but typically this is not necessary anyway.
+    // Cannot serialize parameter names, but this is not necessary anyway.
     return new CFunctionType(getReturnType(), getParameters(), takesVarArgs());
   }
 }

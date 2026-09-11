@@ -3,7 +3,7 @@ This file is part of CPAchecker,
 a tool for configurable software verification:
 https://cpachecker.sosy-lab.org
 
-SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
 
 SPDX-License-Identifier: Apache-2.0
 -->
@@ -17,6 +17,10 @@ Note that right now CPAchecker works best on Linux (64-bit x86)
 because not for all external dependencies native binaries
 are supplied for other platforms.
 So some configurations or features might not work on other platforms.
+For full support of modern SMT solvers,
+please use at least Ubuntu 24.04, Debian 13,
+or a similarly recent Linux distribution.
+As an alternative our container images are available.
 
 
 Install CPAchecker -- Binary Package for Debian/Ubuntu
@@ -31,11 +35,11 @@ Install CPAchecker -- Binary Package for Debian/Ubuntu
 Install CPAchecker -- Binary ZIP Archive
 ----------------------------------------
 
-1. Install a Java Runtime Environment which is at least Java 17 compatible.
+1. Install a Java Runtime Environment which is at least Java 21 compatible.
    One Linux we recommend to install a package from your distribution
-   (Ubuntu: `sudo apt install openjdk-17-jre`),
+   (Ubuntu: `sudo apt install openjdk-21-jre`),
    on other platforms you can for example get one from
-   [Adoptium](https://adoptium.net/temurin/releases/?version=17).
+   [Adoptium](https://adoptium.net/temurin/releases/?version=21).
    If you have multiple JVMs installed, consider making this the default JVM,
    otherwise you will need to specify the JVM when running CPAchecker.
    (Ubuntu: `sudo update-alternatives --config java`)
@@ -64,12 +68,12 @@ The Docker images are also available at `registry.gitlab.com/sosy-lab/software/c
 Install CPAchecker -- Source
 ----------------------------
 
-1. Install a Java SDK which is Java 17 compatible (later versions are also fine).  
+1. Install a Java SDK which is Java 21 compatible (later versions are also fine).  
    Most people use OpenJDK, e.g., from their distribution
-   (Ubuntu: `sudo apt-get install openjdk-17-jdk`)
-   or from [Adoptium](https://adoptium.net/temurin/releases/?version=17).
+   (Ubuntu: `sudo apt-get install openjdk-21-jdk`)
+   or from [Adoptium](https://adoptium.net/temurin/releases/?version=21).
    If you have multiple JDKs installed, make sure that the commands `java`
-   and `javac` call the respective Java 17 binaries (or a later version),
+   and `javac` call the respective Java 21 binaries (or a later version),
    so put them in your PATH or change the system-wide default JDK.
    (Ubuntu: `sudo update-alternatives --config java; sudo update-alternatives --config javac`)
 

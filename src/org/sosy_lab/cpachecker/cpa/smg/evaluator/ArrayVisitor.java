@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
- * This class evaluates expressions that evaluate to a array type. The type of every expression
+ * This class evaluates expressions that evaluate to an array type. The type of every expression
  * visited by this visitor has to be a {@link CArrayType }. The result of the evaluation is an
  * {@link SMGAddress}. The object represents the memory this array is placed in, the offset
  * represents the start of the array in the object.
@@ -116,7 +116,7 @@ class ArrayVisitor extends AddressVisitor
         // TODO support C11 6.7.6.3 7:
         // actual argument shall provide access to the first element of
         // an array with at least as many elements as specified by the size expression
-        type = new CPointerType(type.isConst(), type.isVolatile(), ((CArrayType) type).getType());
+        type = new CPointerType(type.getQualifiers(), ((CArrayType) type).getType());
       }
 
       List<SMGAddressAndState> result = new ArrayList<>();

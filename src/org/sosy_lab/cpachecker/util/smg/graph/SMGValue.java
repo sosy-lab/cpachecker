@@ -14,7 +14,7 @@ import org.sosy_lab.common.UniqueIdGenerator;
  * SMGValues are symbolic, with the exception of 0. They are only compared, so we need to use the
  * same object for the same symbolic value!
  */
-public class SMGValue implements Comparable<SMGValue> {
+public class SMGValue implements Comparable<SMGValue>, SMGNode {
 
   private static final UniqueIdGenerator U_ID_GENERATOR = new UniqueIdGenerator();
 

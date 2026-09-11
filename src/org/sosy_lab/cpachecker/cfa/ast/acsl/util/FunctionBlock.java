@@ -14,7 +14,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class FunctionBlock implements SyntacticBlock {
 
@@ -45,13 +44,14 @@ public class FunctionBlock implements SyntacticBlock {
   }
 
   @Override
+  @SuppressWarnings("deprecation")
   public FluentIterable<CFAEdge> getEnteringEdges() {
-    return CFAUtils.enteringEdges((CFANode) function);
+    return function.getEnteringEdges();
   }
 
   @Override
   public FluentIterable<CFAEdge> getLeavingEdges() {
-    return CFAUtils.leavingEdges(function);
+    return function.getLeavingEdges();
   }
 
   @Override

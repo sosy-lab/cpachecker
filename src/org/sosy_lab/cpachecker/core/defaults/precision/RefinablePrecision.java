@@ -47,9 +47,8 @@ public abstract class RefinablePrecision extends VariableTrackingPrecision {
   }
 
   @Override
-  public boolean equals(Object other) {
-    return other instanceof RefinablePrecision
-        && baseline.equals(((RefinablePrecision) other).baseline);
+  public boolean equals(Object pObj) {
+    return pObj instanceof RefinablePrecision other && baseline.equals(other.baseline);
   }
 
   @Override

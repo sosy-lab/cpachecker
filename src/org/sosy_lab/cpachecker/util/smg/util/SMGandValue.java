@@ -12,7 +12,7 @@ import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
 /*
- * Sometimes we need to return a SMG and a SMGValue.
+ * Sometimes we need to return an SMG and an SMGValue.
  */
 public class SMGandValue {
 

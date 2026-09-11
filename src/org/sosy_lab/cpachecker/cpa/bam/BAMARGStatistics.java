@@ -76,8 +76,9 @@ public class BAMARGStatistics extends ARGStatistics {
       if (pResult.equals(Result.FALSE)) {
         logger.log(Level.INFO, ERROR_PREFIX, "(no frontier states)");
         // invalid ARG, ignore output.
-      } else if (pResult.equals(Result.TRUE)) {
-        // In case of TRUE verdict we do not need a target to print super statistics
+      } else {
+        // without a target we cannot reconstruct a counterexample, but everything else
+        // can be exported from the main reached set
         super.printStatistics(pOut, pResult, pReached);
       }
       return;
@@ -102,8 +103,9 @@ public class BAMARGStatistics extends ARGStatistics {
       if (pResult.equals(Result.FALSE)) {
         logger.log(Level.INFO, ERROR_PREFIX, "(no frontier states)");
         // invalid ARG, ignore output.
-      } else if (pResult.equals(Result.TRUE)) {
-        // In case of TRUE verdict we do not need a target to print super statistics
+      } else {
+        // without a target we cannot reconstruct a counterexample, but everything else
+        // can be exported from the main reached set
         super.writeOutputFiles(pResult, pReached);
       }
       return;
@@ -199,14 +201,19 @@ public class BAMARGStatistics extends ARGStatistics {
     return bamReachedSetView;
   }
 
+  /**
+   * Returns the leaf states from where the subgraph computation can traverse backwards towards the
+   * root of the reached set. The root itself is no such state, and it is a leaf whenever the whole
+   * analysis happened inside of blocks, e.g., for recursive procedures.
+   */
   private FluentIterable<ARGState> getFrontierStates(UnmodifiableReachedSet pReached) {
     return ((ARGState) pReached.getFirstState())
         .getSubgraph()
         .filter(
-            s -> s.getChildren().isEmpty() && !s.isCovered()
+            s -> s.getChildren().isEmpty() && !s.isCovered() && !s.getParents().isEmpty()
             // sometimes we find leaf-states that are at block-entry-locations,
             // and it seems that those states are "not" contained in the reachedSet.
-            // I do not know the reason for this. To avoid invalid statistics, lets ignore them.
+            // I do not know the reason for this. To avoid invalid statistics, let's ignore them.
             // Possible case: entry state of an infinite loop, loop is a block without exit-state.
             // && !bamCpa.getBlockPartitioning().isCallNode(AbstractStates.extractLocation(s))
             );
@@ -218,13 +225,8 @@ public class BAMARGStatistics extends ARGStatistics {
       return false; // invalid CPA, nothing to do
     }
 
-    if (pReached.size() <= 1) {
-      // interrupt, timeout -> no CEX available, ignore reached-set
-      logger.log(Level.WARNING, "could not compute full reached set graph, there is no exit state");
-      return false;
-    }
-
-    return true;
+    // an empty reached set (interrupt, timeout) has no root state to export anything from
+    return pReached.getFirstState() != null;
   }
 
   /**

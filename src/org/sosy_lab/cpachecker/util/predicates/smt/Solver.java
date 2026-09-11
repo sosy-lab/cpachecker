@@ -41,6 +41,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaManager;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
+import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.OptimizationProverEnvironment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext;
@@ -118,7 +119,7 @@ public final class Solver implements AutoCloseable {
   public final Timer solverTime = new Timer();
 
   @SuppressFBWarnings("PA_PUBLIC_PRIMITIVE_ATTRIBUTE") // only statistics
-  public int satChecks = 0;
+  public int actualSatChecks = 0;
 
   @SuppressFBWarnings("PA_PUBLIC_PRIMITIVE_ATTRIBUTE") // only statistics
   public int trivialSatChecks = 0;
@@ -277,9 +278,8 @@ public final class Solver implements AutoCloseable {
    * formulas.
    */
   public void printStatistics(PrintStream pOut) {
-    if (solvingContext instanceof StatisticsSolverContext) {
-      final SolverStatistics stats =
-          ((StatisticsSolverContext) solvingContext).getSolverStatistics();
+    if (solvingContext instanceof StatisticsSolverContext statisticsSolverContext) {
+      final SolverStatistics stats = statisticsSolverContext.getSolverStatistics();
       pOut.println();
       writingStatisticsTo(pOut)
           .put("Statistics about operations", "")
@@ -388,8 +388,62 @@ public final class Solver implements AutoCloseable {
 
   /** Checks whether a formula is unsat. */
   public boolean isUnsat(BooleanFormula f) throws SolverException, InterruptedException {
-    satChecks++;
+    return isUnsat(f, null);
+  }
 
+  public interface ModelCallback {
+    void accept(Model pModel) throws InterruptedException, SolverException;
+  }
+
+  /**
+   * Checks whether a formula is (un)sat. If the formula is satisfiable, optionally a callback is
+   * made with the {@link Model} instance. The {@link Model} is closed automatically.
+   */
+  public boolean isUnsat(BooleanFormula f, @Nullable ModelCallback modelCallback)
+      throws SolverException, InterruptedException {
+    // check cache
+    Boolean cachedIsUnsat = isUnsatCached(f);
+    if (cachedIsUnsat != null && (cachedIsUnsat || modelCallback == null)) {
+      // return cached result if unsat or if we do not care about the model
+      return cachedIsUnsat;
+    }
+
+    // now actually solve
+    actualSatChecks++;
+
+    ProverOptions[] proverOptions =
+        modelCallback != null
+            ? new ProverOptions[] {ProverOptions.GENERATE_MODELS}
+            : new ProverOptions[] {};
+    try (ProverEnvironment prover = newProverEnvironment(proverOptions)) {
+      boolean isUnsat;
+      solverTime.start();
+      try {
+        prover.push(f);
+        isUnsat = prover.isUnsat();
+      } finally {
+        solverTime.stop();
+      }
+      unsatCache.put(f, isUnsat);
+
+      if (modelCallback != null && !isUnsat) {
+        try (Model model = prover.getModel()) {
+          modelCallback.accept(model);
+        }
+      }
+
+      return isUnsat;
+    }
+  }
+
+  /**
+   * Checks whether a formula is (un)sat, but only if it is cheap (trivial formula or result is
+   * cached already).
+   *
+   * @return null if result is unknown, true/false otherwise
+   */
+  public Boolean isUnsatCached(BooleanFormula f) {
+    // check trivial results
     if (solvingBfmgr.isTrue(f)) {
       trivialSatChecks++;
       return false;
@@ -398,22 +452,13 @@ public final class Solver implements AutoCloseable {
       trivialSatChecks++;
       return true;
     }
-    Boolean result = unsatCache.get(f);
-    if (result != null) {
+
+    // check cache
+    Boolean cachedIsUnsat = unsatCache.get(f);
+    if (cachedIsUnsat != null) {
       cachedSatChecks++;
-      return result;
     }
-
-    solverTime.start();
-    try {
-      result = isUnsatUncached(f);
-
-      unsatCache.put(f, result);
-      return result;
-
-    } finally {
-      solverTime.stop();
-    }
+    return cachedIsUnsat;
   }
 
   /**
@@ -435,7 +480,6 @@ public final class Solver implements AutoCloseable {
 
   private boolean isUnsat0(Set<BooleanFormula> lemmas, Object cacheKey)
       throws InterruptedException, SolverException {
-    satChecks++;
 
     Map<ImmutableSet<BooleanFormula>, Boolean> stored = groupedUnsatCache.get(cacheKey);
     if (stored != null) {
@@ -456,6 +500,8 @@ public final class Solver implements AutoCloseable {
         }
       }
     }
+
+    actualSatChecks++;
 
     if (stored == null) {
       stored = new HashMap<>();
@@ -515,23 +561,14 @@ public final class Solver implements AutoCloseable {
     }
   }
 
-  private boolean isUnsatUncached(BooleanFormula f) throws SolverException, InterruptedException {
-    try (ProverEnvironment prover = newProverEnvironment()) {
-      prover.push(f);
-      return prover.isUnsat();
-    }
-  }
-
   /** Checks whether a => b. The result is cached. */
   public boolean implies(BooleanFormula a, BooleanFormula b)
       throws SolverException, InterruptedException {
     if (solvingBfmgr.isFalse(a) || solvingBfmgr.isTrue(b)) {
-      satChecks++;
       trivialSatChecks++;
       return true;
     }
     if (a.equals(b)) {
-      satChecks++;
       trivialSatChecks++;
       return true;
     }

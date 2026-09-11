@@ -10,17 +10,17 @@ _Bool my_f()
 
 int main()
 {
-  // side-effect in ?:
+  // side effect in ?:
   glob=0;  
   result=glob?1:my_f();  
   assert(result==0);
   
-  // side-effect in ||
+  // side effect in ||
   glob=0;
   result=glob||my_f();
   assert(result==0);
 
-  // side-effect deep down
+  // side effect deep down
   glob=0;
   result=glob||(0+my_f());
   assert(result==0);

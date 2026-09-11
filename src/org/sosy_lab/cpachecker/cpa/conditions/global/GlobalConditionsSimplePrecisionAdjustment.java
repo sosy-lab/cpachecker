@@ -148,7 +148,7 @@ class GlobalConditionsSimplePrecisionAdjustment extends SimplePrecisionAdjustmen
       return false;
     }
 
-    if (!(memUsedObject instanceof Long)) {
+    if (!(memUsedObject instanceof Long l)) {
       logger.log(
           Level.WARNING,
           "Invalid value received for memory size: "
@@ -159,7 +159,7 @@ class GlobalConditionsSimplePrecisionAdjustment extends SimplePrecisionAdjustmen
       return false;
     }
 
-    long memUsed = ((Long) memUsedObject) / (1000 * 1000);
+    long memUsed = l / (1000 * 1000);
 
     return memUsed > threshold;
   }

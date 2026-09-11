@@ -27,18 +27,17 @@ public final class Globally extends UnaryFormula {
       return pOperand;
     }
 
-    if (pOperand instanceof Finally && ((Finally) pOperand).getOperand() instanceof Globally) {
+    if (pOperand instanceof Finally f && f.getOperand() instanceof Globally) {
       return pOperand;
     }
 
-    if (pOperand instanceof Release) {
-      return of(((Release) pOperand).getRight());
+    if (pOperand instanceof Release release) {
+      return of(release.getRight());
     }
 
-    if (pOperand instanceof Conjunction) {
+    if (pOperand instanceof Conjunction conjunction) {
       return new Conjunction(
-          Collections3.transformedImmutableListCopy(
-              ((Conjunction) pOperand).getChildren(), Globally::of));
+          Collections3.transformedImmutableListCopy(conjunction.getChildren(), Globally::of));
     }
 
     return new Globally(pOperand);

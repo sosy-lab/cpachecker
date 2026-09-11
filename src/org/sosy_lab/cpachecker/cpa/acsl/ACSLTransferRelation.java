@@ -10,11 +10,12 @@ package org.sosy_lab.cpachecker.cpa.acsl;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotations;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLBuiltinCollectingVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLPredicateToExpressionTreeVisitor;
@@ -27,14 +28,14 @@ import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
 public class ACSLTransferRelation extends SingleEdgeTransferRelation {
 
-  private final CFAWithACSLAnnotations cfa;
+  private final CFA cfa;
   private final LogManager logger;
   private final ACSLPredicateToExpressionTreeVisitor acslVisitor;
   private final ToCExpressionVisitor expressionTreeVisitor;
   private final boolean usePureExpressionsOnly;
 
   public ACSLTransferRelation(
-      CFAWithACSLAnnotations pCFA,
+      CFA pCFA,
       LogManager pLogManager,
       ACSLPredicateToExpressionTreeVisitor pACSLVisitor,
       ToCExpressionVisitor pExpressionTreeVisitor,
@@ -51,7 +52,8 @@ public class ACSLTransferRelation extends SingleEdgeTransferRelation {
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
     Set<ACSLAnnotation> annotationsForEdge =
-        ImmutableSet.copyOf(cfa.getEdgesToAnnotations().get(cfaEdge));
+        ImmutableSet.copyOf(
+            cfa.getEdgesToAnnotations().orElse(ImmutableListMultimap.of()).get(cfaEdge));
     if (usePureExpressionsOnly) {
       ACSLBuiltinCollectingVisitor visitor = new ACSLBuiltinCollectingVisitor();
       Set<ACSLAnnotation> annotations =

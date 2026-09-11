@@ -195,7 +195,7 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
 
     private final LoopBoundPrecisionAdjustment precisionAdjustment;
 
-    public IncrementalLoopIterationAdjuster(LoopBoundPrecisionAdjustment pPrecisionAdjustment) {
+    IncrementalLoopIterationAdjuster(LoopBoundPrecisionAdjustment pPrecisionAdjustment) {
       precisionAdjustment = pPrecisionAdjustment;
     }
 
@@ -215,7 +215,7 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
 
     private final LoopBoundPrecisionAdjustment precisionAdjustment;
 
-    public DoublingLoopIterationAdjuster(LoopBoundPrecisionAdjustment pPrecisionAdjustment) {
+    DoublingLoopIterationAdjuster(LoopBoundPrecisionAdjustment pPrecisionAdjustment) {
       precisionAdjustment = pPrecisionAdjustment;
     }
 

@@ -91,5 +91,12 @@ public abstract class ABinaryExpression extends AbstractExpression {
   public interface ABinaryOperator {
     /** Returns the string representation of this operator (e.g. "*", "+"). */
     String getOperator();
+
+    /**
+     * Returns true if the operator is logical, i.e. evaluates into a boolean, in the respective
+     * programming language. In Java this refers to the boolean type(s), while in C the result is
+     * usually an integer that can be interpreted as boolean.
+     */
+    boolean isLogicalOperator();
   }
 }

@@ -120,8 +120,8 @@ class THDotBuilder {
     appendEdgeStyle(EMPTY, DASHED, NONE);
 
     for (JClassOrInterfaceType type : types) {
-      if (type instanceof JClassType) {
-        addImplementsInterfaceEdge((JClassType) type);
+      if (type instanceof JClassType jClassType) {
+        addImplementsInterfaceEdge(jClassType);
       }
     }
   }
@@ -141,10 +141,10 @@ class THDotBuilder {
     appendEdgeStyle(EMPTY, SOLID, NONE);
 
     for (JClassOrInterfaceType type : types) {
-      if (type instanceof JClassType) {
-        addSuperTypeEdges((JClassType) type);
-      } else if (type instanceof JInterfaceType) {
-        addSuperTypeEdges((JInterfaceType) type);
+      if (type instanceof JClassType jClassType) {
+        addSuperTypeEdges(jClassType);
+      } else if (type instanceof JInterfaceType jInterfaceType) {
+        addSuperTypeEdges(jInterfaceType);
       }
     }
   }
@@ -303,7 +303,6 @@ class THDotBuilder {
       case PROTECTED -> "#";
       case NONE -> "";
       case PRIVATE -> "-";
-      default -> throw new AssertionError();
     };
   }
 

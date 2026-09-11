@@ -105,7 +105,7 @@ public class GenericAbstractionCandidate implements SMGGenericAbstractionCandida
       pSMG.markObjectDeletedAndRemoveEdges(obj);
     }
 
-    /*Finally, connect it to the rest of the smg.*/
+    /* Finally, connect it to the rest of the SMG. */
     connect(pSMG, genericAbstraction, pointsToThisAbstraction, pointsFromThisAbstraction);
 
     return pSMG;

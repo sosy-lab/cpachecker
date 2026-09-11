@@ -8,10 +8,12 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport.model;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
+import java.util.OptionalInt;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 
@@ -21,19 +23,19 @@ public class LocationRecord {
   private final String fileName;
 
   @JsonProperty("line")
-  private final int line;
+  private final Integer line;
 
+  @Nullable
   @JsonProperty("column")
-  private final int column;
+  private final Integer column;
 
   @JsonProperty("function")
-  @JsonInclude(JsonInclude.Include.NON_NULL)
   private final String function;
 
   public LocationRecord(
       @JsonProperty("file_name") String pFileName,
-      @JsonProperty("line") int pLine,
-      @JsonProperty("column") int pColumn,
+      @JsonProperty("line") Integer pLine,
+      @JsonProperty("column") Integer pColumn,
       @JsonProperty("function") String pFunction) {
     fileName = pFileName;
     line = pLine;
@@ -67,12 +69,17 @@ public class LocationRecord {
     return fileName;
   }
 
-  public int getLine() {
+  public Integer getLine() {
     return line;
   }
 
-  public int getColumn() {
-    return column;
+  @JsonIgnore
+  public OptionalInt getColumn() {
+    if (column != null) {
+      return OptionalInt.of(column);
+    } else {
+      return OptionalInt.empty();
+    }
   }
 
   public String getFunction() {
@@ -86,8 +93,8 @@ public class LocationRecord {
     }
     return o instanceof LocationRecord other
         && fileName.equals(other.fileName)
-        && line == other.line
-        && column == other.column
+        && Objects.equals(line, other.line)
+        && Objects.equals(column, other.column)
         && Objects.equals(function, other.function);
   }
 
@@ -95,7 +102,7 @@ public class LocationRecord {
   public int hashCode() {
     int hashCode = fileName.hashCode();
     hashCode = 31 * hashCode + Integer.hashCode(line);
-    hashCode = 31 * hashCode + Integer.hashCode(column);
+    hashCode = 31 * hashCode + (column != null ? Integer.hashCode(column) : 0);
     hashCode = 31 * hashCode + (function != null ? function.hashCode() : 0);
     return hashCode;
   }

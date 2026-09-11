@@ -21,6 +21,6 @@ public class NoTargetStateChecker extends PerElementPropertyChecker {
   @Override
   public boolean satisfiesProperty(AbstractState pElemToCheck)
       throws UnsupportedOperationException {
-    return (!(pElemToCheck instanceof Targetable) || !((Targetable) pElemToCheck).isTarget());
+    return (!(pElemToCheck instanceof Targetable targetable) || !targetable.isTarget());
   }
 }

@@ -83,7 +83,7 @@ public class ExplainTool {
 
   private void faultInfo(List<Fault> faults, CounterexampleInfo cInfo) {
     FaultLocalizationInfo info = new FaultLocalizationInfo(faults, cInfo);
-    info.getHtmlWriter().toHtml(faults.get(0));
+    info.getHtmlWriter().toHtml(faults.getFirst());
     info.apply();
   }
 

@@ -23,8 +23,8 @@ public class PackageSanityTest extends AbstractPackageSanityTests {
     setDefault(ComplexTypeKind.class, ComplexTypeKind.STRUCT);
     setDistinctValues(
         CComplexType.class,
-        new CElaboratedType(false, false, ComplexTypeKind.STRUCT, "type", "type", null),
-        new CEnumType(false, false, CNumericTypes.INT, ImmutableList.of(), "e", "e"));
+        new CElaboratedType(CTypeQualifiers.NONE, ComplexTypeKind.STRUCT, "type", "type", null),
+        new CEnumType(CTypeQualifiers.NONE, CNumericTypes.INT, ImmutableList.of(), "e", "e"));
     setDistinctValues(CType.class, CVoidType.VOID, CNumericTypes.INT);
     setDistinctValues(CSimpleType.class, CNumericTypes.INT, CNumericTypes.DOUBLE);
     setDefault(CExpression.class, CIntegerLiteralExpression.ONE);
@@ -33,10 +33,8 @@ public class PackageSanityTest extends AbstractPackageSanityTests {
     ignoreClasses(Predicates.equalTo(CBitFieldType.class));
   }
 
-  @Ignore
+  @Ignore(
+      "equals methods of CTypes are not testable with PackageSanityTest because of field origName")
   @Override
-  public void testEquals() {
-    // equals methods of CTypes are not testable with PackageSanityTest
-    // because of field origName
-  }
+  public void testEquals() {}
 }

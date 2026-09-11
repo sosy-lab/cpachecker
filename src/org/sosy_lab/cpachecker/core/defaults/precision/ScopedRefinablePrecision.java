@@ -116,10 +116,10 @@ public class ScopedRefinablePrecision extends RefinablePrecision {
   }
 
   @Override
-  public boolean equals(Object other) {
-    return super.equals(other)
-        && other instanceof ScopedRefinablePrecision
-        && rawPrecision.equals(((ScopedRefinablePrecision) other).rawPrecision);
+  public boolean equals(Object pObj) {
+    return super.equals(pObj)
+        && pObj instanceof ScopedRefinablePrecision other
+        && rawPrecision.equals(other.rawPrecision);
   }
 
   @Override

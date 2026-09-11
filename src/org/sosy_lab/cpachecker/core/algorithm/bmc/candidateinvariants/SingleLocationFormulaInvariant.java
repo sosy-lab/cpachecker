@@ -123,7 +123,7 @@ public abstract class SingleLocationFormulaInvariant implements CandidateInvaria
 
       private final SMTLibLocationFormulaInvariant delegate;
 
-      public SpecificSMTLibLocationFormulaInvariant(BooleanFormula pInv) {
+      SpecificSMTLibLocationFormulaInvariant(BooleanFormula pInv) {
         super(pLocation);
         invariant = pInv;
         delegate =

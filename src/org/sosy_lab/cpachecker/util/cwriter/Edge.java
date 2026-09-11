@@ -54,8 +54,8 @@ class Edge implements Comparable<Edge> {
     if (this == pObj) {
       return true;
     }
-    return pObj instanceof Edge
-        && getChildState().getStateId() == ((Edge) pObj).getChildState().getStateId();
+    return pObj instanceof Edge other
+        && getChildState().getStateId() == other.getChildState().getStateId();
   }
 
   @Override

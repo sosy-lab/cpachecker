@@ -69,7 +69,7 @@ public class ARGReachedSet {
   }
 
   /**
-   * This constructor may be used only during an refinement which should be added to the refinement
+   * This constructor may be used only during a refinement which should be added to the refinement
    * graph .dot file.
    */
   public ARGReachedSet(
@@ -314,6 +314,11 @@ public class ARGReachedSet {
   private Set<ARGState> removeSubtree0(ARGState e) {
     Preconditions.checkNotNull(e);
     Preconditions.checkArgument(
+        !e.isDestroyed(),
+        "Trying to remove a state from the ARG/reached set that has already been destroyed.\n"
+            + "State: '%s'.",
+        e);
+    Preconditions.checkArgument(
         !e.getParents().isEmpty(),
         "May not remove the initial state from the ARG/reached set.\nTrying to remove state '%s'.",
         e);
@@ -336,11 +341,9 @@ public class ARGReachedSet {
   }
 
   private void dumpSubgraph(ARGState e) {
-    if (!(cpa instanceof ARGCPA)) {
+    if (!(cpa instanceof ARGCPA argCpa)) {
       return;
     }
-
-    ARGCPA argCpa = (ARGCPA) cpa;
 
     ARGToDotWriter refinementGraph = argCpa.getARGExporter().getRefinementGraphWriter();
     if (refinementGraph == null) {
@@ -497,7 +500,7 @@ public class ARGReachedSet {
    * asked to be sound, this method delegates to {@link ARGReachedSet#tryToCover(ARGState)}
    *
    * @param v the state which should be covered if possible
-   * @param beUnsound whether or not the be unsound
+   * @param beUnsound whether the be unsound
    * @return whether the covering was successful
    */
   public boolean tryToCover(ARGState v, boolean beUnsound)

@@ -63,24 +63,25 @@ class BoolCollectingVisitor extends VariablesCollectingVisitor {
     }
 
     switch (exp.getOperator()) {
-      case EQUALS:
-      case NOT_EQUALS: // ==, != work with boolean operands
+      case EQUALS, NOT_EQUALS -> {
+        // ==, != work with boolean operands
         if (operand1.isEmpty() || operand2.isEmpty()) {
           // one operand is Zero (or One, if allowed)
           operand1.addAll(operand2);
           return operand1;
         }
-      // We compare 2 variables. There is no guarantee, that they are boolean!
-      // Example: (a!=b) && (b!=c) && (c!=a)
-      // -> FALSE for boolean, but TRUE for {1,2,3}
-
-      // $FALL-THROUGH$
-
-      default: // +-*/ --> no boolean operators, a+b --> a and b are not boolean
-        nonIntBoolVars.addAll(operand1);
-        nonIntBoolVars.addAll(operand2);
-        return null;
+      }
+      default -> {
+        // +-*/ --> no boolean operators, a+b --> a and b are not boolean
+      }
     }
+    // We compare 2 variables. There is no guarantee, that they are boolean!
+    // Example: (a!=b) && (b!=c) && (c!=a)
+    // -> FALSE for boolean, but TRUE for {1,2,3}
+
+    nonIntBoolVars.addAll(operand1);
+    nonIntBoolVars.addAll(operand2);
+    return null;
   }
 
   @Override

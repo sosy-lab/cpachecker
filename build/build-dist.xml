@@ -63,6 +63,9 @@ SPDX-License-Identifier: Apache-2.0
                 includes="bin/* scripts/*.sh scripts/*.py scripts/post_processing/coverage/generate_coverage.py lib/native/**"
                 excludes="bin/*.bat lib/native/source/** lib/native/*win*/**"
                 prefix="${namez}/"/>
+            <zipfileset dir="scripts" filemode="755"
+                        includes="smoketest.sh"
+                        prefix="${namez}/"/>
         </zip>
     </target>
 

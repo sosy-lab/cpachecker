@@ -13,21 +13,17 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssConnection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessageFactory;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public abstract class DssWorker implements DssActor {
 
   private final DssMessageFactory messageFactory;
-  private final LogManager logger;
+  protected final LogManager logger;
   private final String id;
-
-  private final StatCounter receivedMessages;
-  private final StatCounter sentMessages;
 
   /**
    * Abstract definition of a Worker. All workers enter the same routine of receiving and producing
@@ -37,8 +33,6 @@ public abstract class DssWorker implements DssActor {
    */
   protected DssWorker(String pId, DssMessageFactory pMessageFactory, LogManager pLogger) {
     id = pId;
-    receivedMessages = new StatCounter(pId + " received messages");
-    sentMessages = new StatCounter(pId + " sent messages");
     messageFactory = pMessageFactory;
     logger = pLogger;
   }
@@ -47,8 +41,7 @@ public abstract class DssWorker implements DssActor {
   public void broadcast(Collection<DssMessage> pMessage) throws InterruptedException {
     // pMessage.forEach(m -> logger.log(Level.INFO, m));
     for (DssMessage message : pMessage) {
-      sentMessages.inc();
-      getConnection().write(message);
+      getConnection().getBroadcaster().broadcastToAll(message);
     }
   }
 
@@ -63,34 +56,30 @@ public abstract class DssWorker implements DssActor {
 
   @Override
   public void run() {
+    if (shutdownRequested()) {
+      return;
+    }
     final DssConnection connection = getConnection();
     try (connection) {
       while (!shutdownRequested()) {
         broadcast(processMessage(nextMessage()));
-        receivedMessages.inc();
-        if (Thread.currentThread().isInterrupted()) {
-          break;
-        }
       }
     } catch (CPAException | InterruptedException | IOException | SolverException e) {
       logger.logfException(
           Level.SEVERE, e, "%s faced a problem while processing messages.", getId());
-      broadcastOrLogException(ImmutableList.of(messageFactory.newErrorMessage(getId(), e)));
+      broadcastOrLogException(
+          ImmutableList.of(messageFactory.createDssExceptionMessage(getId(), e)));
     } finally {
       logger.logf(Level.INFO, "Worker %s finished and shuts down.", id);
     }
   }
 
+  protected DssMessageFactory getMessageFactory() {
+    return messageFactory;
+  }
+
   @Override
   public final String getId() {
     return id;
-  }
-
-  int getReceivedMessages() {
-    return receivedMessages.getUpdateCount();
-  }
-
-  int getSentMessages() {
-    return sentMessages.getUpdateCount();
   }
 }

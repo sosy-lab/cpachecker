@@ -895,7 +895,7 @@ retry:
 	 * to make sure there is at least a free block inside this region.
 	 *
 	 * searching the first free bit on the block bitmap and copy of
-	 * last committed bitmap alternatively, until we found a allocatable
+	 * last committed bitmap alternatively, until we found an allocatable
 	 * block. Search start from the start block of the reservable space
 	 * we just found.
 	 */

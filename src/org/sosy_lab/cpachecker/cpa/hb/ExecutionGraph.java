@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedSet;
 import java.util.Set;
 
 public record ExecutionGraph(
@@ -111,10 +112,10 @@ public record ExecutionGraph(
       return sets.build();
     }
     List<T> list = originalSet.stream().toList();
-    T head = list.get(0);
-    Set<T> rest = new LinkedHashSet<>(list.subList(1, list.size()));
+    T head = list.getFirst();
+    SequencedSet<T> rest = new LinkedHashSet<>(list.subList(1, list.size()));
     for (Set<T> set : powerSet(rest)) {
-      Set<T> newSet = new LinkedHashSet<>();
+      SequencedSet<T> newSet = new LinkedHashSet<>();
       newSet.add(head);
       newSet.addAll(set);
       sets.add(newSet);

@@ -12,7 +12,8 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class AcceptAllVariableSelection<ConstantType> implements VariableSelection<ConstantType> {
+public final class AcceptAllVariableSelection<ConstantType>
+    implements VariableSelection<ConstantType> {
 
   @Override
   public boolean contains(MemoryLocation pMemoryLocation) {

@@ -8,22 +8,30 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg;
 
+import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
-public class DistributedARGCPA implements ForwardingDistributedConfigurableProgramAnalysis {
+public class DistributedARGCPA extends AbstractSingleWrapperCPA
+    implements ForwardingDistributedConfigurableProgramAnalysis, StatisticsProvider {
 
   private final ARGCPA argcpa;
   private final DistributedConfigurableProgramAnalysis wrappedCPA;
@@ -33,8 +41,12 @@ public class DistributedARGCPA implements ForwardingDistributedConfigurableProgr
   private final SerializePrecisionOperator serializePrecisionOperator;
   private final DeserializePrecisionOperator deserializePrecisionOperator;
   private final ViolationConditionOperator verificationConditionOperator;
+  private final CoverageOperator coverageOperator;
+  private final CombinePreconditionsOperator combinePreconditionsOperator;
+  private final CombineViolationConditionsOperator combineViolationConditionsOperator;
 
   public DistributedARGCPA(ARGCPA pARGCPA, DistributedConfigurableProgramAnalysis pWrapped) {
+    super(pWrapped);
     argcpa = pARGCPA;
     wrappedCPA = pWrapped;
     proceedOperator = new ProceedARGCPAOperator(wrappedCPA);
@@ -43,6 +55,9 @@ public class DistributedARGCPA implements ForwardingDistributedConfigurableProgr
     serializePrecisionOperator = new SerializeARGPrecisionOperator(wrappedCPA);
     deserializePrecisionOperator = new DeserializeARGPrecisionOperator(wrappedCPA);
     verificationConditionOperator = new ARGViolationConditionOperator(wrappedCPA);
+    coverageOperator = new ARGStateCoverageOperator(wrappedCPA);
+    combinePreconditionsOperator = new ARGStateCombinePreconditionsOperator(wrappedCPA);
+    combineViolationConditionsOperator = new ARGStateCombineViolationConditionOperator(wrappedCPA);
   }
 
   @Override
@@ -63,6 +78,11 @@ public class DistributedARGCPA implements ForwardingDistributedConfigurableProgr
   @Override
   public DeserializePrecisionOperator getDeserializePrecisionOperator() {
     return deserializePrecisionOperator;
+  }
+
+  @Override
+  public CombinePrecisionOperator getCombinePrecisionOperator() {
+    return wrappedCPA.getCombinePrecisionOperator();
   }
 
   @Override
@@ -87,12 +107,18 @@ public class DistributedARGCPA implements ForwardingDistributedConfigurableProgr
   }
 
   @Override
-  public boolean isTop(AbstractState pAbstractState) {
+  public boolean isMostGeneralBlockEntryState(AbstractState pAbstractState) {
     if (pAbstractState instanceof ARGState argstate) {
-      return wrappedCPA.isTop(argstate.getWrappedState());
+      return wrappedCPA.isMostGeneralBlockEntryState(argstate.getWrappedState());
     }
     throw new IllegalArgumentException(
         "DistributedARGCPA can only work on " + getAbstractStateClass());
+  }
+
+  @Override
+  public AbstractState reset(AbstractState pAbstractState) {
+    ARGState argState = (ARGState) pAbstractState;
+    return new ARGState(wrappedCPA.reset(argState.getWrappedState()), null);
   }
 
   @Override
@@ -100,7 +126,28 @@ public class DistributedARGCPA implements ForwardingDistributedConfigurableProgr
     return verificationConditionOperator;
   }
 
+  @Override
+  public CoverageOperator getCoverageOperator() {
+    return coverageOperator;
+  }
+
+  @Override
+  public CombinePreconditionsOperator getCombineOperator() {
+    return combinePreconditionsOperator;
+  }
+
+  @Override
+  public CombineViolationConditionsOperator getCombineViolationConditionsOperator() {
+    return combineViolationConditionsOperator;
+  }
+
   public DistributedConfigurableProgramAnalysis getWrappedCPA() {
     return wrappedCPA;
+  }
+
+  @Override
+  public int computeProgramPointHash(AbstractState pAbstractState) {
+    Preconditions.checkArgument(pAbstractState instanceof ARGState);
+    return wrappedCPA.computeProgramPointHash(((ARGState) pAbstractState).getWrappedState());
   }
 }

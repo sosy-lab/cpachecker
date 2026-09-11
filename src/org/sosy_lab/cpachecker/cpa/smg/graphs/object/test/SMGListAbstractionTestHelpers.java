@@ -158,7 +158,7 @@ public final class SMGListAbstractionTestHelpers {
       int pPfo,
       SMGListCircularity pCircularity,
       SMGListLinkage pLinkage) {
-    checkArgument(pSmg != null, "The smg was null.");
+    checkArgument(pSmg != null, "The SMG was null.");
     checkArgument(
         pAddresses != null && pAddresses.length >= 1,
         "The provided array must not be null or empty.");

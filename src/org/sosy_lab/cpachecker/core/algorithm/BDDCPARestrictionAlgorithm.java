@@ -82,7 +82,7 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
       assert ARGUtils.checkARG(reached);
 
       final AbstractState lastState = reached.getLastState();
-      if (!(lastState instanceof Targetable) || !((Targetable) lastState).isTarget()) {
+      if (!(lastState instanceof Targetable targetable) || !targetable.isTarget()) {
         // no target state
         break;
       }
@@ -94,9 +94,8 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
       logger.log(Level.INFO, "ErrorBDD:", manager.dumpRegion(errorBdd));
       errorSummary = manager.makeOr(errorBdd, errorSummary);
 
-      if (presenceConditionFile != null && lastState instanceof ARGState) {
-        CounterexampleInfo counterEx =
-            ((ARGState) lastState).getCounterexampleInformation().orElse(null);
+      if (presenceConditionFile != null && lastState instanceof ARGState aRGState) {
+        CounterexampleInfo counterEx = aRGState.getCounterexampleInformation().orElse(null);
         if (counterEx != null) {
           counterEx.addFurtherInformation(manager.dumpRegion(errorBdd), presenceConditionFile);
         }
@@ -123,8 +122,8 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) algorithm).collectStatistics(pStatsCollection);
+    if (algorithm instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
   }
 }

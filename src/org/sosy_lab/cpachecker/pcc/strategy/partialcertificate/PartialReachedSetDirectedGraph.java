@@ -290,7 +290,7 @@ public class PartialReachedSetDirectedGraph implements Statistics {
     private final Set<AbstractState> setRes = new HashSet<>();
     private final boolean collectAsARGState;
 
-    public CollectingNodeVisitor(final boolean pCollectAsARGState) {
+    CollectingNodeVisitor(final boolean pCollectAsARGState) {
       collectAsARGState = pCollectAsARGState;
     }
 
@@ -322,7 +322,7 @@ public class PartialReachedSetDirectedGraph implements Statistics {
     private final List<List<Integer>> changeableAdjacencyList;
     private final Set<Pair<Integer, Integer>> knownEdges;
 
-    public SuccessorEdgeConstructor(ARGState[] pNodes, List<List<Integer>> pAdjacencyList) {
+    SuccessorEdgeConstructor(ARGState[] pNodes, List<List<Integer>> pAdjacencyList) {
       super(false);
       nodeToIndex = new HashMap<>();
       for (int i = 0; i < pNodes.length; i++) {
@@ -332,7 +332,7 @@ public class PartialReachedSetDirectedGraph implements Statistics {
       knownEdges = Sets.newHashSetWithExpectedSize(pNodes.length);
     }
 
-    public void setPredecessorBeforeARGPass(ARGState pNewPredecessor) {
+    void setPredecessorBeforeARGPass(ARGState pNewPredecessor) {
       predecessor = pNewPredecessor;
       indexPredecessor = nodeToIndex.get(predecessor);
     }

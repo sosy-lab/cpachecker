@@ -89,8 +89,8 @@ public final class UsagePrecision implements WrapperPrecision, AdjustablePrecisi
       return pType.cast(this);
     } else if (pType.isAssignableFrom(wrappedPrecision.getClass())) {
       return pType.cast(wrappedPrecision);
-    } else if (wrappedPrecision instanceof WrapperPrecision) {
-      return ((WrapperPrecision) wrappedPrecision).retrieveWrappedPrecision(pType);
+    } else if (wrappedPrecision instanceof WrapperPrecision wrapperPrecision) {
+      return wrapperPrecision.retrieveWrappedPrecision(pType);
     } else {
       return null;
     }
@@ -103,10 +103,8 @@ public final class UsagePrecision implements WrapperPrecision, AdjustablePrecisi
       return pNewPrecision;
     } else if (pReplaceType.apply(wrappedPrecision)) {
       return copy(pNewPrecision);
-    } else if (wrappedPrecision instanceof WrapperPrecision) {
-      return copy(
-          ((WrapperPrecision) wrappedPrecision)
-              .replaceWrappedPrecision(pNewPrecision, pReplaceType));
+    } else if (wrappedPrecision instanceof WrapperPrecision wrapperPrecision) {
+      return copy(wrapperPrecision.replaceWrappedPrecision(pNewPrecision, pReplaceType));
 
     } else {
       return null;

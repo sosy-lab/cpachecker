@@ -156,8 +156,8 @@ public class CustomInstructionRequirementsExtractingAlgorithm
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (analysis instanceof StatisticsProvider) {
-      ((StatisticsProvider) analysis).collectStatistics(pStatsCollection);
+    if (analysis instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
   }
 }

@@ -30,6 +30,14 @@ abstract class BaseManagerView {
     return wrappingHandler.useBitvectors();
   }
 
+  final boolean useIntForBitvectors() {
+    return wrappingHandler.useIntForBitvectors();
+  }
+
+  final boolean useFloatForFloats() {
+    return wrappingHandler.useFloatForFloats();
+  }
+
   final <T extends Formula> FormulaType<T> getFormulaType(T pFormula) {
     return wrappingHandler.getFormulaType(pFormula);
   }

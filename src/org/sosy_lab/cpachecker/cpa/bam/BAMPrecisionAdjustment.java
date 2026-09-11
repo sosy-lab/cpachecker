@@ -54,7 +54,7 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
       throws CPAException, InterruptedException {
 
     // precision might be outdated, if comes from a block-start and the inner part was refined.
-    // so lets use the (expanded) inner precision.
+    // so let's use the (expanded) inner precision.
     Precision validPrecision = pPrecision;
     if (AbstractStates.isTargetState(pElement)
         || blockPartitioning.isReturnNode(AbstractStates.extractLocation(pElement))) {

@@ -27,14 +27,14 @@ public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
   /**
    * These maps contains as keys abstract pointers and as values concrete pointers. For every
    * abstract pointer that exist in the abstraction and points to/from an abstract Objects that
-   * represents concrete regions in the smg, map to a concrete pointer in the smg, that points
+   * represents concrete regions in the SMG, map to a concrete pointer in the SMG, that points
    * to/from the represented region.
    */
   private final ImmutableMap<SMGValue, SMGValue> abstractToConcretePointerMap;
 
   /**
    * This map contains as keys abstract pointers and as values a list of materialisation steps. The
-   * abstract pointers represent concrete pointers in a smg, that point to a concrete region that
+   * abstract pointers represent concrete pointers in an SMG, that point to a concrete region that
    * has yet to be materialized.
    */
   private final ImmutableMap<SMGValue, List<MaterlisationStep>> materlisationStepMap;

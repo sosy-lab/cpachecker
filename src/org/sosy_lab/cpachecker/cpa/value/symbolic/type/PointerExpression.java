@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -36,6 +38,10 @@ public final class PointerExpression extends UnarySymbolicExpression {
   private PointerExpression(
       final SymbolicExpression pOperand, final Type pType, final AbstractState pAbstractState) {
     super(pOperand, pType, pAbstractState);
+  }
+
+  public static PointerExpression of(SymbolicExpression pOperand, Type pType) {
+    return new PointerExpression(checkNotNull(pOperand), getCanonicalType(pType));
   }
 
   @Override

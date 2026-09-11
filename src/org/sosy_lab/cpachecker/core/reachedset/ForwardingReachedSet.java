@@ -13,7 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.Set;
+import java.util.SequencedSet;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -47,7 +47,7 @@ public class ForwardingReachedSet implements ReachedSet, StatisticsProvider {
   }
 
   @Override
-  public Set<AbstractState> asCollection() {
+  public SequencedSet<AbstractState> asCollection() {
     return delegate.asCollection();
   }
 

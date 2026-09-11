@@ -65,12 +65,10 @@ public class OctagonDoubleValue extends OctagonNumericValue<Double> {
 
   @Override
   public OctagonNumericValue subtract(OctagonNumericValue pVal) {
-    if (pVal instanceof OctagonIntValue) {
-      return new OctagonDoubleValue(
-          value.doubleValue() - ((OctagonIntValue) pVal).value.doubleValue());
-    } else if (pVal instanceof OctagonDoubleValue) {
-      return new OctagonDoubleValue(
-          value.doubleValue() - ((OctagonDoubleValue) pVal).value.doubleValue());
+    if (pVal instanceof OctagonIntValue octagonIntValue) {
+      return new OctagonDoubleValue(value.doubleValue() - octagonIntValue.value.doubleValue());
+    } else if (pVal instanceof OctagonDoubleValue octagonDoubleValue) {
+      return new OctagonDoubleValue(value.doubleValue() - octagonDoubleValue.value.doubleValue());
     }
     throw new AssertionError("unknown subtype of octnumericvalue");
   }
@@ -102,12 +100,10 @@ public class OctagonDoubleValue extends OctagonNumericValue<Double> {
 
   @Override
   public OctagonNumericValue div(OctagonNumericValue pDivisor) {
-    if (pDivisor instanceof OctagonIntValue) {
-      return new OctagonDoubleValue(
-          value.doubleValue() / ((OctagonIntValue) pDivisor).value.doubleValue());
-    } else if (pDivisor instanceof OctagonDoubleValue) {
-      return new OctagonDoubleValue(
-          value.doubleValue() / ((OctagonDoubleValue) pDivisor).value.doubleValue());
+    if (pDivisor instanceof OctagonIntValue octagonIntValue) {
+      return new OctagonDoubleValue(value.doubleValue() / octagonIntValue.value.doubleValue());
+    } else if (pDivisor instanceof OctagonDoubleValue octagonDoubleValue) {
+      return new OctagonDoubleValue(value.doubleValue() / octagonDoubleValue.value.doubleValue());
     }
     throw new AssertionError("unknown subtype of octnumericvalue");
   }

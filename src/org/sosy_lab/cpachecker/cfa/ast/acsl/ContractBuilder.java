@@ -29,17 +29,13 @@ public class ContractBuilder {
 
   @CanIgnoreReturnValue
   public ContractBuilder add(Object o) {
-    if (o instanceof RequiresClause) {
-      return add((RequiresClause) o);
-    } else if (o instanceof EnsuresClause) {
-      return add((EnsuresClause) o);
-    } else if (o instanceof Behavior) {
-      return add((Behavior) o);
-    } else if (o instanceof CompletenessClause) {
-      return add((CompletenessClause) o);
-    } else {
-      throw new IllegalArgumentException();
-    }
+    return switch (o) {
+      case RequiresClause clause -> add(clause);
+      case EnsuresClause clause -> add(clause);
+      case Behavior behavior -> add(behavior);
+      case CompletenessClause clause -> add(clause);
+      default -> throw new IllegalArgumentException();
+    };
   }
 
   @CanIgnoreReturnValue

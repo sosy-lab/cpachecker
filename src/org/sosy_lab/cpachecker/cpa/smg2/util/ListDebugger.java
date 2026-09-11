@@ -29,6 +29,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ListDebugger.ListElement.ListType;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
@@ -188,15 +189,15 @@ public class ListDebugger {
                 objWPtrToList, BigInteger.valueOf(readOffsetForPtr), smg.getSizeOfPointer(), false)
             .getHvEdges();
     if (edges.size() != 1
-        || !smg.isPointer(edges.get(0).hasValue())
-        || edges.get(0).hasValue().isZero()) {
+        || !smg.isPointer(edges.getFirst().hasValue())
+        || edges.getFirst().hasValue().isZero()) {
       // No List yet
       return ImmutableList.of();
     }
 
-    SMGPointsToEdge pteList = smg.getPTEdge(edges.get(0).hasValue()).orElseThrow();
-    if (!pteList.getOffset().isNumericValue()
-        || pteList.getOffset().asNumericValue().bigIntegerValue().intValueExact() != 0) {
+    SMGPointsToEdge pteList = smg.getPTEdge(edges.getFirst().hasValue()).orElseThrow();
+    if (!(pteList.getOffset() instanceof NumericValue pteListOffset)
+        || pteListOffset.bigIntegerValue().intValueExact() != 0) {
       throw new RuntimeException(
           "Not yet implemented debug case for offset pointer towards list from outside");
     }
@@ -218,7 +219,7 @@ public class ListDebugger {
     ImmutableList.Builder<ListElement> builder = ImmutableList.builder();
     SMG smg = state.getMemoryModel().getSmg();
     Preconditions.checkArgument(
-        size == listElem.getSize().asNumericValue().bigIntegerValue().intValue());
+        size == ((NumericValue) listElem.getSize()).bigIntegerValue().intValue());
     ListType listType = REG;
     Optional<Integer> abstractedMinLength = Optional.empty();
     if (listElem instanceof SMGSinglyLinkedListSegment sll) {
@@ -253,9 +254,8 @@ public class ListDebugger {
         SMGPointsToEdge pteNested = smg.getPTEdge(hve.hasValue()).orElseThrow();
         SMGObject nestedObj = pteNested.pointsTo();
         if (nestedListShape.isPresent()) {
-          if (nestedObj.getSize().isNumericValue()
-              && nestedObj.getSize().asNumericValue().bigIntegerValue().intValue()
-                  == nestedListShape.orElseThrow().size) {
+          if (nestedObj.getSize() instanceof NumericValue nestedObjSize
+              && nestedObjSize.bigIntegerValue().intValue() == nestedListShape.orElseThrow().size) {
             List<ListElement> nestedList =
                 nestedListShape.orElseThrow().addFirstThenRest(nestedObj, state);
             memoryListItems.put(hve.getOffset().intValue(), nestedList);
@@ -272,10 +272,8 @@ public class ListDebugger {
         // Numeric or symbolic value
         Optional<Value> maybeValue = state.getMemoryModel().getValueFromSMGValue(val);
         if (maybeValue.isPresent()) {
-          if (maybeValue.orElseThrow().isNumericValue()) {
-            listItems.put(
-                hve.getOffset().intValue(),
-                maybeValue.orElseThrow().asNumericValue().bigIntegerValue().intValueExact());
+          if (maybeValue.orElseThrow() instanceof NumericValue numValue) {
+            listItems.put(hve.getOffset().intValue(), numValue.bigIntegerValue().intValueExact());
           } else {
             // TODO: Save constraints for this?
             listItems.put(hve.getOffset().intValue(), maybeValue.orElseThrow());
@@ -296,12 +294,12 @@ public class ListDebugger {
                   listElem, BigInteger.valueOf(pfo.orElseThrow()), smg.getSizeOfPointer(), false)
               .getHvEdges();
 
-      if (prevEdges.size() != 1 || !smg.isPointer(prevEdges.get(0).hasValue())) {
+      if (prevEdges.size() != 1 || !smg.isPointer(prevEdges.getFirst().hasValue())) {
         // Wierd
         throw new RuntimeException();
       }
 
-      if (prevEdges.get(0).hasValue().isZero()) {
+      if (prevEdges.getFirst().hasValue().isZero()) {
         // End of list left
         builder.add(
             new ListElement(
@@ -316,11 +314,10 @@ public class ListDebugger {
                 ImmutableMap.of()));
 
       } else {
-        SMGPointsToEdge ptePrev = smg.getPTEdge(prevEdges.get(0).hasValue()).orElseThrow();
+        SMGPointsToEdge ptePrev = smg.getPTEdge(prevEdges.getFirst().hasValue()).orElseThrow();
         Preconditions.checkArgument(
-            ptePrev.getOffset().isNumericValue()
-                && ptePrev.getOffset().asNumericValue().bigIntegerValue().intValue()
-                    == prevPtrTargetOffset.orElseThrow());
+            ptePrev.getOffset() instanceof NumericValue ptePrevOffset
+                && ptePrevOffset.bigIntegerValue().intValue() == prevPtrTargetOffset.orElseThrow());
         // prevOfRoot = Optional.of(ptePrev.pointsTo());
         throw new RuntimeException("implement me");
       }
@@ -348,12 +345,12 @@ public class ListDebugger {
         smg.readValue(listElem, BigInteger.valueOf(nfo), smg.getSizeOfPointer(), false)
             .getHvEdges();
 
-    if (nextEdges.size() != 1 || !smg.isPointer(nextEdges.get(0).hasValue())) {
+    if (nextEdges.size() != 1 || !smg.isPointer(nextEdges.getFirst().hasValue())) {
       // Wierd
       throw new RuntimeException();
     }
 
-    if (nextEdges.get(0).hasValue().isZero()) {
+    if (nextEdges.getFirst().hasValue().isZero()) {
       // End of list
       builder.add(
           new ListElement(
@@ -370,7 +367,7 @@ public class ListDebugger {
       return builder.build();
 
     } else {
-      SMGPointsToEdge pteNext = smg.getPTEdge(nextEdges.get(0).hasValue()).orElseThrow();
+      SMGPointsToEdge pteNext = smg.getPTEdge(nextEdges.getFirst().hasValue()).orElseThrow();
       return addNext(pteNext.pointsTo(), listElem, listElem, builder, state);
     }
   }
@@ -387,7 +384,7 @@ public class ListDebugger {
       return pBuilder.build();
     }
     Preconditions.checkArgument(
-        size == currentObj.getSize().asNumericValue().bigIntegerValue().intValue());
+        size == ((NumericValue) currentObj.getSize()).bigIntegerValue().intValue());
     ListType listType = REG;
     Optional<Integer> abstractedMinLength = Optional.empty();
     if (currentObj instanceof SMGSinglyLinkedListSegment sll) {
@@ -422,9 +419,8 @@ public class ListDebugger {
         SMGPointsToEdge pteNested = smg.getPTEdge(hve.hasValue()).orElseThrow();
         SMGObject nestedObj = pteNested.pointsTo();
         if (nestedListShape.isPresent()) {
-          if (nestedObj.getSize().isNumericValue()
-              && nestedObj.getSize().asNumericValue().bigIntegerValue().intValue()
-                  == nestedListShape.orElseThrow().size) {
+          if (nestedObj.getSize() instanceof NumericValue nestedObjSize
+              && nestedObjSize.bigIntegerValue().intValue() == nestedListShape.orElseThrow().size) {
             List<ListElement> nestedList =
                 nestedListShape.orElseThrow().addFirstThenRest(nestedObj, state);
             memoryListItems.put(hve.getOffset().intValue(), nestedList);
@@ -441,10 +437,8 @@ public class ListDebugger {
         // Numeric or symbolic value
         Optional<Value> maybeValue = state.getMemoryModel().getValueFromSMGValue(val);
         if (maybeValue.isPresent()) {
-          if (maybeValue.orElseThrow().isNumericValue()) {
-            listItems.put(
-                hve.getOffset().intValue(),
-                maybeValue.orElseThrow().asNumericValue().bigIntegerValue().intValueExact());
+          if (maybeValue.orElseThrow() instanceof NumericValue numValue) {
+            listItems.put(hve.getOffset().intValue(), numValue.bigIntegerValue().intValueExact());
           } else {
             // TODO: Save constraints for this?
             listItems.put(hve.getOffset().intValue(), maybeValue.orElseThrow());
@@ -465,16 +459,15 @@ public class ListDebugger {
                   currentObj, BigInteger.valueOf(pfo.orElseThrow()), smg.getSizeOfPointer(), false)
               .getHvEdges();
 
-      if (prevEdges.size() != 1 || !smg.isPointer(prevEdges.get(0).hasValue())) {
+      if (prevEdges.size() != 1 || !smg.isPointer(prevEdges.getFirst().hasValue())) {
         // Wierd
         throw new RuntimeException();
       }
 
-      SMGPointsToEdge ptePrev = smg.getPTEdge(prevEdges.get(0).hasValue()).orElseThrow();
+      SMGPointsToEdge ptePrev = smg.getPTEdge(prevEdges.getFirst().hasValue()).orElseThrow();
       Preconditions.checkArgument(
-          ptePrev.getOffset().isNumericValue()
-              && ptePrev.getOffset().asNumericValue().bigIntegerValue().intValue()
-                  == prevPtrTargetOffset.orElseThrow());
+          ptePrev.getOffset() instanceof NumericValue ptePrevOffset
+              && ptePrevOffset.bigIntegerValue().intValue() == prevPtrTargetOffset.orElseThrow());
       Preconditions.checkArgument(ptePrev.pointsTo().equals(previousObj));
     }
 
@@ -500,12 +493,12 @@ public class ListDebugger {
         smg.readValue(currentObj, BigInteger.valueOf(nfo), smg.getSizeOfPointer(), false)
             .getHvEdges();
 
-    if (nextEdges.size() != 1 || !smg.isPointer(nextEdges.get(0).hasValue())) {
+    if (nextEdges.size() != 1 || !smg.isPointer(nextEdges.getFirst().hasValue())) {
       // Wierd
       throw new RuntimeException();
     }
 
-    if (nextEdges.get(0).hasValue().isZero()) {
+    if (nextEdges.getFirst().hasValue().isZero()) {
       // End of list
       pBuilder.add(
           new ListElement(
@@ -522,7 +515,7 @@ public class ListDebugger {
       return pBuilder.build();
 
     } else {
-      SMGPointsToEdge pteNext = smg.getPTEdge(nextEdges.get(0).hasValue()).orElseThrow();
+      SMGPointsToEdge pteNext = smg.getPTEdge(nextEdges.getFirst().hasValue()).orElseThrow();
       if (currentObj.equals(pRoot)) {
         // End through looping
         return pBuilder.build();

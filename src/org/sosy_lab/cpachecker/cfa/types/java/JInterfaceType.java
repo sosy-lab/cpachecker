@@ -15,7 +15,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.Serial;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 
@@ -145,10 +144,10 @@ public final class JInterfaceType extends JClassOrInterfaceType {
 
   void registerSubType(JClassOrInterfaceType subType) {
 
-    if (subType instanceof JInterfaceType) {
+    if (subType instanceof JInterfaceType jInterfaceType) {
 
       checkArgument(!directSubInterfaces.contains(subType));
-      directSubInterfaces.add((JInterfaceType) subType);
+      directSubInterfaces.add(jInterfaceType);
     } else {
 
       checkArgument(!interfaceImplementingClasses.contains(subType));
@@ -233,7 +232,7 @@ public final class JInterfaceType extends JClassOrInterfaceType {
   }
 
   /**
-   * Returns a <code>List</code> of all sub types of this interface.
+   * Returns a <code>List</code> of all subtypes of this interface.
    *
    * <p>This includes all sub interfaces and implementing classes of this interface, direct and
    * indirect ones.
@@ -241,9 +240,9 @@ public final class JInterfaceType extends JClassOrInterfaceType {
    * <p>The returned <code>List</code> contains first all sub interface of this interface in random
    * order, followed by all known implementing classes in random order.
    *
-   * @return a <code>List</code> of all sub types of this interface
+   * @return a <code>List</code> of all subtypes of this interface
    */
-  public List<JClassOrInterfaceType> getAllSubTypesOfInterfaces() {
+  public ImmutableList<JClassOrInterfaceType> getAllSubTypesOfInterfaces() {
     return ImmutableList.<JClassOrInterfaceType>builder()
         .addAll(getAllSubInterfacesOfInterface())
         .addAll(getAllKnownImplementingClassesOfInterface())
