@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
+import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -31,6 +33,21 @@ public class TerminationToReachAbstractDomain implements AbstractDomain {
     // An abstract state in this domain expresses paths.
     // Therefore, one abstract state can cover other only if they are on the same path.
     return newTerminationState.equals(reachedTerminationState)
-        && newTerminationState.getPathSequence().contains(reachedTerminationState.getPathSequence());
+        && isSubsequence(
+            newTerminationState.getPathSequence(), reachedTerminationState.getPathSequence());
+  }
+
+  private boolean isSubsequence(
+      ImmutableList<CFANode> newPath, ImmutableList<CFANode> reachedPath) {
+    int i = 0;
+    for (CFANode node : newPath) {
+      if (i < reachedPath.size() && node.equals(reachedPath.get(i))) {
+        i++;
+      } else {
+        break;
+      }
+    }
+
+    return i == reachedPath.size();
   }
 }

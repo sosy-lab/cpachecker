@@ -10,11 +10,13 @@ package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -78,7 +80,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
   private final ImmutableSet<PartitionedRelationFormula> transitionPredicates;
 
   private final Optional<PathFormula> pathFormulaFull;
-  private final String pathSequence;
+  private final ImmutableList<CFANode> pathSequence;
 
   public TerminationToReachState(
       ImmutableMap<
@@ -88,7 +90,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
       ImmutableMap<Pair<LocationState, CallstackState>, PathFormula> pPathFormulaForIteration,
       Optional<PathFormula> pPathFormulaForPrefix,
       Optional<PathFormula> pPathFormulaFull,
-      String pPathSequence,
+      ImmutableList<CFANode> pPathSequence,
       ImmutableSet<PartitionedRelationFormula> pTransitionInvariants,
       ImmutableSet<PartitionedRelationFormula> pAvailableTransitionPredicates) {
 
@@ -133,7 +135,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     return pathFormulaFull;
   }
 
-  public String getPathSequence() {
+  public ImmutableList<CFANode> getPathSequence() {
     return pathSequence;
   }
 
