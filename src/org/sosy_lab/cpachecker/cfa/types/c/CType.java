@@ -280,9 +280,12 @@ public sealed interface CType extends Type
   }
 
   /**
-   * Return a copy of this type that has the "atomic", "const", and "volatile" flags all removed,
+   * Return a copy of this type that has all qualifiers ("atomic", "const", and "volatile") removed,
    * i.e., the fully unqualified type in the everyday (not C-standard) sense. If the type already
    * has no qualifiers, it is returned unchanged.
+   *
+   * <p>Callers can rely on the result having {@link CTypeQualifiers#NONE} as its qualifiers, also
+   * if support for further qualifiers is added in the future.
    *
    * <p>This differs from {@link #asUnqualified()}, which follows the C standard's narrower
    * definition of "unqualified" and deliberately keeps {@code _Atomic} (cf. C11 § 6.2.5 (27)). Use
