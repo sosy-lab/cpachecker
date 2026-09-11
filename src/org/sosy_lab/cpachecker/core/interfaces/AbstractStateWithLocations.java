@@ -52,6 +52,15 @@ public interface AbstractStateWithLocations extends AbstractState {
   /** same as {@link #getOutgoingEdges()}, but swap "incoming" and "outgoing" */
   Iterable<CFAEdge> getIncomingEdges();
 
+  /**
+   * Get the CFA edges that this state's CPA considers to lead from this state to {@code pChild}.
+   *
+   * <p>An empty list means {@code pChild} is reached without taking any edge, i.e., both states are
+   * at the same location(s). {@code null} means this CPA cannot answer, either because it does not
+   * know the connection or because it is not unique, so callers must read it as "no answer" rather
+   * than "no edges". The default implementation returns {@code null}, so CPAs that cannot answer
+   * need not implement it.
+   */
   @SuppressWarnings("unused")
   default @Nullable List<CFAEdge> getEdgesToChild(AbstractStateWithLocations pChild) {
     return null;

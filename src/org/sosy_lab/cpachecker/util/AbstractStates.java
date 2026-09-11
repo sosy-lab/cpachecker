@@ -140,34 +140,36 @@ public final class AbstractStates {
     return extractStateByType(pState, AbstractStateWithLocations.class).getOutgoingEdges();
   }
 
-  public static List<CFAEdge> getEdgesToChild(AbstractState pParent, AbstractState pChild) {
-    var resultWithLocation = getEdgesToChildWithLocation(pParent, pChild);
+  /**
+   * Get the CFA edges from {@code pParent} to {@code pChild} as far as their location information
+   * allows, or {@code null} if neither state provides it or the connection is not unique (cf.
+   * {@link AbstractStateWithLocations#getEdgesToChild(AbstractStateWithLocations)}).
+   */
+  public static @Nullable List<CFAEdge> getEdgesToChild(
+      AbstractState pParent, AbstractState pChild) {
+    List<CFAEdge> resultWithLocation = getEdgesToChildWithLocation(pParent, pChild);
     if (resultWithLocation != null) {
       return resultWithLocation;
     }
 
-    var resultWithLocations = getEdgesToChildWithLocations(pParent, pChild);
-    if (resultWithLocations != null) {
-      return resultWithLocations;
-    }
-
-    return null;
+    return getEdgesToChildWithLocations(pParent, pChild);
   }
 
-  private static List<CFAEdge> getEdgesToChildWithLocation(
+  private static @Nullable List<CFAEdge> getEdgesToChildWithLocation(
       AbstractState pParent, AbstractState pChild) {
-    var parent = extractStateByType(pParent, AbstractStateWithLocation.class);
-    var child = extractStateByType(pChild, AbstractStateWithLocation.class);
+    AbstractStateWithLocation parent = extractStateByType(pParent, AbstractStateWithLocation.class);
+    AbstractStateWithLocation child = extractStateByType(pChild, AbstractStateWithLocation.class);
     if (parent == null || child == null) {
       return null;
     }
     return parent.getEdgesToChild(child);
   }
 
-  private static List<CFAEdge> getEdgesToChildWithLocations(
+  private static @Nullable List<CFAEdge> getEdgesToChildWithLocations(
       AbstractState pParent, AbstractState pChild) {
-    var parent = extractStateByType(pParent, AbstractStateWithLocations.class);
-    var child = extractStateByType(pChild, AbstractStateWithLocations.class);
+    AbstractStateWithLocations parent =
+        extractStateByType(pParent, AbstractStateWithLocations.class);
+    AbstractStateWithLocations child = extractStateByType(pChild, AbstractStateWithLocations.class);
     if (parent == null || child == null) {
       return null;
     }

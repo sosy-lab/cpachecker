@@ -56,13 +56,18 @@ public interface AbstractStateWithLocation extends AbstractStateWithLocations {
     return null;
   }
 
+  /**
+   * Get the CFA edges to {@code pChild} by following the unique chain of leaving edges. Same
+   * contract as {@link #getEdgesToChild(AbstractStateWithLocations)}: an empty list means both
+   * states are at the same location, {@code null} that no unique chain connects them.
+   */
   default @Nullable List<CFAEdge> getEdgesToChild(AbstractStateWithLocation pChild) {
     ImmutableList.Builder<CFAEdge> allEdges = ImmutableList.builder();
     CFANode currentLoc = getLocationNode();
     CFANode childLoc = pChild.getLocationNode();
 
     while (!currentLoc.equals(childLoc)) {
-      // we didn't find a proper connection to the child so we return an empty list
+      // No unique chain of edges, so we cannot answer.
       if (currentLoc.getNumLeavingEdges() != 1) {
         return null;
       }
