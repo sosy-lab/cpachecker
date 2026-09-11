@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.TruthJUnit.assume;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -67,18 +66,6 @@ public class FormulaToCVisitorTest extends SolverViewBasedTest0 {
   @Override
   protected Solvers solverToUse() {
     return solverToUse;
-  }
-
-  /**
-   * Some solvers approximate bitvectors with integers, cf. {@link SolverViewBasedTest0}. They
-   * encode the operations that C defines only for one signedness with uninterpreted functions,
-   * which {@link FormulaToCVisitor} cannot write as a C expression.
-   */
-  private void requireBitvectorEncoding() {
-    assume()
-        .withMessage("Solver %s approximates bitvectors with integers", solverToUse())
-        .that(solverToUse())
-        .isNoneOf(Solvers.PRINCESS, Solvers.SMTINTERPOL, Solvers.OPENSMT);
   }
 
   /**
@@ -219,7 +206,7 @@ public class FormulaToCVisitorTest extends SolverViewBasedTest0 {
   /** A shift is signedness-agnostic, so its operands keep the signedness of the comparison. */
   @Test
   public void roundTripShiftBelowComparison() throws Exception {
-    requireBitvectorEncoding();
+    requireBitvectors();
     assertRoundTrip("(x << 1) < -2147483647");
   }
 
@@ -232,14 +219,14 @@ public class FormulaToCVisitorTest extends SolverViewBasedTest0 {
   /** Signed division reads both of its operands as signed. */
   @Test
   public void roundTripSignedDivision() throws Exception {
-    requireBitvectorEncoding();
+    requireBitvectors();
     assertRoundTrip("x / -2 == 3");
   }
 
   /** Unsigned remainder, as exported for the tasks that use alloca. */
   @Test
   public void roundTripUnsignedRemainder() throws Exception {
-    requireBitvectorEncoding();
+    requireBitvectors();
     assertRoundTrip("(unsigned int) x % 16u == 0");
   }
 
