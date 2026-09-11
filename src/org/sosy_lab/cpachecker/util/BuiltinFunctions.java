@@ -35,6 +35,10 @@ public class BuiltinFunctions {
   private static final String STRLEN = "strlen";
   private static final String POPCOUNT = "popcount";
 
+  // abs() and its variants for wider integer types, cf. C11 7.8.2.1, 7.20.6.1, 7.22.6.1
+  private static final ImmutableSet<String> INTEGER_ABS =
+      ImmutableSet.of("abs", "labs", "llabs", "imaxabs");
+
   private static final CType UNSPECIFIED_TYPE =
       new CSimpleType(
           CTypeQualifiers.NONE,
@@ -101,6 +105,10 @@ public class BuiltinFunctions {
 
   public static boolean isPopcountFunction(String pFunctionName) {
     return pFunctionName.contains(POPCOUNT);
+  }
+
+  public static boolean isIntegerAbsFunction(String pFunctionName) {
+    return INTEGER_ABS.contains(pFunctionName);
   }
 
   /**

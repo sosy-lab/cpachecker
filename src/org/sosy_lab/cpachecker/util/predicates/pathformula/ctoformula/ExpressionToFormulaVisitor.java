@@ -691,6 +691,22 @@ public class ExpressionToFormulaVisitor
 
       } else if (BuiltinFunctions.isPopcountFunction(functionName)) {
         return handlePopCount(functionName, returnType, parameters, e);
+      } else if (BuiltinFunctions.isIntegerAbsFunction(functionName)) {
+
+        if (parameters.size() == 1) {
+          // Each of abs()/labs()/llabs()/imaxabs() has a parameter type identical to its own
+          // return type
+          CType paramType = conv.getReturnType(e, edge);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
+          if (formulaType.isBitvectorType() || formulaType.isIntegerType()) {
+            Formula param = processOperand(parameters.getFirst(), paramType, paramType);
+            Formula zero = mgr.makeNumber(formulaType, 0);
+
+            BooleanFormula isNegative = mgr.makeLessThan(param, zero, true);
+            return conv.bfmgr.ifThenElse(isNegative, mgr.makeNegate(param), param);
+          }
+        }
+
       } else if (BuiltinFloatFunctions.matchesInfinity(functionName)) {
 
         if (parameters.isEmpty()) {
