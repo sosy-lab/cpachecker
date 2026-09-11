@@ -152,6 +152,8 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
    */
   private BigInteger interpretBitvectorValue(BigInteger pValue, int pSize) {
     boolean signBitSet = pValue.signum() >= 0 && pValue.testBit(pSize - 1);
+    // If the first bit is signed and we are working with a signed bitvector, we need to interpret
+    // the value as a negative value
     if (signBitSet && (bvSigned || pSize >= intWidthInBits)) {
       return pValue.subtract(BigInteger.ONE.shiftLeft(pSize));
     }
