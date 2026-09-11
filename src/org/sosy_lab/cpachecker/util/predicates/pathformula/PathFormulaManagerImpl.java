@@ -557,7 +557,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   /**
    * Get the formula that decides whether the transition from an ARG state to one of its successors
    * is taken. Only a single assume edge tells us whether a branching is possible in the model. Any
-   * other sequence of edges is ignored, for these cases we rely on the assumptions of the successor state.
+   * other sequence of edges is ignored, for these cases we rely on the assumptions of the successor
+   * state.
    *
    * @param pBranchingFormulasOverride Formulas for assume edges as in {@link #getARGPathFromModel}.
    */
