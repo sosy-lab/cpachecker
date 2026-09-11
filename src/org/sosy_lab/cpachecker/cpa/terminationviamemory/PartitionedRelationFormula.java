@@ -15,7 +15,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -53,10 +52,7 @@ class PartitionedRelationFormula {
             ImmutableSet.of());
     currVariables =
         instantiatePartition(
-            varNamesToFormulas,
-            containsTransInv,
-            /* instantiatePrevVars= */ false,
-            prevVariables);
+            varNamesToFormulas, containsTransInv, /* instantiatePrevVars= */ false, prevVariables);
   }
 
   /**
@@ -195,10 +191,7 @@ class PartitionedRelationFormula {
 
     ImmutableSet<Formula> newCurrVariables =
         instantiatePartition(
-            varNamesToFormulas,
-            containsTransInv,
-            /* instantiatePrevVars= */ false,
-            prevVariables);
+            varNamesToFormulas, containsTransInv, /* instantiatePrevVars= */ false, prevVariables);
     return new PartitionedRelationFormula(substituted, fmgr, prevVariables, newCurrVariables);
   }
 

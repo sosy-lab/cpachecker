@@ -15,12 +15,11 @@ import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.NoSuchElementException;
 import java.util.Optional;
-import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -41,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
@@ -409,16 +409,10 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
    */
   private boolean containsOnlyIrrelevantVariables(
       BooleanFormula pInvariant, CallstackState pCallstackState) {
-    for (String varName : fmgr.extractVariables(pInvariant).keySet()) {
-      if (pCallstackState.getCurrentFunction().equals(getFunctionOfVariable(varName))) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  private String getFunctionOfVariable(String pFormula) {
-    return !pFormula.contains("::") ? "" : pFormula.substring(0, pFormula.indexOf("::"));
+    return CFAUtils.filterVariablesOfFunction(
+            ImmutableSortedSet.copyOf(fmgr.extractVariables(pInvariant).keySet()),
+            pCallstackState.getCurrentFunction())
+        .isEmpty();
   }
 
   private boolean isTransitionInvariant(
