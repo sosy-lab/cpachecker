@@ -12,7 +12,7 @@ input_files: 'array-of-structs-remainder.c'
 
 properties:
   - property_file: ../../../config/properties/unreach-call.prp
-    expected_verdict: true
+    expected_verdict: false
 
 options:
   language: C

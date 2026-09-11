@@ -28,6 +28,10 @@ int main() {
   memset(m.payload, 'A', 5);
   if (m.payload[11] != 9) {
     // not reachable: memset only touches payload[0..4], payload[11] stays 9.
-    reach_error();
+    goto ERROR;
   }
+  return 0;
+ERROR:
+  reach_error();
+  return -1;
 }

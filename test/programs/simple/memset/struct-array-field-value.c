@@ -25,6 +25,10 @@ int main() {
   memset(&r, 'B', sizeof(r));
   if (r.data[2] == 'B') {
     // reachable: memset sets every byte of r, including data[2], to 'B'.
-    reach_error();
+    goto ERROR;
   }
+  return 0;
+ERROR:
+  reach_error();
+  return -1;
 }

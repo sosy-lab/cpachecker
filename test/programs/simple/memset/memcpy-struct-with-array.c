@@ -31,6 +31,10 @@ int main() {
   memcpy(&dst, &src, sizeof(struct rec));
   if (dst.data[2] == 'X') {
     // not reachable: memcpy overwrote dst.data[2] with src.data[2] (0), not 'X'.
-    reach_error();
+    goto ERROR;
   }
+  return 0;
+ERROR:
+  reach_error();
+  return -1;
 }

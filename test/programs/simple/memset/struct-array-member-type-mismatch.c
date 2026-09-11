@@ -30,6 +30,10 @@ int main() {
   if (s.arr[0] == 0x11223344) {
     // this branch is reachable: memcpy reinterprets t's bytes 4..7 (0x11223344 in little-endian)
     // as s.arr[0], since arr starts right after pad at byte offset 4.
-    reach_error();
+    goto ERROR;
   }
+  return 0;
+ERROR:
+  reach_error();
+  return -1;
 }

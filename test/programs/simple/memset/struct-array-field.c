@@ -25,6 +25,10 @@ int main() {
   memset(&r, 0, sizeof(r));
   if (r.data[2] == 'X') {
     // not reachable: memset zeroed data[2], overwriting 'X'.
-    reach_error();
+    goto ERROR;
   }
+  return 0;
+ERROR:
+  reach_error();
+  return -1;
 }

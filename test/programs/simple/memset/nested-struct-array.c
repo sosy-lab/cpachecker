@@ -28,6 +28,10 @@ int main() {
   memset(&o, 0, sizeof(o));
   if (o.in.data[2] == 'X') {
     // not reachable: memset zeroes the whole struct, including the nested data[2].
-    reach_error();
+    goto ERROR;
   }
+  return 0;
+ERROR:
+  reach_error();
+  return -1;
 }

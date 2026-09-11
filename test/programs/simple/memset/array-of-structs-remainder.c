@@ -19,13 +19,16 @@ struct rec {
 int main() {
   struct rec arr[2];
   arr[1].data[2] = 'X';
-  // sizeof(struct rec) == 8 (int tag = 4 bytes + char data[4] = 4 bytes).
-  // 9 bytes = 1 full element (arr[0]) plus 1 remainder byte into arr[1].tag. Since the
-  // remainder does not divide the element size, this ceiling-rounds up to fully cover the
-  // *entire* trailing element arr[1], including its array field arr[1].data.
+  // sizeof(struct rec) == 8 (int tag = 4 bytes + char data[4] = 4 bytes), no padding.
+  // 9 bytes = 1 full element (arr[0]) plus 1 remainder byte, which only reaches the first byte
+  // of arr[1].tag. arr[1].data (bytes 12..15) is not within the 9-byte range at all.
   memset(arr, 0, 9);
   if (arr[1].data[2] == 'X') {
-    // not reachable: ceiling-rounding covers all of arr[1], zeroing data[2].
-    reach_error();
+    // reachable: the memset never reaches arr[1].data, so 'X' survives.
+    goto ERROR;
   }
+  return 0;
+ERROR:
+  reach_error();
+  return -1;
 }

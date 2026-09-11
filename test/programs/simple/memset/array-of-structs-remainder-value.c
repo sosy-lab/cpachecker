@@ -19,12 +19,15 @@ struct rec {
 int main() {
   struct rec arr[2];
   arr[1].data[2] = 0;
-  // Same shape as array-of-structs-remainder.c, but checks that the *new* value set by memset
-  // actually shows up in the ceiling-rounded trailing element's array field, instead of only
-  // checking that a stale value is gone.
+  // Same shape as array-of-structs-remainder.c, but sets a nonzero byte value and checks it does
+  // NOT leak past the requested 9-byte range into arr[1].data.
   memset(arr, 'B', 9);
   if (arr[1].data[2] == 'B') {
-    // reachable: ceiling-rounding covers all of arr[1], setting data[2] to 'B'.
-    reach_error();
+    // not reachable: the memset never reaches arr[1].data, so it stays 0.
+    goto ERROR;
   }
+  return 0;
+ERROR:
+  reach_error();
+  return -1;
 }
