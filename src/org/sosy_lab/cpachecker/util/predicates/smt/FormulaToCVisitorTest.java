@@ -15,6 +15,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -45,54 +46,66 @@ public class FormulaToCVisitorTest extends SolverViewBasedTest0 {
   /** The variables that the C expressions of the tests may use. */
   private static final String DECLARATIONS = "int x; int y; unsigned int u; long long ll;";
 
-  @Parameters(name = "{0}")
-  public static Object[] getAllSolvers() {
-    return Solvers.values();
+  @Parameters(name = "{0} {1}")
+  public static ImmutableList<Object[]> getAllSolversAndMachineModels() {
+    ImmutableList.Builder<Object[]> parameters = ImmutableList.builder();
+    for (Solvers solver : Solvers.values()) {
+      for (MachineModel machineModel :
+          ImmutableList.of(MachineModel.LINUX32, MachineModel.LINUX64)) {
+        parameters.add(new Object[] {solver, machineModel});
+      }
+    }
+    return parameters.build();
   }
 
   @Parameter(0)
   public Solvers solverToUse;
+
+  @Parameter(1)
+  public MachineModel machineModel;
+
+  private CFA cfa;
+  private PathFormulaManager pfmgr;
 
   @Override
   protected Solvers solverToUse() {
     return solverToUse;
   }
 
+  @Before
+  public void createCfaAndPathFormulaManager() throws Exception {
+    cfa =
+        TestCfaUtils.makeCfaFromFunctionBody(
+            DECLARATIONS, Map.entry("analysis.machineModel", machineModel.name()));
+    pfmgr =
+        new PathFormulaManagerImpl(
+            mgrv,
+            config,
+            logger,
+            ShutdownNotifier.createDummy(),
+            machineModel,
+            Optional.empty(),
+            AnalysisDirection.FORWARD,
+            Language.C);
+  }
+
   /**
-   * Asserts for both machine models that converting the formula of the given C expression back to C
-   * preserves its meaning.
+   * Asserts that converting the formula of the given C expression back to C preserves its meaning.
    */
   private void assertRoundTrip(String pExpression) throws Exception {
-    for (MachineModel machineModel : ImmutableList.of(MachineModel.LINUX32, MachineModel.LINUX64)) {
-      CFA cfa =
-          TestCfaUtils.makeCfaFromFunctionBody(
-              DECLARATIONS, Map.entry("analysis.machineModel", machineModel.name()));
-      PathFormulaManager pfmgr =
-          new PathFormulaManagerImpl(
-              mgrv,
-              config,
-              logger,
-              ShutdownNotifier.createDummy(),
-              machineModel,
-              Optional.empty(),
-              AnalysisDirection.FORWARD,
-              Language.C);
-
-      BooleanFormula formula = toFormula(pExpression, cfa, pfmgr);
-      String roundTripped = toCExpression(formula, machineModel);
-      assertThatFormula(toFormula(roundTripped, cfa, pfmgr)).isEquivalentTo(formula);
-    }
+    BooleanFormula formula = toFormula(pExpression);
+    String roundTripped = toCExpression(formula);
+    assertThatFormula(toFormula(roundTripped)).isEquivalentTo(formula);
   }
 
   /** Returns the formula of the given C expression, with the variables not instantiated. */
-  private BooleanFormula toFormula(String pExpression, CFA pCfa, PathFormulaManager pPfmgr)
-      throws Exception {
-    return mgrv.uninstantiate(TestCfaUtils.toFormula(pExpression, pCfa, pPfmgr).getFormula());
+  private BooleanFormula toFormula(String pExpression) throws Exception {
+    return mgrv.uninstantiate(TestCfaUtils.toFormula(pExpression, cfa, pfmgr).getFormula());
   }
 
   /** Returns the C expression that {@link FormulaToCVisitor} creates for the given formula. */
-  private String toCExpression(BooleanFormula pFormula, MachineModel pMachineModel) {
-    FormulaToCVisitor visitor = new FormulaToCVisitor(mgrv, Function.identity(), pMachineModel);
+  private String toCExpression(BooleanFormula pFormula) {
+    FormulaToCVisitor visitor = new FormulaToCVisitor(mgrv, Function.identity(), machineModel);
     assertThat(mgrv.visit(pFormula, visitor)).isTrue();
     return visitor.getString();
   }
