@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.trivialrules;
 
-import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Collection;
@@ -155,7 +155,11 @@ public class TrivialRulesAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     if (violation != null) {
-      logger.logf(Level.INFO, "Trivial rule %s: %s", violatedBy.name(), violation.reason());
+      logger.logf(
+          Level.INFO,
+          "Trivial rule %s: %s",
+          Objects.requireNonNull(violatedBy).name(),
+          violation.reason());
       DummyTargetState target =
           DummyTargetState.withSimpleTargetInformation(targetDescription(violatedBy, violation));
       if (violation.violatingEdge() != null) {
@@ -176,7 +180,7 @@ public class TrivialRulesAlgorithm implements Algorithm, StatisticsProvider {
             entry.getValue().name(),
             TrivialRules.nameOf(entry.getKey()));
       }
-      witnessExporter.prepareCorrectnessWitness(pReachedSet, ImmutableMultimap.of());
+      witnessExporter.prepareCorrectnessWitness(pReachedSet, ImmutableListMultimap.of());
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
 
