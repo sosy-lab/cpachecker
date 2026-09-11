@@ -522,10 +522,15 @@ public class ARGUtils {
                 .filter(
                     currentChild -> branchingInformation.test(finalCurrentElement, currentChild))
                 .first()
-                // This throws an exception when there is no successor which can be taken by the
-                // successor. This indicates that we could not uniquely determine the path from the
-                // branching information and stopped at some point.
-                .get();
+                .toJavaUtil()
+                // The direction information is either missing for this branching or it excludes
+                // all successors, in both cases the path cannot be determined any further.
+                .orElseThrow(
+                    () ->
+                        new IllegalArgumentException(
+                            "ARG branches without direction information for any successor of state "
+                                + finalCurrentElement.getStateId()
+                                + "!"));
         builder.add(currentElement, currentElement.getEdgeToChild(child));
         currentElement = child;
       }
