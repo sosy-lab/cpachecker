@@ -154,7 +154,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
 
   private final Function<ARGState, Optional<CounterexampleInfo>> getCounterexampleInfo;
 
-  private final CounterexampleToWitness yamlWitnessExporter;
+  private final @Nullable CounterexampleToWitness yamlWitnessExporter;
 
   public CounterexampleCPAchecker(
       Configuration config,
@@ -171,7 +171,10 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
     shutdownNotifier = pShutdownNotifier;
     cfa = pCfa;
     getCounterexampleInfo = Objects.requireNonNull(pGetCounterexampleInfo);
-    yamlWitnessExporter = new CounterexampleToWitness(config, cfa, specification, logger);
+    yamlWitnessExporter =
+        counterexampleFormat == CounterexampleFormat.WITNESSV2
+            ? new CounterexampleToWitness(config, cfa, specification, logger)
+            : null;
   }
 
   @Override
