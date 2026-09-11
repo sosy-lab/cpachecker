@@ -53,7 +53,6 @@ import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -242,79 +241,11 @@ abstract class AbstractBMCAlgorithm
       name = "bmc.simplifyBooleanFormula")
   private boolean simplifyBooleanFormula = false;
 
-  @Option(
-      secure = true,
-      description =
-          "Constrain the initial states of the induction step case with the invariants that are"
-              + " currently available for the respective loop head, instead of only asserting"
-              + " those invariants in the SMT query.\n"
-              + "This puts the invariants into the path formula of every state of the step case,"
-              + " such that a satisfiability check during the state-space exploration (cf."
-              + " bmc.stepCaseSatCheckBlockSize) can prune paths that are infeasible under the"
-              + " known invariants instead of unrolling them. Without an invariant generator that"
-              + " actually supplies invariants this option has no effect.",
-      name = "bmc.strengthenStepCaseWithInvariants")
-  private boolean strengthenStepCaseWithInvariants = true;
-
-  @Option(
-      secure = true,
-      description =
-          "Check satisfiability during the state-space exploration of the induction step case as"
-              + " soon as the path formula of a state has reached this length (0 disables the"
-              + " checks).\n"
-              + "This is only useful together with bmc.strengthenStepCaseWithInvariants, because"
-              + " without invariants the loop-head states of the step case are unconstrained and"
-              + " hence hardly any path is infeasible.",
-      name = "bmc.stepCaseSatCheckBlockSize")
-  private int stepCaseSatCheckBlockSize = 0;
-
-  @Option(
-      secure = true,
-      description =
-          "Relax the coverage and merge criteria of the induction step case so that its state-space"
-              + " exploration can actually be collapsed.\n"
-              + "The step case starts from an arbitrary state at each loop head, so it may freely"
-              + " over-approximate: a coarser exploration can only make the induction check harder"
-              + " to discharge, never wrong. Without this, however, nothing collapses at all: in"
-              + " BMC mode merge^JOIN is the only mechanism that can join states (the predicate"
-              + " domain covers a state only if the path formulas are identical), merge is only"
-              + " ever attempted between states of the same reached-set partition, and the"
-              + " partition key distinguishes every single state, because CallstackState is"
-              + " compared by object identity and LoopBoundState carries the whole per-loop"
-              + " iteration vector.\n"
-              + "Enabling this sets, for the step case only, a reached set partitioned by"
-              + " location, call chain and deepest loop iteration"
-              + " (analysis.reachedSet=INDUCTIONPARTITIONED), structural callstack coverage"
-              + " (cpa.callstack.domain=FLATPCC) and deepest-iteration loop-bound coverage"
-              + " (cpa.loopbound.domain=DEEPEST_ITERATION).\n"
-              + "This is sound for the plain safety property, but not for candidate invariants"
-              + " that are attached to specific program locations, because those read back the"
-              + " per-loop iteration counts of individual states. It is therefore disabled by"
-              + " default.",
-      name = "bmc.relaxStepCaseCoverage")
-  private boolean relaxStepCaseCoverage = false;
-
-  @Option(
-      secure = true,
-      description =
-          "Restrict the state-space exploration of the induction step case to the states from"
-              + " which the loop-unrolling bound can still be reached, i.e., drop states that"
-              + " cannot visit any loop head anymore and whose loop-iteration counter is below the"
-              + " bound.\n"
-              + "Such states cannot contribute to the induction step, which asserts the candidate"
-              + " invariant at the loop-head states up to the bound and checks it at the states"
-              + " exactly at the bound. This is sound for the plain safety property, but not for"
-              + " candidate invariants that are attached to specific program locations, so it is"
-              + " disabled by default.",
-      name = "bmc.restrictStepCaseToRemainingIterations")
-  private boolean restrictStepCaseToRemainingIterations = false;
-
   protected final BMCStatistics stats;
   private final Algorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
 
   private final @Nullable ConfigurableProgramAnalysis stepCaseCPA;
-  private final ReachedSetFactory reachedSetFactory;
   private final @Nullable Algorithm stepCaseAlgorithm;
 
   protected final InvariantGenerator invariantGenerator;
@@ -326,6 +257,7 @@ abstract class AbstractBMCAlgorithm
   private final Solver solver;
 
   protected final LogManager logger;
+  private final ReachedSetFactory reachedSetFactory;
   private final Configuration config;
   private final CFA cfa;
   private final AssignmentToPathAllocator assignmentToPathAllocator;
@@ -370,6 +302,7 @@ abstract class AbstractBMCAlgorithm
     algorithm = pAlgorithm;
     cpa = pCPA;
     logger = pLogger;
+    reachedSetFactory = pReachedSetFactory;
     cfa = pCFA;
     config = pConfig;
     specification = checkNotNull(pSpecification);
@@ -395,53 +328,15 @@ abstract class AbstractBMCAlgorithm
 
     if (induction) {
       LogManager stepCaseLogger = logger.withComponentName("InductionStepCase");
-      // Some options apply to the step case only, so the step case needs its own configuration:
-      // the base case must explore the whole program and does not benefit from satisfiability
-      // checks, because its initial state is the (fully determined) program entry.
-      Configuration stepCaseConfig = pConfig;
-      if (stepCaseSatCheckBlockSize > 0
-          || restrictStepCaseToRemainingIterations
-          || relaxStepCaseCoverage) {
-        ConfigurationBuilder stepCaseConfigBuilder = Configuration.builder().copyFrom(pConfig);
-        if (stepCaseSatCheckBlockSize > 0) {
-          stepCaseConfigBuilder.setOption(
-              "cpa.predicate.satCheck", Integer.toString(stepCaseSatCheckBlockSize));
-        }
-        if (restrictStepCaseToRemainingIterations) {
-          stepCaseConfigBuilder.setOption("cpa.loopbound.dropStatesThatCannotReachBound", "true");
-        }
-        if (relaxStepCaseCoverage) {
-          // Partition the reached set by location only, so that merge^JOIN is attempted at all,
-          // and let the two components that otherwise keep every state in its own partition
-          // compare states structurally instead of by identity resp. by the whole iteration
-          // vector.
-          stepCaseConfigBuilder.setOption("analysis.reachedSet", "INDUCTIONPARTITIONED");
-          stepCaseConfigBuilder.setOption("cpa.callstack.domain", "FLATPCC");
-          stepCaseConfigBuilder.setOption("cpa.loopbound.domain", "DEEPEST_ITERATION");
-        }
-        stepCaseConfig = stepCaseConfigBuilder.build();
-      }
-      // The reached set of the step case is created by this factory, so it has to be built from
-      // the step-case configuration for analysis.reachedSet above to take effect.
-      ReachedSetFactory stepCaseReachedSetFactory =
-          stepCaseConfig == pConfig
-              ? pReachedSetFactory
-              : new ReachedSetFactory(stepCaseConfig, stepCaseLogger);
-      reachedSetFactory = stepCaseReachedSetFactory;
       CPABuilder builder =
           new CPABuilder(
-              stepCaseConfig,
-              stepCaseLogger,
-              pShutdownManager.getNotifier(),
-              stepCaseReachedSetFactory);
+              pConfig, stepCaseLogger, pShutdownManager.getNotifier(), pReachedSetFactory);
       stepCaseCPA = builder.buildCPAs(cfa, pSpecification, AggregatedReachedSets.empty());
       stepCaseAlgorithm =
-          CPAAlgorithm.create(
-              stepCaseCPA, stepCaseLogger, stepCaseConfig, pShutdownManager.getNotifier());
+          CPAAlgorithm.create(stepCaseCPA, stepCaseLogger, pConfig, pShutdownManager.getNotifier());
     } else {
       stepCaseCPA = null;
       stepCaseAlgorithm = null;
-      reachedSetFactory = pReachedSetFactory;
       invariantGenerationStrategy = InvariantGeneratorFactory.DO_NOTHING;
       invariantGeneratorHeadStartStrategy = InvariantGeneratorHeadStartFactories.NONE;
     }
@@ -1218,8 +1113,7 @@ abstract class AbstractBMCAlgorithm
         reachedSetFactory,
         shutdownNotifier,
         getLoopHeads(),
-        usePropertyDirection,
-        strengthenStepCaseWithInvariants);
+        usePropertyDirection);
   }
 
   /**

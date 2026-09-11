@@ -18,7 +18,6 @@ import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.unroll;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -69,7 +68,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.Splitable;
 import org.sosy_lab.cpachecker.cpa.input.InputState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
@@ -139,12 +137,6 @@ class KInductionProver implements AutoCloseable {
 
   private final ImmutableSet<CFANode> loopHeads;
 
-  /**
-   * Whether to constrain the initial states of the step case with the currently available
-   * invariants, cf. {@link #strengthenWithLoopHeadInvariant(AbstractState, CFANode)}.
-   */
-  private final boolean strengthenInitialStatesWithInvariants;
-
   private boolean invariantGenerationRunning = true;
 
   /** Creates an instance of the KInductionProver. */
@@ -158,8 +150,7 @@ class KInductionProver implements AutoCloseable {
       ReachedSetFactory pReachedSetFactory,
       ShutdownNotifier pShutdownNotifier,
       Set<CFANode> pLoopHeads,
-      boolean pUnsatCoreGeneration,
-      boolean pStrengthenInitialStatesWithInvariants) {
+      boolean pUnsatCoreGeneration) {
     cfa = checkNotNull(pCFA);
     logger = checkNotNull(pLogger);
     algorithm = checkNotNull(pAlgorithm);
@@ -194,7 +185,6 @@ class KInductionProver implements AutoCloseable {
     expressionTreeSupplier = ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
 
     loopHeads = ImmutableSet.copyOf(pLoopHeads);
-    strengthenInitialStatesWithInvariants = pStrengthenInitialStatesWithInvariants;
   }
 
   private InvariantSupplier getCurrentInvariantSupplier() throws InterruptedException {
@@ -656,45 +646,6 @@ class KInductionProver implements AutoCloseable {
     return filterIteration(pStates, 1, loopHeads);
   }
 
-  /**
-   * Constrains an initial state of the step case at the given loop head with the invariants that
-   * are currently available for that loop head.
-   *
-   * <p>The step case starts from an <em>arbitrary</em> state at the loop head, so restricting that
-   * state to satisfy an invariant of the program is sound. It is also exactly what {@link
-   * #inductiveLoopHeadInvariantAssertion(Iterable)} already does, but that only constrains the SMT
-   * query. Putting the invariant into the path formula of the initial state instead makes it part
-   * of the path formula of every state derived from it, so a satisfiability check during the
-   * state-space exploration (option {@code cpa.predicate.satCheck}) can prune paths that are
-   * infeasible under the known invariants instead of unrolling them.
-   *
-   * <p>If no invariants are available (e.g., for plain k-induction without an auxiliary invariant
-   * generator), this method returns the state unchanged.
-   */
-  private AbstractState strengthenWithLoopHeadInvariant(
-      AbstractState pInitialState, CFANode pLoopHead) throws InterruptedException {
-    PredicateAbstractState predicateState =
-        AbstractStates.extractStateByType(pInitialState, PredicateAbstractState.class);
-    if (predicateState == null || !(pInitialState instanceof Splitable splitable)) {
-      return pInitialState;
-    }
-    PathFormula context = predicateState.getPathFormula();
-    BooleanFormula invariant = getCurrentLocationInvariants(pLoopHead, fmgr, pfmgr, context);
-    if (bfmgr.isTrue(invariant)) {
-      return pInitialState;
-    }
-    logger.log(
-        Level.FINE,
-        "Constraining initial state of the step case at",
-        pLoopHead,
-        "with invariant",
-        invariant);
-    PredicateAbstractState strengthenedPredicateState =
-        PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
-            pfmgr.makeAnd(context, invariant), predicateState);
-    return splitable.forkWithReplacements(ImmutableList.of(strengthenedPredicateState));
-  }
-
   private AlgorithmStatus ensureK(
       Algorithm pAlg, ConfigurableProgramAnalysis pCPA, ReachedSet pReached)
       throws InterruptedException, CPAException {
@@ -713,9 +664,6 @@ class KInductionProver implements AutoCloseable {
             pCPA.getInitialPrecision(relevantLoopHead, StateSpacePartition.getDefaultPartition());
         AbstractState initialState =
             pCPA.getInitialState(relevantLoopHead, StateSpacePartition.getDefaultPartition());
-        if (strengthenInitialStatesWithInvariants) {
-          initialState = strengthenWithLoopHeadInvariant(initialState, relevantLoopHead);
-        }
         pReached.add(initialState, precision);
       }
       if (pReached.isEmpty()) {

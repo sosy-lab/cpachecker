@@ -1095,60 +1095,9 @@ bmc.kinduction.reuse.pred.strategy = GLOBAL
 # Propagates the interrupts of the invariant generator.
 bmc.propagateInvGenInterrupts = false
 
-# Relax the coverage and merge criteria of the induction step case so that
-# its state-space exploration can actually be collapsed.
-# The step case starts from an arbitrary state at each loop head, so it may
-# freely over-approximate: a coarser exploration can only make the induction
-# check harder to discharge, never wrong. Without this, however, nothing
-# collapses at all: in BMC mode merge^JOIN is the only mechanism that can
-# join states (the predicate domain covers a state only if the path formulas
-# are identical), merge is only ever attempted between states of the same
-# reached-set partition, and the partition key distinguishes every single
-# state, because CallstackState is compared by object identity and
-# LoopBoundState carries the whole per-loop iteration vector.
-# Enabling this sets, for the step case only, a reached set partitioned by
-# location, call chain and deepest loop iteration
-# (analysis.reachedSet=INDUCTIONPARTITIONED), structural callstack coverage
-# (cpa.callstack.domain=FLATPCC) and deepest-iteration loop-bound coverage
-# (cpa.loopbound.domain=DEEPEST_ITERATION).
-# This is sound for the plain safety property, but not for candidate
-# invariants that are attached to specific program locations, because those
-# read back the per-loop iteration counts of individual states. It is
-# therefore disabled by default.
-bmc.relaxStepCaseCoverage = false
-
-# Restrict the state-space exploration of the induction step case to the
-# states from which the loop-unrolling bound can still be reached, i.e., drop
-# states that cannot visit any loop head anymore and whose loop-iteration
-# counter is below the bound.
-# Such states cannot contribute to the induction step, which asserts the
-# candidate invariant at the loop-head states up to the bound and checks it
-# at the states exactly at the bound. This is sound for the plain safety
-# property, but not for candidate invariants that are attached to specific
-# program locations, so it is disabled by default.
-bmc.restrictStepCaseToRemainingIterations = false
-
 # Try to simplify the structure of formulas for the sat check of BMC. The
 # improvement depends on the underlying SMT solver.
 bmc.simplifyBooleanFormula = false
-
-# Check satisfiability during the state-space exploration of the induction
-# step case as soon as the path formula of a state has reached this length (0
-# disables the checks).
-# This is only useful together with bmc.strengthenStepCaseWithInvariants,
-# because without invariants the loop-head states of the step case are
-# unconstrained and hence hardly any path is infeasible.
-bmc.stepCaseSatCheckBlockSize = 0
-
-# Constrain the initial states of the induction step case with the invariants
-# that are currently available for the respective loop head, instead of only
-# asserting those invariants in the SMT query.
-# This puts the invariants into the path formula of every state of the step
-# case, such that a satisfiability check during the state-space exploration
-# (cf. bmc.stepCaseSatCheckBlockSize) can prune paths that are infeasible
-# under the known invariants instead of unrolling them. Without an invariant
-# generator that actually supplies invariants this option has no effect.
-bmc.strengthenStepCaseWithInvariants = true
 
 # Use generalized counterexamples to induction as candidate invariants.
 bmc.usePropertyDirection = false
@@ -2311,6 +2260,46 @@ cpa.dca.refiner.skipAnalysis = false
 cpa.defuse.merge = "sep"
   allowed values: [sep, join]
 
+# Maximum number of different assignments to collect per location for the
+# invariants of a correctness witness. If a location has more assignments
+# than this, no invariant is exported for it, because an incomplete
+# disjunction would be unsound. Use -1 for no limit (which needs memory
+# proportional to the length of the execution).
+cpa.execution.maxAssignmentsPerLocation = no default value
+
+# Maximum number of assignments that are sampled during one execution.
+# Sampling is intended for programs whose inputs are read outside of any
+# loop, where the number of inputs is bounded by the program. This limit
+# protects against the unbounded number of solver calls that a program with
+# inputs in a loop would need. Use -1 for no limit.
+cpa.execution.maxSamples = no default value
+
+# Restore the values of the local variables of a caller when a recursive
+# function call returns. A value analysis identifies local variables by the
+# name of their function, so all invocations of a function share the same
+# memory locations and a recursive call overwrites the variables of its
+# caller. This option lets ExecutionCPA remember and restore those values,
+# such that recursive programs can be executed precisely. The value analysis
+# itself is not changed by this.
+cpa.execution.restoreCallerValuesOnRecursion = no default value
+
+# Execute programs with inputs by asking the SMT solver for one assignment of
+# the inputs instead of aborting on the first nondeterministic choice. This
+# needs symbolic values (cpa.value.unknownValueHandling=INTRODUCE_SYMBOLIC)
+# and the ConstraintsCPA in the CPA configuration. Only one of the possible
+# executions is explored, so the analysis can then only report FALSE, never
+# TRUE.
+cpa.execution.sampleNondeterministicValues = no default value
+
+# Number of program steps that are executed within a single call of the
+# transfer relation. Intermediate states are not added to the reached set, so
+# the larger this value is, the less memory the analysis needs. Use a value
+# of -1 to execute the whole program within a single call of the transfer
+# relation (most memory efficient), and a value of 1 to add every state to
+# the reached set (needed for a complete ARG, e.g., for exporting
+# counterexamples).
+cpa.execution.stepsPerTransfer = no default value
+
 # Which strategy to use for forced coverings (empty for none)
 cpa.forcedCovering = no default value
 
@@ -2467,20 +2456,6 @@ cpa.loopbound.cyclicStopModulus = -1
 cpa.loopbound.domain = "FLAT"
   allowed values: [FLAT, DEEPEST_ITERATION]
 
-# Drop states that can never reach the bound for the number of loop
-# unrollings, i.e., states whose loop-iteration counter is still below the
-# bound but from whose location no loop head can be reached anymore.
-# Such states are useless for analyses that inspect only states at the bound,
-# most notably the induction step case of k-induction: it assumes the
-# candidate invariant at the loop-head states up to the bound and checks it
-# at the states exactly at the bound, so a state that can never reach the
-# bound contributes nothing.
-# Enabling this makes the reached set an incomplete unrolling of the program.
-# Do NOT enable it for analyses that inspect states below the bound at
-# arbitrary locations, such as plain BMC or k-induction with candidate
-# invariants for specific program locations.
-cpa.loopbound.dropStatesThatCannotReachBound = false
-
 # Number of loop iterations before the loop counter is abstracted. Zero is
 # equivalent to no limit.
 cpa.loopbound.loopIterationsBeforeAbstraction = 0
@@ -2488,7 +2463,7 @@ cpa.loopbound.loopIterationsBeforeAbstraction = 0
 # This option controls how the maxLoopIterations condition is adjusted when a
 # condition adjustment is invoked.
 cpa.loopbound.maxLoopIterationAdjusterFactory = STATIC
-  enum:     [STATIC, INCREMENT, DOUBLE]
+  enum:     [STATIC, INCREMENT, DOUBLE, FIBONACCI]
 
 # Bound for the number of complete loop unrollings
 # of the program (0 is used for no bound).
@@ -5998,6 +5973,11 @@ traceformula.makeFlowSensitive = false
 # selector for equal statements (on the same line), set this option to true.
 # Note that enabling this option  also decreases the quality of results.
 traceformula.reduceSelectors = false
+
+# Use only the trivial rules with these names, e.g. to measure a single rule.
+# Leave empty to use all rules that can decide a proposition of the
+# specification. The names of the rules are printed in the statistics.
+trivialrules.rules = no default value
 
 # Ignore functions that are defined by C11
 undefinedFunctionsCollector.allowC11Functions = true

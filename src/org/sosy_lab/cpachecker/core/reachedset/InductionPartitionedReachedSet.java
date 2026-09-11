@@ -37,8 +37,9 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  * <p>Partitioning affects only <em>which</em> states are compared, never whether comparing them
  * succeeds; coverage and merging remain governed by the CPAs' own operators. Making the partition
  * coarser is therefore always semantically safe. To actually benefit from it, the callstack and
- * loop-bound CPAs need to be configured to compare states accordingly (see {@code
- * cpa.callstack.domain} and {@code cpa.loopbound.domain}).
+ * loop-bound CPAs need to be configured to compare states accordingly, see {@code
+ * cpa.callstack.domain=FLATPCC} and {@code cpa.loopbound.domain=DEEPEST_ITERATION}. The
+ * configuration {@code kInduction-plain-relaxed.properties} combines the three.
  */
 public class InductionPartitionedReachedSet extends PartitionedReachedSet {
 
