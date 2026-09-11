@@ -537,9 +537,10 @@ final class ProgramFacts {
     }
 
     ImmutableMap.Builder<String, BigInteger> result = ImmutableMap.builder();
-    for (String candidate : candidates.keySet()) {
+    for (Map.Entry<String, BigInteger> entry : candidates.entrySet()) {
+      String candidate = entry.getKey();
       if (!rejected.contains(candidate)) {
-        result.put(candidate, candidates.get(candidate));
+        result.put(candidate, entry.getValue());
       }
     }
     return result.buildOrThrow();
