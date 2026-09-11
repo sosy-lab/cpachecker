@@ -50,13 +50,13 @@ class PartitionedRelationFormula {
             varNamesToFormulas,
             containsTransInv,
             /* instantiatePrevVars= */ true,
-            Optional.empty());
+            ImmutableSet.of());
     currVariables =
         instantiatePartition(
             varNamesToFormulas,
             containsTransInv,
             /* instantiatePrevVars= */ false,
-            Optional.of(prevVariables));
+            prevVariables);
   }
 
   /**
@@ -85,7 +85,7 @@ class PartitionedRelationFormula {
       Map<String, Formula> varNamesToFormulas,
       boolean containsTransInv,
       boolean instantiatePrevVars,
-      Optional<ImmutableSet<Formula>> excludeIfAlreadyIn) {
+      ImmutableSet<Formula> excludeIfAlreadyIn) {
     Map<String, String> foundIndex = new HashMap<>();
 
     // Search for the smallest SSA index of the variable
@@ -115,8 +115,7 @@ class PartitionedRelationFormula {
                   .orElseThrow()
               == index.orElseThrow()
           // The variables that occur only once in the formula should be in the prevVariables only
-          && (excludeIfAlreadyIn.isEmpty()
-              || !excludeIfAlreadyIn.orElseThrow().contains(entry.getValue()))) {
+          && !excludeIfAlreadyIn.contains(entry.getValue())) {
         result.add(entry.getValue());
       }
     }
@@ -180,7 +179,7 @@ class PartitionedRelationFormula {
             varNamesToFormulas,
             containsTransInv,
             /* instantiatePrevVars= */ true,
-            Optional.empty());
+            ImmutableSet.of());
     return new PartitionedRelationFormula(substituted, fmgr, newPrevVariables, currVariables);
   }
 
@@ -199,7 +198,7 @@ class PartitionedRelationFormula {
             varNamesToFormulas,
             containsTransInv,
             /* instantiatePrevVars= */ false,
-            Optional.of(prevVariables));
+            prevVariables);
     return new PartitionedRelationFormula(substituted, fmgr, prevVariables, newCurrVariables);
   }
 
