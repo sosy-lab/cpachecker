@@ -479,7 +479,9 @@ public class ARGUtils {
    *
    * <p>Note that a branching in the ARG is not necessarily a branching of the CFA: a CPA may create
    * several successors for the same edge, for example to check a location invariant of an SV-LIB
-   * program.
+   * program. Such successors need not be mutually exclusive, so the branching information can allow
+   * several of them. This is supported as long as the path ends in all of them, otherwise this
+   * method gives up.
    *
    * @param root The root element of the ARG (where to start the path)
    * @param stateFilter Only consider the subset of ARG states that satisfy this filter.
@@ -487,8 +489,8 @@ public class ARGUtils {
    *     value indicating whether this successor is on the path. It is only called for ARG states
    *     with more than one successor.
    * @return A path through the ARG unambiguously described by the branching information.
-   * @throws IllegalArgumentException If the direction information doesn't match the ARG or the ARG
-   *     is inconsistent.
+   * @throws IllegalArgumentException If the direction information doesn't match the ARG, the ARG is
+   *     inconsistent, or the branching information allows several different successors.
    */
   public static ARGPath getPathFromBranchingInformation(
       ARGState root,
@@ -512,31 +514,53 @@ public class ARGUtils {
         builder.add(currentElement, currentElement.getEdgeToChild(child));
         currentElement = child;
       } else {
-        // Take the first successor which can be reached. There may be several of them, because the
-        // successors of a branching need not be mutually exclusive: OverflowCPA for example
-        // creates one successor per possible overflow of an edge, and a single edge can have
-        // several operations that overflow for the same values.
         final ARGState finalCurrentElement = currentElement;
-        final ARGState child =
-            FluentIterable.from(childrenInArg)
+        final ImmutableList<ARGState> possibleChildren =
+            from(childrenInArg)
                 .filter(
                     currentChild -> branchingInformation.test(finalCurrentElement, currentChild))
-                .first()
-                .toJavaUtil()
-                // The direction information is either missing for this branching or it excludes
-                // all successors, in both cases the path cannot be determined any further.
-                .orElseThrow(
-                    () ->
-                        new IllegalArgumentException(
-                            "ARG branches without direction information for any successor of state "
-                                + finalCurrentElement.getStateId()
-                                + "!"));
+                .toList();
+        // The direction information is either missing for this branching or it excludes all
+        // successors, in both cases the path cannot be determined any further.
+        checkArgument(
+            !possibleChildren.isEmpty(),
+            "ARG branches without direction information for any successor of state %s!",
+            currentElement.getStateId());
+
+        final ARGState child = possibleChildren.getFirst();
+        if (possibleChildren.size() > 1) {
+          // Several successors can be possible, because the successors of a branching need not be
+          // mutually exclusive: OverflowCPA for example creates one successor per possible overflow
+          // of an edge, and a single edge can have several operations that overflow for the same
+          // values. Continuing with an arbitrary one of them is only safe if the path ends in all
+          // of them, otherwise we would have to guess which one is on the path and could end up
+          // walking in a cycle of the ARG.
+          checkArgument(
+              possibleChildren.stream()
+                  .allMatch(currentChild -> areIndistinguishableTargetStates(child, currentChild)),
+              "ARG branches into several different possible successors of state %s!",
+              currentElement.getStateId());
+        }
         builder.add(currentElement, currentElement.getEdgeToChild(child));
         currentElement = child;
       }
     }
 
     return builder.build(currentElement);
+  }
+
+  /**
+   * Check whether a counterexample ending in one of two ARG states is the same as a counterexample
+   * ending in the other one. Because a path is not continued beyond a target state, this is the
+   * case if both are target states with the same program locations and call stack.
+   */
+  private static boolean areIndistinguishableTargetStates(ARGState pState1, ARGState pState2) {
+    return pState1.isTarget()
+        && pState2.isTarget()
+        && ImmutableSet.copyOf(AbstractStates.extractLocations(pState1))
+            .equals(ImmutableSet.copyOf(AbstractStates.extractLocations(pState2)))
+        && AbstractStates.extractOptionalCallstackWraper(pState1)
+            .equals(AbstractStates.extractOptionalCallstackWraper(pState2));
   }
 
   /**
