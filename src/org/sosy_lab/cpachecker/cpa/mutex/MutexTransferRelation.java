@@ -43,6 +43,11 @@ class MutexTransferRelation extends SingleEdgeTransferRelation {
 
     Optional<MutexState> updated = state.update(pCfaEdge, pid, mutexHandleCandidates);
     if (updated.isEmpty()) {
+      // Returning no successor is deliberate. An empty result from update() means that the mutex
+      // operation on this edge violates mutex semantics (the mutex, or the atomic block, is held by
+      // another thread), so the edge is not executable in this state at all. Reporting BOTTOM makes
+      // every CPA of the composite stop exploring this edge, which is exactly what we want: there
+      // is no execution along it, so there is nothing for any other CPA to learn from it either.
       return ImmutableList.of();
     }
     return ImmutableList.of(updated.get());
