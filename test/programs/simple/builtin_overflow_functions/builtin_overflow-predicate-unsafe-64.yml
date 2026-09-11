@@ -11,11 +11,11 @@ format_version: '2.0'
 input_files: 'builtin_overflow-predicate-unsafe.c'
 
 properties:
-  - property_file: ../../../config/specification/ErrorLabel.spc
+  - property_file: ../../../../config/specification/ErrorLabel.spc
     expected_verdict: false
-  - property_file: ../../../config/specification/memorysafety.spc
+  - property_file: ../../../../config/specification/memorysafety.spc
     expected_verdict: true
-  - property_file: ../../../config/specification/overflow.spc
+  - property_file: ../../../../config/specification/overflow.spc
     expected_verdict: true
 
 options:
