@@ -35,7 +35,6 @@ public class BuiltinFunctions {
   private static final String STRLEN = "strlen";
   private static final String POPCOUNT = "popcount";
 
-  // abs() and its variants for wider integer types, cf. C11 7.8.2.1, 7.20.6.1, 7.22.6.1
   private static final ImmutableSet<String> INTEGER_ABS =
       ImmutableSet.of("abs", "labs", "llabs", "imaxabs");
 
