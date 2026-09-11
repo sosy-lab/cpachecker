@@ -598,8 +598,8 @@ public class SMGCPABuiltins {
         buildGccOverflowFunctionWithPreprocessingReturningCalculationAndResult(
             functionName, a, b, typeOfResBelowPointer, pCfaEdge);
 
-    CExpression castCalculationResult = resultExpressions.getCastCalculationResult();
-    CExpression overflowComparison = resultExpressions.getFunctionReturn();
+    CExpression castCalculationResult = resultExpressions.castCalculationResult();
+    CExpression overflowComparison = resultExpressions.functionReturn();
 
     // Assign the cast calculation result
     Collection<SMGState> assignedStates =
@@ -806,7 +806,7 @@ public class SMGCPABuiltins {
     OverflowFunctionReturnAndCastCalculationResult overflowBoolCalcResAndState =
         buildGccOverflowFunctionWithPreprocessingReturningCalculationAndResult(
             modifiedFunctionName, a, b, typeOfArgumentC, pCfaEdge);
-    CExpression overflowComparison = overflowBoolCalcResAndState.getFunctionReturn();
+    CExpression overflowComparison = overflowBoolCalcResAndState.functionReturn();
 
     List<ValueAndSMGState> overflowComparisonResults =
         overflowComparison.accept(
@@ -964,18 +964,14 @@ public class SMGCPABuiltins {
             usedFunctionName, aArgumentCExpr, bArgumentCExpr, type, pCfaEdge);
 
     //      __typeof__ (a) c2 = __builtin_sub/add_overflow (s, carry_in, &s); \
-    CExpression c1 = c1AndS.getFunctionReturn();
+    CExpression c1 = c1AndS.functionReturn();
     OverflowFunctionReturnAndCastCalculationResult c2AndS =
         buildGccOverflowFunctionWithPreprocessingReturningCalculationAndResult(
-            usedFunctionName,
-            c1AndS.getCastCalculationResult(),
-            carryInArgumentCExpr,
-            type,
-            pCfaEdge);
+            usedFunctionName, c1AndS.castCalculationResult(), carryInArgumentCExpr, type, pCfaEdge);
 
-    CExpression c2 = c2AndS.getFunctionReturn();
+    CExpression c2 = c2AndS.functionReturn();
     // s is the return of the function
-    CExpression s = c2AndS.getCastCalculationResult();
+    CExpression s = c2AndS.castCalculationResult();
 
     //      *(carry_out) = c1 | c2; \
     CBinaryExpression c1LogicalOrC2Expr =
@@ -3994,32 +3990,22 @@ public class SMGCPABuiltins {
    *
    * <p>Don't use this because it is convenient! This is for its special use-case only! There are no
    * guarantees that this implementation is not changed or deleted at some point!
+   *
+   * @param functionReturn returns the {@link CExpression} modeling the boolean return value of GCC
+   *     built-in overflow functions (e.g. {@code bool __builtin_sadd_overflow(int a, int b, int
+   *     *res)}).
+   * @param castCalculationResult returns the {@link CExpression} modeling the internal calculation
+   *     result, after casting, that needs to be assigned to the {@code res} argument (i.e. {@code
+   *     *res = castCalculationResult();}) of GCC built-in overflow functions.
    */
   private record OverflowFunctionReturnAndCastCalculationResult(
       CExpression functionReturn, CExpression castCalculationResult) {
 
-    public OverflowFunctionReturnAndCastCalculationResult {
+    private OverflowFunctionReturnAndCastCalculationResult {
       checkNotNull(functionReturn);
       checkNotNull(castCalculationResult);
       checkArgument(
           functionReturn.getExpressionType().getCanonicalType().equals(CNumericTypes.BOOL));
-    }
-
-    /**
-     * Returns the {@link CExpression} modeling the boolean return value of GCC built-in overflow
-     * functions (e.g. {@code bool __builtin_sadd_overflow(int a, int b, int *res)}).
-     */
-    public CExpression getFunctionReturn() {
-      return functionReturn;
-    }
-
-    /**
-     * Returns the {@link CExpression} modeling the internal calculation result, after casting, that
-     * needs to be assigned to the {@code res} argument (i.e. {@code *res =
-     * getCastCalculationResult();}) of GCC built-in overflow functions.
-     */
-    public CExpression getCastCalculationResult() {
-      return castCalculationResult;
     }
   }
 }
