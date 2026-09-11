@@ -505,39 +505,40 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           root,
           stateFilter,
           (pathElement, successor) -> {
-            List<CFAEdge> edgesBetweenElements = pathElement.getEdgesToChild(successor);
-
-            // create formula by edge, be sure to use the correct SSA indices!
             // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractState,
             // it is used without PredicateCPA as well.
             PredicateAbstractState pe =
                 AbstractStates.extractStateByType(pathElement, PredicateAbstractState.class);
             verifyNotNull(pe, "Cannot find precise error path information without PredicateCPA.");
-            PathFormula pathFormula = makeEmptyPathFormulaWithContextFrom(pe.getPathFormula());
 
-            // Now create the pathformula with all assumptions from the egdes
-            boolean overridePathFormula = false;
-            for (CFAEdge edge :
-                FluentIterable.from(edgesBetweenElements).filter(AssumeEdge.class)) {
-              if (edge instanceof AssumeEdge pAssumeEdge) {
-                // Only consider assume edges, since we only want to evaluate whether this branching
-                // is possible in the model
-                final Pair<ARGState, CFAEdge> key = Pair.of(pathElement, pAssumeEdge);
-                PathFormula edgePathFormula = branchingFormulasOverride.get(key);
-                if (edgePathFormula != null) {
-                  // If we have a pathformula for the edge already, then use it
-                  Verify.verify(!overridePathFormula);
-                  pathFormula = edgePathFormula;
-                  overridePathFormula = true;
-                } else {
-                  // Otherwise convert the edge directly and add it to the existing pathformula
-                  try {
-                    pathFormula = this.makeAnd(pathFormula, pAssumeEdge);
-                  } catch (CPATransferException | InterruptedException e) {
-                    throw new WrappingException(e);
-                  }
+            // Only a single assume edge tells us whether a branching is possible in the model.
+            // Any other sequence of edges is ignored, for it we rely on the assumptions of the
+            // successor state below.
+            List<CFAEdge> edgesBetweenElements = pathElement.getEdgesToChild(successor);
+            BooleanFormula branchingFormula = bfmgr.makeTrue();
+            if (edgesBetweenElements.size() == 1
+                && edgesBetweenElements.getFirst() instanceof AssumeEdge assumeEdge) {
+              final Pair<ARGState, CFAEdge> key = Pair.of(pathElement, assumeEdge);
+              PathFormula edgePathFormula = branchingFormulasOverride.get(key);
+              if (edgePathFormula == null) {
+                // No pathformula for the edge available, so create one with the correct SSA indices
+                try {
+                  edgePathFormula =
+                      makeAnd(makeEmptyPathFormulaWithContextFrom(pe.getPathFormula()), assumeEdge);
+                } catch (CPATransferException | InterruptedException e) {
+                  throw new WrappingException(e);
                 }
               }
+              branchingFormula = edgePathFormula.getFormula();
+            } else {
+              // Conjoining several assume edges would be unsound, because assignments in between
+              // change the SSA indices.
+              Verify.verify(
+                  FluentIterable.from(edgesBetweenElements).filter(AssumeEdge.class).isEmpty(),
+                  "Unexpected assume edge among the edges %s between ARG states %s and %s.",
+                  edgesBetweenElements,
+                  pathElement.getStateId(),
+                  successor.getStateId());
             }
 
             // Now add the assumptions from the successor state to know if it is reachable.
@@ -558,8 +559,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
               throw new WrappingException(e);
             }
 
-            Boolean evaluatedModel =
-                model.evaluate(bfmgr.and(pathFormula.getFormula(), assumptions));
+            Boolean evaluatedModel = model.evaluate(bfmgr.and(branchingFormula, assumptions));
             return evaluatedModel == null || evaluatedModel;
           });
     } catch (WrappingException e) {
