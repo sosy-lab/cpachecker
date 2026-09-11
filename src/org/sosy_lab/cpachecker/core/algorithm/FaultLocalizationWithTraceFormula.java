@@ -382,7 +382,10 @@ public class FaultLocalizationWithTraceFormula
               faults, getScoring(tf), tf, pInfo, algorithmType == AlgorithmType.ERRINV);
 
       if (algorithmType == AlgorithmType.ERRINV) {
-        info.replaceHtmlWriter(new IntervalReportWriter(context.getSolver().getFormulaManager()));
+        info.replaceHtmlWriter(
+            new IntervalReportWriter(
+                context.getSolver().getFormulaManager(),
+                context.getMutableCFA().getMachineModel()));
       }
 
       info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
