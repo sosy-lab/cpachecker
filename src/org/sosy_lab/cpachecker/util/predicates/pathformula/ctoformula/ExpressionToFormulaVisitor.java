@@ -1768,8 +1768,8 @@ public class ExpressionToFormulaVisitor
   }
 
   /**
-   * Returns whether the given function declaration (if any) has a single formal parameter of the
-   * given type Returns {@code true} if there is no declaration to check against.
+   * Checks whether the given function declaration (if any) has a single formal parameter of the
+   * given type. Returns {@code true} if there is no declaration to check against.
    */
   private static boolean hasMatchingSingleParameterType(
       @Nullable CFunctionDeclaration functionDeclaration, CType expectedParamType) {
@@ -1778,7 +1778,10 @@ public class ExpressionToFormulaVisitor
     }
     List<CType> formalParameters = functionDeclaration.getType().getParameters();
     return formalParameters.size() != 1
-        || formalParameters.getFirst().getCanonicalType().equals(expectedParamType.getCanonicalType());
+        || formalParameters
+            .getFirst()
+            .getCanonicalType()
+            .equals(expectedParamType.getCanonicalType());
   }
 
   /**
