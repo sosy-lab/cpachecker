@@ -14,6 +14,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCo
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.HashMultiset;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -22,6 +23,8 @@ import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -80,11 +83,37 @@ public class LoopUnroller {
   // into an int could never be built anyway.
   int maxNumberOfUnrollings = 20;
 
+  // Nested loops multiply: the copies of a loop that we unrolled contain their own copy of every
+  // loop inside it, and each of those can be unrolled again. Three nested loops of the above
+  // iterations would already be 8000 copies of the innermost body, so the growth needs a limit of
+  // its own.
+  int maxNodesPerFunction = 100_000;
+
   public LoopUnroller(LogManager pLogger) {
     logger = pLogger;
   }
 
   public void unrollBoundedLoops(MutableCFA cfa) {
+    // Unrolling a loop replaces the nodes of every loop around it, which makes the loop structure
+    // we used stale. Computing it again lets the loops that contain the one we unrolled be
+    // unrolled as well, so that a nest of loops comes apart from the inside out, one level per
+    // round.
+    while (unrollInnermostBoundedLoops(cfa)) {
+      // A loop we unrolled is gone, so the one around it is one level less deep and this ends.
+    }
+  }
+
+  /**
+   * Unrolls every loop that contains no other loop we unroll in the same round. A loop around one
+   * of them only exists as a copy afterwards, which the next round finds.
+   *
+   * <p>Going inwards out means that a loop is only ever copied once it is as small as we can make
+   * it: unrolling the innermost loop first can even make it vanish, and the loops around it then
+   * copy what is left instead of copying the loop and unrolling every copy of it.
+   *
+   * @return whether anything was unrolled, so that another round is worth it
+   */
+  private boolean unrollInnermostBoundedLoops(MutableCFA cfa) {
     LoopStructure loopStructure;
     // Loop detection needs reverse-postorder ids, which CFACreator assigns only after all
     // post-processings that modify the CFA (and again after this one).
@@ -93,21 +122,51 @@ public class LoopUnroller {
       loopStructure = LoopStructure.getLoopStructure(cfa);
     } catch (ParserException pE) {
       logger.log(Level.WARNING, "Can not parse loop structure, no unrolling done");
-      return;
+      return false;
     }
 
-    // TODO depending on the iteration order, we will unroll nested loops or we will not.
-    for (Loop loop : loopStructure.getAllLoops()) {
+    boolean unrolledSomething = false;
+    // A loop that contains another one also contains all of its nodes and at least its own head,
+    // so this order reaches every loop before the ones that contain it. Those are stale by then
+    // and canUnroll skips them until the next round sees their copies.
+    for (Loop loop : innermostFirst(loopStructure.getAllLoops())) {
       // Counting the iterations of a loop we could not unroll anyway would be wasted work, and the
       // more iterations we allow the more expensive it gets.
       if (!canUnroll(cfa, loop)) {
         continue;
       }
       OptionalInt loopIterations = findExactLoopIterationCount(cfa, loop);
-      if (loopIterations.isPresent() && loopIterations.getAsInt() <= maxNumberOfUnrollings) {
-        unrollLoopExactly(cfa, loop, loopIterations.getAsInt());
+      if (loopIterations.isEmpty()
+          || loopIterations.getAsInt() > maxNumberOfUnrollings
+          || !fitsIntoTheNodeBudget(cfa, loop, loopIterations.getAsInt())) {
+        continue;
       }
+      unrollLoopExactly(cfa, loop, loopIterations.getAsInt());
+      unrolledSomething = true;
     }
+    return unrolledSomething;
+  }
+
+  /** The given loops, every one of them before the ones that contain it. */
+  private static ImmutableList<Loop> innermostFirst(Collection<Loop> pLoops) {
+    return ImmutableList.sortedCopyOf(
+        Comparator.comparingInt(loop -> loop.getLoopNodes().size()), pLoops);
+  }
+
+  /**
+   * Whether unrolling the given loop keeps its function within {@link #maxNodesPerFunction}. Logs
+   * the reason if it does not.
+   */
+  private boolean fitsIntoTheNodeBudget(MutableCFA pCfa, Loop pLoop, int pIterations) {
+    String function = pLoop.getLoopNodes().first().getFunctionName();
+    long nodesAfterwards =
+        (long) pCfa.getFunctionNodes(function).size()
+            + (long) pIterations * pLoop.getLoopNodes().size();
+    if (nodesAfterwards > maxNodesPerFunction) {
+      return logGiveUpUnrolling(
+          pLoop, "unrolling it would grow " + function + " to " + nodesAfterwards + " nodes");
+    }
+    return true;
   }
 
   /**
@@ -685,9 +744,9 @@ public class LoopUnroller {
 
     // That single edge also has to be passed exactly once per iteration, and we need to know
     // whether it comes before or after the check of the condition.
-    Optional<Boolean> modifiedBeforeCondition =
-        passesModificationBeforeCondition(pLoop, entryNode, conditionNode, modification);
-    if (modifiedBeforeCondition.isEmpty()) {
+    Optional<CounterModification> counterModification =
+        modificationRelativeToCondition(pLoop, entryNode, conditionNode, modification);
+    if (counterModification.isEmpty()) {
       return logNoIterationCount(
           pLoop, counterName + " is not written exactly once on every path through the loop");
     }
@@ -704,7 +763,7 @@ public class LoopUnroller {
         counterType.orElseThrow(),
         startValue.orElseThrow(),
         offset.orElseThrow(),
-        modifiedBeforeCondition.orElseThrow(),
+        counterModification.orElseThrow(),
         pCfa.getMachineModel());
   }
 
@@ -862,27 +921,38 @@ public class LoopUnroller {
   }
 
   /**
-   * Whether the loop passes the given modification of its counter on the way from its entry node to
-   * the node at which it checks its condition. Empty if that is not the same for every path, or if
-   * an iteration does not pass the modification exactly once, because then the counter does not
-   * have a value that only depends on the number of iterations.
+   * Where a loop changes its counter, relative to the point at which it checks its condition.
+   */
+  private enum CounterModification {
+    /** Changed before the check, as in a {@code do while} loop that ends with its condition. */
+    BEFORE_CONDITION,
+    /** Changed after the check, as in a {@code while} loop that begins with its condition. */
+    AFTER_CONDITION;
+
+    static CounterModification of(boolean pAlreadyPassed) {
+      return pAlreadyPassed ? BEFORE_CONDITION : AFTER_CONDITION;
+    }
+  }
+
+  /**
+   * Where the loop changes its counter, by following its body from the entry node to the node at
+   * which it checks its condition. Empty if that differs between the paths, or if an iteration does
+   * not pass the modification exactly once, because then the counter does not have a value that
+   * only depends on the number of iterations.
    *
    * <p>Only one edge modifies the counter, which {@link #findExactLoopIterationCount} makes sure
-   * of, so remembering whether we already passed that one edge is all we need and the value can
-   * never grow beyond it. Counting how often it is passed would answer the same question, because
-   * an edge that is passed twice without returning to the entry node lies on a cycle of its own and
-   * is already ruled out by the two paths to it disagreeing.
+   * of, so whether we already passed that one edge is all we have to carry along.
    */
-  private static Optional<Boolean> passesModificationBeforeCondition(
+  private static Optional<CounterModification> modificationRelativeToCondition(
       Loop pLoop, CFANode pEntry, CFANode pCondition, CFAEdge pModification) {
     ImmutableSet<CFAEdge> innerEdges = pLoop.getInnerLoopEdges();
-    Map<CFANode, Boolean> modified = new HashMap<>();
+    Map<CFANode, Boolean> passedModification = new HashMap<>();
     Deque<CFANode> waitlist = new ArrayDeque<>();
-    modified.put(pEntry, false);
+    passedModification.put(pEntry, false);
     waitlist.push(pEntry);
     while (!waitlist.isEmpty()) {
       CFANode node = waitlist.pop();
-      boolean before = modified.get(node);
+      boolean before = passedModification.get(node);
       for (CFAEdge edge : node.getLeavingEdges()) {
         if (!innerEdges.contains(edge)) {
           continue; // the edge that leaves the loop, which ends the last iteration
@@ -899,9 +969,9 @@ public class LoopUnroller {
           }
           continue; // the next iteration starts over without a modification
         }
-        Boolean known = modified.get(successor);
+        Boolean known = passedModification.get(successor);
         if (known == null) {
-          modified.put(successor, after);
+          passedModification.put(successor, after);
           waitlist.push(successor);
         } else if (known.booleanValue() != after) {
           // Either a branch writes the counter and another does not, or a nested loop writes it.
@@ -911,7 +981,8 @@ public class LoopUnroller {
     }
     // Absent if the condition is not even reachable without starting another iteration, in which
     // case the loop cannot be left after a fixed number of them.
-    return Optional.ofNullable(modified.get(pCondition));
+    return Optional.ofNullable(passedModification.get(pCondition))
+        .map(CounterModification::of);
   }
 
   /**
@@ -987,15 +1058,18 @@ public class LoopUnroller {
       CSimpleType pCounterType,
       BigInteger pStart,
       BigInteger pOffset,
-      boolean pModifiedBeforeCondition,
+      CounterModification pCounterModification,
       MachineModel pMachineModel) {
     BigInteger minimum = pMachineModel.getMinimalIntegerValue(pCounterType);
     BigInteger maximum = pMachineModel.getMaximalIntegerValue(pCounterType);
     BinaryOperator continueOperator = pCondition.continueOperator();
     BigInteger bound = pCondition.bound();
     // At the n-th visit of the entry node the counter is start + (n - 1) * offset, plus one more
-    // offset if it is already modified before the condition is checked.
-    BigInteger value = pModifiedBeforeCondition ? pStart.add(pOffset) : pStart;
+    // offset if the loop already changed it before it checks its condition.
+    BigInteger value =
+        pCounterModification == CounterModification.BEFORE_CONDITION
+            ? pStart.add(pOffset)
+            : pStart;
 
     // A condition that already fails ends the loop right away, no matter where the counter goes.
     if (isWithin(value, minimum, maximum)

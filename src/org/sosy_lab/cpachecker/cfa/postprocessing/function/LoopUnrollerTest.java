@@ -897,6 +897,74 @@ public class LoopUnrollerTest {
     assertThat(statementCount(cfa, "s = s + i")).isEqualTo(3);
   }
 
+  /**
+   * Unrolling the outer loop replaces the inner one by a copy per iteration. Those only become
+   * visible after the loop structure is computed again, so each of them is unrolled in a later
+   * round and nothing is left of the nest.
+   */
+  @Test
+  public void testUnrollBoundedLoopsUnrollsTheCopiesOfANestedLoop() throws Exception {
+    MutableCFA cfa =
+        createCfa(
+            """
+            int i = 0;
+            int s = 0;
+            while (i < 3) {
+              int j = 0;
+              while (j < 2) {
+                s = s + 1;
+                j = j + 1;
+              }
+              i = i + 1;
+            }
+            """);
+
+    new LoopUnroller(logger).unrollBoundedLoops(cfa);
+
+    assertIsValidCfa(cfa);
+    assertThat(loopCount(cfa)).isEqualTo(0);
+    // Three runs of the outer body, each of which runs the inner body twice.
+    assertThat(statementCount(cfa, "s = s + 1")).isEqualTo(6);
+    // Every copy of the outer body declares its own counter for the inner loop.
+    assertThat(declaredVariables(cfa)).containsAtLeast("main::__j_0", "main::__j_1", "main::__j_2");
+  }
+
+  /** Nested loops multiply, so the unrolling stops before a function grows without bound. */
+  @Test
+  public void testUnrollBoundedLoopsKeepsAFunctionWithinItsNodeBudget() throws Exception {
+    String functionBody =
+        """
+        int i = 0;
+        int s = 0;
+        while (i < 10) {
+          int j = 0;
+          while (j < 10) {
+            s = s + 1;
+            j = j + 1;
+          }
+          i = i + 1;
+        }
+        """;
+
+    MutableCFA withoutBudget = createCfa(functionBody);
+    new LoopUnroller(logger).unrollBoundedLoops(withoutBudget);
+
+    assertIsValidCfa(withoutBudget);
+    // Nothing is left of the nest, at the price of one copy of the innermost body per pair of
+    // iterations of the two loops.
+    assertThat(loopCount(withoutBudget)).isEqualTo(0);
+    assertThat(statementCount(withoutBudget, "s = s + 1")).isEqualTo(100);
+
+    MutableCFA withBudget = createCfa(functionBody);
+    LoopUnroller unroller = new LoopUnroller(logger);
+    unroller.maxNodesPerFunction = 200;
+    unroller.unrollBoundedLoops(withBudget);
+
+    assertIsValidCfa(withBudget);
+    assertThat(withBudget.getFunctionNodes("main").size()).isAtMost(200);
+    assertThat(loopCount(withBudget)).isAtLeast(1);
+  }
+
   /** A loop that the heuristic cannot count has to survive the post-processing unchanged. */
   @Test
   public void testUnrollBoundedLoopsKeepsAnUncountedLoop() throws Exception {
