@@ -469,7 +469,7 @@ final class ProgramFacts {
             ImmutableList.copyOf(edges),
             possible.isEmpty() ? ChainEnd.PROGRAM_END : ChainEnd.BRANCHING);
       }
-      CFAEdge edge = possible.get(0);
+      CFAEdge edge = possible.getFirst();
       edges.add(edge);
       if (neverReturns(edge)) {
         return new Chain(ImmutableList.copyOf(edges), ChainEnd.PROGRAM_EXIT);

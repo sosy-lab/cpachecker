@@ -229,7 +229,7 @@ final class MemorySafetyRules {
             || call.getParameterExpressions().size() != 1) {
           continue;
         }
-        CExpression argument = withoutCasts(call.getParameterExpressions().get(0));
+        CExpression argument = withoutCasts(call.getParameterExpressions().getFirst());
         if (isAddressOf(argument)
             || argument.getExpressionType().getCanonicalType() instanceof CArrayType) {
           return RuleVerdict.refuted(

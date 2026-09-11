@@ -168,7 +168,7 @@ class ExecutionTransferRelation extends AbstractSingleWrapperTransferRelation {
       // continue with the successor that these values determine.
       AbstractState sampledState = sampler.sample(state, steps);
       if (sampledState == null) {
-        throw nondeterminismException(steps.get(0).edge(), steps.get(1).edge());
+        throw nondeterminismException(steps.getFirst().edge(), steps.get(1).edge());
       }
       state = sampledState;
       status = status.withSound(false);

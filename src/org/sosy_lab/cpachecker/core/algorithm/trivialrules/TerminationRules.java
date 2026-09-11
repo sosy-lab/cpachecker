@@ -106,7 +106,7 @@ final class TerminationRules {
         return pChain.get(i);
       }
     }
-    return Iterables.getLast(pChain);
+    return pChain.getLast();
   }
 
   private static Optional<RuleVerdict> checkEndlessLoopOnEveryExecution(ProgramFacts pFacts) {
