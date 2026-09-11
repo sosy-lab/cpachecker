@@ -57,6 +57,7 @@ class FunctionScope extends AbstractScope {
   private final Map<String, CFunctionDeclaration> localFunctions = new HashMap<>();
   private final Map<String, CFunctionDeclaration> globalFunctions;
   private final Deque<Map<String, CComplexTypeDeclaration>> typesStack = new ArrayDeque<>();
+  private final Deque<Map<String, CTypeDefDeclaration>> typedefsStack = new ArrayDeque<>();
   private final Map<String, CTypeDefDeclaration> typedefs;
   private final Deque<Map<String, CVariableDeclaration>> labelsStack = new ArrayDeque<>();
   private final Deque<Map<String, CFALabelNode>> labelsNodeStack = new ArrayDeque<>();
@@ -146,6 +147,7 @@ class FunctionScope extends AbstractScope {
 
   public void enterBlock() {
     typesStack.addLast(new HashMap<>());
+    typedefsStack.addLast(new HashMap<>());
     labelsStack.addLast(new HashMap<>());
     labelsNodeStack.addLast(new HashMap<>());
     varsStack.addLast(new HashMap<>());
@@ -161,6 +163,7 @@ class FunctionScope extends AbstractScope {
     varsStack.removeLast();
     varsStackWitNewNames.removeLast();
     typesStack.removeLast();
+    typedefsStack.removeLast();
     labelsStack.removeLast();
     labelsNodeStack.removeLast();
     // Optimizations to keep track of all variables which are in scope
@@ -274,12 +277,30 @@ class FunctionScope extends AbstractScope {
   public @Nullable CType lookupTypedef(final String name) {
     checkNotNull(name);
 
+    Iterator<Map<String, CTypeDefDeclaration>> it = typedefsStack.descendingIterator();
+    while (it.hasNext()) {
+      CTypeDefDeclaration declaration = it.next().get(name);
+      if (declaration != null) {
+        return declaration.getType();
+      }
+    }
+
     final CTypeDefDeclaration declaration = typedefs.get(name);
     if (declaration != null) {
       return declaration.getType();
     }
 
     return artificialScope.lookupTypedef(name);
+  }
+
+  /**
+   * Register a local typedef, e.g. one declared inside a function body.
+   *
+   * @return True if the type actually needs to be declared.
+   */
+  public boolean registerTypeDeclaration(CTypeDefDeclaration declaration) {
+    typedefsStack.peekLast().put(declaration.getName(), declaration);
+    return true;
   }
 
   @Override

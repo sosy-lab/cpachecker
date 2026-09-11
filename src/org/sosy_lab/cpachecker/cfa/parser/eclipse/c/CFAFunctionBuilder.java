@@ -102,6 +102,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -424,6 +425,9 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       } else if (newD instanceof CComplexTypeDeclaration) {
         scope.registerTypeDeclaration((CComplexTypeDeclaration) newD);
+
+      } else if (newD instanceof CTypeDefDeclaration) {
+        scope.registerTypeDeclaration((CTypeDefDeclaration) newD);
 
         // function declarations in local scope are no problem as long as they
         // do not have a body
