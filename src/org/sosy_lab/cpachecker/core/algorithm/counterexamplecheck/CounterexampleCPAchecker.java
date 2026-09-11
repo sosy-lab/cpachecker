@@ -143,7 +143,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
 
   private enum CounterexampleFormat {
     AUTOMATON,
-    YAML_WITNESS,
+    WITNESSV2,
   }
 
   @Option(
@@ -206,7 +206,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
   private String getFileSuffix(CounterexampleFormat format) {
     return switch (format) {
       case AUTOMATON -> ".spc";
-      case YAML_WITNESS -> ".yaml";
+      case WITNESSV2 -> ".yaml";
     };
   }
 

@@ -1369,7 +1369,7 @@ counterexample.checker.config = no default value
 
 # Internal representation of the counterexample path used for the check.
 counterexample.checker.counterexampleFormat = AUTOMATON
-  enum:     [AUTOMATON, YAML_WITNESS]
+  enum:     [AUTOMATON, WITNESSV2]
 
 # counterexample check should fully replace existing counterexamples with own
 # ones, if available
