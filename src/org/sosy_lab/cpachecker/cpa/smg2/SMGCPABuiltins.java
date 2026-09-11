@@ -3995,7 +3995,7 @@ public class SMGCPABuiltins {
    * <p>Don't use this because it is convenient! This is for its special use-case only! There are no
    * guarantees that this implementation is not changed or deleted at some point!
    */
-  public record OverflowFunctionReturnAndCastCalculationResult(
+  private record OverflowFunctionReturnAndCastCalculationResult(
       CExpression functionReturn, CExpression castCalculationResult) {
 
     public OverflowFunctionReturnAndCastCalculationResult {
