@@ -307,7 +307,8 @@ final class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
         Optional<InvariantCreationResult> invariant =
             createLoopInvariant(loopInvariants.get(node), node);
         if (invariant.isPresent()) {
-          entries.put(WitnessInvariantKind.LOOP_INVARIANT, invariant.orElseThrow().invariantEntry());
+          entries.put(
+              WitnessInvariantKind.LOOP_INVARIANT, invariant.orElseThrow().invariantEntry());
           translationSuccessful &= invariant.orElseThrow().translationSuccessful();
         }
       }
@@ -336,7 +337,8 @@ final class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     if (pKinds.contains(WitnessInvariantKind.FUNCTION_CONTRACT)) {
       ImmutableList<FunctionContractCreationResult> contracts =
           createFunctionContracts(
-              statesCollector.functionContractRequires(), statesCollector.functionContractEnsures());
+              statesCollector.functionContractRequires(),
+              statesCollector.functionContractEnsures());
       entries.putAll(
           WitnessInvariantKind.FUNCTION_CONTRACT,
           FluentIterable.from(contracts)
@@ -365,7 +367,9 @@ final class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
         getASTStructure().getTightestIterationStructureForNode(pNode);
     if (iterationStructure.isEmpty()) {
       logger.logf(
-          Level.FINE, "Could not determine the loop of node %s, skipping its loop invariant", pNode);
+          Level.FINE,
+          "Could not determine the loop of node %s, skipping its loop invariant",
+          pNode);
       return Optional.empty();
     }
     return Optional.of(

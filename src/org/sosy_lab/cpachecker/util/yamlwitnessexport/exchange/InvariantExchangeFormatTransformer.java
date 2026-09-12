@@ -134,8 +134,7 @@ public class InvariantExchangeFormatTransformer {
     Optional<String> resultFunction =
         Optional.ofNullable(pInvariantEntry.getLocation().getFunction());
     String invariantString = pInvariantEntry.getValue();
-    ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> previousValueVariables =
-        ImmutableMap.of();
+    ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> previousValueVariables = ImmutableMap.of();
     if (pInvariantEntry
         .getType()
         .equals(InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword())) {

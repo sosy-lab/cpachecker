@@ -18,7 +18,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -75,7 +74,8 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
   private final ARGToYAMLWitness argToWitness;
 
   /** The kinds of information which are exported into the witness of each requested version. */
-  private final ImmutableMap<YAMLWitnessVersion, ImmutableSet<WitnessInvariantKind>> kindsPerVersion;
+  private final ImmutableMap<YAMLWitnessVersion, ImmutableSet<WitnessInvariantKind>>
+      kindsPerVersion;
 
   public ARGToYAMLWitnessExport(
       Configuration pConfig,
