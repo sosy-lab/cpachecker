@@ -130,7 +130,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
           // Commit only after the whole wrapped stop operator accepted coverage. Retain the
           // incoming prefix even if the path formulas were equal and no merge was performed.
           for (ARGState incomingParent : argElement.getParents()) {
-            argReachedState.addParent(incomingParent);
+            argReachedState.copyIncomingPathsFrom(argElement, incomingParent);
           }
           argElement.removeFromARG();
           return true;

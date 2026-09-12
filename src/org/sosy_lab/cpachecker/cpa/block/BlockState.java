@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.ViolationConditionReportingState;
@@ -29,6 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithIncomingEdge;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
@@ -41,7 +43,12 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 // cannot be an AbstractStateWithLocation as initialization corrupts analysis
 public class BlockState
-    implements AbstractQueryableState, Partitionable, Targetable, FormulaReportingState, Graphable {
+    implements AbstractQueryableState,
+        Partitionable,
+        Targetable,
+        FormulaReportingState,
+        Graphable,
+        AbstractStateWithIncomingEdge {
 
   public enum BlockStateType {
     INITIAL,
@@ -55,6 +62,7 @@ public class BlockState
 
   private final String id;
   private final BlockState predecessor;
+  private final @Nullable CFAEdge incomingEdge;
   private final CFANode node;
   private final BlockStateType type;
   private final BlockNode blockNode;
@@ -76,8 +84,33 @@ public class BlockState
       BlockGraphPath pHistory,
       SegmentedPaths pWitness,
       SegmentedPaths pWitnessCheckPathState) {
+    this(
+        pId,
+        pPredecessor,
+        pNode,
+        pTargetNode,
+        pType,
+        pViolationConditions,
+        pHistory,
+        pWitness,
+        pWitnessCheckPathState,
+        null);
+  }
+
+  private BlockState(
+      String pId,
+      BlockState pPredecessor,
+      CFANode pNode,
+      BlockNode pTargetNode,
+      BlockStateType pType,
+      ImmutableList<? extends AbstractState> pViolationConditions,
+      BlockGraphPath pHistory,
+      SegmentedPaths pWitness,
+      SegmentedPaths pWitnessCheckPathState,
+      @Nullable CFAEdge pIncomingEdge) {
     id = pId;
     predecessor = pPredecessor;
+    incomingEdge = pIncomingEdge;
     node = pNode;
     type = pType;
     blockNode = pTargetNode;
@@ -110,6 +143,29 @@ public class BlockState
 
   public String getUniqueId() {
     return id;
+  }
+
+  BlockState successor(
+      String pId,
+      CFAEdge pEdge,
+      BlockStateType pType,
+      ImmutableList<? extends AbstractState> pConditions) {
+    return new BlockState(
+        pId,
+        this,
+        pEdge.getSuccessor(),
+        blockNode,
+        pType,
+        pConditions,
+        history,
+        witness,
+        witnessCheckPathState.orElse(null),
+        pEdge);
+  }
+
+  @Override
+  public @Nullable CFAEdge getIncomingEdge() {
+    return incomingEdge;
   }
 
   /**
@@ -170,7 +226,8 @@ public class BlockState
         pConditions,
         pHistory,
         witness,
-        witnessCheckPathState.orElse(null));
+        witnessCheckPathState.orElse(null),
+        incomingEdge);
   }
 
   /** Reuse the abstract value in a new exploration without reusing processing records. */
@@ -259,6 +316,7 @@ public class BlockState
     return bfmgr.makeTrue();
   }
 
+  @Override
   public BlockState getPredecessor() {
     return predecessor;
   }

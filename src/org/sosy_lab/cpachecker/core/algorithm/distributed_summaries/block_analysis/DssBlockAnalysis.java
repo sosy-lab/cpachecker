@@ -32,6 +32,7 @@ import java.util.function.Function;
 import java.util.logging.Level;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.common.ShutdownManager;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -69,7 +70,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
@@ -111,6 +111,7 @@ public final class DssBlockAnalysis {
   private record ViolationConditionProgramPoint(
       Optional<ARGState> previousCondition, Object programPoint) {}
 
+  private final ShutdownNotifier shutdownNotifier;
   private final BlockNode block;
   private final LogManager logger;
   private final DssMessageFactory messageFactory;
@@ -139,6 +140,7 @@ public final class DssBlockAnalysis {
       ShutdownManager pShutdownManager,
       DssSingleWorkerStatistics pWorkerStats)
       throws CPAException, InterruptedException, InvalidConfigurationException {
+    shutdownNotifier = pShutdownManager.getNotifier();
     block = pBlock;
     logger = pLogger;
     messageFactory = pMessageFactory;
@@ -639,16 +641,18 @@ public final class DssBlockAnalysis {
     ImmutableListMultimap.Builder<ViolationConditionProgramPoint, AbstractState>
         statePerProgramCounterBuilder = ImmutableListMultimap.builder();
     for (ArgPathAndCondition pathAndCondition : pRelevantViolations) {
-      Optional<AbstractState> violationCondition =
-          dcpa.getViolationConditionOperator()
-              .computeViolationCondition(
-                  pathAndCondition.path(), Optional.ofNullable(pathAndCondition.condition()));
-      if (violationCondition.isPresent()) {
-        statePerProgramCounterBuilder.put(
-            new ViolationConditionProgramPoint(
-                Optional.ofNullable(pathAndCondition.condition()),
-                dcpa.computeProgramPointId(violationCondition.orElseThrow())),
-            violationCondition.orElseThrow());
+      for (ARGPath path : pathAndCondition.paths()) {
+        shutdownNotifier.shutdownIfNecessary();
+        Optional<AbstractState> violationCondition =
+            dcpa.getViolationConditionOperator()
+                .computeViolationCondition(path, Optional.ofNullable(pathAndCondition.condition()));
+        if (violationCondition.isPresent()) {
+          statePerProgramCounterBuilder.put(
+              new ViolationConditionProgramPoint(
+                  Optional.ofNullable(pathAndCondition.condition()),
+                  dcpa.computeProgramPointId(violationCondition.orElseThrow())),
+              violationCondition.orElseThrow());
+        }
       }
     }
     ImmutableListMultimap<ViolationConditionProgramPoint, AbstractState> statePerProgramCounter =
@@ -681,37 +685,27 @@ public final class DssBlockAnalysis {
         messageFactory.createViolationConditionMessage(block.getId(), status, serialize(allVcs)));
   }
 
-  /** All ARG paths reaching the given states, without an originating violation condition. */
+  /** Snapshot paths reaching the given states without eagerly enumerating them. */
   Set<ArgPathAndCondition> pathsFromOrigin(Collection<@NonNull ARGState> pStates) {
-    ImmutableSet.Builder<ArgPathAndCondition> relevantViolations = ImmutableSet.builder();
-    for (ARGPath path : collectPaths(pStates)) {
-      relevantViolations.add(new ArgPathAndCondition(path, null));
-    }
-    return relevantViolations.build();
+    DssBlockPathGraph graph = new DssBlockPathGraph((ARGState) reachedSet.getFirstState(), pStates);
+    return pStates.stream()
+        .map(state -> new ArgPathAndCondition(graph, state, null))
+        .collect(ImmutableSet.toImmutableSet());
   }
 
-  /**
-   * All ARG paths reaching the given states, each paired with the violation condition that the
-   * corresponding {@link BlockState} was analyzed under.
-   */
+  /** Snapshot paths together with the exact violation condition attached to each ghost state. */
   Set<ArgPathAndCondition> pathsWithCondition(Collection<@NonNull ARGState> pViolations) {
-    ImmutableSet.Builder<ArgPathAndCondition> relevantViolations = ImmutableSet.builder();
-    for (ARGState violation : pViolations) {
-      ARGState violationState =
-          (ARGState) Iterables.getOnlyElement(blockStateOf(violation).getViolationConditions());
-      for (ARGPath path : collectPaths(ImmutableList.of(violation))) {
-        relevantViolations.add(new ArgPathAndCondition(path, violationState));
-      }
-    }
-    return relevantViolations.build();
-  }
-
-  private Collection<ARGPath> collectPaths(Iterable<@NonNull ARGState> pStates) {
-    ImmutableList.Builder<ARGPath> paths = ImmutableList.builder();
-    for (ARGState state : pStates) {
-      paths.addAll(ARGUtils.getAllPaths(reachedSet, state));
-    }
-    return paths.build();
+    DssBlockPathGraph graph =
+        new DssBlockPathGraph((ARGState) reachedSet.getFirstState(), pViolations);
+    return pViolations.stream()
+        .map(
+            state ->
+                new ArgPathAndCondition(
+                    graph,
+                    state,
+                    (ARGState)
+                        Iterables.getOnlyElement(blockStateOf(state).getViolationConditions())))
+        .collect(ImmutableSet.toImmutableSet());
   }
 
   /**

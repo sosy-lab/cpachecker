@@ -189,7 +189,7 @@ public class ARGMergeJoin implements MergeOperator {
 
     // and also replace argElement1 with it
     for (ARGState parentOfElement1 : argElement1.getParents()) {
-      mergedElement.addParent(parentOfElement1);
+      mergedElement.copyIncomingPathsFrom(argElement1, parentOfElement1);
     }
 
     // argElement1 is the current successor, it does not have any children yet and covered nodes yet

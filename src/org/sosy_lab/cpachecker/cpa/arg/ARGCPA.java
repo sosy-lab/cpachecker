@@ -123,7 +123,8 @@ public class ARGCPA extends AbstractSingleWrapperCPA
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new ARGTransferRelation(getWrappedCpa().getTransferRelation());
+    return new ARGTransferRelation(
+        getWrappedCpa().getTransferRelation(), mergeOptions.preservePaths);
   }
 
   @Override

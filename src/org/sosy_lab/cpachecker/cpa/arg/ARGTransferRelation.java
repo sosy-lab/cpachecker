@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
@@ -15,16 +17,25 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithIncomingEdge;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class ARGTransferRelation extends AbstractSingleWrapperTransferRelation {
 
+  private final boolean preservePaths;
+
   public ARGTransferRelation(TransferRelation tr) {
+    this(tr, false);
+  }
+
+  ARGTransferRelation(TransferRelation tr, boolean pPreservePaths) {
     super(tr);
+    preservePaths = pPreservePaths;
   }
 
   @Override
@@ -56,6 +67,24 @@ public class ARGTransferRelation extends AbstractSingleWrapperTransferRelation {
     ImmutableList.Builder<ARGState> wrappedSuccessors = ImmutableList.builder();
     for (AbstractState absElement : successors) {
       ARGState successorElem = new ARGState(absElement, element);
+      if (preservePaths) {
+        AbstractStateWithIncomingEdge trace =
+            AbstractStates.extractStateByType(absElement, AbstractStateWithIncomingEdge.class);
+        if (trace != null) {
+          AbstractStateWithIncomingEdge start =
+              checkNotNull(
+                  AbstractStates.extractStateByType(
+                      wrappedState, AbstractStateWithIncomingEdge.class));
+          ImmutableList.Builder<CFAEdge> reversedEdges = ImmutableList.builder();
+          while (trace != start) {
+            reversedEdges.add(checkNotNull(trace.getIncomingEdge(), "Missing transfer edge"));
+            trace =
+                checkNotNull(trace.getPredecessor(), "Transfer trace does not reach its parent");
+          }
+          successorElem.addParentWithPaths(
+              element, ImmutableList.of(reversedEdges.build().reverse()));
+        }
+      }
       wrappedSuccessors.add(successorElem);
     }
 

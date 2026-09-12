@@ -10,12 +10,15 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -141,5 +144,23 @@ public class ARGPathPreservationTest {
     assertThat(reached.getParents()).containsExactly(left);
     assertThat(incoming.getParents()).containsExactly(right);
     assertThat(incoming.getMergedWith()).isNull();
+  }
+
+  @Test
+  public void coveragePreservesDifferentEdgesFromTheSameParent() throws Exception {
+    CFANode from = ((State) left.getWrappedState()).node();
+    CFANode to = ((State) reached.getWrappedState()).node();
+    var first = ImmutableList.of(new BlankEdge("", FileLocation.DUMMY, from, to, "first"));
+    var second = ImmutableList.of(new BlankEdge("", FileLocation.DUMMY, from, to, "second"));
+    reached.addParentWithPaths(left, ImmutableList.of(ImmutableList.copyOf(first)));
+    ARGState another = state(to, left);
+    another.addParentWithPaths(left, ImmutableList.of(ImmutableList.copyOf(second)));
+    assertThat(stop(true, true).stop(another, List.of(reached), SingletonPrecision.getInstance()))
+        .isTrue();
+    assertThat(reached.getPathsFromParent(left)).containsExactly(first, second);
+
+    ARGState replacement = state(to, null);
+    reached.replaceInARGWith(replacement);
+    assertThat(replacement.getPathsFromParent(left)).containsExactly(first, second);
   }
 }
