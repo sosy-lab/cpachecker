@@ -14,7 +14,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -745,7 +744,7 @@ public abstract class AbstractCounterexampleToWitness extends AbstractYAMLWitnes
    * waypoint is built for.
    */
   static WitnessPathStep violatingStep(List<WitnessPathStep> pSteps) {
-    for (WitnessPathStep step : Lists.reverse(pSteps)) {
+    for (WitnessPathStep step : pSteps.reversed()) {
       if (!(step.edge() instanceof BlankEdge)) {
         return step;
       }

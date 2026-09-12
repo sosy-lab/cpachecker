@@ -12,7 +12,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashSet;
@@ -307,7 +306,7 @@ public class SequentializedCounterexampleToWitness extends AbstractCounterexampl
    * that the input program does not have.
    */
   private boolean violationIsInSimulatedCode(List<CFAEdge> pEdges) {
-    for (CFAEdge edge : Lists.reverse(pEdges)) {
+    for (CFAEdge edge : pEdges.reversed()) {
       if (!(edge instanceof BlankEdge)) {
         return !onlyUsesGeneratedVariables(edge);
       }
