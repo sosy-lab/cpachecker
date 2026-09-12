@@ -135,6 +135,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     return pathFormulaFull;
   }
 
+  // TODO: use PersistentStack for pathSequence
   public ImmutableList<CFANode> getPathSequence() {
     return pathSequence;
   }
