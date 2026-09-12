@@ -35,6 +35,11 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.IntegerOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.CFAReversePostorder;
@@ -75,22 +80,33 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
+@Options(prefix = "cfa.unrollBoundedLoops")
 public class LoopUnroller {
 
   private final LogManager logger;
 
-  // An unrolling creates one copy of the loop body per iteration, so a count that does not fit
-  // into an int could never be built anyway.
-  int maxNumberOfUnrollings = 20;
+  @Option(
+      secure = true,
+      name = "maxAddedNodes",
+      description =
+          "maximum number of CFA nodes that unrolling a single loop may add, which is one copy of"
+              + " the body of the loop per iteration (0 disables the unrolling)")
+  @IntegerOption(min = 0)
+  private int maxNodesAddedPerUnrolling = 1000;
 
-  // Nested loops multiply: the copies of a loop that we unrolled contain their own copy of every
-  // loop inside it, and each of those can be unrolled again. Three nested loops of the above
-  // iterations would already be 8000 copies of the innermost body, so the growth needs a limit of
-  // its own.
-  int maxNodesPerFunction = 100_000;
+  @Option(
+      secure = true,
+      name = "maxIterations",
+      description =
+          "maximum number of iterations that a loop may have to be unrolled, however small its body"
+              + " is (0 disables the unrolling)")
+  @IntegerOption(min = 0)
+  private int maxNumberOfUnrollings = 100;
 
-  public LoopUnroller(LogManager pLogger) {
+  public LoopUnroller(LogManager pLogger, Configuration pConfig)
+      throws InvalidConfigurationException {
     logger = pLogger;
+    pConfig.inject(this);
   }
 
   public void unrollBoundedLoops(MutableCFA cfa) {
@@ -106,10 +122,6 @@ public class LoopUnroller {
   /**
    * Unrolls every loop that contains no other loop we unroll in the same round. A loop around one
    * of them only exists as a copy afterwards, which the next round finds.
-   *
-   * <p>Going inwards out means that a loop is only ever copied once it is as small as we can make
-   * it: unrolling the innermost loop first can even make it vanish, and the loops around it then
-   * copy what is left instead of copying the loop and unrolling every copy of it.
    *
    * @return whether anything was unrolled, so that another round is worth it
    */
@@ -130,15 +142,12 @@ public class LoopUnroller {
     // so this order reaches every loop before the ones that contain it. Those are stale by then
     // and canUnroll skips them until the next round sees their copies.
     for (Loop loop : innermostFirst(loopStructure.getAllLoops())) {
-      // Counting the iterations of a loop we could not unroll anyway would be wasted work, and the
-      // more iterations we allow the more expensive it gets.
+      // Counting the iterations of a loop we could not unroll anyway would be wasted work
       if (!canUnroll(cfa, loop)) {
         continue;
       }
       OptionalInt loopIterations = findExactLoopIterationCount(cfa, loop);
-      if (loopIterations.isEmpty()
-          || loopIterations.getAsInt() > maxNumberOfUnrollings
-          || !fitsIntoTheNodeBudget(cfa, loop, loopIterations.getAsInt())) {
+      if (loopIterations.isEmpty()) {
         continue;
       }
       unrollLoopExactly(cfa, loop, loopIterations.getAsInt());
@@ -154,19 +163,12 @@ public class LoopUnroller {
   }
 
   /**
-   * Whether unrolling the given loop keeps its function within {@link #maxNodesPerFunction}. Logs
-   * the reason if it does not.
+   * How often we are willing to unroll the given loop, which is the number of copies of its body
+   * that fit into {@link #maxNodesAddedPerUnrolling}, and never more than {@link
+   * #maxNumberOfUnrollings}.
    */
-  private boolean fitsIntoTheNodeBudget(MutableCFA pCfa, Loop pLoop, int pIterations) {
-    String function = pLoop.getLoopNodes().first().getFunctionName();
-    long nodesAfterwards =
-        (long) pCfa.getFunctionNodes(function).size()
-            + (long) pIterations * pLoop.getLoopNodes().size();
-    if (nodesAfterwards > maxNodesPerFunction) {
-      return logGiveUpUnrolling(
-          pLoop, "unrolling it would grow " + function + " to " + nodesAfterwards + " nodes");
-    }
-    return true;
+  private int maxUnrollingsOf(Loop pLoop) {
+    return Math.min(maxNumberOfUnrollings, maxNodesAddedPerUnrolling / pLoop.getLoopNodes().size());
   }
 
   /**
@@ -177,8 +179,6 @@ public class LoopUnroller {
    * and before the n+1-th one, and will be unsound if that is not exactly the case. All copies but
    * the last one therefore assume that the loop goes on in place of their exit condition, while the
    * last assumes it will exit the loop.
-   *
-   * <p>Loops nested inside the unrolled loop are copied along and stay loops.
    *
    * <p>Can only unroll loops under certain conditions given by {@link
    * LoopUnroller#canUnroll(MutableCFA, Loop)}
@@ -195,8 +195,7 @@ public class LoopUnroller {
     // assertions / redirect them to the end
 
     // We modify the CFA step by step and cannot undo that, so everything we need has to be checked
-    // before we start. Callers that go on to do something else with a loop we reject check this
-    // themselves, but the guard stays here so that calling this method is never destructive.
+    // before we start.
     if (!canUnroll(pCfa, pLoop)) {
       return;
     }
@@ -372,7 +371,6 @@ public class LoopUnroller {
               declaration.getCStorageClass(),
               declaration.getType(),
               name,
-              // Keep the name that the program uses, so that exports can still point at it.
               declaration.getOrigName(),
               qualifiedNameOfLocal(pFunction, name),
               null));
@@ -404,11 +402,8 @@ public class LoopUnroller {
    * org.sosy_lab.cpachecker.cfa.parser.eclipse.c.FunctionScope#createQualifiedName(String, String)}
    * does it.
    *
-   * <p>That method is not called directly because nothing outside of the parser uses it, and the
-   * format of a qualified name is not defined anywhere else either. The rest of CPAchecker still
-   * relies on it, for example {@link CFAUtils#filterVariablesOfFunction} looks up the variables of
-   * a function by this prefix, so building the name the same way is what keeps the copies visible
-   * to it.
+   * <p>TODO: Can we prevent depending on that staying the same? But other parts of CPA checker are
+   * already dependant (e.g. {@link CFAUtils#filterVariablesOfFunction})
    */
   private static String qualifiedNameOfLocal(String pFunction, String pName) {
     return pFunction + "::" + pName;
@@ -679,8 +674,9 @@ public class LoopUnroller {
    * @param pCfa the cfa that contains the loop
    * @param pLoop the loop to analyze
    * @return The exact number of visits of the entry node after which the loop is left, as used by
-   *     {@link #unrollLoopExactly}, or empty if it could not be determined or is not the same on
-   *     every path that reaches the loop
+   *     {@link #unrollLoopExactly}, or empty if it could not be determined, is not the same on
+   *     every path that reaches the loop, or is more than the {@link #maxUnrollingsOf} iterations
+   *     that we are willing to unroll this loop
    */
   @VisibleForTesting
   OptionalInt findExactLoopIterationCount(MutableCFA pCfa, Loop pLoop) {
@@ -920,9 +916,7 @@ public class LoopUnroller {
         && pVariable.equals(identifier.getDeclaration());
   }
 
-  /**
-   * Where a loop changes its counter, relative to the point at which it checks its condition.
-   */
+  /** Where a loop changes its counter, relative to the point at which it checks its condition. */
   private enum CounterModification {
     /** Changed before the check, as in a {@code do while} loop that ends with its condition. */
     BEFORE_CONDITION,
@@ -973,7 +967,7 @@ public class LoopUnroller {
         if (known == null) {
           passedModification.put(successor, after);
           waitlist.push(successor);
-        } else if (known.booleanValue() != after) {
+        } else if (known != after) {
           // Either a branch writes the counter and another does not, or a nested loop writes it.
           return Optional.empty();
         }
@@ -981,8 +975,7 @@ public class LoopUnroller {
     }
     // Absent if the condition is not even reachable without starting another iteration, in which
     // case the loop cannot be left after a fixed number of them.
-    return Optional.ofNullable(passedModification.get(pCondition))
-        .map(CounterModification::of);
+    return Optional.ofNullable(passedModification.get(pCondition)).map(CounterModification::of);
   }
 
   /**
@@ -1040,9 +1033,9 @@ public class LoopUnroller {
 
   /**
    * Simulates the counter to find the visit of the entry node at which the loop is left, which is
-   * the first one whose check of the condition fails. Empty if that does not happen within {@link
-   * #maxNumberOfUnrollings} visits or if the counter would leave the range of its type before, in
-   * which case the values we computed are not the ones the program produces.
+   * the first one whose check of the condition fails. Empty if that does not happen within the
+   * {@link #maxUnrollingsOf} visits that we would unroll, or if the counter would leave the range
+   * of its type before, in which case the values we computed are not the ones the program produces.
    *
    * <p>TODO we could switch to a closed form, but this is more difficult to get exactly right and
    * less extensible
@@ -1067,9 +1060,7 @@ public class LoopUnroller {
     // At the n-th visit of the entry node the counter is start + (n - 1) * offset, plus one more
     // offset if the loop already changed it before it checks its condition.
     BigInteger value =
-        pCounterModification == CounterModification.BEFORE_CONDITION
-            ? pStart.add(pOffset)
-            : pStart;
+        pCounterModification == CounterModification.BEFORE_CONDITION ? pStart.add(pOffset) : pStart;
 
     // A condition that already fails ends the loop right away, no matter where the counter goes.
     if (isWithin(value, minimum, maximum)
@@ -1078,7 +1069,8 @@ public class LoopUnroller {
       return logNoIterationCount(pLoop, "the counter never reaches the bound of its condition");
     }
 
-    for (int visits = 1; visits <= maxNumberOfUnrollings; visits++) {
+    int maxUnrollings = maxUnrollingsOf(pLoop);
+    for (int visits = 1; visits <= maxUnrollings; visits++) {
       if (!isWithin(value, minimum, maximum)) {
         return logNoIterationCount(pLoop, "the counter would overflow before the loop is left");
       }
@@ -1088,7 +1080,12 @@ public class LoopUnroller {
       value = value.add(pOffset);
     }
     return logNoIterationCount(
-        pLoop, "it is not left within " + maxNumberOfUnrollings + " iterations");
+        pLoop,
+        "it runs longer than the "
+            + maxUnrollings
+            + " iterations that we unroll a loop with "
+            + pLoop.getLoopNodes().size()
+            + " nodes");
   }
 
   /**

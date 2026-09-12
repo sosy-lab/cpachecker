@@ -16,6 +16,7 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.OptionalInt;
 import org.junit.Test;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACheck;
@@ -45,6 +46,17 @@ public class LoopUnrollerTest {
     // Loop detection needs these, they are usually assigned after all CFA post-processings.
     mutableCfa.entryNodes().forEach(CFAReversePostorder::assignIds);
     return mutableCfa;
+  }
+
+  /** A loop unroller that uses the given options on top of the defaults. */
+  @SafeVarargs
+  private static LoopUnroller createUnroller(Map.Entry<String, String>... pOptions)
+      throws Exception {
+    ConfigurationBuilder config = TestUtils.configurationForTest();
+    for (Map.Entry<String, String> option : pOptions) {
+      config.setOption(option.getKey(), option.getValue());
+    }
+    return new LoopUnroller(logger, config.build());
   }
 
   /** The loop with the most nodes, which is the outermost one if the loops are nested. */
@@ -117,7 +129,7 @@ public class LoopUnrollerTest {
   private static MutableCFA unrollOutermostLoop(String pFunctionBody, int pEntryVisits)
       throws Exception {
     MutableCFA cfa = createCfa(pFunctionBody);
-    new LoopUnroller(logger).unrollLoopExactly(cfa, outermostLoop(cfa), pEntryVisits);
+    createUnroller().unrollLoopExactly(cfa, outermostLoop(cfa), pEntryVisits);
     assertIsValidCfa(cfa);
     return cfa;
   }
@@ -473,7 +485,7 @@ public class LoopUnrollerTest {
             }
             """);
     Loop loop = outermostLoop(cfa);
-    LoopUnroller unroller = new LoopUnroller(logger);
+    LoopUnroller unroller = createUnroller();
 
     assertThrows(IllegalArgumentException.class, () -> unroller.unrollLoopExactly(cfa, loop, 0));
   }
@@ -483,7 +495,7 @@ public class LoopUnrollerTest {
     MutableCFA cfa = createCfa(pFunctionBody);
     int nodesBefore = cfa.nodes().size();
 
-    new LoopUnroller(logger).unrollLoopExactly(cfa, outermostLoop(cfa), pEntryVisits);
+    createUnroller().unrollLoopExactly(cfa, outermostLoop(cfa), pEntryVisits);
 
     assertThat(cfa.nodes()).hasSize(nodesBefore);
     assertThat(loopCount(cfa)).isAtLeast(1);
@@ -492,7 +504,7 @@ public class LoopUnrollerTest {
   /** The number of visits of its entry node after which the outermost loop is left. */
   private static OptionalInt entryVisitsOf(String pFunctionBody) throws Exception {
     MutableCFA cfa = createCfa(pFunctionBody);
-    return new LoopUnroller(logger).findExactLoopIterationCount(cfa, outermostLoop(cfa));
+    return createUnroller().findExactLoopIterationCount(cfa, outermostLoop(cfa));
   }
 
   @Test
@@ -890,7 +902,7 @@ public class LoopUnrollerTest {
             }
             """);
 
-    new LoopUnroller(logger).unrollBoundedLoops(cfa);
+    createUnroller().unrollBoundedLoops(cfa);
 
     assertIsValidCfa(cfa);
     assertThat(loopCount(cfa)).isEqualTo(0);
@@ -919,7 +931,7 @@ public class LoopUnrollerTest {
             }
             """);
 
-    new LoopUnroller(logger).unrollBoundedLoops(cfa);
+    createUnroller().unrollBoundedLoops(cfa);
 
     assertIsValidCfa(cfa);
     assertThat(loopCount(cfa)).isEqualTo(0);
@@ -927,6 +939,56 @@ public class LoopUnrollerTest {
     assertThat(statementCount(cfa, "s = s + 1")).isEqualTo(6);
     // Every copy of the outer body declares its own counter for the inner loop.
     assertThat(declaredVariables(cfa)).containsAtLeast("main::__j_0", "main::__j_1", "main::__j_2");
+  }
+
+  /**
+   * How often a loop may be unrolled follows from how big it is, so a body of a few nodes is
+   * unrolled far more often than a fixed limit for all loops could allow.
+   */
+  @Test
+  public void testUnrollBoundedLoopsUnrollsASmallLoopManyTimes() throws Exception {
+    MutableCFA cfa =
+        createCfa(
+            """
+            int i = 0;
+            int s = 0;
+            while (i < 50) {
+              s = s + i;
+              i = i + 1;
+            }
+            """);
+
+    createUnroller().unrollBoundedLoops(cfa);
+
+    assertIsValidCfa(cfa);
+    assertThat(loopCount(cfa)).isEqualTo(0);
+    assertThat(statementCount(cfa, "s = s + i")).isEqualTo(50);
+  }
+
+  /**
+   * The number of copies is limited on its own as well, so that a loop whose body is small enough
+   * to leave the node budget alone is not taken apart into an arbitrarily long chain.
+   */
+  @Test
+  public void testUnrollBoundedLoopsKeepsALoopWithTooManyIterations() throws Exception {
+    MutableCFA cfa =
+        createCfa(
+            """
+            int i = 0;
+            int s = 0;
+            while (i < 50) {
+              s = s + i;
+              i = i + 1;
+            }
+            """);
+    // The budget would allow all 50 copies of this body, this does not.
+    LoopUnroller unroller = createUnroller(Map.entry("cfa.unrollBoundedLoops.maxIterations", "10"));
+
+    unroller.unrollBoundedLoops(cfa);
+
+    assertIsValidCfa(cfa);
+    assertThat(loopCount(cfa)).isEqualTo(1);
+    assertThat(statementCount(cfa, "s = s + i")).isEqualTo(1);
   }
 
   /** Nested loops multiply, so the unrolling stops before a function grows without bound. */
@@ -947,7 +1009,7 @@ public class LoopUnrollerTest {
         """;
 
     MutableCFA withoutBudget = createCfa(functionBody);
-    new LoopUnroller(logger).unrollBoundedLoops(withoutBudget);
+    createUnroller().unrollBoundedLoops(withoutBudget);
 
     assertIsValidCfa(withoutBudget);
     // Nothing is left of the nest, at the price of one copy of the innermost body per pair of
@@ -956,13 +1018,15 @@ public class LoopUnrollerTest {
     assertThat(statementCount(withoutBudget, "s = s + 1")).isEqualTo(100);
 
     MutableCFA withBudget = createCfa(functionBody);
-    LoopUnroller unroller = new LoopUnroller(logger);
-    unroller.maxNodesPerFunction = 200;
+    // Enough for the inner loop on its own, but not for copying the result of that ten times.
+    LoopUnroller unroller =
+        createUnroller(Map.entry("cfa.unrollBoundedLoops.maxAddedNodes", "100"));
     unroller.unrollBoundedLoops(withBudget);
 
     assertIsValidCfa(withBudget);
-    assertThat(withBudget.getFunctionNodes("main").size()).isAtMost(200);
-    assertThat(loopCount(withBudget)).isAtLeast(1);
+    // The inner loop is unrolled inside the outer one, which stays a loop.
+    assertThat(loopCount(withBudget)).isEqualTo(1);
+    assertThat(statementCount(withBudget, "s = s + 1")).isEqualTo(10);
   }
 
   /** A loop that the heuristic cannot count has to survive the post-processing unchanged. */
@@ -980,7 +1044,7 @@ public class LoopUnrollerTest {
             """);
     int nodesBefore = cfa.nodes().size();
 
-    new LoopUnroller(logger).unrollBoundedLoops(cfa);
+    createUnroller().unrollBoundedLoops(cfa);
 
     assertIsValidCfa(cfa);
     assertThat(cfa.nodes()).hasSize(nodesBefore);

@@ -263,6 +263,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -1241,7 +1242,15 @@ cfa.threads.threadSelfCreate = "pthread_create_N"
 cfa.threads.threadSelfJoin = "pthread_join_N"
 
 # unroll loops that a can be determined to have a fixed upper bound
-cfa.unrollBoundedLoops = true
+cfa.unrollBoundedLoops = false
+
+# maximum number of CFA nodes that unrolling a single loop may add, which is
+# one copy of the body of the loop per iteration (0 disables the unrolling)
+cfa.unrollBoundedLoops.maxAddedNodes = 1000
+
+# maximum number of iterations that a loop may have to be unrolled, however
+# small its body is (0 disables the unrolling)
+cfa.unrollBoundedLoops.maxIterations = 100
 
 # clone functions of the CFA, such that there are several identical CFAs for
 # each function, only with different names.

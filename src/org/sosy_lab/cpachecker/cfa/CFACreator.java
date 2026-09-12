@@ -350,7 +350,7 @@ public class CFACreator {
       secure = true,
       name = "cfa.unrollBoundedLoops",
       description = "unroll loops that a can be determined to have a fixed upper bound")
-  private boolean unrollBoundedLoops = true;
+  private boolean unrollBoundedLoops = false;
 
   @Option(
       secure = true,
@@ -905,7 +905,7 @@ public class CFACreator {
     }
 
     if (unrollBoundedLoops) {
-      final LoopUnroller unroller = new LoopUnroller(logger);
+      final LoopUnroller unroller = new LoopUnroller(logger, config);
       unroller.unrollBoundedLoops(cfa);
     }
 
