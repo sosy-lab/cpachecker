@@ -98,7 +98,9 @@ public final class AutomatonWitnessV2ValidationCorrectnessIntegrationTest {
     validate("simple.c", "simple-valid-witness-v2d2-transition--1.yml", Result.TRUE);
   }
 
-  /** A transition invariant on a location is matched to its statement, like a location invariant. */
+  /**
+   * A transition invariant on a location is matched to its statement, like a location invariant.
+   */
   @Test(timeout = 3000)
   public void validate_witness_v2d2_location_transition_invariant() throws Exception {
     validate("simple.c", "simple-valid-witness-v2d2-location-transition--1.yml", Result.TRUE);
