@@ -15,12 +15,31 @@ class ContainsOnlyEnvInfoVisitor<T> extends DefaultNumeralFormulaVisitor<T, Bool
 
   @Override
   public Boolean visit(Equal<T> pEqual) {
-    return pEqual.accept(collectVarsVisitor).size() == 1;
+    return referencesOneVariableOnOneSide(pEqual.getOperand1(), pEqual.getOperand2());
   }
 
   @Override
   public Boolean visit(LessThan<T> pLessThan) {
-    return pLessThan.accept(collectVarsVisitor).size() == 1;
+    return referencesOneVariableOnOneSide(pLessThan.getOperand1(), pLessThan.getOperand2());
+  }
+
+  /**
+   * Checks whether the given operands, taken together, reference exactly one variable, and that
+   * variable occurs on only one side of the relation.
+   *
+   * <p>The environment-based reasoning this check gates works by pushing each operand's value range
+   * into the environment independently, which is only sound if the operands don't interact through
+   * a shared variable. A formula like {@code INT_MAX - a < a} also references only one distinct
+   * variable, but {@code a} occurs on both sides and the two occurrences are not independent, so it
+   * must be rejected here even though the naive variable count is 1.
+   */
+  private boolean referencesOneVariableOnOneSide(
+      NumeralFormula<T> pOperand1, NumeralFormula<T> pOperand2) {
+    int vars1 = pOperand1.accept(collectVarsVisitor).size();
+    int vars2 = pOperand2.accept(collectVarsVisitor).size();
+    // A single variable total can't occur on both sides, so this also rejects the case where
+    // it's split across them.
+    return vars1 + vars2 == 1;
   }
 
   @Override
