@@ -109,6 +109,10 @@ public class ARGCPA extends AbstractSingleWrapperCPA
     pConfig.inject(this);
     logger = pLogger;
     mergeOptions = new ARGMergeJoin.MergeOptions(pConfig);
+    if (mergeOptions.preservePaths && (inCPAEnabledAnalysis || keepCoveredStatesInReached)) {
+      throw new InvalidConfigurationException(
+          "cpa.arg.preservePaths requires ordinary ARG analysis and removal of covered states");
+    }
     stats = new ARGStatistics(pConfig, pLogger, this, pSpecification, pCfa);
   }
 
@@ -142,7 +146,15 @@ public class ARGCPA extends AbstractSingleWrapperCPA
         logger,
         inCPAEnabledAnalysis,
         keepCoveredStatesInReached,
-        coverTargetStates);
+        coverTargetStates,
+        mergeOptions.preservePaths);
+  }
+
+  /**
+   * Whether accepted coverage retains incoming paths as additional parents of the covering state.
+   */
+  public boolean preservesPaths() {
+    return mergeOptions.preservePaths;
   }
 
   @Override
