@@ -65,17 +65,8 @@ public class InvariantExchangeFormatTransformer {
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
       throws InvalidConfigurationException {
     cparser =
-        CParser.Factory.getParser(
-            /*
-             * FIXME: Use normal logger as soon as CParser supports parsing
-             * expression trees natively, such that we can remove the workaround
-             * with the undefined __CPAchecker_ACSL_return dummy function that
-             * causes warnings to be logged.
-             */
-            LogManager.createNullLogManager(),
-            CParser.Factory.getOptions(pConfig),
-            pCFA.getMachineModel(),
-            pShutdownNotifier);
+        CParserUtils.createWitnessExpressionParser(
+            pConfig, pCFA.getMachineModel(), pShutdownNotifier);
     parserTools = ParserTools.create(ExpressionTrees.newFactory(), pCFA.getMachineModel(), pLogger);
     cfa = pCFA;
     logger = pLogger;

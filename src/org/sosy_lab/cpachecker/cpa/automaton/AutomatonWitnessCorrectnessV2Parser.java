@@ -41,9 +41,9 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
  * versions 2.0, 2.1 or 2.2.
  *
  * <p>The versions differ only in which kinds of invariants they may contain. Instead of modelling
- * each version with its own subclass, this parser stores the {@link YAMLWitnessVersion} it was
- * created for and asks whether a given kind may be used. This keeps the shared logic in a single
- * place and makes the version-specific behavior explicit at the point where it matters.
+ * each version with its own subclass, this parser asks the {@link YAMLWitnessVersion} it was
+ * created for whether a given kind may be used. This keeps the shared logic in a single place and
+ * makes the version-specific behavior explicit at the point where it matters.
  *
  * <p>The resulting automaton contains a single state and each invariant is marked as such on a
  * transition which starts at that state and returns to it. Each transition is only passed if the
@@ -57,8 +57,6 @@ class AutomatonWitnessCorrectnessV2Parser extends AutomatonWitnessV2ParserCommon
 
   private static final String ENTRY_STATE_ID = "singleState";
 
-  private final YAMLWitnessVersion version;
-
   AutomatonWitnessCorrectnessV2Parser(
       Configuration pConfig,
       LogManager pLogger,
@@ -66,8 +64,7 @@ class AutomatonWitnessCorrectnessV2Parser extends AutomatonWitnessV2ParserCommon
       CFA pCFA,
       YAMLWitnessVersion pVersion)
       throws InvalidConfigurationException {
-    super(pConfig, pLogger, pShutdownNotifier, pCFA);
-    version = pVersion;
+    super(pConfig, pLogger, pShutdownNotifier, pCFA, pVersion);
   }
 
   /**

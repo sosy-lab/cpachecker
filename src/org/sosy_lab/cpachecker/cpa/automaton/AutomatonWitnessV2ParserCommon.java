@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParse
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessVersion;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchangeFormatTransformer;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.SegmentRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
@@ -80,16 +81,24 @@ class AutomatonWitnessV2ParserCommon {
   final Configuration config;
   final ShutdownNotifier shutdownNotifier;
 
+  /** The version of the witness format the witness being parsed is written in. */
+  final YAMLWitnessVersion version;
+
   final InvariantExchangeFormatTransformer transformer;
 
   AutomatonWitnessV2ParserCommon(
-      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCFA,
+      YAMLWitnessVersion pVersion)
       throws InvalidConfigurationException {
     pConfig.inject(this, AutomatonWitnessV2ParserCommon.class);
     logger = pLogger;
     cfa = pCFA;
     config = pConfig;
     shutdownNotifier = pShutdownNotifier;
+    version = pVersion;
     transformer = new InvariantExchangeFormatTransformer(pConfig, pLogger, pShutdownNotifier, pCFA);
   }
 
