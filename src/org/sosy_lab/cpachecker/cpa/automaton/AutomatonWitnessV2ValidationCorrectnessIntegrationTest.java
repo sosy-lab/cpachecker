@@ -81,4 +81,49 @@ public final class AutomatonWitnessV2ValidationCorrectnessIntegrationTest {
     WitnessV2ValidationTestUtils.performValidationTest(
         inputFilePath, Result.TRUE, specificationFilePath, witnessFilePath);
   }
+
+  private void validate(String pWitnessFileName, Result pExpectedResult) throws Exception {
+    WitnessV2ValidationTestUtils.performValidationTest(
+        Path.of(TEST_DIR_PATH, "simple.c"),
+        pExpectedResult,
+        Path.of(SPECIFICATION_PATH, "no-overflow.prp"),
+        Path.of(TEST_DIR_PATH, pWitnessFileName));
+  }
+
+  @Test(timeout = 3000)
+  public void validate_witness_v2d1_valid_loop_invariant() throws Exception {
+    validate("simple-valid-witness-v2d1--1.yml", Result.TRUE);
+  }
+
+  @Test(timeout = 3000)
+  public void validate_witness_v2d2_valid_loop_invariant() throws Exception {
+    validate("simple-valid-witness-v2d2--1.yml", Result.TRUE);
+  }
+
+  @Test(timeout = 3000)
+  public void validate_witness_v2d2_invalid_loop_invariant() throws Exception {
+    validate("simple-invalid-witness-v2d2--1.yml", Result.FALSE);
+  }
+
+  @Test(timeout = 3000)
+  public void validate_witness_v2d2_valid_location_invariant() throws Exception {
+    validate("simple-valid-witness-v2d2-location--1.yml", Result.TRUE);
+  }
+
+  @Test(timeout = 3000)
+  public void validate_witness_v2d2_invalid_location_invariant() throws Exception {
+    validate("simple-invalid-witness-v2d2-location--1.yml", Result.FALSE);
+  }
+
+  /** Transition invariants used to be rejected in version 2.2, they were only allowed in 2.1. */
+  @Test(timeout = 3000)
+  public void validate_witness_v2d2_transition_invariant() throws Exception {
+    validate("simple-valid-witness-v2d2-transition--1.yml", Result.TRUE);
+  }
+
+  /** Function contracts cannot be validated yet, but they must not make the witness invalid. */
+  @Test(timeout = 3000)
+  public void validate_witness_v2d2_function_contract() throws Exception {
+    validate("simple-valid-witness-v2d2-contract--1.yml", Result.TRUE);
+  }
 }
