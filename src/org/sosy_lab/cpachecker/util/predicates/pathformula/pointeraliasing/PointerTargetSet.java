@@ -193,6 +193,11 @@ public final class PointerTargetSet implements Serializable {
   // The number of stack frames that are currently on the call stack, i.e., the absolute call
   // stack depth. This is used to determine the bases for variables which appear multiple times in
   // each recursive call.
+  // This can become negative when we are in an arbitrary callstack (like in the induction
+  // step of k-Induction), and return from a function. In that case we are decrementing the call
+  // stack depth, which will become negative. This is expected and wanted.
+  // Under this viewpoint, what this variable tracks is how many (function calls + function returns)
+  // have been made for the current callstack.
   // This information is tracked here, since it needs to be passed to the {@link
   // PointerTargetSetBuilder}, and this way we do not need to pass it separately across hundreds of
   // functions.
