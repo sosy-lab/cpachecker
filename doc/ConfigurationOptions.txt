@@ -263,6 +263,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -6080,6 +6081,13 @@ witness.yamlexporter.analyseWitnessQuality = false
 
 # Export all information contained in the counterexample as a witness.
 witness.yamlexporter.exportCompleteCounterexample = false
+
+# Which waypoints to export for a counterexample that was found by analyzing
+# a sequentialization of a concurrent program. Exporting only the target
+# makes the witness easier to validate, because every other waypoint
+# constrains the interleaving that a validator has to reproduce.
+witness.yamlexporter.sequentializedWaypoints = ALL
+  enum:     [ALL, TARGET_ONLY]
 
 # The version for which to export the witness.
 witness.yamlexporter.witnessVersions = [YAMLWitnessVersion.V2d2]
