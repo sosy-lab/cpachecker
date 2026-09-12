@@ -40,8 +40,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata;
-import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata.ProgramTransformation;
+import org.sosy_lab.cpachecker.cfa.ProgramTransformation;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibCommand;
@@ -348,12 +347,8 @@ public class CEXExporter {
       if (options.getWitnessFile() != null
           || options.getWitnessDotFile() != null
           || options.getYamlWitnessPathTemplate() != null) {
-        CfaTransformationMetadata transformationMetadata =
-            cfa.getMetadata().getTransformationMetadata();
-        if (transformationMetadata != null
-            && transformationMetadata
-                .transformation()
-                .equals(ProgramTransformation.SEQUENTIALIZATION_ATTEMPTED)) {
+        ProgramTransformation transformation = cfa.getMetadata().getTransformation();
+        if (transformation != null) {
           logger.log(
               Level.INFO,
               "The program analyzed by sequentializing the original program and verifying the"
@@ -363,7 +358,7 @@ public class CEXExporter {
           try {
             String witnessString =
                 SequentializedProgramCexExporter.buildDefaultSequentializationCounterexample(
-                    transformationMetadata.originalCfa(), specification);
+                    transformation.originalCfa(), specification);
             writeErrorPathFile(options.getWitnessFile(), uniqueId, witnessString, compressWitness);
           } catch (ParserConfigurationException
               | IOException

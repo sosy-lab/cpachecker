@@ -47,12 +47,12 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata.ProgramTransformation;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAnnotateTagCommand;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.MporSequentialization;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -468,9 +468,7 @@ public class ARGStatistics implements Statistics {
         if (exportYamlCorrectnessWitness && argToWitnessWriter != null) {
           if (cfa.getMetadata().getInputLanguage() == Language.C) {
             try {
-              if (cfa.getMetadata().getTransformationMetadata() != null
-                  && cfa.getMetadata().getTransformationMetadata().transformation()
-                      == ProgramTransformation.SEQUENTIALIZATION_ATTEMPTED) {
+              if (cfa.getMetadata().getTransformation() instanceof MporSequentialization) {
                 logger.log(
                     Level.WARNING,
                     "Cannot export correctness witness in YAML format for sequentialized "
