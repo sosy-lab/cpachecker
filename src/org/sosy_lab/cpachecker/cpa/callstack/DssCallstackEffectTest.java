@@ -19,9 +19,11 @@ import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
@@ -152,5 +154,24 @@ public class DssCallstackEffectTest {
               effect(path).accepts(end, backwards(bound, true), SingletonPrecision.getInstance()))
           .isEqualTo(replay(path, end, backwards(bound, true)));
     }
+  }
+
+  @Test
+  public void endpointEqualityDoesNotConflateDifferentCallStatements() throws Exception {
+    CFA cfa =
+        TestCfaUtils.makeCfaFromString(
+            "extern void a(); extern void b(); int main() { a(); b(); }");
+    var statements = CFAUtils.allEdges(cfa).filter(CStatementEdge.class).toList();
+    CStatementEdge first = statements.get(0);
+    CStatementEdge other =
+        new CStatementEdge(
+            "b()",
+            statements.get(1).getStatement(),
+            FileLocation.DUMMY,
+            first.getPredecessor(),
+            first.getSuccessor());
+    assertThat(first).isEqualTo(other); // CFAEdge equality only compares endpoints.
+    assertThat(DssCallstackEffect.EMPTY.append(first))
+        .isNotEqualTo(DssCallstackEffect.EMPTY.append(other));
   }
 }

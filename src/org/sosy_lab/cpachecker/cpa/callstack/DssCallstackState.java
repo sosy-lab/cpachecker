@@ -35,7 +35,7 @@ public class DssCallstackState extends CallstackState {
 
   /**
    * The state that an ordinary callstack analysis would have at this point. It is never a {@link
-   * DssCallstackState}. DSS compares its stack contents, as the configured PCC domain does.
+   * DssCallstackState}. DSS compares its stack contents with the proof-checking equivalence.
    */
   private final CallstackState wrappedState;
 
@@ -100,8 +100,8 @@ public class DssCallstackState extends CallstackState {
   }
 
   /**
-   * Returns a state that wraps the given callstack state and that recorded all edges that this
-   * state traversed plus the given edge.
+   * Returns a state that wraps the given callstack and extends this state's backwards effect by the
+   * given edge.
    *
    * @param pWrappedState the successor that {@link CallstackTransferRelation} computed for {@link
    *     #getWrappedState()}

@@ -51,10 +51,10 @@ public class BlockCPA extends AbstractCPA {
    * <p>{@link BlockState} carries bookkeeping that the distributed-summary-synthesis algorithm
    * reads back from individual states of the reached set -- the {@link BlockState#getPredecessor()
    * back-pointer}, the block-graph {@link BlockState#getHistory() history}, and, indirectly through
-   * {@link org.sosy_lab.cpachecker.cpa.callstack.DssCallstackState}, the edges a path traversed. A
-   * value-based lattice is safe only with ARG path preservation and callstack-effect coverage.
-   * Those components retain incoming paths and prevent mixing different backwards callstack
-   * behaviours. Boundary occurrences keep their own processing records in both modes.
+   * {@link org.sosy_lab.cpachecker.cpa.callstack.DssCallstackState}, the backwards callstack
+   * effect. A value-based lattice is safe only with ARG path preservation and callstack-effect
+   * coverage. Those components retain incoming paths and prevent mixing different backwards
+   * callstack behaviours. Boundary occurrences keep their own processing records in both modes.
    */
   private final class BlockStateDomain implements AbstractDomain {
 

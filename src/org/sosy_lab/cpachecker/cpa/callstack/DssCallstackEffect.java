@@ -45,7 +45,18 @@ final class DssCallstackEffect {
 
   private sealed interface Operation permits Edge, Guards {}
 
-  private record Edge(CFAEdge edge) implements Operation {}
+  private record Edge(CFAEdge edge) implements Operation {
+    @Override
+    public boolean equals(Object pOther) {
+      // CFAEdge.equals ignores the edge's statement and type.
+      return pOther instanceof Edge other && edge == other.edge;
+    }
+
+    @Override
+    public int hashCode() {
+      return System.identityHashCode(edge);
+    }
+  }
 
   /**
    * A balanced section leaves the input stack unchanged. For each function, remember the maximum

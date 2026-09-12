@@ -33,10 +33,10 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 /**
  * Transfer relation for {@link DssCallstackState}.
  *
- * <p>The transfer relation records every traversed edge in the successor state. Depending on {@link
- * DssCallstackState#canBeTopState()}, it either applies the standard callstack semantics of {@link
- * CallstackTransferRelation} or it applies every edge without inspecting the callstack. A state
- * that allows all transfers still tracks the functions that the block analysis enters itself,
+ * <p>The transfer relation records the backwards callstack effect in the successor state. Depending
+ * on {@link DssCallstackState#canBeTopState()}, it either applies the standard callstack semantics
+ * of {@link CallstackTransferRelation} or it applies every edge without inspecting the callstack. A
+ * state that allows all transfers still tracks the functions that the block analysis enters itself,
  * though: for those the call site is known, so the standard semantics may discard the return edges
  * of all other call sites (see {@link #changesCallstack(CFAEdge)} and {@link
  * #enteredFunctionItself(DssCallstackState)}).
@@ -44,9 +44,10 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  * <p>The information that the callstack of a block analysis is missing is only available at the end
  * of a block: the violation condition that the successor block sent contains the callstack at the
  * block end. Whenever the ghost edge of a block (see {@link BlockGraph#GHOST_EDGE_DESCRIPTION}) is
- * traversed, {@link #strengthen(AbstractState, Iterable, CFAEdge, Precision)} therefore replays all
- * traversed edges backwards, starting from that callstack. If the backwards replay fails, the path
- * through the block does not fit the callstack of the violation condition and is discarded.
+ * traversed, {@link #strengthen(AbstractState, Iterable, CFAEdge, Precision)} therefore checks that
+ * effect against the reported callstack. Data edges are omitted and balanced calls retain their
+ * recursion checks as guards. If the effect rejects the stack, the path through the block does not
+ * fit the callstack of the violation condition and is discarded.
  */
 public class DssCallstackTransferRelation extends CallstackTransferRelation {
 
@@ -143,8 +144,7 @@ public class DssCallstackTransferRelation extends CallstackTransferRelation {
   }
 
   /**
-   * Replays all edges that the given state traversed backwards, starting from the callstack at the
-   * end of the block.
+   * Checks the normalized backwards effect of the block prefix against the callstack at its end.
    *
    * @param pCallstackAtBlockEnd the callstack that the violation condition of the successor block
    *     reports for the end of the current block
