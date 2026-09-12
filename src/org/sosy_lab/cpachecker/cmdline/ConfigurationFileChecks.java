@@ -416,6 +416,7 @@ public class ConfigurationFileChecks {
     } else if (isOptionEnabled(config, "cfa.checkNullPointers")) {
       assertThat(spec).endsWith("specification/null-deref.spc");
     } else if (isOptionEnabled(config, "analysis.algorithm.termination")
+        || Ascii.toLowerCase(basePath.toString()).contains("termination")
         || isOptionEnabled(config, "analysis.algorithm.nonterminationWitnessCheck")
         || basePath.toString().contains("validation-termination")) {
       assertThat(Strings.nullToEmpty(spec)).isEmpty();

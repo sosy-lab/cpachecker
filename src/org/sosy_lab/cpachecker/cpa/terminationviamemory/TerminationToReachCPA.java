@@ -8,8 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
+import java.util.Optional;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -24,6 +28,9 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -35,42 +42,86 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
  */
 public class TerminationToReachCPA extends AbstractCPA implements StatisticsProvider {
   private Solver solver;
+  private InterpolationManager itpMgr;
+  private PathFormulaManager pfmgr;
+  private Configuration configuration;
+  private ShutdownNotifier shutdownNotifier;
   private FormulaManagerView fmgr;
   private BooleanFormulaManagerView bfmgr;
   private PrecisionAdjustment precisionAdjustment;
+  private ImmutableSet<Loop> possiblyNonTerminatingLoops;
   private final CFA cfa;
   private final TerminationToReachStatistics statistics;
   private final LogManager logger;
 
-  public TerminationToReachCPA(LogManager pLogger, Configuration pConfiguration, CFA pCFA)
+  public TerminationToReachCPA(
+      LogManager pLogger,
+      Configuration pConfiguration,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCFA)
       throws InvalidConfigurationException {
-    super("sep", "sep", null);
+    super("sep", "sep", new TerminationToReachAbstractDomain(), null);
     statistics = new TerminationToReachStatistics(pConfiguration, pLogger, pCFA);
     cfa = pCFA;
+    configuration = pConfiguration;
+    shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
+
+    ImmutableSet.Builder<Loop> builder = ImmutableSet.builder();
+    builder.addAll(cfa.getLoopStructure().orElseThrow().getAllLoops());
+    possiblyNonTerminatingLoops = builder.build();
   }
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(TerminationToReachCPA.class);
   }
 
-  public void setSolver(Solver pSolver) {
+  public void setSolverAndManagers(Solver pSolver, PathFormulaManager pPfmgr)
+      throws InvalidConfigurationException {
     solver = pSolver;
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
+    pfmgr = pPfmgr;
+    itpMgr =
+        new InterpolationManager(
+            pfmgr,
+            solver,
+            Optional.empty(),
+            Optional.empty(),
+            configuration,
+            shutdownNotifier,
+            logger,
+            false);
     precisionAdjustment =
-        new TerminationToReachPrecisionAdjustment(solver, statistics, logger, cfa, bfmgr, fmgr);
+        new TerminationToReachPrecisionAdjustment(
+            solver,
+            statistics,
+            logger,
+            cfa,
+            bfmgr,
+            fmgr,
+            itpMgr,
+            configuration,
+            possiblyNonTerminatingLoops);
   }
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new TerminationToReachTransferRelation(fmgr);
+    return new TerminationToReachTransferRelation(fmgr, pfmgr, possiblyNonTerminatingLoops);
   }
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return new TerminationToReachState(ImmutableMap.of(), ImmutableMap.of(), ImmutableMap.of());
+    return new TerminationToReachState(
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        Optional.empty(),
+        Optional.empty(),
+        ImmutableList.of(),
+        ImmutableSet.of(),
+        ImmutableSet.of());
   }
 
   @Override

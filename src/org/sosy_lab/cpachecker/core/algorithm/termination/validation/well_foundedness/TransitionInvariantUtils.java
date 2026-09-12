@@ -13,8 +13,10 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.cwriter.FormulaToCExpressionConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -53,6 +55,18 @@ public class TransitionInvariantUtils {
     }
   }
 
+  public static final String TRANS_INV_KEYWORD = "__TransInv_";
+  public static final String PREV_KEYWORD = TRANS_INV_KEYWORD + "PREV";
+  public static final String CURR_KEYWORD = TRANS_INV_KEYWORD + "MID";
+  public static final String CURR2_KEYWORD = TRANS_INV_KEYWORD + "CURR";
+
+  public static String removeKeyWordAfterTransInv(String pFormula) {
+    assert (pFormula.endsWith(PREV_KEYWORD)
+        || pFormula.endsWith(CURR_KEYWORD)
+        || pFormula.endsWith(CURR2_KEYWORD));
+    return pFormula.replace(PREV_KEYWORD, "").replace(CURR_KEYWORD, "").replace(CURR2_KEYWORD, "");
+  }
+
   /**
    * Enum representing the SSA indices of the previous states that we use for different states when
    * constructing formulas. The names of the enum values correspond to the names of the states
@@ -80,6 +94,10 @@ public class TransitionInvariantUtils {
       String pVariable, ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars) {
     return pMapPrevToCurrVars.keySet().stream()
         .anyMatch(d -> d.getName().equals(removeFunctionFromVarsName(pVariable)));
+  }
+
+  public static boolean isLoopHead(CFANode pCFANode, ImmutableSet<Loop> pLoops) {
+    return pLoops.stream().anyMatch(loop -> loop.getLoopHeads().contains(pCFANode));
   }
 
   public static CSimpleDeclaration getPrevDeclaration(
