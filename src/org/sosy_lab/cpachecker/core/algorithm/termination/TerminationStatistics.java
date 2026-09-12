@@ -486,7 +486,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       Preconditions.checkState(!violations.hasNext());
     }
 
-    if (pResult == Result.TRUE) {
+    if (pResult == Result.TRUE && yamlWitnessOutputFileTemplate != null) {
       try {
         terminationWitnessExporter.export(terminationArguments, yamlWitnessOutputFileTemplate);
       } catch (IOException e) {
