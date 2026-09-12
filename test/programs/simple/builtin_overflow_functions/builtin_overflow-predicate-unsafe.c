@@ -15,6 +15,7 @@ void __VERIFIER_assert(int condition) {
 }
 
 
+
 int main(void) {
   int all_expected_checks_fail = 0;
 

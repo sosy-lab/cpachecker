@@ -14,7 +14,7 @@ void __VERIFIER_assert(int condition) {
   }
 }
 
-
+// This program is unsafe for unreach-label, but safe for valid-memsafety and no-overflow for both machine-models; ILP32 and LP64
 int main(void) {
   int all_expected_checks_fail = 0;
 

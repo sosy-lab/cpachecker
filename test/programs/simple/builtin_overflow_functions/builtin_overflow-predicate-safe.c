@@ -15,6 +15,7 @@ void __VERIFIER_assert(int condition) {
 }
 
 
+// This program is safe for unreach-label, valid-memsafety, and no-overflow in ILP32 and LP64
 int main(void) {
 
   // Constant test values are initialized directly and never modified.
