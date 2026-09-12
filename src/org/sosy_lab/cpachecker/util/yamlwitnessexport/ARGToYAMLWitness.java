@@ -9,11 +9,18 @@
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -25,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -35,6 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.Tran
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -42,10 +51,14 @@ import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.RemovingStructuresVisitor;
 import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector;
 import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector.CollectedARGStates;
+import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector.FunctionEntryExitPair;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 
-class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
+final class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
 
   private final Map<ARGState, CollectedARGStates> stateToStatesCollector = new HashMap<>();
   private final RelevantArgStatesCollector argStatesCollector;
@@ -81,15 +94,6 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
    *     successful
    */
   record InvariantCreationResult(InvariantEntry invariantEntry, boolean translationSuccessful) {}
-
-  /**
-   * A class to keep track of the result of the witness export, in particular to inform the caller
-   * about some internals of the translation and export.
-   *
-   * @param translationAlwaysSuccessful if the translation from internal ARG states to strings was
-   *     always successful
-   */
-  public record WitnessExportResult(boolean translationAlwaysSuccessful) {}
 
   /**
    * A class to keep track of the result of the creation of an expression tree, in particular to
@@ -133,7 +137,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
             TranslationToExpressionTreeFailedException;
   }
 
-  protected ExpressionTreeResult getOverapproximationOfStatesIgnoringReturnVariables(
+  private ExpressionTreeResult getOverapproximationOfStatesIgnoringReturnVariables(
       Collection<ARGState> argStates, CFANode node, boolean useOldKeywordForVariables)
       throws InterruptedException, ReportingMethodNotImplementedException {
     FunctionEntryNode entryNode = cfa.getFunctionHead(node.getFunctionName());
@@ -148,7 +152,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
                 cfa.getMachineModel()));
   }
 
-  protected ExpressionTreeResult getOverapproximationOfStatesWithOnlyReturnVariables(
+  private ExpressionTreeResult getOverapproximationOfStatesWithOnlyReturnVariables(
       Collection<ARGState> argStates, CFANode node)
       throws InterruptedException, ReportingMethodNotImplementedException {
     AIdExpression returnVariable;
@@ -248,5 +252,266 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     }
 
     return new ExpressionTreeResult(overapproximationOfState, backTranslationSuccessful);
+  }
+
+  /**
+   * The entries created for one ARG, grouped by the kind of information they contain.
+   *
+   * @param entriesPerKind the created entries for each kind
+   * @param kindsWithFailedTranslation the kinds for which at least one translation from internal
+   *     ARG states to strings was not successful
+   */
+  record CollectedInvariants(
+      ImmutableListMultimap<WitnessInvariantKind, AbstractInvariantEntry> entriesPerKind,
+      ImmutableSet<WitnessInvariantKind> kindsWithFailedTranslation) {
+
+    /** The entries of the given kinds, in the declaration order of {@link WitnessInvariantKind}. */
+    ImmutableList<AbstractInvariantEntry> entriesFor(Set<WitnessInvariantKind> pKinds) {
+      ImmutableList.Builder<AbstractInvariantEntry> entries = ImmutableList.builder();
+      for (WitnessInvariantKind kind : WitnessInvariantKind.values()) {
+        if (pKinds.contains(kind)) {
+          entries.addAll(entriesPerKind.get(kind));
+        }
+      }
+      return entries.build();
+    }
+
+    boolean translationAlwaysSuccessfulFor(Set<WitnessInvariantKind> pKinds) {
+      return Collections.disjoint(kindsWithFailedTranslation, pKinds);
+    }
+  }
+
+  /**
+   * Traverse the ARG and create the entries for the requested kinds of information.
+   *
+   * <p>The ARG is traversed only once, independently of how many witness versions are exported from
+   * the result.
+   *
+   * @param pRootState the root state of the ARG
+   * @param pKinds the kinds of information which should be created
+   * @return the created entries
+   * @throws InterruptedException if the execution is interrupted
+   */
+  CollectedInvariants createInvariantEntries(ARGState pRootState, Set<WitnessInvariantKind> pKinds)
+      throws InterruptedException, ReportingMethodNotImplementedException {
+    CollectedARGStates statesCollector = getRelevantStates(pRootState);
+
+    ImmutableListMultimap.Builder<WitnessInvariantKind, AbstractInvariantEntry> entries =
+        ImmutableListMultimap.builder();
+    ImmutableSet.Builder<WitnessInvariantKind> kindsWithFailedTranslation = ImmutableSet.builder();
+
+    if (pKinds.contains(WitnessInvariantKind.LOOP_INVARIANT)) {
+      Multimap<CFANode, ARGState> loopInvariants = statesCollector.loopInvariants();
+      boolean translationSuccessful = true;
+      for (CFANode node : loopInvariants.keySet()) {
+        Optional<InvariantCreationResult> invariant =
+            createLoopInvariant(loopInvariants.get(node), node);
+        if (invariant.isPresent()) {
+          entries.put(WitnessInvariantKind.LOOP_INVARIANT, invariant.orElseThrow().invariantEntry());
+          translationSuccessful &= invariant.orElseThrow().translationSuccessful();
+        }
+      }
+      if (!translationSuccessful) {
+        kindsWithFailedTranslation.add(WitnessInvariantKind.LOOP_INVARIANT);
+      }
+    }
+
+    if (pKinds.contains(WitnessInvariantKind.LOCATION_INVARIANT)) {
+      Multimap<CFANode, ARGState> locationInvariants = statesCollector.functionCallInvariants();
+      boolean translationSuccessful = true;
+      for (CFANode node : locationInvariants.keySet()) {
+        Optional<InvariantCreationResult> invariant =
+            createLocationInvariant(locationInvariants.get(node), node);
+        if (invariant.isPresent()) {
+          entries.put(
+              WitnessInvariantKind.LOCATION_INVARIANT, invariant.orElseThrow().invariantEntry());
+          translationSuccessful &= invariant.orElseThrow().translationSuccessful();
+        }
+      }
+      if (!translationSuccessful) {
+        kindsWithFailedTranslation.add(WitnessInvariantKind.LOCATION_INVARIANT);
+      }
+    }
+
+    if (pKinds.contains(WitnessInvariantKind.FUNCTION_CONTRACT)) {
+      ImmutableList<FunctionContractCreationResult> contracts =
+          createFunctionContracts(
+              statesCollector.functionContractRequires(), statesCollector.functionContractEnsures());
+      entries.putAll(
+          WitnessInvariantKind.FUNCTION_CONTRACT,
+          FluentIterable.from(contracts)
+              .transform(FunctionContractCreationResult::functionContractEntry));
+      if (!FluentIterable.from(contracts)
+          .allMatch(FunctionContractCreationResult::translationSuccessful)) {
+        kindsWithFailedTranslation.add(WitnessInvariantKind.FUNCTION_CONTRACT);
+      }
+    }
+
+    return new CollectedInvariants(entries.build(), kindsWithFailedTranslation.build());
+  }
+
+  /**
+   * Create a loop invariant for the abstractions encoded by the ARG states at the given loop head.
+   *
+   * @param pArgStates the ARG states encoding abstractions of the state
+   * @param pNode the loop head at whose location the states should be over approximated
+   * @return the invariant, or an empty Optional if the loop of the node cannot be determined
+   * @throws InterruptedException if the execution is interrupted
+   */
+  private Optional<InvariantCreationResult> createLoopInvariant(
+      Collection<ARGState> pArgStates, CFANode pNode)
+      throws InterruptedException, ReportingMethodNotImplementedException {
+    Optional<IterationElement> iterationStructure =
+        getASTStructure().getTightestIterationStructureForNode(pNode);
+    if (iterationStructure.isEmpty()) {
+      logger.logf(
+          Level.FINE, "Could not determine the loop of node %s, skipping its loop invariant", pNode);
+      return Optional.empty();
+    }
+    return Optional.of(
+        createInvariant(
+            pArgStates,
+            pNode,
+            InvariantRecordType.LOOP_INVARIANT,
+            iterationStructure.orElseThrow().getCompleteElement().location()));
+  }
+
+  /**
+   * Create a location invariant for the abstractions encoded by the ARG states at the given node.
+   *
+   * @param pArgStates the ARG states encoding abstractions of the state
+   * @param pNode the node at whose location the states should be over approximated
+   * @return the invariant, or an empty Optional if the location of the node cannot be determined
+   * @throws InterruptedException if the execution is interrupted
+   */
+  private Optional<InvariantCreationResult> createLocationInvariant(
+      Collection<ARGState> pArgStates, CFANode pNode)
+      throws InterruptedException, ReportingMethodNotImplementedException {
+    Optional<IterationElement> iterationStructure =
+        getASTStructure().getTightestIterationStructureForNode(pNode);
+    if (iterationStructure.isEmpty()) {
+      logger.logf(
+          Level.FINE,
+          "Could not determine the location of node %s, skipping its location invariant",
+          pNode);
+      return Optional.empty();
+    }
+    return Optional.of(
+        createInvariant(
+            pArgStates,
+            pNode,
+            InvariantRecordType.LOCATION_INVARIANT,
+            iterationStructure.orElseThrow().getCompleteElement().location()));
+  }
+
+  /**
+   * Create an invariant for the abstractions encoded by the ARG states.
+   *
+   * @param pArgStates the ARG states encoding abstractions of the state
+   * @param pNode the node at whose location the states should be over approximated
+   * @param pType the type of the invariant
+   * @param pLocation the location in the input program the invariant belongs to
+   * @return an invariant over approximating the abstraction at the state
+   * @throws InterruptedException if the execution is interrupted
+   */
+  private InvariantCreationResult createInvariant(
+      Collection<ARGState> pArgStates,
+      CFANode pNode,
+      InvariantRecordType pType,
+      FileLocation pLocation)
+      throws InterruptedException, ReportingMethodNotImplementedException {
+    // TODO: The original name of the variables should be used here. This requires a visitor to
+    // rename them
+    ExpressionTreeResult invariantResult =
+        getOverapproximationOfStatesIgnoringReturnVariables(
+            pArgStates, pNode, /* useOldKeywordForVariables= */ false);
+    LocationRecord locationRecord =
+        LocationRecord.createLocationRecordAtStart(
+            pLocation,
+            pNode.getFunction().getFileLocation().getFileName().toString(),
+            pNode.getFunction().getOrigName());
+
+    return new InvariantCreationResult(
+        new InvariantEntry(
+            invariantResult.expressionTree().toString(),
+            pType.getKeyword(),
+            YAMLWitnessExpressionType.C,
+            locationRecord),
+        invariantResult.backTranslationSuccessful());
+  }
+
+  /**
+   * Create function contracts for each of the functions whose entry nodes have been given
+   *
+   * @param pFunctionContractRequires a mapping from function entry nodes to ARG states encoding the
+   *     abstractions at that location
+   * @param pFunctionContractEnsures a mapping from function exit nodes to ARG states encoding the
+   *     abstractions at that location
+   * @return a list of function contracts, one for each of the functions whose entry nodes have been
+   *     given
+   * @throws InterruptedException if the execution is interrupted
+   */
+  private ImmutableList<FunctionContractCreationResult> createFunctionContracts(
+      Multimap<FunctionEntryNode, ARGState> pFunctionContractRequires,
+      Multimap<FunctionExitNode, FunctionEntryExitPair> pFunctionContractEnsures)
+      throws InterruptedException, ReportingMethodNotImplementedException {
+    ImmutableList.Builder<FunctionContractCreationResult> functionContractRecords =
+        new ImmutableList.Builder<>();
+
+    for (FunctionEntryNode functionEntryNode : pFunctionContractRequires.keySet()) {
+      Collection<ARGState> requiresArgStates = pFunctionContractRequires.get(functionEntryNode);
+      boolean translationSuccessful = true;
+
+      FileLocation location = functionEntryNode.getFileLocation();
+      ExpressionTreeResult requiresClauseResult =
+          getOverapproximationOfStatesIgnoringReturnVariables(
+              requiresArgStates, functionEntryNode, /* useOldKeywordForVariables= */ false);
+      String requiresClause = requiresClauseResult.expressionTree().toString();
+      translationSuccessful &= requiresClauseResult.backTranslationSuccessful();
+
+      ImmutableSet.Builder<String> ensuresClause = new ImmutableSet.Builder<>();
+      if (functionEntryNode.getExitNode().isPresent()
+          && pFunctionContractEnsures.containsKey(functionEntryNode.getExitNode().orElseThrow())) {
+        Collection<FunctionEntryExitPair> ensuresArgStates =
+            pFunctionContractEnsures.get(functionEntryNode.getExitNode().orElseThrow());
+        for (FunctionEntryExitPair pair : ensuresArgStates) {
+          // Get the state of the input of the function
+          ExpressionTreeResult stateOfTheInputResult =
+              getOverapproximationOfStatesIgnoringReturnVariables(
+                  ImmutableSet.of(pair.entry()),
+                  functionEntryNode,
+                  // we need to use the old keyword to reference the variables in the input.
+                  /* useOldKeywordForVariables= */ true);
+
+          String stateOfTheInput = stateOfTheInputResult.expressionTree().toString();
+          translationSuccessful &= stateOfTheInputResult.backTranslationSuccessful();
+
+          // Get the state of the output of the function
+          ExpressionTreeResult stateOfTheOutputResult =
+              getOverapproximationOfStatesWithOnlyReturnVariables(
+                  ImmutableSet.of(pair.exit()), functionEntryNode);
+          String stateOfTheOutput = stateOfTheOutputResult.expressionTree().toString();
+          translationSuccessful &= stateOfTheOutputResult.backTranslationSuccessful();
+
+          // Create a relation between the input and the output of the function
+          String implication = "(!(" + stateOfTheInput + ") || (" + stateOfTheOutput + "))";
+          ensuresClause.add(implication);
+        }
+      } else {
+        // If we do not have an exit node then we do not have any ensures clause
+        ensuresClause.add("1");
+      }
+      functionContractRecords.add(
+          new FunctionContractCreationResult(
+              new FunctionContractEntry(
+                  String.join(" && ", ensuresClause.build()),
+                  requiresClause,
+                  YAMLWitnessExpressionType.ACSL,
+                  LocationRecord.createLocationRecordAtStart(
+                      location, functionEntryNode.getFunction().getOrigName())),
+              translationSuccessful));
+    }
+
+    return functionContractRecords.build();
   }
 }
