@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -73,6 +74,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinIoFunctions;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -343,17 +345,26 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       InvariantsState pElement, CStatementEdge pEdge, InvariantsPrecision pPrecision)
       throws UnrecognizedCodeException {
 
-    if (pEdge.getStatement() instanceof CFunctionCall cFunctionCall) {
+    CStatement statement = pEdge.getStatement();
+
+    if (statement instanceof CFunctionCall cFunctionCall) {
       CExpression fn = cFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
       if (fn instanceof CIdExpression cIdExpression) {
         String func = cIdExpression.getName();
         if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
           throw new UnsupportedCodeException(UNSUPPORTED_FUNCTIONS.get(func), pEdge, fn);
         }
+        // fscanf's return value is usually discarded; model the write through its output
+        // parameter regardless, or the target variable keeps whatever value it had before.
+        if (!(cFunctionCall instanceof CAssignment) && BuiltinIoFunctions.matchesFscanf(func)) {
+          statement =
+              BuiltinIoFunctions.createNondetCallModellingFscanf(
+                  cFunctionCall.getFunctionCallExpression(), pEdge);
+        }
       }
     }
 
-    if (pEdge.getStatement() instanceof CAssignment assignment) {
+    if (statement instanceof CAssignment assignment) {
       ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
       CExpression leftHandSide = assignment.getLeftHandSide();
       CRightHandSide rightHandSide = assignment.getRightHandSide();
