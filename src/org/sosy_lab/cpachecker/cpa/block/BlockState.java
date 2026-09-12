@@ -279,13 +279,8 @@ public class BlockState
    * same abstraction have to subsume each other even if they arrived along different paths through
    * the block graph, otherwise a block collects one precondition per block-graph path.
    *
-   * <p>It also ignores {@link #violationConditions}, unlike {@link #equals}: coverage compares a
-   * precondition that has just been deserialized from a message, which never carries a violation
-   * condition, against a stored precondition that {@link
-   * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis
-   * #runBlockAnalysis} has since set the block's current violation conditions on. Comparing the two
-   * would therefore always fail, and a block would collect one precondition per arriving message
-   * instead of covering the repetitions.
+   * <p>It also ignores {@link #violationConditions}: these belong to one local exploration, whereas
+   * distributed coverage asks whether a received entry precondition needs reanalysis.
    */
   public boolean isCovered(BlockState that) {
     return this == that
@@ -295,11 +290,43 @@ public class BlockState
             && blockNode == that.getBlockNode());
   }
 
-  // equals() and hashCode() are deliberately not implemented: BlockState carries bookkeeping that
-  // the algorithm reads back from individual states of the reached set (the predecessor
-  // back-pointer, the block-graph history, and the states that a callstack hindered), and none of
-  // it would take part in a value-based comparison. Coverage is expressed by isCovered(BlockState)
-  // instead, and the lattice of BlockCPA compares states by identity.
+  /**
+   * Equal interior values can share an ARG suffix. The ARG owns the incoming execution paths;
+   * neither the diagnostic id nor the predecessor occurrence belongs to this comparison.
+   *
+   * <p>Boundary occurrences deliberately remain distinct. Ghost successors discharge obligations of
+   * one particular block end, and merging those ends would require transferring or invalidating
+   * their processing records on late merges. Initial occurrences also keep separate origins.
+   * History and witnesses are immutable and compared conservatively so neither can be lost when
+   * choosing a representative interior value. Distributed precondition coverage remains separate.
+   */
+  @Override
+  public boolean equals(Object pOther) {
+    return this == pOther
+        || (pOther instanceof BlockState other
+            && type == BlockStateType.MID
+            && other.type == type
+            && blockNode == other.blockNode
+            && node.equals(other.node)
+            && violationConditions.equals(other.violationConditions)
+            && history.equals(other.history)
+            && witness.equals(other.witness)
+            && witnessCheckPathState.equals(other.witnessCheckPathState));
+  }
+
+  @Override
+  public int hashCode() {
+    return type == BlockStateType.MID
+        ? Objects.hash(
+            node,
+            System.identityHashCode(blockNode),
+            type,
+            violationConditions,
+            history,
+            witness,
+            witnessCheckPathState)
+        : System.identityHashCode(this);
+  }
 
   @Override
   public boolean isTarget() {

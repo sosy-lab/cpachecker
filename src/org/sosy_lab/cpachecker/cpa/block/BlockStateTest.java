@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -98,5 +99,59 @@ public class BlockStateTest {
     BlockState updated = state.withHistory(block);
     assertThat(state.getHistory().path()).isEmpty();
     assertThat(updated.getHistory().path()).containsExactly("B");
+  }
+
+  private BlockState interior(String pId, BlockState pPredecessor) {
+    return new BlockState(
+        pId,
+        pPredecessor,
+        block.getInitialLocation(),
+        block,
+        BlockStateType.MID,
+        ImmutableList.of(),
+        BlockGraphPath.of(),
+        SegmentedPaths.EMPTY);
+  }
+
+  @Test
+  public void interiorEqualityIgnoresOccurrenceIdsAndBackPointers() throws Exception {
+    BlockState first = interior("B#1", state);
+    BlockState second = interior("B#2", state.withHistory(block));
+    BlockState third = interior("B#3", null);
+    assertThat(first).isEqualTo(second);
+    assertThat(second).isEqualTo(third);
+    assertThat(first.hashCode()).isEqualTo(second.hashCode());
+    first.addHinderedByCallstack(state);
+    assertThat(first).isEqualTo(second);
+
+    BlockCPA value =
+        new BlockCPA(Configuration.builder().setOption("cpa.block.domain", "VALUE").build());
+    BlockCPA identity = new BlockCPA(Configuration.defaultConfiguration());
+    assertThat(value.getAbstractDomain().isLessOrEqual(first, second)).isTrue();
+    assertThat(identity.getAbstractDomain().isLessOrEqual(first, second)).isFalse();
+  }
+
+  @Test
+  public void differentContextsAreKeptSeparate() {
+    BlockState first = interior("B#1", state);
+    assertThat(first).isNotEqualTo(first.withHistory(block));
+    assertThat(first).isNotEqualTo(first.withViolationConditions(ImmutableList.of(state)));
+    BlockState restricted =
+        new BlockState(
+            "B#2",
+            state,
+            block.getInitialLocation(),
+            block,
+            BlockStateType.MID,
+            ImmutableList.of(),
+            BlockGraphPath.of(),
+            SegmentedPaths.EMPTY,
+            SegmentedPaths.deserialize("N1N2"));
+    assertThat(first).isNotEqualTo(restricted);
+  }
+
+  @Test
+  public void boundaryOccurrencesRemainSeparateEvenWithTheSameValue() {
+    assertThat(state).isNotEqualTo(state.withViolationConditions(ImmutableList.of()));
   }
 }

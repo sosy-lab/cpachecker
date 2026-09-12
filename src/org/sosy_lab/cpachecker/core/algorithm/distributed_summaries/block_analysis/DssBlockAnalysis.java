@@ -67,11 +67,14 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.callstack.DssCallstackCPA;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -216,6 +219,19 @@ public final class DssBlockAnalysis {
 
     ConfigurableProgramAnalysis cpa = coreComponents.createCPA(specification);
     Optional.ofNullable(CPAs.retrieveCPA(cpa, BlockCPA.class)).ifPresent(b -> b.init(node));
+    BlockCPA blockCPA = CPAs.retrieveCPA(cpa, BlockCPA.class);
+    CompositeCPA compositeCPA = CPAs.retrieveCPA(cpa, CompositeCPA.class);
+    if (blockCPA != null
+        && blockCPA.usesValueDomain()
+        && (!(cpa instanceof ARGCPA argCPA)
+            || !argCPA.preservesPaths()
+            || CPAs.retrieveCPA(cpa, DssCallstackCPA.class) == null
+            || compositeCPA == null
+            || !compositeCPA.usesMergeAgree())) {
+      throw new InvalidConfigurationException(
+          "BlockCPA VALUE coverage requires ARGCPA with cpa.arg.preservePaths=true, "
+              + "DssCallstackCPA, and composite merge AGREE");
+    }
     Algorithm algorithm = coreComponents.createAlgorithm(cpa, specification);
 
     singleLogger.log(Level.FINE, "Creating initial reached set");
