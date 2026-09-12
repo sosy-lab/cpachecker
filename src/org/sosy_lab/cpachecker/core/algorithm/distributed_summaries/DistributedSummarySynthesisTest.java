@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries;
 
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import com.google.common.io.ByteStreams;
@@ -23,6 +24,7 @@ import org.junit.rules.TemporaryFolder;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
@@ -63,5 +65,74 @@ public class DistributedSummarySynthesisTest {
     assertWithMessage("Block graph JSON '%s' is empty file", BLOCKS_JSON_PATH)
         .that(Files.readString(expectedBlocksJson.toPath(), StandardCharsets.UTF_8))
         .isNotEmpty();
+  }
+
+  private void assertBothBlockDomains(String pBody, boolean pSafe) throws Exception {
+    Path source = Files.createTempFile(tempFolder.getRoot().toPath(), "merging-", ".c");
+    Files.writeString(
+        source,
+        "extern int __VERIFIER_nondet_int(void);\n"
+            + "extern void __VERIFIER_error(void);\n"
+            + pBody,
+        StandardCharsets.UTF_8);
+    for (String domain : new String[] {"IDENTITY", "VALUE"}) {
+      Path forward = Files.createTempFile(tempFolder.getRoot().toPath(), "forward-", ".properties");
+      Files.writeString(
+          forward,
+          "#include "
+              + Path.of("config/distributed-summary-synthesis/dss-block-analysis.properties")
+                  .toAbsolutePath()
+              + "\ncpa.block.domain="
+              + domain
+              + "\nsolver.solver=SMTINTERPOL\ncpa.predicate.encodeBitvectorAs=INTEGER\n"
+              + "cpa.predicate.encodeFloatAs=RATIONAL\n",
+          StandardCharsets.UTF_8);
+      Configuration config =
+          TestUtils.configurationForTest()
+              .loadFromFile("config/dss.properties")
+              .setOption("specification", "config/specification/sv-comp-reachability.spc")
+              .setOption("distributedSummaries.executorType", "DSS")
+              .setOption("distributedSummaries.worker.forwardConfiguration", forward.toString())
+              .setOption("solver.solver", "SMTINTERPOL")
+              .setOption("cpa.predicate.encodeBitvectorAs", "INTEGER")
+              .setOption("cpa.predicate.encodeFloatAs", "RATIONAL")
+              .build();
+      IntegrationTestResult result = IntegrationTestRunner.run(config, source.toString());
+      if (pSafe) {
+        result.assertIsSafe();
+      } else {
+        result.assertIsUnsafe();
+        assertThat(result.log()).doesNotContain("Violation path for witness was not correct");
+        assertThat(
+                result.cpaCheckerResult().getReached().stream()
+                    .filter(ARGState.class::isInstance)
+                    .map(ARGState.class::cast)
+                    .filter(ARGState::isTarget)
+                    .anyMatch(s -> s.getCounterexampleInformation().isPresent()))
+            .isTrue();
+      }
+    }
+  }
+
+  @Test
+  public void testMergingPreservesSafeAndUnsafeDiamondVerdicts() throws Exception {
+    assertBothBlockDomains(
+        "int main() { int x = __VERIFIER_nondet_int() ? 1 : 2; "
+            + "if (x < 1 || x > 2) __VERIFIER_error(); }",
+        true);
+    assertBothBlockDomains(
+        "int main() { int x = __VERIFIER_nondet_int() ? 1 : 2; "
+            + "if (x == 2) __VERIFIER_error(); }",
+        false);
+  }
+
+  @Test
+  public void testMergingPreservesCallsiteAndLoopBehaviour() throws Exception {
+    assertBothBlockDomains(
+        "int f(int x) { return x + 1; } int main() { "
+            + "if (f(1) != 2 || f(2) != 3) __VERIFIER_error(); }",
+        true);
+    assertBothBlockDomains(
+        "int main() { int x = 0; while (x < 3) x++; " + "if (x == 3) __VERIFIER_error(); }", false);
   }
 }

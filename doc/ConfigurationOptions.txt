@@ -1808,6 +1808,11 @@ cpa.arg.mergeOnWrappedSubsumption = false
 # set to 'null', no pixel graphic is exported.
 cpa.arg.pixelGraphicFile = no default value
 
+# Preserve incoming paths as shared ARG suffixes on coverage as well as
+# merging. Reject operations that would create cycles. Intended for analyses
+# that derive conditions from all paths through an acyclic block.
+cpa.arg.preservePaths = false
+
 # export a proof as .graphml file
 cpa.arg.proofWitness = no default value
 
@@ -2044,6 +2049,12 @@ cpa.bdd.useBlockAbstraction = false
 
 # Dump tracked variables to a file.
 cpa.bdd.variablesFile = "BDDCPA_ordered_variables.txt"
+
+# Use identity coverage, or compare immutable interior block values. VALUE
+# requires ARG path preservation and the DSS callstack domain; boundary
+# occurrences remain separate.
+cpa.block.domain = IDENTITY
+  enum:     [IDENTITY, VALUE]
 
 # whether to travel over the ghost edge
 cpa.block.transfer.standardVcs = true
