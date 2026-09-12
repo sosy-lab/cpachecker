@@ -27,16 +27,28 @@ public class SvLibSafetySpecState
     implements AbstractStateWithAssumptions, Graphable, AbstractQueryableState {
 
   private final ImmutableSet<@NonNull SvLibRelationalTerm> assumptions;
+  private final boolean nextStateViolatesProperty;
   private final boolean hasPropertyViolation;
 
   public SvLibSafetySpecState(
-      Set<SvLibRelationalTerm> pAssumptions, boolean pHasPropertyViolation) {
+      Set<SvLibRelationalTerm> pAssumptions,
+      boolean pNextStateViolatesProperty,
+      boolean pHasPropertyViolation) {
     assumptions = ImmutableSet.copyOf(pAssumptions);
+    nextStateViolatesProperty = pNextStateViolatesProperty;
     hasPropertyViolation = pHasPropertyViolation;
   }
 
   public boolean hasPropertyViolation() {
     return hasPropertyViolation;
+  }
+
+  /**
+   * Whether the property that the assumptions of this state describe is violated, which is reported
+   * by the successors of this state.
+   */
+  public boolean nextStateViolatesProperty() {
+    return nextStateViolatesProperty;
   }
 
   @Override
@@ -46,7 +58,7 @@ public class SvLibSafetySpecState
 
   @Override
   public int hashCode() {
-    return Objects.hash(assumptions, hasPropertyViolation);
+    return Objects.hash(assumptions, nextStateViolatesProperty, hasPropertyViolation);
   }
 
   @Override
@@ -57,6 +69,7 @@ public class SvLibSafetySpecState
 
     return pO instanceof SvLibSafetySpecState other
         && Objects.equals(assumptions, other.assumptions)
+        && nextStateViolatesProperty == other.nextStateViolatesProperty
         && hasPropertyViolation == other.hasPropertyViolation;
   }
 
@@ -64,14 +77,16 @@ public class SvLibSafetySpecState
   public String toString() {
     return "SvLibSafetySpecState{assumeEdges=["
         + getReadableAssumptions()
-        + "], hasPropertyViolation="
+        + "], nextStateViolatesProperty="
+        + nextStateViolatesProperty
+        + ", hasPropertyViolation="
         + hasPropertyViolation
         + '}';
   }
 
   @Override
   public String toDOTLabel() {
-    if (hasPropertyViolation) {
+    if (nextStateViolatesProperty) {
       return "Assumptions:\n" + getReadableAssumptions().replace(", ", "\n");
     }
     return "";

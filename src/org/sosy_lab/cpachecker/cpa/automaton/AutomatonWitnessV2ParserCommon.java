@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -40,6 +41,17 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointAction;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointType;
 
+/**
+ * Common class for parsing witnesses in version 2.
+ *
+ * <p><pMore information about the witness format can be found in the <a *
+ * href="https://gitlab.com/sosy-lab/benchmarking/sv-witnesses/-/blob/main/user-guide/Witness-Format.md">Witnesses
+ * Format</a>. * *
+ *
+ * <p>In addition, the properties supported by each witness version are primarily relevant for the *
+ * SV-COMP competition and therefore kept track in the SV-COMP documentation: <a *
+ * href="https://sv-comp.sosy-lab.org/2027/rules.php">SV-COMP 2027 Rules</a>.
+ */
 @Options(prefix = "witness")
 class AutomatonWitnessV2ParserCommon {
 
@@ -104,7 +116,7 @@ class AutomatonWitnessV2ParserCommon {
   }
 
   record PartitionedWaypoints(
-      Optional<WaypointRecord> follow,
+      Optional<List<WaypointRecord>> follow,
       Optional<WaypointRecord> cycle,
       ImmutableList<WaypointRecord> avoids) {
     // Canonical constructor ensures non-null cycle, follow and avoids
@@ -117,7 +129,7 @@ class AutomatonWitnessV2ParserCommon {
     }
 
     // Constructor that only sets 'follow'
-    PartitionedWaypoints(WaypointRecord pFollow, ImmutableList<WaypointRecord> pAvoids) {
+    PartitionedWaypoints(List<WaypointRecord> pFollow, ImmutableList<WaypointRecord> pAvoids) {
       this(Optional.ofNullable(pFollow), Optional.empty(), pAvoids);
     }
 
@@ -151,7 +163,7 @@ class AutomatonWitnessV2ParserCommon {
           }
           containsFollowOrCycle = true;
           if (waypoint.getAction().equals(WaypointAction.FOLLOW)) {
-            segments.add(new PartitionedWaypoints(waypoint, avoids.build()));
+            segments.add(new PartitionedWaypoints(ImmutableList.of(waypoint), avoids.build()));
           } else if (waypoint.getAction().equals(WaypointAction.CYCLE)) {
             segments.add(new PartitionedWaypoints(avoids.build(), waypoint));
           }
@@ -210,7 +222,7 @@ class AutomatonWitnessV2ParserCommon {
     checkTargetIsAtEnd(latest, numTargetWaypoints);
   }
 
-  private void checkTargetIsAtEnd(WaypointRecord pLatest, int pNumTargetWaypoints)
+  protected void checkTargetIsAtEnd(WaypointRecord pLatest, int pNumTargetWaypoints)
       throws InvalidYAMLWitnessException {
     switch (pNumTargetWaypoints) {
       case 0 -> throw new InvalidYAMLWitnessException("No target waypoint in witness V2!");

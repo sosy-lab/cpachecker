@@ -166,7 +166,8 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
           i++;
           if (i < numProofs) {
             // write assumption automaton for next round
-            automatonWriter.writeAutomaton(checkingResult.getFirst(), checkingResult.getSecond());
+            automatonWriter.writeAutomaton(
+                checkingResult.getFirst(), checkingResult.getSecond(), cfa.getMachineModel());
             automatonAvailable.release();
           } else {
             if (!checkingResult.getSecond().isEmpty()) {
