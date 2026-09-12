@@ -619,7 +619,32 @@ public class CompoundIntervalFormulaManager {
       return logicalOr(
           equal(pOperand1, union.getOperand1()), equal(pOperand1, union.getOperand2()));
     }
+    // A bitwise disjunction is zero exactly if both of its operands are zero. This is what makes
+    // the disjunctions that assumptions encode as a bitwise or (e.g., those of the OverflowCPA)
+    // decidable in this formula language. This only covers this exact "disjunction == 0" shape;
+    // a disjunction compared against a non-zero constant still falls through to the generic,
+    // imprecise case below.
+    if (pOperand1 instanceof BinaryOr<CompoundInterval> or && isDefinitelyFalse(pOperand2)) {
+      return bothOperandsAreZero(or);
+    }
+    if (pOperand2 instanceof BinaryOr<CompoundInterval> or && isDefinitelyFalse(pOperand1)) {
+      return bothOperandsAreZero(or);
+    }
     return InvariantsFormulaManager.INSTANCE.equal(pOperand1, pOperand2);
+  }
+
+  /**
+   * Returns the assertion that both operands of the given disjunction are zero. The operands are
+   * stated as "not non-zero" instead of "equal to zero", because {@link #fromNumeral} unwraps the
+   * conditions of the operands instead of comparing their if-then-else encoding against zero.
+   *
+   * <p>The conjunction is built without {@link #logicalAnd}, whose implication-based simplification
+   * drops one of these two operands even though neither implies the other. Evaluating both of them
+   * against an actual environment is what decides whether an operation overflows.
+   */
+  private BooleanFormula<CompoundInterval> bothOperandsAreZero(BinaryOr<CompoundInterval> pOr) {
+    return InvariantsFormulaManager.INSTANCE.logicalAnd(
+        logicalNot(fromNumeral(pOr.getOperand1())), logicalNot(fromNumeral(pOr.getOperand2())));
   }
 
   /**

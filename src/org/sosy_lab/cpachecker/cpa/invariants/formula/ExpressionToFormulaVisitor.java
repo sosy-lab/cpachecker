@@ -302,7 +302,9 @@ public class ExpressionToFormulaVisitor
     final NumeralFormula<CompoundInterval> result =
         switch (pCBinaryExpression.getOperator()) {
           case BITWISE_AND -> allPossibleValues(pCBinaryExpression);
-          case BITWISE_OR -> allPossibleValues(pCBinaryExpression);
+          // Keep the structure of disjunctions: they are how C expressions that are used as
+          // assumptions (e.g., those of the OverflowCPA) encode a logical or.
+          case BITWISE_OR -> compoundIntervalFormulaManager.binaryOr(left, right);
           case BITWISE_XOR -> allPossibleValues(pCBinaryExpression);
           case DIVIDE -> compoundIntervalFormulaManager.divide(left, right);
           case EQUALS ->
