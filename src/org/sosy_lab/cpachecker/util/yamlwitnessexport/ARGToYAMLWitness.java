@@ -387,9 +387,10 @@ final class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
   private Optional<InvariantCreationResult> createLocationInvariant(
       Collection<ARGState> pArgStates, CFANode pNode)
       throws InterruptedException, ReportingMethodNotImplementedException {
-    Optional<IterationElement> iterationStructure =
-        getASTStructure().getTightestIterationStructureForNode(pNode);
-    if (iterationStructure.isEmpty()) {
+    // A location invariant belongs to the statement containing the node, which is the same
+    // statement the validator resolves the location of the invariant to.
+    Optional<FileLocation> location = getASTStructure().getStatementFileLocationForNode(pNode);
+    if (location.isEmpty()) {
       logger.logf(
           Level.FINE,
           "Could not determine the location of node %s, skipping its location invariant",
@@ -398,10 +399,7 @@ final class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
     }
     return Optional.of(
         createInvariant(
-            pArgStates,
-            pNode,
-            InvariantRecordType.LOCATION_INVARIANT,
-            iterationStructure.orElseThrow().getCompleteElement().location()));
+            pArgStates, pNode, InvariantRecordType.LOCATION_INVARIANT, location.orElseThrow()));
   }
 
   /**
