@@ -84,6 +84,19 @@ public class SolverViewBasedTest0 extends SolverBasedTest0 {
     imgrv = mgrv.getIntegerFormulaManager();
   }
 
+  /**
+   * Skips the test unless bitvectors are also encoded as bitvectors. Another encoding replaces the
+   * operations that need the bit-precise semantics by approximations, even if the solver itself
+   * supports the theory of bitvectors.
+   */
+  protected final void requireBitvectorEncoding() {
+    requireBitvectors();
+    assume()
+        .withMessage("Solver %s does not use the bitvector encoding", solverToUse())
+        .that(mgrv.getFormulaWrappingHandler().useBitvectors())
+        .isTrue();
+  }
+
   @After
   public final void closeCPAcheckerSolver() {
     // We should close the solver, but the super class does this, too,

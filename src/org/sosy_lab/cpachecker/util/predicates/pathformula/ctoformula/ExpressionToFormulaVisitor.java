@@ -691,6 +691,30 @@ public class ExpressionToFormulaVisitor
 
       } else if (BuiltinFunctions.isPopcountFunction(functionName)) {
         return handlePopCount(functionName, returnType, parameters, e);
+      } else if (BuiltinFunctions.isIntegerAbsFunction(functionName)) {
+
+        if (parameters.size() == 1) {
+          CType paramType = conv.getReturnType(e, edge);
+          if (!hasMatchingSingleParameterType(e.getDeclaration(), paramType)) {
+            throw new UnrecognizedCodeException(
+                "function " + functionName + " with unexpected declaration", edge, e);
+          }
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
+          if (formulaType.isBitvectorType() || formulaType.isIntegerType()) {
+            Formula param = processOperand(parameters.getFirst(), paramType, paramType);
+            Formula zero = mgr.makeNumber(formulaType, 0);
+
+            // `param` is already of type paramType (a signed type), even if the argument
+            // expression itself was another type, so signed=true is correct here.
+            BooleanFormula isNegative = mgr.makeLessThan(param, zero, true);
+            // Calling one of these functions on the type's minimum value is undefined behavior
+            // per the C standard (the result is not representable, cf. C11 7.22.6.1p2/7.8.2.1p2),
+            // so the standard does not mandate any particular value here. In that case,
+            // the SMT solver would decide the behavior.
+            return conv.bfmgr.ifThenElse(isNegative, mgr.makeNegate(param), param);
+          }
+        }
+
       } else if (BuiltinFloatFunctions.matchesInfinity(functionName)) {
 
         if (parameters.isEmpty()) {
@@ -747,6 +771,23 @@ public class ExpressionToFormulaVisitor
 
             return conv.bfmgr.ifThenElse(
                 isNegative, mgr.makeNegate(param), conv.bfmgr.ifThenElse(isNan, nan, param));
+          }
+        }
+
+      } else if (BuiltinFloatFunctions.matchesSqrt(functionName)) {
+
+        if (parameters.size() == 1) {
+          CType paramType = getTypeOfBuiltinFloatFunction(functionName);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
+          if (formulaType.isFloatingPointType()) {
+            FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
+            FloatingPointFormula param =
+                (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
+
+            // C11 7.12.7.5 "The sqrt functions"; Annex F.10.4.5 fully defers sqrt's behavior
+            // (rounding, domain error, special values) to IEC 60559 (IEEE 754), which fp.sqrt
+            // from the SMT FloatingPoint theory encodes exactly, so this is not an approximation.
+            return fpfmgr.sqrt(param);
           }
         }
 
@@ -1726,6 +1767,23 @@ public class ExpressionToFormulaVisitor
     }
 
     return null;
+  }
+
+  /**
+   * Checks whether the given function declaration (if any) has a single formal parameter of the
+   * given type. Returns {@code true} if there is no declaration to check against.
+   */
+  private static boolean hasMatchingSingleParameterType(
+      @Nullable CFunctionDeclaration functionDeclaration, CType expectedParamType) {
+    if (functionDeclaration == null) {
+      return true;
+    }
+    List<CType> formalParameters = functionDeclaration.getType().getParameters();
+    return formalParameters.size() != 1
+        || formalParameters
+            .getFirst()
+            .getCanonicalType()
+            .equals(expectedParamType.getCanonicalType());
   }
 
   /**

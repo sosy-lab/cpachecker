@@ -146,6 +146,8 @@ public class AutomatonWitnessV2ParserUtils {
       return Optional.of(YAMLWitnessVersion.V2);
     } else if (allEntriesHaveVersion("2.1", entries)) {
       return Optional.of(YAMLWitnessVersion.V2d1);
+    } else if (allEntriesHaveVersion("2.2", entries)) {
+      return Optional.of(YAMLWitnessVersion.V2d2);
     }
     return Optional.empty();
   }
