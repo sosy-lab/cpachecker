@@ -176,7 +176,9 @@ public abstract class LanguageToSmtConverter<T extends Type> {
             // reached its declaration yet and thus cannot have taken its address either.
             assert !newPts.isActualBase(
                     PointerBase.forVariable(variableOfCaller, newPts.getCallStackDepth()))
-                : "Aliased variable " + variableOfCaller + " is missing from the SSA map of the caller";
+                : "Aliased variable "
+                    + variableOfCaller
+                    + " is missing from the SSA map of the caller";
 
             @SuppressWarnings("unchecked")
             T varType = (T) pSsaMapAfterHandlingEdge.getType(variableOfCaller);
@@ -184,7 +186,8 @@ public abstract class LanguageToSmtConverter<T extends Type> {
           } else if (
           // If we are not in a recursive call, then we do not need to reset the index, we know
           // this since if the same variable has not been written we are not in a recursive call
-          pSsaMapAfterHandlingEdge.getIndex(variableOfCaller) != callerSsa.getIndex(variableOfCaller)
+          pSsaMapAfterHandlingEdge.getIndex(variableOfCaller)
+                  != callerSsa.getIndex(variableOfCaller)
               // The reset is only sound for the plain SSA copy of a variable. A variable whose
               // address has been taken lives in the memory encoding instead, where the callee may
               // legitimately have changed it through a pointer into the caller's frame, so its
