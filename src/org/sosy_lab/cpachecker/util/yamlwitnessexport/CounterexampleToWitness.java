@@ -798,7 +798,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
    * @throws IOException If the witness could not be written to the file.
    */
   public void export(CounterexampleInfo pCex, Path pOutputFile) throws IOException {
-    exportWitnessVersion2(pCex, pOutputFile);
+    exportWitness(pCex, pOutputFile, YAMLWitnessVersion.V2);
   }
 
   /**

@@ -653,10 +653,12 @@ public class ARGUtils {
     return true;
   }
 
+  private static final String VIOLATION_ASSERTION = "ASSERT !CHECK(\"internalStateIsTarget\") ";
+
   /**
    * Produce an automaton in the format for the AutomatonCPA from a given path. The automaton
    * matches exactly the edges along the path. If there is a target state, it is signaled as an
-   * error state in the automaton.
+   * error state in the automaton, provided that the specification automaton also considers it one.
    *
    * @param sb Where to write the automaton to
    * @param pRootState The root of the ARG
@@ -749,11 +751,11 @@ public class ARGUtils {
         handleMatchCase(sb, edge);
 
         if (child.isTarget()) {
-          sb.append("ERROR");
+          sb.append(VIOLATION_ASSERTION);
         } else {
           addAssumption(valueMap, s, edge, sb);
-          sb.append("GOTO ARG" + child.getStateId());
         }
+        sb.append("GOTO ARG" + child.getStateId());
         sb.append(";\n");
       }
       sb.append("    TRUE -> STOP;\n\n");
