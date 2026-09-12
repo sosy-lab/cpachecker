@@ -20,14 +20,15 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessVersion;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 
 /**
  * Parser for witnesses in one of the YAML witness format versions 2.0, 2.1 or 2.2.
  *
  * <p>This class only dispatches: it reads the entries, determines whether they describe a
- * correctness or a violation witness and which format version they use, and hands them to the
- * matching correctness or violation parser.
+ * correctness or a violation witness and which format version they use, and hands them to {@link
+ * AutomatonWitnessCorrectnessV2Parser} or {@link AutomatonWitnessViolationV2Parser} respectively.
  */
 public class AutomatonWitnessV2Parser {
 
@@ -70,29 +71,18 @@ public class AutomatonWitnessV2Parser {
   private Automaton parseAutomatonFile(InputStream pInputStream)
       throws InvalidConfigurationException, IOException, InterruptedException {
     List<AbstractEntry> entries = AutomatonWitnessV2ParserUtils.parseYAML(pInputStream);
+    YAMLWitnessVersion witnessVersion =
+        AutomatonWitnessV2ParserUtils.getWitnessVersion(entries).orElseThrow();
     if (AutomatonWitnessV2ParserUtils.getWitnessTypeIfYAML(entries)
         .orElseThrow()
         .equals(WitnessType.CORRECTNESS_WITNESS)) {
-      AutomatonWitnessV2d0ParserCorrectness parser =
-          switch (AutomatonWitnessV2ParserUtils.getWitnessVersion(entries).orElseThrow()) {
-            case V2 ->
-                new AutomatonWitnessV2d0ParserCorrectness(config, logger, shutdownNotifier, cfa);
-            case V2d1 ->
-                new AutomatonWitnessV2d1ParserCorrectness(config, logger, shutdownNotifier, cfa);
-            // Currently no change vs version 2.1 of the witness format for correctness witnesses
-            case V2d2 ->
-                new AutomatonWitnessV2d1ParserCorrectness(config, logger, shutdownNotifier, cfa);
-          };
-      return parser.createCorrectnessAutomatonFromEntries(entries);
+      return new AutomatonWitnessCorrectnessV2Parser(
+              config, logger, shutdownNotifier, cfa, witnessVersion)
+          .createCorrectnessAutomatonFromEntries(entries);
     } else {
-      AutomatonWitnessViolationV2Parser parser =
-          new AutomatonWitnessViolationV2Parser(
-              config,
-              logger,
-              shutdownNotifier,
-              cfa,
-              AutomatonWitnessV2ParserUtils.getWitnessVersion(entries).orElseThrow());
-      return parser.createViolationAutomatonFromEntries(entries);
+      return new AutomatonWitnessViolationV2Parser(
+              config, logger, shutdownNotifier, cfa, witnessVersion)
+          .createViolationAutomatonFromEntries(entries);
     }
   }
 }
