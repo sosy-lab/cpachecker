@@ -25,3 +25,4 @@ type_tests/*.yml
 pointer_arithmetics/*.yml
 function_pointers/*.yml
 recursion/*.yml
+mathFunctions/*.yml

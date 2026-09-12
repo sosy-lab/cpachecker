@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -293,12 +294,6 @@ public class BuiltinFloatFunctions {
     return ABSOLUTE_VAL_LONG_DOUBLE.contains(pFunctionName);
   }
 
-  public static boolean matchesSqrt(String pFunctionName) {
-    return SQRT_FLOAT.contains(pFunctionName)
-        || SQRT.contains(pFunctionName)
-        || SQRT_LONG_DOUBLE.contains(pFunctionName);
-  }
-
   public static boolean matchesCeil(String pFunctionName) {
     return CEIL_FLOAT.contains(pFunctionName)
         || CEIL.contains(pFunctionName)
@@ -369,6 +364,17 @@ public class BuiltinFloatFunctions {
     return FREMAINDER_FLOAT.contains(pFunctionName)
         || FREMAINDER.contains(pFunctionName)
         || FREMAINDER_LONG_DOUBLE.contains(pFunctionName);
+  }
+
+  /**
+   * Check if the function is one of the {@code sqrt} variants from {@code math.h}.
+   *
+   * <p>Matches {@code sqrtf} for {@code float}, {@code sqrt} for {@code double} and {@code sqrtl}
+   * for {@code long double} values. Complex values are not supported, and {@code csqrt} from {@code
+   * complex.h} will not be matched
+   */
+  public static boolean matchesSqrt(String pFunctionName) {
+    return FluentIterable.concat(SQRT_FLOAT, SQRT, SQRT_LONG_DOUBLE).contains(pFunctionName);
   }
 
   public static boolean matchesSignbit(String pFunctionName) {
