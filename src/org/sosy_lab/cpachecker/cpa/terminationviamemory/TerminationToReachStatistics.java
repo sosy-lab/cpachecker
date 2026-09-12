@@ -94,7 +94,10 @@ public class TerminationToReachStatistics extends TerminationStatistics implemen
       Preconditions.checkState(!violations.hasNext());
     }
 
-    if (!validation && exportYamlCorrectnessWitness && yamlWitnessOutputFileTemplate != null && pResult == Result.TRUE) {
+    if (!validation
+        && exportYamlCorrectnessWitness
+        && yamlWitnessOutputFileTemplate != null
+        && pResult == Result.TRUE) {
       try {
         terminationWitnessExporter.export(terminationArguments, yamlWitnessOutputFileTemplate);
       } catch (IOException e) {
