@@ -40,6 +40,6 @@ public class TerminationToReachAbstractDomain implements AbstractDomain {
   private boolean isSubsequence(
       ImmutableList<CFANode> newPath, ImmutableList<CFANode> reachedPath) {
     return newPath.size() >= reachedPath.size()
-        && newPath.subList(0, reachedPath.size() - 1).equals(reachedPath);
+        && newPath.subList(0, reachedPath.size()).equals(reachedPath);
   }
 }
