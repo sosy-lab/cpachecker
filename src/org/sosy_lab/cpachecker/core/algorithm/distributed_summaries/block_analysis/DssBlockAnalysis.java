@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -345,8 +346,20 @@ public final class DssBlockAnalysis {
     } finally {
       disableCallstackIfAvailable(false);
     }
-    blockStateOf(state).addHistory(block);
-    return state;
+    return withInitialBlockState(state, blockStateOf(state).withHistory(block));
+  }
+
+  /** Replace a root's block component before inserting it into the reached set. */
+  private static ARGState withInitialBlockState(AbstractState pState, BlockState pBlockState) {
+    ARGState root = (ARGState) pState;
+    Preconditions.checkArgument(root.getParents().isEmpty(), "Expected an analysis root");
+    CompositeState composite = (CompositeState) root.getWrappedState();
+    return new ARGState(
+        new CompositeState(
+            composite.getWrappedStates().stream()
+                .map(state -> state instanceof BlockState ? pBlockState : state)
+                .collect(ImmutableList.toImmutableList())),
+        null);
   }
 
   Precision makeStartPrecision() throws InterruptedException {
@@ -553,8 +566,12 @@ public final class DssBlockAnalysis {
       Collection<AbstractState> pViolationConditions)
       throws CPAException, InterruptedException {
     reachedSet.clear();
-    reachedSet.add(pPrecondition, pPrecision);
-    blockStateOf(pPrecondition).setViolationConditions(ImmutableList.copyOf(pViolationConditions));
+    reachedSet.add(
+        withInitialBlockState(
+            pPrecondition,
+            blockStateOf(pPrecondition)
+                .withViolationConditions(ImmutableList.copyOf(pViolationConditions))),
+        pPrecision);
     try {
       workerStats.getBlockAnalysisTimer().start();
       DssBlockAnalysisResult result = DssBlockAnalyses.runAlgorithm(algorithm, reachedSet);

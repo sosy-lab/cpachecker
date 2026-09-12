@@ -85,7 +85,7 @@ public class BlockTransferRelation extends SingleEdgeTransferRelation {
               .getSuccessor()
               .equals(blockState.getBlockNode().getViolationConditionLocation())) {
         ImmutableList.Builder<BlockState> successors = ImmutableList.builder();
-        for (AbstractState vc : blockState.getViolationConditions()) {
+        for (AbstractState vc : blockState.getPendingViolationConditions()) {
           successors.add(
               new BlockState(
                   freshId(blockState),

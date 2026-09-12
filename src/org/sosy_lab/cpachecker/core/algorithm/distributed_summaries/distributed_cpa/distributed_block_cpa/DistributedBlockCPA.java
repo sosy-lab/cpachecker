@@ -151,7 +151,7 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
         pAbstractState instanceof BlockState,
         "Expected BlockState, but got %s",
         pAbstractState.getClass().getSimpleName());
-    return pAbstractState;
+    return ((BlockState) pAbstractState).reset();
   }
 
   @Override

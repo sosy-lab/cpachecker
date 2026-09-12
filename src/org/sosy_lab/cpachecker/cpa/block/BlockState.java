@@ -16,7 +16,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Comparator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -59,13 +58,13 @@ public class BlockState
   private final CFANode node;
   private final BlockStateType type;
   private final BlockNode blockNode;
-  private BlockGraphPath history;
-  private ImmutableList<? extends AbstractState> violationConditions;
+  private final BlockGraphPath history;
+  private final ImmutableList<? extends AbstractState> violationConditions;
   private final SegmentedPaths witness;
 
   private final Optional<SegmentedPaths> witnessCheckPathState;
 
-  private final transient Set<AbstractState> hinderedByCallstack;
+  private final BlockStateObligations obligations = new BlockStateObligations();
 
   public BlockState(
       String pId,
@@ -86,7 +85,6 @@ public class BlockState
     history = pHistory;
     witness = pWitness;
     witnessCheckPathState = Optional.ofNullable(pWitnessCheckPathState);
-    hinderedByCallstack = new LinkedHashSet<>();
   }
 
   public BlockState(
@@ -131,15 +129,17 @@ public class BlockState
   }
 
   public Set<AbstractState> getHinderedByCallstack() {
-    return ImmutableSet.copyOf(hinderedByCallstack);
+    return obligations.getHinderedByCallstack();
   }
 
   public void addHinderedByCallstack(AbstractState state) {
-    hinderedByCallstack.add(state);
+    obligations.addHinderedByCallstack(state);
   }
 
-  public void addHistory(BlockNode pBlockNode) {
-    history = new BlockGraphPath(listAndElement(history.path(), pBlockNode.getId()));
+  public BlockState withHistory(BlockNode pBlockNode) {
+    return copy(
+        violationConditions,
+        new BlockGraphPath(listAndElement(history.path(), pBlockNode.getId())));
   }
 
   public SegmentedPaths getWitness() {
@@ -150,12 +150,53 @@ public class BlockState
     return history;
   }
 
-  public void setViolationConditions(List<? extends AbstractState> pViolationConditions) {
-    violationConditions =
+  public BlockState withViolationConditions(List<? extends AbstractState> pViolationConditions) {
+    return copy(
         ImmutableList.sortedCopyOf(
             Comparator.comparingInt(
                 v -> AbstractStates.extractStateByType(v, BlockState.class).getWitness().size()),
-            pViolationConditions);
+            pViolationConditions),
+        history);
+  }
+
+  private BlockState copy(
+      ImmutableList<? extends AbstractState> pConditions, BlockGraphPath pHistory) {
+    return new BlockState(
+        id,
+        predecessor,
+        node,
+        blockNode,
+        type,
+        pConditions,
+        pHistory,
+        witness,
+        witnessCheckPathState.orElse(null));
+  }
+
+  /** Reuse the abstract value in a new exploration without reusing processing records. */
+  public BlockState reset() {
+    return new BlockState(
+        id,
+        null,
+        node,
+        blockNode,
+        type,
+        ImmutableList.of(),
+        history,
+        witness,
+        witnessCheckPathState.orElse(null));
+  }
+
+  /** Conditions whose ghost successors still need to be processed for this occurrence. */
+  public ImmutableList<? extends AbstractState> getPendingViolationConditions() {
+    return violationConditions.stream()
+        .filter(condition -> !obligations.isProcessed(condition))
+        .collect(ImmutableList.toImmutableList());
+  }
+
+  /** Refresh from surviving ghost states, so refinement does not leave stale completion records. */
+  public void setProcessedViolationConditions(Iterable<? extends AbstractState> pConditions) {
+    obligations.setProcessed(pConditions);
   }
 
   public BlockNode getBlockNode() {
@@ -177,8 +218,10 @@ public class BlockState
 
   @Override
   public @Nullable Object getPartitionKey() {
-    return Objects.hash(getLocationNode(), violationConditions, type);
+    return new BlockPartitionKey(node, type);
   }
+
+  private record BlockPartitionKey(CFANode node, BlockStateType type) {}
 
   @Override
   public String toString() {
@@ -231,7 +274,7 @@ public class BlockState
    * from {@code that} no longer has to be analyzed from this state.
    *
    * <p>This comparison deliberately ignores everything that only records where a state came from:
-   * {@link #id}, {@link #predecessor}, {@link #hinderedByCallstack} and, most importantly, {@link
+   * {@link #id}, {@link #predecessor}, {@link #obligations} and, most importantly, {@link
    * #history}. Two preconditions that reach the same block entry with the same callstack and the
    * same abstraction have to subsume each other even if they arrived along different paths through
    * the block graph, otherwise a block collects one precondition per block-graph path.
