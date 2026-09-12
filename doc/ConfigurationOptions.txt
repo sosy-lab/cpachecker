@@ -2055,8 +2055,7 @@ cpa.bdd.variablesFile = "BDDCPA_ordered_variables.txt"
 cpa.block.transfer.standardVcs = true
 
 # depth of recursion bound, i.e., how often a function may appear on the call
-# stack in addition to its first occurrence. Negative values mean that
-# recursion is not bounded at all.
+# stack in addition to its first occurrence. Use -1 for no bound.
 cpa.callstack.depth = 0
 
 # which abstract domain to use for callstack cpa, typically FLAT which is
@@ -6082,6 +6081,13 @@ witness.yamlexporter.analyseWitnessQuality = false
 
 # Export all information contained in the counterexample as a witness.
 witness.yamlexporter.exportCompleteCounterexample = false
+
+# Which waypoints to export for a counterexample that was found by analyzing
+# a sequentialization of a concurrent program. Exporting only the target
+# makes the witness easier to validate, because every other waypoint
+# constrains the interleaving that a validator has to reproduce.
+witness.yamlexporter.sequentializedWaypoints = no default value
+  enum:     [ALL, TARGET_ONLY]
 
 # The version for which to export the witness.
 witness.yamlexporter.witnessVersions = [YAMLWitnessVersion.V2d2]
