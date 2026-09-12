@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.Optional;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
@@ -52,9 +53,6 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
     TerminationToReachState terminationState = (TerminationToReachState) state;
-    ImmutableList.Builder<CFANode> builder = ImmutableList.builder();
-    builder.addAll(terminationState.getPathSequence());
-    builder.add(cfaEdge.getSuccessor());
     TerminationToReachState newState =
         new TerminationToReachState(
             terminationState.getStoredValues(),
@@ -62,7 +60,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
             terminationState.getPathFormulasForIteration(),
             terminationState.getPathFormulasForPrefix(),
             terminationState.getPathFormulaFull(),
-            builder.build(),
+            Collections3.listAndElement(terminationState.getPathSequence(), cfaEdge.getSuccessor()),
             ImmutableSet.of(),
             terminationState.getTransitionPredicates());
     return ImmutableList.of(newState);
