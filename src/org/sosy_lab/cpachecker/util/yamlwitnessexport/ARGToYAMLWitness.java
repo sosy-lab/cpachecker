@@ -508,7 +508,8 @@ final class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
               new FunctionContractEntry(
                   String.join(" && ", ensuresClause.build()),
                   requiresClause,
-                  YAMLWitnessExpressionType.ACSL,
+                  // The format of contract expressions is always ext_c_expression
+                  YAMLWitnessExpressionType.EXT_C,
                   LocationRecord.createLocationRecordAtStart(
                       location, functionEntryNode.getFunction().getOrigName())),
               translationSuccessful));

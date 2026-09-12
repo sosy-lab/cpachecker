@@ -8,8 +8,8 @@
 
 - entry_type: "invariant_set"
   metadata:
-    format_version: "2.2"
-    uuid: "f2f82895-a83f-5515-b104-abe824515ef6"
+    format_version: "2.1"
+    uuid: "03953cd8-94b1-5a10-b253-dd180ffa60c9"
     creation_time: "2026-09-12T10:00:00+02:00"
     producer:
       name: "Handcrafted"
@@ -31,7 +31,7 @@
           function: "main"
         value: "y <= x"
         format: "c_expression"
-    - contract:
+    - invariant:
         type: "function_contract"
         location:
           file_name: "./simple.c"
@@ -40,4 +40,4 @@
           function: "main"
         requires: "1"
         ensures: "1"
-        format: "ext_c_expression"
+        format: "acsl_expression"

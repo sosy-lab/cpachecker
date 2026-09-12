@@ -42,17 +42,21 @@ public abstract class AbstractInvariantEntry extends AbstractInformationRecord {
       ObjectMapper mapper = (ObjectMapper) jp.getCodec();
       JsonNode root = mapper.readTree(jp);
 
-      // Assuming the invariant field is named "invariant" and "type" is inside it
-      JsonNode invariantNode = root.get("invariant");
-      if (invariantNode != null) {
-        String invariantType = invariantNode.get("type").asText();
+      // An invariant is wrapped in "invariant" and a function contract in "contract", with the
+      // "type" inside. Contracts up to format version 2.1 were wrapped in "invariant" as well.
+      JsonNode contentNode = root.get(FunctionContractEntry.CONTRACT_KEY);
+      if (contentNode == null) {
+        contentNode = root.get(FunctionContractEntry.LEGACY_CONTRACT_KEY);
+      }
+      if (contentNode != null) {
+        String type = contentNode.get("type").asText();
 
         // Use the type to determine the actual class to deserialize into
-        Class<? extends AbstractInvariantEntry> targetClass = getClassForType(invariantType);
+        Class<? extends AbstractInvariantEntry> targetClass = getClassForType(type);
         return mapper.treeToValue(root, targetClass);
       }
 
-      // Fallback if "invariant" or "type" is not found
+      // Fallback if neither wrapper nor "type" is found
       throw new IOException("An invariant should always have a type");
     }
 

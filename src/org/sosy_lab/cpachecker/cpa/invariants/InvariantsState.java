@@ -1267,7 +1267,7 @@ public class InvariantsState
     return getFormulaApproximation(
         pFunctionScope,
         isInvalidVarFormulaApproximation,
-        varName -> useOldKeywordForVariables ? "\\old(" + varName + ")" : varName);
+        varName -> useOldKeywordForVariables ? "\\at(" + varName + ", Old)" : varName);
   }
 
   @Override

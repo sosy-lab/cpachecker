@@ -67,9 +67,9 @@ public interface ExpressionTreeReportingState extends AbstractState {
    * @param pLocation the formula should at least try to approximate variables referenced by
    *     entering edges at this location
    * @param pAstCfaRelation the relation between the AST and the CFA
-   * @param useOldKeywordForVariables whether to use the old keyword for variables or not. For
-   *     example if true the variable `x` should be denoted by `\old(x)` in the produced ACSL
-   *     formula
+   * @param useOldKeywordForVariables whether the produced formula should refer to the value a
+   *     variable had when the function was called. For example if true the variable `x` should be
+   *     denoted by `\at(x, Old)`
    * @param pMachineModel the machine model of the analyzed program
    * @return the formula approximation
    * @throws InterruptedException if the computation is interrupted

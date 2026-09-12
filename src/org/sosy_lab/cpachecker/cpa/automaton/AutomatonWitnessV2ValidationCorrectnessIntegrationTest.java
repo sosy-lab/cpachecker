@@ -126,4 +126,10 @@ public final class AutomatonWitnessV2ValidationCorrectnessIntegrationTest {
   public void validate_witness_v2d2_function_contract() throws Exception {
     validate("simple-valid-witness-v2d2-contract--1.yml", Result.TRUE);
   }
+
+  /** Contracts written by CPAchecker up to version 2.1 were wrapped in an invariant. */
+  @Test(timeout = 3000)
+  public void validate_witness_v2d1_legacy_function_contract() throws Exception {
+    validate("simple-valid-witness-v2d1-contract-legacy--1.yml", Result.TRUE);
+  }
 }

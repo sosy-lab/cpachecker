@@ -67,6 +67,15 @@ public class FunctionContractEntry extends AbstractInvariantEntry {
     return requires;
   }
 
+  /**
+   * The key a function contract is wrapped in. Up to version 2.1 of the format contracts were
+   * wrapped in an {@code invariant}, since then they have their own key.
+   */
+  static final String CONTRACT_KEY = "contract";
+
+  /** The key contracts were wrapped in before {@link #CONTRACT_KEY} was introduced. */
+  static final String LEGACY_CONTRACT_KEY = "invariant";
+
   public static class FunctionContractRecordDeserializer
       extends JsonDeserializer<FunctionContractEntry> {
     @Override
@@ -75,9 +84,12 @@ public class FunctionContractEntry extends AbstractInvariantEntry {
       ObjectMapper mapper = (ObjectMapper) jp.getCodec();
       JsonNode node = mapper.readTree(jp);
 
-      // The node should now be the 'invariant' node. Move one level deeper to its children.
-      JsonNode invariantNode = node.get("invariant");
-      assert invariantNode != null;
+      // Move one level deeper to the children of the contract
+      JsonNode contractNode = node.get(CONTRACT_KEY);
+      if (contractNode == null) {
+        contractNode = node.get(LEGACY_CONTRACT_KEY);
+      }
+      assert contractNode != null;
 
       // Delegate the actual object mapping back to Jackson:
       // WaypointRecord result = mapper.treeToValue(waypointNode, WaypointRecord.class);
@@ -87,10 +99,10 @@ public class FunctionContractEntry extends AbstractInvariantEntry {
       // (less elegant, but we probably never touch that code again, so it is fine):
       FunctionContractEntry result =
           new FunctionContractEntry(
-              mapper.treeToValue(invariantNode.get("ensures"), String.class),
-              mapper.treeToValue(invariantNode.get("requires"), String.class),
-              mapper.treeToValue(invariantNode.get("format"), YAMLWitnessExpressionType.class),
-              mapper.treeToValue(invariantNode.get("location"), LocationRecord.class));
+              mapper.treeToValue(contractNode.get("ensures"), String.class),
+              mapper.treeToValue(contractNode.get("requires"), String.class),
+              mapper.treeToValue(contractNode.get("format"), YAMLWitnessExpressionType.class),
+              mapper.treeToValue(contractNode.get("location"), LocationRecord.class));
 
       return result;
     }
@@ -106,7 +118,7 @@ public class FunctionContractEntry extends AbstractInvariantEntry {
 
       // Start a wrapper object for "function_contract"
       gen.writeStartObject();
-      gen.writeFieldName("invariant");
+      gen.writeFieldName(CONTRACT_KEY);
 
       // start the actual InvariantEntry object
       gen.writeStartObject();
