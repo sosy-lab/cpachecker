@@ -17,9 +17,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.graph.Traverser;
-import com.google.common.io.MoreFiles;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
@@ -209,21 +207,18 @@ public class ToValuePrecisionConverter implements Statistics {
         if (AutomatonWitnessV2ParserUtils.getWitnessTypeIfYAML(pWitnessFile)
             .orElseThrow()
             .equals(WitnessType.CORRECTNESS_WITNESS)) {
-          try (InputStream witness = MoreFiles.asByteSource(pWitnessFile).openStream()) {
-            InvariantExchangeFormatTransformer transformer =
-                new InvariantExchangeFormatTransformer(
-                    config, logger, pConversionShutdownNotifier, cfa);
-            SetMultimap<CFANode, MemoryLocation> trackedVariables = HashMultimap.create();
+          InvariantExchangeFormatTransformer transformer =
+              new InvariantExchangeFormatTransformer(
+                  config, logger, pConversionShutdownNotifier, cfa);
+          SetMultimap<CFANode, MemoryLocation> trackedVariables = HashMultimap.create();
 
-            for (Invariant inv :
-                transformer.generateInvariantsFromEntries(
-                    AutomatonWitnessV2ParserUtils.parseYAML(witness))) {
-              trackedVariables.putAll(
-                  dummyNode, extractMemoryLocationsFromLeaves(inv.getFormula()));
-            }
-
-            return trackedVariables;
+          for (Invariant inv :
+              transformer.generateInvariantsFromEntries(
+                  AutomatonWitnessV2ParserUtils.parseYAML(pWitnessFile))) {
+            trackedVariables.putAll(dummyNode, extractMemoryLocationsFromLeaves(inv.getFormula()));
           }
+
+          return trackedVariables;
         } else {
           logger.log(
               Level.WARNING,

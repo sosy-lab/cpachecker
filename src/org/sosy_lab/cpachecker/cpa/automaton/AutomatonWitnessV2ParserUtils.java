@@ -58,6 +58,20 @@ public class AutomatonWitnessV2ParserUtils {
   }
 
   /**
+   * Parses a YAML witness file and returns the entries found in the file. This handles potentially
+   * GZipped files.
+   *
+   * @param pInputFile the file to parse the YAML contents from.
+   * @return the entries found in the file.
+   * @throws IOException if there occurs an IOException while reading the file.
+   */
+  public static List<AbstractEntry> parseYAML(Path pInputFile)
+      throws IOException, InterruptedException {
+    return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
+        MoreFiles.asByteSource(pInputFile), AutomatonWitnessV2ParserUtils::parseYAML, e -> e);
+  }
+
+  /**
    * Determine the scope for the given line in the source code.
    *
    * @param pExplicitScope The explicit scope to use if present.

@@ -12,7 +12,6 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -246,9 +245,7 @@ public class WitnessInvariantsExtractor {
           IOException,
           InvalidWitnessException {
 
-    List<AbstractEntry> entries =
-        AutomatonWitnessV2ParserUtils.parseYAML(
-            MoreFiles.asByteSource(pPathToWitnessFile).openStream());
+    List<AbstractEntry> entries = AutomatonWitnessV2ParserUtils.parseYAML(pPathToWitnessFile);
     InvariantExchangeFormatTransformer transformer =
         new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa);
     Set<Invariant> invariants = transformer.generateInvariantsFromEntries(entries);
