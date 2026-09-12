@@ -205,7 +205,7 @@ public abstract sealed class PredicateAbstractState
                                   // For global variables
                                   || var.getName().equals(name))
                   && !name.contains("__CPAchecker_"),
-          name -> useOldKeywordForVariables ? "\\at(" + name + ", Old)" : name,
+          name -> useOldKeywordForVariables ? ExpressionTreeReportingState.oldValueOf(name) : name,
           pMachineModel);
     }
 

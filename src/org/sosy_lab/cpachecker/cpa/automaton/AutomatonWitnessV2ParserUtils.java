@@ -142,12 +142,8 @@ public class AutomatonWitnessV2ParserUtils {
   public static Optional<WitnessType> getWitnessTypeIfYAML(Path pPath) throws InterruptedException {
     List<AbstractEntry> entries;
     try {
-      entries =
-          AutomatonGraphmlParser.handlePotentiallyGZippedInput(
-              MoreFiles.asByteSource(pPath),
-              AutomatonWitnessV2ParserUtils::parseYAML,
-              WitnessParseException::new);
-    } catch (WitnessParseException e) {
+      entries = parseYAML(pPath);
+    } catch (IOException e) {
       return Optional.empty();
     }
     return getWitnessTypeIfYAML(entries);

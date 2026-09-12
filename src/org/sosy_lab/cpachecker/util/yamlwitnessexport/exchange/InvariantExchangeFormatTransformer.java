@@ -110,18 +110,6 @@ public class InvariantExchangeFormatTransformer {
   }
 
   /**
-   * Parse the invariant string given in an {@link InvariantEntry} into an {@link ExpressionTree}.
-   *
-   * @param pInvariantEntry The entry whose invariant should be parsed
-   * @return The parsed invariant as a {@link ExpressionTree}
-   * @throws InterruptedException If the parsing is interrupted
-   */
-  public ExpressionTree<AExpression> parseInvariantEntry(InvariantEntry pInvariantEntry)
-      throws InterruptedException {
-    return parseSingleEntry(pInvariantEntry).formula();
-  }
-
-  /**
    * Parse one invariant of a correctness witness.
    *
    * @param pInvariantEntry The entry which should be parsed
@@ -135,9 +123,8 @@ public class InvariantExchangeFormatTransformer {
         Optional.ofNullable(pInvariantEntry.getLocation().getFunction());
     String invariantString = pInvariantEntry.getValue();
     ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> previousValueVariables = ImmutableMap.of();
-    if (pInvariantEntry
-        .getType()
-        .equals(InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword())) {
+    if (InvariantRecordType.fromKeyword(pInvariantEntry.getType())
+        == InvariantRecordType.TRANSITION_LOOP_INVARIANT) {
       invariantString = replacePrevKeywordWithFreshVariables(pInvariantEntry);
       // This adds declarations of the fresh variables to the CFA and must happen only once
       previousValueVariables = registerThePrevVariables(pInvariantEntry);

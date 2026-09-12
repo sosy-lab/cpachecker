@@ -28,6 +28,18 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
  */
 public interface ExpressionTreeReportingState extends AbstractState {
 
+  /**
+   * How to refer to the value a variable had when the function was called, for the implementations
+   * which are asked to use it. This is the syntax of the witness format, so it belongs in one place
+   * instead of being spelled out by every implementation.
+   *
+   * @param pVariable the name of the variable
+   * @return the expression referring to the value of the variable at the call
+   */
+  static String oldValueOf(String pVariable) {
+    return "\\at(" + pVariable + ", Old)";
+  }
+
   class ReportingMethodNotImplementedException extends Exception {
     @Serial private static final long serialVersionUID = -1208757812;
 

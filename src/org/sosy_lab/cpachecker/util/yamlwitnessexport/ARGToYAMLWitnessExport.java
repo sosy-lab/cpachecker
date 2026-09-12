@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
-import static com.google.common.collect.FluentIterable.from;
-
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
@@ -18,6 +16,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import java.io.IOException;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -62,20 +62,14 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
               + " witness.yamlexporter.witnessVersions.")
   private boolean exportFunctionContracts = false;
 
-  /**
-   * A class to keep track of the result of the witness export, in particular to inform the caller
-   * about some internals of the translation and export.
-   *
-   * @param translationAlwaysSuccessful if the translation from internal ARG states to strings was
-   *     always successful
-   */
-  public record WitnessExportResult(boolean translationAlwaysSuccessful) {}
-
   private final ARGToYAMLWitness argToWitness;
 
   /** The kinds of information which are exported into the witness of each requested version. */
   private final ImmutableMap<YAMLWitnessVersion, ImmutableSet<WitnessInvariantKind>>
       kindsPerVersion;
+
+  /** The kinds of information which are exported into at least one of the requested versions. */
+  private final ImmutableSet<WitnessInvariantKind> exportedKinds;
 
   public ARGToYAMLWitnessExport(
       Configuration pConfig,
@@ -120,27 +114,23 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
       kinds.put(witnessVersion, Sets.intersection(requestedKinds, supported).immutableCopy());
     }
     kindsPerVersion = kinds.buildOrThrow();
+    exportedKinds = ImmutableSet.copyOf(Iterables.concat(kindsPerVersion.values()));
   }
 
   /** Export some information to the user about the guarantees provided by the witness. */
   private void analyzeExportedWitnessQuality(
-      ImmutableMap<YAMLWitnessVersion, WitnessExportResult> pWitnessExportResults,
-      UnmodifiableReachedSet pReachedSet) {
+      Set<YAMLWitnessVersion> pVersionsWithFailedTranslation, UnmodifiableReachedSet pReachedSet) {
     // The common prefix is used to be able to be able to automatically process these messages in
     // CPAchecker's toolinfo module in BenchExec
     String commonPrefix = "Witness export warning: ";
 
-    if (!FluentIterable.from(pWitnessExportResults.values())
-        .allMatch(WitnessExportResult::translationAlwaysSuccessful)) {
+    if (!pVersionsWithFailedTranslation.isEmpty()) {
       // For example occurring for: sv-benchmarks/c/nla-digbench-scaling/hard2_valuebound20.c
       logger.log(
           Level.INFO,
           commonPrefix
               + "Witnesses exported in versions "
-              + from(pWitnessExportResults.entrySet())
-                  .filter(entry -> !entry.getValue().translationAlwaysSuccessful())
-                  .transform(entry -> entry.getKey().toString())
-                  .join(Joiner.on(", "))
+              + Joiner.on(", ").join(pVersionsWithFailedTranslation)
               + " had problems during the translation process. "
               + "This may result in invariants being too large an over approximation.");
     }
@@ -178,24 +168,22 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
       throws InterruptedException, IOException, ReportingMethodNotImplementedException {
 
     // The entries are created only once, even when several versions are exported
-    CollectedInvariants invariants =
-        argToWitness.createInvariantEntries(
-            pRootState, ImmutableSet.copyOf(Iterables.concat(kindsPerVersion.values())));
+    CollectedInvariants invariants = argToWitness.createInvariantEntries(pRootState, exportedKinds);
 
-    ImmutableMap.Builder<YAMLWitnessVersion, WitnessExportResult> witnessExportResults =
-        ImmutableMap.builder();
-    for (YAMLWitnessVersion witnessVersion : kindsPerVersion.keySet()) {
-      ImmutableSet<WitnessInvariantKind> kinds = kindsPerVersion.get(witnessVersion);
+    ImmutableSet.Builder<YAMLWitnessVersion> versionsWithFailedTranslation = ImmutableSet.builder();
+    for (Entry<YAMLWitnessVersion, ImmutableSet<WitnessInvariantKind>> version :
+        kindsPerVersion.entrySet()) {
       exportEntries(
-          new InvariantSetEntry(getMetadata(witnessVersion), invariants.entriesFor(kinds)),
-          pOutputFileTemplate.getPath(witnessVersion.toString()));
-      witnessExportResults.put(
-          witnessVersion,
-          new WitnessExportResult(invariants.translationAlwaysSuccessfulFor(kinds)));
+          new InvariantSetEntry(
+              getMetadata(version.getKey()), invariants.entriesFor(version.getValue())),
+          pOutputFileTemplate.getPath(version.getKey().toString()));
+      if (!invariants.translationAlwaysSuccessfulFor(version.getValue())) {
+        versionsWithFailedTranslation.add(version.getKey());
+      }
     }
 
     if (analyseWitnessQuality) {
-      analyzeExportedWitnessQuality(witnessExportResults.buildOrThrow(), pReachedSet);
+      analyzeExportedWitnessQuality(versionsWithFailedTranslation.build(), pReachedSet);
     }
   }
 }

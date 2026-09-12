@@ -16,9 +16,7 @@ import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -43,7 +41,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.Tran
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -60,7 +57,6 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 
 final class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
 
-  private final Map<ARGState, CollectedARGStates> stateToStatesCollector = new HashMap<>();
   private final RelevantArgStatesCollector argStatesCollector;
 
   public ARGToYAMLWitness(
@@ -105,21 +101,6 @@ final class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
    */
   record ExpressionTreeResult(
       ExpressionTree<Object> expressionTree, boolean backTranslationSuccessful) {}
-
-  /**
-   * Cache the information collected when traversing the ARG starting at the given state.
-   *
-   * @param pRootState the state for where the traversal of the ARG should start for the collection
-   *     of the information
-   * @return the collected information about the ARG
-   */
-  CollectedARGStates getRelevantStates(ARGState pRootState) {
-    if (!stateToStatesCollector.containsKey(pRootState)) {
-      stateToStatesCollector.put(pRootState, argStatesCollector.getRelevantStates(pRootState));
-    }
-
-    return stateToStatesCollector.get(pRootState);
-  }
 
   /**
    * This is a wrapper for the function type to also throw {@link InterruptedException} and {@link
@@ -294,44 +275,26 @@ final class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
    */
   CollectedInvariants createInvariantEntries(ARGState pRootState, Set<WitnessInvariantKind> pKinds)
       throws InterruptedException, ReportingMethodNotImplementedException {
-    CollectedARGStates statesCollector = getRelevantStates(pRootState);
+    CollectedARGStates statesCollector = argStatesCollector.getRelevantStates(pRootState);
 
     ImmutableListMultimap.Builder<WitnessInvariantKind, AbstractInvariantEntry> entries =
         ImmutableListMultimap.builder();
     ImmutableSet.Builder<WitnessInvariantKind> kindsWithFailedTranslation = ImmutableSet.builder();
 
     if (pKinds.contains(WitnessInvariantKind.LOOP_INVARIANT)) {
-      Multimap<CFANode, ARGState> loopInvariants = statesCollector.loopInvariants();
-      boolean translationSuccessful = true;
-      for (CFANode node : loopInvariants.keySet()) {
-        Optional<InvariantCreationResult> invariant =
-            createLoopInvariant(loopInvariants.get(node), node);
-        if (invariant.isPresent()) {
-          entries.put(
-              WitnessInvariantKind.LOOP_INVARIANT, invariant.orElseThrow().invariantEntry());
-          translationSuccessful &= invariant.orElseThrow().translationSuccessful();
-        }
-      }
-      if (!translationSuccessful) {
-        kindsWithFailedTranslation.add(WitnessInvariantKind.LOOP_INVARIANT);
-      }
+      collectInvariants(
+          statesCollector.loopInvariants(),
+          InvariantRecordType.LOOP_INVARIANT,
+          entries,
+          kindsWithFailedTranslation);
     }
 
     if (pKinds.contains(WitnessInvariantKind.LOCATION_INVARIANT)) {
-      Multimap<CFANode, ARGState> locationInvariants = statesCollector.functionCallInvariants();
-      boolean translationSuccessful = true;
-      for (CFANode node : locationInvariants.keySet()) {
-        Optional<InvariantCreationResult> invariant =
-            createLocationInvariant(locationInvariants.get(node), node);
-        if (invariant.isPresent()) {
-          entries.put(
-              WitnessInvariantKind.LOCATION_INVARIANT, invariant.orElseThrow().invariantEntry());
-          translationSuccessful &= invariant.orElseThrow().translationSuccessful();
-        }
-      }
-      if (!translationSuccessful) {
-        kindsWithFailedTranslation.add(WitnessInvariantKind.LOCATION_INVARIANT);
-      }
+      collectInvariants(
+          statesCollector.functionCallInvariants(),
+          InvariantRecordType.LOCATION_INVARIANT,
+          entries,
+          kindsWithFailedTranslation);
     }
 
     if (pKinds.contains(WitnessInvariantKind.FUNCTION_CONTRACT)) {
@@ -353,57 +316,54 @@ final class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
   }
 
   /**
-   * Create a loop invariant for the abstractions encoded by the ARG states at the given loop head.
+   * Create the invariants of the given type for the states relevant to each of the given nodes, and
+   * add them to the entries.
    *
-   * @param pArgStates the ARG states encoding abstractions of the state
-   * @param pNode the loop head at whose location the states should be over approximated
-   * @return the invariant, or an empty Optional if the loop of the node cannot be determined
+   * @param pStates the ARG states to over approximate, per node
+   * @param pType the type of the invariants to create
+   * @param pEntries where to add the created invariants
+   * @param pKindsWithFailedTranslation where to note the kind if a translation was not successful
    * @throws InterruptedException if the execution is interrupted
    */
-  private Optional<InvariantCreationResult> createLoopInvariant(
-      Collection<ARGState> pArgStates, CFANode pNode)
+  private void collectInvariants(
+      Multimap<CFANode, ARGState> pStates,
+      InvariantRecordType pType,
+      ImmutableListMultimap.Builder<WitnessInvariantKind, AbstractInvariantEntry> pEntries,
+      ImmutableSet.Builder<WitnessInvariantKind> pKindsWithFailedTranslation)
       throws InterruptedException, ReportingMethodNotImplementedException {
-    Optional<IterationElement> iterationStructure =
-        getASTStructure().getTightestIterationStructureForNode(pNode);
-    if (iterationStructure.isEmpty()) {
-      logger.logf(
-          Level.FINE,
-          "Could not determine the loop of node %s, skipping its loop invariant",
-          pNode);
-      return Optional.empty();
+    WitnessInvariantKind kind = WitnessInvariantKind.of(pType).orElseThrow();
+    boolean translationSuccessful = true;
+    for (CFANode node : pStates.keySet()) {
+      Optional<FileLocation> location = locationOfInvariant(node, pType);
+      if (location.isEmpty()) {
+        logger.logf(
+            Level.FINE, "Could not determine the location of node %s, skipping its %s", node, kind);
+        continue;
+      }
+      InvariantCreationResult invariant =
+          createInvariant(pStates.get(node), node, pType, location.orElseThrow());
+      pEntries.put(kind, invariant.invariantEntry());
+      translationSuccessful &= invariant.translationSuccessful();
     }
-    return Optional.of(
-        createInvariant(
-            pArgStates,
-            pNode,
-            InvariantRecordType.LOOP_INVARIANT,
-            iterationStructure.orElseThrow().getCompleteElement().location()));
+    if (!translationSuccessful) {
+      pKindsWithFailedTranslation.add(kind);
+    }
   }
 
   /**
-   * Create a location invariant for the abstractions encoded by the ARG states at the given node.
-   *
-   * @param pArgStates the ARG states encoding abstractions of the state
-   * @param pNode the node at whose location the states should be over approximated
-   * @return the invariant, or an empty Optional if the location of the node cannot be determined
-   * @throws InterruptedException if the execution is interrupted
+   * The location in the input program an invariant of the given type at the given node belongs to.
+   * A loop invariant belongs to its loop, a location invariant to the statement containing the
+   * node, which is also the statement the validator resolves such an invariant to.
    */
-  private Optional<InvariantCreationResult> createLocationInvariant(
-      Collection<ARGState> pArgStates, CFANode pNode)
-      throws InterruptedException, ReportingMethodNotImplementedException {
-    // A location invariant belongs to the statement containing the node, which is the same
-    // statement the validator resolves the location of the invariant to.
-    Optional<FileLocation> location = getASTStructure().getStatementFileLocationForNode(pNode);
-    if (location.isEmpty()) {
-      logger.logf(
-          Level.FINE,
-          "Could not determine the location of node %s, skipping its location invariant",
-          pNode);
-      return Optional.empty();
-    }
-    return Optional.of(
-        createInvariant(
-            pArgStates, pNode, InvariantRecordType.LOCATION_INVARIANT, location.orElseThrow()));
+  private Optional<FileLocation> locationOfInvariant(CFANode pNode, InvariantRecordType pType) {
+    return switch (pType) {
+      case LOOP_INVARIANT ->
+          getASTStructure()
+              .getTightestIterationStructureForNode(pNode)
+              .map(iteration -> iteration.getCompleteElement().location());
+      case LOCATION_INVARIANT -> getASTStructure().getStatementFileLocationForNode(pNode);
+      default -> throw new AssertionError("Cannot export invariants of type " + pType);
+    };
   }
 
   /**

@@ -956,7 +956,8 @@ public final class ValueAnalysisState
                     .orElseThrow()
                     .anyMatch(v -> v.getName().equals(varName))
                 && !varName.contains("__CPAchecker_"),
-        varName -> useOldKeywordForVariables ? "\\at(" + varName + ", Old)" : varName);
+        varName ->
+            useOldKeywordForVariables ? ExpressionTreeReportingState.oldValueOf(varName) : varName);
   }
 
   @Override

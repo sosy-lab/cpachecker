@@ -10,10 +10,9 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.base.Ascii;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -71,19 +70,6 @@ class AutomatonWitnessCorrectnessV2Parser extends AutomatonWitnessV2ParserCommon
     version = pVersion;
   }
 
-  // ===========================================================================
-  // Feature predicates: which kinds of invariants a witness of the version this
-  // parser was created for may contain.
-  // ===========================================================================
-
-  /**
-   * Whether a witness of this format version may contain invariants of the given kind. Transition
-   * invariants, which describe termination arguments, were for example added in version 2.1.
-   */
-  private boolean supports(WitnessInvariantKind pKind) {
-    return version.supportedInvariantKinds().contains(pKind);
-  }
-
   /**
    * Create an automaton from a correctness witness.
    *
@@ -105,7 +91,6 @@ class AutomatonWitnessCorrectnessV2Parser extends AutomatonWitnessV2ParserCommon
           contents.functionContracts().size());
     }
 
-    Map<String, AutomatonVariable> automatonVariables = new HashMap<>();
     List<AutomatonInternalState> automatonStates =
         ImmutableList.of(
             new AutomatonInternalState(
@@ -117,7 +102,7 @@ class AutomatonWitnessCorrectnessV2Parser extends AutomatonWitnessV2ParserCommon
       automaton =
           new Automaton(
               contents.uuid().orElse("No Loop Invariant Present"),
-              automatonVariables,
+              ImmutableMap.of(),
               automatonStates,
               ENTRY_STATE_ID);
     } catch (InvalidAutomatonException e) {
@@ -149,45 +134,47 @@ class AutomatonWitnessCorrectnessV2Parser extends AutomatonWitnessV2ParserCommon
         continue;
       }
 
-      switch (invariant.type()) {
-        case LOOP_INVARIANT -> {
-          Optional<AutomatonBoolExpr> atLoopHead = loopHeadCheck(invariant);
-          if (atLoopHead.isPresent()) {
-            addInvariantTransitions(transitions, atLoopHead.orElseThrow(), invariant);
-          }
-        }
-        case LOCATION_INVARIANT -> {
-          Optional<AutomatonBoolExpr> atStatement = statementCheck(invariant);
-          if (atStatement.isPresent()) {
-            addInvariantTransitions(transitions, atStatement.orElseThrow(), invariant);
-          }
-        }
-        case TRANSITION_LOOP_INVARIANT -> {
-          if (!supports(WitnessInvariantKind.LOOP_TRANSITION_INVARIANT)) {
-            throw new WitnessParseException(
-                "Transition invariants require a witness of version 2.1 or later, but the witness"
-                    + " is in version "
-                    + version
-                    + "!");
-          }
-          // The validation currently does not make use of the automaton structure, but this opens
-          // the possibility of creating a validation technique based on our CPA analyses.
-          Optional<AutomatonBoolExpr> atLoopHead = loopHeadCheck(invariant);
-          if (atLoopHead.isPresent()) {
-            transitions.add(
-                new AutomatonTransition.Builder(atLoopHead.orElseThrow(), ENTRY_STATE_ID)
-                    .withCandidateTransitionInvariants(invariant.formula())
-                    .build());
-          }
-        }
-        case TRANSITION_LOCATION_INVARIANT ->
-            throw new WitnessParseException(
-                "Transition invariants on locations are not yet supported.");
-        case UNKNOWN ->
-            throw new WitnessParseException(
-                "The witness contains an invariant of the unsupported type "
-                    + invariant.entry().getType()
-                    + "!");
+      WitnessInvariantKind kind =
+          WitnessInvariantKind.of(invariant.type())
+              .orElseThrow(
+                  () ->
+                      new WitnessParseException(
+                          "The witness contains an invariant of the unsupported type "
+                              + invariant.entry().getType()
+                              + "!"));
+      if (!version.supportedInvariantKinds().contains(kind)) {
+        throw new WitnessParseException(
+            "A witness in version "
+                + version
+                + " cannot contain invariants of the kind "
+                + kind
+                + "!");
+      }
+
+      // Where in the program the invariant has to hold
+      Optional<AutomatonBoolExpr> location =
+          switch (kind) {
+            case LOOP_INVARIANT, LOOP_TRANSITION_INVARIANT -> loopHeadCheck(invariant);
+            case LOCATION_INVARIANT -> statementCheck(invariant);
+            case LOCATION_TRANSITION_INVARIANT ->
+                throw new WitnessParseException(
+                    "Transition invariants on locations are not yet supported.");
+            case FUNCTION_CONTRACT ->
+                throw new AssertionError("Contracts are not part of the invariants");
+          };
+      if (location.isEmpty()) {
+        continue;
+      }
+
+      if (kind == WitnessInvariantKind.LOOP_TRANSITION_INVARIANT) {
+        // The validation currently does not make use of the automaton structure, but this opens
+        // the possibility of creating a validation technique based on our CPA analyses.
+        transitions.add(
+            new AutomatonTransition.Builder(location.orElseThrow(), ENTRY_STATE_ID)
+                .withCandidateTransitionInvariants(invariant.formula())
+                .build());
+      } else {
+        addInvariantTransitions(transitions, location.orElseThrow(), invariant);
       }
     }
 
