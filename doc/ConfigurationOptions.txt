@@ -5701,10 +5701,10 @@ termination.config = no default value
 termination.considerRecursion = false
 
 # export supporting invariants in the witness
-termination.exportSupportingInvariantsInWitness = true
+termination.exportSupportingInvariantsInWitness = false
 
 # export correctness witness in YAML format
-termination.exportYamlCorrectnessWitness = false
+termination.exportYamlCorrectnessWitness = true
 
 # Consider variables with unsigned types in ranking function synthesis.This
 # can lead to unsound results as LassoRanker assumes infinite domain for
