@@ -29,6 +29,14 @@ public enum WitnessInvariantKind {
   FUNCTION_CONTRACT;
 
   /**
+   * Whether invariants of this kind describe a transition of the program instead of a state of it.
+   * They may refer to previous values of variables.
+   */
+  public boolean isTransitionInvariant() {
+    return this == LOOP_TRANSITION_INVARIANT || this == LOCATION_TRANSITION_INVARIANT;
+  }
+
+  /**
    * The kind of the given invariant type, as it is used inside an {@link InvariantEntry}.
    *
    * @param pType the type of an invariant entry

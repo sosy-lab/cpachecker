@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.WitnessInvariantKind;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInformationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractEntry;
@@ -114,8 +115,9 @@ public class InvariantExchangeFormatTransformer {
         Optional.ofNullable(pInvariantEntry.getLocation().getFunction());
     String invariantString = pInvariantEntry.getValue();
     ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> previousValueVariables = ImmutableMap.of();
-    if (InvariantRecordType.fromKeyword(pInvariantEntry.getType())
-        == InvariantRecordType.TRANSITION_LOOP_INVARIANT) {
+    if (WitnessInvariantKind.of(InvariantRecordType.fromKeyword(pInvariantEntry.getType()))
+        .map(WitnessInvariantKind::isTransitionInvariant)
+        .orElse(false)) {
       invariantString = replacePrevKeywordWithFreshVariables(pInvariantEntry);
       // This adds declarations of the fresh variables to the CFA and must happen only once
       previousValueVariables = registerThePrevVariables(pInvariantEntry);
@@ -220,12 +222,10 @@ public class InvariantExchangeFormatTransformer {
    *
    * @param invariants the invariants, with their values already parsed
    * @param functionContracts the function contracts, which are not parsed
-   * @param uuid the uuid of the last invariant set, if there is any
    */
   public record ParsedInvariantSet(
       ImmutableList<ParsedInvariant> invariants,
-      ImmutableList<FunctionContractEntry> functionContracts,
-      Optional<String> uuid) {}
+      ImmutableList<FunctionContractEntry> functionContracts) {}
 
   /**
    * Parse the invariant sets of a correctness witness.
@@ -243,14 +243,12 @@ public class InvariantExchangeFormatTransformer {
     ImmutableList.Builder<ParsedInvariant> invariants = ImmutableList.builder();
     ImmutableList.Builder<FunctionContractEntry> functionContracts = ImmutableList.builder();
     Set<InvariantEntry> alreadyParsed = new HashSet<>();
-    Optional<String> uuid = Optional.empty();
 
     for (AbstractEntry entry : pEntries) {
       if (!(entry instanceof InvariantSetEntry invariantSetEntry)) {
         throw new InvalidYAMLWitnessException(
             "Expected only invariant sets in a correctness witness, but found: " + entry);
       }
-      uuid = Optional.ofNullable(invariantSetEntry.metadata.getUuid());
       for (AbstractInformationRecord entryElement : invariantSetEntry.content) {
         switch (entryElement) {
           case FunctionContractEntry functionContractEntry ->
@@ -271,7 +269,7 @@ public class InvariantExchangeFormatTransformer {
       }
     }
 
-    return new ParsedInvariantSet(invariants.build(), functionContracts.build(), uuid);
+    return new ParsedInvariantSet(invariants.build(), functionContracts.build());
   }
 
   /**

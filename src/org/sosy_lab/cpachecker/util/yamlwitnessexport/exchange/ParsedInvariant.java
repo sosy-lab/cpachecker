@@ -13,6 +13,7 @@ import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.WitnessInvariantKind;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
 
@@ -60,9 +61,11 @@ public record ParsedInvariant(
 
   /**
    * Whether this invariant may refer to previous values of variables, which are encoded as fresh
-   * variables. Currently only transition invariants over loops do.
+   * variables. Transition invariants do, the invariants describing a state of the program do not.
    */
   public boolean hasPreviousValueVariables() {
-    return type() == InvariantRecordType.TRANSITION_LOOP_INVARIANT;
+    return WitnessInvariantKind.of(type())
+        .map(WitnessInvariantKind::isTransitionInvariant)
+        .orElse(false);
   }
 }

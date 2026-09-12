@@ -98,7 +98,7 @@ class AutomatonWitnessCorrectnessV2Parser extends AutomatonWitnessV2ParserCommon
     try {
       automaton =
           new Automaton(
-              contents.uuid().orElse("No Loop Invariant Present"),
+              AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME,
               ImmutableMap.of(),
               automatonStates,
               ENTRY_STATE_ID);
@@ -152,10 +152,7 @@ class AutomatonWitnessCorrectnessV2Parser extends AutomatonWitnessV2ParserCommon
       Optional<AutomatonBoolExpr> location =
           switch (kind) {
             case LOOP_INVARIANT, LOOP_TRANSITION_INVARIANT -> loopHeadCheck(invariant);
-            case LOCATION_INVARIANT -> statementCheck(invariant);
-            case LOCATION_TRANSITION_INVARIANT ->
-                throw new WitnessParseException(
-                    "Transition invariants on locations are not yet supported.");
+            case LOCATION_INVARIANT, LOCATION_TRANSITION_INVARIANT -> statementCheck(invariant);
             case FUNCTION_CONTRACT ->
                 throw new AssertionError("Contracts are not part of the invariants");
           };
@@ -163,7 +160,7 @@ class AutomatonWitnessCorrectnessV2Parser extends AutomatonWitnessV2ParserCommon
         continue;
       }
 
-      if (kind == WitnessInvariantKind.LOOP_TRANSITION_INVARIANT) {
+      if (kind.isTransitionInvariant()) {
         // The validation currently does not make use of the automaton structure, but this opens
         // the possibility of creating a validation technique based on our CPA analyses.
         transitions.add(
