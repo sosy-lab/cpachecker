@@ -167,7 +167,8 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
     return functionContractRecords.build();
   }
 
-  WitnessExportResult exportWitness(ARGState pRootState, Path pOutputFile)
+  WitnessExportResult exportWitness(
+      ARGState pRootState, Path pOutputFile, YAMLWitnessVersion pVersion)
       throws InterruptedException, IOException, ReportingMethodNotImplementedException {
     // Collect the information about the states which contain the information about the invariants
     CollectedARGStates statesCollector = getRelevantStates(pRootState);
@@ -202,7 +203,7 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
             .allMatch(FunctionContractCreationResult::translationSuccessful);
 
     exportEntries(
-        new InvariantSetEntry(getMetadata(YAMLWitnessVersion.V2d1), entries.build()), pOutputFile);
+        new InvariantSetEntry(getMetadata(pVersion), entries.build()), pOutputFile);
 
     return new WitnessExportResult(translationAlwaysSuccessful);
   }
