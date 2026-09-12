@@ -10,11 +10,8 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 
 import com.google.common.base.Preconditions;
 import java.io.Serial;
-import java.util.List;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.collect.PersistentLinkedList;
-import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 /**
@@ -27,16 +24,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
  * DssCallstackTransferRelation}). The block analysis decides this per state: it allows all
  * transfers exactly if it explores a block without knowing the callstack of the block entry.
  *
- * <p>In addition, a state of this class records all CFA edges that {@link
- * DssCallstackTransferRelation} traversed to reach it. Whenever a block end is reached, this list
- * allows to replay the path of the block backwards, starting from the callstack of the violation
- * condition that the successor block sent. Only such a backwards replay can tell whether the path
- * through the block is feasible with respect to the callstack.
- *
- * <p>The current stack, the unknown-stack mode, and the backwards callstack effect determine local
- * equality. The full edge sequence is retained for diagnostics only. The local DSS domain
- * additionally compares independently constructed stacks structurally; distributed precondition
- * coverage has its own relation and deliberately ignores local replay effects.
+ * <p>The current stack, unknown-stack mode, and backwards callstack effect determine local
+ * equality. The effect records exactly the information needed to check a successor block's
+ * callstack at the ghost edge; execution paths belong to the ARG. Distributed precondition coverage
+ * has its own relation and deliberately ignores this local effect.
  */
 public class DssCallstackState extends CallstackState {
 
@@ -44,28 +35,19 @@ public class DssCallstackState extends CallstackState {
 
   /**
    * The state that an ordinary callstack analysis would have at this point. It is never a {@link
-   * DssCallstackState} and it defines the identity of this state.
+   * DssCallstackState}. DSS compares its stack contents, as the configured PCC domain does.
    */
   private final CallstackState wrappedState;
-
-  /**
-   * All edges traversed since the analysis started, most recent edge first (i.e., already in the
-   * order that a backwards analysis requires).
-   */
-  private final PersistentList<CFAEdge> reversedTraversedEdges;
 
   private final boolean canBeTopState;
   private final DssCallstackEffect effect;
 
   public DssCallstackState(CallstackState pWrappedState, boolean pCanBeTopState) {
-    this(pWrappedState, pCanBeTopState, PersistentLinkedList.of(), DssCallstackEffect.EMPTY);
+    this(pWrappedState, pCanBeTopState, DssCallstackEffect.EMPTY);
   }
 
   private DssCallstackState(
-      CallstackState pWrappedState,
-      boolean pCanBeTopState,
-      PersistentList<CFAEdge> pReversedTraversedEdges,
-      DssCallstackEffect pEffect) {
+      CallstackState pWrappedState, boolean pCanBeTopState, DssCallstackEffect pEffect) {
     super(
         pWrappedState.getPreviousState(),
         pWrappedState.getCurrentFunction(),
@@ -76,7 +58,6 @@ public class DssCallstackState extends CallstackState {
         pWrappedState);
     wrappedState = pWrappedState;
     canBeTopState = pCanBeTopState;
-    reversedTraversedEdges = pReversedTraversedEdges;
     effect = pEffect;
   }
 
@@ -94,8 +75,7 @@ public class DssCallstackState extends CallstackState {
    * Whether the transfer relation may apply every CFA edge to this state when the stack only
    * contains its initial state
    *
-   * @return {@code true} if the callstack should prune a transfer when the stack is one state only,
-   *     {@code false} if this state behaves exactly like a {@link CallstackState}.
+   * @return {@code true} if an unknown caller may be traversed when only the initial frame remains
    */
   public boolean canBeTopState() {
     return canBeTopState;
@@ -114,14 +94,6 @@ public class DssCallstackState extends CallstackState {
     return canBeTopState() && wrappedState.previousState == null;
   }
 
-  /**
-   * Returns all traversed edges in reverse order, i.e., in the order in which a backwards analysis
-   * has to process them.
-   */
-  public List<CFAEdge> getReversedTraversedEdges() {
-    return reversedTraversedEdges;
-  }
-
   /** Records another edge without changing the current stack. The backwards effect may change. */
   public DssCallstackState withTraversedEdge(CFAEdge pEdge) {
     return withWrappedStateAndTraversedEdge(wrappedState, pEdge);
@@ -137,26 +109,25 @@ public class DssCallstackState extends CallstackState {
    */
   public DssCallstackState withWrappedStateAndTraversedEdge(
       CallstackState pWrappedState, CFAEdge pEdge) {
-    return new DssCallstackState(
-        pWrappedState, canBeTopState, reversedTraversedEdges.with(pEdge), effect.append(pEdge));
+    return new DssCallstackState(pWrappedState, canBeTopState, effect.append(pEdge));
   }
 
   @Override
   public boolean equals(@Nullable Object pOther) {
     return this == pOther
         || (pOther instanceof DssCallstackState other
-            && wrappedState.equals(other.wrappedState)
+            && wrappedState.sameStateInProofChecking(other.wrappedState)
             && canBeTopState == other.canBeTopState
             && effect.equals(other.effect));
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(wrappedState, canBeTopState, effect);
+    return Objects.hash(new CallstackStateEqualsWrapper(wrappedState), canBeTopState, effect);
   }
 
   @Override
   public String toString() {
-    return super.toString() + ", traversed edges " + reversedTraversedEdges.size();
+    return super.toString() + ", unknown entry stack " + canBeTopState;
   }
 }

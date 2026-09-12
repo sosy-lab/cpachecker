@@ -8,11 +8,13 @@
 
 package org.sosy_lab.cpachecker.cpa.callstack;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.common.collect.PersistentLinkedList;
-import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -28,8 +30,10 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
  *
  * <p>Unlike a path, this value ignores edges on which backwards callstack transfer is the identity.
  * Equal values can therefore accompany a disjunction of predicate path formulas. Calls, returns,
- * summary statements, and statements that can report unsupported calls remain in the effect. In
- * particular, cancelling a call and a return would lose the backwards recursion check.
+ * summary statements, and statements that can report unsupported calls remain in the effect.
+ * Balanced calls are replaced by recursion guards, not erased: backwards return transfer checks the
+ * number of frames of the called function before pushing, and the matching call then pops that
+ * frame. The guard retains that check while repeated balanced calls need only one guard.
  *
  * <p>Equality is deliberately a sufficient, not a necessary, test for equal transformers. No
  * bounded history or comparison of just the current stack may replace it. CFA edge identity is
@@ -39,19 +43,76 @@ final class DssCallstackEffect {
 
   static final DssCallstackEffect EMPTY = new DssCallstackEffect(PersistentLinkedList.of());
 
-  private final PersistentList<CFAEdge> reversedEdges;
+  private sealed interface Operation permits Edge, Guards {}
 
-  private DssCallstackEffect(PersistentList<CFAEdge> pReversedEdges) {
+  private record Edge(CFAEdge edge) implements Operation {}
+
+  /**
+   * A balanced section leaves the input stack unchanged. For each function, remember the maximum
+   * number of its frames temporarily pushed during backwards replay. Counts for other functions do
+   * not affect CallstackTransferRelation.hasRecursion. Samples are only used to execute the
+   * existing recursion checks (including skip/unsupported handling), not for equality.
+   */
+  private static final class Guards implements Operation {
+    private final ImmutableMap<String, Integer> depths;
+    private final ImmutableMap<String, FunctionReturnEdge> samples;
+
+    Guards(Map<String, Integer> pDepths, Map<String, FunctionReturnEdge> pSamples) {
+      depths = ImmutableMap.copyOf(pDepths);
+      samples = ImmutableMap.copyOf(pSamples);
+    }
+
+    @Override
+    public boolean equals(Object pOther) {
+      return pOther instanceof Guards other && depths.equals(other.depths);
+    }
+
+    @Override
+    public int hashCode() {
+      return depths.hashCode();
+    }
+  }
+
+  private final PersistentLinkedList<Operation> reversedEdges;
+
+  private DssCallstackEffect(PersistentLinkedList<Operation> pReversedEdges) {
     reversedEdges = pReversedEdges;
   }
 
   DssCallstackEffect append(CFAEdge pEdge) {
+    if (pEdge instanceof FunctionReturnEdge returnEdge) {
+      PersistentLinkedList<Operation> rest = reversedEdges;
+      Map<String, Integer> depths = new LinkedHashMap<>();
+      Map<String, FunctionReturnEdge> samples = new LinkedHashMap<>();
+      if (!rest.isEmpty() && rest.head() instanceof Guards inner) {
+        depths.putAll(inner.depths);
+        samples.putAll(inner.samples);
+        rest = rest.tail();
+      }
+      if (!rest.isEmpty()
+          && rest.head() instanceof Edge recorded
+          && recorded.edge() instanceof FunctionCallEdge call
+          && call.getSummaryEdge() == returnEdge.getSummaryEdge()
+          && call.getPredecessor().getLeavingEdges().contains(call)) {
+        String function = call.getSuccessor().getFunctionName();
+        depths.merge(function, 1, Integer::sum);
+        samples.put(function, returnEdge);
+        rest = rest.tail();
+        // Sequential balanced sections conjoin guards, so only the larger depth is relevant.
+        if (!rest.isEmpty() && rest.head() instanceof Guards previous) {
+          previous.depths.forEach((name, depth) -> depths.merge(name, depth, Math::max));
+          previous.samples.forEach(samples::putIfAbsent);
+          rest = rest.tail();
+        }
+        return new DssCallstackEffect(rest.with(new Guards(depths, samples)));
+      }
+    }
     if (pEdge instanceof FunctionCallEdge
         || pEdge instanceof FunctionReturnEdge
         || pEdge instanceof CFunctionSummaryStatementEdge
         || (pEdge instanceof AStatementEdge statement
             && statement.getStatement() instanceof AFunctionCall)) {
-      return new DssCallstackEffect(reversedEdges.with(pEdge));
+      return new DssCallstackEffect(reversedEdges.with(new Edge(pEdge)));
     }
     return this;
   }
@@ -62,13 +123,28 @@ final class DssCallstackEffect {
       Precision pPrecision)
       throws CPATransferException {
     AbstractState current = DssCallstackState.unwrap(pAtBlockEnd);
-    for (CFAEdge edge : reversedEdges) {
-      Collection<? extends AbstractState> predecessors =
-          pBackwards.getAbstractSuccessorsForEdge(current, pPrecision, edge);
-      if (predecessors.isEmpty()) {
-        return false;
+    for (Operation operation : reversedEdges) {
+      if (operation instanceof Edge edge) {
+        Collection<? extends AbstractState> predecessors =
+            pBackwards.getAbstractSuccessorsForEdge(current, pPrecision, edge.edge());
+        if (predecessors.isEmpty()) {
+          return false;
+        }
+        current = Iterables.getOnlyElement(predecessors);
+      } else if (operation instanceof Guards guards) {
+        for (Map.Entry<String, Integer> guard : guards.depths.entrySet()) {
+          AbstractState temporary = current;
+          for (int depth = 0; depth < guard.getValue(); depth++) {
+            Collection<? extends AbstractState> predecessors =
+                pBackwards.getAbstractSuccessorsForEdge(
+                    temporary, pPrecision, guards.samples.get(guard.getKey()));
+            if (predecessors.isEmpty()) {
+              return false;
+            }
+            temporary = Iterables.getOnlyElement(predecessors);
+          }
+        }
       }
-      current = Iterables.getOnlyElement(predecessors);
     }
     return true;
   }

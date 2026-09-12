@@ -78,7 +78,7 @@ public class DssCallstackDomainTest {
 
     // Local replay belongs to one exploration, not to a precondition reused in another run.
     assertThat(withCall.reset()).isEqualTo(state);
-    assertThat(withCall.reset().getReversedTraversedEdges()).isEmpty();
+    assertThat(withCall.reset().getEffect()).isEqualTo(DssCallstackEffect.EMPTY);
   }
 
   @Test
