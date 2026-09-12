@@ -155,20 +155,7 @@ public class DssCallstackTransferRelation extends CallstackTransferRelation {
   private boolean fitsCallstackAtBlockEnd(
       CallstackState pCallstackAtBlockEnd, DssCallstackState pState, Precision pPrecision)
       throws CPATransferException {
-    AbstractState current = DssCallstackState.unwrap(pCallstackAtBlockEnd);
-    for (CFAEdge edge : pState.getReversedTraversedEdges()) {
-      if (isGhostEdge(edge)) {
-        // ghost edges are artificial and do not change the callstack
-        continue;
-      }
-      Collection<? extends AbstractState> predecessors =
-          backwards.getAbstractSuccessorsForEdge(current, pPrecision, edge);
-      if (predecessors.isEmpty()) {
-        return false;
-      }
-      current = Iterables.getOnlyElement(predecessors);
-    }
-    return true;
+    return pState.getEffect().accepts(pCallstackAtBlockEnd, backwards, pPrecision);
   }
 
   private static boolean isGhostEdge(@Nullable CFAEdge pEdge) {

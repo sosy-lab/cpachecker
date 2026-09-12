@@ -162,7 +162,7 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
           block.getInitialLocation(),
           canBeTopState(pAbstractState));
     }
-    return pAbstractState;
+    return pAbstractState instanceof DssCallstackState state ? state.reset() : pAbstractState;
   }
 
   /** Whether the given state stems from a block analysis that does not know its callstack. */
