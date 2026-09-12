@@ -15,7 +15,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -29,8 +28,6 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckEndsAtNodes;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.ast.ASTElement;
-import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
@@ -159,8 +156,12 @@ class AutomatonWitnessCorrectnessV2Parser extends AutomatonWitnessV2ParserCommon
             addInvariantTransitions(transitions, atLoopHead.orElseThrow(), invariant);
           }
         }
-        case LOCATION_INVARIANT ->
-            addInvariantTransitions(transitions, atStatementCheck(invariant), invariant);
+        case LOCATION_INVARIANT -> {
+          Optional<AutomatonBoolExpr> atStatement = statementCheck(invariant);
+          if (atStatement.isPresent()) {
+            addInvariantTransitions(transitions, atStatement.orElseThrow(), invariant);
+          }
+        }
         case TRANSITION_LOOP_INVARIANT -> {
           if (!supports(WitnessInvariantKind.LOOP_TRANSITION_INVARIANT)) {
             throw new WitnessParseException(
@@ -236,31 +237,53 @@ class AutomatonWitnessCorrectnessV2Parser extends AutomatonWitnessV2ParserCommon
     }
   }
 
-  /** The check which passes when the head of the loop the invariant belongs to is reached. */
+  /**
+   * The check which passes when the head of the loop the invariant belongs to is reached, or an
+   * empty Optional if the location of the invariant does not point at a loop of the program.
+   */
   private Optional<AutomatonBoolExpr> loopHeadCheck(ParsedInvariant pInvariant) {
-    AstCfaRelation astCfaRelation = cfa.getAstCfaRelation();
-    Optional<IterationElement> iterationStructure =
-        astCfaRelation.getIterationStructureFollowingColumnAtTheSameLine(
-            pInvariant.column(), pInvariant.line());
-
-    // TODO: Handle a missing loop head correctly instead of ignoring the invariant
-    return iterationStructure
-        .flatMap(IterationElement::getLoopHead)
-        .map(loopHead -> new CheckEndsAtNodes(ImmutableSet.of(loopHead)));
+    Optional<AutomatonBoolExpr> check =
+        cfa.getAstCfaRelation()
+            .getIterationStructureFollowingColumnAtTheSameLine(
+                pInvariant.column(), pInvariant.line())
+            .flatMap(IterationElement::getLoopHead)
+            .map(loopHead -> new CheckEndsAtNodes(ImmutableSet.of(loopHead)));
+    if (check.isEmpty()) {
+      logUnmatchedInvariant(pInvariant, "there is no loop at this location");
+    }
+    return check;
   }
 
-  /** The check which passes when the statement the invariant belongs to is reached. */
-  private AutomatonBoolExpr atStatementCheck(ParsedInvariant pInvariant)
-      throws WitnessParseException {
-    OptionalInt column = pInvariant.column();
+  /**
+   * The check which passes when the statement the invariant belongs to is reached, or an empty
+   * Optional if the location of the invariant does not point at a statement of the program.
+   */
+  private Optional<AutomatonBoolExpr> statementCheck(ParsedInvariant pInvariant) {
     int line = pInvariant.line();
-    Optional<ASTElement> statement =
-        cfa.getAstCfaRelation().getTightestStatementForStarting(line, column);
-    if (statement.isEmpty()) {
-      throw new WitnessParseException(
-          "Could not find the statement of the location invariant at line " + line + "!");
+    Optional<AutomatonBoolExpr> check =
+        cfa.getAstCfaRelation()
+            .getTightestStatementForStarting(line, pInvariant.column())
+            .map(
+                statement ->
+                    new CheckCoversColumnAndLine(
+                        statement.location().getStartColumnInLine(), line));
+    if (check.isEmpty()) {
+      logUnmatchedInvariant(pInvariant, "there is no statement at this location");
     }
-    return new CheckCoversColumnAndLine(
-        statement.orElseThrow().location().getStartColumnInLine(), line);
+    return check;
+  }
+
+  /**
+   * Report an invariant which cannot be matched to the program. The invariant is ignored, so the
+   * witness is only validated partially and this must be visible to the user.
+   */
+  private void logUnmatchedInvariant(ParsedInvariant pInvariant, String pReason) {
+    logger.logf(
+        Level.WARNING,
+        "Ignoring the %s at line %d of the correctness witness, %s. "
+            + "The witness is therefore only validated partially.",
+        pInvariant.entry().getType(),
+        pInvariant.line(),
+        pReason);
   }
 }

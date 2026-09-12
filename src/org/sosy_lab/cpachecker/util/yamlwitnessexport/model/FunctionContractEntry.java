@@ -68,12 +68,15 @@ public class FunctionContractEntry extends AbstractInvariantEntry {
   }
 
   /**
-   * The key a function contract is wrapped in. Up to version 2.1 of the format contracts were
-   * wrapped in an {@code invariant}, since then they have their own key.
+   * The key a function contract is wrapped in. This is the same for all format versions which know
+   * contracts at all, the linter of the format validates both 2.1 and 2.2 against the same schema.
    */
   static final String CONTRACT_KEY = "contract";
 
-  /** The key contracts were wrapped in before {@link #CONTRACT_KEY} was introduced. */
+  /**
+   * The key CPAchecker wrapped contracts in before this was fixed. Contracts never belonged into an
+   * {@code invariant}, but witnesses which do this exist and can still be read.
+   */
   static final String LEGACY_CONTRACT_KEY = "invariant";
 
   public static class FunctionContractRecordDeserializer
