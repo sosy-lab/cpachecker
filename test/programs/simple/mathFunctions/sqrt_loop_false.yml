@@ -12,3 +12,4 @@ input_files: 'sqrt_loop_false.c'
 
 properties:
   - property_file: ../../../config/properties/unreach-label.prp
+    expected_verdict: false
