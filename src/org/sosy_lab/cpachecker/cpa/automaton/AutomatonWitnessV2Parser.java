@@ -22,14 +22,21 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParse
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 
-public class AutomatonWitnessV2d0Parser {
+/**
+ * Parser for witnesses in one of the YAML witness format versions 2.0, 2.1 or 2.2.
+ *
+ * <p>This class only dispatches: it reads the entries, determines whether they describe a
+ * correctness or a violation witness and which format version they use, and hands them to the
+ * matching correctness or violation parser.
+ */
+public class AutomatonWitnessV2Parser {
 
   private final LogManager logger;
   private final Configuration config;
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
 
-  public AutomatonWitnessV2d0Parser(
+  public AutomatonWitnessV2Parser(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA) {
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
