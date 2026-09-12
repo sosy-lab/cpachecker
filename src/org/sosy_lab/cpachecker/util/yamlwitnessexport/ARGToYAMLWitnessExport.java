@@ -15,11 +15,15 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -31,7 +35,33 @@ import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToYAMLWitness.CollectedInvariants;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 
+@Options(prefix = "witness.yamlexporter")
 public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
+
+  @Option(
+      secure = true,
+      description =
+          "Export loop invariants, i.e. invariants which hold whenever the head of a loop is"
+              + " reached, into the correctness witness which is exported from the ARG.")
+  private boolean exportLoopInvariants = true;
+
+  @Option(
+      secure = true,
+      description =
+          "Export location invariants, i.e. invariants which hold whenever a specific location in"
+              + " the program is reached, into the correctness witness which is exported from the"
+              + " ARG. Currently these are only exported for the locations at which a function is"
+              + " called.")
+  private boolean exportLocationInvariants = true;
+
+  @Option(
+      secure = true,
+      description =
+          "Export function contracts, i.e. the requires and ensures clauses describing the behavior"
+              + " of a function, into the correctness witness which is exported from the ARG."
+              + " Function contracts are not part of every witness format version, see"
+              + " witness.yamlexporter.witnessVersions.")
+  private boolean exportFunctionContracts = false;
 
   /**
    * A class to keep track of the result of the witness export, in particular to inform the caller
@@ -55,28 +85,41 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
       RelevantArgStatesCollector pArgStatesCollector)
       throws InvalidConfigurationException {
     super(pConfig, pCfa, pSpecification, pLogger);
+    pConfig.inject(this, ARGToYAMLWitnessExport.class);
     argToWitness =
         new ARGToYAMLWitness(pConfig, pCfa, pSpecification, pLogger, pArgStatesCollector);
 
+    ImmutableSet.Builder<WitnessInvariantKind> requested = ImmutableSet.builder();
+    if (exportLoopInvariants) {
+      requested.add(WitnessInvariantKind.LOOP_INVARIANT);
+    }
+    if (exportLocationInvariants) {
+      requested.add(WitnessInvariantKind.LOCATION_INVARIANT);
+    }
+    if (exportFunctionContracts) {
+      requested.add(WitnessInvariantKind.FUNCTION_CONTRACT);
+    }
+    ImmutableSet<WitnessInvariantKind> requestedKinds = requested.build();
+
+    // Restrict the requested kinds to the ones the respective witness version can represent, so
+    // that every exported witness is valid for the version it declares. Warn about this here, since
+    // both the options and the versions are known once and the export itself may happen repeatedly.
     ImmutableMap.Builder<YAMLWitnessVersion, ImmutableSet<WitnessInvariantKind>> kinds =
         ImmutableMap.builder();
     for (YAMLWitnessVersion witnessVersion : ImmutableSet.copyOf(witnessVersions)) {
-      kinds.put(witnessVersion, kindsToExportFor(witnessVersion));
+      ImmutableSet<WitnessInvariantKind> supported = witnessVersion.supportedInvariantKinds();
+      SetView<WitnessInvariantKind> skipped = Sets.difference(requestedKinds, supported);
+      if (!skipped.isEmpty()) {
+        logger.logf(
+            Level.WARNING,
+            "The witness format version %s does not support %s, "
+                + "therefore they are not exported into the witness of this version.",
+            witnessVersion,
+            skipped);
+      }
+      kinds.put(witnessVersion, Sets.intersection(requestedKinds, supported).immutableCopy());
     }
     kindsPerVersion = kinds.buildOrThrow();
-  }
-
-  /** The kinds of information which should be exported into a witness of the given version. */
-  private ImmutableSet<WitnessInvariantKind> kindsToExportFor(YAMLWitnessVersion pVersion) {
-    // TODO: Make this configurable instead of deriving it from the witness version
-    return switch (pVersion) {
-      case V2 ->
-          ImmutableSet.of(
-              WitnessInvariantKind.LOOP_INVARIANT, WitnessInvariantKind.LOCATION_INVARIANT);
-      case V2d1, V2d2 ->
-          ImmutableSet.of(
-              WitnessInvariantKind.LOOP_INVARIANT, WitnessInvariantKind.FUNCTION_CONTRACT);
-    };
   }
 
   /** Export some information to the user about the guarantees provided by the witness. */

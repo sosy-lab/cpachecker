@@ -6081,5 +6081,22 @@ witness.yamlexporter.analyseWitnessQuality = false
 # Export all information contained in the counterexample as a witness.
 witness.yamlexporter.exportCompleteCounterexample = false
 
+# Export function contracts, i.e. the requires and ensures clauses describing
+# the behavior of a function, into the correctness witness which is exported
+# from the ARG. Function contracts are not part of every witness format
+# version, see witness.yamlexporter.witnessVersions.
+witness.yamlexporter.exportFunctionContracts = false
+
+# Export location invariants, i.e. invariants which hold whenever a specific
+# location in the program is reached, into the correctness witness which is
+# exported from the ARG. Currently these are only exported for the locations
+# at which a function is called.
+witness.yamlexporter.exportLocationInvariants = true
+
+# Export loop invariants, i.e. invariants which hold whenever the head of a
+# loop is reached, into the correctness witness which is exported from the
+# ARG.
+witness.yamlexporter.exportLoopInvariants = true
+
 # The version for which to export the witness.
 witness.yamlexporter.witnessVersions = [YAMLWitnessVersion.V2d2]
