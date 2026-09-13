@@ -90,6 +90,19 @@ compatible results at the same program point. This preserves correlations
 between predicates, callstacks, and witness paths. Cancellation is checked while
 enumerating paths.
 
+## Forward progress while violations are unresolved
+
+Forward summaries describe reachable block ends before ghost-edge constraints
+are applied. A round can therefore publish these summaries and backward violation
+conditions together. A feasible ghost condition must not suppress a newly
+computed forward summary: around a loop, neighboring blocks would otherwise keep
+exploring stale entry states and could stop exchanging messages while a reachable
+violation remains unresolved.
+
+Speculative exploration from an unconstrained entry still publishes only backward
+conditions. Only exploration from the stored entry preconditions contributes
+forward summaries. `AlwaysReplaceExplorationEngineTest` checks both cases.
+
 ## Configuration and limits
 
 `config/distributed-summary-synthesis/dss-block-analysis.properties` enables:

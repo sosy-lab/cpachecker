@@ -129,7 +129,7 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
                 conditionsAtLocation,
                 precisionOfAnalysis,
                 false);
-        if (!round.summaries().isEmpty()) {
+        if (!round.summaries().isEmpty() && round.violationConditions().isEmpty()) {
           safeRuns.put(preconditionProgramPoint, conditionProgramPoint);
         }
         rounds.put(ImmutableList.of(preconditionProgramPoint, conditionProgramPoint), round);
@@ -216,7 +216,11 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
       if (!result.getAllViolations().isEmpty()) {
         violations.addAll(analysis.pathsWithCondition(result.getViolationConditionViolations()));
         violations.addAll(analysis.pathsFromOrigin(result.getTargetStates()));
-      } else if (!pDiscardSummaries) {
+      }
+      if (!pDiscardSummaries) {
+        // These states precede the ghost-edge constraints and overapproximate the block's exits
+        // independently of whether a violation condition is feasible. Suppressing them can leave
+        // a cycle waiting on stale entry states even though a reachable violation remains.
         summaries.addAll(analysis.summariesOf(result));
       }
     }
@@ -230,8 +234,7 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
     }
 
     if (!finalViolations.isEmpty()) {
-      // summaries found alongside a violation are discarded: the violation has to be resolved first
-      return AnalysisResult.ofViolationConditions(finalViolations);
+      return new AnalysisResult(finalSummaries, finalViolations, false);
     }
 
     Set<AbstractState> violationsToConsider =
