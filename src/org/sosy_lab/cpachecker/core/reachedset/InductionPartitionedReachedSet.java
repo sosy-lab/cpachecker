@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.reachedset;
 
-import java.util.List;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -50,11 +52,13 @@ public class InductionPartitionedReachedSet extends PartitionedReachedSet {
 
   @Override
   protected Object getPartitionKey(AbstractState pState) {
+    checkNotNull(pState);
     CFANode location = AbstractStates.extractLocation(pState);
     CallstackState callstack = AbstractStates.extractStateByType(pState, CallstackState.class);
     LoopIterationReportingState loopState =
         AbstractStates.extractStateByType(pState, LoopIterationReportingState.class);
-    return List.of(
+    // A component that is not part of the analysis simply does not contribute to the key.
+    return ImmutableList.of(
         location == null ? "" : location,
         callstack == null ? "" : new CallstackStateEqualsWrapper(callstack),
         loopState == null ? -1 : loopState.getDeepestIteration());
