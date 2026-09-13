@@ -90,30 +90,43 @@ compatible results at the same program point. This preserves correlations
 between predicates, callstacks, and witness paths. Cancellation is checked while
 enumerating paths.
 
-## Forward progress while violations are unresolved
+## Forward progress across call contexts
 
-An exploration group can contain several entry states at the same program point.
-The engine analyzes these states separately. Their outcomes must remain separate
-until it decides which forward summaries to publish:
+Preconditions are grouped by the program point at the block entry, and violation
+conditions by the program point at its exit. Each group can still contain several
+predicate states and paths with different callstack effects. Publication decisions
+must therefore distinguish individual analyses and their individual exits:
 
-- A completed analysis that refutes all its violation conditions contributes its
-  refined exit states.
 - An analysis with a feasible violation contributes backward conditions. Its exit
-  states may still be too coarse to provide useful forward refinement, so they
-  are not published.
-- A violation from one entry state does not suppress refined exit states obtained
-  from another entry state in the same group.
+  states can still be too coarse for forward refinement, so they are not published.
+- An analysis without feasible violations contributes only exits checked against
+  an applicable violation condition. If the callstack rejected every attached
+  condition at an exit, that exit has not undergone predicate refinement for the
+  requested context and must not weaken its forward preconditions.
+- Useful refined exits from one entry state survive violations from another entry
+  state in the same group.
 
-Publishing coarse exits from unresolved analyses can feed them around a loop and
-repeatedly weaken its entry conditions, preventing convergence. Conversely,
-discarding the entire group's exits whenever any entry state has a violation can
-stall the forward updates needed to discover a reachable error. Grouping by
-callstack alone does not distinguish these cases: different predicate states can
-have the same callstack.
+The ghost-edge callstack check records rejected conditions on each block-end
+state. The exploration engine preserves these records separately from feasible
+violations and recovers their caller contexts with the existing exploration from
+an unknown entry. This fallback must run even when the same analysis, or another
+entry-state analysis, already produced a feasible violation. Otherwise, an early
+return would omit obligations belonging to other callers.
+
+Withholding exits for an unrelated call context does not establish that the
+block end is unreachable. In particular, an empty publication must not silently
+become a false postcondition.
+
+Publishing coarse exits can feed them around a loop and repeatedly weaken its
+entry conditions, preventing convergence. Conversely, discarding the entire
+group's useful exits or its rejected-callstack obligations can stall progress on
+a reachable error. Callstack grouping alone does not distinguish these cases:
+different predicate states can have the same callstack.
 
 Speculative exploration from an unconstrained entry publishes only backward
-conditions. `AlwaysReplaceExplorationEngineTest` checks both levels of separation
-and the speculative case.
+conditions. `AlwaysReplaceExplorationEngineTest` checks publication at each level,
+preservation of rejected-callstack obligations, and the distinction between an
+omitted summary and an unreachable block end.
 
 ## Configuration and limits
 

@@ -23,6 +23,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -208,11 +209,17 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
     ImmutableSet.Builder<StateAndPrecision> summaries = ImmutableSet.builder();
     ImmutableSet.Builder<ArgPathAndCondition> violations = ImmutableSet.builder();
 
+    Set<AbstractState> hindered = new LinkedHashSet<>();
     for (AbstractState state : statesToProcess) {
       DssBlockAnalysisResult result =
           analysis.runBlockAnalysis(
               analysis.getDcpa().reset(state), precision, pViolationConditions);
 
+      if (!pDiscardSummaries) {
+        for (AbstractState exit : result.getFinalLocationStates()) {
+          hindered.addAll(blockStateOf(exit).getHinderedByCallstack());
+        }
+      }
       if (!result.getAllViolations().isEmpty()) {
         violations.addAll(analysis.pathsWithCondition(result.getViolationConditionViolations()));
         violations.addAll(analysis.pathsFromOrigin(result.getTargetStates()));
@@ -220,41 +227,38 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
         // Publish only fully refined analyses. An unresolved analysis can still have coarse exit
         // states; feeding those back into a loop can repeatedly erase the precision gained by
         // refinement. Other entry states in this group may already have useful refined exits.
-        summaries.addAll(analysis.summariesOf(result));
+        for (StateAndPrecision summary : analysis.summariesOf(result)) {
+          Set<AbstractState> rejected = blockStateOf(summary.state()).getHinderedByCallstack();
+          // Rejecting every condition by callstack does not refine the predicate state. Such an
+          // exit belongs to another call context and must not weaken its forward preconditions.
+          if (pViolationConditions.isEmpty() || !rejected.containsAll(pViolationConditions)) {
+            summaries.add(summary);
+          }
+        }
       }
+    }
+
+    // Recover these contexts even if another entry state already produced a feasible violation.
+    // An early return for that violation would lose the obligations of the rejected callers.
+    if (!hindered.isEmpty() && !pDiscardSummaries) {
+      violations.addAll(
+          exploreFrom(
+                  ImmutableSet.of(analysis.makeStartState(true)),
+                  pViolationConditions,
+                  precision,
+                  true)
+              .violationConditions());
     }
 
     Set<StateAndPrecision> finalSummaries = summaries.build();
     Set<ArgPathAndCondition> finalViolations = violations.build();
 
     if (finalViolations.isEmpty() && finalSummaries.isEmpty()) {
-      // the exploration produced no state at the final location
-      return AnalysisResult.unreachableBlockEnd();
+      // Omitting exits for an unrelated call context does not establish unreachability.
+      return hindered.isEmpty() ? AnalysisResult.unreachableBlockEnd() : AnalysisResult.empty();
     }
 
-    if (!finalViolations.isEmpty()) {
-      // Keep the summaries of the successful analyses even if another entry state is unresolved.
-      // Discarding the whole group's summaries can stall forward progress on a reachable error.
-      return new AnalysisResult(finalSummaries, finalViolations, false);
-    }
-
-    Set<AbstractState> violationsToConsider =
-        FluentIterable.from(finalSummaries)
-            .transform(sap -> blockStateOf(sap.state()))
-            .filter(b -> !b.getHinderedByCallstack().isEmpty())
-            .transformAndConcat(b -> b.getHinderedByCallstack())
-            .toSet();
-
-    if (!violationsToConsider.isEmpty() && !pDiscardSummaries) {
-      finalViolations =
-          exploreFrom(
-                  ImmutableSet.of(analysis.makeStartState(true)),
-                  pViolationConditions,
-                  precision,
-                  true)
-              .violationConditions();
-    }
-
+    // Keep the summaries of successful analyses even if another entry state is unresolved.
     return new AnalysisResult(finalSummaries, finalViolations, false);
   }
 }
