@@ -61,9 +61,9 @@ public class TransitionInvariantUtils {
   public static final String CURR2_KEYWORD = TRANS_INV_KEYWORD + "CURR";
 
   public static String removeKeyWordAfterTransInv(String pFormula) {
-    assert (pFormula.endsWith(PREV_KEYWORD)
-        || pFormula.endsWith(CURR_KEYWORD)
-        || pFormula.endsWith(CURR2_KEYWORD));
+    if (!pFormula.contains(TRANS_INV_KEYWORD)) {
+      return pFormula;
+    }
     return pFormula.replace(PREV_KEYWORD, "").replace(CURR_KEYWORD, "").replace(CURR2_KEYWORD, "");
   }
 
