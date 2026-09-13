@@ -9,20 +9,20 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static org.sosy_lab.common.collect.Collections3.elementAndList;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis.blockStateOf;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -34,10 +34,10 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Explores the block from all preconditions an {@link AlwaysReplacePreconditionHandler} holds, one
- * group of equally-located preconditions at a time.
+ * input state at a time.
  *
  * <p>Preconditions and violation conditions are both grouped by program point, and every
- * combination of one precondition group with one condition group becomes its own CPA run. Because a
+ * combination of one input state with one condition group becomes its own CPA run. Because a
  * program-point hash covers the callstack, conditions of different call contexts of the same block
  * land in different groups, so exploring per group keeps the contexts apart.
  */
@@ -73,8 +73,8 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
   }
 
   /**
-   * Explores the block from all known preconditions, one group of equally-located preconditions at
-   * a time, and merges what the individual rounds found.
+   * Explores the block from each known input under the different exit contexts and merges what the
+   * individual rounds found.
    */
   @Override
   public AnalysisResult explore(Optional<String> pViolationConditionSender)
@@ -104,8 +104,8 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
       // program-point hash covers the callstack, conditions of different call contexts of the same
       // block land in different groups. Exploring a block under all of them at once would mix those
       // contexts: with inlining every call site would be its own block, but here one block is
-      // shared
-      // by all of them, so the contexts have to be kept apart by exploring per group instead.
+      // shared by all of them, so the contexts have to be kept apart by exploring per group
+      // instead.
       conditionsPerLocation =
           Multimaps.index(
               violationConditions.statesOf(Optional.empty()),
@@ -117,52 +117,90 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
             ? analysis.makeStartPrecision()
             : analysis.combinePrecisions(preconditions.getStatesAndPrecisions());
 
-    Multimap<Object, Object> safeRuns = ArrayListMultimap.create();
-    Map<ImmutableList<Object>, AnalysisResult> rounds = new LinkedHashMap<>();
-    for (Object conditionProgramPoint : conditionsPerLocation.keySet()) {
-      ImmutableList<AbstractState> conditionsAtLocation =
-          conditionsPerLocation.get(conditionProgramPoint);
-      for (Object preconditionProgramPoint : preconditions.getAllProgramPoints()) {
-        AnalysisResult round =
-            exploreFrom(
-                preconditions.getStatesPerLocation(preconditionProgramPoint),
-                conditionsAtLocation,
-                precisionOfAnalysis,
-                false);
-        if (!round.summaries().isEmpty() && round.violationConditions().isEmpty()) {
-          safeRuns.put(preconditionProgramPoint, conditionProgramPoint);
-        }
-        rounds.put(ImmutableList.of(preconditionProgramPoint, conditionProgramPoint), round);
+    List<AnalysisResult> rounds = new ArrayList<>();
+    Set<ImmutableList<AbstractState>> pendingFallbacks = new LinkedHashSet<>();
+    for (Object preconditionProgramPoint : preconditions.getAllProgramPoints()) {
+      Collection<AbstractState> inputs =
+          preconditions.getStatesPerLocation(preconditionProgramPoint);
+      if (analysis.getOptions().combinePreconditionsByHash()) {
+        inputs =
+            ImmutableList.of(
+                analysis
+                    .getDcpa()
+                    .getCombineOperator()
+                    .combinePreconditions(
+                        transformedImmutableListCopy(inputs, analysis.getDcpa()::reset)));
       }
-    }
-    for (Object preconditionProgramPoint : safeRuns.keySet()) {
-      Collection<Object> vcProgramPoints = safeRuns.get(preconditionProgramPoint);
-      if (vcProgramPoints.size() > 1) {
-        vcProgramPoints.forEach(v -> rounds.remove(ImmutableList.of(preconditionProgramPoint, v)));
-        AnalysisResult round =
-            exploreFrom(
-                preconditions.getStatesPerLocation(preconditionProgramPoint),
-                FluentIterable.from(vcProgramPoints)
-                    .transformAndConcat(conditionsPerLocation::get)
-                    .toList(),
-                precisionOfAnalysis,
-                false);
-        rounds.put(elementAndList(preconditionProgramPoint, vcProgramPoints), round);
+      for (AbstractState input : inputs) {
+        rounds.add(
+            exploreEntry(input, conditionsPerLocation, precisionOfAnalysis, pendingFallbacks));
       }
     }
     if (preconditions.isEmpty() || preconditions.isAnyPredecessorTrulyEmpty()) {
-      // a predecessor that has not sent anything yet does not restrict the block entry, so
-      // explore speculatively from the unconstrained start state to find violations early
+      // A predecessor with no known state does not restrict the entry.
+      pendingFallbacks.add(ImmutableList.copyOf(violationConditions.statesOf(Optional.empty())));
+    }
+    // Several inputs can request the same unconstrained-caller check. Keep these obligations
+    // separate from known-input refinement and check each condition group only once in this
+    // exploration. Requests from individual rounds survive their replacement by a combined round.
+    for (ImmutableList<AbstractState> conditions : pendingFallbacks) {
       AnalysisResult topExploration =
           exploreFrom(
-              ImmutableSet.of(analysis.makeStartState(true)),
-              violationConditions.statesOf(Optional.empty()),
+              analysis.makeStartState(true),
+              conditions,
               precisionOfAnalysis,
-              true);
+              true,
+              pendingFallbacks);
       Preconditions.checkState(topExploration.summaries().isEmpty());
-      rounds.put(ImmutableList.of(), topExploration);
+      rounds.add(topExploration);
     }
-    return merge(rounds.values());
+    return merge(rounds);
+  }
+
+  /** Combines successful refinements only when they describe the same input state. */
+  private AnalysisResult exploreEntry(
+      AbstractState pInput,
+      ImmutableListMultimap<Object, AbstractState> pConditionsPerLocation,
+      Precision pPrecision,
+      Set<ImmutableList<AbstractState>> pPendingFallbacks)
+      throws CPAException, InterruptedException {
+    Map<Object, AnalysisResult> rounds = new LinkedHashMap<>();
+    ImmutableSet.Builder<Object> successfulGroups = ImmutableSet.builder();
+    for (Object conditionProgramPoint : pConditionsPerLocation.keySet()) {
+      AnalysisResult round =
+          exploreFrom(
+              pInput,
+              pConditionsPerLocation.get(conditionProgramPoint),
+              pPrecision,
+              false,
+              pPendingFallbacks);
+      rounds.put(conditionProgramPoint, round);
+      if (!round.summaries().isEmpty()) {
+        // A summary means this particular input was fully explored. Speculative callers are
+        // considered separately after refining the known inputs.
+        successfulGroups.add(conditionProgramPoint);
+      }
+    }
+    Set<Object> groupsToCombine = successfulGroups.build();
+    if (groupsToCombine.size() <= 1) {
+      return merge(rounds.values());
+    }
+
+    groupsToCombine.forEach(rounds::remove);
+    List<AnalysisResult> remainingRounds = new ArrayList<>(rounds.values());
+    // Combining the conditions refines the complete postcondition for this input across exit
+    // contexts. Combining whole entry-location groups would also replace the exits of other inputs
+    // for which some of these conditions are still unresolved, potentially losing forward progress.
+    remainingRounds.add(
+        exploreFrom(
+            pInput,
+            FluentIterable.from(groupsToCombine)
+                .transformAndConcat(pConditionsPerLocation::get)
+                .toList(),
+            pPrecision,
+            false,
+            pPendingFallbacks));
+    return merge(remainingRounds);
   }
 
   /**
@@ -186,75 +224,49 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
   }
 
   /**
-   * Explores the block once from each of the given states.
+   * Explores the block from one input state.
    *
    * @param pDiscardSummaries whether this is a speculative run whose summaries must not be
    *     published, in which case the violations it finds are reported separately
+   * @param pPendingFallbacks collects the unconstrained-caller checks required by known inputs;
+   *     speculative runs do not add requests
    */
   private AnalysisResult exploreFrom(
-      Collection<AbstractState> statesToProcess,
+      AbstractState pInput,
       Collection<AbstractState> pViolationConditions,
-      Precision precision,
-      boolean pDiscardSummaries)
+      Precision pPrecision,
+      boolean pDiscardSummaries,
+      Set<ImmutableList<AbstractState>> pPendingFallbacks)
       throws CPAException, InterruptedException {
-
-    statesToProcess = transformedImmutableListCopy(statesToProcess, analysis.getDcpa()::reset);
-    if (analysis.getOptions().combinePreconditionsByHash()) {
-      statesToProcess =
-          ImmutableList.of(
-              analysis.getDcpa().getCombineOperator().combinePreconditions(statesToProcess));
-    }
-
+    DssBlockAnalysisResult result =
+        analysis.runBlockAnalysis(
+            analysis.getDcpa().reset(pInput), pPrecision, pViolationConditions);
     ImmutableSet.Builder<StateAndPrecision> summaries = ImmutableSet.builder();
     ImmutableSet.Builder<ArgPathAndCondition> violations = ImmutableSet.builder();
+    if (!result.getAllViolations().isEmpty()) {
+      violations.addAll(analysis.pathsWithCondition(result.getViolationConditionViolations()));
+      violations.addAll(analysis.pathsFromOrigin(result.getTargetStates()));
+    } else if (!pDiscardSummaries) {
+      // Unresolved analyses can have coarse exit states that erase refinement around loops.
+      // A completed analysis, including one whose conditions have incompatible callstacks, must
+      // retain all reachable exits: other call contexts may still need them for forward progress.
+      summaries.addAll(analysis.summariesOf(result));
+    }
 
-    for (AbstractState state : statesToProcess) {
-      DssBlockAnalysisResult result =
-          analysis.runBlockAnalysis(
-              analysis.getDcpa().reset(state), precision, pViolationConditions);
-
-      if (!result.getAllViolations().isEmpty()) {
-        violations.addAll(analysis.pathsWithCondition(result.getViolationConditionViolations()));
-        violations.addAll(analysis.pathsFromOrigin(result.getTargetStates()));
-      } else if (!pDiscardSummaries) {
-        // Publish only fully refined analyses. An unresolved analysis can still have coarse exit
-        // states; feeding those back into a loop can repeatedly erase the precision gained by
-        // refinement. Other entry states in this group may already have useful refined exits.
-        summaries.addAll(analysis.summariesOf(result));
-      }
+    if (!pDiscardSummaries
+        && result.getFinalLocationStates().stream()
+            .anyMatch(state -> !blockStateOf(state).getHinderedByCallstack().isEmpty())) {
+      // A feasible violation on one path does not discharge conditions rejected by the callstack
+      // on another path. Retain the request even if another round already has a violation or this
+      // round will later be replaced by a combined refinement.
+      pPendingFallbacks.add(ImmutableList.copyOf(pViolationConditions));
     }
 
     Set<StateAndPrecision> finalSummaries = summaries.build();
     Set<ArgPathAndCondition> finalViolations = violations.build();
-
     if (finalViolations.isEmpty() && finalSummaries.isEmpty()) {
-      // the exploration produced no state at the final location
       return AnalysisResult.unreachableBlockEnd();
     }
-
-    if (!finalViolations.isEmpty()) {
-      // Keep the summaries of the successful analyses even if another entry state is unresolved.
-      // Discarding the whole group's summaries can stall forward progress on a reachable error.
-      return new AnalysisResult(finalSummaries, finalViolations, false);
-    }
-
-    Set<AbstractState> violationsToConsider =
-        FluentIterable.from(finalSummaries)
-            .transform(sap -> blockStateOf(sap.state()))
-            .filter(b -> !b.getHinderedByCallstack().isEmpty())
-            .transformAndConcat(b -> b.getHinderedByCallstack())
-            .toSet();
-
-    if (!violationsToConsider.isEmpty() && !pDiscardSummaries) {
-      finalViolations =
-          exploreFrom(
-                  ImmutableSet.of(analysis.makeStartState(true)),
-                  pViolationConditions,
-                  precision,
-                  true)
-              .violationConditions();
-    }
-
     return new AnalysisResult(finalSummaries, finalViolations, false);
   }
 }

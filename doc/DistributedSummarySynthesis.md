@@ -93,11 +93,13 @@ enumerating paths.
 ## Forward progress while violations are unresolved
 
 An exploration group can contain several entry states at the same program point.
-The engine analyzes these states separately. Their outcomes must remain separate
-until it decides which forward summaries to publish:
+The engine analyzes each input separately under each group of violation conditions
+with the same exit callstack. Their outcomes must remain separate until it decides
+which forward summaries to publish:
 
-- A completed analysis that refutes all its violation conditions contributes its
-  refined exit states.
+- An analysis without feasible violations contributes all its reachable exit
+  states. Conditions may have been refuted by predicates or rejected by the
+  callstack; rejecting a condition does not make the exit unreachable.
 - An analysis with a feasible violation contributes backward conditions. Its exit
   states may still be too coarse to provide useful forward refinement, so they
   are not published.
@@ -111,9 +113,33 @@ stall the forward updates needed to discover a reachable error. Grouping by
 callstack alone does not distinguish these cases: different predicate states can
 have the same callstack.
 
-Speculative exploration from an unconstrained entry publishes only backward
-conditions. `AlwaysReplaceExplorationEngineTest` checks both levels of separation
-and the speculative case.
+When several condition groups have completed for one input, the engine analyzes
+that same input again under their combined conditions. This produces a complete
+postcondition that incorporates the refinements from the different exit contexts,
+instead of taking a disjunction with coarse exits from an unrelated context.
+Whether groups can be combined is decided separately for each input, even when
+several inputs share a callstack. With `distributedSummaries.combinePresByHash`,
+the inputs at a program point are explicitly combined first.
+
+Callstack rejection requests speculative exploration from an unconstrained caller.
+These requests describe other possible callers and do not invalidate a completed
+analysis of the known input. Thus they do not prevent combining that input's
+successful refinements. They must nevertheless survive replacement of the
+individual runs by the combined run. Likewise, a feasible violation on one path
+must not suppress the speculative exploration needed for callstack rejections on
+another path.
+
+The engine collects these requests while refining the known inputs, then checks
+each distinct group of conditions once from an unconstrained caller. This avoids
+repeating the same speculative analysis for every input state. The requests live
+only for the current exploration; no results are cached across incoming updates.
+Speculative exploration never publishes forward summaries.
+
+Removing reachable exits merely because their conditions were rejected by the
+callstack is unsound: other contexts may still require these exits to discover an
+error. A replacement must describe a complete analysis of the same input.
+`AlwaysReplaceExplorationEngineTest` covers these publication and combination
+rules, including multiple inputs sharing a program point and speculative callers.
 
 ## Configuration and limits
 
