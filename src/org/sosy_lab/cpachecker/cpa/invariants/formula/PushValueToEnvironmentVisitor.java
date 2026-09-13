@@ -186,6 +186,36 @@ class PushValueToEnvironmentVisitor
     return getCompoundIntervalManager(pConstant).doIntersect(pConstant.getValue(), pParameter);
   }
 
+  /**
+   * Narrows the operands of a division to the values that can produce an assumed quotient.
+   *
+   * <p>C integer division truncates towards zero, so a quotient {@code q} does not determine the
+   * operands exactly: it only states that the numerator {@code n} and the denominator {@code d}
+   * satisfy, for the remainder {@code r} that the division drops,
+   *
+   * <pre>n = q * d + r,  |r| &lt; |d|,  sign(r) = sign(n)</pre>
+   *
+   * <p>Inverting the division as if it were exact therefore yields operand ranges that are too
+   * small, and narrowing to them prunes feasible branches. Both operands have to account for {@code
+   * r}:
+   *
+   * <ul>
+   *   <li>The numerator lies in {@code q * d + r}, so the product is widened by up to {@code |d| -
+   *       1} — towards positive values for a positive numerator and towards negative ones for a
+   *       negative numerator, since {@code r} carries the sign of {@code n}. For example {@code
+   *       INT_MIN / d == -1} holds for every {@code d} in {@code [2, INT_MAX]}, although {@code -1
+   *       * d} alone never reaches {@code INT_MIN}.
+   *   <li>The denominator satisfies {@code |n| / (|q| + 1) < |d| <= |n| / |q|}, so every
+   *       denominator down to almost half of {@code n / q} yields the same quotient, and only the
+   *       upper end of that range is {@code n / q} itself. Since {@code |q| + 1 <= 2 * |q|} for
+   *       {@code q != 0}, halving {@code n / q} is a sound (if slightly loose) bound for the end
+   *       closest to zero. For example {@code INT_MAX / d == 1} holds for every {@code d} in {@code
+   *       [1073741824, INT_MAX]}, not just for {@code d == INT_MAX}.
+   * </ul>
+   *
+   * <p>A quotient of zero is the one case that bounds the denominator not at all: it only states
+   * that the denominator is larger in magnitude than the numerator.
+   */
   @Override
   public Boolean visit(Divide<CompoundInterval> pDivide, CompoundInterval pParameter) {
     if (pParameter == null || pParameter.isBottom()) {
@@ -199,20 +229,37 @@ class PushValueToEnvironmentVisitor
     CompoundInterval leftValue = evaluate(pDivide.getNumerator());
     CompoundInterval rightValue = evaluate(pDivide.getDenominator());
 
-    // Determine the numerator but consider integer division
+    // Determine the numerator but consider integer division: widen the product by the dropped
+    // remainder, whose magnitude is below that of the denominator and whose sign is the numerator's
+    CompoundInterval signedDenominatorBound =
+        cim.add(rightValue, cim.negate(rightValue.signum())); // sign(d) * (|d| - 1)
+    CompoundInterval remainder =
+        cim.intersect(
+            cim.span(signedDenominatorBound, cim.negate(signedDenominatorBound)),
+            cim.singleton(BigInteger.ZERO).extendToMaxValue()); // [0, |d| - 1]
     CompoundInterval computedLeftValue = cim.multiply(parameter, rightValue);
     for (CompoundInterval interval : computedLeftValue.splitIntoIntervals()) {
       CompoundInterval borderA = interval;
-      CompoundInterval borderB =
-          cim.add(borderA, cim.add(rightValue, cim.negate(rightValue.signum())));
+      CompoundInterval borderB = cim.add(borderA, cim.multiply(remainder, leftValue.signum()));
       computedLeftValue = cim.union(computedLeftValue, cim.span(borderA, borderB));
     }
 
     CompoundInterval pushLeftValue = cim.intersect(leftValue, computedLeftValue);
-    CompoundInterval pushRightValue =
-        parameter.isSingleton() && parameter.contains(BigInteger.ZERO)
-            ? cim.allPossibleValues()
-            : cim.divide(leftValue, parameter);
+
+    // Determine the denominator but consider integer division: extend numerator/quotient towards
+    // zero, down to half of it, since those denominators yield the same quotient
+    CompoundInterval pushRightValue;
+    if (parameter.contains(BigInteger.ZERO)) {
+      pushRightValue = cim.allPossibleValues();
+    } else {
+      CompoundInterval two = cim.singleton(2);
+      pushRightValue = cim.bottom();
+      for (CompoundInterval quotient : parameter.splitIntoIntervals()) {
+        CompoundInterval border = cim.divide(leftValue, quotient);
+        pushRightValue = cim.union(pushRightValue, cim.span(border, cim.divide(border, two)));
+      }
+    }
+
     if (!pDivide.getNumerator().accept(this, pushLeftValue)
         || !pDivide.getDenominator().accept(this, pushRightValue)) {
       return false;
