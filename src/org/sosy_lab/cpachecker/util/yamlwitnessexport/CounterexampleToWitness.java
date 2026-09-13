@@ -518,10 +518,6 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     Specification specification = getSpecification();
     Set<Property> properties = specification.getProperties();
 
-    if (properties.size() != 1) {
-      return defaultTargetWaypoint(pEdge, pAstCfaRelation);
-    }
-
     Property property = properties.iterator().next();
     if (property instanceof CommonVerificationProperty verificationProperty) {
       if (verificationProperty == CommonVerificationProperty.OVERFLOW) {
@@ -540,9 +536,24 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
             null,
             LocationRecord.createLocationRecordAtStart(
                 fullExpressionLocation, pEdge.getPredecessor().getFunction().getOrigName()));
+      } else if (verificationProperty == CommonVerificationProperty.VALID_DEREF) {
+        // MemorySafety: valid-deref
+        // Similar to overflows, we want the full expression, as the witness format currently demands this.
+        FileLocation fullExpressionLocation =
+            CFAUtils.getClosestFullExpression((CCfaEdge) pEdge, pAstCfaRelation).orElseThrow();
+
+        return new WaypointRecord(
+            WaypointType.TARGET,
+            WaypointAction.FOLLOW,
+            null,
+            LocationRecord.createLocationRecordAtStart(
+                fullExpressionLocation, pEdge.getPredecessor().getFunction().getOrigName()));
+
       } else {
-        // This is well-defined for the reeachability property, for all others violation witnesses
-        // are not really well-defined
+        // This is well-defined for the reachability property, for all others violation witnesses
+        // are not really well-defined.
+        // MemorySafety valid-free also seems to be happy with this.
+        // We want to return the exact expression of the failing free() for valid-free.
         return defaultTargetWaypoint(pEdge, pAstCfaRelation);
       }
     }
