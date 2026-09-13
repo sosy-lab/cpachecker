@@ -255,13 +255,17 @@ public final class DssBlockAnalysis {
    */
   public Collection<DssMessage> runInitialAnalysis()
       throws CPAException, InterruptedException, SolverException {
-    AnalysisResult round = engine.exploreInitially();
-    if (!round.violationConditions().isEmpty()) {
-      // the initial run explores the block without any violation condition attached, so every
-      // violation it finds originates inside this block
-      containsViolationInsideBlock = true;
+    try {
+      AnalysisResult round = engine.exploreInitially();
+      if (!round.violationConditions().isEmpty()) {
+        // the initial run explores the block without any violation condition attached, so every
+        // violation it finds originates inside this block
+        containsViolationInsideBlock = true;
+      }
+      return messagesFor(round);
+    } finally {
+      reachedSet.clear();
     }
-    return messagesFor(round);
   }
 
   /**
@@ -285,7 +289,7 @@ public final class DssBlockAnalysis {
    */
   public Collection<DssMessage> analyzePreconditions()
       throws SolverException, InterruptedException, CPAException {
-    return messagesFor(engine.explore(Optional.empty()));
+    return analyze(Optional.empty());
   }
 
   /**
@@ -311,7 +315,18 @@ public final class DssBlockAnalysis {
    */
   public Collection<DssMessage> analyzeViolationConditions(String pSenderId)
       throws SolverException, InterruptedException, CPAException {
-    return messagesFor(engine.explore(Optional.of(pSenderId)));
+    return analyze(Optional.of(pSenderId));
+  }
+
+  private Collection<DssMessage> analyze(Optional<String> pViolationConditionSender)
+      throws SolverException, InterruptedException, CPAException {
+    try {
+      return messagesFor(engine.explore(pViolationConditionSender));
+    } finally {
+      // Summaries and path snapshots are consumed before this point. The reached set is only a
+      // workspace for one CPA run, not worker history to retain between incoming updates.
+      reachedSet.clear();
+    }
   }
 
   /**

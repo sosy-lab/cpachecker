@@ -12,18 +12,14 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis.blockStateOf;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimaps;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
@@ -117,8 +113,7 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
             ? analysis.makeStartPrecision()
             : analysis.combinePrecisions(preconditions.getStatesAndPrecisions());
 
-    List<AnalysisResult> rounds = new ArrayList<>();
-    Set<ImmutableList<AbstractState>> pendingFallbacks = new LinkedHashSet<>();
+    Exploration exploration = new Exploration(conditionsPerLocation, precisionOfAnalysis);
     for (Object preconditionProgramPoint : preconditions.getAllProgramPoints()) {
       Collection<AbstractState> inputs =
           preconditions.getStatesPerLocation(preconditionProgramPoint);
@@ -132,141 +127,117 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
                         transformedImmutableListCopy(inputs, analysis.getDcpa()::reset)));
       }
       for (AbstractState input : inputs) {
-        rounds.add(
-            exploreEntry(input, conditionsPerLocation, precisionOfAnalysis, pendingFallbacks));
+        exploration.exploreInput(input);
       }
     }
     if (preconditions.isEmpty() || preconditions.isAnyPredecessorTrulyEmpty()) {
       // A predecessor with no known state does not restrict the entry.
-      pendingFallbacks.add(ImmutableList.copyOf(violationConditions.statesOf(Optional.empty())));
+      exploration.requestUnconstrainedEntry();
     }
-    // Several inputs can request the same unconstrained-caller check. Keep these obligations
-    // separate from known-input refinement and check each condition group only once in this
-    // exploration. Requests from individual rounds survive their replacement by a combined round.
-    for (ImmutableList<AbstractState> conditions : pendingFallbacks) {
-      AnalysisResult topExploration =
-          exploreFrom(
-              analysis.makeStartState(true),
-              conditions,
-              precisionOfAnalysis,
-              true,
-              pendingFallbacks);
-      Preconditions.checkState(topExploration.summaries().isEmpty());
-      rounds.add(topExploration);
-    }
-    return merge(rounds);
+    return exploration.finish();
   }
 
-  /** Combines successful refinements only when they describe the same input state. */
-  private AnalysisResult exploreEntry(
-      AbstractState pInput,
-      ImmutableListMultimap<Object, AbstractState> pConditionsPerLocation,
-      Precision pPrecision,
-      Set<ImmutableList<AbstractState>> pPendingFallbacks)
-      throws CPAException, InterruptedException {
-    Map<Object, AnalysisResult> rounds = new LinkedHashMap<>();
-    ImmutableSet.Builder<Object> successfulGroups = ImmutableSet.builder();
-    for (Object conditionProgramPoint : pConditionsPerLocation.keySet()) {
-      AnalysisResult round =
-          exploreFrom(
-              pInput,
-              pConditionsPerLocation.get(conditionProgramPoint),
-              pPrecision,
-              false,
-              pPendingFallbacks);
-      rounds.put(conditionProgramPoint, round);
-      if (!round.summaries().isEmpty()) {
-        // A summary means this particular input was fully explored. Speculative callers are
-        // considered separately after refining the known inputs.
-        successfulGroups.add(conditionProgramPoint);
+  private enum RunMode {
+    PROBE,
+    PUBLISH,
+    SPECULATIVE
+  }
+
+  /**
+   * Lives for one invocation of {@link #explore(Optional)}. Only the final output and condition
+   * group identifiers survive individual CPA runs; no probe states or results are retained.
+   */
+  private final class Exploration {
+
+    private final ImmutableListMultimap<Object, AbstractState> conditions;
+    private final Precision precision;
+    private final ImmutableSet.Builder<StateAndPrecision> summaries = ImmutableSet.builder();
+    private final ImmutableSet.Builder<ArgPathAndCondition> violations = ImmutableSet.builder();
+    private final Set<ImmutableSet<Object>> pendingFallbacks = new LinkedHashSet<>();
+
+    Exploration(ImmutableListMultimap<Object, AbstractState> pConditions, Precision pPrecision) {
+      conditions = pConditions;
+      precision = pPrecision;
+    }
+
+    void exploreInput(AbstractState pInput) throws CPAException, InterruptedException {
+      if (conditions.keySet().size() == 1) {
+        // No selection is needed for a single exit context, so avoid a separate probe.
+        run(
+            pInput,
+            ImmutableSet.of(Iterables.getOnlyElement(conditions.keySet())),
+            RunMode.PUBLISH);
+        return;
+      }
+
+      Set<Object> successfulGroups = new LinkedHashSet<>();
+      Object lastGroup = Iterables.getLast(conditions.keySet());
+      for (Object group : conditions.keySet()) {
+        if (successfulGroups.isEmpty() && group.equals(lastGroup)) {
+          // Earlier groups contributed no exits. This last run cannot be replaced by a combination,
+          // so consume its output directly without retaining a probe or repeating the analysis.
+          run(pInput, ImmutableSet.of(group), RunMode.PUBLISH);
+          return;
+        }
+        if (run(pInput, ImmutableSet.of(group), RunMode.PROBE)) {
+          successfulGroups.add(group);
+        }
+      }
+      ImmutableSet<Object> selectedGroups = ImmutableSet.copyOf(successfulGroups);
+      if (!selectedGroups.isEmpty()) {
+        // Recompute a complete postcondition for this same input. Even if only one group succeeded,
+        // rerun it instead of retaining its ARG and precision while probing the other groups.
+        run(pInput, selectedGroups, RunMode.PUBLISH);
       }
     }
-    Set<Object> groupsToCombine = successfulGroups.build();
-    if (groupsToCombine.size() <= 1) {
-      return merge(rounds.values());
+
+    void requestUnconstrainedEntry() {
+      pendingFallbacks.add(conditions.keySet());
     }
 
-    groupsToCombine.forEach(rounds::remove);
-    List<AnalysisResult> remainingRounds = new ArrayList<>(rounds.values());
-    // Combining the conditions refines the complete postcondition for this input across exit
-    // contexts. Combining whole entry-location groups would also replace the exits of other inputs
-    // for which some of these conditions are still unresolved, potentially losing forward progress.
-    remainingRounds.add(
-        exploreFrom(
-            pInput,
-            FluentIterable.from(groupsToCombine)
-                .transformAndConcat(pConditionsPerLocation::get)
-                .toList(),
-            pPrecision,
-            false,
-            pPendingFallbacks));
-    return merge(remainingRounds);
-  }
-
-  /**
-   * Combines the rounds of one exploration: summaries and violation conditions accumulate, while
-   * the block end counts as unreachable only if every round found it unreachable.
-   */
-  private AnalysisResult merge(Collection<AnalysisResult> pRounds)
-      throws CPAException, InterruptedException {
-    ImmutableSet.Builder<StateAndPrecision> summaries = ImmutableSet.builder();
-    ImmutableSet.Builder<ArgPathAndCondition> violations = ImmutableSet.builder();
-    boolean unreachable = true;
-    for (AnalysisResult round : pRounds) {
-      summaries.addAll(round.summaries());
-      violations.addAll(round.violationConditions());
-      unreachable &= round.blockEndUnreachable();
-    }
-    return new AnalysisResult(
-        analysis.deduplicateStatesAndPrecisions(summaries.build()),
-        violations.build(),
-        unreachable);
-  }
-
-  /**
-   * Explores the block from one input state.
-   *
-   * @param pDiscardSummaries whether this is a speculative run whose summaries must not be
-   *     published, in which case the violations it finds are reported separately
-   * @param pPendingFallbacks collects the unconstrained-caller checks required by known inputs;
-   *     speculative runs do not add requests
-   */
-  private AnalysisResult exploreFrom(
-      AbstractState pInput,
-      Collection<AbstractState> pViolationConditions,
-      Precision pPrecision,
-      boolean pDiscardSummaries,
-      Set<ImmutableList<AbstractState>> pPendingFallbacks)
-      throws CPAException, InterruptedException {
-    DssBlockAnalysisResult result =
-        analysis.runBlockAnalysis(
-            analysis.getDcpa().reset(pInput), pPrecision, pViolationConditions);
-    ImmutableSet.Builder<StateAndPrecision> summaries = ImmutableSet.builder();
-    ImmutableSet.Builder<ArgPathAndCondition> violations = ImmutableSet.builder();
-    if (!result.getAllViolations().isEmpty()) {
-      violations.addAll(analysis.pathsWithCondition(result.getViolationConditionViolations()));
-      violations.addAll(analysis.pathsFromOrigin(result.getTargetStates()));
-    } else if (!pDiscardSummaries) {
-      // Unresolved analyses can have coarse exit states that erase refinement around loops.
-      // A completed analysis, including one whose conditions have incompatible callstacks, must
-      // retain all reachable exits: other call contexts may still need them for forward progress.
-      summaries.addAll(analysis.summariesOf(result));
+    AnalysisResult finish() throws CPAException, InterruptedException {
+      // Requests from probes survive their replacement, including requests from unresolved probes.
+      // Each distinct check runs once, and this set is discarded when this invocation finishes.
+      for (ImmutableSet<Object> groups : pendingFallbacks) {
+        run(analysis.makeStartState(true), groups, RunMode.SPECULATIVE);
+      }
+      Set<StateAndPrecision> finalSummaries = summaries.build();
+      Set<ArgPathAndCondition> finalViolations = violations.build();
+      return new AnalysisResult(
+          analysis.deduplicateStatesAndPrecisions(finalSummaries),
+          finalViolations,
+          finalSummaries.isEmpty() && finalViolations.isEmpty());
     }
 
-    if (!pDiscardSummaries
-        && result.getFinalLocationStates().stream()
-            .anyMatch(state -> !blockStateOf(state).getHinderedByCallstack().isEmpty())) {
-      // A feasible violation on one path does not discharge conditions rejected by the callstack
-      // on another path. Retain the request even if another round already has a violation or this
-      // round will later be replaced by a combined refinement.
-      pPendingFallbacks.add(ImmutableList.copyOf(pViolationConditions));
-    }
+    /**
+     * Consumes a run while its reached set is current. Only publishable outputs and fallback
+     * identifiers are kept. The return value says whether this input completed with reachable
+     * exits.
+     */
+    private boolean run(AbstractState pInput, ImmutableSet<Object> pGroups, RunMode pMode)
+        throws CPAException, InterruptedException {
+      DssBlockAnalysisResult result =
+          analysis.runBlockAnalysis(
+              analysis.getDcpa().reset(pInput),
+              precision,
+              FluentIterable.from(pGroups).transformAndConcat(conditions::get).toList());
+      boolean completed = result.getAllViolations().isEmpty();
+      if (!completed) {
+        violations.addAll(analysis.pathsWithCondition(result.getViolationConditionViolations()));
+        violations.addAll(analysis.pathsFromOrigin(result.getTargetStates()));
+      } else if (pMode == RunMode.PUBLISH) {
+        // Publish all reachable exits of the selected analysis, including exits with incompatible
+        // callstacks. Suppressing these exits can lose progress needed by other caller contexts.
+        summaries.addAll(analysis.summariesOf(result));
+      }
 
-    Set<StateAndPrecision> finalSummaries = summaries.build();
-    Set<ArgPathAndCondition> finalViolations = violations.build();
-    if (finalViolations.isEmpty() && finalSummaries.isEmpty()) {
-      return AnalysisResult.unreachableBlockEnd();
+      if (pMode != RunMode.SPECULATIVE
+          && result.getFinalLocationStates().stream()
+              .anyMatch(state -> !blockStateOf(state).getHinderedByCallstack().isEmpty())) {
+        // A violation on another path does not discharge a callstack-rejected obligation.
+        pendingFallbacks.add(pGroups);
+      }
+      return completed && !result.getFinalLocationStates().isEmpty();
     }
-    return new AnalysisResult(finalSummaries, finalViolations, false);
   }
 }

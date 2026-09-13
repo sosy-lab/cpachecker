@@ -113,13 +113,23 @@ stall the forward updates needed to discover a reachable error. Grouping by
 callstack alone does not distinguish these cases: different predicate states can
 have the same callstack.
 
-When several condition groups have completed for one input, the engine analyzes
-that same input again under their combined conditions. This produces a complete
-postcondition that incorporates the refinements from the different exit contexts,
-instead of taking a disjunction with coarse exits from an unrelated context.
-Whether groups can be combined is decided separately for each input, even when
-several inputs share a callstack. With `distributedSummaries.combinePresByHash`,
-the inputs at a program point are explicitly combined first.
+For multiple condition groups, the engine first probes each group separately
+and remembers only the identifiers of groups that completed with reachable exits.
+It then analyzes that same input again under the selected conditions. This
+produces a complete postcondition that incorporates the refinements from the
+different exit contexts, instead of taking a disjunction with coarse exits from
+an unrelated context. Selection is separate for each input, even when several
+inputs share a callstack. With `distributedSummaries.combinePresByHash`, the
+inputs at a program point are explicitly combined first.
+
+Successful probes do not materialize summaries or retain their ARGs and
+precisions. Even if only one of several groups succeeds, it is rerun to produce
+the final postcondition. This trades an extra CPA run for avoiding retained probe
+results. When only one condition group exists, the engine runs it directly
+without a separate probe. If all earlier groups contributed no exits, the last
+group also produces its output directly: no further group can cause a combined
+replacement. Feasible backward obligations found during probing remain part of
+the output.
 
 Callstack rejection requests speculative exploration from an unconstrained caller.
 These requests describe other possible callers and do not invalidate a completed
@@ -134,6 +144,16 @@ each distinct group of conditions once from an unconstrained caller. This avoids
 repeating the same speculative analysis for every input state. The requests live
 only for the current exploration; no results are cached across incoming updates.
 Speculative exploration never publishes forward summaries.
+
+The exploration accumulator is local to one incoming update. It retains only
+outgoing summaries, backward path snapshots needed for serialization, and
+condition-group identifiers for pending speculative checks. The worker clears
+its native reached set after producing the serialized messages, including when
+analysis or serialization fails. Later updates recompute from the current
+incoming conditions; they do not resume an earlier reached set. The input
+handlers still retain the latest predecessor summaries and successor conditions,
+which are necessary inputs to the distributed fixpoint. The CPA and its solver
+also remain available for subsequent runs.
 
 Removing reachable exits merely because their conditions were rejected by the
 callstack is unsound: other contexts may still require these exits to discover an

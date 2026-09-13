@@ -13,6 +13,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -129,6 +130,7 @@ public class AlwaysReplaceExplorationEngineTest {
     when(analysis.runBlockAnalysis(eq(top), any(), any())).thenReturn(fallback);
     ImmutableSet<ARGState> targets =
         pFeasible ? ImmutableSet.of(fallbackTarget) : ImmutableSet.of();
+    when(fallback.getFinalLocationStates()).thenReturn(ImmutableSet.of());
     when(fallback.getAllViolations()).thenReturn(targets);
     when(fallback.getTargetStates()).thenReturn(targets);
     when(fallback.getViolationConditionViolations()).thenReturn(ImmutableSet.of());
@@ -222,16 +224,17 @@ public class AlwaysReplaceExplorationEngineTest {
     // even though the second input can be refined under both condition groups together.
     DssBlockAnalysisResult firstComplete = mock(DssBlockAnalysisResult.class);
     when(firstComplete.getAllViolations()).thenReturn(ImmutableSet.of());
-    when(firstComplete.getFinalLocationStates()).thenReturn(ImmutableSet.of());
+    when(firstComplete.getFinalLocationStates()).thenReturn(ImmutableSet.of(summaryState));
     when(analysis.runBlockAnalysis(eq(entry), any(), eq(ImmutableList.of(otherCondition))))
         .thenReturn(firstComplete);
     when(analysis.summariesOf(firstComplete)).thenReturn(ImmutableList.of(summary));
 
+    ARGState combinedState = new ARGState(mock(BlockState.class), null);
     StateAndPrecision combinedSummary =
-        new StateAndPrecision(mock(AbstractState.class), SingletonPrecision.getInstance());
+        new StateAndPrecision(combinedState, SingletonPrecision.getInstance());
     DssBlockAnalysisResult combined = mock(DssBlockAnalysisResult.class);
     when(combined.getAllViolations()).thenReturn(ImmutableSet.of());
-    when(combined.getFinalLocationStates()).thenReturn(ImmutableSet.of());
+    when(combined.getFinalLocationStates()).thenReturn(ImmutableSet.of(combinedState));
     when(analysis.runBlockAnalysis(
             eq(otherEntry), any(), eq(ImmutableList.of(condition, otherCondition))))
         .thenReturn(combined);
@@ -262,11 +265,12 @@ public class AlwaysReplaceExplorationEngineTest {
 
     // The combined analysis completes without a fallback of its own. Obligations from individual
     // runs still need to be propagated because their speculative callers differ from this input.
+    ARGState combinedState = new ARGState(mock(BlockState.class), null);
     StateAndPrecision combinedSummary =
-        new StateAndPrecision(mock(AbstractState.class), SingletonPrecision.getInstance());
+        new StateAndPrecision(combinedState, SingletonPrecision.getInstance());
     DssBlockAnalysisResult combined = mock(DssBlockAnalysisResult.class);
     when(combined.getAllViolations()).thenReturn(ImmutableSet.of());
-    when(combined.getFinalLocationStates()).thenReturn(ImmutableSet.of());
+    when(combined.getFinalLocationStates()).thenReturn(ImmutableSet.of(combinedState));
     when(analysis.runBlockAnalysis(
             eq(entry), any(), eq(ImmutableList.of(condition, otherCondition))))
         .thenReturn(combined);
@@ -294,6 +298,90 @@ public class AlwaysReplaceExplorationEngineTest {
     verify(analysis).runBlockAnalysis(eq(entry), any(), any());
     verify(analysis).runBlockAnalysis(eq(otherEntry), any(), any());
     verify(analysis).runBlockAnalysis(eq(top), any(), eq(ImmutableList.of(condition)));
+  }
+
+  @Test
+  public void aNewUpdateRepeatsSpeculativeChecksInsteadOfUsingOldResults() throws Exception {
+    configureRefinedEntry(entry);
+    when(summaryBlock.getHinderedByCallstack()).thenReturn(ImmutableSet.of(condition));
+    AbstractState top = configureFallback(true);
+    assertThat(engine.explore(Optional.empty()).violationConditions())
+        .containsExactly(fallbackViolation);
+
+    ARGState newTarget = new ARGState(mock(AbstractState.class), null);
+    DssBlockAnalysisResult newFallback = mock(DssBlockAnalysisResult.class);
+    ArgPathAndCondition newViolation = mock(ArgPathAndCondition.class);
+    when(newFallback.getAllViolations()).thenReturn(ImmutableSet.of(newTarget));
+    when(newFallback.getFinalLocationStates()).thenReturn(ImmutableSet.of());
+    when(newFallback.getTargetStates()).thenReturn(ImmutableSet.of(newTarget));
+    when(newFallback.getViolationConditionViolations()).thenReturn(ImmutableSet.of());
+    when(analysis.pathsFromOrigin(ImmutableSet.of(newTarget)))
+        .thenReturn(ImmutableSet.of(newViolation));
+    when(analysis.runBlockAnalysis(eq(top), any(), any())).thenReturn(newFallback);
+
+    AnalysisResult updated = engine.explore(Optional.empty());
+    assertThat(updated.summaries()).containsExactly(summary);
+    assertThat(updated.violationConditions()).containsExactly(newViolation);
+    verify(analysis, times(2)).runBlockAnalysis(eq(top), any(), any());
+  }
+
+  @Test
+  public void probesDoNotMaterializeSummaries() throws Exception {
+    AbstractState otherCondition = mock(AbstractState.class);
+    AbstractState lastCondition = mock(AbstractState.class);
+    when(conditionHandler.statesOf(Optional.empty()))
+        .thenReturn(ImmutableList.of(condition, otherCondition, lastCondition));
+    when(dcpa.computeProgramPointId(otherCondition)).thenReturn("other condition");
+    when(dcpa.computeProgramPointId(lastCondition)).thenReturn("last condition");
+    when(analysis.runBlockAnalysis(eq(entry), any(), eq(ImmutableList.of(lastCondition))))
+        .thenReturn(initialResult);
+    DssBlockAnalysisResult probe = mock(DssBlockAnalysisResult.class);
+    when(probe.getAllViolations()).thenReturn(ImmutableSet.of());
+    when(probe.getFinalLocationStates()).thenReturn(ImmutableSet.of(summaryState));
+    when(analysis.runBlockAnalysis(eq(entry), any(), eq(ImmutableList.of(otherCondition))))
+        .thenReturn(probe, initialResult);
+
+    // Only otherCondition succeeds during probing. The publishing run finds a violation instead.
+    // It must contribute its current result, not an exit retained from the earlier probe.
+    AnalysisResult result = engine.explore(Optional.empty());
+    assertThat(result.summaries()).isEmpty();
+    assertThat(result.violationConditions()).containsExactly(violation);
+    verify(analysis, never()).summariesOf(probe);
+    verify(analysis, times(2))
+        .runBlockAnalysis(eq(entry), any(), eq(ImmutableList.of(otherCondition)));
+  }
+
+  @Test
+  public void lastRemainingGroupPublishesWithoutRepeatingTheAnalysis() throws Exception {
+    AbstractState otherCondition = mock(AbstractState.class);
+    when(conditionHandler.statesOf(Optional.empty()))
+        .thenReturn(ImmutableList.of(condition, otherCondition));
+    when(dcpa.computeProgramPointId(otherCondition)).thenReturn("other condition");
+    DssBlockAnalysisResult completed = mock(DssBlockAnalysisResult.class);
+    when(completed.getAllViolations()).thenReturn(ImmutableSet.of());
+    when(completed.getFinalLocationStates()).thenReturn(ImmutableSet.of(summaryState));
+    when(analysis.runBlockAnalysis(eq(entry), any(), eq(ImmutableList.of(otherCondition))))
+        .thenReturn(completed);
+    when(analysis.summariesOf(completed)).thenReturn(ImmutableList.of(summary));
+
+    AnalysisResult result = engine.explore(Optional.empty());
+    assertThat(result.summaries()).containsExactly(summary);
+    assertThat(result.violationConditions()).containsExactly(violation);
+    verify(analysis).runBlockAnalysis(eq(entry), any(), eq(ImmutableList.of(otherCondition)));
+  }
+
+  @Test
+  public void aCompletedRunWithoutExitsReportsAnUnreachableEnd() throws Exception {
+    DssBlockAnalysisResult unreachable = mock(DssBlockAnalysisResult.class);
+    when(unreachable.getAllViolations()).thenReturn(ImmutableSet.of());
+    when(unreachable.getFinalLocationStates()).thenReturn(ImmutableSet.of());
+    when(analysis.summariesOf(unreachable)).thenReturn(ImmutableList.of());
+    when(analysis.runBlockAnalysis(eq(entry), any(), any())).thenReturn(unreachable);
+
+    AnalysisResult result = engine.explore(Optional.empty());
+    assertThat(result.summaries()).isEmpty();
+    assertThat(result.violationConditions()).isEmpty();
+    assertThat(result.blockEndUnreachable()).isTrue();
   }
 
   @Test
