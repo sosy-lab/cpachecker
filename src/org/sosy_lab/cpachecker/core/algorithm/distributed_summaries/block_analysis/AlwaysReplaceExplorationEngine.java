@@ -216,11 +216,10 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
       if (!result.getAllViolations().isEmpty()) {
         violations.addAll(analysis.pathsWithCondition(result.getViolationConditionViolations()));
         violations.addAll(analysis.pathsFromOrigin(result.getTargetStates()));
-      }
-      if (!pDiscardSummaries) {
-        // These states precede the ghost-edge constraints and overapproximate the block's exits
-        // independently of whether a violation condition is feasible. Suppressing them can leave
-        // a cycle waiting on stale entry states even though a reachable violation remains.
+      } else if (!pDiscardSummaries) {
+        // Publish only fully refined analyses. An unresolved analysis can still have coarse exit
+        // states; feeding those back into a loop can repeatedly erase the precision gained by
+        // refinement. Other entry states in this group may already have useful refined exits.
         summaries.addAll(analysis.summariesOf(result));
       }
     }
@@ -234,6 +233,8 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
     }
 
     if (!finalViolations.isEmpty()) {
+      // Keep the summaries of the successful analyses even if another entry state is unresolved.
+      // Discarding the whole group's summaries can stall forward progress on a reachable error.
       return new AnalysisResult(finalSummaries, finalViolations, false);
     }
 

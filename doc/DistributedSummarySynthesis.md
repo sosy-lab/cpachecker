@@ -92,16 +92,28 @@ enumerating paths.
 
 ## Forward progress while violations are unresolved
 
-Forward summaries describe reachable block ends before ghost-edge constraints
-are applied. A round can therefore publish these summaries and backward violation
-conditions together. A feasible ghost condition must not suppress a newly
-computed forward summary: around a loop, neighboring blocks would otherwise keep
-exploring stale entry states and could stop exchanging messages while a reachable
-violation remains unresolved.
+An exploration group can contain several entry states at the same program point.
+The engine analyzes these states separately. Their outcomes must remain separate
+until it decides which forward summaries to publish:
 
-Speculative exploration from an unconstrained entry still publishes only backward
-conditions. Only exploration from the stored entry preconditions contributes
-forward summaries. `AlwaysReplaceExplorationEngineTest` checks both cases.
+- A completed analysis that refutes all its violation conditions contributes its
+  refined exit states.
+- An analysis with a feasible violation contributes backward conditions. Its exit
+  states may still be too coarse to provide useful forward refinement, so they
+  are not published.
+- A violation from one entry state does not suppress refined exit states obtained
+  from another entry state in the same group.
+
+Publishing coarse exits from unresolved analyses can feed them around a loop and
+repeatedly weaken its entry conditions, preventing convergence. Conversely,
+discarding the entire group's exits whenever any entry state has a violation can
+stall the forward updates needed to discover a reachable error. Grouping by
+callstack alone does not distinguish these cases: different predicate states can
+have the same callstack.
+
+Speculative exploration from an unconstrained entry publishes only backward
+conditions. `AlwaysReplaceExplorationEngineTest` checks both levels of separation
+and the speculative case.
 
 ## Configuration and limits
 

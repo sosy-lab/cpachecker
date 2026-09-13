@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
 
 import static com.google.common.truth.Truth.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -30,6 +31,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 public class AlwaysReplaceExplorationEngineTest {
 
   private final DssBlockAnalysis analysis = mock(DssBlockAnalysis.class);
+  private final DistributedConfigurableProgramAnalysis dcpa =
+      mock(DistributedConfigurableProgramAnalysis.class);
   private final BlockToProgramLocationMap preconditions = mock(BlockToProgramLocationMap.class);
   private final AbstractState entry = mock(AbstractState.class);
   private final ArgPathAndCondition violation = mock(ArgPathAndCondition.class);
@@ -39,7 +42,6 @@ public class AlwaysReplaceExplorationEngineTest {
 
   @Before
   public void setUp() throws Exception {
-    var dcpa = mock(DistributedConfigurableProgramAnalysis.class);
     var preconditionHandler = mock(AlwaysReplacePreconditionHandler.class);
     var conditionHandler = mock(DssViolationConditionHandler.class);
     var condition = mock(AbstractState.class);
@@ -74,11 +76,32 @@ public class AlwaysReplaceExplorationEngineTest {
   }
 
   @Test
-  public void reachableExitsArePublishedWhileViolationsPropagateBackwards() throws Exception {
+  public void unresolvedAnalysisDoesNotPublishUnrefinedExits() throws Exception {
     AnalysisResult result = engine.explore(Optional.empty());
-    assertThat(result.summaries()).containsExactly(summary);
+    assertThat(result.summaries()).isEmpty();
     assertThat(result.violationConditions()).containsExactly(violation);
     assertThat(result.blockEndUnreachable()).isFalse();
+  }
+
+  @Test
+  public void refinedExitsSurviveViolationsFromAnotherEntryState() throws Exception {
+    AbstractState otherEntry = mock(AbstractState.class);
+    DssBlockAnalysisResult refined = mock(DssBlockAnalysisResult.class);
+    when(dcpa.reset(otherEntry)).thenReturn(otherEntry);
+    when(analysis.runBlockAnalysis(eq(otherEntry), any(), any())).thenReturn(refined);
+    when(refined.getAllViolations()).thenReturn(ImmutableSet.of());
+    when(analysis.summariesOf(refined)).thenReturn(ImmutableList.of(summary));
+
+    // Both inputs have the same program point, and their processing order must not matter.
+    for (var entries :
+        ImmutableList.of(
+            ImmutableList.of(entry, otherEntry), ImmutableList.of(otherEntry, entry))) {
+      when(preconditions.getStatesPerLocation("entry")).thenReturn(entries);
+      AnalysisResult result = engine.explore(Optional.empty());
+      assertThat(result.summaries()).containsExactly(summary);
+      assertThat(result.violationConditions()).containsExactly(violation);
+      assertThat(result.blockEndUnreachable()).isFalse();
+    }
   }
 
   @Test
