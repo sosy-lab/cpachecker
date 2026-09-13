@@ -135,4 +135,13 @@ public class DistributedSummarySynthesisTest {
     assertBothBlockDomains(
         "int main() { int x = 0; while (x < 3) x++; " + "if (x == 3) __VERIFIER_error(); }", false);
   }
+
+  @Test
+  public void testStaticRefinementHandlesSharedRootChildren() throws Exception {
+    assertBothBlockDomains(
+        Files.readString(
+            Path.of("test/programs/simple/block_analysis/product-lines_simple-10.c"),
+            StandardCharsets.UTF_8),
+        true);
+  }
 }
