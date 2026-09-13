@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAn
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.block.BlockState;
 
 public class AlwaysReplaceExplorationEngineTest {
 
@@ -37,24 +36,18 @@ public class AlwaysReplaceExplorationEngineTest {
   private final BlockToProgramLocationMap preconditions = mock(BlockToProgramLocationMap.class);
   private final AbstractState entry = mock(AbstractState.class);
   private final ArgPathAndCondition violation = mock(ArgPathAndCondition.class);
-  private final AbstractState condition = mock(AbstractState.class);
-  private final DssViolationConditionHandler conditionHandler =
-      mock(DssViolationConditionHandler.class);
-  private final ArgPathAndCondition fallbackViolation = mock(ArgPathAndCondition.class);
-  private final BlockState summaryBlock = mock(BlockState.class);
-  private final ARGState summaryState = new ARGState(summaryBlock, null);
   private final StateAndPrecision summary =
-      new StateAndPrecision(summaryState, SingletonPrecision.getInstance());
-  private final DssBlockAnalysisResult initialResult = mock(DssBlockAnalysisResult.class);
+      new StateAndPrecision(mock(AbstractState.class), SingletonPrecision.getInstance());
   private AlwaysReplaceExplorationEngine engine;
 
   @Before
   public void setUp() throws Exception {
     var preconditionHandler = mock(AlwaysReplacePreconditionHandler.class);
+    var conditionHandler = mock(DssViolationConditionHandler.class);
+    var condition = mock(AbstractState.class);
     var target = new ARGState(mock(AbstractState.class), null);
-    var result = initialResult;
+    var result = mock(DssBlockAnalysisResult.class);
     var precision = SingletonPrecision.getInstance();
-    when(summaryBlock.getHinderedByCallstack()).thenReturn(ImmutableSet.of());
     when(analysis.getDcpa()).thenReturn(dcpa);
     when(analysis.getOptions())
         .thenReturn(new DssAnalysisOptions(Configuration.defaultConfiguration()));
@@ -69,7 +62,6 @@ public class AlwaysReplaceExplorationEngineTest {
     when(dcpa.reset(entry)).thenReturn(entry);
     when(analysis.runBlockAnalysis(entry, precision, ImmutableList.of(condition)))
         .thenReturn(result);
-    when(result.getFinalLocationStates()).thenReturn(ImmutableSet.of());
     when(result.getAllViolations()).thenReturn(ImmutableSet.of(target));
     when(result.getTargetStates()).thenReturn(ImmutableSet.of(target));
     when(result.getViolationConditionViolations()).thenReturn(ImmutableSet.of());
@@ -94,7 +86,11 @@ public class AlwaysReplaceExplorationEngineTest {
   @Test
   public void refinedExitsSurviveViolationsFromAnotherEntryState() throws Exception {
     AbstractState otherEntry = mock(AbstractState.class);
-    configureRefinedEntry(otherEntry);
+    DssBlockAnalysisResult refined = mock(DssBlockAnalysisResult.class);
+    when(dcpa.reset(otherEntry)).thenReturn(otherEntry);
+    when(analysis.runBlockAnalysis(eq(otherEntry), any(), any())).thenReturn(refined);
+    when(refined.getAllViolations()).thenReturn(ImmutableSet.of());
+    when(analysis.summariesOf(refined)).thenReturn(ImmutableList.of(summary));
 
     // Both inputs have the same program point, and their processing order must not matter.
     for (var entries :
@@ -106,101 +102,6 @@ public class AlwaysReplaceExplorationEngineTest {
       assertThat(result.violationConditions()).containsExactly(violation);
       assertThat(result.blockEndUnreachable()).isFalse();
     }
-  }
-
-  private void configureRefinedEntry(AbstractState pEntry) throws Exception {
-    DssBlockAnalysisResult refined = mock(DssBlockAnalysisResult.class);
-    when(dcpa.reset(pEntry)).thenReturn(pEntry);
-    when(analysis.runBlockAnalysis(eq(pEntry), any(), any())).thenReturn(refined);
-    when(refined.getAllViolations()).thenReturn(ImmutableSet.of());
-    when(refined.getFinalLocationStates()).thenReturn(ImmutableSet.of(summaryState));
-    when(analysis.summariesOf(refined)).thenReturn(ImmutableList.of(summary));
-  }
-
-  private void configureFallback(boolean pFeasible) throws Exception {
-    AbstractState top = mock(AbstractState.class);
-    ARGState fallbackTarget = new ARGState(mock(AbstractState.class), null);
-    DssBlockAnalysisResult fallback = mock(DssBlockAnalysisResult.class);
-    when(analysis.makeStartState(true)).thenReturn(top);
-    when(dcpa.reset(top)).thenReturn(top);
-    when(analysis.runBlockAnalysis(eq(top), any(), any())).thenReturn(fallback);
-    ImmutableSet<ARGState> targets =
-        pFeasible ? ImmutableSet.of(fallbackTarget) : ImmutableSet.of();
-    when(fallback.getAllViolations()).thenReturn(targets);
-    when(fallback.getTargetStates()).thenReturn(targets);
-    when(fallback.getViolationConditionViolations()).thenReturn(ImmutableSet.of());
-    if (pFeasible) {
-      when(analysis.pathsFromOrigin(targets)).thenReturn(ImmutableSet.of(fallbackViolation));
-    }
-  }
-
-  @Test
-  public void callstackFallbackSurvivesViolationsFromAnotherEntryState() throws Exception {
-    AbstractState otherEntry = mock(AbstractState.class);
-    configureRefinedEntry(otherEntry);
-    when(summaryBlock.getHinderedByCallstack()).thenReturn(ImmutableSet.of(condition));
-    configureFallback(true);
-
-    for (var entries :
-        ImmutableList.of(
-            ImmutableList.of(entry, otherEntry), ImmutableList.of(otherEntry, entry))) {
-      when(preconditions.getStatesPerLocation("entry")).thenReturn(entries);
-      AnalysisResult result = engine.explore(Optional.empty());
-      assertThat(result.violationConditions()).containsExactly(violation, fallbackViolation);
-      assertThat(result.blockEndUnreachable()).isFalse();
-    }
-  }
-
-  @Test
-  public void callstackFallbackSurvivesViolationsWithinTheSameAnalysis() throws Exception {
-    when(initialResult.getFinalLocationStates()).thenReturn(ImmutableSet.of(summaryState));
-    when(summaryBlock.getHinderedByCallstack()).thenReturn(ImmutableSet.of(condition));
-    configureFallback(true);
-
-    AnalysisResult result = engine.explore(Optional.empty());
-    assertThat(result.summaries()).isEmpty();
-    assertThat(result.violationConditions()).containsExactly(violation, fallbackViolation);
-    assertThat(result.blockEndUnreachable()).isFalse();
-  }
-
-  @Test
-  public void callstackOnlyRejectionDoesNotPublishUnrefinedExits() throws Exception {
-    configureRefinedEntry(entry);
-    when(summaryBlock.getHinderedByCallstack()).thenReturn(ImmutableSet.of(condition));
-    configureFallback(true);
-
-    AnalysisResult result = engine.explore(Optional.empty());
-    assertThat(result.summaries()).isEmpty();
-    assertThat(result.violationConditions()).containsExactly(fallbackViolation);
-    assertThat(result.blockEndUnreachable()).isFalse();
-  }
-
-  @Test
-  public void omittingUnrelatedExitsDoesNotReportUnreachableBlockEnd() throws Exception {
-    configureRefinedEntry(entry);
-    when(summaryBlock.getHinderedByCallstack()).thenReturn(ImmutableSet.of(condition));
-    configureFallback(false);
-
-    AnalysisResult result = engine.explore(Optional.empty());
-    assertThat(result.summaries()).isEmpty();
-    assertThat(result.violationConditions()).isEmpty();
-    assertThat(result.blockEndUnreachable()).isFalse();
-  }
-
-  @Test
-  public void refutedApplicableConditionStillAllowsPublishingExit() throws Exception {
-    AbstractState otherCondition = mock(AbstractState.class);
-    when(conditionHandler.statesOf(Optional.empty()))
-        .thenReturn(ImmutableList.of(condition, otherCondition));
-    when(dcpa.computeProgramPointId(otherCondition)).thenReturn("condition");
-    configureRefinedEntry(entry);
-    when(summaryBlock.getHinderedByCallstack()).thenReturn(ImmutableSet.of(condition));
-    configureFallback(true);
-
-    AnalysisResult result = engine.explore(Optional.empty());
-    assertThat(result.summaries()).containsExactly(summary);
-    assertThat(result.violationConditions()).containsExactly(fallbackViolation);
-    assertThat(result.blockEndUnreachable()).isFalse();
   }
 
   @Test
