@@ -63,7 +63,7 @@ public record ParsedInvariant(
    * Whether this invariant may refer to previous values of variables, which are encoded as fresh
    * variables. Transition invariants do, the invariants describing a state of the program do not.
    */
-  public boolean hasPreviousValueVariables() {
+  public boolean isTransitionInvariant() {
     return WitnessInvariantKind.of(type())
         .map(WitnessInvariantKind::isTransitionInvariant)
         .orElse(false);

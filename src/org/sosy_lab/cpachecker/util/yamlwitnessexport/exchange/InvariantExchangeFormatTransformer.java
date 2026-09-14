@@ -292,7 +292,7 @@ public class InvariantExchangeFormatTransformer {
       }
       int column = parsed.column().orElseThrow();
 
-      if (parsed.hasPreviousValueVariables()) {
+      if (parsed.isTransitionInvariant()) {
         invariants.add(
             new TransitionInvariant(
                 parsed.formula(),
