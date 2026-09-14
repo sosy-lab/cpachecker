@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport.model;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -73,12 +75,6 @@ public class FunctionContractEntry extends AbstractInvariantEntry {
    */
   static final String CONTRACT_KEY = "contract";
 
-  /**
-   * The key CPAchecker wrapped contracts in before this was fixed. Contracts never belonged into an
-   * {@code invariant}, but witnesses which do this exist and can still be read.
-   */
-  static final String LEGACY_CONTRACT_KEY = "invariant";
-
   public static class FunctionContractRecordDeserializer
       extends JsonDeserializer<FunctionContractEntry> {
     @Override
@@ -89,10 +85,7 @@ public class FunctionContractEntry extends AbstractInvariantEntry {
 
       // Move one level deeper to the children of the contract
       JsonNode contractNode = node.get(CONTRACT_KEY);
-      if (contractNode == null) {
-        contractNode = node.get(LEGACY_CONTRACT_KEY);
-      }
-      assert contractNode != null;
+      checkNotNull(contractNode);
 
       // Delegate the actual object mapping back to Jackson:
       // WaypointRecord result = mapper.treeToValue(waypointNode, WaypointRecord.class);

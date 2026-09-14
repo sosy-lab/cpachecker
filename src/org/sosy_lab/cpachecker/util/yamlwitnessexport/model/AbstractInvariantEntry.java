@@ -43,10 +43,10 @@ public abstract class AbstractInvariantEntry extends AbstractInformationRecord {
       JsonNode root = mapper.readTree(jp);
 
       // An invariant is wrapped in "invariant" and a function contract in "contract", with the
-      // "type" inside. Older witnesses also wrap contracts in "invariant".
-      JsonNode contentNode = root.get(FunctionContractEntry.CONTRACT_KEY);
+      // "type" inside.
+      JsonNode contentNode = root.get(InvariantEntry.INVARIANT_KEY);
       if (contentNode == null) {
-        contentNode = root.get(FunctionContractEntry.LEGACY_CONTRACT_KEY);
+        contentNode = root.get(FunctionContractEntry.CONTRACT_KEY);
       }
       if (contentNode != null) {
         String type = contentNode.get("type").asText();
