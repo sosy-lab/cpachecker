@@ -385,7 +385,9 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
                     actual_result_files,
                     run.identifier,
                     key_prefix="vcloud-",
-                    include_file=lambda name: not name.startswith("cloudBenchmarkOutput-"),
+                    include_file=lambda name: (
+                        not name.startswith("cloudBenchmarkOutput-")
+                    ),
                 )
 
             if os.path.isdir(vcloudFilesDirectory) and not os.path.isdir(
