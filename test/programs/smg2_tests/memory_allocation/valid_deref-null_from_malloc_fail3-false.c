@@ -16,6 +16,10 @@ int main() {
   // Unsigned char has no trap representation
   unsigned char *ptr = 0;
   ptr = malloc(sizeof(char)); // Might fail and return 0
+  if (ptr) {
+    free(ptr);
+    return 1;
+  }
 
   int res = 0;
 
@@ -23,8 +27,6 @@ int main() {
   for (int i = 0; i < 1; i++) {
     res = *(++ptr); // Invalid deref for malloc failure
   }
-
-  free(--ptr);
 
   return res;
 }

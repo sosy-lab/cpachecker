@@ -28,7 +28,6 @@ int main() {
   // This is part of a integration test for v2 violation witnesses. Please don't change it without modifying the test!
   (0, something = *ptr); // Invalid, ptr is one past
 
-  --ptr;
   free(--ptr);
 
   return something;

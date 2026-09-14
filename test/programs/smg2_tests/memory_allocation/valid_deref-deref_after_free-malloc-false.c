@@ -23,7 +23,7 @@ int main() {
   free(ptr); // Safe
 
   // This is part of a integration test for v2 violation witnesses. Please don't change it without modifying the test!
-  free(*ptr); // Unsafe deref before free is evaluated! So its a valid-deref violation.
+  free((void *) *ptr); // Unsafe deref before free is evaluated! So its a valid-deref violation.
 
   return 0;
 }

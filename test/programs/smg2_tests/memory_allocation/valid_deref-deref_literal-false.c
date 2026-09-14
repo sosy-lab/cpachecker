@@ -26,5 +26,6 @@ int main() {
     i++;
   }
 
-  return i;
+  // Technically leaks memory, but we fail in every case before this, so it does not matter
+  return 0;
 }
