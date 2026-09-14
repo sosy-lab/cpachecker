@@ -27,8 +27,6 @@ STOPPED_BY_INTERRUPT = False
 
 _JustReprocessResults = False
 
-VCLOUD_RESULT_FILES_COUNT = "vcloud-resultFilesCount"
-VCLOUD_RESULT_FILE_NAMES = "vcloud-resultFileNames"
 
 def set_vcloud_jar_path(p):
     global vcloud_jar
@@ -381,57 +379,14 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
                 actual_result_files = _list_result_files_recursively(
                     vcloudFilesDirectory
                 )
-                actual_count = len(actual_result_files)
-
-                # Extract the expected count from the run information
-                if VCLOUD_RESULT_FILES_COUNT in values:
-                    expected_count = int(values[VCLOUD_RESULT_FILES_COUNT])
-
-                    # "cloudBenchmarkOutput-<timestamp>" is benchcloud's internal
-                    # stdout/stderr capture file for the whole submission. The
-                    # worker deliberately keeps it out of the result zip
-                    # (see FinishingRunState.java in benchcloud), so it must be
-                    # excluded here too or it always shows up as "missing".
-                    if VCLOUD_RESULT_FILE_NAMES in values:
-                        expected_files = {
-                            f
-                            for f in values[VCLOUD_RESULT_FILE_NAMES].split(",")
-                            if not f.startswith("cloudBenchmarkOutput-")
-                        }
-                        expected_count = len(expected_files)
-
-                    if expected_count != actual_count:
-                        if VCLOUD_RESULT_FILE_NAMES in values:
-                            actual_files = actual_result_files
-                            missing_files = expected_files - actual_files
-                            logging.warning(
-                                "Number of result files received (%d) does not match the expected count (%d) for run %s. "
-                                "Missing files: %s",
-                                actual_count,
-                                expected_count,
-                                run.identifier,
-                                sorted(missing_files),
-                            )
-                        else:
-                            logging.warning(
-                                "Number of result files received (%d) does not match the expected count (%d) for run %s.",
-                                actual_count,
-                                expected_count,
-                                run.identifier,
-                            )
-                    else:
-                        logging.debug(
-                            "Number of result files received (%d) matches the expected count (%d) for run %s.",
-                            actual_count,
-                            expected_count,
-                            run.identifier,
-                        )
-                else:
-                    logging.debug(
-                        "'%s' not found in run values for run %s.",
-                        VCLOUD_RESULT_FILES_COUNT,
-                        run.identifier,
-                    )
+                # The worker excludes submission-wide stdout/stderr capture files.
+                vcloudutil.check_result_files(
+                    values,
+                    actual_result_files,
+                    run.identifier,
+                    key_prefix="vcloud-",
+                    include_file=lambda name: not name.startswith("cloudBenchmarkOutput-"),
+                )
 
             if os.path.isdir(vcloudFilesDirectory) and not os.path.isdir(
                 benchexecFilesDirectory
