@@ -96,6 +96,7 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
   private String partialOrderReductionAlgorithm = "SPOR";
 
   private final ConcurrentTransferRelation transferRelation;
+  private final ConfigurableProgramAnalysis threadSpecificCPA;
   private final PrecisionAdjustment precisionAdjustment;
   private final LogManager logger;
 
@@ -108,6 +109,7 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
 
     logger = pLogger;
 
+    threadSpecificCPA = new ThreadSpecificCPA(pConfig, pCfa, pLogger);
     PartialOrderReductionStrategy strategy = switch (partialOrderReductionAlgorithm) {
       case "NOPOR" -> ConcurrentState::new;
       case "SPOR" -> SPORConcurrentState::new;
@@ -116,7 +118,7 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
     };
     transferRelation =
         new ConcurrentTransferRelation(
-            pCpa, pConfig, pCfa, strategy, aggregateBasicBlocks, pLogger, new Random(randomSeed));
+            pCpa, threadSpecificCPA, pConfig, pCfa, strategy, aggregateBasicBlocks, pLogger, new Random(randomSeed));
 
     final PrecisionAdjustment wrappedPrecisionAdjustment = pCpa.getPrecisionAdjustment();
     precisionAdjustment =
@@ -236,19 +238,44 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
 
   @Override
   public StopOperator getStopOperator() {
+    final StopOperator threadSpecificStop = threadSpecificCPA.getStopOperator();
+    final Precision threadSpecificPrecision;
+    try {
+      threadSpecificPrecision =
+          threadSpecificCPA.getInitialPrecision(CFANode.newDummyCFANode(),
+              StateSpacePartition.getDefaultPartition());
+    } catch (InterruptedException pE) {
+      throw new IllegalArgumentException("Could not get initial precision for thread-specific CPA");
+    }
     return (state, reached, precision) -> {
-      if (state instanceof ConcurrentState pConcurrentState && precision instanceof ConcurrentPrecision pConcurrentPrecision) {
+      if (state instanceof ConcurrentState concurrentState && precision instanceof ConcurrentPrecision concurrentPrecision) {
         ImmutableList.Builder<AbstractState> builder = ImmutableList.builder();
         for (AbstractState reachedState : reached) {
-          if (reachedState instanceof ConcurrentState pReachedConcurrentState
-              && Objects.equals(pConcurrentState.threads(), pReachedConcurrentState.threads())
-              && Objects.equals(pConcurrentState.livePids(), pReachedConcurrentState.livePids())) {
-            builder.add(pReachedConcurrentState.getWrappedState());
+          if (reachedState instanceof ConcurrentState reachedConcurrentState
+              && Objects.equals(concurrentState.threads().size(), reachedConcurrentState.threads().size())
+              && Objects.equals(concurrentState.livePids(), reachedConcurrentState.livePids())) {
+            boolean allThreadsStop = true;
+            for (var entry : concurrentState.threads.entrySet()) {
+              int pid = entry.getKey();
+              ThreadState reachedThreadState = reachedConcurrentState.threads.get(pid);
+              if (reachedThreadState == null) {
+                allThreadsStop = false;
+                break;
+              }
+              ThreadState threadState = entry.getValue();
+              if (!threadSpecificStop.stop(threadState.getWrappedState(), List.of(reachedThreadState.getWrappedState()), threadSpecificPrecision)) {
+                allThreadsStop = false;
+                break;
+              }
+            }
+            if (allThreadsStop) {
+              builder.add(reachedConcurrentState.getWrappedState());
+            }
           }
         }
         return getWrappedCpa()
             .getStopOperator()
-            .stop(pConcurrentState.getWrappedState(), builder.build(), pConcurrentPrecision.getWrappedPrecision());
+            .stop(concurrentState.getWrappedState(), builder.build(), concurrentPrecision.getWrappedPrecision());
       }
       return false;
     };

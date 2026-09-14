@@ -38,4 +38,21 @@ public final class ThreadState extends AbstractSingleWrapperState implements Abs
     return locationState.getLocationNode();
   }
 
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null || getClass() != obj.getClass()) {
+      return false;
+    }
+
+    ThreadState other = (ThreadState) obj;
+    return getWrappedState().equals(other.getWrappedState());
+  }
+
+  @Override
+  public int hashCode() {
+    return getWrappedState().hashCode();
+  }
 }

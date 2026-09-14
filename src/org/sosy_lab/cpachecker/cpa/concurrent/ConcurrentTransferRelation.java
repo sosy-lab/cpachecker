@@ -103,6 +103,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
 
   public ConcurrentTransferRelation(
       ConfigurableProgramAnalysis wrappedCpa,
+      ConfigurableProgramAnalysis pThreadSpecificCPA,
       Configuration pConfig,
       CFA pCfa,
       PartialOrderReductionStrategy pPor,
@@ -113,7 +114,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
     wrappedTransferRelation = wrappedCpa.getTransferRelation();
 
     // Construct thread specific CPA
-    threadSpecificCPA = new ThreadSpecificCPA(pConfig, pCfa, pLogger);
+    threadSpecificCPA = pThreadSpecificCPA;
     threadSpecificTransferRelation = threadSpecificCPA.getTransferRelation();
     threadSpecificUnitPrecision =
         threadSpecificCPA.getInitialPrecision(CFANode.newDummyCFANode(),

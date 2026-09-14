@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 /**
  * Interface for a partial order reduction algorithm that guides the state space exploration.
  */
-interface PartialOrderReductionStrategy {
+public interface PartialOrderReductionStrategy {
 
   ConcurrentState getDynamicThreadState(
       AbstractState pWrappedState,
