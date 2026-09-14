@@ -27,27 +27,27 @@ public enum YAMLWitnessVersion {
   }
 
   /**
-   * The kinds of information which the invariant set of a correctness witness in this format
+   * The types of information which the invariant set of a correctness witness in this format
    * version may contain.
    *
    * <p>Version 2.0 only knows loop and location invariants, transition invariants and function
    * contracts were added in version 2.1.
    *
-   * @return the kinds this version supports, in the declaration order of {@link
-   *     WitnessInvariantKind}
+   * @return the types this version supports, in the declaration order of {@link
+   *     WitnessInvariantType}
    */
-  public ImmutableSet<WitnessInvariantKind> supportedInvariantKinds() {
+  public ImmutableSet<WitnessInvariantType> supportedInvariantTypes() {
     return switch (this) {
       case V2 ->
           Sets.immutableEnumSet(
-              WitnessInvariantKind.LOOP_INVARIANT, WitnessInvariantKind.LOCATION_INVARIANT);
+              WitnessInvariantType.LOOP_INVARIANT, WitnessInvariantType.LOCATION_INVARIANT);
       case V2d1, V2d2 ->
           Sets.immutableEnumSet(
-              WitnessInvariantKind.LOOP_INVARIANT,
-              WitnessInvariantKind.LOCATION_INVARIANT,
-              WitnessInvariantKind.LOOP_TRANSITION_INVARIANT,
-              WitnessInvariantKind.LOCATION_TRANSITION_INVARIANT,
-              WitnessInvariantKind.FUNCTION_CONTRACT);
+              WitnessInvariantType.LOOP_INVARIANT,
+              WitnessInvariantType.LOCATION_INVARIANT,
+              WitnessInvariantType.LOOP_TRANSITION_INVARIANT,
+              WitnessInvariantType.LOCATION_TRANSITION_INVARIANT,
+              WitnessInvariantType.FUNCTION_CONTRACT);
     };
   }
 

@@ -97,12 +97,12 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
 
   private final RelevantArgStatesCollector argStatesCollector;
 
-  /** The kinds of information which are exported into the witness of each requested version. */
-  private final ImmutableMap<YAMLWitnessVersion, ImmutableSet<WitnessInvariantKind>>
-      kindsPerVersion;
+  /** The types of information which are exported into the witness of each requested version. */
+  private final ImmutableMap<YAMLWitnessVersion, ImmutableSet<WitnessInvariantType>>
+      typesPerVersion;
 
-  /** The kinds of information which are exported into at least one of the requested versions. */
-  private final ImmutableSet<WitnessInvariantKind> exportedKinds;
+  /** The types of information which are exported into at least one of the requested versions. */
+  private final ImmutableSet<WitnessInvariantType> exportedTypes;
 
   public ARGToCorrectnessWitnessV2(
       Configuration pConfig,
@@ -115,26 +115,26 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
     pConfig.inject(this, ARGToCorrectnessWitnessV2.class);
     argStatesCollector = pArgStatesCollector;
 
-    ImmutableSet.Builder<WitnessInvariantKind> requested = ImmutableSet.builder();
+    ImmutableSet.Builder<WitnessInvariantType> requested = ImmutableSet.builder();
     if (exportLoopInvariants) {
-      requested.add(WitnessInvariantKind.LOOP_INVARIANT);
+      requested.add(WitnessInvariantType.LOOP_INVARIANT);
     }
     if (exportLocationInvariants) {
-      requested.add(WitnessInvariantKind.LOCATION_INVARIANT);
+      requested.add(WitnessInvariantType.LOCATION_INVARIANT);
     }
     if (exportFunctionContracts) {
-      requested.add(WitnessInvariantKind.FUNCTION_CONTRACT);
+      requested.add(WitnessInvariantType.FUNCTION_CONTRACT);
     }
-    ImmutableSet<WitnessInvariantKind> requestedKinds = requested.build();
+    ImmutableSet<WitnessInvariantType> requestedTypes = requested.build();
 
-    // Restrict the requested kinds to the ones the respective witness version can represent, so
+    // Restrict the requested types to the ones the respective witness version can represent, so
     // that every exported witness is valid for the version it declares. Warn about this here, since
     // both the options and the versions are known once and the export itself may happen repeatedly.
-    ImmutableMap.Builder<YAMLWitnessVersion, ImmutableSet<WitnessInvariantKind>> kinds =
+    ImmutableMap.Builder<YAMLWitnessVersion, ImmutableSet<WitnessInvariantType>> types =
         ImmutableMap.builder();
     for (YAMLWitnessVersion witnessVersion : ImmutableSet.copyOf(witnessVersions)) {
-      ImmutableSet<WitnessInvariantKind> supported = witnessVersion.supportedInvariantKinds();
-      SetView<WitnessInvariantKind> skipped = Sets.difference(requestedKinds, supported);
+      ImmutableSet<WitnessInvariantType> supported = witnessVersion.supportedInvariantTypes();
+      SetView<WitnessInvariantType> skipped = Sets.difference(requestedTypes, supported);
       if (!skipped.isEmpty()) {
         logger.logf(
             Level.WARNING,
@@ -143,10 +143,10 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
             witnessVersion,
             skipped);
       }
-      kinds.put(witnessVersion, Sets.intersection(requestedKinds, supported).immutableCopy());
+      types.put(witnessVersion, Sets.intersection(requestedTypes, supported).immutableCopy());
     }
-    kindsPerVersion = kinds.buildOrThrow();
-    exportedKinds = ImmutableSet.copyOf(Iterables.concat(kindsPerVersion.values()));
+    typesPerVersion = types.buildOrThrow();
+    exportedTypes = ImmutableSet.copyOf(Iterables.concat(typesPerVersion.values()));
   }
 
   /** Export some information to the user about the guarantees provided by the witness. */
@@ -200,11 +200,11 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
       throws InterruptedException, IOException, ReportingMethodNotImplementedException {
 
     // The entries are created only once, even when several versions are exported
-    CollectedInvariants invariants = createInvariantEntries(pRootState, exportedKinds);
+    CollectedInvariants invariants = createInvariantEntries(pRootState, exportedTypes);
 
     ImmutableSet.Builder<YAMLWitnessVersion> versionsWithFailedTranslation = ImmutableSet.builder();
-    for (Entry<YAMLWitnessVersion, ImmutableSet<WitnessInvariantKind>> version :
-        kindsPerVersion.entrySet()) {
+    for (Entry<YAMLWitnessVersion, ImmutableSet<WitnessInvariantType>> version :
+        typesPerVersion.entrySet()) {
       exportEntries(
           new InvariantSetEntry(
               getMetadata(version.getKey()), invariants.entriesFor(version.getValue())),
@@ -385,83 +385,83 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
   }
 
   /**
-   * The entries created for one ARG, grouped by the kind of information they contain.
+   * The entries created for one ARG, grouped by the type of information they contain.
    *
-   * @param entriesPerKind the created entries for each kind
-   * @param kindsWithFailedTranslation the kinds for which at least one translation from internal
+   * @param entriesPerType the created entries for each type
+   * @param typesWithFailedTranslation the types for which at least one translation from internal
    *     ARG states to strings was not successful
    */
   record CollectedInvariants(
-      ImmutableListMultimap<WitnessInvariantKind, AbstractInvariantEntry> entriesPerKind,
-      ImmutableSet<WitnessInvariantKind> kindsWithFailedTranslation) {
+      ImmutableListMultimap<WitnessInvariantType, AbstractInvariantEntry> entriesPerType,
+      ImmutableSet<WitnessInvariantType> typesWithFailedTranslation) {
 
-    /** The entries of the given kinds, in the declaration order of {@link WitnessInvariantKind}. */
-    ImmutableList<AbstractInvariantEntry> entriesFor(Set<WitnessInvariantKind> pKinds) {
+    /** The entries of the given types, in the declaration order of {@link WitnessInvariantType}. */
+    ImmutableList<AbstractInvariantEntry> entriesFor(Set<WitnessInvariantType> pTypes) {
       ImmutableList.Builder<AbstractInvariantEntry> entries = ImmutableList.builder();
-      for (WitnessInvariantKind kind : WitnessInvariantKind.values()) {
-        if (pKinds.contains(kind)) {
-          entries.addAll(entriesPerKind.get(kind));
+      for (WitnessInvariantType invariantType : WitnessInvariantType.values()) {
+        if (pTypes.contains(invariantType)) {
+          entries.addAll(entriesPerType.get(invariantType));
         }
       }
       return entries.build();
     }
 
-    boolean translationAlwaysSuccessfulFor(Set<WitnessInvariantKind> pKinds) {
-      return Collections.disjoint(kindsWithFailedTranslation, pKinds);
+    boolean translationAlwaysSuccessfulFor(Set<WitnessInvariantType> pTypes) {
+      return Collections.disjoint(typesWithFailedTranslation, pTypes);
     }
   }
 
   /**
-   * Traverse the ARG and create the entries for the requested kinds of information.
+   * Traverse the ARG and create the entries for the requested types of information.
    *
    * <p>The ARG is traversed only once, independently of how many witness versions are exported from
    * the result.
    *
    * @param pRootState the root state of the ARG
-   * @param pKinds the kinds of information which should be created
+   * @param pTypes the types of information which should be created
    * @return the created entries
    * @throws InterruptedException if the execution is interrupted
    */
-  CollectedInvariants createInvariantEntries(ARGState pRootState, Set<WitnessInvariantKind> pKinds)
+  CollectedInvariants createInvariantEntries(ARGState pRootState, Set<WitnessInvariantType> pTypes)
       throws InterruptedException, ReportingMethodNotImplementedException {
     CollectedARGStates statesCollector = argStatesCollector.getRelevantStates(pRootState);
 
-    ImmutableListMultimap.Builder<WitnessInvariantKind, AbstractInvariantEntry> entries =
+    ImmutableListMultimap.Builder<WitnessInvariantType, AbstractInvariantEntry> entries =
         ImmutableListMultimap.builder();
-    ImmutableSet.Builder<WitnessInvariantKind> kindsWithFailedTranslation = ImmutableSet.builder();
+    ImmutableSet.Builder<WitnessInvariantType> typesWithFailedTranslation = ImmutableSet.builder();
 
-    if (pKinds.contains(WitnessInvariantKind.LOOP_INVARIANT)) {
+    if (pTypes.contains(WitnessInvariantType.LOOP_INVARIANT)) {
       collectInvariants(
           statesCollector.loopInvariants(),
           InvariantRecordType.LOOP_INVARIANT,
           entries,
-          kindsWithFailedTranslation);
+          typesWithFailedTranslation);
     }
 
-    if (pKinds.contains(WitnessInvariantKind.LOCATION_INVARIANT)) {
+    if (pTypes.contains(WitnessInvariantType.LOCATION_INVARIANT)) {
       collectInvariants(
           statesCollector.functionCallInvariants(),
           InvariantRecordType.LOCATION_INVARIANT,
           entries,
-          kindsWithFailedTranslation);
+          typesWithFailedTranslation);
     }
 
-    if (pKinds.contains(WitnessInvariantKind.FUNCTION_CONTRACT)) {
+    if (pTypes.contains(WitnessInvariantType.FUNCTION_CONTRACT)) {
       ImmutableList<FunctionContractCreationResult> contracts =
           createFunctionContracts(
               statesCollector.functionContractRequires(),
               statesCollector.functionContractEnsures());
       entries.putAll(
-          WitnessInvariantKind.FUNCTION_CONTRACT,
+          WitnessInvariantType.FUNCTION_CONTRACT,
           FluentIterable.from(contracts)
               .transform(FunctionContractCreationResult::functionContractEntry));
       if (!FluentIterable.from(contracts)
           .allMatch(FunctionContractCreationResult::translationSuccessful)) {
-        kindsWithFailedTranslation.add(WitnessInvariantKind.FUNCTION_CONTRACT);
+        typesWithFailedTranslation.add(WitnessInvariantType.FUNCTION_CONTRACT);
       }
     }
 
-    return new CollectedInvariants(entries.build(), kindsWithFailedTranslation.build());
+    return new CollectedInvariants(entries.build(), typesWithFailedTranslation.build());
   }
 
   /**
@@ -471,31 +471,34 @@ public class ARGToCorrectnessWitnessV2 extends AbstractYAMLWitnessExporter {
    * @param pStates the ARG states to over approximate, per node
    * @param pType the type of the invariants to create
    * @param pEntries where to add the created invariants
-   * @param pKindsWithFailedTranslation where to note the kind if a translation was not successful
+   * @param pTypesWithFailedTranslation where to note the type if a translation was not successful
    * @throws InterruptedException if the execution is interrupted
    */
   private void collectInvariants(
       Multimap<CFANode, ARGState> pStates,
       InvariantRecordType pType,
-      ImmutableListMultimap.Builder<WitnessInvariantKind, AbstractInvariantEntry> pEntries,
-      ImmutableSet.Builder<WitnessInvariantKind> pKindsWithFailedTranslation)
+      ImmutableListMultimap.Builder<WitnessInvariantType, AbstractInvariantEntry> pEntries,
+      ImmutableSet.Builder<WitnessInvariantType> pTypesWithFailedTranslation)
       throws InterruptedException, ReportingMethodNotImplementedException {
-    WitnessInvariantKind kind = WitnessInvariantKind.of(pType).orElseThrow();
+    WitnessInvariantType invariantType = WitnessInvariantType.of(pType).orElseThrow();
     boolean translationSuccessful = true;
     for (CFANode node : pStates.keySet()) {
       Optional<FileLocation> location = locationOfInvariant(node, pType);
       if (location.isEmpty()) {
         logger.logf(
-            Level.FINE, "Could not determine the location of node %s, skipping its %s", node, kind);
+            Level.FINE,
+            "Could not determine the location of node %s, skipping its %s",
+            node,
+            invariantType);
         continue;
       }
       InvariantCreationResult invariant =
           createInvariant(pStates.get(node), node, pType, location.orElseThrow());
-      pEntries.put(kind, invariant.invariantEntry());
+      pEntries.put(invariantType, invariant.invariantEntry());
       translationSuccessful &= invariant.translationSuccessful();
     }
     if (!translationSuccessful) {
-      pKindsWithFailedTranslation.add(kind);
+      pTypesWithFailedTranslation.add(invariantType);
     }
   }
 

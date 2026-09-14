@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.WitnessInvariantKind;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.WitnessInvariantType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessVersion;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchangeFormatTransformer.ParsedInvariantSet;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.ParsedInvariant;
@@ -40,9 +40,9 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
  * Parser building a witness automaton from a correctness witness in one of the YAML witness format
  * versions 2.0, 2.1 or 2.2.
  *
- * <p>The versions differ only in which kinds of invariants they may contain. Instead of modelling
+ * <p>The versions differ only in which types of invariants they may contain. Instead of modelling
  * each version with its own subclass, this parser asks the {@link YAMLWitnessVersion} it was
- * created for whether a given kind may be used. This keeps the shared logic in a single place and
+ * created for whether a given type may be used. This keeps the shared logic in a single place and
  * makes the version-specific behavior explicit at the point where it matters.
  *
  * <p>The resulting automaton contains a single state and each invariant is marked as such on a
@@ -131,26 +131,26 @@ class AutomatonWitnessCorrectnessV2Parser extends AutomatonWitnessV2ParserCommon
         continue;
       }
 
-      WitnessInvariantKind kind =
-          WitnessInvariantKind.of(invariant.type())
+      WitnessInvariantType invariantType =
+          WitnessInvariantType.of(invariant.type())
               .orElseThrow(
                   () ->
                       new WitnessParseException(
                           "The witness contains an invariant of the unsupported type "
                               + invariant.entry().getType()
                               + "!"));
-      if (!version.supportedInvariantKinds().contains(kind)) {
+      if (!version.supportedInvariantTypes().contains(invariantType)) {
         throw new WitnessParseException(
             "A witness in version "
                 + version
-                + " cannot contain invariants of the kind "
-                + kind
+                + " cannot contain invariants of the type "
+                + invariantType
                 + "!");
       }
 
       // Where in the program the invariant has to hold
       Optional<AutomatonBoolExpr> location =
-          switch (kind) {
+          switch (invariantType) {
             case LOOP_INVARIANT, LOOP_TRANSITION_INVARIANT -> loopHeadCheck(invariant);
             case LOCATION_INVARIANT, LOCATION_TRANSITION_INVARIANT -> statementCheck(invariant);
             case FUNCTION_CONTRACT ->
@@ -160,7 +160,7 @@ class AutomatonWitnessCorrectnessV2Parser extends AutomatonWitnessV2ParserCommon
         continue;
       }
 
-      if (kind.isTransitionInvariant()) {
+      if (invariantType.isTransitionInvariant()) {
         // The validation currently does not make use of the automaton structure, but this opens
         // the possibility of creating a validation technique based on our CPA analyses.
         transitions.add(

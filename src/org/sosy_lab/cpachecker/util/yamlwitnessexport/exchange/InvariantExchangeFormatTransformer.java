@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.WitnessInvariantKind;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.WitnessInvariantType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInformationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractEntry;
@@ -115,8 +115,8 @@ public class InvariantExchangeFormatTransformer {
         Optional.ofNullable(pInvariantEntry.getLocation().getFunction());
     String invariantString = pInvariantEntry.getValue();
     ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> previousValueVariables = ImmutableMap.of();
-    if (WitnessInvariantKind.of(InvariantRecordType.fromKeyword(pInvariantEntry.getType()))
-        .map(WitnessInvariantKind::isTransitionInvariant)
+    if (WitnessInvariantType.of(InvariantRecordType.fromKeyword(pInvariantEntry.getType()))
+        .map(WitnessInvariantType::isTransitionInvariant)
         .orElse(false)) {
       invariantString = replacePrevKeywordWithFreshVariables(pInvariantEntry);
       // This adds declarations of the fresh variables to the CFA and must happen only once

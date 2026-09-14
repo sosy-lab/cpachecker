@@ -13,7 +13,7 @@ import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.WitnessInvariantKind;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.WitnessInvariantType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
 
@@ -64,8 +64,8 @@ public record ParsedInvariant(
    * variables. Transition invariants do, the invariants describing a state of the program do not.
    */
   public boolean isTransitionInvariant() {
-    return WitnessInvariantKind.of(type())
-        .map(WitnessInvariantKind::isTransitionInvariant)
+    return WitnessInvariantType.of(type())
+        .map(WitnessInvariantType::isTransitionInvariant)
         .orElse(false);
   }
 }

@@ -14,14 +14,14 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
 
 /**
- * The kinds of information which the invariant set of a correctness witness can contain.
+ * The types of information which the invariant set of a correctness witness can contain.
  *
  * <p>This is a selector used to decide which information is exported into a witness and which
  * information a witness of a given {@link YAMLWitnessVersion} may contain. The keywords used in the
  * witness itself are not part of this enum, they belong to {@link InvariantRecordType} and {@link
  * FunctionContractEntry}.
  */
-public enum WitnessInvariantKind {
+public enum WitnessInvariantType {
   LOOP_INVARIANT,
   LOCATION_INVARIANT,
   LOOP_TRANSITION_INVARIANT,
@@ -29,7 +29,7 @@ public enum WitnessInvariantKind {
   FUNCTION_CONTRACT;
 
   /**
-   * Whether invariants of this kind describe a transition of the program instead of a state of it.
+   * Whether invariants of this type describe a transition of the program instead of a state of it.
    * They may refer to previous values of variables.
    */
   public boolean isTransitionInvariant() {
@@ -37,12 +37,12 @@ public enum WitnessInvariantKind {
   }
 
   /**
-   * The kind of the given invariant type, as it is used inside an {@link InvariantEntry}.
+   * The type as it is used inside an {@link InvariantEntry}, as a {@link WitnessInvariantType}.
    *
    * @param pType the type of an invariant entry
-   * @return the matching kind, or an empty Optional if the type is not known
+   * @return the matching type, or an empty Optional if the type is not known
    */
-  public static Optional<WitnessInvariantKind> of(InvariantRecordType pType) {
+  public static Optional<WitnessInvariantType> of(InvariantRecordType pType) {
     return switch (pType) {
       case LOOP_INVARIANT -> Optional.of(LOOP_INVARIANT);
       case LOCATION_INVARIANT -> Optional.of(LOCATION_INVARIANT);
