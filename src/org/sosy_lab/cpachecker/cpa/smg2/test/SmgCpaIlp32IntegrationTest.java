@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.test;
 
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 
 /**
  * Test class to execute the SMG2-CPA with ILP32 test programs. All programs listed here are
@@ -18,6 +20,11 @@ import org.junit.Test;
  * based Value Analysis.
  */
 public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
+
+  @BeforeClass
+  public static void skipUnlessExtendedTestsEnabled() {
+    IntegrationTestRunner.skipUnlessExtendedTestsEnabled();
+  }
 
   @Ignore // Arrays have a problem in SMG2 currently
   @Test

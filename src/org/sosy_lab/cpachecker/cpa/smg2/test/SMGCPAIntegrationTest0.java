@@ -25,10 +25,12 @@ import com.google.common.truth.Subject;
 import com.google.common.truth.TruthJUnit;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
@@ -40,10 +42,20 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.SegmentRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointAction;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointType;
 
 /**
  * Base class to execute common configurations of the SMG2-CPA with test programs for multiple
@@ -51,11 +63,6 @@ import org.sosy_lab.cpachecker.util.test.TestUtils;
  */
 @RunWith(Parameterized.class)
 public abstract class SMGCPAIntegrationTest0 {
-
-  @BeforeClass
-  public static void skipUnlessExtendedTestsEnabled() {
-    IntegrationTestRunner.skipUnlessExtendedTestsEnabled();
-  }
 
   enum WitnessType {
     GRAPHML_VIOLATION {
@@ -65,7 +72,12 @@ public abstract class SMGCPAIntegrationTest0 {
       }
     },
     GRAPHML_CORRECTNESS,
-    YML_VIOLATION,
+    YML_VIOLATION {
+      @Override
+      public String toString() {
+        return "witness.yml";
+      }
+    },
     YML_CORRECTNESS
   }
 
@@ -121,7 +133,7 @@ public abstract class SMGCPAIntegrationTest0 {
     return params;
   }
 
-  private static String addProgramPathPrefixIfNeeded(String programPath) {
+  protected static String addProgramPathPrefixIfNeeded(String programPath) {
     if (!programPath.startsWith(TEST_PROGRAM_COMMON_PREFIX)) {
       return TEST_PROGRAM_COMMON_PREFIX + programPath;
     }
@@ -284,6 +296,71 @@ public abstract class SMGCPAIntegrationTest0 {
       returnsWitnessContaining(stringContainedInWitness, GRAPHML_VIOLATION);
     }
 
+    /**
+     * Checks that the analysis result is unsafe and its YAML violation witness has one target
+     * waypoint in the final segment at the given original-input source location.
+     *
+     * <p>The target description must name the expected violated subproperty. The target has action
+     * {@code FOLLOW} and no constraint. The single-target requirement is specific to the sequential
+     * test programs currently covered by this assertion.
+     */
+    public void returnsViolationWitnessWithTargetAt(
+        String pExpectedSubproperty, int pExpectedLine, int pExpectedColumn) throws Exception {
+      IntegrationTestResult result = runAnalysisWithOutputFiles();
+      try (CPAcheckerResult analysisResult = result.cpaCheckerResult()) {
+        result.assertIsUnsafe();
+        verifyTargetSubproperty(analysisResult, pExpectedSubproperty);
+        analysisResult.writeOutputFiles();
+
+        Path witnessPath = getDefaultWitnessOutputPathFor(WitnessType.YML_VIOLATION);
+        checkWitnessOutputCorrectness(result, witnessPath);
+        List<AbstractEntry> entries;
+        try (InputStream witnessInput = Files.newInputStream(witnessPath)) {
+          entries = AutomatonWitnessV2ParserUtils.parseYAML(witnessInput);
+        }
+
+        assertThat(entries).hasSize(1);
+        assertThat(entries.getFirst()).isInstanceOf(ViolationSequenceEntry.class);
+        ViolationSequenceEntry violationSequence = (ViolationSequenceEntry) entries.getFirst();
+        assertThat(violationSequence.getContent()).isNotEmpty();
+
+        SegmentRecord finalSegment = violationSequence.getContent().getLast();
+        List<WaypointRecord> targetWaypoints = new ArrayList<>();
+        for (WaypointRecord waypoint : finalSegment.getSegment()) {
+          if (waypoint.getType() == WaypointType.TARGET) {
+            targetWaypoints.add(waypoint);
+          }
+        }
+
+        assertThat(targetWaypoints).hasSize(1);
+        WaypointRecord targetWaypoint = targetWaypoints.getFirst();
+        assertThat(targetWaypoint.getAction()).isEqualTo(WaypointAction.FOLLOW);
+        assertThat(targetWaypoint.getConstraint()).isNull();
+        assertThat(Path.of(targetWaypoint.getLocation().getFileName()).toAbsolutePath().normalize())
+            .isEqualTo(Path.of(programPath).toAbsolutePath().normalize());
+        assertThat(targetWaypoint.getLocation().getLine()).isEqualTo(pExpectedLine);
+        assertThat(targetWaypoint.getLocation().getColumn().isPresent()).isTrue();
+        assertThat(targetWaypoint.getLocation().getColumn().getAsInt()).isEqualTo(pExpectedColumn);
+      }
+    }
+
+    private void verifyTargetSubproperty(
+        CPAcheckerResult pAnalysisResult, String pExpectedSubproperty) {
+      UnmodifiableReachedSet reachedSet = checkNotNull(pAnalysisResult.getReached());
+      List<String> targetDescriptions = new ArrayList<>();
+      String expectedPrefix = pExpectedSubproperty + ":";
+      for (TargetInformation targetInformation : reachedSet.getTargetInformation()) {
+        String targetDescription = targetInformation.toString();
+        targetDescriptions.add(targetDescription);
+        if (targetDescription.startsWith(expectedPrefix)) {
+          return;
+        }
+      }
+      failWithoutActual(
+          Fact.fact("target description expected to start with", expectedPrefix),
+          Fact.fact("available target descriptions", targetDescriptions));
+    }
+
     private void returnsWitnessContaining(String stringContainedInWitness, WitnessType witnessType)
         throws Exception {
       IntegrationTestResult res = runAnalysisWithOutputFiles();
@@ -291,9 +368,9 @@ public abstract class SMGCPAIntegrationTest0 {
       // TODO: do we need statistics?
       // res.getCheckerResult().printStatistics(statisticsStream);
       res.cpaCheckerResult().writeOutputFiles();
-      String witness =
-          getWitnessContentCheckingOutputCorrectness(
-              res, getDefaultWitnessOutputPathFor(witnessType));
+      Path witnessPath = getDefaultWitnessOutputPathFor(witnessType);
+      checkWitnessOutputCorrectness(res, witnessPath);
+      String witness = checkNotNull(Files.readString(witnessPath));
 
       assertThat(witness).contains("<data key=\"sourcecodelang\">C</data>");
       assertThat(witness).contains("<data key=\"witness-type\">violation_witness</data>");
@@ -338,8 +415,8 @@ public abstract class SMGCPAIntegrationTest0 {
       return Path.of(tempFolder.getRoot().getAbsolutePath(), witnessTypeForName.toString());
     }
 
-    private String getWitnessContentCheckingOutputCorrectness(
-        IntegrationTestResult pResult, Path pWitnessOutputPath) throws IOException {
+    private void checkWitnessOutputCorrectness(
+        IntegrationTestResult pResult, Path pWitnessOutputPath) {
 
       // No CFA -> no witness
       CFA cfa = pResult.cpaCheckerResult().getCfa();
@@ -351,10 +428,6 @@ public abstract class SMGCPAIntegrationTest0 {
       if (!Files.exists(pWitnessOutputPath)) {
         failWithoutActual(Fact.fact("No witness could be found using path", pWitnessOutputPath));
       }
-
-      // Read entire file content as a single string (UTF-8)
-      // This is safe to do, since the witness files are small.
-      return checkNotNull(Files.readString(pWitnessOutputPath));
     }
 
     private IntegrationTestResult runAnalysis() throws Exception {
