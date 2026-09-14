@@ -10,17 +10,18 @@
 
 import ast
 import copy
-from enum import Enum
 import getopt
 import json
 import logging
-from mpi4py import MPI
 import os
 import signal
 import socket
 import subprocess
 import sys
 import threading
+from enum import Enum
+
+from mpi4py import MPI
 
 # MPI message tags
 tags = Enum("Status", "READY DONE")
@@ -49,8 +50,6 @@ class MPIMain:
     """
 
     comm = MPI.COMM_WORLD
-    input_args = {}
-    analysis_param = {}
 
     run_subanalysis = False
     process = None
@@ -61,6 +60,8 @@ class MPIMain:
     main_node_network_config = None
 
     def __init__(self, argv):
+        self.input_args = {}
+        self.analysis_param = {}
         self.setup_mpi()
         self.setup_logger()
         self.parse_input_args(argv)
@@ -84,14 +85,14 @@ class MPIMain:
         global logger
 
         class InfoFilter(logging.Filter):
-            def filter(self, rec):  # noqa: A003
+            def filter(self, rec):
                 return rec.levelno in (logging.DEBUG, logging.INFO)
 
         if logger is None:
             logger = logging.getLogger(__name__)
 
         logging_format = logging.Formatter(
-            fmt="Rank {} - %(asctime)s - %(levelname)-9s %(message)s".format(self.rank),
+            fmt=f"Rank {self.rank} - %(asctime)s - %(levelname)-9s %(message)s",
             datefmt="%H:%M:%S",
         )
 
@@ -111,7 +112,7 @@ class MPIMain:
     def parse_input_args(self, argv):
         # TODO: use argparse for parsing input
         try:
-            opts, args = getopt.getopt(argv, "di:w", ["input="])
+            opts, _args = getopt.getopt(argv, "di:w", ["input="])
         except getopt.GetoptError:
             logger.exception(
                 "Unable to parse user input. Usage: %s -d -i <input>", __file__
@@ -205,7 +206,7 @@ class MPIMain:
             logger.debug("event set? %s", event_listener.isSet())
 
     def broadcast_except_to_self(self, data, tag):
-        for i in range(0, self.size):
+        for i in range(self.size):
             if self.rank != i:
                 self.comm.send(data, dest=i, tag=tag)
 
@@ -215,7 +216,7 @@ class MPIMain:
         result = [x for x in data if x.startswith("Verification result: ")]
         if len(result) == 1:
             result = result[0][21:].strip()
-            if result.startswith("TRUE") or result.startswith("FALSE"):
+            if result.startswith(("TRUE", "FALSE")):
                 status = results.SUCCESS
             else:
                 status = results.UNKNOWN
@@ -258,10 +259,10 @@ class MPIMain:
         cmdline = self.analysis_param[CMDLINE]
         if cmdline is None:
             logger.warning(
-                "Cmdline does not contain any input; nothing to do. ",
-                "This is probably because there are more processors available ",
-                "than analyses to perform.",
-                "Exiting with status 0",
+                "Cmdline does not contain any input; nothing to do. "
+                "This is probably because there are more processors available "
+                "than analyses to perform. "
+                "Exiting with status 0."
             )
             sys.exit(0)
         else:
@@ -274,21 +275,23 @@ class MPIMain:
                 os.makedirs(self.analysis_param[OUTPUT_PATH])
 
             logger.info("Executing cmd: %s", cmdline)
-            with open(self.analysis_param[LOGFILE], "w+", buffering=1) as outputfile:
-                with subprocess.Popen(
+            with (
+                open(self.analysis_param[LOGFILE], "w+", buffering=1) as outputfile,
+                subprocess.Popen(
                     cmdline,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                     universal_newlines=True,
-                ) as self.process:
-                    try:
-                        proc_stdout, _ = self.process.communicate()
-                    except KeyboardInterrupt:
-                        mpi.interrupt_mpi_listener()
+                ) as self.process,
+            ):
+                try:
+                    proc_stdout, _ = self.process.communicate()
+                except KeyboardInterrupt:
+                    mpi.interrupt_mpi_listener()
 
-                    if proc_stdout is not None:
-                        outputfile.write(proc_stdout)
-                        proc_output = proc_stdout.split("\n")
+                if proc_stdout is not None:
+                    outputfile.write(proc_stdout)
+                    proc_output = proc_stdout.split("\n")
 
             logger.info("Process returned with status code %d", self.process.returncode)
             if not self.shutdown_requested:
@@ -300,7 +303,7 @@ class MPIMain:
         logger.debug("Running analysis with number: %d", self.rank)
         analysis_args = None
         if self.rank <= len(self.input_args) - 1:
-            analysis_args = self.input_args.get("Analysis_{}".format(self.rank))
+            analysis_args = self.input_args.get(f"Analysis_{self.rank}")
         if analysis_args is None:
             logger.info("No arguments for the analysis found.")
         else:
@@ -372,7 +375,10 @@ class MPIMain:
                         ),
                     ]
                     logger.debug("Command for scp: %s", scp_cmd)
-                    scp_proc = subprocess.run(scp_cmd)
+                    scp_proc = subprocess.run(
+                        scp_cmd,
+                        check=False,  # TODO add error handling
+                    )
                     logger.debug(
                         "Process for copying the output back to the main node "
                         "completed with status code %d",

@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.common.collect.Collections3.listAndSurroundingElements;
 
 import com.google.common.base.Joiner;
@@ -26,7 +25,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Stream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -300,12 +298,13 @@ public class InterpolationAutomaton {
     }
 
     List<AutomatonTransition> buildInternalTransitions() {
-      Stream<AutomatonBoolExpr> stream =
-          boolExpressions.stream().map(AutomatonBoolExpr.Negation::new);
-      Optional<AutomatonBoolExpr> boolExprOpt = stream.reduce(AutomatonBoolExpr.And::new);
-      verify(boolExprOpt.isPresent());
+      AutomatonBoolExpr boolExprOpt =
+          boolExpressions.stream()
+              .<AutomatonBoolExpr>map(AutomatonBoolExpr.Negation::new)
+              .reduce(AutomatonBoolExpr.And::new)
+              .orElseThrow();
       AutomatonTransition transition =
-          new AutomatonTransition.Builder(boolExprOpt.orElseThrow(), stateName).build();
+          new AutomatonTransition.Builder(boolExprOpt, stateName).build();
 
       transitions.add(transition);
       return ImmutableList.copyOf(transitions);

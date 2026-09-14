@@ -8,10 +8,10 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
@@ -42,9 +42,9 @@ public final class SvLibChoiceStatement extends SvLibControlFlowStatement {
 
   @Override
   public String toASTStringWithoutTags() {
-    return "(choice"
-        + Joiner.on(" ").join(choices.stream().map(SvLibStatement::toASTString).toList())
-        + ")";
+    return choices.stream()
+        .map(SvLibStatement::toASTString)
+        .collect(Collectors.joining(" ", "(choice", ")"));
   }
 
   public ImmutableList<SvLibStatement> getChoices() {

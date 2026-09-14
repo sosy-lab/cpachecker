@@ -19,10 +19,10 @@ import argparse
 import json
 import sys
 import webbrowser
-from pathlib import Path
-from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
+from typing import Any
 
 import networkx as nx
 import pydot
@@ -45,15 +45,15 @@ class Message:
     timestamp: int
     sender_id: str
     message_type: MessageType
-    content: Dict[str, Any]
+    content: dict[str, Any]
     filename: str
-    predecessors: List[str]
-    successors: List[str]
+    predecessors: list[str]
+    successors: list[str]
     code: str
 
     @classmethod
     def from_json(
-        cls, json_data: Dict[str, Any], block_logs: Dict[str, Any]
+        cls, json_data: dict[str, Any], block_logs: dict[str, Any]
     ) -> "Message":
         """Create a Message instance from JSON data."""
         header = json_data["header"]
@@ -110,7 +110,7 @@ Examples:
     return parser
 
 
-def parse_args(argv: List[str]) -> argparse.Namespace:
+def parse_args(argv: list[str]) -> argparse.Namespace:
     """Parse and validate command-line arguments."""
     parser = create_arg_parser()
     args = parser.parse_args(argv)
@@ -130,7 +130,7 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
     return args
 
 
-def load_json_file(json_file: Path) -> Dict[str, Any]:
+def load_json_file(json_file: Path) -> dict[str, Any]:
     """Load and parse a JSON file with error handling."""
     try:
         with open(json_file, encoding=ENCODING) as file:
@@ -138,14 +138,14 @@ def load_json_file(json_file: Path) -> Dict[str, Any]:
     except json.JSONDecodeError as e:
         print(f"WARNING: JSON decoding error in {json_file}: {e}", file=sys.stderr)
         return {}
-    except Exception as e:
+    except OSError as e:
         print(f"WARNING: Error reading {json_file}: {e}", file=sys.stderr)
         return {}
 
 
 def filter_content_by_keys(
-    content: Dict[str, Any], export_keys: List[str]
-) -> Dict[str, Any]:
+    content: dict[str, Any], export_keys: list[str]
+) -> dict[str, Any]:
     """Filter message content based on export keys."""
     if not export_keys:
         return content
@@ -160,9 +160,9 @@ def filter_content_by_keys(
 
 
 def generate_message_html(
-    message: Optional[Dict[str, Any]],
-    block_logs: Dict[str, Any],
-    export_keys: List[str],
+    message: dict[str, Any] | None,
+    block_logs: dict[str, Any],
+    export_keys: list[str],
 ) -> str:
     """Generate HTML representation of a single message."""
     if not message:
@@ -216,7 +216,7 @@ def generate_message_html(
 
 
 def generate_html_table(
-    messages: List[Dict[str, Any]], block_logs: Dict[str, Any], export_keys: List[str]
+    messages: list[dict[str, Any]], block_logs: dict[str, Any], export_keys: list[str]
 ) -> str:
     """Generate HTML table from messages."""
     if not messages:
@@ -327,12 +327,12 @@ def visualize_block_graph(
         (pydot_graph,) = pydot.graph_from_dot_file(str(graph_dot_path))
         pydot_graph.write_png(str(output_path / output_png_name))
         print(f"Block graph visualization saved to {output_path / output_png_name}")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 TODO more specific type
         print(f"WARNING: Failed to generate PNG from DOT file: {e}", file=sys.stderr)
 
 
 def generate_timeline_view(
-    messages: List[Dict[str, Any]], block_logs: Dict[str, Any], export_keys: List[str]
+    messages: list[dict[str, Any]], block_logs: dict[str, Any], export_keys: list[str]
 ) -> str:
     """Generate timeline view HTML where messages are shown chronologically."""
     if not messages:
@@ -435,10 +435,10 @@ def generate_timeline_view(
 
 
 def generate_html_report(
-    messages: List[Dict[str, Any]],
-    block_logs: Dict[str, Any],
+    messages: list[dict[str, Any]],
+    block_logs: dict[str, Any],
     output_path: Path,
-    export_keys: Optional[List[str]] = None,
+    export_keys: list[str] | None = None,
     report_filename: str = "report.html",
 ) -> Path:
     """Generate the complete HTML report with embedded styles and scripts."""
@@ -592,8 +592,8 @@ def load_and_process_messages(
     message_dir: Path,
     block_structure_json: Path,
     output_path: Path,
-    export_keys: Optional[List[str]] = None,
-) -> Optional[Path]:
+    export_keys: list[str] | None = None,
+) -> Path | None:
     """Load messages from directory and generate visualization."""
     all_messages = []
     hash_code = None
@@ -608,7 +608,7 @@ def load_and_process_messages(
             ],
             key=lambda name: name[1:-5] if name[0].isdigit() else name,
         )
-    except Exception as e:
+    except OSError as e:
         print(f"ERROR: Failed to read message directory: {e}", file=sys.stderr)
         return None
 

@@ -12,7 +12,6 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -87,6 +86,8 @@ public class PropertyFileParserTest {
           .put(
               "CHECK( init(main()), LTL( F G (x = 1) ) )",
               new OtherLtlProperty(" F G (x = 1) ")) // TODO should trim
+          // SV-LIB properties
+          .put("CHECK(annotations, all)", CommonVerificationProperty.CORRECT_ANNOTATIONS)
           .buildOrThrow();
 
   private static final String VALID_ASSERT_PROPERTY = "CHECK( init(main()), LTL(G assert) )";
@@ -95,13 +96,7 @@ public class PropertyFileParserTest {
 
   @Test
   public void checkTestCompletness() {
-    Set<Property> allTestedProperties =
-        FluentIterable.from(TEST_PROPERTIES.values())
-            // Correct tags is an internal property and has no true representation in a property
-            // file. This stems from the fact that for SV-LIB the properties are given as part of
-            // the program file.
-            .append(CommonVerificationProperty.CORRECT_TAGS)
-            .toSet();
+    Set<Property> allTestedProperties = ImmutableSet.copyOf(TEST_PROPERTIES.values());
 
     expect
         .withMessage("Please add tests when adding new properties")
@@ -167,7 +162,13 @@ public class PropertyFileParserTest {
             // "CHECK( init(()), LTL(G assert) )", TODO fix
             // "CHECK( init(m(ai)n()), LTL(G assert) )", TODO fix
             "CHECK( LTL(G assert) )",
-            VALID_ASSERT_PROPERTY + "\nCHECK( init(foo()), LTL(G assert) )");
+            VALID_ASSERT_PROPERTY + "\nCHECK( init(foo()), LTL(G assert) )",
+            // no white-space after comma
+            "CHECK(annotations,all)", // TODO accept missing whitespace?
+            // other options than CHECK(annotations,all) do not yet exist
+            "CHECK(annotations, safety)",
+            "CHECK(annotations, liveness)",
+            "CHECK(tags, all)");
 
     for (String fileContent : invalidFiles) {
       PropertyFileParser parser = new PropertyFileParser(CharSource.wrap(fileContent));
@@ -192,7 +193,11 @@ public class PropertyFileParserTest {
             VALID_ASSERT_PROPERTY + "\n#",
             1,
             "#\n# Another comment\n",
-            0);
+            0,
+            // This is a syntactically valid property but semantically
+            // meaningless, since it combines C and SV-LIB properties.
+            VALID_ASSERT_PROPERTY + "\n" + "CHECK(annotations, all)",
+            2);
 
     for (Map.Entry<String, Integer> entry : validFiles.entrySet()) {
       String fileContent = entry.getKey();

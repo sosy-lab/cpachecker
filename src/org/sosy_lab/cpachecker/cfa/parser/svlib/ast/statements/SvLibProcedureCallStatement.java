@@ -8,13 +8,18 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements;
 
+import static com.google.common.collect.FluentIterable.from;
+
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNode;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibProcedureDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSimpleParsingDeclaration;
@@ -63,9 +68,9 @@ public final class SvLibProcedureCallStatement extends SvLibStatement {
     return "(call "
         + procedureDeclaration.getName()
         + " ("
-        + String.join(" ", arguments.stream().map(arg -> arg.toASTString()).toList())
+        + from(arguments).transform(AAstNode::toASTString).join(Joiner.on(" "))
         + ") ("
-        + String.join(" ", returnVariables.stream().map(var -> var.toASTString()).toList())
+        + from(returnVariables).transform(SvLibParsingAstNode::toASTString).join(Joiner.on(" "))
         + "))";
   }
 

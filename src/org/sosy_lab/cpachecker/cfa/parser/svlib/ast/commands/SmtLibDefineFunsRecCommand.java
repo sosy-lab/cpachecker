@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -55,16 +56,13 @@ public final class SmtLibDefineFunsRecCommand implements SmtLibCommand, SvLibCom
   @Override
   public String toASTString() {
     return "(define-funs-rec (("
-        + Joiner.on(") (")
-            .join(
-                functionDeclarations.stream()
-                    .map(
-                        pFunctionDeclaration ->
-                            pFunctionDeclaration.getName()
-                                + pFunctionDeclaration.getType().toASTString())
-                    .toList())
+        + from(functionDeclarations)
+            .transform(
+                pFunctionDeclaration ->
+                    pFunctionDeclaration.getName() + pFunctionDeclaration.getType().toASTString())
+            .join(Joiner.on(") ("))
         + ")) ("
-        + Joiner.on(") (").join(bodies.stream().map(b -> b.toASTString()).toList())
+        + from(bodies).transform(SvLibTerm::toASTString).join(Joiner.on(") ("))
         + "))";
   }
 

@@ -94,7 +94,8 @@ public class DistributedPredicateCPA
     combinePrecisionOperator =
         new CombinePredicatePrecisionOperator(predicateCPA.getSolver().getFormulaManager());
     combineViolationConditionsOperator =
-        new PredicateStateCombineViolationConditionOperator(predicateCPA.getPathFormulaManager());
+        new PredicateStateCombineViolationConditionOperator(
+            predicateCPA.getSolver().getFormulaManager(), predicateCPA.getPathFormulaManager());
   }
 
   @Override

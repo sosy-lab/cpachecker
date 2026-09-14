@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.ImportedBlock;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.inlining.InliningDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
@@ -35,6 +36,7 @@ public class DssDecompositionOptions {
   public enum DecompositionType {
     LINEAR_DECOMPOSITION,
     MERGE_DECOMPOSITION,
+    INLINING_DECOMPOSITION,
     NO_DECOMPOSITION
   }
 
@@ -112,7 +114,16 @@ public class DssDecompositionOptions {
               2,
               largestHorizontalMerge,
               Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
-              allowSingleBlockDecompositionWhenMerging);
+              allowSingleBlockDecompositionWhenMerging,
+              true);
+      case INLINING_DECOMPOSITION ->
+          new MergeBlockNodesDecomposition(
+              new InliningDecomposition(new LinearBlockNodeDecomposition(isBlockEnd)),
+              2,
+              largestHorizontalMerge,
+              Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
+              allowSingleBlockDecompositionWhenMerging,
+              true);
       case NO_DECOMPOSITION -> new SingleBlockDecomposition();
     };
   }
