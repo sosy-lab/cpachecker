@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.base.Joiner;
@@ -517,48 +518,59 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   private WaypointRecord targetWaypoint(CFAEdge pEdge, AstCfaRelation pAstCfaRelation) {
     Specification specification = getSpecification();
     Set<Property> properties = specification.getProperties();
+    // Make sure to never return the wrong waypoint for overflows
+    checkArgument(
+        properties.size() < 2 || !properties.contains(CommonVerificationProperty.OVERFLOW));
 
-    Property property = properties.iterator().next();
-    if (property instanceof CommonVerificationProperty verificationProperty) {
-      if (verificationProperty == CommonVerificationProperty.OVERFLOW) {
-        // The target waypoint needs to point to the full expression which caused the overflow
-        //
-        // If we did not find the closest full expression to the edge this is a bug and should be
-        // fixed, since we need to export the target waypoint to it as defined in the standard. This
-        // is well-defined, since every edge used here contains an operation whose execution causes
-        // an overflow in a C program
-        FileLocation fullExpressionLocation =
-            CFAUtils.getClosestFullExpression((CCfaEdge) pEdge, pAstCfaRelation).orElseThrow();
-
-        return new WaypointRecord(
-            WaypointType.TARGET,
-            WaypointAction.FOLLOW,
-            null,
-            LocationRecord.createLocationRecordAtStart(
-                fullExpressionLocation, pEdge.getPredecessor().getFunction().getOrigName()));
-      } else if (verificationProperty == CommonVerificationProperty.VALID_DEREF) {
-        // MemorySafety: valid-deref
-        // Similar to overflows, we want the full expression, as the witness format currently demands this.
-        FileLocation fullExpressionLocation =
-            CFAUtils.getClosestFullExpression((CCfaEdge) pEdge, pAstCfaRelation).orElseThrow();
-
-        return new WaypointRecord(
-            WaypointType.TARGET,
-            WaypointAction.FOLLOW,
-            null,
-            LocationRecord.createLocationRecordAtStart(
-                fullExpressionLocation, pEdge.getPredecessor().getFunction().getOrigName()));
-
-      } else {
-        // This is well-defined for the reachability property, for all others violation witnesses
-        // are not really well-defined.
-        // MemorySafety valid-free also seems to be happy with this.
-        // We want to return the exact expression of the failing free() for valid-free.
-        return defaultTargetWaypoint(pEdge, pAstCfaRelation);
-      }
+    // If there are ever multiple properties in this set that need to be treated distinctly in
+    // how we return their target waypoints; retrieve the actually violated (sub-)property from the
+    // analysis that reported false and only resolve the target waypoint for that case!
+    if (properties.size() != 1) {
+      return defaultTargetWaypoint(pEdge, pAstCfaRelation);
     }
 
-    return defaultTargetWaypoint(pEdge, pAstCfaRelation);
+    return switch (properties.iterator().next()) {
+      case CommonVerificationProperty verificationProperty
+          when verificationProperty == CommonVerificationProperty.OVERFLOW ->
+          // no-overflow violations need to satisfy this rule:
+          // "The target points to the first character of the statement or full expression whose
+          //    evaluation is sequenced directly before the overflow violation occurs."
+          getFullExpressionLocation(pEdge, pAstCfaRelation);
+
+      // Return statement location as target. This is sufficient for most properties.
+      // In regard to valid-free: the standard says that
+      // "More precisely, the location points at the first character of the statement or
+      //  full expression whose evaluation is sequenced directly before the violation occurs,
+      //  i.e., there is no other evaluation sequenced before the violation and the sequence
+      //  point associated with the location.
+      //  This also implies that it can only point to a function call if it calls a function
+      //  of the C standard library that violates the property or if the function call itself
+      //  is the property violation."
+      // meaning that due to free causing the violation, and it being a C standard function, we
+      // treat it like any other violation.
+      default -> defaultTargetWaypoint(pEdge, pAstCfaRelation);
+    };
+  }
+
+  /**
+   * Returns the {@link WaypointRecord} that points to the full expression of this edge that caused
+   * the property violation, e.g. in no-overflow.
+   */
+  private WaypointRecord getFullExpressionLocation(CFAEdge pEdge, AstCfaRelation pAstCfaRelation) {
+    // If we, for example, want to return the target location for a no-overflow violation:
+    // If we did not find the closest full expression to the edge this is a bug and should be
+    // fixed, since we need to export the target waypoint to it as defined in the standard. This
+    // is well-defined, since every edge used here contains an operation whose execution causes
+    // an e.g. an overflow in a C program
+    FileLocation fullExpressionLocation =
+        CFAUtils.getClosestFullExpression((CCfaEdge) pEdge, pAstCfaRelation).orElseThrow();
+
+    return new WaypointRecord(
+        WaypointType.TARGET,
+        WaypointAction.FOLLOW,
+        null,
+        LocationRecord.createLocationRecordAtStart(
+            fullExpressionLocation, pEdge.getPredecessor().getFunction().getOrigName()));
   }
 
   private boolean hasNoVariables(CExpression pExpression, CFANode pNode) {
