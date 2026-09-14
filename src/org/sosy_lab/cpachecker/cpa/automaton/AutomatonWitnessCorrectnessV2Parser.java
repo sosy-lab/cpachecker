@@ -80,6 +80,8 @@ class AutomatonWitnessCorrectnessV2Parser extends AutomatonWitnessV2ParserCommon
     ParsedInvariantSet contents = transformer.parseInvariantSets(pEntries);
 
     if (!contents.functionContracts().isEmpty()) {
+      // A contract is not an invariant, so it does not pass the check in createTransitions
+      checkSupported(WitnessInvariantType.FUNCTION_CONTRACT);
       // Currently function contracts are unsupported, see issue for the state of this:
       // https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1732
       logger.logf(
@@ -118,6 +120,19 @@ class AutomatonWitnessCorrectnessV2Parser extends AutomatonWitnessV2ParserCommon
   }
 
   /**
+   * Check that a witness of this format version may contain the given type of information at all.
+   *
+   * @param pType the type of information the witness contains
+   * @throws WitnessParseException if this format version does not know this type
+   */
+  private void checkSupported(WitnessInvariantType pType) throws WitnessParseException {
+    if (!version.supportedInvariantTypes().contains(pType)) {
+      throw new WitnessParseException(
+          "A witness in version " + version + " cannot contain a " + pType + "!");
+    }
+  }
+
+  /**
    * Create the transitions which check the invariants of the witness.
    *
    * @param pContents the contents of the invariant sets of the witness
@@ -141,14 +156,7 @@ class AutomatonWitnessCorrectnessV2Parser extends AutomatonWitnessV2ParserCommon
                           "The witness contains an invariant of the unsupported type "
                               + invariant.entry().getType()
                               + "!"));
-      if (!version.supportedInvariantTypes().contains(invariantType)) {
-        throw new WitnessParseException(
-            "A witness in version "
-                + version
-                + " cannot contain invariants of the type "
-                + invariantType
-                + "!");
-      }
+      checkSupported(invariantType);
 
       // Where in the program the invariant has to hold
       Optional<AutomatonBoolExpr> location =
