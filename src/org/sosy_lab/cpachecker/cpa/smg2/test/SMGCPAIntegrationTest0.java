@@ -40,8 +40,8 @@ import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cmdline.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
 import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
-import org.sosy_lab.cpachecker.util.test.TestUtils;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.SegmentRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
@@ -83,24 +82,28 @@ public abstract class SMGCPAIntegrationTest0 {
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
+  protected static final String CPA_CONFIG_COMMON_PREFIX = "config/";
+  protected static final String SPECIFICATION_COMMON_PREFIX = "config/specification/";
+
   /**
    * The default configuration files to use for running SMG2 as Symbolic Execution and Value
    * Analysis
    */
-  private static final String SMG_SYMBOLIC_EXECUTION = "smgSymbolicExecution.properties";
+  protected static final String SMG_SYMBOLIC_EXECUTION = "smgSymbolicExecution.properties";
 
   private static final String SMG_VALUE_ANALYSIS = "smgValueAnalysis.properties";
+  protected static final String SVCOMP27 = "svcomp27.properties";
 
   /** Default, MemSafety, MemCleanup, and No-Overflow specifications are usable with SMG2 */
   private static final String DEFAULT_SPECIFICATION = "default.spc";
 
-  private static final String MEMSAFETY_SPECIFICATION = "memorysafety.spc";
+  protected static final String MEMSAFETY_SPECIFICATION = "memorysafety.spc";
   private static final String MEMCLEANUP_SPECIFICATION = "memorycleanup.spc";
   private static final String OVERFLOW_SPECIFICATION = "overflow.spc";
+  protected static final String VALID_MEMSAFETY_PROPERTY =
+      CPA_CONFIG_COMMON_PREFIX + "properties/valid-memsafety.prp";
 
   private static final String TEST_PROGRAM_COMMON_PREFIX = "test/programs/";
-  private static final String CPA_CONFIG_COMMON_PREFIX = "config/";
-  private static final String SPECIFICATION_COMMON_PREFIX = "config/specification/";
 
   @Parameter(0)
   public String configToUse;
@@ -140,17 +143,12 @@ public abstract class SMGCPAIntegrationTest0 {
     return programPath;
   }
 
-  private static Configuration buildConfigForC(
-      String cpaConfiguration, String specification, MachineModel machineModel)
-      throws IOException, InvalidConfigurationException {
-
-    return TestUtils.configurationForTest()
-        .loadFromFile(CPA_CONFIG_COMMON_PREFIX + cpaConfiguration)
-        .setOption("analysis.machineModel", machineModel.toString())
-        .setOption("language", Language.C.name())
-        .setOption("specification", SPECIFICATION_COMMON_PREFIX + specification)
-        .build();
-  }
+  protected abstract Configuration buildConfiguration(
+      String pProgramPath, MachineModel pMachineModel)
+      throws IOException,
+          InvalidConfigurationException,
+          InvalidCmdlineArgumentException,
+          InterruptedException;
 
   /**
    * Skips all overflow specifications for a test, starting from the position this method is used.
@@ -202,7 +200,10 @@ public abstract class SMGCPAIntegrationTest0 {
    *     'basics/array_tests/array_usage_32_true.c' is equivalent to the previous path.
    */
   protected final ProgramSubject assertThatILP32Program(String pathToProgram)
-      throws IOException, InvalidConfigurationException {
+      throws IOException,
+          InvalidConfigurationException,
+          InvalidCmdlineArgumentException,
+          InterruptedException {
     return assertThatProgram(pathToProgram, MachineModel.LINUX32);
   }
 
@@ -221,14 +222,21 @@ public abstract class SMGCPAIntegrationTest0 {
    *     'basics/array_tests/array_usage_64_true.c' is equivalent to the previous path.
    */
   protected final ProgramSubject assertThatLP64Program(String pathToProgram)
-      throws IOException, InvalidConfigurationException {
+      throws IOException,
+          InvalidConfigurationException,
+          InvalidCmdlineArgumentException,
+          InterruptedException {
     return assertThatProgram(pathToProgram, MachineModel.LINUX64);
   }
 
   private ProgramSubject assertThatProgram(String pathToProgram, MachineModel pMachineModel)
-      throws IOException, InvalidConfigurationException {
-    return assertUsing(buildConfigForC(configToUse, specToUse, pMachineModel), tempFolder)
-        .that(pathToProgram);
+      throws IOException,
+          InvalidConfigurationException,
+          InvalidCmdlineArgumentException,
+          InterruptedException {
+    String programPath = addProgramPathPrefixIfNeeded(pathToProgram);
+    return assertUsing(buildConfiguration(programPath, pMachineModel), tempFolder)
+        .that(programPath);
   }
 
   /**
