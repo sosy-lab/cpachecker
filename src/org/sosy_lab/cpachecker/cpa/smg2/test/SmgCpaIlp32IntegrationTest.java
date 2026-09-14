@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
  * MemSafety, MemCleanup, No-Overflow, in two configurations; SMG based Symbolic Execution and SMG
  * based Value Analysis.
  */
-public class SmgCpaIlp32IntegrationTest extends SMGCPAIntegrationTest0 {
+public class SmgCpaIlp32IntegrationTest extends SMGCPAResultIntegrationTest0 {
 
   @BeforeClass
   public static void skipUnlessExtendedTestsEnabled() {
